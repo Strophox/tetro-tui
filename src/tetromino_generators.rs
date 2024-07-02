@@ -7,21 +7,21 @@ use rand::{
 };
 
 // Uniformly random tetromino generation.
-pub struct Random {
+pub struct RandomGen {
     rng: ThreadRng,
     uniform: Uniform<usize>,
 }
 
-impl Random {
+impl RandomGen {
     pub fn new() -> Self {
-        Random {
+        RandomGen {
             rng: rand::thread_rng(),
             uniform: Uniform::from(0..=6),
         }
     }
 }
 
-impl Iterator for Random {
+impl Iterator for RandomGen {
     type Item = Tetromino;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -33,17 +33,17 @@ impl Iterator for Random {
 // Bag-system for tetromino generation.
 // All 7 tetrominos are put in a bag, shuffled, and handed out; repeat if empty.
 // The bag multiplicity says how many copies of all 7 tetrominos are put in.
-pub struct Bag {
+pub struct BagGen {
     // Invariants: self.leftover.iter().sum::<u32>() > 0
     rng: ThreadRng,
     leftover: [u32; 7],
     bag_multiplicity: u32,
 }
 
-impl Bag {
+impl BagGen {
     pub fn new(n: u32) -> Self {
         assert!(n != 0, "bag multiplicity must be > 0");
-        Bag {
+        BagGen {
             rng: rand::thread_rng(),
             leftover: [n; 7],
             bag_multiplicity: n,
@@ -51,7 +51,7 @@ impl Bag {
     }
 }
 
-impl Iterator for Bag {
+impl Iterator for BagGen {
     type Item = Tetromino;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -68,26 +68,26 @@ impl Iterator for Bag {
 
 // A probabilistic generator that weighs the probabilities by
 // how often a tetromino has appeared compared to the others. 
-pub struct Probabilistic {
+pub struct TotalRelativeProbGen {
     rng: ThreadRng,
     relative_counts: [u32; 7],
 }
 
-impl Probabilistic {
+impl TotalRelativeProbGen {
     pub fn new() -> Self {
-        Probabilistic {
+        TotalRelativeProbGen {
             rng: rand::thread_rng(),
             relative_counts: [0; 7],
         }
     }
 }
 
-impl Iterator for Probabilistic {
+impl Iterator for TotalRelativeProbGen {
     type Item = Tetromino;
 
     fn next(&mut self) -> Option<Self::Item> {
-        // let weight = |&x| 1.0 / (f64::from(x) + 1.0); // x -> 1 / (1 + x)
         let weight = |&x| 1.0 / f64::from(x).exp(); // x -> 1 / exp x
+        // let weight = |&x| 1.0 / (f64::from(x) + 1.0); // x -> 1 / (1 + x)
         let weights = self.relative_counts.iter().map(weight);
         let i = WeightedIndex::new(weights).unwrap().sample(&mut self.rng);
         // Adapt individual tetromino counter and maybe rebalance all relative counts
@@ -98,6 +98,41 @@ impl Iterator for Probabilistic {
                 *x -= min;
             }
         }
+        Some(i.try_into().unwrap()) // Safety: 0 <= n <= 6
+    }
+}
+
+// A probabilistic generator that weighs the probabilities by
+// how recently a tetromino has appeared. 
+pub struct RecencyProbGen {
+    rng: ThreadRng,
+    last_played: [u32; 7],
+}
+
+impl RecencyProbGen {
+    pub fn new() -> Self {
+        RecencyProbGen {
+            rng: rand::thread_rng(),
+            last_played: [1; 7],
+        }
+    }
+}
+
+impl Iterator for RecencyProbGen {
+    type Item = Tetromino;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        // let weight = |x| x; // x -> x
+        // let weight = |&x| f64::from(x).powf(1.5); // x -> x^1.5
+        let weight = |x| x*x; // x -> x^2
+        // let weight = |&x| f64::from(x).exp() - 1.0; // x -> exp x - 1
+        let weights = self.last_played.iter().map(weight);
+        let i = WeightedIndex::new(weights).unwrap().sample(&mut self.rng);
+        // Adapt all tetromino last_played values and maybe rebalance all relative counts
+        for x in self.last_played.iter_mut() {
+            *x += 1;
+        }
+        self.last_played[i] = 0;
         Some(i.try_into().unwrap()) // Safety: 0 <= n <= 6
     }
 }

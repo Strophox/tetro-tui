@@ -22,19 +22,30 @@ fn first_valid_kick(board: Board, old_piece: GamePiece, right_turns: i32, mut ki
     })
 }
 
+pub struct DummyRS;
+impl RotationSystem for DummyRS {
+    fn rotate(board: Board, piece: GamePiece, right_turns: i32) -> Option<GamePiece> {
+        first_valid_kick(board, piece, right_turns, std::iter::once((0,0)))
+    }
+}
+
 pub struct NintendoRS;
 impl RotationSystem for NintendoRS {
     fn rotate(board: Board, piece: GamePiece, right_turns: i32) -> Option<GamePiece> {
         let GamePiece(shape, o, pos) = piece;
         let r = match right_turns.rem_euclid(4) {
+            // No rotation
             0 => return Some(piece),
-            1 => true,
+            // Right rotation
+            1 => true, 
+            // 180 rotation doesn't exist, so we just try default 180 rotation
             2 => return first_valid_kick(board, piece, 2, std::iter::once((0,0))),
+            // Left rotation
             3 => false,
         };
         use Orientation::*;
         let kick = match shape {
-            Tetromino::O => (0,0), // ⠶ -> ⠶
+            Tetromino::O => (0,0), // ⠶
             Tetromino::I => match o {
                 N | S => (2,2), // ⠤⠤ -> ⡇
                 E | W => (-2,-2), // ⡇  -> ⠤⠤
@@ -44,10 +55,10 @@ impl RotationSystem for NintendoRS {
                 E | W => (-1,-1), // ⠳  -> ⠴⠂ // ⠞  -> ⠲⠄
             },
             Tetromino::T | Tetromino::L | Tetromino::J => match o {
-                N => if r {(1,0)} else {(-1,0)}, // ⠴⠄ -> ⠗ // ⠤⠆ -> ⠧ // ⠦⠄ -> ⠏
-                E => if r {(-1,-1)} else {(1,1)}, // ⠗  -> ⠲⠂ // ⠧  -> ⠖⠂ // ⠏  -> ⠒⠆
-                S => if r {(0,1)} else {(0,-1)}, // ⠲⠂ -> ⠺ // ⠖⠂ -> ⠹ // ⠒⠆ -> ⠼
-                W => (0,0), // ⠺  -> ⠴⠄ // ⠹  -> ⠤⠆ // ⠼  -> ⠦⠄
+                N => if r {(1,0)} else {(-1,0)}, // ⠴⠄ <-> ⠗ // ⠤⠆ <-> ⠧ // ⠦⠄ <-> ⠏
+                E => if r {(-1,-1)} else {(1,1)}, // ⠗  <-> ⠲⠂ // ⠧  <-> ⠖⠂ // ⠏  <-> ⠒⠆
+                S => if r {(0,1)} else {(0,-1)}, // ⠲⠂ <-> ⠺ // ⠖⠂ <-> ⠹ // ⠒⠆ <-> ⠼
+                W => (0,0), // ⠺  <-> ⠴⠄ // ⠹  <-> ⠤⠆ // ⠼  <-> ⠦⠄
             },
         };
         first_valid_kick(board, piece, right_turns, std::iter::once(kick))

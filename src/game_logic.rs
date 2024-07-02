@@ -139,7 +139,7 @@ impl Game {
 
     pub fn new() -> Self {
         let time_started = Instant::now();
-        let generator = crate::tetromino_generators::Probabilistic::new();
+        let generator = crate::tetromino_generators::RecencyProbGen::new();
         let preview_size = 1;
         let preview_pieces = generator.take(preview_size).collect();
         Game {
