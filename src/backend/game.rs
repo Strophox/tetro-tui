@@ -1,5 +1,6 @@
+// TODO: Too many (unnecessary) derives for all the structs?
 use std::{
-    collections::VecDeque,
+    collections::{BTreeMap, VecDeque},
     num::NonZeroU64,
     time::{Duration, Instant},
 };
@@ -11,8 +12,9 @@ pub type ButtonChange = ButtonMap<Option<bool>>;
 pub type Board = [[Option<TileTypeID>; Game::WIDTH]; Game::HEIGHT];
 pub type Coord = (usize, usize);
 pub type TileTypeID = u32;
+type EventMap<T> = BTreeMap<TimingEvent, T>;
 
-#[derive(PartialEq, Clone, Copy, Debug)]
+#[derive(Eq, PartialEq, Clone, Copy, Hash, Debug)]
 pub enum Orientation {
     N,
     E,
@@ -20,7 +22,7 @@ pub enum Orientation {
     W,
 }
 
-#[derive(PartialEq, Clone, Copy, Debug)]
+#[derive(Eq, PartialEq, Clone, Copy, Hash, Debug)]
 pub enum Tetromino {
     O,
     I,
@@ -31,10 +33,11 @@ pub enum Tetromino {
     J,
 }
 
+#[derive(Eq, PartialEq, Clone, Copy, Debug)]
 pub(crate) struct ActivePiece(pub Tetromino, pub Orientation, pub Coord);
 
-#[derive(PartialEq, PartialOrd)]
-pub enum Stat {
+#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
+pub enum MeasureStat {
     Lines(u64),
     Level(u64),
     Score(u64),
@@ -42,76 +45,80 @@ pub enum Stat {
     Time(Duration),
 }
 
+// TODO: Manually `impl Eq, PartialEq for Gamemode`?
+#[derive(Eq, PartialEq, Clone, Hash, Debug)]
 pub struct Gamemode {
     name: String,
     start_level: u64,
     increase_level: bool,
-    mode_limit: Option<Stat>,
-    optimize_goal: Stat,
+    mode_limit: Option<MeasureStat>,
+    optimization_goal: MeasureStat,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Eq, PartialEq, Clone, Copy, Hash, Debug)]
 pub enum Button {
     MoveLeft,
     MoveRight,
     RotateLeft,
     RotateRight,
     RotateAround,
-    Drop,
+    DropSoft,
     DropHard,
     Hold,
 }
 
-#[derive(Default, Debug)]
-pub struct ButtonMap<T> {
-    ml: T,
-    mr: T,
-    rl: T,
-    rr: T,
-    ra: T,
-    ds: T,
-    dh: T,
-    h: T,
+#[derive(Eq, PartialEq, Clone, Copy, Hash, Default, Debug)]
+pub struct ButtonMap<T>(T, T, T, T, T, T, T, T);
+
+#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
+enum TimingEvent {
+    Spawn,
+    GroundCap,
+    Lock,
+    HardDrop,
+    SoftDrop,
+    Move,
+    Rotate,
+    Fall, // TODO: Fall timer gets reset upon manual drop.
 }
 
-enum GameState {
-    Finished,
-    Falling,
-    Clearing,
-    // TODO: Complete necessary states (keep in mind timing purposes for Game).
-}
-
+// TODO: `#[derive(Debug)]`.
 pub struct Game {
-    // TODO: soft_drop_factor=20, lock_delay=0.5s etc.. c.f Notes_Tetrs.md.
-    // Main game state fields.
-    state: GameState,
+    // INVARIANT: `finish_status.is_some() || !next_events.is_empty()`, "Until the game has finished there will always be more events".
+    // INVARIANT: `self.next_pieces().size()` stays constant.
+    // Game "state" fields.
+    finish_status: Option<bool>,
+    events: EventMap<Instant>,
     buttons_pressed: ButtonMap<bool>,
     board: Board,
     active_piece: Option<ActivePiece>,
     next_pieces: VecDeque<Tetromino>,
-    level: u64,
-    // Game statistics fields.
-    lines_cleared: u64,
-    score: u64,
-    // Static settings fields.
-    mode: Gamemode,
     time_started: Instant,
     time_updated: Instant,
+    level: u64, // TODO: Make this into NonZeroU64 or explicitly allow level 0.
+    lines_cleared: u64,
+    score: u64,
+    // Game "settings" fields.
+    mode: Gamemode,
     piece_generator: Box<dyn Iterator<Item = Tetromino>>,
     rotate_fn: rotation_systems::RotateFn,
-    preview_size: usize,
+    appearance_delay: Duration,
+    delayed_auto_shift: Duration,
+    auto_repeat_rate: Duration,
+    soft_drop_factor: f64,
+    hard_drop_delay: Duration,
+    ground_time_cap: Duration,
+    line_clear_delay: Duration,
 }
 
-pub struct GameStatistics<'a> {
+#[derive(Eq, PartialEq, Clone, Debug)]
+pub struct GameInfo<'a> {
     gamemode: &'a Gamemode,
     lines_cleared: u64,
     level: u64,
     score: u64,
     time_started: Instant,
     time_updated: Instant,
-}
-
-pub struct GameVisuals<'a> {
     board: &'a Board,
     active_piece: Option<[Coord; 4]>,
     ghost_piece: Option<[Coord; 4]>,
@@ -141,22 +148,21 @@ impl TryFrom<usize> for Tetromino {
     type Error = ();
 
     fn try_from(n: usize) -> Result<Self, Self::Error> {
-        use Tetromino::*;
         Ok(match n {
-            0 => O,
-            1 => I,
-            2 => S,
-            3 => Z,
-            4 => T,
-            5 => L,
-            6 => J,
+            0 => Tetromino::O,
+            1 => Tetromino::I,
+            2 => Tetromino::S,
+            3 => Tetromino::Z,
+            4 => Tetromino::T,
+            5 => Tetromino::L,
+            6 => Tetromino::J,
             _ => Err(())?,
         })
     }
 }
 
 impl ActivePiece {
-    pub fn minos(&self) -> [Coord; 4] {
+    pub fn tiles(&self) -> [Coord; 4] {
         let Self(shape, o, (x, y)) = self;
         use Orientation::*;
         match shape {
@@ -196,7 +202,7 @@ impl ActivePiece {
     }
 
     pub(crate) fn fits(&self, board: Board) -> bool {
-        self.minos()
+        self.tiles()
             .iter()
             .all(|&(x, y)| x < Game::WIDTH && y < Game::HEIGHT && board[y][x].is_none())
     }
@@ -207,8 +213,8 @@ impl Gamemode {
         name: String,
         start_level: NonZeroU64,
         increase_level: bool,
-        mode_limit: Option<Stat>,
-        optimize_goal: Stat,
+        mode_limit: Option<MeasureStat>,
+        optimization_goal: MeasureStat,
     ) -> Self {
         let start_level = start_level.get();
         Self {
@@ -216,7 +222,7 @@ impl Gamemode {
             start_level,
             increase_level,
             mode_limit,
-            optimize_goal,
+            optimization_goal,
         }
     }
 
@@ -226,8 +232,8 @@ impl Gamemode {
             name: String::from("Sprint"),
             start_level,
             increase_level: false,
-            mode_limit: Some(Stat::Lines(40)),
-            optimize_goal: Stat::Time(Duration::ZERO),
+            mode_limit: Some(MeasureStat::Lines(40)),
+            optimization_goal: MeasureStat::Time(Duration::ZERO),
         }
     }
 
@@ -237,8 +243,8 @@ impl Gamemode {
             name: String::from("Ultra"),
             start_level,
             increase_level: false,
-            mode_limit: Some(Stat::Time(Duration::from_secs(3 * 60))),
-            optimize_goal: Stat::Lines(0),
+            mode_limit: Some(MeasureStat::Time(Duration::from_secs(3 * 60))),
+            optimization_goal: MeasureStat::Lines(0),
         }
     }
 
@@ -247,8 +253,8 @@ impl Gamemode {
             name: String::from("Marathon"),
             start_level: 1,
             increase_level: true,
-            mode_limit: Some(Stat::Level(15)), // TODO: This depends on the highest level available.
-            optimize_goal: Stat::Score(0),
+            mode_limit: Some(MeasureStat::Level(30)), // TODO: This depends on the highest level available.
+            optimization_goal: MeasureStat::Score(0),
         }
     }
 
@@ -258,7 +264,7 @@ impl Gamemode {
             start_level: 1,
             increase_level: true,
             mode_limit: None,
-            optimize_goal: Stat::Score(0),
+            optimization_goal: MeasureStat::Score(0),
         }
     }
     // TODO: Gamemode pub fn master() -> Self : 20G gravity mode...
@@ -271,14 +277,14 @@ impl<T> std::ops::Index<Button> for ButtonMap<T> {
 
     fn index(&self, idx: Button) -> &Self::Output {
         match idx {
-            Button::MoveLeft => &self.ml,
-            Button::MoveRight => &self.mr,
-            Button::RotateLeft => &self.rl,
-            Button::RotateRight => &self.rr,
-            Button::RotateAround => &self.ra,
-            Button::Drop => &self.ds,
-            Button::DropHard => &self.dh,
-            Button::Hold => &self.h,
+            Button::MoveLeft => &self.0,
+            Button::MoveRight => &self.1,
+            Button::RotateLeft => &self.2,
+            Button::RotateRight => &self.3,
+            Button::RotateAround => &self.4,
+            Button::DropSoft => &self.5,
+            Button::DropHard => &self.6,
+            Button::Hold => &self.7,
         }
     }
 }
@@ -286,14 +292,14 @@ impl<T> std::ops::Index<Button> for ButtonMap<T> {
 impl<T> std::ops::IndexMut<Button> for ButtonMap<T> {
     fn index_mut(&mut self, idx: Button) -> &mut Self::Output {
         match idx {
-            Button::MoveLeft => &mut self.ml,
-            Button::MoveRight => &mut self.mr,
-            Button::RotateLeft => &mut self.rl,
-            Button::RotateRight => &mut self.rr,
-            Button::RotateAround => &mut self.ra,
-            Button::Drop => &mut self.ds,
-            Button::DropHard => &mut self.dh,
-            Button::Hold => &mut self.h,
+            Button::MoveLeft => &mut self.0,
+            Button::MoveRight => &mut self.1,
+            Button::RotateLeft => &mut self.2,
+            Button::RotateRight => &mut self.3,
+            Button::RotateAround => &mut self.4,
+            Button::DropSoft => &mut self.5,
+            Button::DropHard => &mut self.6,
+            Button::Hold => &mut self.7,
         }
     }
 }
@@ -308,37 +314,37 @@ impl Game {
         let preview_size = 1;
         let next_pieces = generator.by_ref().take(preview_size).collect();
         Game {
-            mode,
-            time_started,
-            time_updated: time_started,
-            piece_generator: Box::new(generator),
-            rotate_fn: rotation_systems::rotate_classic,
-            preview_size,
-
-            state: GameState::Clearing,
-            buttons_pressed: ButtonMap::default(),
+            finish_status: None,
+            events: BTreeMap::from([(TimingEvent::Spawn, time_started)]),
+            buttons_pressed: Default::default(),
             board: Default::default(),
             active_piece: None,
             next_pieces,
-
+            time_started,
+            time_updated: time_started,
+            level: mode.start_level,
             lines_cleared: 0,
-            level: 0,
             score: 0,
+            mode,
+            piece_generator: Box::new(generator),
+            rotate_fn: rotation_systems::rotate_classic,
+            appearance_delay: Duration::from_millis(100),
+            delayed_auto_shift: Duration::from_millis(300),
+            auto_repeat_rate: Duration::from_millis(100),
+            soft_drop_factor: 20.0,
+            hard_drop_delay: Duration::from_micros(100),
+            ground_time_cap: Duration::from_millis(2500),
+            line_clear_delay: Duration::from_millis(200),
         }
     }
 
-    pub fn visuals(&self) -> GameVisuals {
-        GameVisuals {
+    pub fn info(&self) -> GameInfo {
+        GameInfo {
+            // TODO: Return current GameState, timeinterval (so we can render e.g. lineclears with intermediate states).
             board: &self.board,
-            active_piece: self.active_piece.as_ref().map(|p| p.minos()),
+            active_piece: self.active_piece.as_ref().map(|p| p.tiles()),
             ghost_piece: self.ghost_piece(),
             next_pieces: &self.next_pieces,
-            // TODO: Return current GameState, timeinterval (so we can render e.g. lineclears with intermediate states).
-        }
-    }
-
-    pub fn stats(&self) -> GameStatistics {
-        GameStatistics {
             gamemode: &self.mode,
             lines_cleared: self.lines_cleared,
             level: self.level,
@@ -348,9 +354,13 @@ impl Game {
         }
     }
 
-    pub fn update(&mut self, interaction: Option<ButtonChange>, up_to: Instant) -> Option<bool> {
-        todo!() // TODO: Complete state machine.
+    pub fn finish_status(&self) -> Option<bool> {
+        self.finish_status
+    }
 
+    // TODO: Take `self` and don't leave behind `Game` in finished state where `update` can be called but does nothing.
+    pub fn update(&mut self, interaction: Option<ButtonChange>, up_to: Instant) {
+        // TODO: Complete state machine.
         // Handle game over: return immediately
         //
         // Spawn piece
@@ -360,10 +370,74 @@ impl Game {
         // Update score (B2B?? Combos?? Perfect clears??)
         // Update level
         // Return desired next update
+
+        if self.finish_status.is_some() {
+            return;
+        }
+        loop {
+            // SAFETY: `Game` invariant guarantees there's some event.
+            let (event, time) = self.events.iter().min_by_key(|(_, &time)| time).unwrap();
+            // Next event would be beyond desired point in time up to which update is requested, break out.
+            if up_to < *time {
+                // Update button inputs
+                if let Some(button_change) = interaction {
+                    // TODO: Update `ButtonMap`.
+                    // Button::MoveLeft
+                    // Button::MoveRight
+                    // Button::RotateLeft
+                    // Button::RotateRight
+                    // Button::RotateAround
+                    // Button::Drop
+                    // Button::DropHard
+                    // Button::Hold
+                }
+                break;
+            }
+            match event {
+                TimingEvent::Spawn => {
+                    assert!(
+                        self.active_piece.is_none(),
+                        "spawning a new piece while active piece is still in play"
+                    );
+                    let gen_tetromino = self
+                        .piece_generator
+                        .next()
+                        .expect("random piece generator ran out of values before end of game");
+                    let new_tetromino = if let Some(cached_tetromino) = self.next_pieces.pop_front()
+                    {
+                        self.next_pieces.push_back(gen_tetromino);
+                        cached_tetromino
+                    } else {
+                        gen_tetromino
+                    };
+                    let starting_location = match new_tetromino {
+                        Tetromino::O => todo!(),
+                        Tetromino::I => todo!(),
+                        Tetromino::S => todo!(),
+                        Tetromino::Z => todo!(),
+                        Tetromino::T => todo!(),
+                        Tetromino::L => todo!(),
+                        Tetromino::J => todo!(),
+                    };
+                    self.active_piece = Some(ActivePiece(
+                        new_tetromino,
+                        Orientation::N,
+                        starting_location,
+                    ));
+                }
+                TimingEvent::GroundCap => todo!(),
+                TimingEvent::Lock => todo!(),
+                TimingEvent::HardDrop => todo!(),
+                TimingEvent::SoftDrop => todo!(),
+                TimingEvent::Move => todo!(),
+                TimingEvent::Rotate => todo!(),
+                TimingEvent::Fall => todo!(),
+            }
+        }
     }
 
     #[rustfmt::skip]
-    fn droptime(&self) -> Duration {
+    fn drop_delay(&self) -> Duration {
         Duration::from_nanos(match self.level {
              1 => 1_000_000_000,
              2 =>   793_000_000,
@@ -383,8 +457,25 @@ impl Game {
             16 =>     4_263_557,
             17 =>     2_520_084,
             18 =>     1_457_139,
-            19 =>       823_907, // TODO: Tweak curve so this matches `833_333`?
-            _ => unimplemented!(),
+             _ =>       823_907, // TODO: Tweak curve so this matches `833_333`?
+        })
+    }
+
+    #[rustfmt::skip]
+    fn lock_delay(&self) -> Duration {
+        Duration::from_millis(match self.level {
+            1..=19 => 500,
+                20 => 450,
+                21 => 400,
+                22 => 350,
+                23 => 300,
+                24 => 250,
+                25 => 200,
+                26 => 195,
+                27 => 184,
+                28 => 167,
+                29 => 151,
+                 _ => 150, // TODO: Tweak curve?
         })
     }
 

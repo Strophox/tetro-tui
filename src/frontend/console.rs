@@ -16,11 +16,13 @@ use crate::backend::game::{Button, ButtonChange, Game, Gamemode};
 
 const GAME_FPS: f64 = 60.0; // 60fps
 
+#[derive(Eq, PartialEq, Clone, Debug)]
 struct Settings {
     keybinds: HashMap<dqKeyCode, Button>,
     // TODO: What's the information stored throughout the entire application?
 }
 
+// TODO: `#[derive(Debug)]`.
 enum Menu {
     Title,
     NewGame(Gamemode),
@@ -35,6 +37,7 @@ enum Menu {
     ConfigureControls,
 }
 
+// TODO: `#[derive(Debug)]`.
 enum MenuUpdate {
     Pop,
     Push(Menu),
@@ -125,7 +128,7 @@ impl Menu {
         for i in 1u32.. {
             let next_frame = game_loop_start + Duration::from_secs_f64(f64::from(i) / GAME_FPS);
             let frame_delay = next_frame - Instant::now();
-            let finish_status = match rx.recv_timeout(frame_delay) {
+            match rx.recv_timeout(frame_delay) {
                 Ok(None) => return Ok(MenuUpdate::Push(Menu::Pause)),
                 Ok(Some((button, is_press_down, instant))) => {
                     let mut changes = ButtonChange::default();
@@ -141,7 +144,8 @@ impl Menu {
                 }
             };
 
-            if let Some(good_end) = finish_status {
+            // Exit if game ended
+            if let Some(good_end) = game.finish_status() {
                 let menu = if good_end {
                     Menu::GameComplete
                 } else {
@@ -151,8 +155,7 @@ impl Menu {
             }
 
             // TODO: Draw game.
-            let visuals = game.visuals();
-            let stats = game.stats();
+            let info = game.info();
         }
         Ok(MenuUpdate::Push(Menu::Quit(String::from(
             "Menu::game default exit", // TODO: Return more precise error msg.
