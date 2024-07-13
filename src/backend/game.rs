@@ -1,6 +1,6 @@
 // TODO: Too many (unnecessary) derives for all the structs?
 use std::{
-    collections::{BTreeMap, VecDeque},
+    collections::{HashMap, VecDeque},
     num::NonZeroU64,
     time::{Duration, Instant},
 };
@@ -13,7 +13,7 @@ pub type Board = [[Option<TileTypeID>; Game::WIDTH]; Game::HEIGHT];
 pub type Coord = (usize, usize);
 pub type Offset = (isize, isize);
 pub type TileTypeID = u32;
-type EventMap<T> = BTreeMap<Event, T>;
+type EventMap<T> = HashMap<Event, T>;
 
 #[derive(Eq, PartialEq, Clone, Copy, Hash, Debug)]
 pub enum Orientation {
@@ -56,8 +56,8 @@ pub struct Gamemode {
     name: String,
     start_level: u64,
     increase_level: bool,
-    mode_limit: Option<MeasureStat>,
-    optimization_goal: MeasureStat,
+    limit: Option<MeasureStat>,
+    optimize: MeasureStat,
 }
 
 #[derive(Eq, PartialEq, Clone, Copy, Hash, Debug)]
@@ -76,15 +76,22 @@ pub struct ButtonMap<T>(T, T, T, T, T, T, T);
 
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
 enum Event {
+    LineClearDone,
     Spawn,
     //GroundTimer, // TODO:
     Lock,
     HardDrop,
     SoftDrop,
-    Move,
+    MoveInitial,
     MoveRepeat,
     Rotate,
     Fall, // TODO: Fall timer gets reset upon manual drop.
+}
+
+#[derive(Eq, PartialEq, Clone, Copy, Hash, Debug)]
+enum GameOverError {
+    LockOut,
+    BlockOut,
 }
 
 // TODO: `#[derive(Debug)]`.
@@ -104,7 +111,7 @@ pub struct Game {
     lines_cleared: u64,
     score: u64,
     // Game "settings" fields.
-    mode: Gamemode,
+    gamemode: Gamemode,
     tetromino_generator: Box<dyn Iterator<Item = Tetromino>>,
     rotate_fn: rotation_systems::RotateFn,
     appearance_delay: Duration,
@@ -254,8 +261,8 @@ impl Gamemode {
             name,
             start_level,
             increase_level,
-            mode_limit,
-            optimization_goal,
+            limit: mode_limit,
+            optimize: optimization_goal,
         }
     }
 
@@ -265,8 +272,8 @@ impl Gamemode {
             name: String::from("Sprint"),
             start_level,
             increase_level: false,
-            mode_limit: Some(MeasureStat::Lines(40)),
-            optimization_goal: MeasureStat::Time(Duration::ZERO),
+            limit: Some(MeasureStat::Lines(40)),
+            optimize: MeasureStat::Time(Duration::ZERO),
         }
     }
 
@@ -276,8 +283,8 @@ impl Gamemode {
             name: String::from("Ultra"),
             start_level,
             increase_level: false,
-            mode_limit: Some(MeasureStat::Time(Duration::from_secs(3 * 60))),
-            optimization_goal: MeasureStat::Lines(0),
+            limit: Some(MeasureStat::Time(Duration::from_secs(3 * 60))),
+            optimize: MeasureStat::Lines(0),
         }
     }
 
@@ -286,8 +293,8 @@ impl Gamemode {
             name: String::from("Marathon"),
             start_level: 1,
             increase_level: true,
-            mode_limit: Some(MeasureStat::Level(30)), // TODO: This depends on the highest level available.
-            optimization_goal: MeasureStat::Score(0),
+            limit: Some(MeasureStat::Level(30)), // TODO: This depends on the highest level available.
+            optimize: MeasureStat::Score(0),
         }
     }
 
@@ -296,8 +303,8 @@ impl Gamemode {
             name: String::from("Endless"),
             start_level: 1,
             increase_level: true,
-            mode_limit: None,
-            optimization_goal: MeasureStat::Score(0),
+            limit: None,
+            optimize: MeasureStat::Score(0),
         }
     }
     // TODO: Gamemode pub fn master() -> Self : 20G gravity mode...
@@ -336,7 +343,7 @@ impl<T> std::ops::IndexMut<Button> for ButtonMap<T> {
 }
 
 impl Game {
-    pub const HEIGHT: usize = 32;
+    pub const HEIGHT: usize = 27;
     pub const WIDTH: usize = 10;
 
     pub fn with_gamemode(mode: Gamemode) -> Self {
@@ -346,7 +353,7 @@ impl Game {
         let next_pieces = generator.by_ref().take(preview_size).collect();
         Game {
             finish_status: None,
-            events: BTreeMap::from([(Event::Spawn, time_started)]),
+            events: HashMap::from([(Event::Spawn, time_started)]),
             buttons_pressed: Default::default(),
             board: Default::default(),
             active_piece: None,
@@ -356,7 +363,7 @@ impl Game {
             level: mode.start_level,
             lines_cleared: 0,
             score: 0,
-            mode,
+            gamemode: mode,
             tetromino_generator: Box::new(generator),
             rotate_fn: rotation_systems::rotate_classic,
             appearance_delay: Duration::from_millis(100),
@@ -369,6 +376,10 @@ impl Game {
         }
     }
 
+    pub fn finish_status(&self) -> Option<bool> {
+        self.finish_status
+    }
+
     pub fn info(&self) -> GameInfo {
         GameInfo {
             // TODO: Return current GameState, timeinterval (so we can render e.g. lineclears with intermediate states).
@@ -376,7 +387,7 @@ impl Game {
             active_piece: self.active_piece.as_ref().map(|p| p.tiles()),
             ghost_piece: self.ghost_piece(),
             next_pieces: &self.next_pieces,
-            gamemode: &self.mode,
+            gamemode: &self.gamemode,
             lines_cleared: self.lines_cleared,
             level: self.level,
             score: self.score,
@@ -385,24 +396,12 @@ impl Game {
         }
     }
 
-    pub fn finish_status(&self) -> Option<bool> {
-        self.finish_status
-    }
-
     pub fn update(&mut self, mut new_button_state: Option<ButtonsPressed>, time: Instant) {
-        // TODO: Complete state machine.
         // Handle game over: return immediately
-        //
-        // Spawn piece
-        // Move piece
-        // Drop piece
-        // Check pattern (lineclear)
-        // Update score (B2B?? Combos?? Perfect clears??)
-        // Update level
-        // Return desired next update
         if self.finish_status.is_some() {
             return;
         }
+        // We linearly process all events until we reach the update time.
         loop {
             // SAFETY: `Game` invariants guarantee there's some event.
             let (&event, _) = self
@@ -412,24 +411,40 @@ impl Game {
                 .unwrap();
             // SAFETY: `event` key was given to use by the `.min` function.
             let (event, event_time) = self.events.remove_entry(&event).unwrap();
-            // Next event beyond requested update time, process possible user input first or break out.
+            // Next event beyond requested update time, process/add possible user input events now or break out.
             if time < event_time {
                 // Update button inputs
                 if let Some(buttons_pressed) = new_button_state.take() {
-                    self.handle_input(buttons_pressed, time);
+                    self.process_input(buttons_pressed, time);
                 } else {
                     break;
                 }
+                self.time_updated = time;
             } else {
                 // Handle next in-game event.
-                self.handle_event(event, event_time);
+                let result = self.handle_event(event, event_time);
+                self.time_updated = event_time;
+                match result {
+                    Ok(()) => {}
+                    // Piece Placement - Game Over.
+                    Err(GameOverError::BlockOut | GameOverError::LockOut) => {
+                        self.finish_status = Some(false);
+                        return;
+                    }
+                }
+                // Check if game completed
+                if let Some(limit) = self.gamemode.limit {
+                    // TODO: match on limit..
+                }
             }
-            // TODO Lock timer..
-            self.time_updated = event_time;
+            // Update locking state of active piece
+            if let Some(active_piece) = self.active_piece {
+                // TODO: Lock timer..
+            }
         }
     }
 
-    fn handle_input(&mut self, new_buttons_pressed: ButtonsPressed, time: Instant) {
+    fn process_input(&mut self, new_buttons_pressed: ButtonsPressed, time: Instant) {
         let ButtonMap(mL0, mR0, rL0, rR0, rA0, dS0, dH0) = self.buttons_pressed;
         let ButtonMap(mL1, mR1, rL1, rR1, rA1, dS1, dH1) = new_buttons_pressed;
         /*
@@ -454,7 +469,7 @@ impl Game {
         */
         // No buttons pressed -> one button pressed, add initial move.
         if (!mL0 && !mR0) && (mL1 != mR1) {
-            self.events.insert(Event::Move, time);
+            self.events.insert(Event::MoveInitial, time);
         // One/Two buttons pressed -> different/one button pressed, (re-)add fast repeat move.
         } else if (mL0 && (!mL1 && mR1)) || (mR0 && (mL1 && !mR1)) {
             self.events.remove(&Event::MoveRepeat);
@@ -492,6 +507,9 @@ impl Game {
         // Soft drop button pressed.
         if !dS0 && dS1 {
             self.events.insert(Event::SoftDrop, time);
+        // Soft drop button released, reset drop delay immediately.
+        } else if dS0 && !dS1 {
+            self.events.insert(Event::Fall, time + self.drop_delay());
         }
         // Hard drop button pressed.
         if !dH0 && dH1 {
@@ -500,8 +518,34 @@ impl Game {
         self.buttons_pressed = new_buttons_pressed;
     }
 
-    fn handle_event(&mut self, event: Event, time: Instant) {
+    fn handle_event(&mut self, event: Event, time: Instant) -> Result<(), GameOverError> {
+        /*
+        * LineClearDone
+        * empty -> dly Spawn; NO LOCKSTF
+        Spawn,
+        * empty -> imm Fall; LOCKSTF
+        Lock,
+        * . -> empty, dly LineClearDone; NO LOCKSTF
+        HardDrop,
+        * . -> dly Fall; LOCKSTF
+        SoftDrop,
+        * . -> dly Fall; LOCKSTF
+        Move,
+        * .-> dly(DAS) MoveRepeat; LOCKSTF
+        MoveRepeat,
+        * . -> dly(ARR) MoveRepeat; LOCKSTF
+        Rotate,
+        * . -> .; LOCKSTF
+        Fall, // TODO: Fall timer gets reset upon manual drop.
+        * . -> dly Fall; LOCKSTF
+
+        //GroundTimer, // TODO:
+         */
         match event {
+            Event::LineClearDone => {
+                self.events
+                    .insert(Event::Spawn, time + self.appearance_delay);
+            }
             Event::Spawn => {
                 // We generate a new piece above the skyline, and immediately queue a fall event for it
                 let gen_tetromino = self
@@ -519,7 +563,7 @@ impl Game {
                     Tetromino::I => (3, 21),
                     _ => (3, 21),
                 };
-                assert!(
+                debug_assert!(
                     self.active_piece.is_none(),
                     "spawning new piece while an active piece is still in play"
                 );
@@ -529,11 +573,21 @@ impl Game {
                     pos: start_pos,
                 };
                 self.active_piece = Some(new_piece);
-                self.events.insert(Event::Fall, time);
+                if new_piece.fits(self.board) {
+                    self.events.insert(Event::Fall, time);
+                // Newly spawned piece conflicts with board - Game over!
+                } else {
+                    return Err(GameOverError::BlockOut);
+                }
             }
             Event::Lock => {
                 // TODO: Oh no (this is a tricky part cuz of Line clearing, scoring, level up, ..).
-                todo!()
+                // TODO: Handle GameOverError.
+                todo!();
+                // Clear all piece events and only put in line clear delay.
+                self.events.clear();
+                self.events
+                    .insert(Event::LineClearDone, time + self.line_clear_delay);
             }
             Event::HardDrop => {
                 let mut active_piece = self.active_piece.expect("hard-dropping none active piece");
@@ -546,32 +600,54 @@ impl Game {
             }
             Event::SoftDrop | Event::Fall => {
                 let active_piece = self.active_piece.expect("dropping none active piece");
+                let drop_delay = Duration::from_secs_f64(
+                    self.drop_delay().as_secs_f64() / self.soft_drop_factor,
+                );
                 // Try to move active piece down.
                 if let Some(piece_below) = active_piece.fits_at(self.board, (0, -1)) {
                     self.active_piece = Some(piece_below);
-                    let drop_delay = Duration::from_secs_f64(
-                        self.drop_delay().as_secs_f64() / self.soft_drop_factor,
-                    );
                     self.events.insert(Event::Fall, time + drop_delay);
                 // Piece hit ground but SoftDrop was pressed.
                 } else if event == Event::SoftDrop {
                     self.events.insert(Event::Lock, time);
-                // Piece hit ground and tries to drop naturally.
-                // TODO: Do Fall events get removed from queue here?
+                // Piece hit ground and tried to drop naturally: don't do anything but try falling again later.
                 } else if event == Event::Fall {
-                    // TODO: Handle natural fall with immediate locking.
-                    todo!()
+                    // TODO: Is this enough? Does this lead to inconsistent gameplay and should `Fall` be inserted outside together with locking?
+                    self.events.insert(Event::Fall, time + drop_delay);
                 }
             }
-            Event::Move | Event::MoveRepeat => {
-                // TODO: Handle immediate move and adding move repeat.
-                todo!()
+            Event::MoveInitial | Event::MoveRepeat => {
+                // Handle move attempt and auto repeat move.
+                let active_piece = self.active_piece.expect("moving none active piece");
+                let dx = if self.buttons_pressed[Button::MoveLeft] {
+                    -1
+                } else {
+                    1
+                };
+                if let Some(moved_piece) = active_piece.fits_at(self.board, (0, dx)) {
+                    self.active_piece = Some(moved_piece);
+                }
+                self.events
+                    .insert(Event::MoveRepeat, time + self.auto_repeat_rate);
             }
             Event::Rotate => {
-                // TODO: Handle cancelling L/R rotations and 180 rotation.
-                todo!()
+                let active_piece = self.active_piece.expect("moving none active piece");
+                let mut rotation = 0;
+                if self.buttons_pressed[Button::RotateLeft] {
+                    rotation -= 1;
+                }
+                if self.buttons_pressed[Button::RotateRight] {
+                    rotation += 1;
+                }
+                if self.buttons_pressed[Button::RotateAround] {
+                    rotation += 2;
+                }
+                if let Some(rotated_piece) = (self.rotate_fn)(active_piece, self.board, rotation) {
+                    self.active_piece = Some(rotated_piece);
+                }
             }
         }
+        Ok(())
     }
 
     #[rustfmt::skip]

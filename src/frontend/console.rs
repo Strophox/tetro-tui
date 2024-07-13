@@ -91,6 +91,7 @@ impl Menu {
         // Prepare channel with which to communicate `Button` inputs / game interrupt.
         let (sx1, rx) = mpsc::channel();
         let sx2 = sx1.clone();
+        // TODO: Use Crossterm input: use `Settings` struct to store this decision.
         let keybinds1 = std::sync::Arc::new(settings.keybinds.clone());
         let keybinds2 = keybinds1.clone();
         // Initialize callbacks which send `Button` inputs.
