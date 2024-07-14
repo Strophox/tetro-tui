@@ -136,7 +136,7 @@ impl Menu {
         // Game Loop
         let loop_start = Instant::now();
         let it = 1u32;
-        let next_menu = loop {
+        let menu_update = loop {
             let next_frame = loop_start + Duration::from_secs_f64(f64::from(it) / GAME_FPS);
             let frame_delay = next_frame - Instant::now();
             match rx.recv_timeout(frame_delay) {
@@ -166,7 +166,7 @@ impl Menu {
             let info = game.info();
         };
         *time_paused = Instant::now();
-        Ok(next_menu)
+        Ok(menu_update)
     }
 
     fn pause(w: &mut dyn Write) -> io::Result<MenuUpdate> {
