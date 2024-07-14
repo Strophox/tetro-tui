@@ -9,10 +9,11 @@ use crate::backend::{rotation_systems, tetromino_generators};
 
 pub type ButtonsPressed = ButtonMap<bool>;
 // NOTE: Would've liked to use `impl Game { type Board = ...` (https://github.com/rust-lang/rust/issues/8995)
-pub type Board = [[Option<TileTypeID>; Game::WIDTH]; Game::HEIGHT];
+pub type TileTypeID = u32;
+pub type Line = [Option<TileTypeID>; Game::WIDTH];
+pub type Board = [Line; Game::HEIGHT];
 pub type Coord = (usize, usize);
 pub type Offset = (isize, isize);
-pub type TileTypeID = u32;
 type EventMap<T> = HashMap<Event, T>;
 
 #[derive(Eq, PartialEq, Clone, Copy, Hash, Debug)]
@@ -43,7 +44,7 @@ pub(crate) struct ActivePiece {
 
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
 pub enum MeasureStat {
-    Lines(u64),
+    Lines(usize),
     Level(u64),
     Score(u64),
     Pieces(u64),
@@ -124,7 +125,7 @@ pub struct Game {
     time_started: Instant,
     time_updated: Instant,
     pieces_played: [u64; 7],
-    lines_cleared: u64,
+    lines_cleared: Vec<Line>,
     level: u64, // TODO: Make this into NonZeroU64 or explicitly allow level 0.
     score: u64,
 
@@ -144,7 +145,7 @@ pub struct Game {
 #[derive(Eq, PartialEq, Clone, Debug)]
 pub struct GameInfo<'a> {
     gamemode: &'a Gamemode,
-    lines_cleared: u64,
+    lines_cleared: &'a Vec<Line>,
     level: u64,
     score: u64,
     time_started: Instant,
@@ -407,7 +408,7 @@ impl Game {
             time_started, // TODO: Refactor internal timeline to be Duration-based, shifting responsibility higher up.
             time_updated: time_started,
             pieces_played: [0; 7],
-            lines_cleared: 0,
+            lines_cleared: Vec::new(),
             level: mode.start_level,
             score: 0,
             gamemode: mode,
@@ -434,7 +435,7 @@ impl Game {
             active_piece: self.active_piece_data.map(|apd| apd.0),
             next_pieces: &self.next_pieces,
             gamemode: &self.gamemode,
-            lines_cleared: self.lines_cleared,
+            lines_cleared: &self.lines_cleared,
             level: self.level,
             score: self.score,
             time_started: self.time_started,
@@ -467,24 +468,25 @@ impl Game {
                 let result = self.handle_event(event, event_time);
                 self.time_updated = event_time;
                 match result {
-                    Ok(()) => {}
-                    // Game Over.
-                    Err(GameOverError::BlockOut | GameOverError::LockOut) => {
-                        self.finish_status = Some(false);
-                        break 'work_through_events;
+                    Ok(()) => {
+                        // Check if game completed.
+                        if let Some(limit) = self.gamemode.limit {
+                            let goal_achieved = match limit {
+                                MeasureStat::Lines(lines) => lines <= self.lines_cleared.len(),
+                                MeasureStat::Level(level) => level <= self.level,
+                                MeasureStat::Score(score) => score <= self.score,
+                                MeasureStat::Pieces(pieces) => pieces <= self.pieces_played.iter().sum(),
+                                MeasureStat::Time(timer) => timer <= self.time_updated - self.time_started,
+                            };
+                            if goal_achieved {
+                                self.finish_status = Some(true);
+                                break 'work_through_events;
+                            }
+                        }
                     }
-                }
-                // Check if game completed.
-                if let Some(limit) = self.gamemode.limit {
-                    let goal_achieved = match limit {
-                        MeasureStat::Lines(lines) => lines <= self.lines_cleared,
-                        MeasureStat::Level(level) => level <= self.level,
-                        MeasureStat::Score(score) => score <= self.score,
-                        MeasureStat::Pieces(pieces) => pieces <= self.pieces_played.iter().sum(),
-                        MeasureStat::Time(timer) => timer <= self.time_updated - self.time_started,
-                    };
-                    if goal_achieved {
-                        self.finish_status = Some(true);
+                    Err(GameOverError::BlockOut | GameOverError::LockOut) => {
+                        // Game Over.
+                        self.finish_status = Some(false);
                         break 'work_through_events;
                     }
                 }
@@ -628,8 +630,11 @@ impl Game {
                 self.events.insert(Event::Fall, event_time);
             }
             Event::Lock => {
-                // TODO: Oh no (this is a tricky part cuz of Line clearing, scoring, level up, ..).
                 // TODO: Handle GameOverError.
+                // TODO: Lineclear.
+                // TODO: `self.lines_cleared`.
+                // TODO: `self.score`.
+                // TODO: `self.level`.
                 todo!();
                 // Clear all events and only put in line clear delay.
                 self.events.clear();
