@@ -153,7 +153,7 @@ pub struct GameState<'a> {
     pub lines_cleared: &'a Vec<Line>,
     pub level: u64,
     pub score: u64,
-    pub time_elapsed: Duration,
+    pub time_updated: Instant,
     pub board: &'a Board,
     pub active_piece: Option<ActivePiece>,
     pub next_pieces: &'a VecDeque<Tetromino>,
@@ -492,9 +492,7 @@ impl Game {
             lines_cleared: &self.lines_cleared,
             level: self.level,
             score: self.score,
-            time_elapsed: self
-                .time_updated
-                .saturating_duration_since(self.config.time_started),
+            time_updated: self.time_updated,
         }
     }
 
@@ -507,6 +505,11 @@ impl Game {
         mut new_button_state: Option<ButtonsPressed>,
         update_time: Instant,
     ) -> Vec<(Instant, FeedbackEvent)> {
+        // TODO: This may go away once internal timeline handling is refactored (less depenent on "real-world" `Instant`).
+        assert!(
+            self.time_updated <= update_time,
+            "cannot handle event lying in the past"
+        );
         // NOTE: Returning an empty Vec is efficient because it won't even allocate (as by Rust API).
         let mut feedback_events = Vec::new();
         // Handle game over: return immediately.
@@ -524,10 +527,6 @@ impl Game {
                 .unwrap();
             // Next event within requested update time, handle event first.
             if event_time <= update_time {
-                debug_assert!(
-                    self.time_updated <= event_time,
-                    "handling event lying in the past"
-                );
                 // Extract (remove) event and handle it.
                 // SAFETY: `event` key was given to use by the `.min` function.
                 self.events.remove_entry(&event);

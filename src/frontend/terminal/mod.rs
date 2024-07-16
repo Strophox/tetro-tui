@@ -127,6 +127,7 @@ impl Menu {
                     }
                     Ok(Some((instant, button, button_state))) => {
                         buttons_pressed[button] = button_state;
+                        let instant = std::cmp::max(instant, game.state().time_updated); // Make sure button press
                         let new_feedback_events =
                             game.update(Some(buttons_pressed), instant - *duration_paused_total);
                         feedback_events.extend(new_feedback_events);
@@ -149,7 +150,7 @@ impl Menu {
                 lines_cleared,
                 level,
                 score,
-                time_elapsed,
+                time_updated,
                 board,
                 active_piece,
                 next_pieces,
@@ -188,7 +189,7 @@ impl Menu {
             }
             w.queue(style::Print("   +--------------------+"))?
                 .queue(cursor::MoveToNextLine(1))?;
-            w.queue(style::Print(format!("   {time_elapsed:?}")))?
+            w.queue(style::Print(format!("   {:?}", time_updated.saturating_duration_since(game.config().time_started))))?
                 .queue(cursor::MoveToNextLine(1))?;
             // TODO: Do something with feedback events.
             for (_, feedback_event) in feedback_events {
@@ -209,7 +210,7 @@ impl Menu {
                             2 => "Double!",
                             3 => "Triple!",
                             4 => "Quadruple!",
-                            _ => todo!("unformatted line clear count"),
+                            x => todo!("unexpected line clear count {}", x),
                         }
                         .to_string();
                         txts.push(txt_lineclear);
