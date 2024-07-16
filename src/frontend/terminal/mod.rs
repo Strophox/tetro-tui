@@ -309,10 +309,10 @@ pub fn run(w: &mut impl Write) -> io::Result<String> {
     let mut menu_stack = Vec::new();
     menu_stack.push(Menu::Title);
     menu_stack.push(Menu::Game(
-        Box::new(Game::new(
+        Box::new(Game::with_gamemode(
             Gamemode::custom(
                 "Debug".to_string(),
-                NonZeroU64::new(5).unwrap(),
+                NonZeroU64::new(1).unwrap(),
                 true,
                 None,
                 MeasureStat::Pieces(0),

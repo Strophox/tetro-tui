@@ -100,9 +100,11 @@ enum Event {
 }
 
 pub struct GameConfig {
+    pub time_started: Instant, // TODO: This should *NOT* be exposed. But this should be removed anyway once internal timers are refactored to be less dependent on real time.
     pub gamemode: Gamemode,
     pub tetromino_generator: Box<dyn Iterator<Item = Tetromino>>,
     pub rotate_fn: rotation_systems::RotateFn,
+    pub preview_count: usize,
     pub appearance_delay: Duration,
     pub delayed_auto_shift: Duration,
     pub auto_repeat_rate: Duration,
@@ -132,7 +134,6 @@ pub struct Game {
     /// Invariants:
     /// * The Preview size stays constant: `self.next_pieces().size() == old(self.next_pieces().size())`.
     next_pieces: VecDeque<Tetromino>,
-    time_started: Instant, // TODO: This belongs in `self.config` or removed when internal timers are refactored more abstractly.
     time_updated: Instant,
     pieces_played: [u64; 7],
     lines_cleared: Vec<Line>,
@@ -438,44 +439,43 @@ impl fmt::Debug for GameConfig {
 }
 
 impl Game {
-    pub const HEIGHT: usize = 27;
+    pub const HEIGHT: usize = Self::SKYLINE + 7; // Max height *any* mino can reach before Lock out occurs.
     pub const WIDTH: usize = 10;
-    pub const SKYLINE: usize = 20;
+    pub const SKYLINE: usize = 20; // Typical maximal height of relevant (visible) playing grid.
 
-    pub fn new(mode: Gamemode, time_started: Instant) -> Self {
-        let mut generator = tetromino_generators::RecencyProbGen::new();
-        let preview_size = 1;
-        let next_pieces = generator.by_ref().take(preview_size).collect();
-        let mut board = Vec::with_capacity(Self::HEIGHT);
-        for _ in 1..=Self::HEIGHT {
-            board.push(Line::default());
-        }
+    pub fn with_gamemode(mode: Gamemode, time_started: Instant) -> Self {
+        let config = GameConfig {
+            time_started,
+            gamemode: mode,
+            tetromino_generator: Box::new(tetromino_generators::RecencyProbGen::new()),
+            rotate_fn: rotation_systems::rotate_classic,
+            preview_count: 1,
+            appearance_delay: Duration::from_millis(100),
+            delayed_auto_shift: Duration::from_millis(300),
+            auto_repeat_rate: Duration::from_millis(100),
+            soft_drop_factor: 20.0,
+            hard_drop_delay: Duration::from_micros(100),
+            ground_time_cap: Duration::from_millis(2250),
+            line_clear_delay: Duration::from_millis(200),
+        };
+        Self::with_config(config)
+    }
+
+    pub fn with_config(mut config: GameConfig) -> Self {
         Game {
             finished: None,
-            events: HashMap::from([(Event::Spawn, time_started)]),
+            events: HashMap::from([(Event::Spawn, config.time_started)]),
             buttons_pressed: Default::default(),
-            board,
+            board: std::iter::repeat(Line::default()).take(Self::HEIGHT).collect(),
             active_piece_data: None,
-            next_pieces,
-            time_started, // TODO: Refactor internal timeline to be Duration-based, shifting responsibility higher up.
-            time_updated: time_started,
+            next_pieces: config.tetromino_generator.by_ref().take(config.preview_count).collect(),
+            time_updated: config.time_started,
             pieces_played: [0; 7],
             lines_cleared: Vec::new(),
-            level: mode.start_level,
+            level: config.gamemode.start_level,
             score: 0,
             consecutive_line_clears: 0,
-            config: GameConfig {
-                gamemode: mode,
-                tetromino_generator: Box::new(generator),
-                rotate_fn: rotation_systems::rotate_classic,
-                appearance_delay: Duration::from_millis(100),
-                delayed_auto_shift: Duration::from_millis(300),
-                auto_repeat_rate: Duration::from_millis(100),
-                soft_drop_factor: 20.0,
-                hard_drop_delay: Duration::from_micros(100),
-                ground_time_cap: Duration::from_millis(2250),
-                line_clear_delay: Duration::from_millis(200),
-            },
+            config
         }
     }
 
@@ -494,7 +494,7 @@ impl Game {
             score: self.score,
             time_elapsed: self
                 .time_updated
-                .saturating_duration_since(self.time_started),
+                .saturating_duration_since(self.config.time_started),
         }
     }
 
@@ -547,7 +547,7 @@ impl Game {
                                     pieces <= self.pieces_played.iter().sum()
                                 }
                                 MeasureStat::Time(timer) => {
-                                    timer <= self.time_updated - self.time_started
+                                    timer <= self.time_updated - self.config.time_started
                                 }
                             };
                             if goal_achieved {
@@ -678,20 +678,12 @@ impl Game {
                 self.events
                     .insert(Event::Spawn, event_time + self.config.appearance_delay);
             }
+            // We generate a new piece above the skyline, and immediately queue a fall event for it.
             Event::Spawn => {
-                // We generate a new piece above the skyline, and immediately queue a fall event for it.
-                let gen_tetromino = self
-                    .config
-                    .tetromino_generator
-                    .next()
-                    .expect("random piece generator ran out of values before end of game");
-                let new_tetromino = if let Some(pregen_tetromino) = self.next_pieces.pop_front() {
-                    self.next_pieces.push_back(gen_tetromino);
-                    pregen_tetromino
-                } else {
-                    gen_tetromino
-                };
-                let start_pos = match new_tetromino {
+                let n_required_pieces = self.config.preview_count - self.next_pieces.len() + 1;
+                self.next_pieces.extend(self.config.tetromino_generator.by_ref().take(n_required_pieces));
+                let tetromino = self.next_pieces.pop_front().expect("piece generator ran out before game finished");
+                let start_pos = match tetromino {
                     Tetromino::O => (4, 20),
                     Tetromino::I => (3, 20),
                     _ => (3, 20),
@@ -701,7 +693,7 @@ impl Game {
                     "spawning new piece while an active piece is still in play"
                 );
                 let new_piece = ActivePiece {
-                    shape: new_tetromino,
+                    shape: tetromino,
                     orientation: Orientation::N,
                     pos: start_pos,
                 };
@@ -717,7 +709,7 @@ impl Game {
                     lowest_y: start_pos.1,
                 };
                 self.active_piece_data = Some((new_piece, locking_data));
-                self.pieces_played[<usize>::from(new_tetromino)] += 1;
+                self.pieces_played[<usize>::from(tetromino)] += 1;
                 self.events.insert(Event::Fall, event_time);
             }
             Event::Lock => {
