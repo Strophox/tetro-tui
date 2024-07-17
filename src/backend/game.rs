@@ -447,21 +447,21 @@ impl Game {
     pub const SKYLINE: usize = 20; // Typical maximal height of relevant (visible) playing grid.
 
     pub fn with_gamemode(mode: Gamemode, time_started: Instant) -> Self {
-        let config = GameConfig {
+        let default_config = GameConfig {
             time_started,
             gamemode: mode,
             tetromino_generator: Box::new(tetromino_generators::RecencyProbGen::new()),
             rotation_system: Box::new(rotation_systems::Classic),
             preview_count: 1,
             appearance_delay: Duration::from_millis(100),
-            delayed_auto_shift: Duration::from_millis(300),
-            auto_repeat_rate: Duration::from_millis(100),
+            delayed_auto_shift: Duration::from_millis(200),
+            auto_repeat_rate: Duration::from_millis(75),
             soft_drop_factor: 20.0,
             hard_drop_delay: Duration::from_micros(100),
             ground_time_cap: Duration::from_millis(2250),
             line_clear_delay: Duration::from_millis(200),
         };
-        Self::with_config(config)
+        Self::with_config(default_config)
     }
 
     pub fn with_config(mut config: GameConfig) -> Self {
