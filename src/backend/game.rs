@@ -812,7 +812,7 @@ impl Game {
                     .insert(Event::LockTimer, event_time + self.config.hard_drop_delay);
             }
             Event::Fall | Event::SoftDrop => {
-                let drop_delay = if event == Event::SoftDrop {
+                let drop_delay = if self.buttons_pressed[Button::DropSoft] {
                     Duration::from_secs_f64(
                         self.drop_delay().as_secs_f64() / self.config.soft_drop_factor,
                     )
