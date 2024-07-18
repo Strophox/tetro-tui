@@ -6,10 +6,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use crate::backend::{
-    rotation_systems::{self, RotationSystem},
-    tetromino_generators,
-};
+use crate::backend::{rotation_systems, tetromino_generators};
 
 pub type ButtonsPressed = ButtonMap<bool>;
 // NOTE: Would've liked to use `impl Game { type Board = ...` (https://github.com/rust-lang/rust/issues/8995)
@@ -82,8 +79,8 @@ pub struct ButtonMap<T>(T, T, T, T, T, T, T);
 #[derive(Eq, PartialEq, Clone, Copy, Hash, Debug)]
 struct LockingData {
     touches_ground: bool,
-    last_touchdown: Instant,
-    last_liftoff: Instant,
+    last_touchdown: Option<Instant>,
+    last_liftoff: Option<Instant>,
     ground_time_left: Duration,
     lowest_y: usize,
 }
@@ -113,7 +110,7 @@ pub struct GameConfig {
     pub auto_repeat_rate: Duration,
     pub soft_drop_factor: f64,
     pub hard_drop_delay: Duration,
-    pub ground_time_cap: Duration,
+    pub ground_time_max: Duration,
     pub line_clear_delay: Duration,
 }
 
@@ -143,6 +140,7 @@ pub struct Game {
     level: u64, // TODO: Make this into NonZeroU64 or explicitly allow level 0.
     score: u64,
     consecutive_line_clears: u64,
+    back_to_back_special_clears: u64,
 }
 
 #[derive(Eq, PartialEq, Clone, Copy, Hash, Debug)]
@@ -167,7 +165,7 @@ pub enum FeedbackEvent {
     PieceLocked(ActivePiece),
     LineClears(Vec<usize>),
     HardDrop(ActivePiece, ActivePiece),
-    Accolade(Tetromino, bool, u64, u64, bool),
+    Accolade(Tetromino, bool, u64, bool, u64),
     Debug(String),
 }
 
@@ -435,7 +433,7 @@ impl fmt::Debug for GameConfig {
             .field("auto_repeat_rate", &self.auto_repeat_rate)
             .field("soft_drop_factor", &self.soft_drop_factor)
             .field("hard_drop_delay", &self.hard_drop_delay)
-            .field("ground_time_cap", &self.ground_time_cap)
+            .field("ground_time_cap", &self.ground_time_max)
             .field("line_clear_delay", &self.line_clear_delay)
             .finish()
     }
@@ -458,7 +456,7 @@ impl Game {
             auto_repeat_rate: Duration::from_millis(75),
             soft_drop_factor: 20.0,
             hard_drop_delay: Duration::from_micros(100),
-            ground_time_cap: Duration::from_millis(2250),
+            ground_time_max: Duration::from_millis(2250),
             line_clear_delay: Duration::from_millis(200),
         };
         Self::with_config(default_config)
@@ -484,6 +482,7 @@ impl Game {
             level: config.gamemode.start_level,
             score: 0,
             consecutive_line_clears: 0,
+            back_to_back_special_clears: 0,
             config,
         }
     }
@@ -580,6 +579,7 @@ impl Game {
                     if self.active_piece_data.is_some() {
                         self.process_input(buttons_pressed, update_time);
                     }
+                    self.buttons_pressed = buttons_pressed;
                 } else {
                     break 'work_through_events;
                 }
@@ -658,7 +658,6 @@ impl Game {
         if !dH0 && dH1 {
             self.events.insert(Event::HardDrop, update_time);
         }
-        self.buttons_pressed = new_buttons_pressed;
     }
 
     fn handle_event(
@@ -673,8 +672,9 @@ impl Game {
             event_time,
             FeedbackEvent::Debug(format!("{event:?} at {event_time:?}")),
         ));
-        let old_active_piece_data = self.active_piece_data;
-        match event {
+        let prev_piece_data = self.active_piece_data;
+        let prev_piece = prev_piece_data.unzip().0;
+        let next_piece = match event {
             Event::LineClear => {
                 for y in (0..Self::HEIGHT).rev() {
                     // Full line: move it to the cleared lines storage and push an empty line to the board.
@@ -684,16 +684,24 @@ impl Game {
                         self.lines_cleared.push(line);
                     }
                 }
+                // Increment level if 10 lines cleared.
+                if self.lines_cleared.len() % 10 == 0 {
+                    self.level += 1;
+                }
                 self.events
                     .insert(Event::Spawn, event_time + self.config.appearance_delay);
+                None
             }
             // We generate a new piece above the skyline, and immediately queue a fall event for it.
             Event::Spawn => {
                 debug_assert!(
-                    self.active_piece_data.is_none(),
+                    prev_piece.is_none(),
                     "spawning new piece while an active piece is still in play"
                 );
-                let n_required_pieces = self.config.preview_count - self.next_pieces.len() + 1;
+                let n_required_pieces = 1 + self
+                    .config
+                    .preview_count
+                    .saturating_sub(self.next_pieces.len());
                 self.next_pieces.extend(
                     self.config
                         .tetromino_generator
@@ -704,39 +712,30 @@ impl Game {
                     .next_pieces
                     .pop_front()
                     .expect("piece generator ran out before game finished");
-                let new_piece = rotation_systems::Okay.place_initial(tetromino); //self.config.rotation_system.place_initial(tetromino);
-                                                                                 // Newly spawned piece conflicts with board - Game over.
-                if !new_piece.fits(&self.board) {
+                let next_piece = self.config.rotation_system.place_initial(tetromino);
+                // Newly spawned piece conflicts with board - Game over.
+                if !next_piece.fits(&self.board) {
                     return Err(GameOverError::BlockOut);
                 }
-                let locking_data = LockingData {
-                    touches_ground: new_piece.fits_at(&self.board, (0, -1)).is_none(),
-                    last_touchdown: event_time,
-                    last_liftoff: event_time,
-                    ground_time_left: self.config.ground_time_cap,
-                    lowest_y: new_piece.pos.1,
-                };
-                self.active_piece_data = Some((new_piece, locking_data));
                 self.pieces_played[<usize>::from(tetromino)] += 1;
                 self.events.insert(Event::Fall, event_time);
+                Some(next_piece)
             }
             Event::Lock => {
-                let Some((active_piece, _)) = self.active_piece_data.take() else {
-                    unreachable!("locking none active piece")
-                };
+                let prev_piece = prev_piece.expect("locking none active piece");
                 // Attempt to lock active piece fully above skyline - Game over.
-                if active_piece
+                if prev_piece
                     .tiles()
                     .iter()
                     .any(|((_, y), _)| *y >= Self::SKYLINE)
                 {
                     return Err(GameOverError::LockOut);
                 }
-                feedback_events.push((event_time, FeedbackEvent::PieceLocked(active_piece)));
+                feedback_events.push((event_time, FeedbackEvent::PieceLocked(prev_piece)));
                 // Pre-save whether piece was spun into lock position.
-                let spin = active_piece.fits_at(&self.board, (0, 1)).is_none();
+                let spin = prev_piece.fits_at(&self.board, (0, 1)).is_none();
                 // Locking.
-                for ((x, y), tile_type_id) in active_piece.tiles() {
+                for ((x, y), tile_type_id) in prev_piece.tiles() {
                     self.board[y][x] = Some(tile_type_id);
                 }
                 // Handle line clear counting for score (only do actual clearing in LineClear).
@@ -749,20 +748,25 @@ impl Game {
                 let n_lines_cleared = u64::try_from(lines_cleared.len()).unwrap();
                 if n_lines_cleared > 0 {
                     let n_tiles_used = u64::try_from(
-                        active_piece
+                        prev_piece
                             .tiles()
                             .iter()
                             .filter(|((_, y), _)| lines_cleared.contains(y))
                             .count(),
                     )
                     .unwrap();
-                    feedback_events.push((event_time, FeedbackEvent::LineClears(lines_cleared)));
-                    self.consecutive_line_clears += 1;
                     // Add score bonus.
                     let perfect_clear = self
                         .board
                         .iter()
                         .all(|line| line.iter().all(|tile| tile.is_none()));
+                    self.consecutive_line_clears += 1;
+                    let special_clear = n_lines_cleared >= 4 || spin || perfect_clear;
+                    if special_clear {
+                        self.back_to_back_special_clears += 1;
+                    } else {
+                        self.back_to_back_special_clears = 0;
+                    }
                     let score_bonus = (10 + self.level - 1)
                         * n_lines_cleared
                         * n_tiles_used
@@ -770,22 +774,19 @@ impl Game {
                         * if perfect_clear { 10 } else { 1 }
                         * self.consecutive_line_clears;
                     self.score += score_bonus;
-                    let yippie: FeedbackEvent = FeedbackEvent::Accolade(
-                        active_piece.shape,
+                    let yippie = FeedbackEvent::Accolade(
+                        prev_piece.shape,
                         spin,
                         n_lines_cleared,
-                        self.consecutive_line_clears,
                         perfect_clear,
+                        self.consecutive_line_clears,
                     );
                     feedback_events.push((event_time, yippie));
-                    // Increment level if 10 lines cleared.
-                    if self.lines_cleared.len() % 10 == 0 {
-                        self.level += 1;
-                    }
+                    feedback_events.push((event_time, FeedbackEvent::LineClears(lines_cleared)));
                 } else {
                     self.consecutive_line_clears = 0;
                 }
-                // Clear all events and only put in line clear delay.
+                // Clear all events and only put in line clear / appearance delay.
                 self.events.clear();
                 if n_lines_cleared > 0 {
                     self.events
@@ -794,25 +795,26 @@ impl Game {
                     self.events
                         .insert(Event::Spawn, event_time + self.config.appearance_delay);
                 }
+                None
             }
             Event::LockTimer => {
                 self.events.insert(Event::Lock, event_time);
+                prev_piece
             }
             Event::HardDrop => {
-                let Some((active_piece, _)) = self.active_piece_data.as_mut() else {
-                    unreachable!("hard-dropping none active piece")
-                };
+                let prev_piece = prev_piece.expect("harddropping none active piece");
                 // Move piece all the way down.
-                let dropped_piece = active_piece.well_piece(&self.board);
+                let dropped_piece = prev_piece.well_piece(&self.board);
                 feedback_events.push((
                     event_time,
-                    FeedbackEvent::HardDrop(*active_piece, dropped_piece),
+                    FeedbackEvent::HardDrop(prev_piece, dropped_piece),
                 ));
-                *active_piece = dropped_piece;
                 self.events
                     .insert(Event::LockTimer, event_time + self.config.hard_drop_delay);
+                Some(dropped_piece)
             }
             Event::Fall | Event::SoftDrop => {
+                let prev_piece = prev_piece.expect("falling/softdropping none active piece");
                 let drop_delay = if self.buttons_pressed[Button::DropSoft] {
                     Duration::from_secs_f64(
                         self.drop_delay().as_secs_f64() / self.config.soft_drop_factor,
@@ -820,35 +822,24 @@ impl Game {
                 } else {
                     self.drop_delay()
                 };
-                let Some((active_piece, _)) = self.active_piece_data.as_mut() else {
-                    unreachable!("dropping none active piece")
-                };
                 // Try to move active piece down.
-                if let Some(piece_below) = active_piece.fits_at(&self.board, (0, -1)) {
-                    *active_piece = piece_below;
+                if let Some(dropped_piece) = prev_piece.fits_at(&self.board, (0, -1)) {
                     self.events.insert(Event::Fall, event_time + drop_delay);
+                    Some(dropped_piece)
                 // Piece hit ground but SoftDrop was pressed.
                 } else if event == Event::SoftDrop {
                     self.events.insert(Event::Lock, event_time);
+                    Some(prev_piece)
                 // Piece hit ground and tried to drop naturally: don't do anything but try falling again later.
                 } else {
                     // TODO: Is this enough? Does this lead to inconsistent gameplay and should `Fall` be inserted outside together with locking?
                     self.events.insert(Event::Fall, event_time + drop_delay);
+                    Some(prev_piece)
                 }
             }
             Event::MoveInitial | Event::MoveRepeat => {
                 // Handle move attempt and auto repeat move.
-                let Some((active_piece, _)) = self.active_piece_data.as_mut() else {
-                    unreachable!("moving none active piece")
-                };
-                let dx = if self.buttons_pressed[Button::MoveLeft] {
-                    -1
-                } else {
-                    1
-                };
-                if let Some(moved_piece) = active_piece.fits_at(&self.board, (dx, 0)) {
-                    *active_piece = moved_piece;
-                }
+                let prev_piece = prev_piece.expect("moving none active piece");
                 let move_delay = if event == Event::MoveInitial {
                     self.config.delayed_auto_shift
                 } else {
@@ -856,11 +847,14 @@ impl Game {
                 };
                 self.events
                     .insert(Event::MoveRepeat, event_time + move_delay);
+                #[rustfmt::skip]
+                let dx = if self.buttons_pressed[Button::MoveLeft] { -1 } else { 1 };
+                prev_piece
+                    .fits_at(&self.board, (dx, 0))
+                    .or(Some(prev_piece))
             }
             Event::Rotate => {
-                let Some((active_piece, _)) = self.active_piece_data.as_mut() else {
-                    unreachable!("rotating none active piece")
-                };
+                let prev_piece = prev_piece.expect("rotating none active piece");
                 let mut rotation = 0;
                 if self.buttons_pressed[Button::RotateLeft] {
                     rotation -= 1;
@@ -871,89 +865,159 @@ impl Game {
                 if self.buttons_pressed[Button::RotateAround] {
                     rotation += 2;
                 }
-                if let Some(rotated_piece) =
-                    self.config
-                        .rotation_system
-                        .rotate(active_piece, &self.board, rotation)
-                {
-                    *active_piece = rotated_piece;
-                }
+                self.config
+                    .rotation_system
+                    .rotate(&prev_piece, &self.board, rotation)
+                    .or(Some(prev_piece))
             }
         };
-        /*
-        Event interactions and locking:
-        LineClearDone: ε -> ε +Spawn dly  (no piece)
-        Spawn        : ε -> ε +Fall imm  (update Locking)
-        Lock         : . -> ε +dly LineClearDone  (no piece)
-        HardDrop     : . -> . +Fall dly  (update Locking)
-        SoftDrop     : . -> . +Fall dly  (update Locking)
-        MoveInitial  : . -> . +MoveRepeat dly(DAS)  (update Locking)
-        MoveRepeat   : . -> . +MoveRepeat dly(ARR)  (update Locking)
-        Rotate       : . -> .  (update Locking)
-        Fall         : . -> dly Fall  (update Locking)
-
-        Table (touches_ground):
-        | !t0 !t1  :  -
-        | !t0  t1  :  evaluate touchdown etc., add LockTimer
-        |  t0 !t1  :  remember liftoff   etc., rem LockTimer
-        |  t0  t1  :  (maybe re-add LockTimer)
-         */
-        // TODO: Probably check this code again, because it's kind of distasteful and thus error-prone.
-        // Update locking state of active piece.
-        if let Some(touches_ground_after) = self
-            .active_piece_data
-            .as_ref()
-            .map(|(active_piece, _)| active_piece.fits_at(&self.board, (0, -1)).is_none())
-        {
-            let drop_delay = self.drop_delay();
-            let lock_delay = self.lock_delay();
-            if let Some((
-                active_piece,
-                LockingData {
-                    touches_ground,
-                    last_touchdown,
-                    last_liftoff,
-                    ground_time_left,
-                    lowest_y,
-                },
-            )) = self.active_piece_data.as_mut()
-            {
-                // Piece was afloat and now landed, possibly update lowest_y and touchdown or connect to last touchdown.
-                if !*touches_ground && touches_ground_after {
-                    // New lowest ever reached, reset ground time completely.
-                    if active_piece.pos.1 < *lowest_y {
-                        *lowest_y = active_piece.pos.1;
-                        *ground_time_left = self.config.ground_time_cap;
-                        *last_touchdown = event_time;
-                    // Not connected to last ground touch, update ground time and set last_touchdown.
-                    } else if event_time.saturating_duration_since(*last_liftoff) > 2 * drop_delay {
-                        let some_ground_time =
-                            last_liftoff.saturating_duration_since(*last_touchdown);
-                        *ground_time_left = ground_time_left.saturating_sub(some_ground_time);
-                        *last_touchdown = event_time;
-                        // Otherwise: Connected to last ground touch, leave last_touchdown intact.
-                    }
-                // Piece was on ground and is now in the air, update liftoff.
-                } else if *touches_ground && !touches_ground_after {
-                    *last_liftoff = event_time;
-                    self.events.remove(&Event::LockTimer);
-                }
-                //  Need to reschedule lock timer (if on the ground without a timer or moved/rotated).
-                if touches_ground_after
-                    && (!self.events.contains_key(&Event::LockTimer)
-                        || (
-                            (event == Event::Rotate || event == Event::MoveInitial || event == Event::MoveRepeat)
-                            && old_active_piece_data.map(|(old_active_piece, _)| old_active_piece != *active_piece).unwrap_or(false)))
-                {
-                    let some_ground_time = event_time.saturating_duration_since(*last_touchdown);
-                    let ground_time_left = ground_time_left.saturating_sub(some_ground_time);
-                    let delay = std::cmp::min(lock_delay, ground_time_left);
-                    self.events.insert(Event::LockTimer, event_time + delay);
-                }
-                *touches_ground = touches_ground_after;
-            }
-        }
+        let next_piece_dat =
+            next_piece.map(|piece| (piece, piece.fits_at(&self.board, (0, -1)).is_none()));
+        let next_locking_data =
+            self.calculate_locking_data(event, event_time, prev_piece_data, next_piece_dat);
+        feedback_events.push((
+            event_time,
+            FeedbackEvent::Debug(format!(
+                "{next_locking_data:?} {:?}",
+                self.events.get(&Event::LockTimer)
+            )),
+        ));
+        self.active_piece_data = next_piece.zip(next_locking_data);
         Ok(feedback_events)
+    }
+
+    // THIS is, by far, the ugliest part of this entire game. For the love of what's good, I hope this code can someday be surgically removed and replaced with an elegant alternative.
+    fn calculate_locking_data(
+        &mut self,
+        event: Event,
+        event_time: Instant,
+        prev_piece_data: Option<(ActivePiece, LockingData)>,
+        next_piece_dat: Option<(ActivePiece, bool)>,
+    ) -> Option<LockingData> {
+        /*
+        Table (touches_ground):
+        | ∅t0 !t1  :  [1] init locking data
+        | ∅t0  t1  :  [3.1] init locking data, track touchdown etc., add LockTimer
+        | ∅t0 ∅t1  :  [4]  -
+        | !t0 !t1  :  [4]  -
+        | !t0  t1  :  [3.2] track touchdown etc., add LockTimer
+        | !t0 ∅t1  :  [4]  -
+        |  t0 !t1  :  [2] track liftoff etc., RMV LockTimer
+        |  t0  t1  :  [3.3] upon move/rot. add LockTimer
+        |  t0 ∅t1  :  [4]  -
+        */
+        match (prev_piece_data, next_piece_dat) {
+            // [1] Newly spawned piece does not touch ground.
+            (None, Some((next_piece, false))) => Some(LockingData {
+                touches_ground: false,
+                last_touchdown: None,
+                last_liftoff: Some(event_time),
+                ground_time_left: self.config.ground_time_max,
+                lowest_y: next_piece.pos.1,
+            }),
+            // [2] Active piece lifted off the ground.
+            (Some((_prev_piece, prev_locking_data)), Some((_next_piece, false)))
+                if prev_locking_data.touches_ground =>
+            {
+                self.events.remove(&Event::LockTimer);
+                Some(LockingData {
+                    touches_ground: false,
+                    last_liftoff: Some(event_time),
+                    ..prev_locking_data
+                })
+            }
+            // [3] A piece is on the ground. Complex update to locking values.
+            (prev_piece_data, Some((next_piece, true))) => {
+                let next_locking_data = match prev_piece_data {
+                    // If previous piece exists and next piece hasn't reached newest low (i.e. not a reset situation).
+                    Some((_prev_piece, prev_locking_data))
+                        if !(next_piece.pos.1 < prev_locking_data.lowest_y) =>
+                    {
+                        // Previously touched ground already, just continue previous data.
+                        if prev_locking_data.touches_ground {
+                            prev_locking_data
+                        } else {
+                            // SAFETY: We know we have an active piece that didn't touch ground before, so it MUST have its last_liftoff set.
+                            let last_liftoff = prev_locking_data.last_liftoff.unwrap();
+                            match prev_locking_data.last_touchdown {
+                                /*
+                                * `(prev_piece_data, Some((next_piece, true))) = (prev_piece_data, next_piece_dat)` [[NEXT ON GROUND]]
+                                * `Some((_prev_piece, prev_locking_data)) if !(next_piece.pos.1 < prev_locking_data.lowest_y) = prev_piece_data` [[ACTIVE EXISTED, NO HEIGHT RESET]]
+                                * `!prev_locking_data.touches_ground` [[PREV NOT ON GROUND]]
+
+                                last_TD    notouch    CLOSE touchnow  :  TD = prev_locking_data.last_touchdown
+                                -------    notouch    CLOSE touchnow  :  TD = Some(event_time)
+                                last_TD    notouch      far touchnow  :  ground_time_left -= prev_stuff...,  TD = Some(event_time)
+                                -------    notouch      far touchnow  :  TD = Some(event_time)
+                                */
+                                // Piece was a afloat before with valid last touchdown as well.
+                                Some(last_touchdown) => {
+                                    let (last_touchdown, ground_time_left) = if event_time
+                                        .saturating_duration_since(last_liftoff)
+                                        <= 2 * self.drop_delay()
+                                    {
+                                        (
+                                            prev_locking_data.last_touchdown,
+                                            prev_locking_data.ground_time_left,
+                                        )
+                                    } else {
+                                        let elapsed_ground_time =
+                                            last_liftoff.saturating_duration_since(last_touchdown);
+                                        (
+                                            Some(event_time),
+                                            prev_locking_data
+                                                .ground_time_left
+                                                .saturating_sub(elapsed_ground_time),
+                                        )
+                                    };
+                                    LockingData {
+                                        touches_ground: true,
+                                        last_touchdown,
+                                        last_liftoff: None,
+                                        ground_time_left,
+                                        lowest_y: prev_locking_data.lowest_y,
+                                    }
+                                }
+                                // Piece existed, was not touching ground, is touching ground now, but does not have a last touchdown. Just set touchdown.
+                                None => LockingData {
+                                    touches_ground: true,
+                                    last_touchdown: Some(event_time),
+                                    ..prev_locking_data
+                                },
+                            }
+                        }
+                    }
+                    // It's a newly generated piece directly spawned on the stack, or a piece that reached new lowest and needs completely reset locking data.
+                    _ => LockingData {
+                        touches_ground: true,
+                        last_touchdown: Some(event_time),
+                        last_liftoff: None,
+                        ground_time_left: self.config.ground_time_max,
+                        lowest_y: next_piece.pos.1,
+                    },
+                };
+                // Set lock timer if there isn't one, or refresh it if piece was moved.
+                let repositioned = prev_piece_data
+                    .map(|(prev_piece, _)| prev_piece != next_piece)
+                    .unwrap_or(false);
+                #[rustfmt::skip]
+                let move_rotate = match event { Event::Rotate | Event::MoveInitial | Event::MoveRepeat => true, _ => false };
+                if !self.events.contains_key(&Event::LockTimer) || (repositioned && move_rotate) {
+                    // SAFETY: We know this must be `Some` in this case.
+                    let current_ground_time = event_time
+                        .saturating_duration_since(next_locking_data.last_touchdown.unwrap());
+                    let remaining_ground_time = next_locking_data
+                        .ground_time_left
+                        .saturating_sub(current_ground_time);
+                    let lock_timer = std::cmp::min(self.lock_delay(), remaining_ground_time);
+                    self.events
+                        .insert(Event::LockTimer, event_time + lock_timer);
+                }
+                Some(next_locking_data)
+            }
+            // [4] No change to state or no active piece.
+            (prev_piece_data, _next_piece_dat) => prev_piece_data.unzip().1,
+        } // NEW LOCKING DATA
     }
 
     #[rustfmt::skip]

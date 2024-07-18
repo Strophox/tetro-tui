@@ -327,8 +327,8 @@ impl<T: Write> TetrsTerminal<T> {
                         tetromino,
                         spin,
                         n_lines_cleared,
-                        combo,
                         perfect_clear,
+                        combo,
                     ) => {
                         let mut txts = Vec::new();
                         if spin {
@@ -358,7 +358,7 @@ impl<T: Write> TetrsTerminal<T> {
                 };
                 feed_evt_msg_buf.push_front(str);
             }
-            feed_evt_msg_buf.truncate(8);
+            feed_evt_msg_buf.truncate(16);
             for str in feed_evt_msg_buf.iter() {
                 self.term
                     .queue(style::Print(str))?
