@@ -23,8 +23,8 @@ use crate::backend::game::{
 enum Menu {
     Title,
     NewGame(Gamemode),
-    Game(Box<Game>, Duration, Instant),
-    Pause,
+    Game(Box<Game>, GameRenderer, Duration, Instant),
+    Pause, // TODO: Add information so game stats can be displayed here.
     GameOver,
     GameComplete,
     Options,
@@ -41,7 +41,7 @@ enum MenuUpdate {
     Set(Menu),
 }
 
-// TODO: Is `PartialEq` needed?
+// TODO: Derive `Default`?
 #[derive(PartialEq, Clone, Debug)]
 struct Settings {
     game_fps: f64,
@@ -53,6 +53,11 @@ struct Settings {
 pub struct TetrsTerminal<T: Write> {
     term: T,
     settings: Settings,
+}
+
+#[derive(Eq, PartialEq, Clone, Hash, Default, Debug)]
+struct GameRenderer {
+    feedback_event_buffer: VecDeque<(Instant, FeedbackEvent)>,
 }
 
 impl<T: Write> Drop for TetrsTerminal<T> {
@@ -84,14 +89,6 @@ impl<T: Write> TetrsTerminal<T> {
             }
         }
         // TODO: Store different keybind mappings somewhere and get default from there.
-        /*let _dq_keybinds = HashMap::from([
-            (DQ_Keycode::Left, Button::MoveLeft),
-            (DQ_Keycode::Right, Button::MoveRight),
-            (DQ_Keycode::A, Button::RotateLeft),
-            (DQ_Keycode::D, Button::RotateRight),
-            (DQ_Keycode::Down, Button::DropSoft),
-            (DQ_Keycode::Up, Button::DropHard),
-        ]);*/
         let ct_keybinds = HashMap::from([
             (CT_Keycode::Left, Button::MoveLeft),
             (CT_Keycode::Right, Button::MoveRight),
@@ -126,14 +123,15 @@ impl<T: Write> TetrsTerminal<T> {
                 ),
                 Instant::now(),
             )),
+            GameRenderer::default(),
             Duration::ZERO,
             Instant::now(),
         ));
-        menu_stack.push(Menu::Game(
-            Box::new(Game::with_gamemode(Gamemode::master(), Instant::now())),
-            Duration::ZERO,
-            Instant::now(),
-        ));
+        // menu_stack.push(Menu::Game(
+        //     Box::new(Game::with_gamemode(Gamemode::master(), Instant::now())),
+        //     Duration::ZERO,
+        //     Instant::now(),
+        // ));
         // Preparing main application loop.
         let msg = loop {
             // Retrieve active menu, stop application if stack is empty.
@@ -144,8 +142,8 @@ impl<T: Write> TetrsTerminal<T> {
             let menu_update = match screen {
                 Menu::Title => self.menu_title(),
                 Menu::NewGame(gamemode) => self.menu_newgame(gamemode),
-                Menu::Game(game, total_duration_paused, last_paused) => {
-                    self.menu_game(game, total_duration_paused, last_paused)
+                Menu::Game(game, renderer, total_duration_paused, last_paused) => {
+                    self.menu_game(game, renderer, total_duration_paused, last_paused)
                 }
                 Menu::Pause => self.menu_pause(),
                 Menu::GameOver => self.menu_gameover(),
@@ -154,7 +152,7 @@ impl<T: Write> TetrsTerminal<T> {
                 Menu::ConfigureControls => self.menu_configurecontrols(),
                 Menu::Replay => self.menu_replay(),
                 Menu::Scores => self.menu_scores(),
-                Menu::Quit(string) => break string.clone(), // TODO: Optimize away `.clone()` call.
+                Menu::Quit(string) => break string.clone(),
             }?;
             // Change screen session depending on what response screen gave.
             match menu_update {
@@ -170,7 +168,7 @@ impl<T: Write> TetrsTerminal<T> {
                 }
             }
         };
-        // TODO: This is done here manually, see note in `Drop::drop(self)`.
+        // NOTE: This is done here manually for debug reasons in case the application still crashes somehow, c.f. note in `Drop::drop(self)`.
         let _ = self.term.execute(terminal::LeaveAlternateScreen);
         Ok(msg)
     }
@@ -220,6 +218,7 @@ impl<T: Write> TetrsTerminal<T> {
     fn menu_game(
         &mut self,
         game: &mut Game,
+        renderer: &mut GameRenderer,
         duration_paused_total: &mut Duration,
         time_paused: &mut Instant,
     ) -> io::Result<MenuUpdate> {
@@ -230,8 +229,6 @@ impl<T: Write> TetrsTerminal<T> {
         let (tx, rx) = mpsc::channel::<ButtonSignal>();
         let _input_handler =
             CrosstermHandler::new(&tx, &self.settings.keybinds, self.settings.kitty_enabled);
-        // TODO: Remove these debug structs.
-        let mut feed_evt_msg_buf = VecDeque::new();
         // Game Loop
         let time_render_loop_start = Instant::now();
         let mut it = 0u32;
@@ -276,111 +273,8 @@ impl<T: Write> TetrsTerminal<T> {
                     }
                 };
             }
-            // TODO: Draw game.
-            let GameState {
-                lines_cleared,
-                level,
-                score,
-                time_updated,
-                board,
-                active_piece,
-                next_pieces,
-                time_started,
-                gamemode,
-            } = game.state();
-            let mut temp_board = board.clone();
-            if let Some(active_piece) = active_piece {
-                for ((x, y), tile_type_id) in active_piece.tiles() {
-                    temp_board[y][x] = Some(tile_type_id);
-                }
-            }
-            self.term
-                .queue(cursor::MoveTo(0, 1))?
-                .queue(terminal::Clear(terminal::ClearType::FromCursorDown))?;
-            self.term
-                .queue(style::Print("   +--------------------+"))?
-                .queue(cursor::MoveToNextLine(1))?;
-            for (idx, line) in temp_board.iter().take(20).enumerate().rev() {
-                let txt_line = format!(
-                    "{idx:02} |{}|",
-                    line.iter()
-                        .map(|cell| {
-                            cell.map_or(" .", |tile| match tile.get() {
-                                1 => "OO",
-                                2 => "II",
-                                3 => "SS",
-                                4 => "ZZ",
-                                5 => "TT",
-                                6 => "LL",
-                                7 => "JJ",
-                                _ => todo!("formatting unknown tile type"),
-                            })
-                        })
-                        .collect::<Vec<_>>()
-                        .join("")
-                );
-                self.term
-                    .queue(style::Print(txt_line))?
-                    .queue(cursor::MoveToNextLine(1))?;
-            }
-            self.term
-                .queue(style::Print("   +--------------------+"))?
-                .queue(cursor::MoveToNextLine(1))?;
-            self.term
-                .queue(style::Print(format!(
-                    "   {:?}",
-                    time_updated.saturating_duration_since(game.state().time_started)
-                )))?
-                .queue(cursor::MoveToNextLine(1))?;
-            // TODO: Do something with feedback events.
-            if !feedback_events.is_empty() {
-                feed_evt_msg_buf.push_front("---".to_string());
-            }
-            for (_, feedback_event) in feedback_events {
-                let str = match feedback_event {
-                    FeedbackEvent::Accolade(
-                        tetromino,
-                        spin,
-                        n_lines_cleared,
-                        perfect_clear,
-                        combo,
-                    ) => {
-                        let mut txts = Vec::new();
-                        if spin {
-                            txts.push(format!("{tetromino:?}-Spin"))
-                        }
-                        let txt_lineclear = match n_lines_cleared {
-                            1 => "Single!",
-                            2 => "Double!",
-                            3 => "Triple!",
-                            4 => "Quadruple!",
-                            x => todo!("unexpected line clear count {}", x),
-                        }
-                        .to_string();
-                        txts.push(txt_lineclear);
-                        if combo > 1 {
-                            txts.push(format!("[ x{combo} ]"));
-                        }
-                        if perfect_clear {
-                            txts.push("PERFECT!".to_string());
-                        }
-                        txts.join(" ")
-                    }
-                    FeedbackEvent::PieceLocked(_) => continue,
-                    FeedbackEvent::LineClears(..) => continue,
-                    FeedbackEvent::HardDrop(_, _) => continue,
-                    FeedbackEvent::Debug(s) => s,
-                };
-                feed_evt_msg_buf.push_front(str);
-            }
-            feed_evt_msg_buf.truncate(16);
-            for str in feed_evt_msg_buf.iter() {
-                self.term
-                    .queue(style::Print(str))?
-                    .queue(cursor::MoveToNextLine(1))?;
-            }
-            // Execute draw.
-            self.term.flush()?;
+            // TODO: Make this more elegantly modular.
+            renderer.render_dbg(self, game, feedback_events)?;
             // Exit if game ended
             if let Some(good_end) = game.finished() {
                 let menu = if good_end.is_ok() {
@@ -421,5 +315,136 @@ impl<T: Write> TetrsTerminal<T> {
 
     fn menu_scores(&mut self) -> io::Result<MenuUpdate> {
         todo!("highscores screen") // TODO:
+    }
+}
+
+impl GameRenderer {
+    fn render(
+        &mut self,
+        ctx: &mut TetrsTerminal<impl Write>,
+        game: &mut Game,
+        new_feedback_events: Vec<(Instant, FeedbackEvent)>,
+    ) -> io::Result<()> {
+        let GameState {
+            lines_cleared,
+            level,
+            score,
+            time_updated,
+            board,
+            active_piece,
+            next_pieces,
+            pieces_played,
+            time_started,
+            gamemode,
+        } = game.state();
+        Ok(())
+    }
+
+    fn render_dbg(
+        &mut self,
+        ctx: &mut TetrsTerminal<impl Write>,
+        game: &mut Game,
+        new_feedback_events: Vec<(Instant, FeedbackEvent)>,
+    ) -> io::Result<()> {
+        // Draw game stuf
+        let GameState {
+            lines_cleared,
+            level,
+            score,
+            time_updated,
+            board,
+            active_piece,
+            next_pieces,
+            pieces_played,
+            time_started,
+            gamemode,
+        } = game.state();
+        let mut temp_board = board.clone();
+        if let Some(active_piece) = active_piece {
+            for ((x, y), tile_type_id) in active_piece.tiles() {
+                temp_board[y][x] = Some(tile_type_id);
+            }
+        }
+        ctx.term
+            .queue(cursor::MoveTo(0, 0))?
+            .queue(terminal::Clear(terminal::ClearType::FromCursorDown))?;
+        ctx.term
+            .queue(style::Print("   +--------------------+"))?
+            .queue(cursor::MoveToNextLine(1))?;
+        for (idx, line) in temp_board.iter().take(20).enumerate().rev() {
+            let txt_line = format!(
+                "{idx:02} |{}|",
+                line.iter()
+                    .map(|cell| {
+                        cell.map_or(" .", |tile| match tile.get() {
+                            1 => "OO",
+                            2 => "II",
+                            3 => "SS",
+                            4 => "ZZ",
+                            5 => "TT",
+                            6 => "LL",
+                            7 => "JJ",
+                            _ => todo!("formatting unknown tile type"),
+                        })
+                    })
+                    .collect::<Vec<_>>()
+                    .join("")
+            );
+            ctx.term
+                .queue(style::Print(txt_line))?
+                .queue(cursor::MoveToNextLine(1))?;
+        }
+        ctx.term
+            .queue(style::Print("   +--------------------+"))?
+            .queue(cursor::MoveToNextLine(1))?;
+        ctx.term
+            .queue(style::Print(format!(
+                "   {:?}",
+                time_updated.saturating_duration_since(game.state().time_started)
+            )))?
+            .queue(cursor::MoveToNextLine(1))?;
+        // Draw feedback stuf
+        for event in new_feedback_events {
+            self.feedback_event_buffer.push_front(event);
+        }
+        let mut feed_evt_msgs = Vec::new();
+        for (_, feedback_event) in self.feedback_event_buffer.iter() {
+            feed_evt_msgs.push(match feedback_event {
+                FeedbackEvent::Accolade(tetromino, spin, n_lines_cleared, perfect_clear, combo) => {
+                    let mut txts = Vec::new();
+                    if *spin {
+                        txts.push(format!("{tetromino:?}-Spin"))
+                    }
+                    let txt_lineclear = match n_lines_cleared {
+                        1 => "Single!",
+                        2 => "Double!",
+                        3 => "Triple!",
+                        4 => "Quadruple!",
+                        x => todo!("unexpected line clear count {}", x),
+                    }
+                    .to_string();
+                    txts.push(txt_lineclear);
+                    if *combo > 1 {
+                        txts.push(format!("[ x{combo} ]"));
+                    }
+                    if *perfect_clear {
+                        txts.push("PERFECT!".to_string());
+                    }
+                    txts.join(" ")
+                }
+                FeedbackEvent::PieceLocked(_) => continue,
+                FeedbackEvent::LineClears(..) => continue,
+                FeedbackEvent::HardDrop(_, _) => continue,
+                FeedbackEvent::Debug(s) => s.clone(),
+            });
+        }
+        for str in feed_evt_msgs.iter().take(16) {
+            ctx.term
+                .queue(style::Print(str))?
+                .queue(cursor::MoveToNextLine(1))?;
+        }
+        // Execute draw.
+        ctx.term.flush()?;
+        Ok(())
     }
 }

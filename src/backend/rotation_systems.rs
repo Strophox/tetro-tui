@@ -1,3 +1,4 @@
+// TODO: Implement Super Rotation System.
 use crate::backend::game::{ActivePiece, Board, Orientation, Tetromino};
 
 pub trait RotationSystem {
@@ -10,16 +11,7 @@ pub trait RotationSystem {
     fn place_initial(&mut self, tetromino: Tetromino) -> ActivePiece;
 }
 
-/*pub fn rotate_dummy(
-    mut piece: ActivePiece,
-    board: &Board,
-    right_turns: i32,
-) -> Option<ActivePiece> {
-    piece.orientation = piece.orientation.rotate_r(right_turns);
-    piece.fits_at(board, (0, 0))
-}*/
-
-#[derive(Debug)]
+#[derive(Eq, PartialEq, Clone, Copy, Hash, Default, Debug)]
 pub struct Classic;
 
 impl RotationSystem for Classic {
@@ -81,6 +73,7 @@ impl RotationSystem for Classic {
     }
 }
 
+#[derive(Eq, PartialEq, Clone, Copy, Hash, Default, Debug)]
 pub struct Okay;
 
 impl RotationSystem for Okay {
@@ -110,59 +103,3 @@ impl RotationSystem for Okay {
         }
     }
 }
-
-/* TODO: Improve and implement the 'Okay' Rotation System.
-pub fn rotate_okay(piece: ActivePiece, board: &Board, right_turns: i32) -> Option<ActivePiece> {
-    let ActivePiece(shape, o, pos) = piece;
-    let r = match right_turns.rem_euclid(4) {
-        0 => return Some(piece),
-        1 => true,
-        2 => return first_valid_kick(board, ActivePiece(shape, o.rotate_r(2), pos), 2, std::iter::once((0,0))),
-        3 => false,
-        _ => unreachable!()
-    };
-    use Orientation::*;
-    #[rustfmt::skip]
-    let kicks = match shape {
-        Tetromino::O => (0,0), // ⠶ -> ⠶
-        Tetromino::I => match o {
-            N | S => (2,2), // ⠤⠤ -> ⡇
-            E | W => (-2,-2), // ⡇  -> ⠤⠤
-        },
-        Tetromino::S => match o {
-            N | S => (1,1), // ⠴⠂ -> ⠳
-            E | W => (-1,-1), // ⠳  -> ⠴⠂
-        },
-        Tetromino::Z => match o {
-            N | S => (1,1), // ⠲⠄ -> ⠞
-            E | W => (-1,-1), // ⠞  -> ⠲⠄
-        },
-        Tetromino::T => match o {
-            N => if r {(1,0)} else {(-1,0)}, // ⠴⠄ -> ⠗
-            E => if r {(-1,-1)} else {(1,1)}, // ⠗  -> ⠲⠂
-            S => if r {(0,1)} else {(0,-1)}, // ⠲⠂ -> ⠺
-            W => (0,0), // ⠺  -> ⠴⠄
-        },
-        Tetromino::L => match o {
-            N => if r {(1,0)} else {(-1,0)}, // ⠤⠆ -> ⠧
-            E => if r {(-1,-1)} else {(1,1)}, // ⠧  -> ⠖⠂
-            S => if r {(0,1)} else {(0,-1)}, // ⠖⠂ -> ⠹
-            W => (0,0), // ⠹  -> ⠤⠆
-        },
-        Tetromino::J => match o {
-            N => if r {(1,0)} else {(-1,0)}, // ⠦⠄ -> ⠏
-            E => if r {(-1,-1)} else {(1,1)}, // ⠏  -> ⠒⠆
-            S => if r {(0,1)} else {(0,-1)}, // ⠒⠆ -> ⠼
-            W => (0,0), // ⠼  -> ⠦⠄
-        },
-    };
-    first_valid_kick(board, piece, 1, kicks)
-}*/
-
-/* TODO: Implement the Super Rotation System.
-pub fn rotate_super(board: Board, piece: ActivePiece, right_turns: i32) -> Option<ActivePiece> {}
-*/
-
-/* TODO: Implement the Arika Rotation System.
-pub fn rotate_arika(board: Board, piece: ActivePiece, right_turns: i32) -> Option<ActivePiece> {}
-*/

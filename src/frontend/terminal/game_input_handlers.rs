@@ -12,6 +12,7 @@ use crate::backend::game::Button;
 
 pub type ButtonSignal = Option<(Instant, Button, bool)>;
 
+#[derive(Debug)]
 pub struct CrosstermHandler {
     _handle: JoinHandle<()>,
 }

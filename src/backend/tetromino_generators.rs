@@ -8,7 +8,8 @@ use rand::{
 
 use crate::backend::game::Tetromino;
 
-#[derive(Debug)]
+// TODO: Derive `Default`?
+#[derive(Clone, Debug)]
 pub struct RandomGen {
     rng: ThreadRng,
     uniform: Uniform<usize>,
@@ -33,7 +34,8 @@ impl Iterator for RandomGen {
     }
 }
 
-#[derive(Debug)]
+// TODO: Derive `Default`?
+#[derive(Clone, Debug)]
 pub struct BagGen {
     // INVARIANT: self.leftover.iter().sum::<u32>() > 0.
     rng: ThreadRng,
@@ -69,7 +71,8 @@ impl Iterator for BagGen {
     }
 }
 
-#[derive(Debug)]
+// TODO: Derive `Default`?
+#[derive(Clone, Debug)]
 pub struct TotalRelativeProbGen {
     rng: ThreadRng,
     relative_counts: [u32; 7],
@@ -107,7 +110,8 @@ impl Iterator for TotalRelativeProbGen {
     }
 }
 
-#[derive(Debug)]
+// TODO: Derive `Default`?
+#[derive(Clone, Debug)]
 pub struct RecencyProbGen {
     rng: ThreadRng,
     last_played: [u32; 7],
@@ -145,5 +149,3 @@ impl Iterator for RecencyProbGen {
         Some(idx.try_into().unwrap())
     }
 }
-
-// TODO: Program [NESRandomGen](https://meatfighter.com/nintendotetrisai/#Spawning_Tetriminos).

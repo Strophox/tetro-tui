@@ -2,12 +2,13 @@ use std::{
     collections::{HashMap, VecDeque},
     fmt,
     num::{NonZeroU32, NonZeroU64},
+    ops,
     time::{Duration, Instant},
 };
 
 use crate::backend::{rotation_systems, tetromino_generators};
 
-pub type ButtonsPressed = ButtonMap<bool>;
+pub type ButtonsPressed = [bool; 7];
 // NOTE: Would've liked to use `impl Game { type Board = ...` (https://github.com/rust-lang/rust/issues/8995)
 pub type TileTypeID = NonZeroU32;
 pub type Line = [Option<TileTypeID>; Game::WIDTH];
@@ -71,9 +72,6 @@ pub enum Button {
     DropHard,
 }
 
-#[derive(Eq, PartialEq, Clone, Copy, Hash, Default, Debug)]
-pub struct ButtonMap<T>(T, T, T, T, T, T, T);
-
 #[derive(Eq, PartialEq, Clone, Copy, Hash, Debug)]
 struct LockingData {
     touches_ground: bool,
@@ -121,6 +119,7 @@ pub struct Game {
 
     // Game "state" fields.
     finished: Option<Result<(), GameOver>>,
+    time_updated: Instant,
     /// Invariants:
     /// * Until the game has finished there will always be more events: `finish_status.is_some() || !next_events.is_empty()`.
     /// * Unhandled events lie in the future: `for (event,event_time) in self.events { assert(self.time_updated < event_time); }`.
@@ -133,7 +132,6 @@ pub struct Game {
     /// Invariants:
     /// * The Preview size stays constant: `self.next_pieces().size() == old(self.next_pieces().size())`.
     next_pieces: VecDeque<Tetromino>,
-    time_updated: Instant,
     pieces_played: [u64; 7],
     lines_cleared: Vec<Line>,
     level: NonZeroU64,
@@ -150,6 +148,9 @@ pub enum GameOver {
 
 #[derive(Eq, PartialEq, Clone, Hash, Debug)]
 pub struct GameState<'a> {
+    pub time_started: Instant,
+    pub gamemode: &'a Gamemode,
+
     pub lines_cleared: &'a Vec<Line>,
     pub level: NonZeroU64,
     pub score: u64,
@@ -157,8 +158,7 @@ pub struct GameState<'a> {
     pub board: &'a Board,
     pub active_piece: Option<ActivePiece>,
     pub next_pieces: &'a VecDeque<Tetromino>,
-    pub time_started: Instant,
-    pub gamemode: &'a Gamemode,
+    pub pieces_played: &'a [u64; 7],
 }
 
 #[derive(Eq, PartialEq, Clone, Hash, Debug)]
@@ -370,7 +370,7 @@ impl Gamemode {
             name: String::from("Marathon"),
             start_level: NonZeroU64::MIN,
             increase_level: true,
-            limit: Some(MeasureStat::Level(Game::LEVEL_20G.saturating_add(1))), // NOTE: This depends on the highest level available.
+            limit: Some(MeasureStat::Level(Game::LEVEL_20G.saturating_add(1))),
             optimize: MeasureStat::Score(0),
         }
     }
@@ -386,12 +386,10 @@ impl Gamemode {
         }
     }
 
-    // TODO: Tweak the details of this, perhaps even after speed curve adjusted?
     #[allow(dead_code)]
     pub fn master() -> Self {
         Self {
             name: String::from("Master"),
-            // SAFETY: 20 > 0.
             start_level: Game::LEVEL_20G,
             increase_level: true,
             limit: Some(MeasureStat::Lines(300)),
@@ -411,32 +409,32 @@ impl PartialEq for Gamemode {
     }
 }
 
-impl<T> std::ops::Index<Button> for ButtonMap<T> {
+impl<T> ops::Index<Button> for [T; 7] {
     type Output = T;
 
     fn index(&self, idx: Button) -> &Self::Output {
         match idx {
-            Button::MoveLeft => &self.0,
-            Button::MoveRight => &self.1,
-            Button::RotateLeft => &self.2,
-            Button::RotateRight => &self.3,
-            Button::RotateAround => &self.4,
-            Button::DropSoft => &self.5,
-            Button::DropHard => &self.6,
+            Button::MoveLeft => &self[0],
+            Button::MoveRight => &self[1],
+            Button::RotateLeft => &self[2],
+            Button::RotateRight => &self[3],
+            Button::RotateAround => &self[4],
+            Button::DropSoft => &self[5],
+            Button::DropHard => &self[6],
         }
     }
 }
 
-impl<T> std::ops::IndexMut<Button> for ButtonMap<T> {
+impl<T> ops::IndexMut<Button> for [T; 7] {
     fn index_mut(&mut self, idx: Button) -> &mut Self::Output {
         match idx {
-            Button::MoveLeft => &mut self.0,
-            Button::MoveRight => &mut self.1,
-            Button::RotateLeft => &mut self.2,
-            Button::RotateRight => &mut self.3,
-            Button::RotateAround => &mut self.4,
-            Button::DropSoft => &mut self.5,
-            Button::DropHard => &mut self.6,
+            Button::MoveLeft => &mut self[0],
+            Button::MoveRight => &mut self[1],
+            Button::RotateLeft => &mut self[2],
+            Button::RotateRight => &mut self[3],
+            Button::RotateAround => &mut self[4],
+            Button::DropSoft => &mut self[5],
+            Button::DropHard => &mut self[6],
         }
     }
 }
@@ -524,6 +522,7 @@ impl Game {
             board: &self.board,
             active_piece: self.active_piece_data.map(|apd| apd.0),
             next_pieces: &self.next_pieces,
+            pieces_played: &self.pieces_played,
             lines_cleared: &self.lines_cleared,
             level: self.level,
             score: self.score,
@@ -616,9 +615,9 @@ impl Game {
 
     fn process_input(&mut self, new_buttons_pressed: ButtonsPressed, update_time: Instant) {
         #[allow(non_snake_case)]
-        let ButtonMap(mL0, mR0, rL0, rR0, rA0, dS0, dH0) = self.buttons_pressed;
+        let [mL0, mR0, rL0, rR0, rA0, dS0, dH0] = self.buttons_pressed;
         #[allow(non_snake_case)]
-        let ButtonMap(mL1, mR1, rL1, rR1, rA1, dS1, dH1) = new_buttons_pressed;
+        let [mL1, mR1, rL1, rR1, rA1, dS1, dH1] = new_buttons_pressed;
         /*
         Table:                                 Karnaugh map:
         | mL0 mR0 mL1 mR1                      |           !mL1 !mL1  mL1  mL1
@@ -916,13 +915,6 @@ impl Game {
             next_piece.map(|piece| (piece, piece.fits_at(&self.board, (0, -1)).is_none()));
         let next_locking_data =
             self.calculate_locking_data(event, event_time, prev_piece_data, next_piece_dat);
-        feedback_events.push((
-            event_time,
-            FeedbackEvent::Debug(format!(
-                "{next_locking_data:?} {:?}",
-                self.events.get(&Event::LockTimer)
-            )),
-        ));
         self.active_piece_data = next_piece.zip(next_locking_data);
         Ok(feedback_events)
     }
@@ -1051,7 +1043,7 @@ impl Game {
                         .ground_time_left
                         .saturating_sub(current_ground_time);
                     let lock_timer = std::cmp::min(self.lock_delay(), remaining_ground_time);
-                    // TODO: Remove debug comments.
+                    // TODO: Remove debug.
                     // let dbgstr = format!("HEREEEEEEEEEEEEEEEEEEE {:?}", lock_timer);
                     // crossterm::ExecutableCommand::execute(&mut std::io::stderr(), crossterm::cursor::MoveTo(0,0)).unwrap();
                     // crossterm::ExecutableCommand::execute(&mut std::io::stderr(), crossterm::terminal::Clear(crossterm::terminal::ClearType::CurrentLine)).unwrap();
