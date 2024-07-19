@@ -1,5 +1,5 @@
 // TODO: Implement Super Rotation System.
-use crate::backend::game::{ActivePiece, Board, Orientation, Tetromino};
+use crate::{ActivePiece, Board, Orientation, Tetromino};
 
 pub trait RotationSystem {
     fn rotate(

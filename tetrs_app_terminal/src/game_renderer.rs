@@ -5,11 +5,9 @@ use std::{
 };
 
 use crossterm::{cursor, style, terminal, QueueableCommand};
+use tetrs_lib::{FeedbackEvent, Game, GameStateView};
 
-use crate::{
-    backend::game::{FeedbackEvent, Game, GameStateView},
-    frontend::terminal::TetrsTerminal,
-};
+use crate::terminal_tetrs::TerminalTetrs;
 
 #[derive(Eq, PartialEq, Clone, Hash, Default, Debug)]
 pub struct GameRenderer {
@@ -19,7 +17,7 @@ pub struct GameRenderer {
 impl GameRenderer {
     pub fn render(
         &mut self,
-        ctx: &mut TetrsTerminal<impl Write>,
+        ctx: &mut TerminalTetrs<impl Write>,
         game: &mut Game,
         new_feedback_events: Vec<(Instant, FeedbackEvent)>,
     ) -> io::Result<()> {
@@ -41,7 +39,7 @@ impl GameRenderer {
 
     pub fn render_dbg(
         &mut self,
-        ctx: &mut TetrsTerminal<impl Write>,
+        ctx: &mut TerminalTetrs<impl Write>,
         game: &mut Game,
         new_feedback_events: Vec<(Instant, FeedbackEvent)>,
     ) -> io::Result<()> {

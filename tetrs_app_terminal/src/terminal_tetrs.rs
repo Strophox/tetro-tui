@@ -1,6 +1,3 @@
-mod game_input_handler;
-mod game_renderer;
-
 use std::{
     collections::HashMap,
     io::{self, Write},
@@ -14,10 +11,11 @@ use crossterm::{
     event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers},
     style, terminal, ExecutableCommand, QueueableCommand,
 };
-use game_input_handler::{ButtonSignal, CT_Keycode, CrosstermHandler};
-use game_renderer::GameRenderer;
+use tetrs_lib::{Button, ButtonsPressed, Game, Gamemode, MeasureStat};
 
-use crate::backend::game::{Button, ButtonsPressed, Game, Gamemode, MeasureStat};
+use crate::input_handler::{ButtonSignal, CT_Keycode, CrosstermHandler};
+use crate::game_renderer::GameRenderer;
+
 
 #[derive(Debug)]
 enum Menu {
@@ -50,12 +48,12 @@ struct Settings {
 }
 
 #[derive(Debug)]
-pub struct TetrsTerminal<T: Write> {
-    term: T,
+pub struct TerminalTetrs<T: Write> {
+    pub term: T,
     settings: Settings,
 }
 
-impl<T: Write> Drop for TetrsTerminal<T> {
+impl<T: Write> Drop for TerminalTetrs<T> {
     fn drop(&mut self) {
         // Console epilogue: de-initialization.
         if self.settings.kitty_enabled {
@@ -68,7 +66,7 @@ impl<T: Write> Drop for TetrsTerminal<T> {
     }
 }
 
-impl<T: Write> TetrsTerminal<T> {
+impl<T: Write> TerminalTetrs<T> {
     pub fn new(mut terminal: T) -> Self {
         // Console prologue: Initializion.
         let _ = terminal.execute(terminal::SetTitle("Tetrs"));

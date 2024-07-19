@@ -8,7 +8,7 @@ use std::{
 pub use crossterm::event::KeyCode as CT_Keycode;
 use crossterm::event::{self, Event, KeyEvent, KeyEventKind};
 
-use crate::backend::game::Button;
+use tetrs_lib::Button;
 
 pub type ButtonSignal = Option<(Instant, Button, bool)>;
 

@@ -1,3 +1,6 @@
+mod rotation_systems;
+mod tetromino_generators;
+
 use std::{
     collections::{HashMap, VecDeque},
     fmt,
@@ -5,8 +8,6 @@ use std::{
     ops,
     time::{Duration, Instant},
 };
-
-use crate::backend::{rotation_systems, tetromino_generators};
 
 pub type ButtonsPressed = [bool; 7];
 // NOTE: Would've liked to use `impl Game { type Board = ...` (https://github.com/rust-lang/rust/issues/8995)
@@ -37,7 +38,7 @@ pub enum Tetromino {
 }
 
 #[derive(Eq, PartialEq, Clone, Copy, Hash, Debug)]
-pub(crate) struct ActivePiece {
+pub struct ActivePiece {
     pub shape: Tetromino,
     pub orientation: Orientation,
     pub pos: Coord,
@@ -1119,8 +1120,7 @@ pub(crate) fn add((x0, y0): Coord, (x1, y1): Offset) -> Option<Coord> {
     Some((x0.checked_add_signed(x1)?, y0.checked_add_signed(y1)?))
 }
 
-/* TODO: Testing?
-#[cfg(test)]
+/*#[cfg(test)]
 mod tests {
     use super::*;
 
@@ -1129,5 +1129,4 @@ mod tests {
         let res = add((1,2),(3,4));
         assert_eq!(res, (4,6));
     }
-}
-*/
+}*/

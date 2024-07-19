@@ -6,7 +6,7 @@ use rand::{
     rngs::ThreadRng,
 };
 
-use crate::backend::game::Tetromino;
+use crate::Tetromino;
 
 // TODO: Derive `Default`?
 #[derive(Clone, Debug)]
