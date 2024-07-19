@@ -1,7 +1,7 @@
 use std::{
     collections::{HashMap, VecDeque},
     fmt,
-    num::{NonZeroU32, NonZeroU64},
+    num::NonZeroU32,
     ops,
     time::{Duration, Instant},
 };
@@ -46,16 +46,16 @@ pub(crate) struct ActivePiece {
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
 pub enum MeasureStat {
     Lines(usize),
-    Level(NonZeroU64),
-    Score(u64),
-    Pieces(u64),
+    Level(NonZeroU32),
+    Score(u32),
+    Pieces(u32),
     Time(Duration),
 }
 
 #[derive(Eq, Clone, Hash, Debug)]
 pub struct Gamemode {
     name: String,
-    start_level: NonZeroU64,
+    start_level: NonZeroU32,
     increase_level: bool,
     limit: Option<MeasureStat>,
     optimize: MeasureStat,
@@ -132,12 +132,12 @@ pub struct Game {
     /// Invariants:
     /// * The Preview size stays constant: `self.next_pieces().size() == old(self.next_pieces().size())`.
     next_pieces: VecDeque<Tetromino>,
-    pieces_played: [u64; 7],
+    pieces_played: [u32; 7],
     lines_cleared: Vec<Line>,
-    level: NonZeroU64,
-    score: u64,
-    consecutive_line_clears: u64,
-    back_to_back_special_clears: u64,
+    level: NonZeroU32,
+    score: u32,
+    consecutive_line_clears: u32,
+    back_to_back_special_clears: u32,
 }
 
 #[derive(Eq, PartialEq, Clone, Copy, Hash, Debug)]
@@ -147,18 +147,18 @@ pub enum GameOver {
 }
 
 #[derive(Eq, PartialEq, Clone, Hash, Debug)]
-pub struct GameState<'a> {
+pub struct GameStateView<'a> {
     pub time_started: Instant,
     pub gamemode: &'a Gamemode,
 
     pub lines_cleared: &'a Vec<Line>,
-    pub level: NonZeroU64,
-    pub score: u64,
+    pub level: NonZeroU32,
+    pub score: u32,
     pub time_updated: Instant,
     pub board: &'a Board,
     pub active_piece: Option<ActivePiece>,
     pub next_pieces: &'a VecDeque<Tetromino>,
-    pub pieces_played: &'a [u64; 7],
+    pub pieces_played: &'a [u32; 7],
 }
 
 #[derive(Eq, PartialEq, Clone, Hash, Debug)]
@@ -166,7 +166,15 @@ pub enum FeedbackEvent {
     PieceLocked(ActivePiece),
     LineClears(Vec<usize>, Duration),
     HardDrop(ActivePiece, ActivePiece),
-    Accolade(Tetromino, bool, u64, bool, u64),
+    Accolade {
+        score_bonus: u32,
+        shape: Tetromino,
+        spin: bool,
+        lineclears: u32,
+        perfect_clear: bool,
+        combo: u32,
+        opportunity: u32,
+    },
     Debug(String),
 }
 
@@ -328,7 +336,7 @@ impl Gamemode {
     #[allow(dead_code)]
     pub const fn custom(
         name: String,
-        start_level: NonZeroU64,
+        start_level: NonZeroU32,
         increase_level: bool,
         mode_limit: Option<MeasureStat>,
         optimization_goal: MeasureStat,
@@ -343,9 +351,9 @@ impl Gamemode {
     }
 
     #[allow(dead_code)]
-    pub fn sprint(start_level: NonZeroU64) -> Self {
+    pub fn sprint(start_level: NonZeroU32) -> Self {
         Self {
-            name: String::from("Sprint"),
+            name: String::from("sprint"),
             start_level,
             increase_level: false,
             limit: Some(MeasureStat::Lines(40)),
@@ -354,9 +362,9 @@ impl Gamemode {
     }
 
     #[allow(dead_code)]
-    pub fn ultra(start_level: NonZeroU64) -> Self {
+    pub fn ultra(start_level: NonZeroU32) -> Self {
         Self {
-            name: String::from("Ultra"),
+            name: String::from("ultra"),
             start_level,
             increase_level: false,
             limit: Some(MeasureStat::Time(Duration::from_secs(3 * 60))),
@@ -367,8 +375,8 @@ impl Gamemode {
     #[allow(dead_code)]
     pub fn marathon() -> Self {
         Self {
-            name: String::from("Marathon"),
-            start_level: NonZeroU64::MIN,
+            name: String::from("marathon"),
+            start_level: NonZeroU32::MIN,
             increase_level: true,
             limit: Some(MeasureStat::Level(Game::LEVEL_20G.saturating_add(1))),
             optimize: MeasureStat::Score(0),
@@ -378,8 +386,8 @@ impl Gamemode {
     #[allow(dead_code)]
     pub fn endless() -> Self {
         Self {
-            name: String::from("Endless"),
-            start_level: NonZeroU64::MIN,
+            name: String::from("endless"),
+            start_level: NonZeroU32::MIN,
             increase_level: true,
             limit: None,
             optimize: MeasureStat::Pieces(0),
@@ -389,7 +397,7 @@ impl Gamemode {
     #[allow(dead_code)]
     pub fn master() -> Self {
         Self {
-            name: String::from("Master"),
+            name: String::from("master"),
             start_level: Game::LEVEL_20G,
             increase_level: true,
             limit: Some(MeasureStat::Lines(300)),
@@ -466,7 +474,7 @@ impl Game {
     pub const WIDTH: usize = 10;
     pub const SKYLINE: usize = 20; // Typical maximal height of relevant (visible) playing grid.
                                    // SAFETY: 19 > 0, and this is the level at which blocks start falling with 20G.
-    const LEVEL_20G: NonZeroU64 = unsafe { NonZeroU64::new_unchecked(19) };
+    const LEVEL_20G: NonZeroU32 = unsafe { NonZeroU32::new_unchecked(19) };
 
     pub fn with_gamemode(gamemode: Gamemode, time_started: Instant) -> Self {
         let default_config = GameConfig {
@@ -517,8 +525,8 @@ impl Game {
         self.finished
     }
 
-    pub fn state(&self) -> GameState {
-        GameState {
+    pub fn state(&self) -> GameStateView {
+        GameStateView {
             board: &self.board,
             active_piece: self.active_piece_data.map(|apd| apd.0),
             next_pieces: &self.next_pieces,
@@ -838,9 +846,9 @@ impl Game {
                         lines_cleared.push(y);
                     }
                 }
-                let n_lines_cleared = u64::try_from(lines_cleared.len()).unwrap();
+                let n_lines_cleared = u32::try_from(lines_cleared.len()).unwrap();
                 if n_lines_cleared > 0 {
-                    let n_tiles_used = u64::try_from(
+                    let n_tiles_used = u32::try_from(
                         prev_piece
                             .tiles()
                             .iter()
@@ -867,13 +875,15 @@ impl Game {
                         * if perfect_clear { 10 } else { 1 }
                         * self.consecutive_line_clears;
                     self.score += score_bonus;
-                    let yippie = FeedbackEvent::Accolade(
-                        prev_piece.shape,
+                    let yippie = FeedbackEvent::Accolade {
+                        score_bonus,
+                        shape: prev_piece.shape,
                         spin,
-                        n_lines_cleared,
+                        lineclears: n_lines_cleared,
                         perfect_clear,
-                        self.consecutive_line_clears,
-                    );
+                        combo: self.consecutive_line_clears,
+                        opportunity: n_tiles_used,
+                    };
                     feedback_events.push((event_time, yippie));
                     feedback_events.push((
                         event_time,

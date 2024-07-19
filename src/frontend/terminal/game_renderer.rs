@@ -1,9 +1,14 @@
-use std::{collections::VecDeque, io::{self, Write}, time::Instant};
+use std::{
+    collections::VecDeque,
+    io::{self, Write},
+    time::Instant,
+};
 
 use crossterm::{cursor, style, terminal, QueueableCommand};
 
 use crate::{
-    backend::game::{FeedbackEvent, Game, GameState}, frontend::terminal::TetrsTerminal
+    backend::game::{FeedbackEvent, Game, GameStateView},
+    frontend::terminal::TetrsTerminal,
 };
 
 #[derive(Eq, PartialEq, Clone, Hash, Default, Debug)]
@@ -18,7 +23,8 @@ impl GameRenderer {
         game: &mut Game,
         new_feedback_events: Vec<(Instant, FeedbackEvent)>,
     ) -> io::Result<()> {
-        let GameState {
+        let (WIDTH, HEIGHT) = terminal::size()?;
+        let GameStateView {
             lines_cleared,
             level,
             score,
@@ -40,7 +46,7 @@ impl GameRenderer {
         new_feedback_events: Vec<(Instant, FeedbackEvent)>,
     ) -> io::Result<()> {
         // Draw game stuf
-        let GameState {
+        let GameStateView {
             lines_cleared,
             level,
             score,
@@ -103,27 +109,41 @@ impl GameRenderer {
         let mut feed_evt_msgs = Vec::new();
         for (_, feedback_event) in self.feedback_event_buffer.iter() {
             feed_evt_msgs.push(match feedback_event {
-                FeedbackEvent::Accolade(tetromino, spin, n_lines_cleared, perfect_clear, combo) => {
-                    let mut txts = Vec::new();
+                FeedbackEvent::Accolade {
+                    score_bonus,
+                    shape,
+                    spin,
+                    lineclears,
+                    perfect_clear,
+                    combo,
+                    opportunity,
+                } => {
+                    let mut strs = Vec::new();
                     if *spin {
-                        txts.push(format!("{tetromino:?}-Spin"))
+                        strs.push(format!("{shape:?}-Spin"))
                     }
-                    let txt_lineclear = match n_lines_cleared {
-                        1 => "Single!",
-                        2 => "Double!",
-                        3 => "Triple!",
-                        4 => "Quadruple!",
+                    let accolade = match lineclears {
+                        1 => "Single",
+                        2 => "Double",
+                        3 => "Triple",
+                        4 => "Quadruple",
                         x => todo!("unexpected line clear count {}", x),
-                    }
-                    .to_string();
-                    txts.push(txt_lineclear);
+                    };
+                    let excl = match opportunity {
+                        1 => "'",
+                        2 => "!",
+                        3 => "!'",
+                        4 => "!!",
+                        x => todo!("unexpected opportunity count {}", x),
+                    };
+                    strs.push(format!("{accolade}{excl}"));
                     if *combo > 1 {
-                        txts.push(format!("[ x{combo} ]"));
+                        strs.push(format!("[{combo}.combo]"));
                     }
                     if *perfect_clear {
-                        txts.push("PERFECT!".to_string());
+                        strs.push("PERFECT!".to_string());
                     }
-                    txts.join(" ")
+                    strs.join(" ")
                 }
                 FeedbackEvent::PieceLocked(_) => continue,
                 FeedbackEvent::LineClears(..) => continue,

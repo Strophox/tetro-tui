@@ -2,9 +2,9 @@ mod game_input_handler;
 mod game_renderer;
 
 use std::{
-    collections::{HashMap, VecDeque},
+    collections::HashMap,
     io::{self, Write},
-    num::NonZeroU64,
+    num::NonZeroU32,
     sync::mpsc,
     time::{Duration, Instant},
 };
@@ -17,9 +17,7 @@ use crossterm::{
 use game_input_handler::{ButtonSignal, CT_Keycode, CrosstermHandler};
 use game_renderer::GameRenderer;
 
-use crate::backend::game::{
-    Button, ButtonsPressed, FeedbackEvent, Game, GameState, Gamemode, MeasureStat,
-};
+use crate::backend::game::{Button, ButtonsPressed, Game, Gamemode, MeasureStat};
 
 #[derive(Debug)]
 enum Menu {
@@ -73,6 +71,7 @@ impl<T: Write> Drop for TetrsTerminal<T> {
 impl<T: Write> TetrsTerminal<T> {
     pub fn new(mut terminal: T) -> Self {
         // Console prologue: Initializion.
+        let _ = terminal.execute(terminal::SetTitle("Tetrs"));
         let _ = terminal.execute(cursor::Hide);
         let _ = terminal.execute(terminal::EnterAlternateScreen);
         let _ = terminal::enable_raw_mode();
@@ -113,7 +112,7 @@ impl<T: Write> TetrsTerminal<T> {
             Box::new(Game::with_gamemode(
                 Gamemode::custom(
                     "Debug".to_string(),
-                    NonZeroU64::new(1).unwrap(),
+                    NonZeroU32::MIN,
                     true,
                     None,
                     MeasureStat::Pieces(0),
