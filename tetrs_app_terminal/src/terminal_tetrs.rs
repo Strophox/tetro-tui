@@ -13,7 +13,7 @@ use crossterm::{
 };
 use tetrs_lib::{Button, ButtonsPressed, Game, Gamemode, MeasureStat};
 
-use crate::game_screen_renderers::UnicodeRenderer;
+use crate::game_screen_renderers::{DebugRenderer, GameScreenRenderer, UnicodeRenderer};
 use crate::input_handler::{ButtonSignal, CT_Keycode, CrosstermHandler};
 
 // TODO: #[derive(Debug)]
@@ -26,14 +26,14 @@ enum Menu {
         total_duration_paused: Duration,
         last_paused: Instant,
     },
-    Pause, // TODO: Add information so game stats can be displayed here.
     GameOver,
     GameComplete,
+    Pause, // TODO: Add information so game stats can be displayed here.
     Options,
-    Replay,
-    Scores,
-    Quit(String),
     ConfigureControls,
+    Scores,
+    About,
+    Quit(String),
 }
 
 // TODO: #[derive(Debug)]
@@ -121,7 +121,7 @@ impl<T: Write> TerminalTetrs<T> {
                 ),
                 Instant::now(),
             )),
-            game_screen_renderer: UnicodeRenderer::default(),
+            game_screen_renderer: Default::default(),
             total_duration_paused: Duration::ZERO,
             last_paused: Instant::now(),
         });
@@ -138,21 +138,21 @@ impl<T: Write> TerminalTetrs<T> {
             };
             // Open new menu screen, then store what it returns.
             let menu_update = match screen {
-                Menu::Title => self.menu_title(),
-                Menu::NewGame(gamemode) => self.menu_newgame(gamemode),
+                Menu::Title => self.title(),
+                Menu::NewGame(gamemode) => self.newgame(gamemode),
                 Menu::Game {
                     game,
                     game_screen_renderer: renderer,
                     total_duration_paused,
                     last_paused,
-                } => self.menu_game(game, renderer, total_duration_paused, last_paused),
-                Menu::Pause => self.menu_pause(),
-                Menu::GameOver => self.menu_gameover(),
-                Menu::GameComplete => self.menu_gamecomplete(),
-                Menu::Options => self.menu_options(),
-                Menu::ConfigureControls => self.menu_configurecontrols(),
-                Menu::Replay => self.menu_replay(),
-                Menu::Scores => self.menu_scores(),
+                } => self.game(game, renderer, total_duration_paused, last_paused),
+                Menu::Pause => self.pause(),
+                Menu::GameOver => self.gameover(),
+                Menu::GameComplete => self.gamecomplete(),
+                Menu::Scores => self.scores(),
+                Menu::About => self.about(),
+                Menu::Options => self.options(),
+                Menu::ConfigureControls => self.configurecontrols(),
                 Menu::Quit(string) => break string.clone(),
             }?;
             // Change screen session depending on what response screen gave.
@@ -174,9 +174,14 @@ impl<T: Write> TerminalTetrs<T> {
         Ok(msg)
     }
 
-    fn menu_title(&mut self) -> io::Result<MenuUpdate> {
-        todo!("title screen")
-        /* TODO:
+    fn title(&mut self) -> io::Result<MenuUpdate> {
+        /* TODO: Title menu.
+        Title
+            -> { Quit }
+        Title
+            -> { NewGame Options Scores About }
+            [color="#007FFF"]
+
         while event::poll(Duration::from_secs(0))? {
             match event::read()? {
                 // Abort
@@ -210,19 +215,36 @@ impl<T: Write> TerminalTetrs<T> {
                 Event::Paste(String) => { }
             }
         }*/
+        todo!("title menu")
     }
 
-    fn menu_newgame(&mut self, gamemode: &mut Gamemode) -> io::Result<MenuUpdate> {
-        todo!("new game screen") // TODO:
+    fn newgame(&mut self, gamemode: &mut Gamemode) -> io::Result<MenuUpdate> {
+        /* TODO: Newgame menu.
+        NewGame
+            -> { Game }
+        NewGame
+            -> { Options }
+            [color="#007FFF"]
+
+        MenuUpdate::Pop
+        */
+        todo!("newgame menu")
     }
 
-    fn menu_game(
+    fn game(
         &mut self,
         game: &mut Game,
-        game_screen_renderer: &mut UnicodeRenderer,
+        game_screen_renderer: &mut impl GameScreenRenderer,
         total_duration_paused: &mut Duration,
         time_paused: &mut Instant,
     ) -> io::Result<MenuUpdate> {
+        /* TODO: Game menu.
+        Game
+            -> { GameOver GameComplete }
+        Game
+            -> { Pause }
+            [color="#007FFF"]
+        */
         let time_unpaused = Instant::now();
         *total_duration_paused += time_unpaused.saturating_duration_since(*time_paused);
         // Prepare channel with which to communicate `Button` inputs / game interrupt.
@@ -232,14 +254,14 @@ impl<T: Write> TerminalTetrs<T> {
             CrosstermHandler::new(&tx, &self.settings.keybinds, self.settings.kitty_enabled);
         // Game Loop
         let time_render_loop_start = Instant::now();
-        let mut it = 0u32;
+        let mut f = 0u32;
         let next_menu = 'render_loop: loop {
-            it += 1;
-            let next_frame = time_render_loop_start
-                + Duration::from_secs_f64(f64::from(it) / self.settings.game_fps);
-            let mut feedback_events = Vec::new();
+            f += 1;
+            let next_frame_at = time_render_loop_start
+                + Duration::from_secs_f64(f64::from(f) / self.settings.game_fps);
+            let mut new_feedback_events = Vec::new();
             'idle_loop: loop {
-                let frame_idle_remaining = next_frame - Instant::now();
+                let frame_idle_remaining = next_frame_at - Instant::now();
                 match rx.recv_timeout(frame_idle_remaining) {
                     Ok(None) => {
                         // TODO: Game pause directly quits: Remove this as soon as pause menu works.
@@ -255,17 +277,15 @@ impl<T: Write> TerminalTetrs<T> {
                             game.state().time_updated,
                         ); // Make sure button press
                            // SAFETY: We know game is not over and
-                        let new_feedback_events =
-                            game.update(Some(buttons_pressed), instant).unwrap();
-                        feedback_events.extend(new_feedback_events);
+                        new_feedback_events
+                            .extend(game.update(Some(buttons_pressed), instant).unwrap());
                         continue 'idle_loop;
                     }
                     Err(mpsc::RecvTimeoutError::Timeout) => {
                         let now = Instant::now();
                         // TODO: SAFETY.
-                        let new_feedback_events =
-                            game.update(None, now - *total_duration_paused).unwrap();
-                        feedback_events.extend(new_feedback_events);
+                        new_feedback_events
+                            .extend(game.update(None, now - *total_duration_paused).unwrap());
                         break 'idle_loop;
                     }
                     Err(mpsc::RecvTimeoutError::Disconnected) => {
@@ -275,7 +295,7 @@ impl<T: Write> TerminalTetrs<T> {
                 };
             }
             // TODO: Make this more elegantly modular.
-            game_screen_renderer.render(self, game, feedback_events)?;
+            game_screen_renderer.render(self, game, new_feedback_events)?;
             // Exit if game ended
             if let Some(good_end) = game.finished() {
                 let menu = if good_end.is_ok() {
@@ -290,31 +310,73 @@ impl<T: Write> TerminalTetrs<T> {
         Ok(next_menu)
     }
 
-    fn menu_pause(&mut self) -> io::Result<MenuUpdate> {
-        todo!("pause screen") // TODO:
+    fn gameover(&mut self) -> io::Result<MenuUpdate> {
+        /* TODO: Gameover menu.
+        GameOver
+            -> { Quit }
+        GameOver
+            -> { NewGame Scores }
+            [color="#007FFF"]
+        */
+        todo!("gameover menu")
     }
 
-    fn menu_gameover(&mut self) -> io::Result<MenuUpdate> {
-        todo!("gameover screen") // TODO:
+    fn gamecomplete(&mut self) -> io::Result<MenuUpdate> {
+        /* TODO: Gamecomplete menu.
+        GameComplete
+            -> { Quit }
+        GameComplete
+            -> { NewGame Scores }
+            [color="#007FFF"]
+        */
+        todo!("game complete menu")
     }
 
-    fn menu_gamecomplete(&mut self) -> io::Result<MenuUpdate> {
-        todo!("game complete screen") // TODO:
+    fn pause(&mut self) -> io::Result<MenuUpdate> {
+        /* TODO: Pause menu.
+        Pause
+            -> { Quit }
+        Pause
+            -> { NewGame Scores Options About }
+            [color="#007FFF"]
+
+        MenuUpdate::Pop
+        */
+        todo!("pause menu")
     }
 
-    fn menu_options(&mut self) -> io::Result<MenuUpdate> {
-        todo!("options screen") // TODO:
+    fn options(&mut self) -> io::Result<MenuUpdate> {
+        /* TODO: Options menu.
+        Options
+            -> { ConfigureControls }
+            [color="#007FFF"]
+
+        MenuUpdate::Pop
+        */
+        todo!("options menu")
     }
 
-    fn menu_configurecontrols(&mut self) -> io::Result<MenuUpdate> {
-        todo!("configure controls screen") // TODO:
+    fn configurecontrols(&mut self) -> io::Result<MenuUpdate> {
+        /* TODO: Configurecontrols menu.
+
+        MenuUpdate::Pop
+        */
+        todo!("configure controls menu")
     }
 
-    fn menu_replay(&mut self) -> io::Result<MenuUpdate> {
-        todo!("replay screen") // TODO:
+    fn scores(&mut self) -> io::Result<MenuUpdate> {
+        /* TODO: Scores menu.
+
+        MenuUpdate::Pop
+        */
+        todo!("highscores menu")
     }
 
-    fn menu_scores(&mut self) -> io::Result<MenuUpdate> {
-        todo!("highscores screen") // TODO:
+    fn about(&mut self) -> io::Result<MenuUpdate> {
+        /* TODO: About menu.
+
+        MenuUpdate::Pop
+        */
+        todo!("About menu")
     }
 }

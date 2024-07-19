@@ -131,7 +131,7 @@ pub struct Game {
     finished: Option<Result<(), GameOver>>,
     time_updated: Instant,
     /// Invariants:
-    /// * Until the game has finished there will always be more events: `finish_status.is_some() || !next_events.is_empty()`.
+    /// * Until the game has finished there will always be more events: `finished.is_some() || !next_events.is_empty()`.
     /// * Unhandled events lie in the future: `for (event,event_time) in self.events { assert(self.time_updated < event_time); }`.
     events: EventMap<Instant>,
     buttons_pressed: ButtonsPressed,
@@ -147,7 +147,7 @@ pub struct Game {
     level: NonZeroU32,
     score: u32,
     consecutive_line_clears: u32,
-    back_to_back_special_clears: u32,
+    back_to_back_special_clears: u32, // TODO: Include this in score calculation and FeedbackEvent variant.
 }
 
 #[derive(Eq, PartialEq, Clone, Copy, Hash, Debug)]

@@ -10,6 +10,15 @@ use tetrs_lib::{FeedbackEvent, Game, GameStateView};
 
 use crate::terminal_tetrs::TerminalTetrs;
 
+pub trait GameScreenRenderer {
+    fn render(
+        &mut self,
+        ctx: &mut TerminalTetrs<impl Write>,
+        game: &mut Game,
+        new_feedback_events: Vec<(Instant, FeedbackEvent)>,
+    ) -> io::Result<()>;
+}
+
 #[derive(Eq, PartialEq, Clone, Hash, Default, Debug)]
 pub struct DebugRenderer {
     feedback_event_buffer: VecDeque<(Instant, FeedbackEvent)>,
@@ -20,8 +29,8 @@ pub struct UnicodeRenderer {
     event_buffer: VecDeque<(Instant, FeedbackEvent)>,
 }
 
-impl DebugRenderer {
-    pub fn render(
+impl GameScreenRenderer for DebugRenderer {
+    fn render(
         &mut self,
         ctx: &mut TerminalTetrs<impl Write>,
         game: &mut Game,
@@ -65,7 +74,7 @@ impl DebugRenderer {
                             5 => "TT",
                             6 => "LL",
                             7 => "JJ",
-                            _ => todo!("formatting unknown tile type"),
+                            _ => unimplemented!("formatting unknown tile type"),
                         })
                     })
                     .collect::<Vec<_>>()
@@ -109,18 +118,18 @@ impl DebugRenderer {
                         2 => "Double",
                         3 => "Triple",
                         4 => "Quadruple",
-                        x => todo!("unexpected line clear count {}", x),
+                        x => unreachable!("unexpected line clear count {}", x),
                     };
                     let excl = match opportunity {
                         1 => "'",
                         2 => "!",
                         3 => "!'",
                         4 => "!!",
-                        x => todo!("unexpected opportunity count {}", x),
+                        x => unreachable!("unexpected opportunity count {}", x),
                     };
                     strs.push(format!("{accolade}{excl}"));
                     if *combo > 1 {
-                        strs.push(format!("[{combo}.combo]"));
+                        strs.push(format!("[{combo        }.combo]"));
                     }
                     if *perfect_clear {
                         strs.push("PERFECT!".to_string());
@@ -144,9 +153,9 @@ impl DebugRenderer {
     }
 }
 
-impl UnicodeRenderer {
+impl GameScreenRenderer for UnicodeRenderer {
     // NOTE: (note) what is the concept of having an ADT but some functions are only defined on some variants (that may contain record data)?
-    pub fn render(
+    fn render(
         &mut self,
         ctx: &mut TerminalTetrs<impl Write>,
         game: &mut Game,
@@ -165,6 +174,7 @@ impl UnicodeRenderer {
             time_started,
             gamemode,
         } = game.state();
+        // TODO:
         Ok(())
     }
 }
