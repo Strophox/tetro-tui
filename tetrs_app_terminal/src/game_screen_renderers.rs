@@ -1,12 +1,9 @@
 use std::{
-    collections::VecDeque,
-    fmt::Debug,
-    io::{self, Write},
-    time::Instant,
+    collections::VecDeque, fmt::Debug, io::{self, Write}, time::{Duration, Instant}
 };
 
-use crossterm::{cursor, style, terminal, QueueableCommand};
-use tetrs_lib::{FeedbackEvent, Game, GameStateView};
+use crossterm::{cursor, event::KeyCode, style::{self, Color, Stylize}, terminal, QueueableCommand};
+use tetrs_lib::{Button, FeedbackEvent, Game, GameStateView, MeasureStat, TileTypeID};
 
 use crate::terminal_tetrs::TerminalTetrs;
 
@@ -38,16 +35,10 @@ impl GameScreenRenderer for DebugRenderer {
     ) -> io::Result<()> {
         // Draw game stuf
         let GameStateView {
-            lines_cleared,
-            level,
-            score,
             time_updated,
             board,
             active_piece,
-            next_pieces,
-            pieces_played,
-            time_started,
-            gamemode,
+            ..
         } = game.state();
         let mut temp_board = board.clone();
         if let Some(active_piece) = active_piece {
@@ -74,7 +65,7 @@ impl GameScreenRenderer for DebugRenderer {
                             5 => "TT",
                             6 => "LL",
                             7 => "JJ",
-                            _ => unimplemented!("formatting unknown tile type"),
+                            t => unimplemented!("formatting unknown tile id {t}"),
                         })
                     })
                     .collect::<Vec<_>>()
@@ -118,14 +109,14 @@ impl GameScreenRenderer for DebugRenderer {
                         2 => "Double",
                         3 => "Triple",
                         4 => "Quadruple",
-                        x => unreachable!("unexpected line clear count {}", x),
+                        x => unreachable!("unexpected line clear count {x}"),
                     };
                     let excl = match opportunity {
                         1 => "'",
                         2 => "!",
                         3 => "!'",
                         4 => "!!",
-                        x => unreachable!("unexpected opportunity count {}", x),
+                        x => unreachable!("unexpected opportunity count {x}"),
                     };
                     strs.push(format!("{accolade}{excl}"));
                     if *combo > 1 {
@@ -134,6 +125,7 @@ impl GameScreenRenderer for DebugRenderer {
                     if *perfect_clear {
                         strs.push("PERFECT!".to_string());
                     }
+                    strs.push(format!("+{score_bonus}"));
                     strs.join(" ")
                 }
                 FeedbackEvent::PieceLocked(_) => continue,
@@ -174,7 +166,159 @@ impl GameScreenRenderer for UnicodeRenderer {
             time_started,
             gamemode,
         } = game.state();
-        // TODO:
+        // Clear screen.
+        ctx.term
+            .queue(cursor::MoveTo(0, 0))?
+            .queue(terminal::Clear(terminal::ClearType::FromCursorDown))?;
+        // Screen: some values.
+        let lines = lines_cleared.len();
+        let time_elapsed = time_updated.saturating_duration_since(time_started);
+        // Screen: some helpers.
+        let stat_name = |stat| match stat {
+            MeasureStat::Lines(_) => "Lines",
+            MeasureStat::Level(_) => "Levels",
+            MeasureStat::Score(_) => "Score",
+            MeasureStat::Pieces(_) => "Pieces",
+            MeasureStat::Time(_) => "Time",
+        };
+        let fmt_time = |dur: Duration| format!("{}:{:02}.{:02}", dur.as_secs()/60, dur.as_secs()%60, dur.as_millis() % 1000 / 10);
+        let fmt_key = |key: KeyCode| format!("[{}]", match key {
+            KeyCode::Backspace => "BACK".to_string(),
+            KeyCode::Enter => "ENTR".to_string(),
+            KeyCode::Left => "←".to_string(),
+            KeyCode::Right => "→".to_string(),
+            KeyCode::Up => "↑".to_string(),
+            KeyCode::Down => "↓".to_string(),
+            KeyCode::Home => "HOME".to_string(),
+            KeyCode::End => "END".to_string(),
+            KeyCode::PageUp => "PgUp".to_string(),
+            KeyCode::PageDown => "PgDn".to_string(),
+            KeyCode::Tab => "TAB".to_string(),
+            KeyCode::Delete => "DEL".to_string(),
+            KeyCode::F(n) => format!("F{n}"),
+            KeyCode::Char(c) => c.to_uppercase().to_string(),
+            KeyCode::Esc => "ESC".to_string(),
+            _ => "??".to_string(),
+        });
+        // Screen: some titles.
+        let opti_name = stat_name(gamemode.optimize);
+        let opti_value = match gamemode.optimize {
+            MeasureStat::Lines(_) => format!("{}", lines),
+            MeasureStat::Level(_) => format!("{}", level),
+            MeasureStat::Score(_) => format!("{}", score),
+            MeasureStat::Pieces(_) => format!("{}", pieces_played.iter().sum::<u32>()),
+            MeasureStat::Time(_) => fmt_time(time_elapsed),
+        };
+        let (goal_name, goal_value) = if let Some(stat) = gamemode.limit {
+            (
+                format!("{} left:", stat_name(stat)),
+                match stat {
+                    MeasureStat::Lines(lns) => format!("{}", lns - lines),
+                    MeasureStat::Level(lvl) => format!("{}", lvl.get() - level.get()),
+                    MeasureStat::Score(pts) => format!("{}", pts - score),
+                    MeasureStat::Pieces(pcs) => format!("{}", pcs - pieces_played.iter().sum::<u32>()),
+                    MeasureStat::Time(dur) => fmt_time(dur - time_elapsed),
+                },
+            )
+        } else {
+            ("".to_string(), "".to_string())
+        };
+        let key_icon_pause = fmt_key(KeyCode::Esc);
+        let key_icons_moveleft = ctx.settings.keybinds.iter().filter_map(|(&k, &b)| (b==Button::MoveLeft).then_some(fmt_key(k))).collect::<Vec<String>>().join(" ");
+        let key_icons_moveright = ctx.settings.keybinds.iter().filter_map(|(&k, &b)| (b==Button::MoveRight).then_some(fmt_key(k))).collect::<Vec<String>>().join(" ");
+        let key_icons_move = format!("{key_icons_moveleft} {key_icons_moveright}");
+        let key_icons_rotateleft = ctx.settings.keybinds.iter().filter_map(|(&k, &b)| (b==Button::RotateLeft).then_some(fmt_key(k))).collect::<Vec<String>>().join(" ");
+        let key_icons_rotateright = ctx.settings.keybinds.iter().filter_map(|(&k, &b)| (b==Button::RotateRight).then_some(fmt_key(k))).collect::<Vec<String>>().join(" ");
+        let key_icons_rotate = format!("{key_icons_rotateleft} {key_icons_rotateright}");
+        let key_icons_dropsoft = ctx.settings.keybinds.iter().filter_map(|(&k, &b)| (b==Button::DropSoft).then_some(fmt_key(k))).collect::<Vec<String>>().join(" ");
+        let key_icons_drophard = ctx.settings.keybinds.iter().filter_map(|(&k, &b)| (b==Button::DropHard).then_some(fmt_key(k))).collect::<Vec<String>>().join(" ");
+        let key_icons_drop = format!("{key_icons_dropsoft} {key_icons_drophard}");
+        // Draw main screen assets (stats, frame, bg).
+        let mut screen = Vec::new();
+        screen.push(format!("                        ╓╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╥─────mode─────┐", ));
+        screen.push(format!("     ALL STATS          ║                    ║{:^14        }│", gamemode.name));
+        screen.push(format!("     ─────────╴         ║                    ╟──────────────┘", ));
+        screen.push(format!("     Level:{:>7  }      ║                    ║  {          }:", level, opti_name));
+        screen.push(format!("     Score:{:>7  }      ║                    ║{:^15         }", score, opti_value));
+        screen.push(format!("     Lines:{:>7  }      ║                    ║               ", lines));
+        screen.push(format!("                        ║                    ║  {           }", goal_name));
+        screen.push(format!("     Time elapsed       ║                    ║{:^15         }", goal_value));
+        screen.push(format!("     {:>13       }      ║                    ║               ", fmt_time(time_elapsed)));
+        screen.push(format!("                        ║                    ║─────next─────┐", ));
+        screen.push(format!("     PIECES             ║                    ║              │", ));
+        screen.push(format!("     ──────╴            ║                    ║              │", ));
+        screen.push(format!("     27o                ║                    ║──────────────┘", ));
+        screen.push(format!("     27i  25s  26z      ║                    ║               ", ));
+        screen.push(format!("     28t  26l  25j      ║                    ║               ", ));
+        screen.push(format!("                        ║                    ║               ", ));
+        screen.push(format!("     CONTROLS           ║                    ║               ", ));
+        screen.push(format!("     ────────╴          ║                    ║               ", ));
+        screen.push(format!("     Pause   {:<11     }║                    ║               ", key_icon_pause));
+        screen.push(format!("     Move    {:<11     }║                    ║               ", key_icons_move));
+        screen.push(format!("     Rotate  {:<11     }║                    ║               ", key_icons_rotate));
+        screen.push(format!("     Drop    {:<11     }╚════════════════════╝               ", key_icons_drop));
+        for str in screen {
+            ctx.term
+                .queue(style::Print(str))?
+                .queue(cursor::MoveToNextLine(1))?;
+        }
+        let (DX, DY) = (25, 0);
+        let (DXp, DYp) = (49, 11);
+        // Render board tiles.
+        let tile_color = |tile: TileTypeID| match tile.get() {
+            1 => Color::Yellow,
+            2 => Color::Cyan,
+            3 => Color::Green,
+            4 => Color::Red,
+            5 => Color::DarkMagenta,
+            6 => Color::DarkYellow,
+            7 => Color::Blue,
+            t => unimplemented!("formatting unknown tile id {t}"),
+        };
+        for (y, line) in board.iter().enumerate().take(21).rev() {
+            for (x, cell) in line.iter().enumerate() {
+                if let Some(tile_type_id) = cell {
+                    let color = tile_color(*tile_type_id);
+                    ctx.term
+                    .queue(cursor::MoveTo(u16::try_from(DX + 2*x).unwrap(), u16::try_from(DY + (Game::SKYLINE - y)).unwrap()))?
+                    .queue(style::PrintStyledContent("██".with(color)))?;
+                }
+            }
+        }
+        // If a piece is in play.
+        if let Some(active_piece) = active_piece {
+            // Draw ghost piece.
+            for ((x, y), tile_type_id) in active_piece.well_piece(board).tiles() {
+                if y > Game::SKYLINE {
+                    continue;
+                }
+                let color = tile_color(tile_type_id);
+                ctx.term
+                .queue(cursor::MoveTo(u16::try_from(DX + 2*x).unwrap(), u16::try_from(DY + (Game::SKYLINE - y)).unwrap()))?
+                .queue(style::PrintStyledContent("░░".with(color)))?;
+            }
+            // Draw active piece.
+            for ((x, y), tile_type_id) in active_piece.tiles() {
+                if y > Game::SKYLINE {
+                    continue;
+                }
+                let color = tile_color(tile_type_id);
+                ctx.term
+                .queue(cursor::MoveTo(u16::try_from(DX + 2*x).unwrap(), u16::try_from(DY + (Game::SKYLINE - y)).unwrap()))?
+                .queue(style::PrintStyledContent("▓▓".with(color)))?;
+            }
+        }
+        // Draw preview.
+        // TODO: SAFETY.
+        let next_piece = next_pieces.front().unwrap();
+        let color = tile_color(next_piece.tiletypeid());
+        for (x, y) in next_piece.minos(tetrs_lib::Orientation::N) {
+            ctx.term
+            .queue(cursor::MoveTo(u16::try_from(DXp + 2*x).unwrap(), u16::try_from(DYp - y).unwrap()))?
+            .queue(style::PrintStyledContent("▒▒".with(color)))?;
+        }
+        // Execute draw.
+        ctx.term.flush()?;
         Ok(())
     }
 }

@@ -45,16 +45,16 @@ enum MenuUpdate {
 
 // TODO: Derive `Default`?
 #[derive(PartialEq, Clone, Debug)]
-struct Settings {
-    game_fps: f64,
-    keybinds: HashMap<CT_Keycode, Button>,
+pub struct Settings {
+    pub game_fps: f64,
+    pub keybinds: HashMap<CT_Keycode, Button>,
     kitty_enabled: bool,
 }
 
 #[derive(Debug)]
 pub struct TerminalTetrs<T: Write> {
     pub term: T,
-    settings: Settings,
+    pub settings: Settings,
 }
 
 impl<T: Write> Drop for TerminalTetrs<T> {
@@ -125,11 +125,12 @@ impl<T: Write> TerminalTetrs<T> {
             total_duration_paused: Duration::ZERO,
             last_paused: Instant::now(),
         });
-        // menu_stack.push(Menu::Game(
-        //     Box::new(Game::with_gamemode(Gamemode::master(), Instant::now())),
-        //     Duration::ZERO,
-        //     Instant::now(),
-        // ));
+        // menu_stack.push(Menu::Game {
+        //     game: Box::new(Game::with_gamemode(Gamemode::master(), Instant::now())),
+        //     game_screen_renderer: Default::default(),
+        //     total_duration_paused: Duration::ZERO,
+        //     last_paused: Instant::now(),
+        // });
         // Preparing main application loop.
         let msg = loop {
             // Retrieve active menu, stop application if stack is empty.

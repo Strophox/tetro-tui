@@ -64,11 +64,11 @@ pub enum MeasureStat {
 
 #[derive(Eq, Clone, Hash, Debug)]
 pub struct Gamemode {
-    name: String,
-    start_level: NonZeroU32,
-    increase_level: bool,
-    limit: Option<MeasureStat>,
-    optimize: MeasureStat,
+    pub name: String,
+    pub start_level: NonZeroU32,
+    pub increase_level: bool,
+    pub limit: Option<MeasureStat>,
+    pub optimize: MeasureStat,
 }
 
 #[derive(Eq, PartialEq, Clone, Copy, Hash, Debug)]
@@ -208,7 +208,7 @@ impl Orientation {
 }
 
 impl Tetromino {
-    fn minos(&self, oriented: Orientation) -> [Coord; 4] {
+    pub fn minos(&self, oriented: Orientation) -> [Coord; 4] {
         use Orientation::*;
         match self {
             Tetromino::O => [(0, 0), (1, 0), (0, 1), (1, 1)], // ⠶
@@ -245,7 +245,7 @@ impl Tetromino {
         }
     }
 
-    const fn tiletypeid(&self) -> TileTypeID {
+    pub const fn tiletypeid(&self) -> TileTypeID {
         use Tetromino::*;
         let u8 = match self {
             O => 1,
@@ -332,7 +332,7 @@ impl ActivePiece {
         })
     }
 
-    fn well_piece(&self, board: &Board) -> ActivePiece {
+    pub fn well_piece(&self, board: &Board) -> ActivePiece {
         let mut well_piece = *self;
         // Move piece all the way down.
         while let Some(piece_below) = well_piece.fits_at(board, (0, -1)) {
@@ -871,7 +871,7 @@ impl Game {
                     } else {
                         self.back_to_back_special_clears = 0;
                     }
-                    let score_bonus = (10 + self.level.get() - 1)
+                    let score_bonus = 10 // NOTE: We do not currently use `(10 + self.level.get() - 1)`.
                         * n_lines_cleared
                         * n_tiles_used
                         * if spin { 2 } else { 1 }
