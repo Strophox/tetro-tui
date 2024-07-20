@@ -114,7 +114,7 @@ impl<T: Write> TerminalTetrs<T> {
             game: Box::new(Game::with_gamemode(
                 Gamemode::custom(
                     "Debug".to_string(),
-                    NonZeroU32::MIN,
+                    NonZeroU32::try_from(10).unwrap(),
                     true,
                     None,
                     MeasureStat::Pieces(0),

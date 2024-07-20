@@ -11,7 +11,10 @@ use crossterm::{
     style::{self, Color, Stylize},
     terminal, QueueableCommand,
 };
-use tetrs_lib::{ActivePiece, Button, Coord, FeedbackEvent, Game, GameStateView, MeasureStat, Tetromino, TileTypeID};
+use tetrs_lib::{
+    ActivePiece, Button, Coord, FeedbackEvent, Game, GameStateView, MeasureStat, Tetromino,
+    TileTypeID,
+};
 
 use crate::terminal_tetrs::TerminalTetrs;
 
@@ -296,13 +299,13 @@ impl GameScreenRenderer for UnicodeRenderer {
             t => unimplemented!("formatting unknown tile id {t}"),
         };
         let tile_color = |tile: TileTypeID| match tile.get() {
-            1 => Color::Rgb { r:254, g:203, b:0 },
-            2 => Color::Rgb { r:0, g:159, b:218 },
-            3 => Color::Rgb { r:105, g:190, b:40 },
-            4 => Color::Rgb { r:237, g:41, b:57 },
-            5 => Color::Rgb { r:149, g:45, b:152 },
-            6 => Color::Rgb { r:255, g:121, b:0 },
-            7 => Color::Rgb { r:0, g:101, b:189 },
+            1 => Color::Rgb { r:254, g:203, b:  0 },
+            2 => Color::Rgb { r:  0, g:159, b:218 },
+            3 => Color::Rgb { r:105, g:190, b: 40 },
+            4 => Color::Rgb { r:237, g: 41, b: 57 },
+            5 => Color::Rgb { r:149, g: 45, b:152 },
+            6 => Color::Rgb { r:255, g:121, b:  0 },
+            7 => Color::Rgb { r:  0, g:101, b:189 },
             t => unimplemented!("formatting unknown tile id {t}"),
         };
         fn draw_board_tile(ctx: &mut TerminalTetrs<impl Write>, tile: &str, (x,y): Coord, color: Color) -> io::Result<()> {

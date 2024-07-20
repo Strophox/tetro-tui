@@ -99,8 +99,8 @@ enum Event {
     LockTimer,
     HardDrop,
     SoftDrop,
-    MoveInitial,
-    MoveRepeat,
+    MoveSlow,
+    MoveFast,
     Rotate,
     Fall,
 }
@@ -490,9 +490,9 @@ impl Game {
             rotation_system: Box::new(rotation_systems::Classic),
             preview_count: 1,
             appearance_delay: Duration::from_millis(100),
-            delayed_auto_shift: Duration::from_millis(250),
+            delayed_auto_shift: Duration::from_millis(200),
             auto_repeat_rate: Duration::from_millis(50),
-            soft_drop_factor: 20.0,
+            soft_drop_factor: 12.0,
             hard_drop_delay: Duration::from_micros(100),
             ground_time_max: Duration::from_millis(2250),
             line_clear_delay: Duration::from_millis(200),
@@ -656,14 +656,14 @@ impl Game {
         */
         // No buttons pressed -> one button pressed, add initial move.
         if (!mL0 && !mR0) && (mL1 != mR1) {
-            self.events.insert(Event::MoveInitial, update_time);
+            self.events.insert(Event::MoveSlow, update_time);
         // One/Two buttons pressed -> different/one button pressed, (re-)add fast repeat move.
         } else if (mL0 && (!mL1 && mR1)) || (mR0 && (mL1 && !mR1)) {
-            self.events.remove(&Event::MoveRepeat);
-            self.events.insert(Event::MoveRepeat, update_time);
+            self.events.remove(&Event::MoveFast);
+            self.events.insert(Event::MoveFast, update_time);
         // Single button pressed -> both (un)pressed, remove future moves.
         } else if (mL0 != mR0) && (mL1 == mR1) {
-            self.events.remove(&Event::MoveRepeat);
+            self.events.remove(&Event::MoveFast);
         }
         /*
         Table:                       Karnaugh map:
@@ -738,6 +738,10 @@ impl Game {
                 }
                 self.pieces_played[<usize>::from(tetromino)] += 1;
                 self.events.insert(Event::Fall, event_time);
+                if self.buttons_pressed[Button::MoveLeft] || self.buttons_pressed[Button::MoveRight]
+                {
+                    self.events.insert(Event::MoveFast, event_time);
+                }
                 Some(next_piece)
             }
             Event::Rotate => {
@@ -761,20 +765,19 @@ impl Game {
                     .rotate(&prev_piece, &self.board, rotation)
                     .or(Some(prev_piece))
             }
-            Event::MoveInitial | Event::MoveRepeat => {
+            Event::MoveSlow | Event::MoveFast => {
                 // Handle move attempt and auto repeat move.
                 let prev_piece = prev_piece.expect("moving none active piece");
                 // Special 20G fall immediately after.
                 if self.level >= Self::LEVEL_20G {
                     self.events.insert(Event::Fall, event_time);
                 }
-                let move_delay = if event == Event::MoveInitial {
+                let move_delay = if event == Event::MoveSlow {
                     self.config.delayed_auto_shift
                 } else {
                     self.config.auto_repeat_rate
                 };
-                self.events
-                    .insert(Event::MoveRepeat, event_time + move_delay);
+                self.events.insert(Event::MoveFast, event_time + move_delay);
                 #[rustfmt::skip]
                 let dx = if self.buttons_pressed[Button::MoveLeft] { -1 } else { 1 };
                 prev_piece
@@ -1050,7 +1053,7 @@ impl Game {
                     .map(|(prev_piece, _)| prev_piece != next_piece)
                     .unwrap_or(false);
                 #[rustfmt::skip]
-                let move_rotate = match event { Event::Rotate | Event::MoveInitial | Event::MoveRepeat => true, _ => false };
+                let move_rotate = match event { Event::Rotate | Event::MoveSlow | Event::MoveFast => true, _ => false };
                 if !self.events.contains_key(&Event::LockTimer) || (repositioned && move_rotate) {
                     // SAFETY: We know this must be `Some` in this case.
                     let current_ground_time = event_time
