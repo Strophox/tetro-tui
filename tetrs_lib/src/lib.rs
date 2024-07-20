@@ -1113,6 +1113,18 @@ impl Game {
     }
 }
 
+/*impl PartialOrd for FeedbackEvent {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for FeedbackEvent {
+    fn cmp(&self, _other: &Self) -> std::cmp::Ordering {
+        std::cmp::Ordering::Equal
+    }
+}*/
+
 pub fn add((x0, y0): Coord, (x1, y1): Offset) -> Option<Coord> {
     Some((x0.checked_add_signed(x1)?, y0.checked_add_signed(y1)?))
 }

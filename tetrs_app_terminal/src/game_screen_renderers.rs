@@ -1,8 +1,16 @@
 use std::{
-    collections::VecDeque, fmt::Debug, io::{self, Write}, time::{Duration, Instant}
+    collections::{BinaryHeap, VecDeque},
+    fmt::Debug,
+    io::{self, Write},
+    time::{Duration, Instant},
 };
 
-use crossterm::{cursor, event::KeyCode, style::{self, Color, Stylize}, terminal, QueueableCommand};
+use crossterm::{
+    cursor,
+    event::KeyCode,
+    style::{self, Color, Stylize},
+    terminal, QueueableCommand,
+};
 use tetrs_lib::{Button, FeedbackEvent, Game, GameStateView, MeasureStat, Tetromino, TileTypeID};
 
 use crate::terminal_tetrs::TerminalTetrs;
@@ -16,14 +24,15 @@ pub trait GameScreenRenderer {
     ) -> io::Result<()>;
 }
 
-#[derive(Eq, PartialEq, Clone, Hash, Default, Debug)]
+#[derive(Clone, Default, Debug)]
 pub struct DebugRenderer {
     feedback_event_buffer: VecDeque<(Instant, FeedbackEvent)>,
 }
 
-#[derive(Eq, PartialEq, Clone, Hash, Default, Debug)]
+#[derive(Clone, Default, Debug)]
 pub struct UnicodeRenderer {
-    event_buffer: VecDeque<(Instant, FeedbackEvent)>,
+    events: Vec<(Instant, FeedbackEvent, bool)>,
+    accolades: BinaryHeap<(Instant, String)>,
 }
 
 impl GameScreenRenderer for DebugRenderer {
@@ -147,13 +156,13 @@ impl GameScreenRenderer for DebugRenderer {
 
 impl GameScreenRenderer for UnicodeRenderer {
     // NOTE: (note) what is the concept of having an ADT but some functions are only defined on some variants (that may contain record data)?
+    #[rustfmt::skip]
     fn render(
         &mut self,
         ctx: &mut TerminalTetrs<impl Write>,
         game: &mut Game,
         new_feedback_events: Vec<(Instant, FeedbackEvent)>,
     ) -> io::Result<()> {
-        let (WIDTH, HEIGHT) = terminal::size()?;
         let GameStateView {
             lines_cleared,
             level,
@@ -244,10 +253,10 @@ impl GameScreenRenderer for UnicodeRenderer {
             format!("{}l", pieces_played[usize::from(Tetromino::L)]),
             format!("{}j", pieces_played[usize::from(Tetromino::J)]),
         ].join("  ");
-        // Draw main screen assets (stats, frame, bg).
+        // Screen: draw.
         let mut screen = Vec::new();
         screen.push(format!("                        ╓╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╥─────mode─────┐", ));
-        screen.push(format!("     ALL STATS          ║                    ║{:^14        }│", gamemode.name));
+        screen.push(format!("     ALL STATS          ║                    ║{:^14        }│", gamemode.name.to_uppercase()));
         screen.push(format!("     ─────────╴         ║                    ╟──────────────┘", ));
         screen.push(format!("     Level:{:>7  }      ║                    ║  {          }:", level, opti_name));
         screen.push(format!("     Score:{:>7  }      ║                    ║{:^15         }", score, opti_value));
@@ -273,9 +282,9 @@ impl GameScreenRenderer for UnicodeRenderer {
                 .queue(style::Print(str))?
                 .queue(cursor::MoveToNextLine(1))?;
         }
-        let (DX, DY) = (25, 0);
-        let (DXp, DYp) = (49, 11);
-        // Render board tiles.
+        let (board_x, board_y) = (25, 0);
+        let (preview_x, preview_y) = (49, 11);
+        // Board: helpers.
         let tile_color = |tile: TileTypeID| match tile.get() {
             1 => Color::Yellow,
             2 => Color::Cyan,
@@ -286,13 +295,24 @@ impl GameScreenRenderer for UnicodeRenderer {
             7 => Color::Blue,
             t => unimplemented!("formatting unknown tile id {t}"),
         };
+        let tile_color = |tile: TileTypeID| match tile.get() {
+            1 => Color::Rgb { r:254, g:203, b:0 },
+            2 => Color::Rgb { r:0, g:159, b:218 },
+            3 => Color::Rgb { r:105, g:190, b:40 },
+            4 => Color::Rgb { r:237, g:41, b:57 },
+            5 => Color::Rgb { r:149, g:45, b:152 },
+            6 => Color::Rgb { r:255, g:121, b:0 },
+            7 => Color::Rgb { r:0, g:101, b:189 },
+            t => unimplemented!("formatting unknown tile id {t}"),
+        };
+        // Board: draw tiles.
         for (y, line) in board.iter().enumerate().take(21).rev() {
             for (x, cell) in line.iter().enumerate() {
                 if let Some(tile_type_id) = cell {
                     let color = tile_color(*tile_type_id);
                     ctx.term
-                    .queue(cursor::MoveTo(u16::try_from(DX + 2*x).unwrap(), u16::try_from(DY + (Game::SKYLINE - y)).unwrap()))?
-                    .queue(style::PrintStyledContent("██".with(color)))?;
+                        .queue(cursor::MoveTo(u16::try_from(board_x + 2*x).unwrap(), u16::try_from(board_y + (Game::SKYLINE - y)).unwrap()))?
+                        .queue(style::PrintStyledContent("██".with(color)))?;
                 }
             }
         }
@@ -305,8 +325,8 @@ impl GameScreenRenderer for UnicodeRenderer {
                 }
                 let color = tile_color(tile_type_id);
                 ctx.term
-                .queue(cursor::MoveTo(u16::try_from(DX + 2*x).unwrap(), u16::try_from(DY + (Game::SKYLINE - y)).unwrap()))?
-                .queue(style::PrintStyledContent("░░".with(color)))?;
+                    .queue(cursor::MoveTo(u16::try_from(board_x + 2*x).unwrap(), u16::try_from(board_y + (Game::SKYLINE - y)).unwrap()))?
+                    .queue(style::PrintStyledContent("░░".with(color)))?;
             }
             // Draw active piece.
             for ((x, y), tile_type_id) in active_piece.tiles() {
@@ -315,8 +335,8 @@ impl GameScreenRenderer for UnicodeRenderer {
                 }
                 let color = tile_color(tile_type_id);
                 ctx.term
-                .queue(cursor::MoveTo(u16::try_from(DX + 2*x).unwrap(), u16::try_from(DY + (Game::SKYLINE - y)).unwrap()))?
-                .queue(style::PrintStyledContent("▓▓".with(color)))?;
+                    .queue(cursor::MoveTo(u16::try_from(board_x + 2*x).unwrap(), u16::try_from(board_y + (Game::SKYLINE - y)).unwrap()))?
+                    .queue(style::PrintStyledContent("▓▓".with(color)))?;
             }
         }
         // Draw preview.
@@ -325,9 +345,46 @@ impl GameScreenRenderer for UnicodeRenderer {
         let color = tile_color(next_piece.tiletypeid());
         for (x, y) in next_piece.minos(tetrs_lib::Orientation::N) {
             ctx.term
-            .queue(cursor::MoveTo(u16::try_from(DXp + 2*x).unwrap(), u16::try_from(DYp - y).unwrap()))?
-            .queue(style::PrintStyledContent("▒▒".with(color)))?;
+                .queue(cursor::MoveTo(u16::try_from(preview_x + 2*x).unwrap(), u16::try_from(preview_y - y).unwrap()))?
+                .queue(style::PrintStyledContent("▒▒".with(color)))?;
         }
+        // Update stored events.
+        self.events.extend(new_feedback_events.into_iter().map(|(time,event)| (time,event,true)));
+        // Draw events.
+        for (event_time, event, relevant) in self.events.iter_mut().rev() {
+            match event {
+                FeedbackEvent::PieceLocked(piece) => {
+                    // TODO: Locking animation polish.
+                    let elapsed = time_updated.saturating_duration_since(*event_time);
+                    let texture = if elapsed < Duration::from_millis(50) { "██" }
+                    else if elapsed < Duration::from_millis(75) { "▓▓" }
+                    else if elapsed < Duration::from_millis(100) { "▒▒" }
+                    else if elapsed < Duration::from_millis(125) { "░░" }
+                    else if elapsed < Duration::from_millis(150) { "▒▒" }
+                    else if elapsed < Duration::from_millis(175) { "▓▓" }
+                    else { *relevant = false; continue; };
+                    for ((x, y), tile_type_id) in piece.tiles() {
+                        if y > Game::SKYLINE {
+                            continue;
+                        }
+                        // let color = tile_color(tile_type_id);
+                        ctx.term
+                            .queue(cursor::MoveTo(u16::try_from(board_x + 2*x).unwrap(), u16::try_from(board_y + (Game::SKYLINE - y)).unwrap()))?
+                            .queue(style::PrintStyledContent(texture.with(Color::White)))?;
+                    }
+                },
+                FeedbackEvent::LineClears(_, _) => {/* TODO: */},
+                FeedbackEvent::HardDrop(_, _) => {/* TODO: */},
+                FeedbackEvent::Accolade { score_bonus, shape, spin, lineclears, perfect_clear, combo, opportunity } => {/* TODO: */},
+                FeedbackEvent::Debug(msg) => {
+                    ctx.term
+                        .queue(cursor::MoveTo(0, 25))?
+                        .queue(style::Print(msg))?;
+                },
+            }
+        }
+        self.events.retain(|elt| elt.2);
+
         // Execute draw.
         ctx.term.flush()?;
         Ok(())
