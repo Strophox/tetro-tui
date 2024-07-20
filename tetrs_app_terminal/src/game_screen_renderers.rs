@@ -111,7 +111,7 @@ impl GameScreenRenderer for DebugRenderer {
                 } => {
                     let mut strs = Vec::new();
                     if *spin {
-                        strs.push(format!("{shape:?}-Spin"))
+                        strs.push(format!("{shape:?}-Spin"));
                     }
                     let accolade = match lineclears {
                         1 => "Single",
@@ -129,7 +129,7 @@ impl GameScreenRenderer for DebugRenderer {
                     };
                     strs.push(format!("{accolade}{excl}"));
                     if *combo > 1 {
-                        strs.push(format!("[{combo        }.combo]"));
+                        strs.push(format!("[{combo}.combo]"));
                     }
                     if *perfect_clear {
                         strs.push("PERFECT!".to_string());
@@ -282,10 +282,9 @@ impl GameScreenRenderer for UnicodeRenderer {
                 .queue(style::Print(str))?
                 .queue(cursor::MoveToNextLine(1))?;
         }
-        let (board_x, board_y) = (25, 0);
-        let (preview_x, preview_y) = (49, 11);
         // Board: helpers.
-        let tile_color = |tile: TileTypeID| match tile.get() {
+        // TODO: Old tile colors. Move somewhere?
+        let _tile_color = |tile: TileTypeID| match tile.get() {
             1 => Color::Yellow,
             2 => Color::Cyan,
             3 => Color::Green,
@@ -306,10 +305,12 @@ impl GameScreenRenderer for UnicodeRenderer {
             t => unimplemented!("formatting unknown tile id {t}"),
         };
         // Board: draw tiles.
+        let (board_x, board_y) = (25, 0);
         for (y, line) in board.iter().enumerate().take(21).rev() {
             for (x, cell) in line.iter().enumerate() {
                 if let Some(tile_type_id) = cell {
                     let color = tile_color(*tile_type_id);
+                    // SAFETY: We will not exceed the bounds by drawing pieces.
                     ctx.term
                         .queue(cursor::MoveTo(u16::try_from(board_x + 2*x).unwrap(), u16::try_from(board_y + (Game::SKYLINE - y)).unwrap()))?
                         .queue(style::PrintStyledContent("██".with(color)))?;
@@ -324,6 +325,7 @@ impl GameScreenRenderer for UnicodeRenderer {
                     continue;
                 }
                 let color = tile_color(tile_type_id);
+                // SAFETY: We will not exceed the bounds by drawing pieces.
                 ctx.term
                     .queue(cursor::MoveTo(u16::try_from(board_x + 2*x).unwrap(), u16::try_from(board_y + (Game::SKYLINE - y)).unwrap()))?
                     .queue(style::PrintStyledContent("░░".with(color)))?;
@@ -334,16 +336,19 @@ impl GameScreenRenderer for UnicodeRenderer {
                     continue;
                 }
                 let color = tile_color(tile_type_id);
+                // SAFETY: We will not exceed the bounds by drawing pieces.
                 ctx.term
                     .queue(cursor::MoveTo(u16::try_from(board_x + 2*x).unwrap(), u16::try_from(board_y + (Game::SKYLINE - y)).unwrap()))?
                     .queue(style::PrintStyledContent("▓▓".with(color)))?;
             }
         }
         // Draw preview.
+        let (preview_x, preview_y) = (49, 11);
         // TODO: SAFETY.
         let next_piece = next_pieces.front().unwrap();
         let color = tile_color(next_piece.tiletypeid());
         for (x, y) in next_piece.minos(tetrs_lib::Orientation::N) {
+            // SAFETY: We will not exceed the bounds by drawing pieces.
             ctx.term
                 .queue(cursor::MoveTo(u16::try_from(preview_x + 2*x).unwrap(), u16::try_from(preview_y - y).unwrap()))?
                 .queue(style::PrintStyledContent("▒▒".with(color)))?;
@@ -363,28 +368,77 @@ impl GameScreenRenderer for UnicodeRenderer {
                     else if elapsed < Duration::from_millis(150) { "▒▒" }
                     else if elapsed < Duration::from_millis(175) { "▓▓" }
                     else { *relevant = false; continue; };
-                    for ((x, y), tile_type_id) in piece.tiles() {
+                    for ((x, y), _tile_type_id) in piece.tiles() {
                         if y > Game::SKYLINE {
                             continue;
                         }
-                        // let color = tile_color(tile_type_id);
+                        // SAFETY: We will not exceed the bounds by drawing pieces.
                         ctx.term
                             .queue(cursor::MoveTo(u16::try_from(board_x + 2*x).unwrap(), u16::try_from(board_y + (Game::SKYLINE - y)).unwrap()))?
                             .queue(style::PrintStyledContent(texture.with(Color::White)))?;
                     }
                 },
                 FeedbackEvent::LineClears(_, _) => {/* TODO: */},
-                FeedbackEvent::HardDrop(_, _) => {/* TODO: */},
-                FeedbackEvent::Accolade { score_bonus, shape, spin, lineclears, perfect_clear, combo, opportunity } => {/* TODO: */},
+                FeedbackEvent::HardDrop(top_piece, bot_piece) => {/* TODO: */},
+                FeedbackEvent::Accolade {
+                    score_bonus,
+                    shape,
+                    spin,
+                    lineclears,
+                    perfect_clear,
+                    combo,
+                    opportunity
+                } => {
+                    let mut strs = Vec::new();
+                    strs.push("~| ".to_string());
+                    if *spin {
+                        strs.push(format!("{shape:?}-Spin"));
+                    }
+                    let accolade = match lineclears {
+                        1 => "Single",
+                        2 => "Double",
+                        3 => "Triple",
+                        4 => "Quadruple",
+                        x => unreachable!("unexpected line clear count {x}"),
+                    };
+                    let excl = match opportunity {
+                        1 => "'",
+                        2 => "!",
+                        3 => "!'",
+                        4 => "!!",
+                        x => unreachable!("unexpected opportunity count {x}"),
+                    };
+                    strs.push(format!("{accolade}{excl}"));
+                    if *combo > 1 {
+                        strs.push(format!("[{combo}.combo]"));
+                    }
+                    if *perfect_clear {
+                        strs.push("PERFECT.".to_string());
+                    }
+                    strs.push(format!("+{score_bonus}"));
+                    self.accolades.push((*event_time, strs.join(" ")));
+                    *relevant = false;
+                },
+                // TODO: Proper Debug?...
                 FeedbackEvent::Debug(msg) => {
                     ctx.term
                         .queue(cursor::MoveTo(0, 25))?
                         .queue(style::Print(msg))?;
+                    if time_updated.saturating_duration_since(*event_time) > Duration::from_secs(4) {
+                        *relevant = false;
+                    }
                 },
             }
         }
         self.events.retain(|elt| elt.2);
-
+        // Draw accolades.
+        let (accolade_x, accolade_y) = (48, 15);
+        for (dy, (_event_time, accolade)) in self.accolades.iter().enumerate() {
+            ctx.term
+                .queue(cursor::MoveTo(accolade_x, accolade_y + u16::try_from(dy).expect("too many accolades")))?
+                .queue(style::Print(accolade))?;
+        }
+        self.accolades.retain(|(event_time, _accolade)| time_updated.saturating_duration_since(*event_time) < Duration::from_millis(6000));
         // Execute draw.
         ctx.term.flush()?;
         Ok(())
