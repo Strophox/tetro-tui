@@ -125,18 +125,18 @@ impl<T: Write> TerminalTetrs<T> {
             total_duration_paused: Duration::ZERO,
             last_paused: Instant::now(),
         });
-        // menu_stack.push(Menu::Game {
-        //     game: Box::new(Game::with_gamemode(Gamemode::master(), Instant::now())),
-        //     game_screen_renderer: Default::default(),
-        //     total_duration_paused: Duration::ZERO,
-        //     last_paused: Instant::now(),
-        // });
         menu_stack.push(Menu::Game {
             game: Box::new(Game::with_gamemode(Gamemode::marathon(), Instant::now())),
             game_screen_renderer: Default::default(),
             total_duration_paused: Duration::ZERO,
             last_paused: Instant::now(),
         });
+        // menu_stack.push(Menu::Game {
+        //     game: Box::new(Game::with_gamemode(Gamemode::master(), Instant::now())),
+        //     game_screen_renderer: Default::default(),
+        //     total_duration_paused: Duration::ZERO,
+        //     last_paused: Instant::now(),
+        // });
         // Preparing main application loop.
         let msg = loop {
             // Retrieve active menu, stop application if stack is empty.

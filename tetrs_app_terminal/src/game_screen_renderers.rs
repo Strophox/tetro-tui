@@ -11,7 +11,7 @@ use crossterm::{
     style::{self, Color, Stylize},
     terminal, QueueableCommand,
 };
-use tetrs_lib::{Button, FeedbackEvent, Game, GameStateView, MeasureStat, Tetromino, TileTypeID};
+use tetrs_lib::{ActivePiece, Button, Coord, FeedbackEvent, Game, GameStateView, MeasureStat, Tetromino, TileTypeID};
 
 use crate::terminal_tetrs::TerminalTetrs;
 
@@ -33,6 +33,7 @@ pub struct DebugRenderer {
 pub struct UnicodeRenderer {
     events: Vec<(Instant, FeedbackEvent, bool)>,
     accolades: BinaryHeap<(Instant, String)>,
+    hard_drop_tiles: Vec<(Instant, Coord, usize, TileTypeID, bool)>,
 }
 
 impl GameScreenRenderer for DebugRenderer {
@@ -304,42 +305,53 @@ impl GameScreenRenderer for UnicodeRenderer {
             7 => Color::Rgb { r:0, g:101, b:189 },
             t => unimplemented!("formatting unknown tile id {t}"),
         };
-        // Board: draw tiles.
-        let (board_x, board_y) = (25, 0);
+        fn draw_board_tile(ctx: &mut TerminalTetrs<impl Write>, tile: &str, (x,y): Coord, color: Color) -> io::Result<()> {
+            let (board_x, board_y) = (25, 0);
+            ctx.term
+                .queue(cursor::MoveTo(u16::try_from(board_x + 2*x).unwrap(), u16::try_from(board_y + (Game::SKYLINE - y)).unwrap()))?
+                .queue(style::PrintStyledContent(tile.with(color)))?;
+            Ok(())
+        }
+        // Board: draw hard drop trail.
+        for (event_time, pos, h, tile_type_id, relevant) in self.hard_drop_tiles.iter_mut() {
+            // TODO: Hard drop animation polish.
+            let elapsed = time_updated.saturating_duration_since(*event_time);
+            let luminance_map = "@$#%*+~.".as_bytes();
+            let Some(&char) = [50, 60, 70, 80, 90, 110, 140, 180]
+                .iter()
+                .enumerate()
+                .find_map(|(idx, ms)| (elapsed < Duration::from_millis(*ms)).then_some(idx))
+                .and_then(|dt| luminance_map.get(*h/2 + dt))
+            else {
+                *relevant = false;
+                continue;
+            };
+            // SAFETY: Valid ASCII bytes.
+            let tile = String::from_utf8(vec![char, char]).unwrap();
+            draw_board_tile(ctx, &tile, *pos, tile_color(*tile_type_id))?;
+        }
+        self.hard_drop_tiles.retain(|elt| elt.4);
+        // Board: draw fixed tiles.
         for (y, line) in board.iter().enumerate().take(21).rev() {
             for (x, cell) in line.iter().enumerate() {
                 if let Some(tile_type_id) = cell {
-                    let color = tile_color(*tile_type_id);
-                    // SAFETY: We will not exceed the bounds by drawing pieces.
-                    ctx.term
-                        .queue(cursor::MoveTo(u16::try_from(board_x + 2*x).unwrap(), u16::try_from(board_y + (Game::SKYLINE - y)).unwrap()))?
-                        .queue(style::PrintStyledContent("██".with(color)))?;
+                    draw_board_tile(ctx, "██", (x,y), tile_color(*tile_type_id))?;
                 }
             }
         }
         // If a piece is in play.
         if let Some(active_piece) = active_piece {
             // Draw ghost piece.
-            for ((x, y), tile_type_id) in active_piece.well_piece(board).tiles() {
-                if y > Game::SKYLINE {
-                    continue;
+            for (pos, tile_type_id) in active_piece.well_piece(board).tiles() {
+                if pos.1 <= Game::SKYLINE {
+                    draw_board_tile(ctx, "░░", pos, tile_color(tile_type_id))?;
                 }
-                let color = tile_color(tile_type_id);
-                // SAFETY: We will not exceed the bounds by drawing pieces.
-                ctx.term
-                    .queue(cursor::MoveTo(u16::try_from(board_x + 2*x).unwrap(), u16::try_from(board_y + (Game::SKYLINE - y)).unwrap()))?
-                    .queue(style::PrintStyledContent("░░".with(color)))?;
             }
             // Draw active piece.
-            for ((x, y), tile_type_id) in active_piece.tiles() {
-                if y > Game::SKYLINE {
-                    continue;
+            for (pos, tile_type_id) in active_piece.tiles() {
+                if pos.1 <= Game::SKYLINE {
+                    draw_board_tile(ctx, "▓▓", pos, tile_color(tile_type_id))?;
                 }
-                let color = tile_color(tile_type_id);
-                // SAFETY: We will not exceed the bounds by drawing pieces.
-                ctx.term
-                    .queue(cursor::MoveTo(u16::try_from(board_x + 2*x).unwrap(), u16::try_from(board_y + (Game::SKYLINE - y)).unwrap()))?
-                    .queue(style::PrintStyledContent("▓▓".with(color)))?;
             }
         }
         // Draw preview.
@@ -361,25 +373,29 @@ impl GameScreenRenderer for UnicodeRenderer {
                 FeedbackEvent::PieceLocked(piece) => {
                     // TODO: Locking animation polish.
                     let elapsed = time_updated.saturating_duration_since(*event_time);
-                    let texture = if elapsed < Duration::from_millis(50) { "██" }
-                    else if elapsed < Duration::from_millis(75) { "▓▓" }
-                    else if elapsed < Duration::from_millis(100) { "▒▒" }
-                    else if elapsed < Duration::from_millis(125) { "░░" }
-                    else if elapsed < Duration::from_millis(150) { "▒▒" }
-                    else if elapsed < Duration::from_millis(175) { "▓▓" }
-                    else { *relevant = false; continue; };
-                    for ((x, y), _tile_type_id) in piece.tiles() {
-                        if y > Game::SKYLINE {
-                            continue;
+                    let Some(tile) = [(50,"██"), (75,"▓▓"), (100,"▒▒"), (125,"░░"), (150,"▒▒"), (175,"▓▓")]
+                        .iter().find_map(|(ms, tile)| (elapsed < Duration::from_millis(*ms)).then_some(tile))
+                    else {
+                        *relevant = false;
+                        continue;
+                    };
+                    for (pos, _tile_type_id) in piece.tiles() {
+                        if pos.1 <= Game::SKYLINE {
+                            draw_board_tile(ctx, tile, pos, Color::White)?;
                         }
-                        // SAFETY: We will not exceed the bounds by drawing pieces.
-                        ctx.term
-                            .queue(cursor::MoveTo(u16::try_from(board_x + 2*x).unwrap(), u16::try_from(board_y + (Game::SKYLINE - y)).unwrap()))?
-                            .queue(style::PrintStyledContent(texture.with(Color::White)))?;
                     }
-                },
-                FeedbackEvent::LineClears(_, _) => {/* TODO: */},
-                FeedbackEvent::HardDrop(top_piece, bot_piece) => {/* TODO: */},
+                }
+                FeedbackEvent::LineClears(lines_cleard, line_clear_delay) => {
+                    /* TODO: Lineclear effect */
+                }
+                FeedbackEvent::HardDrop(_top_piece, bottom_piece) => {
+                    for ((x,y), tile_type_id) in bottom_piece.tiles() {
+                        for y2 in y..Game::SKYLINE {
+                            self.hard_drop_tiles.push((*event_time, (x,y2), y2-y, tile_type_id, true));
+                        }
+                    }
+                    *relevant = false;
+                }
                 FeedbackEvent::Accolade {
                     score_bonus,
                     shape,
@@ -390,7 +406,7 @@ impl GameScreenRenderer for UnicodeRenderer {
                     opportunity
                 } => {
                     let mut strs = Vec::new();
-                    strs.push("~| ".to_string());
+                    strs.push("<|".to_string());
                     if *spin {
                         strs.push(format!("{shape:?}-Spin"));
                     }
@@ -418,7 +434,7 @@ impl GameScreenRenderer for UnicodeRenderer {
                     strs.push(format!("+{score_bonus}"));
                     self.accolades.push((*event_time, strs.join(" ")));
                     *relevant = false;
-                },
+                }
                 // TODO: Proper Debug?...
                 FeedbackEvent::Debug(msg) => {
                     ctx.term
@@ -427,7 +443,7 @@ impl GameScreenRenderer for UnicodeRenderer {
                     if time_updated.saturating_duration_since(*event_time) > Duration::from_secs(4) {
                         *relevant = false;
                     }
-                },
+                }
             }
         }
         self.events.retain(|elt| elt.2);
