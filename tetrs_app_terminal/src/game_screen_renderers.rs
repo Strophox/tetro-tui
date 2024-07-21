@@ -8,7 +8,7 @@ use std::{
 use crossterm::{
     cursor::{self, MoveTo, MoveToNextLine},
     event::KeyCode,
-    style::{self, Color, Stylize, Print, PrintStyledContent},
+    style::{self, Color, Print, PrintStyledContent, Stylize},
     terminal, QueueableCommand,
 };
 use tetrs_lib::{
@@ -83,9 +83,7 @@ impl GameScreenRenderer for DebugRenderer {
                     .collect::<Vec<_>>()
                     .join("")
             );
-            ctx.term
-                .queue(Print(txt_line))?
-                .queue(MoveToNextLine(1))?;
+            ctx.term.queue(Print(txt_line))?.queue(MoveToNextLine(1))?;
         }
         ctx.term
             .queue(Print("   +--------------------+"))?
@@ -147,9 +145,7 @@ impl GameScreenRenderer for DebugRenderer {
             });
         }
         for str in feed_evt_msgs.iter().take(16) {
-            ctx.term
-                .queue(Print(str))?
-                .queue(MoveToNextLine(1))?;
+            ctx.term.queue(Print(str))?.queue(MoveToNextLine(1))?;
         }
         // Execute draw.
         ctx.term.flush()?;
@@ -322,7 +318,9 @@ impl GameScreenRenderer for UnicodeRenderer {
             // TODO: Hard drop animation polish.
             let elapsed = time_updated.saturating_duration_since(*event_time);
             let luminance_map = "@$#%*+~.".as_bytes();
-            let Some(&char) = [50, 60, 70, 80, 90, 110, 140, 180]
+            // TODO: Old hard drop animation timings.
+            // let Some(&char) = [50, 60, 70, 80, 90, 110, 140, 180]
+            let Some(&char) = [50, 70, 90, 110, 130, 150, 180, 240]
                 .iter()
                 .enumerate()
                 .find_map(|(idx, ms)| (elapsed < Duration::from_millis(*ms)).then_some(idx))
@@ -471,7 +469,7 @@ impl GameScreenRenderer for UnicodeRenderer {
                 // TODO: Proper Debug?...
                 FeedbackEvent::Debug(msg) => {
                     ctx.term
-                        .queue(MoveTo(w_x+ 0, w_y+ 24))?
+                        .queue(MoveTo(w_x, w_y+ 24))?
                         .queue(Print(msg))?;
                     if time_updated.saturating_duration_since(*event_time) > Duration::from_secs(20) {
                         *relevant = false;
