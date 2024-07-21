@@ -487,6 +487,8 @@ impl GameScreenRenderer for UnicodeRenderer {
         }
         self.accolades.retain(|(event_time, _accolade)| time_updated.saturating_duration_since(*event_time) < Duration::from_millis(6000));
         // Execute draw.
+        // TODO: Unnecessary move?
+        // ctx.term.queue(MoveTo(0,0))?;
         ctx.term.queue(terminal::EndSynchronizedUpdate)?;
         ctx.term.flush()?;
         Ok(())

@@ -73,9 +73,9 @@ impl<T: Write> Drop for TerminalTetrs<T> {
 impl<T: Write> TerminalTetrs<T> {
     pub fn new(mut terminal: T, fps: u32) -> Self {
         // Console prologue: Initializion.
+        let _ = terminal.execute(terminal::EnterAlternateScreen);
         let _ = terminal.execute(terminal::SetTitle("Tetrs"));
         let _ = terminal.execute(cursor::Hide);
-        let _ = terminal.execute(terminal::EnterAlternateScreen);
         let _ = terminal::enable_raw_mode();
         let mut kitty_enabled =
             crossterm::terminal::supports_keyboard_enhancement().unwrap_or(false);
@@ -184,7 +184,7 @@ impl<T: Write> TerminalTetrs<T> {
                 }
             }
         };
-        // NOTE: This is done here manually for debug reasons in case the application still crashes somehow, c.f. note in `Drop::drop(self)`.
+        // TODO: This is done here manually for debug reasons in case the application still crashes somehow, c.f. note in `Drop::drop(self)`.
         let _ = self.term.execute(terminal::LeaveAlternateScreen);
         Ok(msg)
     }
