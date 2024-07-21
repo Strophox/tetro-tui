@@ -13,7 +13,7 @@ use crossterm::{
 };
 use tetrs_lib::{Button, ButtonsPressed, Game, Gamemode, MeasureStat};
 
-use crate::game_screen_renderers::{DebugRenderer, GameScreenRenderer, UnicodeRenderer};
+use crate::game_screen_renderers::{GameScreenRenderer, UnicodeRenderer};
 use crate::input_handler::{ButtonSignal, CT_Keycode, CrosstermHandler};
 
 // TODO: #[derive(Debug)]
@@ -79,12 +79,14 @@ impl<T: Write> TerminalTetrs<T> {
         let _ = terminal::enable_raw_mode();
         let mut kitty_enabled =
             crossterm::terminal::supports_keyboard_enhancement().unwrap_or(false);
-        if kitty_enabled {
-            if let Err(_) = terminal.execute(event::PushKeyboardEnhancementFlags(
-                event::KeyboardEnhancementFlags::REPORT_EVENT_TYPES,
-            )) {
-                kitty_enabled = false;
-            }
+        if kitty_enabled
+            && terminal
+                .execute(event::PushKeyboardEnhancementFlags(
+                    event::KeyboardEnhancementFlags::REPORT_EVENT_TYPES,
+                ))
+                .is_err()
+        {
+            kitty_enabled = false;
         }
         // TODO: Store different keybind mappings somewhere and get default from there.
         let ct_keybinds = HashMap::from([
@@ -107,9 +109,15 @@ impl<T: Write> TerminalTetrs<T> {
     }
 
     pub fn run(&mut self) -> io::Result<String> {
-        let mut menu_stack = Vec::new();
-        menu_stack.push(Menu::Title);
+        let mut menu_stack = vec![Menu::Title];
         // TODO: Remove this once menus are navigable.
+        menu_stack.push(Menu::NewGame(Gamemode::custom(
+            "Unnamed Custom".to_string(),
+            NonZeroU32::MIN,
+            true,
+            Some(MeasureStat::Pieces(100)),
+            MeasureStat::Score(0),
+        )));
         menu_stack.push(Menu::Game {
             game: Box::new(Game::with_gamemode(
                 Gamemode::custom(
@@ -252,29 +260,26 @@ impl<T: Write> TerminalTetrs<T> {
             -> { Pause }
             [color="#007FFF"]
         */
-        let time_unpaused = Instant::now();
-        *total_duration_paused += time_unpaused.saturating_duration_since(*time_paused);
         // Prepare channel with which to communicate `Button` inputs / game interrupt.
         let mut buttons_pressed = ButtonsPressed::default();
         let (tx, rx) = mpsc::channel::<ButtonSignal>();
         let _input_handler =
             CrosstermHandler::new(&tx, &self.settings.keybinds, self.settings.kitty_enabled);
         // Game Loop
-        let time_render_loop_start = Instant::now();
+        // Clear Screen.
+        self.term.queue(terminal::Clear(terminal::ClearType::All))?;
+        let time_game_resumed = Instant::now();
+        *total_duration_paused += time_game_resumed.saturating_duration_since(*time_paused);
         let mut f = 0u32;
         let next_menu = 'render_loop: loop {
             f += 1;
-            let next_frame_at = time_render_loop_start
-                + Duration::from_secs_f64(f64::from(f) / self.settings.game_fps);
+            let next_frame_at =
+                time_game_resumed + Duration::from_secs_f64(f64::from(f) / self.settings.game_fps);
             let mut new_feedback_events = Vec::new();
             'idle_loop: loop {
                 let frame_idle_remaining = next_frame_at - Instant::now();
                 match rx.recv_timeout(frame_idle_remaining) {
                     Ok(None) => {
-                        // TODO: Game pause directly quits: Remove this as soon as pause menu works.
-                        return Ok(MenuUpdate::Push(Menu::Quit(
-                            "[temporary but graceful game end - goodbye]".to_string(),
-                        )));
                         break 'render_loop MenuUpdate::Push(Menu::Pause);
                     }
                     Ok(Some((instant, button, button_state))) => {
@@ -349,7 +354,9 @@ impl<T: Write> TerminalTetrs<T> {
 
         MenuUpdate::Pop
         */
-        todo!("pause menu")
+        Ok(MenuUpdate::Push(Menu::Quit(
+            "[temporary but graceful game end - goodbye]".to_string(),
+        )))
     }
 
     fn options(&mut self) -> io::Result<MenuUpdate> {

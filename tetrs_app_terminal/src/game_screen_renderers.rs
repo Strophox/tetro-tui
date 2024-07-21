@@ -183,10 +183,6 @@ impl GameScreenRenderer for UnicodeRenderer {
             time_started,
             gamemode,
         } = game.state();
-        // Clear screen.
-        ctx.term
-            .queue(cursor::MoveTo(0, 0))?
-            .queue(terminal::Clear(terminal::ClearType::FromCursorDown))?;
         // Screen: some values.
         let lines = lines_cleared.len();
         let time_elapsed = time_updated.saturating_duration_since(time_started);
@@ -218,6 +214,8 @@ impl GameScreenRenderer for UnicodeRenderer {
             _ => "??".to_string(),
         });
         // Screen: some titles.
+        let mode_name = gamemode.name.to_ascii_uppercase();
+        let mode_name_space = mode_name.len().max(14);
         let opti_name = stat_name(gamemode.optimize);
         let opti_value = match gamemode.optimize {
             MeasureStat::Lines(_) => format!("{}", lines),
@@ -251,40 +249,48 @@ impl GameScreenRenderer for UnicodeRenderer {
         let key_icons_drophard = ctx.settings.keybinds.iter().filter_map(|(&k, &b)| (b==Button::DropHard).then_some(fmt_key(k))).collect::<Vec<String>>().join(" ");
         let key_icons_drop = format!("{key_icons_dropsoft} {key_icons_drophard}");
         let piececnts_o = format!("{}o", pieces_played[usize::from(Tetromino::O)]);
-        let piececnts_i_s_z = vec![
+        let piececnts_i_s_z = [
             format!("{}i", pieces_played[usize::from(Tetromino::I)]),
             format!("{}s", pieces_played[usize::from(Tetromino::S)]),
             format!("{}z", pieces_played[usize::from(Tetromino::Z)]),
         ].join("  ");
-        let piececnts_t_l_j = vec![
+        let piececnts_t_l_j = [
             format!("{}t", pieces_played[usize::from(Tetromino::T)]),
             format!("{}l", pieces_played[usize::from(Tetromino::L)]),
             format!("{}j", pieces_played[usize::from(Tetromino::J)]),
         ].join("  ");
+        // Begin frame update.
+        ctx.term.queue(terminal::BeginSynchronizedUpdate)?;
+        // Clear screen.
+        ctx.term
+            .queue(cursor::MoveTo(0, 0))?;
         // Screen: draw.
         let mut screen = Vec::new();
-        screen.push(format!("                        ╓╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╥─────mode─────┐", ));
-        screen.push(format!("     ALL STATS          ║                    ║{:^14        }│", gamemode.name.to_uppercase()));
-        screen.push(format!("     ─────────╴         ║                    ╟──────────────┘", ));
-        screen.push(format!("     Level:{:>7  }      ║                    ║  {          }:", level, opti_name));
-        screen.push(format!("     Score:{:>7  }      ║                    ║{:^15         }", score, opti_value));
-        screen.push(format!("     Lines:{:>7  }      ║                    ║               ", lines));
-        screen.push(format!("                        ║                    ║  {           }", goal_name));
-        screen.push(format!("     Time elapsed       ║                    ║{:^15         }", goal_value));
-        screen.push(format!("     {:>13       }      ║                    ║               ", fmt_time(time_elapsed)));
-        screen.push(format!("                        ║                    ║─────next─────┐", ));
-        screen.push(format!("     PIECES             ║                    ║              │", ));
-        screen.push(format!("     ──────╴            ║                    ║              │", ));
-        screen.push(format!("     {:<19             }║                    ║──────────────┘", piececnts_o));
-        screen.push(format!("     {:<19             }║                    ║               ", piececnts_i_s_z));
-        screen.push(format!("     {:<19             }║                    ║               ", piececnts_t_l_j));
-        screen.push(format!("                        ║                    ║               ", ));
-        screen.push(format!("     CONTROLS           ║                    ║               ", ));
-        screen.push(format!("     ────────╴          ║                    ║               ", ));
-        screen.push(format!("     Pause   {:<11     }║                    ║               ", key_icon_pause));
-        screen.push(format!("     Move    {:<11     }║                    ║               ", key_icons_move));
-        screen.push(format!("     Rotate  {:<11     }║                    ║               ", key_icons_rotate));
-        screen.push(format!("     Drop    {:<11     }╚════════════════════╝               ", key_icons_drop));
+        #[allow(clippy::useless_format)]
+        {
+            screen.push(format!("                        ╓╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╥{:─^w$       }┐", "mode", w=mode_name_space));
+            screen.push(format!("     ALL STATS          ║                    ║{: ^w$       }│", mode_name, w=mode_name_space));
+            screen.push(format!("     ─────────╴         ║                    ╟{:─^w$       }┘", "", w=mode_name_space));
+            screen.push(format!("     Level:{:>7  }      ║                    ║  {          }:", level, opti_name));
+            screen.push(format!("     Score:{:>7  }      ║                    ║{:^15         }", score, opti_value));
+            screen.push(format!("     Lines:{:>7  }      ║                    ║               ", lines));
+            screen.push(format!("                        ║                    ║  {           }", goal_name));
+            screen.push(format!("     Time elapsed       ║                    ║{:^15         }", goal_value));
+            screen.push(format!("     {:>13       }      ║                    ║               ", fmt_time(time_elapsed)));
+            screen.push(format!("                        ║                    ║─────next─────┐", ));
+            screen.push(format!("     PIECES             ║                    ║              │", ));
+            screen.push(format!("     ──────╴            ║                    ║              │", ));
+            screen.push(format!("     {:<19             }║                    ║──────────────┘", piececnts_o));
+            screen.push(format!("     {:<19             }║                    ║               ", piececnts_i_s_z));
+            screen.push(format!("     {:<19             }║                    ║                             ", piececnts_t_l_j));
+            screen.push(format!("                        ║                    ║                             ", ));
+            screen.push(format!("     CONTROLS           ║                    ║                             ", ));
+            screen.push(format!("     ────────╴          ║                    ║                             ", ));
+            screen.push(format!("     Pause   {:<11     }║                    ║                             ", key_icon_pause));
+            screen.push(format!("     Move    {:<11     }║                    ║                             ", key_icons_move));
+            screen.push(format!("     Rotate  {:<11     }║                    ║                             ", key_icons_rotate));
+            screen.push(format!("     Drop    {:<11     }╚════════════════════╝                             ", key_icons_drop));
+        }
         for str in screen {
             ctx.term
                 .queue(style::Print(str))?
@@ -438,7 +444,7 @@ impl GameScreenRenderer for UnicodeRenderer {
                     opportunity
                 } => {
                     let mut strs = Vec::new();
-                    strs.push(">".to_string());
+                    strs.push(format!("+{score_bonus}"));
                     if *perfect_clear {
                         strs.push("PERFECT".to_string());
                     }
@@ -463,7 +469,6 @@ impl GameScreenRenderer for UnicodeRenderer {
                     if *combo > 1 {
                         strs.push(format!("[{combo}.combo]"));
                     }
-                    strs.push(format!("+{score_bonus}"));
                     self.accolades.push((*event_time, strs.join(" ")));
                     *relevant = false;
                 }
@@ -488,6 +493,7 @@ impl GameScreenRenderer for UnicodeRenderer {
         }
         self.accolades.retain(|(event_time, _accolade)| time_updated.saturating_duration_since(*event_time) < Duration::from_millis(6000));
         // Execute draw.
+        ctx.term.queue(terminal::EndSynchronizedUpdate)?;
         ctx.term.flush()?;
         Ok(())
     }

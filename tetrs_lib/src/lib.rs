@@ -62,7 +62,7 @@ pub enum MeasureStat {
     Time(Duration),
 }
 
-#[derive(Eq, Clone, Hash, Debug)]
+#[derive(Eq, Clone, Debug)]
 pub struct Gamemode {
     pub name: String,
     pub start_level: NonZeroU32,
@@ -156,7 +156,7 @@ pub enum GameOver {
     BlockOut,
 }
 
-#[derive(Eq, PartialEq, Clone, Hash, Debug)]
+#[derive(Eq, PartialEq, Clone, Debug)]
 pub struct GameStateView<'a> {
     pub time_started: Instant,
     pub gamemode: &'a Gamemode,
@@ -319,12 +319,26 @@ impl ActivePiece {
         new_piece.fits(board).then_some(new_piece)
     }
 
+    pub fn fits_at_rotated(
+        &self,
+        board: &Board,
+        offset: Offset,
+        right_turns: i32,
+    ) -> Option<ActivePiece> {
+        let mut new_piece = *self;
+        new_piece.orientation = new_piece.orientation.rotate_r(right_turns);
+        new_piece.pos = add(self.pos, offset)?;
+        new_piece.fits(board).then_some(new_piece)
+    }
+
     pub fn first_fit(
         &self,
         board: &Board,
         offsets: impl IntoIterator<Item = Offset>,
+        right_turns: i32,
     ) -> Option<ActivePiece> {
         let mut new_piece = *self;
+        new_piece.orientation = new_piece.orientation.rotate_r(right_turns);
         let old_pos = self.pos;
         offsets.into_iter().find_map(|offset| {
             new_piece.pos = add(old_pos, offset)?;
@@ -487,7 +501,7 @@ impl Game {
     pub fn with_gamemode(gamemode: Gamemode, time_started: Instant) -> Self {
         let default_config = GameConfig {
             tetromino_generator: Box::new(tetromino_generators::RecencyProbGen::new()),
-            rotation_system: Box::new(rotation_systems::Classic),
+            rotation_system: Box::new(rotation_systems::Okay),
             preview_count: 1,
             appearance_delay: Duration::from_millis(100),
             delayed_auto_shift: Duration::from_millis(200),
@@ -562,7 +576,7 @@ impl Game {
         // Handle game over: return immediately.
         if self.finished.is_some() {
             return Err(true);
-        } else if !(self.time_updated <= update_time) {
+        } else if update_time < self.time_updated {
             return Err(false);
         }
         // We linearly process all events until we reach the update time.
@@ -983,7 +997,7 @@ impl Game {
                 let next_locking_data = match prev_piece_data {
                     // If previous piece exists and next piece hasn't reached newest low (i.e. not a reset situation).
                     Some((_prev_piece, prev_locking_data))
-                        if !(next_piece.pos.1 < prev_locking_data.lowest_y) =>
+                        if next_piece.pos.1 >= prev_locking_data.lowest_y =>
                     {
                         // Previously touched ground already, just continue previous data.
                         if prev_locking_data.touches_ground {
@@ -1053,7 +1067,7 @@ impl Game {
                     .map(|(prev_piece, _)| prev_piece != next_piece)
                     .unwrap_or(false);
                 #[rustfmt::skip]
-                let move_rotate = match event { Event::Rotate | Event::MoveSlow | Event::MoveFast => true, _ => false };
+                let move_rotate = matches!(event, Event::Rotate | Event::MoveSlow | Event::MoveFast);
                 if !self.events.contains_key(&Event::LockTimer) || (repositioned && move_rotate) {
                     // SAFETY: We know this must be `Some` in this case.
                     let current_ground_time = event_time
