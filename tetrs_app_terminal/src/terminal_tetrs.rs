@@ -71,7 +71,7 @@ impl<T: Write> Drop for TerminalTetrs<T> {
 }
 
 impl<T: Write> TerminalTetrs<T> {
-    pub fn new(mut terminal: T) -> Self {
+    pub fn new(mut terminal: T, fps: u32) -> Self {
         // Console prologue: Initializion.
         let _ = terminal.execute(terminal::SetTitle("Tetrs"));
         let _ = terminal.execute(cursor::Hide);
@@ -99,7 +99,7 @@ impl<T: Write> TerminalTetrs<T> {
         ]);
         let settings = Settings {
             keybinds: ct_keybinds,
-            game_fps: 24.0,
+            game_fps: fps.into(),
             kitty_enabled,
         };
         Self {
