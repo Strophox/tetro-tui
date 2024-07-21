@@ -1,6 +1,10 @@
 use std::{
     collections::HashMap,
-    sync::mpsc::Sender,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        mpsc::Sender,
+        Arc,
+    },
     thread::{self, JoinHandle},
     time::Instant,
 };
@@ -14,7 +18,15 @@ pub type ButtonSignal = Option<(Instant, Button, bool)>;
 
 #[derive(Debug)]
 pub struct CrosstermHandler {
-    _handle: JoinHandle<()>,
+    handles: Option<(JoinHandle<()>, Arc<AtomicBool>)>,
+}
+
+impl Drop for CrosstermHandler {
+    fn drop(&mut self) {
+        if let Some((_handle, running_flag)) = self.handles.take() {
+            running_flag.store(false, Ordering::Release);
+        }
+    }
 }
 
 impl CrosstermHandler {
@@ -28,16 +40,25 @@ impl CrosstermHandler {
         } else {
             Self::spawn_standard
         };
-        let _handle = spawn(sender.clone(), keybinds.clone());
-        CrosstermHandler { _handle }
+        let flag = Arc::new(AtomicBool::new(true));
+        let handle = spawn(sender.clone(), flag.clone(), keybinds.clone());
+        CrosstermHandler {
+            handles: Some((handle, flag)),
+        }
     }
 
     fn spawn_standard(
         sender: Sender<ButtonSignal>,
+        flag: Arc<AtomicBool>,
         keybinds: HashMap<CT_Keycode, Button>,
     ) -> JoinHandle<()> {
         thread::spawn(move || {
             loop {
+                // Maybe stop thread.
+                let running = flag.load(Ordering::Acquire);
+                if !running {
+                    break;
+                }
                 let event = match event::read() {
                     Ok(event) => event,
                     // Spurious io::Error: ignore.
@@ -79,11 +100,18 @@ impl CrosstermHandler {
 
     fn spawn_kitty(
         sender: Sender<ButtonSignal>,
+        flag: Arc<AtomicBool>,
         keybinds: HashMap<CT_Keycode, Button>,
     ) -> JoinHandle<()> {
         thread::spawn(move || {
             loop {
+                // Maybe stop thread.
+                let running = flag.load(Ordering::Acquire);
+                if !running {
+                    break;
+                }
                 // Receive any Crossterm event.
+                // TODO: Even after game has ended this will consume one more input before seeing the flag, e.g. wasting one input of "CTRL+C"!
                 let (instant, event) = match event::read() {
                     // Spurious io::Error: ignore.
                     Err(_) => continue,

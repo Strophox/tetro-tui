@@ -375,9 +375,20 @@ impl Gamemode {
     }
 
     #[allow(dead_code)]
+    pub fn marathon() -> Self {
+        Self {
+            name: String::from("Marathon"),
+            start_level: NonZeroU32::MIN,
+            increase_level: true,
+            limit: Some(MeasureStat::Level(Game::LEVEL_20G.saturating_add(1))),
+            optimize: MeasureStat::Score(0),
+        }
+    }
+
+    #[allow(dead_code)]
     pub fn sprint(start_level: NonZeroU32) -> Self {
         Self {
-            name: String::from("sprint"),
+            name: String::from("Sprint"),
             start_level,
             increase_level: false,
             limit: Some(MeasureStat::Lines(40)),
@@ -388,7 +399,7 @@ impl Gamemode {
     #[allow(dead_code)]
     pub fn ultra(start_level: NonZeroU32) -> Self {
         Self {
-            name: String::from("ultra"),
+            name: String::from("Ultra"),
             start_level,
             increase_level: false,
             limit: Some(MeasureStat::Time(Duration::from_secs(3 * 60))),
@@ -397,12 +408,12 @@ impl Gamemode {
     }
 
     #[allow(dead_code)]
-    pub fn marathon() -> Self {
+    pub fn master() -> Self {
         Self {
-            name: String::from("marathon"),
-            start_level: NonZeroU32::MIN,
+            name: String::from("Master"),
+            start_level: Game::LEVEL_20G,
             increase_level: true,
-            limit: Some(MeasureStat::Level(Game::LEVEL_20G.saturating_add(1))),
+            limit: Some(MeasureStat::Lines(300)),
             optimize: MeasureStat::Score(0),
         }
     }
@@ -410,22 +421,11 @@ impl Gamemode {
     #[allow(dead_code)]
     pub fn endless() -> Self {
         Self {
-            name: String::from("endless"),
+            name: String::from("Endless"),
             start_level: NonZeroU32::MIN,
             increase_level: true,
             limit: None,
             optimize: MeasureStat::Pieces(0),
-        }
-    }
-
-    #[allow(dead_code)]
-    pub fn master() -> Self {
-        Self {
-            name: String::from("master"),
-            start_level: Game::LEVEL_20G,
-            increase_level: true,
-            limit: Some(MeasureStat::Lines(300)),
-            optimize: MeasureStat::Score(0),
         }
     }
 }
@@ -937,7 +937,7 @@ impl Game {
                     }
                 }
                 // Increment level if 10 lines cleared.
-                if self.lines_cleared.len() % 10 == 0 {
+                if self.gamemode.increase_level && self.lines_cleared.len() % 10 == 0 {
                     self.level = self.level.saturating_add(1);
                 }
                 self.events
