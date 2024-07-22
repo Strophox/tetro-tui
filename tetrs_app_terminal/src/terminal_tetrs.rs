@@ -22,7 +22,7 @@ use crate::game_input_handler::{ButtonSignal, CT_Keycode, CrosstermHandler};
 use crate::game_screen_renderers::{GameScreenRenderer, UnicodeRenderer};
 
 // TODO: This should be more general and less ad-hoc. Count number of I-Spins, J-Spins, etc..
-pub type ActionStats = [u32; 5];
+pub type ActionStats = ([u32; 5], Vec<u32>);
 
 #[derive(Debug)]
 enum Menu {
@@ -219,7 +219,9 @@ impl<T: Write> TerminalTetrs<T> {
             // Change screen session depending on what response screen gave.
             match menu_update {
                 MenuUpdate::Pop => {
-                    menu_stack.pop();
+                    if menu_stack.len() > 1 {
+                        menu_stack.pop();
+                    }
                 }
                 MenuUpdate::Push(menu) => {
                     if matches!(
@@ -407,6 +409,7 @@ impl<T: Write> TerminalTetrs<T> {
             Gamemode::master(),
             Gamemode::endless(),
         ];
+        let (d_time, d_score, d_pieces, d_lines, d_level) = (Duration::from_secs(5), 200, 1, 5, 1);
         let mut selected = 0usize;
         let mut selected_custom = 0usize;
         // There are the preset gamemodes + custom gamemode.
@@ -546,7 +549,7 @@ impl<T: Write> TerminalTetrs<T> {
                         match selected_custom {
                             1 => {
                                 self.settings.custom_mode.start_level =
-                                    self.settings.custom_mode.start_level.saturating_add(1);
+                                    self.settings.custom_mode.start_level.saturating_add(d_level);
                             }
                             2 => {
                                 self.settings.custom_mode.increment_level =
@@ -555,19 +558,19 @@ impl<T: Write> TerminalTetrs<T> {
                             3 => {
                                 match self.settings.custom_mode.limit {
                                     Some(MeasureStat::Time(ref mut dur)) => {
-                                        *dur += Duration::from_secs(5);
+                                        *dur += d_time;
                                     }
                                     Some(MeasureStat::Score(ref mut pts)) => {
-                                        *pts += 250;
+                                        *pts += d_score;
                                     }
                                     Some(MeasureStat::Pieces(ref mut pcs)) => {
-                                        *pcs += 10;
+                                        *pcs += d_pieces;
                                     }
                                     Some(MeasureStat::Lines(ref mut lns)) => {
-                                        *lns += 5;
+                                        *lns += d_lines;
                                     }
                                     Some(MeasureStat::Level(ref mut lvl)) => {
-                                        *lvl = lvl.saturating_add(1);
+                                        *lvl = lvl.saturating_add(d_level);
                                     }
                                     None => {}
                                 };
@@ -589,7 +592,7 @@ impl<T: Write> TerminalTetrs<T> {
                         match selected_custom {
                             1 => {
                                 self.settings.custom_mode.start_level = NonZeroU32::try_from(
-                                    self.settings.custom_mode.start_level.get() - 1,
+                                    self.settings.custom_mode.start_level.get() - d_level,
                                 )
                                 .unwrap_or(NonZeroU32::MIN);
                             }
@@ -600,19 +603,19 @@ impl<T: Write> TerminalTetrs<T> {
                             3 => {
                                 match self.settings.custom_mode.limit {
                                     Some(MeasureStat::Time(ref mut dur)) => {
-                                        *dur = dur.saturating_sub(Duration::from_secs(5));
+                                        *dur = dur.saturating_sub(d_time);
                                     }
                                     Some(MeasureStat::Score(ref mut pts)) => {
-                                        *pts = pts.saturating_sub(250);
+                                        *pts = pts.saturating_sub(d_score);
                                     }
                                     Some(MeasureStat::Pieces(ref mut pcs)) => {
-                                        *pcs = pcs.saturating_sub(10);
+                                        *pcs = pcs.saturating_sub(d_pieces);
                                     }
                                     Some(MeasureStat::Lines(ref mut lns)) => {
-                                        *lns = lns.saturating_sub(5);
+                                        *lns = lns.saturating_sub(d_lines);
                                     }
                                     Some(MeasureStat::Level(ref mut lvl)) => {
-                                        *lvl = NonZeroU32::try_from(lvl.get() - 1)
+                                        *lvl = NonZeroU32::try_from(lvl.get() - d_level)
                                             .unwrap_or(NonZeroU32::MIN);
                                     }
                                     None => {}
@@ -703,7 +706,7 @@ impl<T: Write> TerminalTetrs<T> {
                 }(
                     game.config().gamemode.name.clone(),
                     Box::new(game.state().clone()),
-                    *action_stats,
+                    action_stats.clone(),
                 );
                 // TODO: Temporary writing current game to file.
                 let mut file = std::fs::File::create("./tetrs_last_game.txt")?;
@@ -776,6 +779,7 @@ impl<T: Write> TerminalTetrs<T> {
             consecutive_line_clears: _,
             back_to_back_special_clears: _,
         } = stats;
+        let (actions, score_bonuses) = action_stats;
         let time_elapsed = last_updated.saturating_duration_since(*time_started);
         // TODO: Unused.
         // let pieces_played_str = [
@@ -790,28 +794,28 @@ impl<T: Write> TerminalTetrs<T> {
         let action_stats_str = [
             format!(
                 "{} Single{}",
-                action_stats[1],
-                if action_stats[1] != 1 { "s" } else { "" }
+                actions[1],
+                if actions[1] != 1 { "s" } else { "" }
             ),
             format!(
                 "{} Double{}",
-                action_stats[2],
-                if action_stats[2] != 1 { "s" } else { "" }
+                actions[2],
+                if actions[2] != 1 { "s" } else { "" }
             ),
             format!(
                 "{} Triple{}",
-                action_stats[3],
-                if action_stats[3] != 1 { "s" } else { "" }
+                actions[3],
+                if actions[3] != 1 { "s" } else { "" }
             ),
             format!(
                 "{} Quadruple{}",
-                action_stats[4],
-                if action_stats[4] != 1 { "s" } else { "" }
+                actions[4],
+                if actions[4] != 1 { "s" } else { "" }
             ),
             format!(
                 "{} Spin{}",
-                action_stats[0],
-                if action_stats[0] != 1 { "s" } else { "" }
+                actions[0],
+                if actions[0] != 1 { "s" } else { "" }
             ),
         ]
         .join(", ");
@@ -858,7 +862,9 @@ impl<T: Write> TerminalTetrs<T> {
                 )))?
                 .queue(MoveTo(x_main, y_main + y_selection + 10))?
                 .queue(Print(format!("{:^w_main$}", action_stats_str)))?
-                .queue(MoveTo(x_main, y_main + y_selection + 12))?
+                .queue(MoveTo(x_main, y_main + y_selection + 11))?
+                .queue(Print(format!("{:^w_main$}", format!("Average score bonus: {:.1}", f64::from(score_bonuses.iter().sum::<u32>()) / (score_bonuses.len() as f64/*I give up*/)))))?
+                .queue(MoveTo(x_main, y_main + y_selection + 13))?
                 .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
             let names = selection
                 .iter()

@@ -570,6 +570,7 @@ impl GameScreenRenderer for UnicodeRenderer {
                     combo,
                     opportunity,
                 } => {
+                    action_stats.1.push(*score_bonus);
                     let mut strs = Vec::new();
                     strs.push(format!("+{score_bonus}"));
                     if *perfect_clear {
@@ -577,7 +578,7 @@ impl GameScreenRenderer for UnicodeRenderer {
                     }
                     if *spin {
                         strs.push(format!("{shape:?}-Spin"));
-                        action_stats[0] += 1;
+                        action_stats.0[0] += 1;
                     }
                     let clear_action = match lineclears {
                         1 => "Single",
@@ -587,7 +588,7 @@ impl GameScreenRenderer for UnicodeRenderer {
                         x => unreachable!("unexpected line clear count {x}"),
                     }
                     .to_ascii_uppercase();
-                    action_stats[usize::try_from(*lineclears).unwrap()] += 1;
+                    action_stats.0[usize::try_from(*lineclears).unwrap()] += 1;
                     let excl = match opportunity {
                         1 => "'",
                         2 => "!",
