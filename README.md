@@ -1,3 +1,6 @@
+<div align="center"><img width="440" src="https://repository-images.githubusercontent.com/816034047/9eba09ef-d6da-4b4c-9884-630e7f87e102" /></div>
+
+
 # tetrs
 Tetromino game remake for the console.
 
