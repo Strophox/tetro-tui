@@ -1198,6 +1198,7 @@ impl<T: Write> App<T> {
     }
 
     fn scores(&mut self) -> io::Result<MenuUpdate> {
+        let max_entries = 16;
         let mut scroll = 0usize;
         loop {
             let w_main = Self::W_MAIN.into();
@@ -1212,24 +1213,25 @@ impl<T: Write> App<T> {
                 )))?
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
                 .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
-            let names = self.games_finished
+            let entries = self.games_finished
                 .iter()
                 .skip(scroll)
-                .take(16)
+                .take(max_entries)
                 .map(|GameFinishedStats { timestamp, actions: _, score_bonuses: _, gamemode, last_state }| 
                     format!("{} ({}): {}",
                     gamemode.name,
                     timestamp,
                     match gamemode.optimize {
-                        Stat::Lines(_) => last_state.lines_cleared.len().to_string(),
-                        Stat::Level(_) => last_state.level.to_string(),
-                        Stat::Score(_) => last_state.score.to_string(),
-                        Stat::Pieces(_) => last_state.pieces_played.iter().sum::<u32>().to_string(),
-                        Stat::Time(_) => format_duration(last_state.game_time),
+                        Stat::Lines(_) => format!("{} lines", last_state.lines_cleared.len()),
+                        Stat::Level(_) => format!("{} levels", last_state.level),
+                        Stat::Score(_) => format!("{} points", last_state.score),
+                        Stat::Pieces(_) => format!("{} pieces", last_state.pieces_played.iter().sum::<u32>()),
+                        Stat::Time(_) => format!("{} long", format_duration(last_state.game_time)),
                     }
                 ))
                 .collect::<Vec<_>>();
-            for (i, entry) in names.into_iter().enumerate() {
+            let n_entries = entries.len();
+            for (i, entry) in entries.into_iter().enumerate() {
                 self.term
                     .queue(MoveTo(
                         x_main,
@@ -1238,6 +1240,18 @@ impl<T: Write> App<T> {
                     .queue(Print(format!(
                         "{:^w_main$}",
                         entry
+                    )))?;
+            }
+            let entries_left = self.games_finished.len().saturating_sub(max_entries + scroll);
+            if entries_left > 0 {
+                self.term
+                    .queue(MoveTo(
+                        x_main,
+                        y_main + y_selection + 4 + u16::try_from(n_entries).unwrap(),
+                    ))?
+                    .queue(Print(format!(
+                        "{:^w_main$}",
+                        format!("...  (+{entries_left} more)")
                     )))?;
             }
             self.term.flush()?;
@@ -1265,7 +1279,7 @@ impl<T: Write> App<T> {
                     kind: Press | Repeat,
                     ..
                 }) => {
-                    if scroll > 0{
+                    if scroll > 0 {
                         scroll -= 1;
                     }
                 }
@@ -1275,7 +1289,9 @@ impl<T: Write> App<T> {
                     kind: Press | Repeat,
                     ..
                 }) => {
-                    scroll += 1;
+                    if entries_left > 0 {
+                        scroll += 1;
+                    }
                 }
                 // Other event: don't care.
                 _ => {}
