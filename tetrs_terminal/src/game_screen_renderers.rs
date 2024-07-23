@@ -240,11 +240,23 @@ impl GameScreenRenderer for UnicodeRenderer {
         let key_icons_drophard = format_keybinds(Button::DropHard, &app.settings.keybinds);
         let mut key_icons_drop = format!("{key_icons_dropsoft} {key_icons_drophard}");
         // JESUS Christ https://users.rust-lang.org/t/truncating-a-string/77903/9 :
-        let eleven = key_icons_move.char_indices().map(|(i, _)| i).nth(11).unwrap_or(key_icons_move.len());
+        let eleven = key_icons_move
+            .char_indices()
+            .map(|(i, _)| i)
+            .nth(11)
+            .unwrap_or(key_icons_move.len());
         key_icons_move.truncate(eleven);
-        let eleven = key_icons_rotate.char_indices().map(|(i, _)| i).nth(11).unwrap_or(key_icons_rotate.len());
+        let eleven = key_icons_rotate
+            .char_indices()
+            .map(|(i, _)| i)
+            .nth(11)
+            .unwrap_or(key_icons_rotate.len());
         key_icons_rotate.truncate(eleven);
-        let eleven = key_icons_drop.char_indices().map(|(i, _)| i).nth(11).unwrap_or(key_icons_drop.len());
+        let eleven = key_icons_drop
+            .char_indices()
+            .map(|(i, _)| i)
+            .nth(11)
+            .unwrap_or(key_icons_drop.len());
         key_icons_drop.truncate(eleven);
         let piececnts_o = format!("{}o", pieces_played[Tetromino::O]);
         let piececnts_i_s_z = [

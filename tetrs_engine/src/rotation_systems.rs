@@ -104,7 +104,16 @@ impl RotationSystem for Okay {
             // 180 rotation will behave like two free-air rotations in a single press.
             2 => {
                 // TODO: Implement 180 rotation.
-                todo!();
+                let kick = match prev_piece.shape {
+                    Tetromino::O | Tetromino::I | Tetromino::S | Tetromino::Z => (0, 0),
+                    Tetromino::T | Tetromino::L | Tetromino::J => match prev_piece.orientation {
+                        N => (0, -1),
+                        E => (-1, 0),
+                        S => (0, 1),
+                        W => (1, 0),
+                    },
+                };
+                return prev_piece.fits_at_rotated(board, kick, 2);
             }
             // One left rotation.
             3 => true,
