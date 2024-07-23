@@ -1080,11 +1080,11 @@ impl<T: Write> App<T> {
                 }) => {
                     let current_button = action_selection[selected];
                     self.term
-                        .queue(MoveTo(
+                        .execute(MoveTo(
                             x_main,
                             y_main + y_selection + 4 + u16::try_from(n_actions).unwrap() + 3,
                         ))?
-                        .queue(PrintStyledContent(
+                        .execute(PrintStyledContent(
                             format!(
                                 "{:^w_main$}",
                                 format!("Press a key for {current_button:?}..."),

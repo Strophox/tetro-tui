@@ -232,13 +232,20 @@ impl GameScreenRenderer for UnicodeRenderer {
         let key_icon_pause = format_key(KeyCode::Esc);
         let key_icons_moveleft = format_keybinds(Button::MoveLeft, &app.settings.keybinds);
         let key_icons_moveright = format_keybinds(Button::MoveRight, &app.settings.keybinds);
-        let key_icons_move = format!("{key_icons_moveleft} {key_icons_moveright}");
+        let mut key_icons_move = format!("{key_icons_moveleft} {key_icons_moveright}");
         let key_icons_rotateleft = format_keybinds(Button::RotateLeft, &app.settings.keybinds);
         let key_icons_rotateright = format_keybinds(Button::RotateRight, &app.settings.keybinds);
-        let key_icons_rotate = format!("{key_icons_rotateleft} {key_icons_rotateright}");
+        let mut key_icons_rotate = format!("{key_icons_rotateleft} {key_icons_rotateright}");
         let key_icons_dropsoft = format_keybinds(Button::DropSoft, &app.settings.keybinds);
         let key_icons_drophard = format_keybinds(Button::DropHard, &app.settings.keybinds);
-        let key_icons_drop = format!("{key_icons_dropsoft} {key_icons_drophard}");
+        let mut key_icons_drop = format!("{key_icons_dropsoft} {key_icons_drophard}");
+        // JESUS Christ https://users.rust-lang.org/t/truncating-a-string/77903/9 :
+        let eleven = key_icons_move.char_indices().map(|(i, _)| i).nth(11).unwrap_or(key_icons_move.len());
+        key_icons_move.truncate(eleven);
+        let eleven = key_icons_rotate.char_indices().map(|(i, _)| i).nth(11).unwrap_or(key_icons_rotate.len());
+        key_icons_rotate.truncate(eleven);
+        let eleven = key_icons_drop.char_indices().map(|(i, _)| i).nth(11).unwrap_or(key_icons_drop.len());
+        key_icons_drop.truncate(eleven);
         let piececnts_o = format!("{}o", pieces_played[Tetromino::O]);
         let piececnts_i_s_z = [
             format!("{}i", pieces_played[Tetromino::I]),
