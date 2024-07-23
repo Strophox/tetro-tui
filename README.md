@@ -37,14 +37,32 @@ game.update(None, update_time_2);
 let GameState { board, .. } = game.state();
 ```
 
-# Features
-
-## Frontend
-TODO: `all` the tui pain here.
+# Features of the Frontend / Terminal Application
 TODO: GIFs and screenshots.
+- 
 
-## Engine
+# Features of the Tetrs Engine
 TODO: `all` the features here.
 
 
-# Idea
+# Further Notes
+This project allowed me to have my first 'proper' learning experiences with programming a larger Rust project, interactive game (in the console), and the intricacies of Tetris all at once.
+
+On the Rust side of things I learned about
+- some [coding](https://docs.kernel.org/rust/coding-guidelines.html) [style](https://doc.rust-lang.org/nightly/style-guide/) [guidelines](https://github.com/rust-lang/rust-analyzer/blob/master/docs/dev/style.md#getters--setters) & `cargo fmt` (~and `#[rustfmt::skip]`~),
+- "[How to order Rust code](https://deterministic.space/how-to-order-rust-code.html)",
+- introduction to [writing](https://doc.rust-lang.org/book/ch14-02-publishing-to-crates-io.html) [documentation](https://rust-lang.github.io/api-guidelines/documentation.html) (and the fact they can [contain tested examples](https://blog.guillaume-gomez.fr/articles/2020-03-12+Guide+on+how+to+write+documentation+for+a+Rust+crate#Hiding-lines)) & `cargo doc`,
+- the [`std` traits](https://rust-lang.github.io/api-guidelines/interoperability.html),
+- the `format!` macro (lovely analogue to Python's f-strings),
+- using [Crossterm](https://crates.io/crates/crossterm) for the inputs (instead of something like [device_query](https://crates.io/crates/device_query) - also I did not end up using [ratatui](https://crates.io/crates/ratatui/) :c Someone will have to write a frontend with that)
+- the [annoyances](https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement) of terminal emulators,
+- the handy drop-in [`BufWriter`](https://doc.rust-lang.org/std/io/struct.BufWriter.html) wrapper to diminish flickering,
+- [clap](https://docs.rs/clap/latest/clap/) to parse simple command line arguments,
+- more practice with Rust's [module system](https://doc.rust-lang.org/book/ch07-00-managing-growing-projects-with-packages-crates-and-modules.html),
+- [cargo workspaces](https://doc.rust-lang.org/book/ch14-03-cargo-workspaces.html) to fully separate frontend and backend,
+- [cargo git dependencies](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#specifying-dependencies-from-git-repositories) so other people *could* reuse the backend,
+- and finally [cross-compilation](https://blog.logrocket.com/guide-cross-compilation-rust/#how-rust-represents-platforms) for releases.
+
+Gamedev-wise I learned about the [modern](https://gafferongames.com/post/fix_your_timestep/) [game](http://gameprogrammingpatterns.com/game-loop.html) [loop](https://dewitters.com/dewitters-gameloop/), and how to decouple it from render framerate to come up with the proper `Game::update` abstraction.
+
+~I also found that there already *are*, like, a billion other [`tetrs`](https://github.com/search?q=%22tetrs%22&type=repositories)'s on GitHub - oops.~
