@@ -9,6 +9,8 @@ use std::{
     time::Duration,
 };
 
+pub use rotation_systems::RotationSystem;
+
 pub type ButtonsPressed = [bool; 7];
 // NOTE: Would've liked to use `impl Game { type Board = ...` (https://github.com/rust-lang/rust/issues/8995)
 pub type TileTypeID = NonZeroU32;
@@ -116,6 +118,7 @@ pub enum GameOver {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct GameConfig {
     pub gamemode: Gamemode,
+    pub rotation_system: RotationSystem,
     pub preview_count: usize,
     pub delayed_auto_shift: Duration,
     pub auto_repeat_rate: Duration,
@@ -150,7 +153,6 @@ pub struct GameState {
 pub struct Game {
     state: GameState,
     config: GameConfig,
-    rotation_system: Box<dyn rotation_systems::RotationSystem>,
     tetromino_generator: Box<dyn Iterator<Item = Tetromino>>,
 }
 
@@ -472,6 +474,7 @@ impl GameConfig {
     pub fn new(gamemode: Gamemode) -> Self {
         Self {
             gamemode,
+            rotation_system: RotationSystem::Ok,
             preview_count: 1,
             delayed_auto_shift: Duration::from_millis(200),
             auto_repeat_rate: Duration::from_millis(50),
@@ -493,10 +496,6 @@ impl fmt::Debug for Game {
                 "tetromino_generator",
                 &std::any::type_name_of_val(&self.tetromino_generator),
             )
-            .field(
-                "rotation_system",
-                &std::any::type_name_of_val(&self.rotation_system),
-            )
             .finish()
     }
 }
@@ -514,7 +513,6 @@ impl Game {
     }
 
     pub fn with_config(config: GameConfig) -> Self {
-        let rotation_system = Box::new(rotation_systems::Okay);
         let mut tetromino_generator = Box::new(tetromino_generators::RecencyProbGen::new());
         let state = GameState {
             game_time: Duration::ZERO,
@@ -539,7 +537,6 @@ impl Game {
         Game {
             config,
             state,
-            rotation_system,
             tetromino_generator,
         }
     }
@@ -746,7 +743,7 @@ impl Game {
                     .next_pieces
                     .pop_front()
                     .expect("piece generator ran out before game finished");
-                let next_piece = self.rotation_system.place_initial(tetromino);
+                let next_piece = self.config.rotation_system.place_initial(tetromino);
                 // Newly spawned piece conflicts with board - Game over.
                 if !next_piece.fits(&self.state.board) {
                     return Err(GameOver::BlockOut);
@@ -776,7 +773,8 @@ impl Game {
                 if self.state.buttons_pressed[Button::RotateAround] {
                     rotation += 2;
                 }
-                self.rotation_system
+                self.config
+                    .rotation_system
                     .rotate(&prev_piece, &self.state.board, rotation)
                     .or(Some(prev_piece))
             }
