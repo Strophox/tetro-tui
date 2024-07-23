@@ -16,14 +16,14 @@ use tetrs_engine::{
     TileTypeID,
 };
 
-use crate::terminal_tetrs::{format_duration, format_key, format_keybinds, ActionStats, App};
+use crate::terminal_tetrs::{format_duration, format_key, format_keybinds, GameRunningStats, App};
 
 pub trait GameScreenRenderer {
     fn render<T>(
         &mut self,
         app: &mut App<T>,
         game: &mut Game,
-        action_stats: &mut ActionStats,
+        action_stats: &mut GameRunningStats,
         new_feedback_events: Vec<(GameTime, FeedbackEvent)>,
     ) -> io::Result<()>
     where
@@ -47,7 +47,7 @@ impl GameScreenRenderer for DebugRenderer {
         &mut self,
         app: &mut App<T>,
         game: &mut Game,
-        _action_stats: &mut ActionStats,
+        _action_stats: &mut GameRunningStats,
         new_feedback_events: Vec<(GameTime, FeedbackEvent)>,
     ) -> io::Result<()>
     where
@@ -167,7 +167,7 @@ impl GameScreenRenderer for UnicodeRenderer {
         &mut self,
         app: &mut App<T>,
         game: &mut Game,
-        action_stats: &mut ActionStats,
+        action_stats: &mut GameRunningStats,
         new_feedback_events: Vec<(GameTime, FeedbackEvent)>,
     ) -> io::Result<()>
     where

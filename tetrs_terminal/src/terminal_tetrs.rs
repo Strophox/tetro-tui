@@ -1,10 +1,5 @@
 use std::{
-    collections::HashMap,
-    fmt::Debug,
-    io::{self, Write},
-    num::NonZeroU32,
-    sync::mpsc,
-    time::{Duration, Instant},
+    collections::HashMap, fmt::Debug, fs::File, io::{self, Read, Write}, num::NonZeroU32, sync::mpsc, time::{Duration, Instant}
 };
 
 use crossterm::{
@@ -17,23 +12,23 @@ use crossterm::{
     style::{self, Print, PrintStyledContent, Stylize},
     terminal, ExecutableCommand, QueueableCommand,
 };
-// TODO: serde. use serde::{Serialize, Deserialize};
 use tetrs_engine::{Button, ButtonsPressed, Game, GameState, Gamemode, Stat};
 
 use crate::game_input_handler::{ButtonSignal, CrosstermHandler};
 use crate::game_screen_renderers::{GameScreenRenderer, UnicodeRenderer};
 
 // NOTE: This could be more general and less ad-hoc. Count number of I-Spins, J-Spins, etc..
-pub type ActionStats = ([u32; 5], Vec<u32>);
+pub type GameRunningStats = ([u32; 5], Vec<u32>);
 
-/* TODO: serde.
-#[derive(Serialize, Deserialize)]
+#[derive(Eq, PartialEq, Clone, Debug)]
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct GameFinishedStats {
+    // TODO: save time: Instant,
     actions: [u32; 5],
     score_bonuses: Vec<u32>,
     gamemode: Gamemode,
     last_state: GameState,
-}*/
+}
 
 #[derive(Debug)]
 enum Menu {
@@ -44,17 +39,36 @@ enum Menu {
         time_started: Instant,
         last_paused: Instant,
         total_duration_paused: Duration,
-        action_stats: ActionStats,
+        game_running_stats: GameRunningStats,
         game_screen_renderer: UnicodeRenderer,
     },
-    GameOver(Gamemode, Box<GameState>, ActionStats),
-    GameComplete(Gamemode, Box<GameState>, ActionStats),
+    GameOver,
+    GameComplete,
     Pause, // TODO: Add information so game stats can be displayed here.
     Options,
     ConfigureControls,
     Scores,
     About,
     Quit(String),
+}
+
+impl std::fmt::Display for Menu {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let name = match self {
+            Menu::Title => "Title Screen",
+            Menu::NewGame => "New Game",
+            Menu::Game { game, .. } => &format!("Game: {}", game.config().gamemode.name),
+            Menu::GameOver => "Game Over",
+            Menu::GameComplete => "Game Completed",
+            Menu::Pause => "Pause",
+            Menu::Options => "Options",
+            Menu::ConfigureControls => "Configure Controls",
+            Menu::Scores => "Scoreboard",
+            Menu::About => "About",
+            Menu::Quit(_) => "Quit",
+        };
+        write!(f, "{name}")
+    }
 }
 
 // TODO: #[derive(Debug)]
@@ -68,40 +82,22 @@ enum MenuUpdate {
 pub struct Settings {
     pub game_fps: f64,
     pub keybinds: HashMap<KeyCode, Button>,
-    custom_mode: Gamemode,
-    kitty_enabled: bool,
-}
-
-impl std::fmt::Display for Menu {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let name = match self {
-            Menu::Title => "Title Screen",
-            Menu::NewGame => "New Game",
-            Menu::Game { game, .. } => &format!("Game: {}", game.config().gamemode.name),
-            Menu::GameOver(..) => "Game Over",
-            Menu::GameComplete(..) => "Game Completed",
-            Menu::Pause => "Pause",
-            Menu::Options => "Options",
-            Menu::ConfigureControls => "Configure Controls",
-            Menu::Scores => "Scoreboard",
-            Menu::About => "About",
-            Menu::Quit(_) => "Quit",
-        };
-        write!(f, "{name}")
-    }
 }
 
 #[derive(Debug)]
 pub struct App<T: Write> {
     pub term: T,
     pub settings: Settings,
+    custom_mode: Gamemode,
+    kitty_enabled: bool,
+    games_finished: Vec<GameFinishedStats>,
 }
 
 impl<T: Write> Drop for App<T> {
     fn drop(&mut self) {
         // Console epilogue: de-initialization.
         // TODO FIXME BUG: There's this horrible bug where the keyboard flags pop incorrectly: if I press escape in the pause menu, it resumes the game, but when I release escape during the game immediately after it interprets this as a "Press" as well, pausing again.
-        if self.settings.kitty_enabled {
+        if self.kitty_enabled {
             let _ = self.term.execute(event::PopKeyboardEnhancementFlags);
         }
         let _ = terminal::disable_raw_mode();
@@ -115,12 +111,12 @@ impl<T: Write> App<T> {
     pub const W_MAIN: u16 = 80;
     pub const H_MAIN: u16 = 24;
     // TODO: serde. Then save stuff with this.
-    pub const SAVE_FILE: &'static str = "tetrs_terminal_scores.json";
+    pub const SAVE_FILE: &'static str = "./tetrs_terminal_scores.json";
 
     pub fn new(mut terminal: T, fps: u32) -> Self {
         // Console prologue: Initializion.
         let _ = terminal.execute(terminal::EnterAlternateScreen);
-        let _ = terminal.execute(terminal::SetTitle("Tetrs"));
+        let _ = terminal.execute(terminal::SetTitle("Tetrs Terminal"));
         let _ = terminal.execute(cursor::Hide);
         let _ = terminal::enable_raw_mode();
         let kitty_enabled = terminal::supports_keyboard_enhancement().unwrap_or(false);
@@ -142,19 +138,39 @@ impl<T: Write> App<T> {
         let settings = Settings {
             keybinds,
             game_fps: fps.into(),
-            custom_mode: Gamemode::custom(
-                "Custom Mode".to_string(),
-                NonZeroU32::MIN,
-                true,
-                None,
-                Stat::Time(Duration::ZERO),
-            ),
-            kitty_enabled,
         };
+        let custom_mode = Gamemode::custom(
+            "Custom Mode".to_string(),
+            NonZeroU32::MIN,
+            true,
+            None,
+            Stat::Time(Duration::ZERO),
+        );
+        let games_finished = Self::load_games().unwrap_or(Vec::new());
         Self {
             term: terminal,
             settings,
+            kitty_enabled,
+            custom_mode,
+            games_finished,
         }
+    }
+
+    fn save_games(games_finished: &Vec<GameFinishedStats>) -> io::Result<()> {
+        // TODO: *More* efficient storing of info to file?
+        let save_str = serde_json::to_string(games_finished)?;
+        let mut file = File::create(Self::SAVE_FILE)?;
+        file.write(save_str.as_bytes())?;
+        Ok(())
+    }
+
+    fn load_games() -> io::Result<Vec<GameFinishedStats>> {
+        // TODO: *More* efficient storing of info to file?
+        let mut file = File::open(Self::SAVE_FILE)?;
+        let mut save_str = String::new();
+        file.read_to_string(&mut save_str)?;
+        let games_finished = serde_json::from_str(&save_str)?;
+        Ok(games_finished)
     }
 
     pub fn run(&mut self) -> io::Result<String> {
@@ -174,23 +190,19 @@ impl<T: Write> App<T> {
                     time_started,
                     total_duration_paused,
                     last_paused,
-                    action_stats,
+                    game_running_stats,
                     game_screen_renderer,
                 } => self.game(
                     game,
                     time_started,
                     last_paused,
                     total_duration_paused,
-                    action_stats,
+                    game_running_stats,
                     game_screen_renderer,
                 ),
                 Menu::Pause => self.pause(),
-                Menu::GameOver(gamemode, gamestate, action_stats) => {
-                    self.gameover(gamemode, gamestate, action_stats)
-                }
-                Menu::GameComplete(gamemode, gamestate, action_stats) => {
-                    self.gamecomplete(gamemode, gamestate, action_stats)
-                }
+                Menu::GameOver => self.gameover(),
+                Menu::GameComplete => self.gamecomplete(),
                 Menu::Scores => self.scores(),
                 Menu::About => self.about(),
                 Menu::Options => self.options(),
@@ -207,13 +219,7 @@ impl<T: Write> App<T> {
                     }
                 }
                 MenuUpdate::Push(menu) => {
-                    if matches!(
-                        menu,
-                        Menu::Title
-                            | Menu::Game { .. }
-                            | Menu::GameOver(..)
-                            | Menu::GameComplete(..)
-                    ) {
+                    if matches!(menu, Menu::Title | Menu::Game { .. } | Menu::GameOver | Menu::GameComplete) {
                         menu_stack.clear();
                     }
                     menu_stack.push(menu);
@@ -358,13 +364,6 @@ impl<T: Write> App<T> {
     }
 
     fn title(&mut self) -> io::Result<MenuUpdate> {
-        /* TODO: Title menu.
-        Title
-            -> { Quit }
-        Title
-            -> { NewGame Options Scores About }
-            [color="#007FFF"]
-        */
         let selection = vec![
             Menu::NewGame,
             Menu::Options,
@@ -376,15 +375,6 @@ impl<T: Write> App<T> {
     }
 
     fn newgame(&mut self) -> io::Result<MenuUpdate> {
-        /* TODO: Newgame menu.
-        NewGame
-            -> { Game }
-        NewGame
-            -> { Options }
-            [color="#007FFF"]
-
-        MenuUpdate::Pop
-        */
         let preset_gamemodes = [
             Gamemode::marathon(),
             Gamemode::sprint(NonZeroU32::try_from(5).unwrap()),
@@ -454,16 +444,16 @@ impl<T: Write> App<T> {
                 let stats_str = [
                     (
                         1,
-                        format!("level start: {}", self.settings.custom_mode.start_level),
+                        format!("level start: {}", self.custom_mode.start_level),
                     ),
                     (
                         2,
                         format!(
                             "level increment: {}",
-                            self.settings.custom_mode.increment_level
+                            self.custom_mode.increment_level
                         ),
                     ),
-                    (3, format!("limit: {:?}", self.settings.custom_mode.limit)),
+                    (3, format!("limit: {:?}", self.custom_mode.limit)),
                 ]
                 .map(|(j, stat_str)| {
                     if j == selected_custom {
@@ -510,7 +500,7 @@ impl<T: Write> App<T> {
                         // SAFETY: Index is valid.
                         preset_gamemodes.into_iter().nth(selected).unwrap()
                     } else {
-                        self.settings.custom_mode.clone()
+                        self.custom_mode.clone()
                     };
                     let now = Instant::now();
                     break Ok(MenuUpdate::Push(Menu::Game {
@@ -518,7 +508,7 @@ impl<T: Write> App<T> {
                         time_started: now,
                         last_paused: now,
                         total_duration_paused: Duration::ZERO,
-                        action_stats: ActionStats::default(),
+                        game_running_stats: GameRunningStats::default(),
                         game_screen_renderer: Default::default(),
                     }));
                 }
@@ -531,18 +521,17 @@ impl<T: Write> App<T> {
                     if selected_custom > 0 {
                         match selected_custom {
                             1 => {
-                                self.settings.custom_mode.start_level = self
-                                    .settings
+                                self.custom_mode.start_level = self
                                     .custom_mode
                                     .start_level
                                     .saturating_add(d_level);
                             }
                             2 => {
-                                self.settings.custom_mode.increment_level =
-                                    !self.settings.custom_mode.increment_level;
+                                self.custom_mode.increment_level =
+                                    !self.custom_mode.increment_level;
                             }
                             3 => {
-                                match self.settings.custom_mode.limit {
+                                match self.custom_mode.limit {
                                     Some(Stat::Time(ref mut dur)) => {
                                         *dur += d_time;
                                     }
@@ -577,17 +566,17 @@ impl<T: Write> App<T> {
                     if selected_custom > 0 {
                         match selected_custom {
                             1 => {
-                                self.settings.custom_mode.start_level = NonZeroU32::try_from(
-                                    self.settings.custom_mode.start_level.get() - d_level,
+                                self.custom_mode.start_level = NonZeroU32::try_from(
+                                    self.custom_mode.start_level.get() - d_level,
                                 )
                                 .unwrap_or(NonZeroU32::MIN);
                             }
                             2 => {
-                                self.settings.custom_mode.increment_level =
-                                    !self.settings.custom_mode.increment_level;
+                                self.custom_mode.increment_level =
+                                    !self.custom_mode.increment_level;
                             }
                             3 => {
-                                match self.settings.custom_mode.limit {
+                                match self.custom_mode.limit {
                                     Some(Stat::Time(ref mut dur)) => {
                                         *dur = dur.saturating_sub(d_time);
                                     }
@@ -634,7 +623,7 @@ impl<T: Write> App<T> {
                     if selected == selected_cnt - 1 {
                         // If reached last stat, cycle through stats for limit.
                         if selected_custom == selected_custom_cnt - 1 {
-                            self.settings.custom_mode.limit = match self.settings.custom_mode.limit
+                            self.custom_mode.limit = match self.custom_mode.limit
                             {
                                 Some(Stat::Time(_)) => Some(Stat::Score(9000)),
                                 Some(Stat::Score(_)) => Some(Stat::Pieces(100)),
@@ -664,21 +653,14 @@ impl<T: Write> App<T> {
         time_started: &mut Instant,
         last_paused: &mut Instant,
         total_duration_paused: &mut Duration,
-        action_stats: &mut ActionStats,
+        game_running_stats: &mut GameRunningStats,
         game_screen_renderer: &mut impl GameScreenRenderer,
     ) -> io::Result<MenuUpdate> {
-        /* TODO: Game menu.
-        Game
-            -> { GameOver GameComplete }
-        Game
-            -> { Pause }
-            [color="#007FFF"]
-        */
         // Prepare channel with which to communicate `Button` inputs / game interrupt.
         let mut buttons_pressed = ButtonsPressed::default();
         let (tx, rx) = mpsc::channel::<ButtonSignal>();
         let _input_handler =
-            CrosstermHandler::new(&tx, &self.settings.keybinds, self.settings.kitty_enabled);
+            CrosstermHandler::new(&tx, &self.settings.keybinds, self.kitty_enabled);
         // Game Loop
         let session_resumed = Instant::now();
         *total_duration_paused += session_resumed.saturating_duration_since(*last_paused);
@@ -686,18 +668,23 @@ impl<T: Write> App<T> {
         let next_menu = 'render_loop: loop {
             // Exit if game ended
             if let Some(good_end) = game.finished() {
+                let game_finished_stats = GameFinishedStats {
+                    actions: game_running_stats.0.clone(),
+                    score_bonuses: game_running_stats.1.clone(),
+                    gamemode: game.config().gamemode.clone(),
+                    last_state: game.state().clone(),
+                };
+                self.games_finished.push(game_finished_stats);
+                // TODO: Correct error handling?
+                if let Err(e) = Self::save_games(&self.games_finished) {
+                    println!("{e}");
+                    std::thread::sleep(Duration::from_secs(10));
+                }
                 let menu = if good_end.is_ok() {
                     Menu::GameComplete
                 } else {
                     Menu::GameOver
-                }(
-                    game.config().gamemode.clone(),
-                    Box::new(game.state().clone()),
-                    action_stats.clone(),
-                );
-                // TODO: Temporary writing current game to file.
-                let mut file = std::fs::File::create("./tetrs_last_game.txt")?;
-                let _ = file.write(format!("{game:#?}").as_bytes());
+                };
                 break MenuUpdate::Push(menu);
             }
             // Start next frame
@@ -738,7 +725,7 @@ impl<T: Write> App<T> {
                 };
             }
             // TODO: Make this more elegantly modular.
-            game_screen_renderer.render(self, game, action_stats, new_feedback_events)?;
+            game_screen_renderer.render(self, game, game_running_stats, new_feedback_events)?;
         };
         *last_paused = Instant::now();
         Ok(next_menu)
@@ -747,11 +734,10 @@ impl<T: Write> App<T> {
     fn generic_game_finished(
         &mut self,
         selection: Vec<Menu>,
-        gamemode: &Gamemode,
-        stats: &GameState,
-        action_stats: &ActionStats,
         success: bool,
     ) -> io::Result<MenuUpdate> {
+        // SAFETY: We only call this function after at least one game has been finished.
+        let GameFinishedStats { actions, score_bonuses, gamemode, last_state } = self.games_finished.last().unwrap();
         let GameState {
             game_time,
             finished: _,
@@ -766,8 +752,7 @@ impl<T: Write> App<T> {
             score,
             consecutive_line_clears: _,
             back_to_back_special_clears: _,
-        } = stats;
-        let (actions, score_bonuses) = action_stats;
+        } = last_state;
         // TODO: Unused.
         // let pieces_played_str = [
         //     format!("{}o", pieces_played[Tetromino::O]),
@@ -778,7 +763,7 @@ impl<T: Write> App<T> {
         //     format!("{}l", pieces_played[Tetromino::L]),
         //     format!("{}j", pieces_played[Tetromino::J]),
         // ].join(" ");
-        let action_stats_str = [
+        let actions_str = [
             format!(
                 "{} Single{}",
                 actions[1],
@@ -844,7 +829,7 @@ impl<T: Write> App<T> {
                     format!("Time: {}", format_duration(*game_time))
                 )))?
                 .queue(MoveTo(x_main, y_main + y_selection + 10))?
-                .queue(Print(format!("{:^w_main$}", action_stats_str)))?
+                .queue(Print(format!("{:^w_main$}", actions_str)))?
                 .queue(MoveTo(x_main, y_main + y_selection + 11))?
                 .queue(Print(format!(
                     "{:^w_main$}",
@@ -936,60 +921,29 @@ impl<T: Write> App<T> {
 
     fn gameover(
         &mut self,
-        gamemode: &Gamemode,
-        gamestate: &GameState,
-        action_stats: &ActionStats,
     ) -> io::Result<MenuUpdate> {
-        /* TODO: Gameover menu.
-        GameOver
-            -> { Quit }
-        GameOver
-            -> { NewGame Scores }
-            [color="#007FFF"]
-        */
         let selection = vec![
             Menu::NewGame,
-            // TODO: Uncomment this once Score screen is usable.
-            // Menu::Scores,
+            Menu::Scores,
             Menu::Options,
             Menu::Quit("quit after game over".to_string()),
         ];
-        self.generic_game_finished(selection, gamemode, gamestate, action_stats, false)
+        self.generic_game_finished(selection, false)
     }
 
     fn gamecomplete(
         &mut self,
-        gamemode: &Gamemode,
-        gamestate: &GameState,
-        action_stats: &ActionStats,
     ) -> io::Result<MenuUpdate> {
-        /* TODO: Gamecomplete menu.
-        GameComplete
-            -> { Quit }
-        GameComplete
-            -> { NewGame Scores }
-            [color="#007FFF"]
-        */
         let selection = vec![
             Menu::NewGame,
-            // TODO: Uncomment this once Score screen is usable.
-            // Menu::Scores,
+            Menu::Scores,
             Menu::Options,
             Menu::Quit("quit after game complete".to_string()),
         ];
-        self.generic_game_finished(selection, gamemode, gamestate, action_stats, true)
+        self.generic_game_finished(selection, true)
     }
 
     fn pause(&mut self) -> io::Result<MenuUpdate> {
-        /* TODO: Pause menu.
-        Pause
-            -> { Quit }
-        Pause
-            -> { NewGame Scores Options About }
-            [color="#007FFF"]
-
-        MenuUpdate::Pop
-        */
         let selection = vec![
             Menu::NewGame,
             Menu::Scores,
@@ -1001,13 +955,6 @@ impl<T: Write> App<T> {
     }
 
     fn options(&mut self) -> io::Result<MenuUpdate> {
-        /* TODO: Options menu.
-        Options
-            -> { ConfigureControls }
-            [color="#007FFF"]
-
-        MenuUpdate::Pop
-        */
         let selection_len = 2;
         let mut selected = 0usize;
         loop {
@@ -1125,11 +1072,7 @@ impl<T: Write> App<T> {
     }
 
     fn configurecontrols(&mut self) -> io::Result<MenuUpdate> {
-        /* TODO: Configurecontrols menu.
-
-        MenuUpdate::Pop
-        */
-        let action_selection = [
+        let button_selection = [
             Button::MoveLeft,
             Button::MoveRight,
             Button::RotateLeft,
@@ -1149,7 +1092,7 @@ impl<T: Write> App<T> {
                 .queue(Print(format!("{:^w_main$}", "Configure Controls")))?
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
                 .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
-            let action_names = action_selection
+            let button_names = button_selection
                 .iter()
                 .map(|&button| {
                     format!(
@@ -1158,8 +1101,8 @@ impl<T: Write> App<T> {
                     )
                 })
                 .collect::<Vec<_>>();
-            let n_actions = action_names.len();
-            for (i, name) in action_names.into_iter().enumerate() {
+            let n_buttons = button_names.len();
+            for (i, name) in button_names.into_iter().enumerate() {
                 self.term
                     .queue(MoveTo(
                         x_main,
@@ -1177,7 +1120,7 @@ impl<T: Write> App<T> {
             self.term
                 .queue(MoveTo(
                     x_main,
-                    y_main + y_selection + 4 + u16::try_from(n_actions).unwrap() + 3,
+                    y_main + y_selection + 4 + u16::try_from(n_buttons).unwrap() + 3,
                 ))?
                 .queue(PrintStyledContent(
                     format!(
@@ -1211,11 +1154,11 @@ impl<T: Write> App<T> {
                     kind: Press,
                     ..
                 }) => {
-                    let current_button = action_selection[selected];
+                    let current_button = button_selection[selected];
                     self.term
                         .execute(MoveTo(
                             x_main,
-                            y_main + y_selection + 4 + u16::try_from(n_actions).unwrap() + 3,
+                            y_main + y_selection + 4 + u16::try_from(n_buttons).unwrap() + 3,
                         ))?
                         .execute(PrintStyledContent(
                             format!(
@@ -1240,7 +1183,7 @@ impl<T: Write> App<T> {
                     kind: Press | Repeat,
                     ..
                 }) => {
-                    selected += action_selection.len() - 1;
+                    selected += button_selection.len() - 1;
                 }
                 // Move selector down.
                 Event::Key(KeyEvent {
@@ -1253,16 +1196,93 @@ impl<T: Write> App<T> {
                 // Other event: don't care.
                 _ => {}
             }
-            selected = selected.rem_euclid(action_selection.len());
+            selected = selected.rem_euclid(button_selection.len());
         }
     }
 
     fn scores(&mut self) -> io::Result<MenuUpdate> {
-        /* TODO: Scores menu.
-
-        MenuUpdate::Pop
-        */
-        self.generic_placeholder_widget("Highscores", vec![])
+        let mut scroll = 0usize;
+        loop {
+            let w_main = Self::W_MAIN.into();
+            let (x_main, y_main) = Self::fetch_main_xy();
+            let y_selection = Self::H_MAIN / 5;
+            self.term
+                .queue(terminal::Clear(terminal::ClearType::All))?
+                .queue(MoveTo(x_main, y_main + y_selection))?
+                .queue(Print(format!(
+                    "{:^w_main$}",
+                    "* Highscores *"
+                )))?
+                .queue(MoveTo(x_main, y_main + y_selection + 2))?
+                .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
+            let names = self.games_finished
+                .iter()
+                .skip(scroll)
+                .take(10)
+                .map(|GameFinishedStats { actions: _, score_bonuses: _, gamemode, last_state }| 
+                    format!("[{}] {}",
+                    gamemode.name,
+                    match gamemode.optimize {
+                        Stat::Lines(_) => last_state.lines_cleared.len().to_string(),
+                        Stat::Level(_) => last_state.level.to_string(),
+                        Stat::Score(_) => last_state.score.to_string(),
+                        Stat::Pieces(_) => last_state.pieces_played.iter().sum::<u32>().to_string(),
+                        Stat::Time(_) => format_duration(last_state.game_time),
+                    }
+                ))
+                .collect::<Vec<_>>();
+            for (i, entry) in names.into_iter().enumerate() {
+                self.term
+                    .queue(MoveTo(
+                        x_main,
+                        y_main + y_selection + 4 + u16::try_from(i).unwrap(),
+                    ))?
+                    .queue(Print(format!(
+                        "{:^w_main$}",
+                        entry
+                    )))?;
+            }
+            self.term.flush()?;
+            // Wait for new input.
+            match event::read()? {
+                // Quit menu.
+                Event::Key(KeyEvent {
+                    code: KeyCode::Char('c'),
+                    modifiers: KeyModifiers::CONTROL,
+                    kind: Press | Repeat,
+                    state: _,
+                }) => {
+                    break Ok(MenuUpdate::Push(Menu::Quit(
+                        "exited with ctrl-c".to_string(),
+                    )))
+                }
+                Event::Key(KeyEvent {
+                    code: KeyCode::Esc,
+                    kind: Press,
+                    ..
+                }) => break Ok(MenuUpdate::Pop),
+                // Move selector up.
+                Event::Key(KeyEvent {
+                    code: KeyCode::Up,
+                    kind: Press | Repeat,
+                    ..
+                }) => {
+                    if scroll > 0{
+                        scroll -= 1;
+                    }
+                }
+                // Move selector down.
+                Event::Key(KeyEvent {
+                    code: KeyCode::Down,
+                    kind: Press | Repeat,
+                    ..
+                }) => {
+                    scroll += 1;
+                }
+                // Other event: don't care.
+                _ => {}
+            }
+        }
     }
 
     fn about(&mut self) -> io::Result<MenuUpdate> {
