@@ -83,11 +83,14 @@ On the Rust side of things I learned about
 - "[How to order Rust code](https://deterministic.space/how-to-order-rust-code.html)",
 - introduction to [writing](https://doc.rust-lang.org/book/ch14-02-publishing-to-crates-io.html) [documentation](https://rust-lang.github.io/api-guidelines/documentation.html) (and the fact they can [contain tested examples](https://blog.guillaume-gomez.fr/articles/2020-03-12+Guide+on+how+to+write+documentation+for+a+Rust+crate#Hiding-lines)) & `cargo doc`,
 - the [`std` traits](https://rust-lang.github.io/api-guidelines/interoperability.html),
-- the `format!` macro (lovely analogue to Python's f-strings),
+- using [serde](https://serde.rs/derive.html) a little for a hacky way to [save some structured data locally](https://stackoverflow.com/questions/62771576/how-do-i-save-structured-data-to-file),
+- [conditionally derive](https://stackoverflow.com/questions/42046327/conditionally-derive-based-on-feature-flag) feature flags + `cargo check --features serde`,
+- [clap](https://docs.rs/clap/latest/clap/) to parse simple command line arguments,
+- [formatting](https://docs.rs/chrono/latest/chrono/struct.DateTime.html#method.format) the time with [chrono](https://rust-lang-nursery.github.io/rust-cookbook/datetime/parse.html#display-formatted-date-and-time) my favourite way,
+- the `format!` macro (which I discovered is the analogue to Python's f-strings my beloved),
 - using [Crossterm](https://crates.io/crates/crossterm) for the inputs (instead of something like [device_query](https://crates.io/crates/device_query) - also I did not end up using [ratatui](https://crates.io/crates/ratatui/) :c Someone will have to write a frontend with that)
 - the [annoyances](https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement) of terminal emulators,
 - the handy drop-in [`BufWriter`](https://doc.rust-lang.org/std/io/struct.BufWriter.html) wrapper to diminish flickering,
-- [clap](https://docs.rs/clap/latest/clap/) to parse simple command line arguments,
 - more practice with Rust's [module system](https://doc.rust-lang.org/book/ch07-00-managing-growing-projects-with-packages-crates-and-modules.html),
 - multithreading with [`std::sync::mpsc`](https://doc.rust-lang.org/std/sync/mpsc/)
 - [cargo workspaces](https://doc.rust-lang.org/book/ch14-03-cargo-workspaces.html) to fully separate frontend and backend,
