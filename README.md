@@ -3,25 +3,62 @@
 
 # Tetromino Game Engine + A Playable Terminal Implementation
 
-## How to run `tetrs_terminal`
-Pre-compiled:
+## *Frontend:* `tetrs_terminal`
+
+### How to run
+*Pre-compiled:*
 - Download a release for your platform if available and run the application.
 
-Compiling yourself:
-- Have the [Rust](https://www.rust-lang.org/) compiler (and Cargo) installed.
-- [Download](<https://github.com/Strophox/tetrs/archive/refs/heads/main.zip>) (or `git clone`) this repo.
-- Navigate to `tetrs/` (or `tetrs_terminal/`) and compile with `cargo run`.
+*Compiling yourself:*
+- Have [Rust](https://www.rust-lang.org/) installed.
+- Download / `git clone` this repository.
+- Navigate to `tetrs_terminal/` and `cargo run`.
 
-Additional notes:
-- Set the game framerate with `./tetrs_terminal --fps=60` (or `cargo run -- --fps=60`) (default is 30fps).
-- Use a terminal like [kitty](<https://sw.kovidgoyal.net/kitty/>) for smoothest gameplay and visual experience. *Explanation:* Terminals do not usually send "key released" signals, which is a problem for mechanics such as "press left to move left repeatedly **until key is released**". We rely on [Crossterm](https://docs.rs/crossterm/latest/crossterm/event/struct.PushKeyboardEnhancementFlags.html) to automatically detect kitty-protocol-compatible terminals where this is not an issue (check page). In all other cases DAS/ARR is be determined by Keyboard/OS/terminal settings.)
+> [!NOTE]
+> Use a terminal like [kitty](<https://sw.kovidgoyal.net/kitty/>) for smoothest gameplay and visual experience.
+> > *Explanation:* Terminals do not usually send "key released" signals, which is a problem for mechanics such as "press left to move left repeatedly **until key is released**". Crossterm automatically detects [kitty-protocol-compatible terminals](https://docs.rs/crossterm/latest/crossterm/event/struct.PushKeyboardEnhancementFlags.html) which solve issue. Otherwise DAS/ARR will be determined by Keyboard/OS/terminal emulator settings.)
 
-## Usage of the `tetrs_engine`
+### Features of the Terminal Game
+
+<!--TODO: GIFs and screenshots.-->
+
+Implemented features:
+- **Gamemodes**:
+  - Marathon, Sprint, Ultra, Master, Endless.
+  - Custom Mode: level start, level increment, limit *(Time, Score, Pieces, Lines, Level; None)*.
+- **Gameplay**:
+  - Colored pieces (guideline).
+  - Next piece preview (N=1).
+  - Ghost piece.
+  - Animations for: Hard drops, Line clears and Piece locking.
+  - Current game stats: Level, Score, Lines, Time, Pieces generated.
+  - For technical details see [Features of the Tetrs Engine](#features-of-the-tetrs-engine).
+- **Settings**: Configurable controls, Game FPS, Rotation system used (*Ocular*, *Classic*, *Super*).
+- **Scoreboard** (stored to / loaded from *tetrs_terminal_scores.json* if available).
+
+The game controls default to the following:
+| Key | Action |
+| -: | :-: |
+| `A` | Rotate left |
+| `D` | Rotate right |
+| (not set) | Rotate around/180° |
+| `←` | Move left |
+| `→` | Move right |
+| `↓` | Soft drop |
+| `↑` | Hard drop |
+| `Esc` | Pause game |
+| `Ctrl`+`D` | Forfeit game |
+| `Ctrl`+`C` | Exit program |
+
+## *Backend:* `tetrs_engine`
+
+### Usage of the Tetrs Engine
 Adding `tetrs_engine` as a [dependency from git](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html) to your project:
 ```toml
 [dependencies]
 tetrs_engine = { git = "https://github.com/Strophox/tetrs.git" }
 ```
+
 The tetrs engine shifts the responsibility of detecting player input, and choosing the time to update, to the user of the engine.
 The key interactions with the engine look the following:
 ```rust
@@ -37,55 +74,23 @@ game.update(None, update_time_2);
 let GameState { board, .. } = game.state();
 ```
 
+For more info see crate documentation (`cargo doc --open`).
 
-# Features of the Terminal Application
-
-TODO: GIFs and screenshots.
-
-Currently implemented features and considerations are:
-- Menu navigation
-  - Title, Start New Game, Game, Pause, Quit.
-  - *Implemented but currently empty:* Configure Controls, Scoreboard, About.
-- Gamemode selection
-  - Marathon, Sprint, Ultra, Master, Endless.
-  - Custom Mode: level start, level increment, limit *(Time, Score, Pieces, Lines, Level; None)*.
-- Gameplay
-  - (Guideline-)Colored pieces.
-  - Next preview (N=1).
-  - Ghost piece.
-  - Animations for hard drops, line clears and piece locking.
-  - Stats for the current game
-    - Level, Score, Lines, Time, Pieces generated
-  - For technical details see [Features of the Tetrs Engine](#features-of-the-tetrs-engine).
-
-Game controls are customizable and default to the following:
-| Key | Action |
-| -: | :-: |
-| `Esc` | Pause game |
-| `A` | Rotate left |
-| `D` | Rotate right |
-| - | Rotate 180 |
-| `←` | Move left |
-| `→` | Move right |
-| `↓` | Soft drop |
-| `↑` | Hard drop |
+### Features of the Tetrs Engine
+TODO: `all` the features here with some background (foldable details>).
 
 
-# Features of the Tetrs Engine
-TODO: `all` the features here.
+## Author Notes
+This project allowed me to have first proper learning experience with programming a larger Rust project, an interactive game (in the console), and the intricacies of the Game mechanics themselves (see [Features of the Tetrs Engine](#features-of-the-tetrs-engine)).
 
-
-# Further Notes
-This project allowed me to have my first 'proper' learning experiences with programming a larger Rust project, interactive game (in the console), and the intricacies of Tetris (see [Features of the Tetrs Engine](#features-of-the-tetrs-engine)) all at once.
-
-On the Rust side of things I learned about
-- some [coding](https://docs.kernel.org/rust/coding-guidelines.html) [style](https://doc.rust-lang.org/nightly/style-guide/) [guidelines](https://github.com/rust-lang/rust-analyzer/blob/master/docs/dev/style.md#getters--setters) & `cargo fmt` (~and `#[rustfmt::skip]`~),
+On the Rust side of things I learned about;
+- Some [coding](https://docs.kernel.org/rust/coding-guidelines.html) [style](https://doc.rust-lang.org/nightly/style-guide/) [guidelines](https://github.com/rust-lang/rust-analyzer/blob/master/docs/dev/style.md#getters--setters) & `cargo fmt` (~`#[rustfmt::skip]`~),
 - "[How to order Rust code](https://deterministic.space/how-to-order-rust-code.html)",
 - introduction to [writing](https://doc.rust-lang.org/book/ch14-02-publishing-to-crates-io.html) [documentation](https://rust-lang.github.io/api-guidelines/documentation.html) (and the fact they can [contain tested examples](https://blog.guillaume-gomez.fr/articles/2020-03-12+Guide+on+how+to+write+documentation+for+a+Rust+crate#Hiding-lines)) & `cargo doc`,
 - the [`std` traits](https://rust-lang.github.io/api-guidelines/interoperability.html),
 - using [serde](https://serde.rs/derive.html) a little for a hacky way to [save some structured data locally](https://stackoverflow.com/questions/62771576/how-do-i-save-structured-data-to-file),
-- [conditionally derive](https://stackoverflow.com/questions/42046327/conditionally-derive-based-on-feature-flag) feature flags + `cargo check --features serde`,
-- [clap](https://docs.rs/clap/latest/clap/) to parse simple command line arguments,
+- [conditionally derive](https://stackoverflow.com/questions/42046327/conditionally-derive-based-on-feature-flag) feature flags & `cargo check --features serde`,
+- [clap](https://docs.rs/clap/latest/clap/) to parse simple command line arguments & `cargo run -- --fps=60`,
 - [formatting](https://docs.rs/chrono/latest/chrono/struct.DateTime.html#method.format) the time with [chrono](https://rust-lang-nursery.github.io/rust-cookbook/datetime/parse.html#display-formatted-date-and-time) my favourite way,
 - the `format!` macro (which I discovered is the analogue to Python's f-strings my beloved),
 - using [Crossterm](https://crates.io/crates/crossterm) for the inputs (instead of something like [device_query](https://crates.io/crates/device_query) - also I did not end up using [ratatui](https://crates.io/crates/ratatui/) :c Someone will have to write a frontend with that)
@@ -95,8 +100,10 @@ On the Rust side of things I learned about
 - multithreading with [`std::sync::mpsc`](https://doc.rust-lang.org/std/sync/mpsc/)
 - [cargo workspaces](https://doc.rust-lang.org/book/ch14-03-cargo-workspaces.html) to fully separate frontend and backend,
 - [cargo git dependencies](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#specifying-dependencies-from-git-repositories) so other people *could* reuse the backend,
-- and finally [cross-compilation](https://blog.logrocket.com/guide-cross-compilation-rust/#how-rust-represents-platforms) for releases.
+- and finally, [cross-compilation](https://blog.logrocket.com/guide-cross-compilation-rust/#how-rust-represents-platforms) for releases.
 
-Gamedev-wise I learned about the [modern](https://gafferongames.com/post/fix_your_timestep/) [game](http://gameprogrammingpatterns.com/game-loop.html) [loop](https://dewitters.com/dewitters-gameloop/) to properly abstract `Game::update` (allow arbitrary-time user input, make update decoupled from framerate). I also spent some time analyzing the menus of [Noita](https://noitagame.com/) to help me come up with my own menu navigation.
+Gamedev-wise I learned about the [modern](https://gafferongames.com/post/fix_your_timestep/) [game](http://gameprogrammingpatterns.com/game-loop.html) [loop](https://dewitters.com/dewitters-gameloop/) and finding the proper abstraction for `Game::update` (allow arbitrary-time user input, make updates decoupled from framerate). I also spent time looking at the menu navigation of [Noita](https://noitagame.com/) to help me come up with my own.
 
-~~I also found that there already *are*, like, a billion other [`tetrs`](https://github.com/search?q=%22tetrs%22&type=repositories)'s on GitHub - oops.~~
+<sup>~~Lastly, I also found that there already *are*, like, a billion other [`tetrs`](https://github.com/search?q=%22tetrs%22&type=repositories)'s on GitHub, oops.~~</sup>
+
+*„Piecement Places.“* - [CTWC 2016](https://www.youtube.com/watch?v=RlnlDKznIaw&t=121).
