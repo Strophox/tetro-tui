@@ -6,9 +6,9 @@ use std::{
 };
 
 use crossterm::{
-    cursor::{self, MoveTo, MoveToNextLine},
+    cursor::{self, MoveToNextLine},
     event::KeyCode,
-    style::{self, Color, Print, PrintStyledContent, Stylize},
+    style::{self, Color, Print, Stylize},
     terminal, QueueableCommand,
 };
 use tetrs_engine::{
@@ -25,155 +25,131 @@ pub trait GameScreenRenderer {
         game: &mut Game,
         action_stats: &mut GameRunningStats,
         new_feedback_events: Vec<(GameTime, FeedbackEvent)>,
-        clean_screen: bool,
+        screen_resized: bool,
     ) -> io::Result<()>
     where
         T: Write;
 }
 
 #[derive(Clone, Default, Debug)]
-pub struct DebugRenderer {
-    feedback_event_buffer: VecDeque<(GameTime, FeedbackEvent)>,
+struct UnicodeScreenBuf {
+    prev: Vec<Vec<(char, Option<Color>)>>,
+    next: Vec<Vec<(char, Option<Color>)>>,
+    x_draw: usize,
+    y_draw: usize,
 }
 
 #[derive(Clone, Default, Debug)]
 pub struct UnicodeRenderer {
+    screen: UnicodeScreenBuf,
     visual_events: Vec<(GameTime, FeedbackEvent, bool)>,
     messages: BinaryHeap<(GameTime, String)>,
     hard_drop_tiles: Vec<(GameTime, Coord, usize, TileTypeID, bool)>,
 }
 
-impl GameScreenRenderer for DebugRenderer {
-    fn render<T>(
-        &mut self,
-        app: &mut App<T>,
-        game: &mut Game,
-        _action_stats: &mut GameRunningStats,
-        new_feedback_events: Vec<(GameTime, FeedbackEvent)>,
-        _clean_screen: bool,
-    ) -> io::Result<()>
-    where
-        T: Write,
-    {
-        // Draw game stuf
-        let GameState {
-            game_time,
-            board,
-            active_piece_data,
-            ..
-        } = game.state();
-        let mut temp_board = board.clone();
-        if let Some((active_piece, _)) = active_piece_data {
-            for ((x, y), tile_type_id) in active_piece.tiles() {
-                temp_board[y][x] = Some(tile_type_id);
+#[derive(Clone, Default, Debug)]
+pub struct NaiveRenderer {
+    feedback_event_buffer: VecDeque<(GameTime, FeedbackEvent)>,
+}
+
+impl UnicodeScreenBuf {
+    fn buf_from_strs(&mut self, base_screen: Vec<String>) {
+        self.next = base_screen
+            .iter()
+            .map(|str| str.chars().zip(std::iter::repeat(None)).collect())
+            .collect();
+    }
+
+    fn buf_str(&mut self, str: &str, fg_color: Option<Color>, (x, y): (usize, usize)) {
+        for (x_c, c) in str.chars().enumerate() {
+            // Lazy: just fill up until desired thing row exists.
+            while y >= self.next.len() {
+                self.next.push(Vec::new());
+            }
+            let row = &mut self.next[y];
+            while x + x_c >= row.len() {
+                row.push((' ', None));
+            }
+            row[x + x_c] = (c, fg_color);
+        }
+    }
+
+    fn buf_reset(&mut self, (x, y): (usize, usize)) {
+        self.prev.clear();
+        (self.x_draw, self.y_draw) = (x, y);
+    }
+
+    fn flush(&mut self, term: &mut impl Write) -> io::Result<()> {
+        // Begin frame update.
+        term.queue(terminal::BeginSynchronizedUpdate)?;
+        if self.prev.is_empty() {
+            // Redraw entire screen.
+            term.queue(terminal::Clear(terminal::ClearType::All))?;
+            for (y, line) in self.next.iter().enumerate() {
+                for (x, cell) in line.iter().enumerate() {
+                    self.put(term, cell, x, y)?;
+                }
+            }
+        } else {
+            // Compare two frames and only write differences.
+            for (y, (prev_line, next_line)) in self.prev.iter().zip(self.next.iter()).enumerate() {
+                for (x, (prev_cell, next_cell)) in
+                    prev_line.iter().zip(next_line.iter()).enumerate()
+                {
+                    if next_cell != prev_cell {
+                        self.put(term, next_cell, x, y)?;
+                    }
+                }
             }
         }
-        app.term
-            .queue(MoveTo(0, 0))?
-            .queue(terminal::Clear(terminal::ClearType::FromCursorDown))?;
-        app.term
-            .queue(Print("   +--------------------+"))?
-            .queue(MoveToNextLine(1))?;
-        for (idx, line) in temp_board.iter().take(20).enumerate().rev() {
-            let txt_line = format!(
-                "{idx:02} |{}|",
-                line.iter()
-                    .map(|cell| {
-                        cell.map_or(" .", |tile| match tile.get() {
-                            1 => "OO",
-                            2 => "II",
-                            3 => "SS",
-                            4 => "ZZ",
-                            5 => "TT",
-                            6 => "LL",
-                            7 => "JJ",
-                            t => unimplemented!("formatting unknown tile id {t}"),
-                        })
-                    })
-                    .collect::<Vec<_>>()
-                    .join("")
-            );
-            app.term.queue(Print(txt_line))?.queue(MoveToNextLine(1))?;
+        // End frame update and flush.
+        term.queue(terminal::EndSynchronizedUpdate)?;
+        term.flush()?;
+        // Clear old.
+        self.prev = Vec::new();
+        // Swap buffers.
+        std::mem::swap(&mut self.prev, &mut self.next);
+        Ok(())
+    }
+
+    fn put(
+        &self,
+        term: &mut impl Write,
+        (c, col): &(char, Option<Color>),
+        x: usize,
+        y: usize,
+    ) -> io::Result<()> {
+        term.queue(cursor::MoveTo(
+            u16::try_from(self.x_draw + x).unwrap(),
+            u16::try_from(self.y_draw + y).unwrap(),
+        ))?;
+        if let Some(color) = col {
+            term.queue(style::PrintStyledContent(c.with(*color)))?;
+        } else {
+            term.queue(Print(c))?;
         }
-        app.term
-            .queue(Print("   +--------------------+"))?
-            .queue(MoveToNextLine(1))?;
-        app.term
-            .queue(style::Print(format!("   {:?}", game_time)))?
-            .queue(MoveToNextLine(1))?;
-        // Draw feedback stuf
-        for evt in new_feedback_events {
-            self.feedback_event_buffer.push_front(evt);
-        }
-        let mut feed_evt_msgs = Vec::new();
-        for (_, feedback_event) in self.feedback_event_buffer.iter() {
-            feed_evt_msgs.push(match feedback_event {
-                FeedbackEvent::Accolade {
-                    score_bonus,
-                    shape,
-                    spin,
-                    lineclears,
-                    perfect_clear,
-                    combo,
-                    opportunity,
-                } => {
-                    let mut strs = Vec::new();
-                    if *spin {
-                        strs.push(format!("{shape:?}-Spin"));
-                    }
-                    let clear_action = match lineclears {
-                        1 => "Single",
-                        2 => "Double",
-                        3 => "Triple",
-                        4 => "Quadruple",
-                        x => unreachable!("unexpected line clear count {x}"),
-                    };
-                    let excl = match opportunity {
-                        1 => "'",
-                        2 => "!",
-                        3 => "!'",
-                        4 => "!!",
-                        x => unreachable!("unexpected opportunity count {x}"),
-                    };
-                    strs.push(format!("{clear_action}{excl}"));
-                    if *combo > 1 {
-                        strs.push(format!("[{combo}.combo]"));
-                    }
-                    if *perfect_clear {
-                        strs.push("PERFECT!".to_string());
-                    }
-                    strs.push(format!("+{score_bonus}"));
-                    strs.join(" ")
-                }
-                FeedbackEvent::PieceLocked(_) => continue,
-                FeedbackEvent::LineClears(..) => continue,
-                FeedbackEvent::HardDrop(_, _) => continue,
-                FeedbackEvent::Debug(s) => s.clone(),
-            });
-        }
-        for str in feed_evt_msgs.iter().take(16) {
-            app.term.queue(Print(str))?.queue(MoveToNextLine(1))?;
-        }
-        // Execute draw.
-        app.term.flush()?;
         Ok(())
     }
 }
 
 impl GameScreenRenderer for UnicodeRenderer {
-    // NOTE: (note) what is the concept of having an ADT but some functions are only defined on some variants (that may contain record data)?
+    // NOTE self: what is the concept of having an ADT but some functions are only defined on some variants (that may contain record data)?
     fn render<T>(
         &mut self,
         app: &mut App<T>,
         game: &mut Game,
         action_stats: &mut GameRunningStats,
         new_feedback_events: Vec<(GameTime, FeedbackEvent)>,
-        clean_screen: bool,
+        screen_resized: bool,
     ) -> io::Result<()>
     where
         T: Write,
     {
-        let (x_main, y_main) = App::<T>::fetch_main_xy();
+        if screen_resized {
+            let (x_main, y_main) = App::<T>::fetch_main_xy();
+            self.screen
+                .buf_reset((usize::from(x_main), usize::from(y_main)));
+        }
         let GameState {
             game_time,
             finished: _,
@@ -272,7 +248,7 @@ impl GameScreenRenderer for UnicodeRenderer {
         // Screen: draw.
         #[allow(clippy::useless_format)]
         #[rustfmt::skip]
-        let screen = [
+        let base_screen = vec![
             format!("                                                            ", ),
             format!("                       ╓╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╥{:─^w$       }┐", "mode", w=mode_name_space),
             format!("    ALL STATS          ║                    ║{: ^w$       }│", mode_name, w=mode_name_space),
@@ -298,66 +274,51 @@ impl GameScreenRenderer for UnicodeRenderer {
             format!("    Drop    {:<11     }╚════════════════════╝               ", key_icons_drop),
             format!("                                                            ", ),
         ];
+        self.screen.buf_from_strs(base_screen);
         let (x_board, y_board) = (24, 1);
         let (x_preview, y_preview) = (48, 12);
         let (x_messages, y_messages) = (47, 15);
-        // Begin frame update.
-        app.term.queue(terminal::BeginSynchronizedUpdate)?;
-        if clean_screen {
-            app.term.queue(terminal::Clear(terminal::ClearType::All))?;
-        }
-        for (y_screen, str) in screen.iter().enumerate() {
-            app.term
-                .queue(cursor::MoveTo(
-                    x_main,
-                    y_main + u16::try_from(y_screen).unwrap(),
-                ))?
-                .queue(Print(str))?;
-        }
+        let pos_board = |(x, y)| (x_board + 2 * x, y_board + Game::SKYLINE - y);
         // Board: helpers.
-        let tile_color = |tile: TileTypeID| match tile.get() {
-            1 => Color::Rgb {
-                r: 254,
-                g: 203,
-                b: 0,
-            },
-            2 => Color::Rgb {
-                r: 0,
-                g: 159,
-                b: 218,
-            },
-            3 => Color::Rgb {
-                r: 105,
-                g: 190,
-                b: 40,
-            },
-            4 => Color::Rgb {
-                r: 237,
-                g: 41,
-                b: 57,
-            },
-            5 => Color::Rgb {
-                r: 149,
-                g: 45,
-                b: 152,
-            },
-            6 => Color::Rgb {
-                r: 255,
-                g: 121,
-                b: 0,
-            },
-            7 => Color::Rgb {
-                r: 0,
-                g: 101,
-                b: 189,
-            },
-            t => unimplemented!("formatting unknown tile id {t}"),
-        };
-        let board_move_to = |(x, y): Coord| {
-            MoveTo(
-                x_main + x_board + 2 * u16::try_from(x).unwrap(),
-                y_main + y_board + u16::try_from(Game::SKYLINE - y).unwrap(),
-            )
+        let tile_color = |tile: TileTypeID| {
+            Some(match tile.get() {
+                1 => Color::Rgb {
+                    r: 254,
+                    g: 203,
+                    b: 0,
+                },
+                2 => Color::Rgb {
+                    r: 0,
+                    g: 159,
+                    b: 218,
+                },
+                3 => Color::Rgb {
+                    r: 105,
+                    g: 190,
+                    b: 40,
+                },
+                4 => Color::Rgb {
+                    r: 237,
+                    g: 41,
+                    b: 57,
+                },
+                5 => Color::Rgb {
+                    r: 149,
+                    g: 45,
+                    b: 152,
+                },
+                6 => Color::Rgb {
+                    r: 255,
+                    g: 121,
+                    b: 0,
+                },
+                7 => Color::Rgb {
+                    r: 0,
+                    g: 101,
+                    b: 189,
+                },
+                t => unimplemented!("formatting unknown tile id {t}"),
+            })
         };
         // Board: draw hard drop trail.
         for (event_time, pos, h, tile_type_id, relevant) in self.hard_drop_tiles.iter_mut() {
@@ -375,37 +336,33 @@ impl GameScreenRenderer for UnicodeRenderer {
             };
             // SAFETY: Valid ASCII bytes.
             let tile = String::from_utf8(vec![char, char]).unwrap();
-            app.term
-                .queue(board_move_to(*pos))?
-                .queue(PrintStyledContent(tile.with(tile_color(*tile_type_id))))?;
+            self.screen
+                .buf_str(&tile, tile_color(*tile_type_id), pos_board(*pos));
         }
         self.hard_drop_tiles.retain(|elt| elt.4);
         // Board: draw fixed tiles.
         for (y, line) in board.iter().enumerate().take(21).rev() {
             for (x, cell) in line.iter().enumerate() {
                 if let Some(tile_type_id) = cell {
-                    app.term
-                        .queue(board_move_to((x, y)))?
-                        .queue(PrintStyledContent("██".with(tile_color(*tile_type_id))))?;
+                    self.screen
+                        .buf_str("██", tile_color(*tile_type_id), pos_board((x, y)));
                 }
             }
         }
         // If a piece is in play.
         if let Some((active_piece, _)) = active_piece_data {
             // Draw ghost piece.
-            for (pos, tile_type_id) in active_piece.well_piece(board).tiles() {
-                if pos.1 <= Game::SKYLINE {
-                    app.term
-                        .queue(board_move_to(pos))?
-                        .queue(PrintStyledContent("░░".with(tile_color(tile_type_id))))?;
+            for (tile_pos, tile_type_id) in active_piece.well_piece(board).tiles() {
+                if tile_pos.1 <= Game::SKYLINE {
+                    self.screen
+                        .buf_str("░░", tile_color(tile_type_id), pos_board(tile_pos));
                 }
             }
             // Draw active piece.
-            for (pos, tile_type_id) in active_piece.tiles() {
-                if pos.1 <= Game::SKYLINE {
-                    app.term
-                        .queue(board_move_to(pos))?
-                        .queue(PrintStyledContent("▓▓".with(tile_color(tile_type_id))))?;
+            for (tile_pos, tile_type_id) in active_piece.tiles() {
+                if tile_pos.1 <= Game::SKYLINE {
+                    self.screen
+                        .buf_str("▓▓", tile_color(tile_type_id), pos_board(tile_pos));
                 }
             }
         }
@@ -416,13 +373,8 @@ impl GameScreenRenderer for UnicodeRenderer {
             let next_piece = next_pieces.front().unwrap();
             let color = tile_color(next_piece.tiletypeid());
             for (x, y) in next_piece.minos(Orientation::N) {
-                // SAFETY: We will not exceed the bounds by drawing pieces.
-                app.term
-                    .queue(MoveTo(
-                        x_main + x_preview + u16::try_from(2 * x).unwrap(),
-                        y_main + y_preview - u16::try_from(y).unwrap(),
-                    ))?
-                    .queue(PrintStyledContent("▒▒".with(color)))?;
+                let pos = (x_preview + 2 * x, y_preview - y);
+                self.screen.buf_str("▒▒", color, pos);
             }
         }
         // Update stored events.
@@ -449,11 +401,10 @@ impl GameScreenRenderer for UnicodeRenderer {
                         *relevant = false;
                         continue;
                     };
-                    for (pos, _tile_type_id) in piece.tiles() {
-                        if pos.1 <= Game::SKYLINE {
-                            app.term
-                                .queue(board_move_to(pos))?
-                                .queue(PrintStyledContent(tile.with(Color::White)))?;
+                    for (tile_pos, _tile_type_id) in piece.tiles() {
+                        if tile_pos.1 <= Game::SKYLINE {
+                            self.screen
+                                .buf_str(tile, Some(Color::White), pos_board(tile_pos));
                         }
                     }
                 }
@@ -483,14 +434,9 @@ impl GameScreenRenderer for UnicodeRenderer {
                         continue;
                     };
                     for y_line in lines_cleared {
-                        app.term
-                            .queue(MoveTo(
-                                x_main + x_board,
-                                y_main + y_board + u16::try_from(Game::SKYLINE - *y_line).unwrap(),
-                            ))?
-                            .queue(PrintStyledContent(
-                                line_clear_frames[idx].with(Color::White),
-                            ))?;
+                        let pos = (x_board, y_board + Game::SKYLINE - *y_line);
+                        self.screen
+                            .buf_str(line_clear_frames[idx], Some(Color::White), pos);
                     }
                 }
                 FeedbackEvent::HardDrop(_top_piece, bottom_piece) => {
@@ -558,20 +504,128 @@ impl GameScreenRenderer for UnicodeRenderer {
         self.visual_events.retain(|elt| elt.2);
         // Draw messages.
         for (y, (_event_time, message)) in self.messages.iter().enumerate() {
-            app.term
-                .queue(MoveTo(
-                    x_main + x_messages,
-                    y_main + y_messages + u16::try_from(y).expect("too many messages"),
-                ))?
-                .queue(Print(message))?;
+            let pos = (x_messages, y_messages + y);
+            self.screen.buf_str(message, None, pos);
         }
         self.messages.retain(|(event_time, _message)| {
             game_time.saturating_sub(*event_time) < Duration::from_millis(6000)
         });
+        self.screen.flush(&mut app.term)
+    }
+}
+
+impl GameScreenRenderer for NaiveRenderer {
+    fn render<T>(
+        &mut self,
+        app: &mut App<T>,
+        game: &mut Game,
+        _action_stats: &mut GameRunningStats,
+        new_feedback_events: Vec<(GameTime, FeedbackEvent)>,
+        _screen_resized: bool,
+    ) -> io::Result<()>
+    where
+        T: Write,
+    {
+        // Draw game stuf
+        let GameState {
+            game_time,
+            board,
+            active_piece_data,
+            ..
+        } = game.state();
+        let mut temp_board = board.clone();
+        if let Some((active_piece, _)) = active_piece_data {
+            for ((x, y), tile_type_id) in active_piece.tiles() {
+                temp_board[y][x] = Some(tile_type_id);
+            }
+        }
+        app.term
+            .queue(cursor::MoveTo(0, 0))?
+            .queue(terminal::Clear(terminal::ClearType::FromCursorDown))?;
+        app.term
+            .queue(Print("   +--------------------+"))?
+            .queue(MoveToNextLine(1))?;
+        for (idx, line) in temp_board.iter().take(20).enumerate().rev() {
+            let txt_line = format!(
+                "{idx:02} |{}|",
+                line.iter()
+                    .map(|cell| {
+                        cell.map_or(" .", |tile| match tile.get() {
+                            1 => "OO",
+                            2 => "II",
+                            3 => "SS",
+                            4 => "ZZ",
+                            5 => "TT",
+                            6 => "LL",
+                            7 => "JJ",
+                            t => unimplemented!("formatting unknown tile id {t}"),
+                        })
+                    })
+                    .collect::<Vec<_>>()
+                    .join("")
+            );
+            app.term.queue(Print(txt_line))?.queue(MoveToNextLine(1))?;
+        }
+        app.term
+            .queue(Print("   +--------------------+"))?
+            .queue(MoveToNextLine(1))?;
+        app.term
+            .queue(style::Print(format!("   {:?}", game_time)))?
+            .queue(MoveToNextLine(1))?;
+        // Draw feedback stuf
+        for evt in new_feedback_events {
+            self.feedback_event_buffer.push_front(evt);
+        }
+        let mut feed_evt_msgs = Vec::new();
+        for (_, feedback_event) in self.feedback_event_buffer.iter() {
+            feed_evt_msgs.push(match feedback_event {
+                FeedbackEvent::Accolade {
+                    score_bonus,
+                    shape,
+                    spin,
+                    lineclears,
+                    perfect_clear,
+                    combo,
+                    opportunity,
+                } => {
+                    let mut strs = Vec::new();
+                    if *spin {
+                        strs.push(format!("{shape:?}-Spin"));
+                    }
+                    let clear_action = match lineclears {
+                        1 => "Single",
+                        2 => "Double",
+                        3 => "Triple",
+                        4 => "Quadruple",
+                        x => unreachable!("unexpected line clear count {x}"),
+                    };
+                    let excl = match opportunity {
+                        1 => "'",
+                        2 => "!",
+                        3 => "!'",
+                        4 => "!!",
+                        x => unreachable!("unexpected opportunity count {x}"),
+                    };
+                    strs.push(format!("{clear_action}{excl}"));
+                    if *combo > 1 {
+                        strs.push(format!("[{combo}.combo]"));
+                    }
+                    if *perfect_clear {
+                        strs.push("PERFECT!".to_string());
+                    }
+                    strs.push(format!("+{score_bonus}"));
+                    strs.join(" ")
+                }
+                FeedbackEvent::PieceLocked(_) => continue,
+                FeedbackEvent::LineClears(..) => continue,
+                FeedbackEvent::HardDrop(_, _) => continue,
+                FeedbackEvent::Debug(s) => s.clone(),
+            });
+        }
+        for str in feed_evt_msgs.iter().take(16) {
+            app.term.queue(Print(str))?.queue(MoveToNextLine(1))?;
+        }
         // Execute draw.
-        // TODO: Unnecessary move?
-        // app.term.queue(MoveTo(0,0))?;
-        app.term.queue(terminal::EndSynchronizedUpdate)?;
         app.term.flush()?;
         Ok(())
     }

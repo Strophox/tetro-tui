@@ -51,7 +51,7 @@ enum Menu {
         last_paused: Instant,
         total_duration_paused: Duration,
         game_running_stats: GameRunningStats,
-        game_renderer: UnicodeRenderer,
+        game_renderer: Box<UnicodeRenderer>,
     },
     GameOver(Box<GameFinishedStats>),
     GameComplete(Box<GameFinishedStats>),
@@ -222,7 +222,7 @@ impl<T: Write> App<T> {
                     last_paused,
                     total_duration_paused,
                     game_running_stats,
-                    game_renderer,
+                    game_renderer.as_mut(),
                 ),
                 Menu::Pause => self.pause(),
                 Menu::GameOver(game_finished_stats) => self.gameover(game_finished_stats),
@@ -684,7 +684,7 @@ impl<T: Write> App<T> {
         // Game Loop
         let session_resumed = Instant::now();
         *total_duration_paused += session_resumed.saturating_duration_since(*last_paused);
-        let mut clean_screen = false;
+        let mut clean_screen = true;
         let mut f = 0u32;
         let menu_update = 'render_loop: loop {
             // Exit if game ended
@@ -1040,7 +1040,7 @@ impl<T: Write> App<T> {
             self.term
                 .queue(terminal::Clear(terminal::ClearType::All))?
                 .queue(MoveTo(x_main, y_main + y_selection))?
-                .queue(Print(format!("{:^w_main$}", "Settings")))?
+                .queue(Print(format!("{:^w_main$}", "% Settings %")))?
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
                 .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?
                 .queue(MoveTo(
