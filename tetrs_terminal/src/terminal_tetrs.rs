@@ -149,7 +149,7 @@ impl<T: Write> App<T> {
         let settings = Settings {
             keybinds,
             game_fps: fps.into(),
-            rotation_system: RotationSystem::Ok,
+            rotation_system: RotationSystem::Ocular,
         };
         let custom_mode = Gamemode::custom(
             "Custom Mode".to_string(),
@@ -1074,7 +1074,10 @@ impl<T: Write> App<T> {
                 .queue(Print(format!(
                     "{:^w_main$}",
                     if selected == 2 {
-                        format!(">>> Rotation System: '{:?}' <<<", self.settings.rotation_system)
+                        format!(
+                            ">>> Rotation System: '{:?}' <<<",
+                            self.settings.rotation_system
+                        )
                     } else {
                         format!("Rotation System: '{:?}'", self.settings.rotation_system)
                     }
@@ -1140,9 +1143,9 @@ impl<T: Write> App<T> {
                         self.settings.game_fps += 1.0;
                     } else if selected == 2 {
                         self.settings.rotation_system = match self.settings.rotation_system {
-                            RotationSystem::Ok => RotationSystem::Super,
+                            RotationSystem::Ocular => RotationSystem::Super,
                             RotationSystem::Super => RotationSystem::Classic,
-                            RotationSystem::Classic => RotationSystem::Ok,
+                            RotationSystem::Classic => RotationSystem::Ocular,
                         };
                     }
                 }
@@ -1155,8 +1158,8 @@ impl<T: Write> App<T> {
                         self.settings.game_fps -= 1.0;
                     } else if selected == 2 {
                         self.settings.rotation_system = match self.settings.rotation_system {
-                            RotationSystem::Ok => RotationSystem::Classic,
-                            RotationSystem::Super => RotationSystem::Ok,
+                            RotationSystem::Ocular => RotationSystem::Classic,
+                            RotationSystem::Super => RotationSystem::Ocular,
                             RotationSystem::Classic => RotationSystem::Super,
                         };
                     }

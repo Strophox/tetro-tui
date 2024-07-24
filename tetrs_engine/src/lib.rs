@@ -468,7 +468,7 @@ impl Default for GameConfig {
     fn default() -> Self {
         Self {
             gamemode: Gamemode::marathon(),
-            rotation_system: RotationSystem::Ok,
+            rotation_system: RotationSystem::Ocular,
             tetromino_generator: TetrominoGenerator::recency(),
             preview_count: 1,
             delayed_auto_shift: Duration::from_millis(200),

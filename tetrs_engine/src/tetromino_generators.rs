@@ -3,6 +3,7 @@ use std::num::NonZeroU32;
 use rand::{
     self,
     distributions::{Distribution, WeightedIndex},
+    prelude::SliceRandom,
     rngs::ThreadRng,
     Rng,
 };
@@ -40,9 +41,9 @@ impl TetrominoGenerator {
     }
 
     pub fn recency() -> Self {
-        Self::Recency {
-            last_generated: [1; 7],
-        }
+        let mut last_generated = [0, 1, 2, 3, 4, 5, 6];
+        last_generated.shuffle(&mut rand::thread_rng());
+        Self::Recency { last_generated }
     }
 
     pub fn total_relative() -> Self {

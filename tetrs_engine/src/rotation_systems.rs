@@ -3,7 +3,7 @@ use crate::{ActivePiece, Board, Orientation, Tetromino};
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum RotationSystem {
-    Ok,
+    Ocular,
     Super,
     Classic,
 }
@@ -18,7 +18,7 @@ impl RotationSystem {
         match self {
             RotationSystem::Classic => rotate_classic(piece, board, right_turns),
             RotationSystem::Super => rotate_super(piece, board, right_turns),
-            RotationSystem::Ok => rotate_ok(piece, board, right_turns),
+            RotationSystem::Ocular => rotate_ocular(piece, board, right_turns),
         }
     }
 
@@ -46,7 +46,7 @@ impl RotationSystem {
     }
 }
 
-fn rotate_ok(piece: &ActivePiece, board: &Board, right_turns: i32) -> Option<ActivePiece> {
+fn rotate_ocular(piece: &ActivePiece, board: &Board, right_turns: i32) -> Option<ActivePiece> {
     /*
     Symmetries : "OISZTLJ NESW ↺↻" and "-" mirror.
     O N      :
@@ -166,8 +166,7 @@ fn rotate_ok(piece: &ActivePiece, board: &Board, right_turns: i32) -> Option<Act
 
 fn rotate_super(piece: &ActivePiece, board: &Board, right_turns: i32) -> Option<ActivePiece> {
     // TODO: Implement SRS.
-    todo!();
-    let left_rotation = match right_turns.rem_euclid(4) {
+    let left = match right_turns.rem_euclid(4) {
         // No rotation occurred.
         0 => return Some(*piece),
         // One right rotation.
@@ -192,24 +191,30 @@ fn rotate_super(piece: &ActivePiece, board: &Board, right_turns: i32) -> Option<
     };
     use Orientation::*;
     #[rustfmt::skip]
-    let kick = match piece.shape {
-        Tetromino::O => (0, 0), // ⠶
+    let kicks = match piece.shape {
+        Tetromino::O => [(0, 0)].iter(), // ⠶
         Tetromino::I => match piece.orientation {
-            N | S => (2, -1), // ⠤⠤ -> ⡇
-            E | W => (-2, 1), // ⡇  -> ⠤⠤
+            N => if left { [( 1,-2), ( 0,-2), ( 3,-2), ( 0, 0), ( 3,-3)].iter() }
+                    else { [( 2,-2), ( 0,-2), ( 3,-2), ( 0,-3), ( 3, 0)].iter() },
+            E => if left { [(-2, 2), ( 0, 2), (-3, 2), ( 0, 3), (-3, 0)].iter() }
+                    else { [( 2,-1), (-3, 1), ( 0, 1), (-3, 3), ( 0, 0)].iter() },
+            S => if left { [( 2,-1), ( 3,-1), ( 0,-1), ( 3,-3), ( 0, 0)].iter() }
+                    else { [( 1,-1), ( 3,-1), ( 0,-1), ( 3, 0), ( 0,-3)].iter() },
+            W => if left { [(-1, 1), (-3, 1), ( 0, 1), (-3, 0), ( 0, 3)].iter() }
+                    else { [(-1, 2), ( 0, 2), (-3, 2), ( 0, 0), (-3, 3)].iter() },
         },
-        Tetromino::S | Tetromino::Z => match piece.orientation {
-            N | S => (1, 0),  // ⠴⠂ -> ⠳  // ⠲⠄ -> ⠞
-            E | W => (-1, 0), // ⠳  -> ⠴⠂ // ⠞  -> ⠲⠄
+        Tetromino::S | Tetromino::Z | Tetromino::T | Tetromino::L | Tetromino::J => match piece.orientation {
+            N => if left { [( 0,-1), ( 1,-1), ( 1, 0), ( 0,-3), ( 1,-3)].iter() }
+                    else { [( 1,-1), ( 0,-1), ( 0, 0), ( 1,-3), ( 0,-3)].iter() },
+            E => if left { [(-1, 1), ( 0, 1), ( 0, 0), (-1, 3), ( 0, 3)].iter() }
+                    else { [(-1, 0), ( 0, 0), ( 0,-1), (-1, 2), ( 0, 2)].iter() },
+            S => if left { [( 1, 0), ( 0, 0), (-1, 1), ( 1,-2), ( 0,-2)].iter() }
+                    else { [( 0, 0), ( 1, 0), ( 1, 1), ( 0,-2), ( 1,-2)].iter() },
+            W => if left { [( 0, 0), (-1, 0), (-1,-1), ( 0, 2), (-1, 2)].iter() }
+                    else { [( 0, 1), (-1, 1), (-1, 0), ( 0, 3), (-1, 3)].iter() },
         },
-        Tetromino::T | Tetromino::L | Tetromino::J => match piece.orientation {
-            N => if left_rotation { ( 0,-1) } else { ( 1,-1) }, // ⠺  <- ⠴⠄ -> ⠗  // ⠹  <- ⠤⠆ -> ⠧  // ⠼  <- ⠦⠄ -> ⠏
-            E => if left_rotation { (-1, 1) } else { (-1, 0) }, // ⠴⠄ <- ⠗  -> ⠲⠂ // ⠤⠆ <- ⠧  -> ⠖⠂ // ⠦⠄ <- ⠏  -> ⠒⠆
-            S => if left_rotation { ( 1, 0) } else { ( 0, 0) }, // ⠗  <- ⠲⠂ -> ⠺  // ⠧  <- ⠖⠂ -> ⠹  // ⠏  <- ⠒⠆ -> ⠼
-            W => if left_rotation { ( 0, 0) } else { ( 0, 1) }, // ⠲⠂ <- ⠺  -> ⠴⠄ // ⠖⠂ <- ⠹  -> ⠤⠆ // ⠒⠆ <- ⠼  -> ⠦⠄
-        },
-    };
-    piece.fits_at_rotated(board, kick, right_turns)
+    }.copied();
+    piece.first_fit(board, kicks, right_turns)
 }
 
 fn rotate_classic(piece: &ActivePiece, board: &Board, right_turns: i32) -> Option<ActivePiece> {
