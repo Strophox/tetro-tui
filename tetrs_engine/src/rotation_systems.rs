@@ -4,8 +4,8 @@ use crate::{ActivePiece, Board, Orientation, Tetromino};
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum RotationSystem {
     Ocular,
-    Super,
     Classic,
+    Super,
 }
 
 impl RotationSystem {

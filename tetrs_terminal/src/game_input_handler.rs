@@ -16,10 +16,10 @@ use tetrs_engine::Button;
 pub type ButtonSignal = Result<(Instant, Button, bool), Sig>;
 
 pub enum Sig {
-    Pause,
-    StopGame,
-    AbortProgram,
     WindowResize,
+    Pause,
+    ForfeitGame,
+    ExitProgram,
 }
 
 #[derive(Debug)]
@@ -70,7 +70,7 @@ impl CrosstermHandler {
                         modifiers: KeyModifiers::CONTROL,
                         ..
                     })) => {
-                        let _ = sender.send(Err(Sig::AbortProgram));
+                        let _ = sender.send(Err(Sig::ExitProgram));
                         break;
                     }
                     Ok(Event::Key(KeyEvent {
@@ -78,7 +78,7 @@ impl CrosstermHandler {
                         modifiers: KeyModifiers::CONTROL,
                         ..
                     })) => {
-                        let _ = sender.send(Err(Sig::StopGame));
+                        let _ = sender.send(Err(Sig::ForfeitGame));
                         break;
                     }
                     // Escape pressed: send pause.
@@ -132,7 +132,7 @@ impl CrosstermHandler {
                         modifiers: KeyModifiers::CONTROL,
                         ..
                     })) => {
-                        let _ = sender.send(Err(Sig::AbortProgram));
+                        let _ = sender.send(Err(Sig::ExitProgram));
                         break;
                     }
                     Ok(Event::Key(KeyEvent {
@@ -140,7 +140,7 @@ impl CrosstermHandler {
                         modifiers: KeyModifiers::CONTROL,
                         ..
                     })) => {
-                        let _ = sender.send(Err(Sig::StopGame));
+                        let _ = sender.send(Err(Sig::ForfeitGame));
                         break;
                     }
                     // Escape pressed: send pause.

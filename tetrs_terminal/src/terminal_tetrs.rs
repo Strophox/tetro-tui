@@ -705,13 +705,13 @@ impl<T: Write> App<T> {
             'idle_loop: loop {
                 let frame_idle_remaining = next_frame_at - Instant::now();
                 match rx.recv_timeout(frame_idle_remaining) {
-                    Ok(Err(Sig::AbortProgram)) => {
+                    Ok(Err(Sig::ExitProgram)) => {
                         self.store_game(game, game_running_stats);
                         break 'render_loop MenuUpdate::Push(Menu::Quit(
                             "exited with ctrl-c".to_string(),
                         ));
                     }
-                    Ok(Err(Sig::StopGame)) => {
+                    Ok(Err(Sig::ForfeitGame)) => {
                         let game_finished_stats = self.store_game(game, game_running_stats);
                         break 'render_loop MenuUpdate::Push(Menu::GameOver(Box::new(
                             game_finished_stats,
@@ -1143,9 +1143,9 @@ impl<T: Write> App<T> {
                         self.settings.game_fps += 1.0;
                     } else if selected == 2 {
                         self.settings.rotation_system = match self.settings.rotation_system {
-                            RotationSystem::Ocular => RotationSystem::Super,
-                            RotationSystem::Super => RotationSystem::Classic,
-                            RotationSystem::Classic => RotationSystem::Ocular,
+                            RotationSystem::Ocular => RotationSystem::Classic,
+                            RotationSystem::Classic => RotationSystem::Super,
+                            RotationSystem::Super => RotationSystem::Ocular,
                         };
                     }
                 }
@@ -1158,9 +1158,9 @@ impl<T: Write> App<T> {
                         self.settings.game_fps -= 1.0;
                     } else if selected == 2 {
                         self.settings.rotation_system = match self.settings.rotation_system {
-                            RotationSystem::Ocular => RotationSystem::Classic,
-                            RotationSystem::Super => RotationSystem::Ocular,
-                            RotationSystem::Classic => RotationSystem::Super,
+                            RotationSystem::Ocular => RotationSystem::Super,
+                            RotationSystem::Classic => RotationSystem::Ocular,
+                            RotationSystem::Super => RotationSystem::Classic,
                         };
                     }
                 }
