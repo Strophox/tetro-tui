@@ -273,34 +273,34 @@ impl GameScreenRenderer for UnicodeRenderer {
         #[allow(clippy::useless_format)]
         #[rustfmt::skip]
         let screen = [
-            format!("                                                             ", ),
-            format!("                        ╓╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╥{:─^w$       }┐", "mode", w=mode_name_space),
-            format!("     ALL STATS          ║                    ║{: ^w$       }│", mode_name, w=mode_name_space),
-            format!("     ─────────╴         ║                    ╟{:─^w$       }┘", "", w=mode_name_space),
-            format!("     Level:{:>7  }      ║                    ║  {          }:", level, opti_name),
-            format!("     Score:{:>7  }      ║                    ║{:^15         }", score, opti_value),
-            format!("     Lines:{:>7  }      ║                    ║               ", lines),
-            format!("                        ║                    ║  {           }", goal_name),
-            format!("     Time elapsed       ║                    ║{:^15         }", goal_value),
-            format!("     {:>13       }      ║                    ║               ", format_duration(*game_time)),
-            format!("                        ║                    ║─────next─────┐", ),
-            format!("     PIECES             ║                    ║              │", ),
-            format!("     ──────╴            ║                    ║              │", ),
-            format!("     {:<19             }║                    ║──────────────┘", piececnts_o),
-            format!("     {:<19             }║                    ║               ", piececnts_i_s_z),
-            format!("     {:<19             }║                    ║               ", piececnts_t_l_j),
-            format!("                        ║                    ║               ", ),
-            format!("     CONTROLS           ║                    ║               ", ),
-            format!("     ────────╴          ║                    ║               ", ),
-            format!("     Pause   {:<11     }║                    ║               ", key_icon_pause),
-            format!("     Move    {:<11     }║                    ║               ", key_icons_move),
-            format!("     Rotate  {:<11     }║                    ║               ", key_icons_rotate),
-            format!("     Drop    {:<11     }╚════════════════════╝               ", key_icons_drop),
-            format!("                                                             ", ),
+            format!("                                                            ", ),
+            format!("                       ╓╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╥{:─^w$       }┐", "mode", w=mode_name_space),
+            format!("    ALL STATS          ║                    ║{: ^w$       }│", mode_name, w=mode_name_space),
+            format!("    ─────────╴         ║                    ╟{:─^w$       }┘", "", w=mode_name_space),
+            format!("    Level: {:<12      }║                    ║  {          }:", level, opti_name),
+            format!("    Score: {:<12      }║                    ║{:^15         }", score, opti_value),
+            format!("    Lines: {:<12      }║                    ║               ", lines),
+            format!("                       ║                    ║  {           }", goal_name),
+            format!("    Time elapsed       ║                    ║{:^15         }", goal_value),
+            format!("     {:<18            }║                    ║               ", format_duration(*game_time)),
+            format!("                       ║                    ║─────next─────┐", ),
+            format!("    PIECES             ║                    ║              │", ),
+            format!("    ──────╴            ║                    ║              │", ),
+            format!("    {:<19             }║                    ║──────────────┘", piececnts_o),
+            format!("    {:<19             }║                    ║               ", piececnts_i_s_z),
+            format!("    {:<19             }║                    ║               ", piececnts_t_l_j),
+            format!("                       ║                    ║               ", ),
+            format!("    CONTROLS           ║                    ║               ", ),
+            format!("    ────────╴          ║                    ║               ", ),
+            format!("    Pause   {:<11     }║                    ║               ", key_icon_pause),
+            format!("    Move    {:<11     }║                    ║               ", key_icons_move),
+            format!("    Rotate  {:<11     }║                    ║               ", key_icons_rotate),
+            format!("    Drop    {:<11     }╚════════════════════╝               ", key_icons_drop),
+            format!("                                                            ", ),
         ];
-        let (x_board, y_board) = (25, 1);
-        let (x_preview, y_preview) = (49, 12);
-        let (x_messages, y_messages) = (48, 15);
+        let (x_board, y_board) = (24, 1);
+        let (x_preview, y_preview) = (48, 12);
+        let (x_messages, y_messages) = (47, 15);
         // Begin frame update.
         app.term.queue(terminal::BeginSynchronizedUpdate)?;
         if clean_screen {

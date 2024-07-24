@@ -18,7 +18,7 @@ use crossterm::{
     style::{self, Print, PrintStyledContent, Stylize},
     terminal, ExecutableCommand, QueueableCommand,
 };
-use tetrs_engine::{Button, ButtonsPressed, Game, GameState, Gamemode, Stat};
+use tetrs_engine::{Button, ButtonsPressed, Game, GameState, Gamemode, RotationSystem, Stat};
 
 use crate::game_input_handler::{ButtonSignal, CrosstermHandler, Sig};
 use crate::game_renderers::{GameScreenRenderer, UnicodeRenderer};
@@ -88,10 +88,11 @@ enum MenuUpdate {
     Push(Menu),
 }
 
-#[derive(PartialEq, Clone, Default, Debug)]
+#[derive(PartialEq, Clone, Debug)]
 pub struct Settings {
-    pub game_fps: f64,
     pub keybinds: HashMap<KeyCode, Button>,
+    pub game_fps: f64,
+    pub rotation_system: RotationSystem,
 }
 
 #[derive(PartialEq, Clone, Debug)]
@@ -148,6 +149,7 @@ impl<T: Write> App<T> {
         let settings = Settings {
             keybinds,
             game_fps: fps.into(),
+            rotation_system: RotationSystem::Ok,
         };
         let custom_mode = Gamemode::custom(
             "Custom Mode".to_string(),
@@ -519,9 +521,11 @@ impl<T: Write> App<T> {
                     } else {
                         self.custom_mode.clone()
                     };
+                    let mut game = Game::with_gamemode(mode);
+                    game.config_mut().rotation_system = self.settings.rotation_system;
                     let now = Instant::now();
                     break Ok(MenuUpdate::Push(Menu::Game {
-                        game: Box::new(Game::with_gamemode(mode)),
+                        game: Box::new(game),
                         time_started: now,
                         last_paused: now,
                         total_duration_paused: Duration::ZERO,
@@ -670,6 +674,8 @@ impl<T: Write> App<T> {
         game_running_stats: &mut GameRunningStats,
         game_renderer: &mut impl GameScreenRenderer,
     ) -> io::Result<MenuUpdate> {
+        // Update rotation system manually.
+        game.config_mut().rotation_system = self.settings.rotation_system;
         // Prepare channel with which to communicate `Button` inputs / game interrupt.
         let mut buttons_pressed = ButtonsPressed::default();
         let (tx, rx) = mpsc::channel::<ButtonSignal>();
@@ -1025,7 +1031,7 @@ impl<T: Write> App<T> {
     }
 
     fn settings(&mut self) -> io::Result<MenuUpdate> {
-        let selection_len = 2;
+        let selection_len = 3;
         let mut selected = 0usize;
         loop {
             let w_main = Self::W_MAIN.into();
@@ -1059,6 +1065,18 @@ impl<T: Write> App<T> {
                         format!(">>> FPS: {} <<<", self.settings.game_fps)
                     } else {
                         format!("FPS: {}", self.settings.game_fps)
+                    }
+                )))?
+                .queue(MoveTo(
+                    x_main,
+                    y_main + y_selection + 4 + u16::try_from(2).unwrap(),
+                ))?
+                .queue(Print(format!(
+                    "{:^w_main$}",
+                    if selected == 2 {
+                        format!(">>> Rotation System: '{:?}' <<<", self.settings.rotation_system)
+                    } else {
+                        format!("Rotation System: '{:?}'", self.settings.rotation_system)
                     }
                 )))?
                 .queue(MoveTo(
@@ -1120,6 +1138,12 @@ impl<T: Write> App<T> {
                 }) => {
                     if selected == 1 {
                         self.settings.game_fps += 1.0;
+                    } else if selected == 2 {
+                        self.settings.rotation_system = match self.settings.rotation_system {
+                            RotationSystem::Ok => RotationSystem::Super,
+                            RotationSystem::Super => RotationSystem::Classic,
+                            RotationSystem::Classic => RotationSystem::Ok,
+                        };
                     }
                 }
                 Event::Key(KeyEvent {
@@ -1129,6 +1153,12 @@ impl<T: Write> App<T> {
                 }) => {
                     if selected == 1 && self.settings.game_fps > 0.0 {
                         self.settings.game_fps -= 1.0;
+                    } else if selected == 2 {
+                        self.settings.rotation_system = match self.settings.rotation_system {
+                            RotationSystem::Ok => RotationSystem::Classic,
+                            RotationSystem::Super => RotationSystem::Ok,
+                            RotationSystem::Classic => RotationSystem::Super,
+                        };
                     }
                 }
                 // Other event: don't care.
