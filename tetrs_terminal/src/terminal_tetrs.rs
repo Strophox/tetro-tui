@@ -97,6 +97,7 @@ pub struct Settings {
     pub keybinds: HashMap<KeyCode, Button>,
     pub game_fps: f64,
     pub show_fps: bool,
+    pub ascii_graphics: bool,
     pub rotation_system: RotationSystem,
 }
 
@@ -155,6 +156,7 @@ impl<T: Write> App<T> {
             keybinds,
             game_fps: fps.into(),
             show_fps: false,
+            ascii_graphics: false,
             rotation_system: RotationSystem::Ocular,
         };
         let custom_mode = Gamemode::custom(
@@ -1091,7 +1093,7 @@ impl<T: Write> App<T> {
     }
 
     fn settings(&mut self) -> io::Result<MenuUpdate> {
-        let selection_len = 4;
+        let selection_len = 5;
         let mut selected = 0usize;
         loop {
             let w_main = Self::W_MAIN.into();
@@ -1102,58 +1104,37 @@ impl<T: Write> App<T> {
                 .queue(MoveTo(x_main, y_main + y_selection))?
                 .queue(Print(format!("{:^w_main$}", "% Settings %")))?
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
-                .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?
-                .queue(MoveTo(
-                    x_main,
-                    y_main + y_selection + 4 + u16::try_from(0).unwrap(),
-                ))?
-                .queue(Print(format!(
-                    "{:^w_main$}",
-                    if selected == 0 {
-                        ">>> Configure Controls <<<"
+                .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
+            let labels = [
+                "Configure Controls".to_string(),
+                format!(
+                    "Graphics: {}",
+                    if self.settings.ascii_graphics {
+                        "ASCII"
                     } else {
-                        "Configure Controls"
+                        "Unicode"
                     }
-                )))?
-                .queue(MoveTo(
-                    x_main,
-                    y_main + y_selection + 4 + u16::try_from(1).unwrap(),
-                ))?
-                .queue(Print(format!(
-                    "{:^w_main$}",
-                    if selected == 1 {
-                        format!(">>> Framerate: {} <<<", self.settings.game_fps)
-                    } else {
-                        format!("Framerate: {}", self.settings.game_fps)
-                    }
-                )))?
-                .queue(MoveTo(
-                    x_main,
-                    y_main + y_selection + 4 + u16::try_from(2).unwrap(),
-                ))?
-                .queue(Print(format!(
-                    "{:^w_main$}",
-                    if selected == 2 {
-                        format!(">>> Show FPS counter: {} <<<", self.settings.show_fps)
-                    } else {
-                        format!("Show FPS counter: {}", self.settings.show_fps)
-                    }
-                )))?
-                .queue(MoveTo(
-                    x_main,
-                    y_main + y_selection + 4 + u16::try_from(3).unwrap(),
-                ))?
-                .queue(Print(format!(
-                    "{:^w_main$}",
-                    if selected == 3 {
-                        format!(
-                            ">>> Rotation System: '{:?}' <<<",
-                            self.settings.rotation_system
-                        )
-                    } else {
-                        format!("Rotation System: '{:?}'", self.settings.rotation_system)
-                    }
-                )))?
+                ),
+                format!("Framerate: {}", self.settings.game_fps),
+                format!("Show FPS: {}", self.settings.show_fps),
+                format!("Rotation System: '{:?}'", self.settings.rotation_system),
+            ];
+            for (i, label) in labels.into_iter().enumerate() {
+                self.term
+                    .queue(MoveTo(
+                        x_main,
+                        y_main + y_selection + 4 + u16::try_from(i).unwrap(),
+                    ))?
+                    .queue(Print(format!(
+                        "{:^w_main$}",
+                        if i == selected {
+                            format!(">>> {label} <<<")
+                        } else {
+                            label
+                        }
+                    )))?;
+            }
+            self.term
                 .queue(MoveTo(
                     x_main,
                     y_main + y_selection + 4 + u16::try_from(selection_len).unwrap() + 3,
@@ -1210,36 +1191,48 @@ impl<T: Write> App<T> {
                     code: KeyCode::Right,
                     kind: Press | Repeat,
                     ..
-                }) => {
-                    if selected == 1 {
+                }) => match selected {
+                    1 => {
+                        self.settings.ascii_graphics = !self.settings.ascii_graphics;
+                    }
+                    2 => {
                         self.settings.game_fps += 1.0;
-                    } else if selected == 2 {
+                    }
+                    3 => {
                         self.settings.show_fps = !self.settings.show_fps;
-                    } else if selected == 3 {
+                    }
+                    4 => {
                         self.settings.rotation_system = match self.settings.rotation_system {
                             RotationSystem::Ocular => RotationSystem::Classic,
                             RotationSystem::Classic => RotationSystem::Super,
                             RotationSystem::Super => RotationSystem::Ocular,
                         };
                     }
-                }
+                    _ => unreachable!(),
+                },
                 Event::Key(KeyEvent {
                     code: KeyCode::Left,
                     kind: Press | Repeat,
                     ..
-                }) => {
-                    if selected == 1 && self.settings.game_fps > 0.0 {
+                }) => match selected {
+                    1 => {
+                        self.settings.ascii_graphics = !self.settings.ascii_graphics;
+                    }
+                    2 if self.settings.game_fps >= 1.0 => {
                         self.settings.game_fps -= 1.0;
-                    } else if selected == 2 {
+                    }
+                    3 => {
                         self.settings.show_fps = !self.settings.show_fps;
-                    } else if selected == 3 {
+                    }
+                    4 => {
                         self.settings.rotation_system = match self.settings.rotation_system {
                             RotationSystem::Ocular => RotationSystem::Super,
                             RotationSystem::Classic => RotationSystem::Ocular,
                             RotationSystem::Super => RotationSystem::Classic,
                         };
                     }
-                }
+                    _ => unreachable!(),
+                },
                 // Other event: don't care.
                 _ => {}
             }

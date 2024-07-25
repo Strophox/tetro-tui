@@ -264,82 +264,84 @@ impl GameScreenRenderer for Renderer {
         // Screen: draw.
         #[allow(clippy::useless_format)]
         #[rustfmt::skip]
-        let base_screen = vec![
-            format!("                                                            ", ),
-            format!("                       ╓╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╥{:─^w$       }┐", "mode", w=mode_name_space),
-            format!("   ALL STATS           ║                    ║{: ^w$       }│", mode_name, w=mode_name_space),
-            format!("   ─────────╴          ║                    ╟{:─^w$       }┘", "", w=mode_name_space),
-            format!("   Level: {:<13       }║                    ║  {          }:", level, opti_name),
-            format!("   Score: {:<13       }║                    ║{:^15         }", score, opti_value),
-            format!("   Lines: {:<13       }║                    ║               ", lines),
-            format!("                       ║                    ║  {           }", goal_name),
-            format!("   Time elapsed        ║                    ║{:^15         }", goal_value),
-            format!("    {:<19             }║                    ║               ", format_duration(*game_time)),
-            format!("                       ║                    ║─────next─────┐", ),
-            format!("   PIECES              ║                    ║              │", ),
-            format!("   ──────╴             ║                    ║              │", ),
-            format!("   {:<20              }║                    ║──────────────┘", piececnts_o),
-            format!("   {:<20              }║                    ║               ", piececnts_i_s_z),
-            format!("   {:<20              }║                    ║               ", piececnts_t_l_j),
-            format!("                       ║                    ║               ", ),
-            format!("   CONTROLS            ║                    ║               ", ),
-            format!("   ────────╴           ║                    ║               ", ),
-            format!("   Drop    {:<12      }║                    ║               ", key_icons_drop),
-            format!("   Move    {:<12      }║                    ║               ", key_icons_move),
-            format!("   Rotate  {:<12      }║                    ║               ", key_icons_rotate),
-            format!("   Pause   {:<9    }░▒▓▛▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▜▓▒░            ", key_icon_pause),
-            format!("                                                            ", ),
-        ];
+        let base_screen = if app.settings.ascii_graphics {
+            vec![
+                format!("                                                            ", ),
+                format!("                       +- - - - - - - - - - +{:-^w$       }+", "mode", w=mode_name_space),
+                format!("   ALL STATS           |                    |{: ^w$       }|", mode_name, w=mode_name_space),
+                format!("   ----------          |                    +{:-^w$       }+", "", w=mode_name_space),
+                format!("   Level: {:<13       }|                    |  {          }:", level, opti_name),
+                format!("   Score: {:<13       }|                    |{:^15         }", score, opti_value),
+                format!("   Lines: {:<13       }|                    |               ", lines),
+                format!("                       |                    |  {           }", goal_name),
+                format!("   Time elapsed        |                    |{:^15         }", goal_value),
+                format!("    {:<19             }|                    |               ", format_duration(*game_time)),
+                format!("                       |                    |-----next-----+", ),
+                format!("   PIECES              |                    |              |", ),
+                format!("   -------             |                    |              |", ),
+                format!("   {:<20              }|                    |--------------+", piececnts_o),
+                format!("   {:<20              }|                    |               ", piececnts_i_s_z),
+                format!("   {:<20              }|                    |               ", piececnts_t_l_j),
+                format!("                       |                    |               ", ),
+                format!("   CONTROLS            |                    |               ", ),
+                format!("   ---------           |                    |               ", ),
+                format!("   Drop    {:<12      }|                    |               ", key_icons_drop),
+                format!("   Move    {:<12      }|                    |               ", key_icons_move),
+                format!("   Rotate  {:<12      }|                    |               ", key_icons_rotate),
+                format!("   Pause   {:<9    }  ~#====================#~              ", key_icon_pause),
+                format!("                                                            ", ),
+            ]
+        } else {
+            vec![
+                format!("                                                            ", ),
+                format!("                       ╓╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╥{:─^w$       }┐", "mode", w=mode_name_space),
+                format!("   ALL STATS           ║                    ║{: ^w$       }│", mode_name, w=mode_name_space),
+                format!("   ─────────╴          ║                    ╟{:─^w$       }┘", "", w=mode_name_space),
+                format!("   Level: {:<13       }║                    ║  {          }:", level, opti_name),
+                format!("   Score: {:<13       }║                    ║{:^15         }", score, opti_value),
+                format!("   Lines: {:<13       }║                    ║               ", lines),
+                format!("                       ║                    ║  {           }", goal_name),
+                format!("   Time elapsed        ║                    ║{:^15         }", goal_value),
+                format!("    {:<19             }║                    ║               ", format_duration(*game_time)),
+                format!("                       ║                    ║─────next─────┐", ),
+                format!("   PIECES              ║                    ║              │", ),
+                format!("   ──────╴             ║                    ║              │", ),
+                format!("   {:<20              }║                    ║──────────────┘", piececnts_o),
+                format!("   {:<20              }║                    ║               ", piececnts_i_s_z),
+                format!("   {:<20              }║                    ║               ", piececnts_t_l_j),
+                format!("                       ║                    ║               ", ),
+                format!("   CONTROLS            ║                    ║               ", ),
+                format!("   ────────╴           ║                    ║               ", ),
+                format!("   Drop    {:<12      }║                    ║               ", key_icons_drop),
+                format!("   Move    {:<12      }║                    ║               ", key_icons_move),
+                format!("   Rotate  {:<12      }║                    ║               ", key_icons_rotate),
+                format!("   Pause   {:<9    }░▒▓▛▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▜▓▒░            ", key_icon_pause),
+                format!("                                                            ", ),
+            ]
+        };
         self.screen.buf_from_strs(base_screen);
         let (x_board, y_board) = (24, 1);
         let (x_preview, y_preview) = (48, 12);
         let (x_messages, y_messages) = (47, 15);
         let pos_board = |(x, y)| (x_board + 2 * x, y_board + Game::SKYLINE - y);
         // Board: helpers.
-        let tile_color = |tile: TileTypeID| {
-            Some(match tile.get() {
-                1 => Color::Rgb {
-                    r: 254,
-                    g: 203,
-                    b: 0,
-                },
-                2 => Color::Rgb {
-                    r: 0,
-                    g: 159,
-                    b: 218,
-                },
-                3 => Color::Rgb {
-                    r: 105,
-                    g: 190,
-                    b: 40,
-                },
-                4 => Color::Rgb {
-                    r: 237,
-                    g: 41,
-                    b: 57,
-                },
-                5 => Color::Rgb {
-                    r: 149,
-                    g: 45,
-                    b: 152,
-                },
-                6 => Color::Rgb {
-                    r: 255,
-                    g: 121,
-                    b: 0,
-                },
-                7 => Color::Rgb {
-                    r: 0,
-                    g: 101,
-                    b: 189,
-                },
-                255 => Color::Rgb {
-                    r: 127,
-                    g: 127,
-                    b: 127,
-                },
-                t => unimplemented!("formatting unknown tile id {t}"),
-            })
+        #[rustfmt::skip]
+        let tile_color = if app.settings.ascii_graphics {
+            |_tile: TileTypeID| None
+        } else {
+            |tile: TileTypeID| {
+                Some(match tile.get() {
+                      1 => Color::Rgb { r:254, g:203, b:  0 },
+                      2 => Color::Rgb { r:  0, g:159, b:218 },
+                      3 => Color::Rgb { r:105, g:190, b: 40 },
+                      4 => Color::Rgb { r:237, g: 41, b: 57 },
+                      5 => Color::Rgb { r:149, g: 45, b:152 },
+                      6 => Color::Rgb { r:255, g:121, b:  0 },
+                      7 => Color::Rgb { r:  0, g:101, b:189 },
+                    255 => Color::Rgb { r:127, g:127, b:127 },
+                    t => unimplemented!("formatting unknown tile id {t}"),
+                })
+            }
         };
         // Board: draw hard drop trail.
         for (event_time, pos, h, tile_type_id, relevant) in self.hard_drop_tiles.iter_mut() {
@@ -362,11 +364,16 @@ impl GameScreenRenderer for Renderer {
         }
         self.hard_drop_tiles.retain(|elt| elt.4);
         // Board: draw fixed tiles.
+        let (tile_locked, tile_ghost, tile_active, tile_preview) = if app.settings.ascii_graphics {
+            ("##", "::", "[]", "[]")
+        } else {
+            ("██", "░░", "▓▓", "▒▒")
+        };
         for (y, line) in board.iter().enumerate().take(21).rev() {
             for (x, cell) in line.iter().enumerate() {
                 if let Some(tile_type_id) = cell {
                     self.screen
-                        .buf_str("██", tile_color(*tile_type_id), pos_board((x, y)));
+                        .buf_str(tile_locked, tile_color(*tile_type_id), pos_board((x, y)));
                 }
             }
         }
@@ -376,14 +383,14 @@ impl GameScreenRenderer for Renderer {
             for (tile_pos, tile_type_id) in active_piece.well_piece(board).tiles() {
                 if tile_pos.1 <= Game::SKYLINE {
                     self.screen
-                        .buf_str("░░", tile_color(tile_type_id), pos_board(tile_pos));
+                        .buf_str(tile_ghost, tile_color(tile_type_id), pos_board(tile_pos));
                 }
             }
             // Draw active piece.
             for (tile_pos, tile_type_id) in active_piece.tiles() {
                 if tile_pos.1 <= Game::SKYLINE {
                     self.screen
-                        .buf_str("▓▓", tile_color(tile_type_id), pos_board(tile_pos));
+                        .buf_str(tile_active, tile_color(tile_type_id), pos_board(tile_pos));
                 }
             }
         }
@@ -395,7 +402,7 @@ impl GameScreenRenderer for Renderer {
             let color = tile_color(next_piece.tiletypeid());
             for (x, y) in next_piece.minos(Orientation::N) {
                 let pos = (x_preview + 2 * x, y_preview - y);
-                self.screen.buf_str("▒▒", color, pos);
+                self.screen.buf_str(tile_preview, color, pos);
             }
         }
         // Update stored events.
@@ -409,16 +416,29 @@ impl GameScreenRenderer for Renderer {
             let elapsed = game_time.saturating_sub(*event_time);
             match event {
                 Feedback::PieceLocked(piece) => {
-                    let Some(tile) = [
-                        (50, "██"),
-                        (75, "▓▓"),
-                        (100, "▒▒"),
-                        (125, "░░"),
-                        (150, "▒▒"),
-                        (175, "▓▓"),
-                    ]
-                    .iter()
-                    .find_map(|(ms, tile)| (elapsed < Duration::from_millis(*ms)).then_some(tile)) else {
+                    #[rustfmt::skip]
+                    let lock_anim = if app.settings.ascii_graphics {
+                        [
+                            ( 50, "()"),
+                            ( 75, "()"),
+                            (100, "{}"),
+                            (125, "{}"),
+                            (150, "<>"),
+                            (175, "<>"),
+                        ]
+                    } else {
+                        [
+                            ( 50, "██"),
+                            ( 75, "▓▓"),
+                            (100, "▒▒"),
+                            (125, "░░"),
+                            (150, "▒▒"),
+                            (175, "▓▓"),
+                        ]
+                    };
+                    let Some(tile) = lock_anim.iter().find_map(|(ms, tile)| {
+                        (elapsed < Duration::from_millis(*ms)).then_some(tile)
+                    }) else {
                         *relevant = false;
                         continue;
                     };
@@ -434,18 +454,33 @@ impl GameScreenRenderer for Renderer {
                         *relevant = false;
                         continue;
                     }
-                    let line_clear_frames = [
-                        "████████████████████",
-                        " ██████████████████ ",
-                        "  ████████████████  ",
-                        "   ██████████████   ",
-                        "    ████████████    ",
-                        "     ██████████     ",
-                        "      ████████      ",
-                        "       ██████       ",
-                        "        ████        ",
-                        "         ██         ",
-                    ];
+                    let line_clear_frames = if app.settings.ascii_graphics {
+                        [
+                            "$$$$$$$$$$$$$$$$$$$$",
+                            "$$$$$$$$$$$$$$$$$$$$",
+                            "                    ",
+                            "                    ",
+                            "$$$$$$$$$$$$$$$$$$$$",
+                            "$$$$$$$$$$$$$$$$$$$$",
+                            "                    ",
+                            "                    ",
+                            "$$$$$$$$$$$$$$$$$$$$",
+                            "$$$$$$$$$$$$$$$$$$$$",
+                        ]
+                    } else {
+                        [
+                            "████████████████████",
+                            " ██████████████████ ",
+                            "  ████████████████  ",
+                            "   ██████████████   ",
+                            "    ████████████    ",
+                            "     ██████████     ",
+                            "      ████████      ",
+                            "       ██████       ",
+                            "        ████        ",
+                            "         ██         ",
+                        ]
+                    };
                     let percent = elapsed.as_secs_f64() / line_clear_delay.as_secs_f64();
                     // SAFETY: `0.0 <= percent && percent <= 1.0`.
                     let idx = if percent < 1.0 {
