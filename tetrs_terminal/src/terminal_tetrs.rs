@@ -1544,17 +1544,16 @@ fn generate_puzzle_game() -> Game {
             [W,W,W,W,W,r,W,W,W,W],
             [W,W,W,W,r,r,r,r,W,W],
         ], VecDeque::from([Tetromino::I,Tetromino::I])),
-        ("", vec![
-            [W,W,W,W,W,W,W,W,W,W],
-            [W,W,W,W,W,W,W,W,W,W],
-            [W,W,W,W,W,W,W,W,W,W],
-            [W,W,W,W,W,W,W,W,W,W],
-            [W,W,W,W,W,W,W,W,W,W],
-        ], VecDeque::from([Tetromino::O,Tetromino::O,Tetromino::O,Tetromino::O,Tetromino::O])),
+        ("r", vec![
+            [W,W,W,W,W,W,W,W,W,r],
+            [W,W,W,W,W,W,W,W,W,r],
+            [W,W,W,W,W,W,W,W,W,r],
+            [W,W,W,W,W,W,W,W,W,r],
+        ], VecDeque::from([Tetromino::I])),
     ];
-    let total_pieces = puzzles
+    let total_lines = puzzles
         .iter()
-        .map(|(_, _, puzzle_pieces)| puzzle_pieces.len())
+        .map(|(_, puzzle_lines, _)| puzzle_lines.len())
         .sum::<usize>();
     let mut puzzles = puzzles.into_iter();
     let game_modifier = move |upcoming_event: Option<InternalEvent>,
@@ -1614,7 +1613,7 @@ fn generate_puzzle_game() -> Game {
         "Puzzle".to_string(),
         NonZeroU32::MIN,
         false,
-        Some(Stat::Pieces(u32::try_from(total_pieces).unwrap())),
+        Some(Stat::Lines(total_lines)),
         Stat::Time(Duration::ZERO),
     ));
     game.set_modifier(Some(Box::new(game_modifier)));
