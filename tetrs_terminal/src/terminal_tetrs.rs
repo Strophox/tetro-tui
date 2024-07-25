@@ -1528,13 +1528,6 @@ pub fn format_keybinds(button: Button, keybinds: &HashMap<KeyCode, Button>) -> S
 }
 
 fn generate_puzzle_game() -> Game {
-    let mut game = Game::with_gamemode(Gamemode::custom(
-        "Puzzle".to_string(),
-        NonZeroU32::MIN,
-        false,
-        Some(Stat::Pieces(10)),
-        Stat::Time(Duration::ZERO),
-    ));
     let mut init = false;
     let mut puzzle_num = 0;
     let mut puzzle_piece_stamp = 0;
@@ -1542,7 +1535,7 @@ fn generate_puzzle_game() -> Game {
     // SAFETY: 255 > 0.
     let (r, W) = (None, Some(unsafe { NonZeroU32::new_unchecked(255) }));
     #[rustfmt::skip]
-    let mut batches = [
+    let puzzles = [
         // 1: I Spin
         ("I-Spin (I)", vec![
             [W,W,W,W,W,r,W,W,W,W],
@@ -1550,15 +1543,20 @@ fn generate_puzzle_game() -> Game {
             [W,W,W,W,W,r,W,W,W,W],
             [W,W,W,W,W,r,W,W,W,W],
             [W,W,W,W,r,r,r,r,W,W],
-        ], VecDeque::from([Tetromino::I, Tetromino::I, Tetromino::O])),
+        ], VecDeque::from([Tetromino::I,Tetromino::I])),
         ("", vec![
             [W,W,W,W,W,W,W,W,W,W],
             [W,W,W,W,W,W,W,W,W,W],
             [W,W,W,W,W,W,W,W,W,W],
             [W,W,W,W,W,W,W,W,W,W],
             [W,W,W,W,W,W,W,W,W,W],
-            ], VecDeque::from([Tetromino::I, Tetromino::I, Tetromino::O])),
-    ].into_iter();
+        ], VecDeque::from([Tetromino::O,Tetromino::O,Tetromino::O,Tetromino::O,Tetromino::O])),
+    ];
+    let total_pieces = puzzles
+        .iter()
+        .map(|(_, _, puzzle_pieces)| puzzle_pieces.len())
+        .sum::<usize>();
+    let mut puzzles = puzzles.into_iter();
     let game_modifier = move |upcoming_event: Option<InternalEvent>,
                               config: &mut GameConfig,
                               state: &mut GameState,
@@ -1576,7 +1574,7 @@ fn generate_puzzle_game() -> Game {
                 line.iter().all(|cell| cell.is_none()) || line.iter().all(|cell| cell.is_some())
             }) {
                 // Load in new puzzle.
-                if let Some((puzzle_name, puzzle_lines, puzzle_pieces)) = batches.next() {
+                if let Some((puzzle_name, puzzle_lines, puzzle_pieces)) = puzzles.next() {
                     // Game messages.
                     if puzzle_num > 0 {
                         feedback_events.push((
@@ -1591,8 +1589,10 @@ fn generate_puzzle_game() -> Game {
                     ));
                     // Queue pieces and lines.
                     puzzle_piece_stamp =
-                        game_piece_stamp + u32::try_from(puzzle_pieces.len()).unwrap() - 1;
+                        game_piece_stamp + u32::try_from(puzzle_pieces.len()).unwrap();
                     state.next_pieces = puzzle_pieces;
+                    // Additional piece for consistent end preview.
+                    state.next_pieces.push_back(Tetromino::O);
                     for (y, line) in puzzle_lines.into_iter().rev().enumerate() {
                         state.board[y] = line;
                         // Set puzzle limit
@@ -1610,6 +1610,13 @@ fn generate_puzzle_game() -> Game {
             state.level = NonZeroU32::try_from(puzzle_num).unwrap();
         }
     };
+    let mut game = Game::with_gamemode(Gamemode::custom(
+        "Puzzle".to_string(),
+        NonZeroU32::MIN,
+        false,
+        Some(Stat::Pieces(u32::try_from(total_pieces).unwrap())),
+        Stat::Time(Duration::ZERO),
+    ));
     game.set_modifier(Some(Box::new(game_modifier)));
     game
 }
