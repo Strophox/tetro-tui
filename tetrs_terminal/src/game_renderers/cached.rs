@@ -88,8 +88,8 @@ impl ScreenBuf {
                 }
                 match prev_line.len().cmp(&next_line.len()) {
                     Ordering::Less => {
-                        for (x, next_cell) in next_line.iter().skip(prev_line.len()).enumerate() {
-                            self.put(term, next_cell, x, y)?;
+                        for x in prev_line.len()..next_line.len() {
+                            self.put(term, &next_line[x], x, y)?;
                         }
                     }
                     Ordering::Equal => {}
@@ -102,16 +102,16 @@ impl ScreenBuf {
             }
             match self.prev.len().cmp(&self.next.len()) {
                 Ordering::Less => {
-                    for (y, next_line) in self.next.iter().skip(self.prev.len()).enumerate() {
-                        for (x, next_cell) in next_line.iter().enumerate() {
+                    for y in self.prev.len()..self.next.len() {
+                        for (x, next_cell) in self.next[y].iter().enumerate() {
                             self.put(term, next_cell, x, y)?;
                         }
                     }
                 }
                 Ordering::Equal => {}
                 Ordering::Greater => {
-                    for (y, prev_line) in self.prev.iter().skip(self.next.len()).enumerate() {
-                        for (x, _) in prev_line.iter().enumerate() {
+                    for y in self.next.len()..self.prev.len() {
+                        for (x, _) in self.prev[y].iter().enumerate() {
                             self.put(term, &(' ', None), x, y)?;
                         }
                     }
