@@ -41,7 +41,7 @@ impl GameFinishedStats {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 enum Menu {
     Title,
     NewGame,
@@ -82,7 +82,7 @@ impl std::fmt::Display for Menu {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 enum MenuUpdate {
     Pop,
     Push(Menu),
@@ -468,28 +468,23 @@ impl<T: Write> App<T> {
                 )))?;
             // Render custom mode stuff.
             if selected == selected_cnt - 1 {
-                let stats_str = [
-                    (1, format!("level start: {}", self.custom_mode.start_level)),
-                    (
-                        2,
-                        format!("level increment: {}", self.custom_mode.increment_level),
-                    ),
-                    (3, format!("limit: {:?}", self.custom_mode.limit)),
-                ]
-                .map(|(j, stat_str)| {
-                    if j == selected_custom {
-                        format!("▓▓{stat_str}")
-                    } else {
-                        stat_str
-                    }
-                })
-                .join("    ");
-                self.term
-                    .queue(MoveTo(
-                        x_main + 16,
-                        y_main + y_selection + 4 + 2 * u16::try_from(selected_cnt).unwrap(),
-                    ))?
-                    .queue(Print(stats_str))?;
+                let stats_strs = [
+                    format!("* level start: {}", self.custom_mode.start_level),
+                    format!("* level increment: {}", self.custom_mode.increment_level),
+                    format!("* limit: {:?}", self.custom_mode.limit),
+                ];
+                for (j, stat_str) in stats_strs.into_iter().enumerate() {
+                    self.term
+                        .queue(MoveTo(
+                            x_main + 15 + 4 * u16::try_from(j).unwrap(),
+                            y_main + y_selection + 4 + u16::try_from(j + 2 * selected_cnt).unwrap(),
+                        ))?
+                        .queue(Print(if j + 1 == selected_custom {
+                            format!("▓▓{stat_str}")
+                        } else {
+                            stat_str
+                        }))?;
+                }
             }
             self.term.flush()?;
             // Wait for new input.

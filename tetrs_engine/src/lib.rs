@@ -3,6 +3,7 @@ mod tetromino_generators;
 
 use std::{
     collections::{HashMap, VecDeque},
+    fmt,
     num::NonZeroU32,
     ops,
     time::Duration,
@@ -20,6 +21,7 @@ pub type Board = Vec<Line>;
 pub type Coord = (usize, usize);
 pub type Offset = (isize, isize);
 pub type GameTime = Duration;
+pub type FnGameModify = Box<dyn FnMut(&mut GameConfig, &mut GameState)>;
 type EventMap = HashMap<Event, GameTime>;
 
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
@@ -152,11 +154,11 @@ pub struct GameState {
     pub back_to_back_special_clears: u32, // TODO: Include this in score calculation and FeedbackEvent variant.
 }
 
-#[derive(Clone, Debug)]
 pub struct Game {
     state: GameState,
     config: GameConfig,
     rng: ThreadRng,
+    modifier: Option<FnGameModify>,
 }
 
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Hash, Debug)]
@@ -482,6 +484,17 @@ impl Default for GameConfig {
     }
 }
 
+impl fmt::Debug for Game {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.debug_struct("Game")
+            .field("config", &self.config)
+            .field("state", &self.state)
+            .field("rng", &std::any::type_name_of_val(&self.rng))
+            .field("game_modifier", &std::any::type_name_of_val(&self.modifier))
+            .finish()
+    }
+}
+
 impl Game {
     pub const HEIGHT: usize = Self::SKYLINE + 7; // Max height *any* mino can reach before Lock out occurs.
     pub const WIDTH: usize = 10;
@@ -519,7 +532,16 @@ impl Game {
             consecutive_line_clears: 0,
             back_to_back_special_clears: 0,
         };
-        Game { config, state, rng }
+        Game {
+            config,
+            state,
+            rng,
+            modifier: None,
+        }
+    }
+
+    pub fn set_modifier(&mut self, game_modifier: Option<FnGameModify>) {
+        self.modifier = game_modifier;
     }
 
     pub fn is_finished(&self) -> bool {
@@ -948,6 +970,9 @@ impl Game {
                 ),
             )
         });
+        if let Some(modifier) = self.modifier.as_mut() {
+            modifier(&mut self.config, &mut self.state);
+        }
         Ok(feedback_events)
     }
 
