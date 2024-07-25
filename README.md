@@ -25,6 +25,7 @@
 Implemented features:
 - **Gamemodes**:
   - Marathon, Sprint, Ultra, Master, Endless.
+  - Puzzle Mode: Find all perfect clears through some piece acrobatics (\*Requires and demonstrates the Ocular Rotation System).
   - Custom Mode: level start, level increment, limit *(Time, Score, Pieces, Lines, Level; None)*.
 - **Gameplay**:
   - Colored pieces (guideline).
@@ -33,7 +34,12 @@ Implemented features:
   - Animations for: Hard drops, Line clears and Piece locking.
   - Current game stats: Level, Score, Lines, Time, Pieces generated.
   - For technical details see [Features of the Tetrs Engine](#features-of-the-tetrs-engine).
-- **Settings**: Configurable controls, Game FPS, Rotation system used (*Ocular*, *Classic*, *Super*).
+- **Settings**:
+  - Configurable controls.
+  - Adjustable render rate and toggleable FPS counter.
+  - Rotation systems
+    - Default: [*Ocular Rotation System*](#ocular-rotation-system)
+    - *Classic* and *Super* also available.
 - **Scoreboard** (stored to / loaded from *tetrs_terminal_scores.json* if available).
 
 The game controls default to the following:
@@ -77,8 +83,48 @@ let GameState { board, .. } = game.state();
 For more info see crate documentation (`cargo doc --open`).
 
 ### Features of the Tetrs Engine
-TODO: `all` the features here with some background (foldable details>).
+TODO: Reformulate all this.
 
+The library at the time presents a moderately feature-rich abstraction over a singleplayer game. The goal was to strike the balance between interesting, useful and ergonomic game mechanics, while being as simple and efficient as possible. Luckily Rust being a safe and efficient language with high-level features (abstract datatypes, iterators) proved very apt for this.
+
+**Game Configuration Features**
+- *Gamemodes: Marathon, Sprint, Ultra, Master, CUSTOM (start lvl, inc lvl, limit, optimize) todo!("table here")
+- *Rotation Systems: Ocular, Classic, Super
+- *Tetromino Generators
+- Piece Preview (N=1)
+- Delayed Auto Shift (DAS) 200ms
+- Auto Repeat Rate (ARR) 50ms
+- Soft Drop Factor (SDF) 15.0
+- Drop delay 1s@1->0.833ms@19
+- Hard Drop Delay 0.1ms
+- *Locking: ground_time_max 2.25s and lock curve 500ms@19->150ms@30
+- Line Clear Delay 
+- Appearance Delay (ARE)
+
+**Game State Features**
+- Abstract game time 
+- Finished state/ Game Over: Lock out, Block out
+- Event queue
+- Buttons pressed state
+- Board state 
+- Active piece (tetromino, orientation, pos) including locking data
+- Next Pieces
+- Pieces played so far
+- Lines cleared
+- *Level and speed curve
+- *Scoring and combo (b2b)
+**Feedback Events**
+- Piece locked: active piece
+- line clears: lines and line clear delay
+- hard drop: active piece before after
+- Accolade: score bonus, shape, spin, lines, perfect, combo, opportunity
+- Debug: String.
+
+### Tetrs Engine: Highlights
+TODO
+
+#### Ocular Rotation System
+TODO
 
 ## Author Notes
 This project allowed me to have first proper learning experience with programming a larger Rust project, an interactive game (in the console), and the intricacies of the Game mechanics themselves (see [Features of the Tetrs Engine](#features-of-the-tetrs-engine)).
