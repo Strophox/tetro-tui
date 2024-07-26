@@ -61,7 +61,7 @@
 **Gamemodes**
 - Marathon (reach lvl 20), 40-Lines, Time Trial, Master (20G), Endless.
 - Puzzle Mode
-  - Perfect-clear yourself through 26 short puzzles with piece acrobatis enabled by the [*'ocular' rotation system*](#ocular-rotation-system)(with one retry per puzzle stage).
+  - Perfect-clear yourself through 26 short puzzles with piece acrobatics enabled by the [*'ocular' rotation system*](#ocular-rotation-system) (one retry per puzzle stage).
 - Custom Mode
   - Change start level, toggle level increment, set game limit *(Time, Score, Pieces, Lines, Level, or None)*.
 
@@ -220,7 +220,7 @@ The game provides some useful feedback events upon every `update`, usually used 
 
 </details>
 
-Also see documentation (`cargo doc --open`).
+<!--TODO: "Also see documentation (`cargo doc --open`)."-->
 
 
 ## Project Highlights
