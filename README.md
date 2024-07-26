@@ -210,11 +210,11 @@ The following detail various big and small concepts I tackled on my way to compl
 
 > "[tetris has a great rotation system and is not flawed at all](https://www.youtube.com/watch?v=_qaEknA81Iw)"
 
-\— **[said no one ever, not even the creator himself](https://youtu.be/6YhkkyXydNI?si=jbVwfNtfl5yFh9Gk&t=674).**
+— *[said no one ever, not even the creator of Tetris himself](https://youtu.be/6YhkkyXydNI?si=jbVwfNtfl5yFh9Gk&t=674).*
 
 To be fair, donsidering the huge franchise and range of players coming from all sorts of niches and previous game version the *"Super Rotation System"* [gets its job done](https://www.youtube.com/watch?v=dgt1kWq2_7c)™.
 
-But this doesn't change the fact that it was *the* thing I thought about revamping 'better' when starting this project:
+But this doesn't change the fact that it was *the* mechanic I thought about revamping when thinking about starting this project:
 
 - The system is **not** symmetric:
   - Symmetric pieces can look exactly the same in different rotation states, **[but have different behaviour](https://blog.battlefy.com/how-accidental-complexity-harms-the-tetris-community-93311461b2af)**.
@@ -223,18 +223,34 @@ But this doesn't change the fact that it was *the* thing I thought about revampi
 - It's an [advanced system](https://harddrop.com/wiki/SRS) with things like different rotation points for different purposes, yet it re-uses the *exact same kicks* for 5 out of the 7 pieces, even though they have completely different symmetries.
 - Not a hot take, but some rotations are just *weird* (to be chosen over other possibilities).
 
-My criteria for a good rotation system are:
+My criteria for a good rotation system thus would be:
 
 1. Symmetric if the board and piece were mirrored.
 2. Equal-looking states must have the same behaviour.
 3. Don't overdo it with crazy kicks
 4. But still allow fun things
 
-The result of this was the *Ocular Rotation System*, which I made by... looking at each piece orientation and drawing the most visually sensible positions for a piece to land in after a rotation. By overlapping all the kicks that are test in sequential order, one gets a compact heatmap of where the piece will land, going from hottest color (bright yellow) to coldest (dark purple).
+The result of this was the *Ocular Rotation System*, which I made by... looking at each piece orientation and drawing the most visually sensible positions for a piece to land in after a rotation. By overlapping all the kicks that are test in sequential order, one gets a compact heatmap of where the piece will land, going from hottest color (bright yellow) to coldest (dark purple):
 
-TODO: Graph ORS.
+<details>
 
-TODO: Graph SRS.
+<summary> Ocular Rotation System Heatmap </summary>
+
+![Ocular Rotation System Heatmap](Gallery/ocular-rotation-system_16px.png)
+
+</details>
+
+Now compare this to SRS and the difference is clear:
+
+<details>
+
+<summary> Super Rotation System Heatmap </summary>
+
+![Super Rotation System Heatmap](Gallery/super-rotation-system_16px.png)
+
+</details>
+
+Although, one starts to see the vague rotational symmetries here.
 
 
 ### Tetromino Generation
@@ -426,7 +442,7 @@ In essence, the menus form a graph (with menus as nodes and valid transitions as
   Tetrs Menu Graph
 </summary>
 
-![Test Maze](Gallery/tetrs_menu-graph.png)
+![tetrs menu graph](Gallery/tetrs_menu-graph.png)
 
 </details>
 
