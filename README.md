@@ -12,7 +12,7 @@
 
 ## How to run
 > Pre-compiled.
-> - Download a release for your platform if available and run the application.
+> - [Download a release](https://github.com/Strophox/tetrs/releases) for your platform if available and run the application.
 
 > Compiling yourself.
 > - Have [Rust](https://www.rust-lang.org/) installed.
