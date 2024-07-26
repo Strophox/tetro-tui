@@ -421,8 +421,8 @@ impl<T: Write> App<T> {
     fn newgame(&mut self) -> io::Result<MenuUpdate> {
         let preset_gamemodes = [
             Gamemode::marathon(),
-            Gamemode::sprint(NonZeroU32::try_from(5).unwrap()),
-            Gamemode::ultra(NonZeroU32::try_from(5).unwrap()),
+            Gamemode::sprint(NonZeroU32::try_from(3).unwrap()),
+            Gamemode::ultra(NonZeroU32::try_from(3).unwrap()),
             Gamemode::master(),
         ];
         let (d_time, d_score, d_pieces, d_lines, d_level) = (Duration::from_secs(5), 200, 10, 5, 1);
