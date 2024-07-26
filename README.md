@@ -45,15 +45,16 @@
 ![Animated Demo of Tetrs' ASCII graphics](Gallery/tetrs_rec-ascii.gif)
 
 
-<details>
-
-<summary> mild Puzzle Mode spoiler </summary>
-
-*Puzzle Mode with its 26 levels:*
-
-![Animated Demo of Tetrs' Puzzle Mode](Gallery/tetrs_rec-puzzle.gif)
-
-</details>
+> [!TIP]
+> Try **Puzzle Mode** with its 26 short stages to play with the the special [*'ocular' rotation system*](#ocular-rotation-system)!
+> 
+> <details>
+> 
+> <summary> mild Puzzle Mode spoiler </summary>
+> 
+> ![Animated Demo of Tetrs' Puzzle Mode](Gallery/tetrs_rec-puzzle.gif)
+> 
+> </details>
 
 
 ## Features of the Application
@@ -61,7 +62,7 @@
 **Gamemodes**
 - Marathon (reach lvl 20), 40-Lines, Time Trial, Master (20G), Endless.
 - Puzzle Mode
-  - Perfect-clear yourself through 26 short puzzles with piece acrobatics enabled by the [*'ocular' rotation system*](#ocular-rotation-system) (one retry per puzzle stage).
+  - Perfect-clear yourself through 26 short puzzles with piece acrobatics enabled by the self-developed 'ocular' rotation system! *(\*Up to hree attempts per puzzle stage.)*
 - Custom Mode
   - Change start level, toggle level increment, set game limit *(Time, Score, Pieces, Lines, Level, or None)*.
 
