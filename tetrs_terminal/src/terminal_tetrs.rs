@@ -1086,8 +1086,8 @@ impl<T: Write> App<T> {
     fn pause(&mut self) -> io::Result<MenuUpdate> {
         let selection = vec![
             Menu::NewGame,
-            Menu::Scores,
             Menu::Settings,
+            Menu::Scores,
             Menu::About,
             Menu::Quit("quit from pause".to_string()),
         ];
