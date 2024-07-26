@@ -165,7 +165,6 @@ fn rotate_ocular(piece: &ActivePiece, board: &Board, right_turns: i32) -> Option
 }
 
 fn rotate_super(piece: &ActivePiece, board: &Board, right_turns: i32) -> Option<ActivePiece> {
-    // TODO: Implement SRS.
     let left = match right_turns.rem_euclid(4) {
         // No rotation occurred.
         0 => return Some(*piece),

@@ -279,6 +279,7 @@ impl<T: Write> App<T> {
         current_menu_name: &str,
         selection: Vec<Menu>,
     ) -> io::Result<MenuUpdate> {
+        let mut easteregg = 0isize;
         let mut selected = 0usize;
         loop {
             let w_main = Self::W_MAIN.into();
@@ -339,6 +340,12 @@ impl<T: Write> App<T> {
                         format!("{:^w_main$}", "Use [←] [→] [↑] [↓] [Esc] [Enter].",).italic(),
                     ))?;
             }
+            if easteregg.abs() == 42 {
+                self.term
+                    .queue(Clear(terminal::ClearType::All))?
+                    .queue(MoveTo(0, y_main))?
+                    .queue(Print(Self::DAVIS))?;
+            }
             self.term.flush()?;
             // Wait for new input.
             match event::read()? {
@@ -378,6 +385,7 @@ impl<T: Write> App<T> {
                     if !selection.is_empty() {
                         selected += selection.len() - 1;
                     }
+                    easteregg -= 1;
                 }
                 // Move selector down.
                 Event::Key(KeyEvent {
@@ -388,6 +396,7 @@ impl<T: Write> App<T> {
                     if !selection.is_empty() {
                         selected += 1;
                     }
+                    easteregg += 1;
                 }
                 // Other event: don't care.
                 _ => {}
@@ -1536,6 +1545,8 @@ impl<T: Write> App<T> {
             vec![],
         )
     }
+
+    const DAVIS: &'static str = "▀█▀ \"I am like Solomon because I built God's temple, an operating system. God said 640x480 16 color graphics but the operating system is 64-bit and multi-cored! Go draw a 16 color elephant. Then, draw a 24-bit elephant in MS Paint and be enlightened. Artist stopped photorealism when the camera was invented. A cartoon is actually better than photorealistic. For the next thousand years, first-person shooters are going to get boring. Tetris looks good.\" - In memory of Terry A. Davis";
 }
 
 pub fn format_duration(dur: Duration) -> String {

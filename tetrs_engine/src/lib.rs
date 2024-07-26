@@ -154,7 +154,7 @@ pub struct GameState {
     pub level: NonZeroU32,
     pub score: u32,
     pub consecutive_line_clears: u32,
-    pub back_to_back_special_clears: u32, // TODO: Include this in score calculation and FeedbackEvent variant.
+    pub back_to_back_special_clears: u32,
 }
 
 pub struct Game {
@@ -912,11 +912,13 @@ impl Game {
                         self.state.back_to_back_special_clears = 0;
                     }
                     let score_bonus = 10
-                        *(n_lines_cleared * n_lines_cleared)
-                        * if spin { 4 } else { 1 } // TODO: Scoring.
+                        * (n_lines_cleared * n_lines_cleared)
+                        * if spin { 4 } else { 1 }
                         * if perfect_clear { 16 } else { 1 }
                         * self.state.consecutive_line_clears
-                        * (self.state.back_to_back_special_clears * self.state.back_to_back_special_clears).max(1);
+                        * (self.state.back_to_back_special_clears
+                            * self.state.back_to_back_special_clears)
+                            .max(1);
                     self.state.score += score_bonus;
                     let yippie = Feedback::Accolade {
                         score_bonus,

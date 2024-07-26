@@ -282,7 +282,6 @@ impl GameScreenRenderer for Renderer {
             }
         }
         // Draw preview.
-        // TODO: Possibly implement more preview.
         if game.config().preview_count > 0 {
             // SAFETY: `preview_count > 0`.
             let next_piece = next_pieces.front().unwrap();
@@ -437,8 +436,6 @@ impl GameScreenRenderer for Renderer {
             game_time.saturating_sub(*event_time) < Duration::from_millis(6000)
         });
         // Execute draw.
-        // TODO: Unnecessary move?
-        // app.term.queue(MoveTo(0,0))?;
         app.term.queue(terminal::EndSynchronizedUpdate)?;
         app.term.flush()?;
         Ok(())
