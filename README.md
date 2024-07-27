@@ -57,7 +57,7 @@
 </details>
 
 > [!TIP]
-> Play **Puzzle Mode** with its 26 stages to try the special ['ocular' rotation system](#ocular-rotation-system) *(feat. T-spin Triples)*!
+> Play **Puzzle Mode** with its 21 stages to try the special ['ocular' rotation system](#ocular-rotation-system) *(feat. T-spin Triples)*!
 > 
 > <details>
 > 
@@ -114,6 +114,7 @@ For more technical details see [Features of the Tetrs Engine](#features-of-the-t
   
 ### Scoreboard
 - History of games played in the past.
+- *(\*Games where 0 lines have been cleared are auto-deleted upon exit.)*
 
 \*Note that settings and game history are stored to / loaded from a local *tetrs_terminal.json* file if possible (generated in the folder where `tetrs_terminal` is executed).
 

@@ -19,7 +19,7 @@ use tetrs_engine::{
 
 use crate::{
     game_renderers::GameScreenRenderer,
-    terminal_tetrs::{format_duration, format_key, format_keybinds, App, GameRunningStats},
+    terminal_tetrs::{format_duration, format_key, format_keybinds, App, RunningGameStats},
 };
 
 #[derive(Clone, Default, Debug)]
@@ -119,6 +119,7 @@ impl ScreenBuf {
             }
         }
         // End frame update and flush.
+        term.queue(cursor::MoveTo(0, 0))?;
         term.queue(terminal::EndSynchronizedUpdate)?;
         term.flush()?;
         // Clear old.
@@ -154,7 +155,7 @@ impl GameScreenRenderer for Renderer {
         &mut self,
         app: &mut App<T>,
         game: &mut Game,
-        action_stats: &mut GameRunningStats,
+        action_stats: &mut RunningGameStats,
         new_feedback_events: FeedbackEvents,
         screen_resized: bool,
     ) -> io::Result<()>

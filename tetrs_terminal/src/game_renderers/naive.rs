@@ -12,7 +12,7 @@ use tetrs_engine::{Feedback, FeedbackEvents, Game, GameState, GameTime};
 
 use crate::{
     game_renderers::GameScreenRenderer,
-    terminal_tetrs::{App, GameRunningStats},
+    terminal_tetrs::{App, RunningGameStats},
 };
 
 #[derive(Clone, Default, Debug)]
@@ -25,7 +25,7 @@ impl GameScreenRenderer for Renderer {
         &mut self,
         app: &mut App<T>,
         game: &mut Game,
-        _action_stats: &mut GameRunningStats,
+        _action_stats: &mut RunningGameStats,
         new_feedback_events: FeedbackEvents,
         _screen_resized: bool,
     ) -> io::Result<()>
