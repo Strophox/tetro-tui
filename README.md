@@ -116,7 +116,7 @@ For more technical details see [Features of the Tetrs Engine](#features-of-the-t
 - History of games played in the past.
 - *(\*Games where 0 lines have been cleared are auto-deleted upon exit.)*
 
-\*Note that settings and game history are stored to / loaded from a local *tetrs_terminal.json* file if possible (generated in the folder where `tetrs_terminal` is executed).
+\*Note that settings and game history are stored to / loaded from a local *`tetrs_terminal.json`* file if possible (in the same folder where `tetrs_terminal` is executed).
 
 
 # Features of the Tetrs Engine
@@ -127,7 +127,7 @@ Basic interaction with the engine could look like the following:
 
 ```rust
 // Starting a game.
-let game = tetrs_engine::Game::with_gamemode(Gamemode::marathon());
+let game = tetrs_engine::Game::new(Gamemode::marathon());
 
 // Application loop.
 loop {
@@ -137,8 +137,9 @@ loop {
   // Updating the game with *no* change in button state (since previous).
   game.update(None, update_time_2);
 
-  // Retrieving the game state (to render the board, active piece, next pieces, etc.).
+  // View game state
   let GameState { board, .. } = game.state();
+  // (Render the board, etc..)
 }
 ```
 
@@ -163,12 +164,12 @@ tetrs_engine = { git = "https://github.com/Strophox/tetrs.git" }
 - Rotation Systems: *Ocular Rotation System*, *Classic Rotation System*, *Super Rotation System*. See [Ocular Rotation System](#ocular-rotation-system).
 - Tetromino Generators: *Recency-based*, *Bag*, *Uniformly random*. Default is recency. See [Tetromino Generation](#tetromino-generation).
 - Piece Preview (default 1)
-- Delayed Auto Shift (default DAS = 200ms)
-- Auto Repeat Rate (default ARR = 50ms)
+- Delayed Auto Shift (default DAS = 167ms) *(\*Note: at very high levels [DAS and ARR equal lock delay - 1ms](https://www.reddit.com/r/Tetris/comments/cjkosd/tetris_effect_master_mode/).)*
+- Auto Repeat Rate (default ARR = 33ms)
 - Soft Drop Factor (default SDF = 15.0)
 - Hard drop delay (default 0.1ms)
 - Line clear delay (default 200ms)
-- Appearance Delay (default ARE = 100ms)
+- Appearance Delay (default ARE = 50ms)
 
 Currently, drop delay and lock delay\* *(\*But not total ground time)* are a function of the current level:
 - Drop delay (1000ms at lvl 1 to 0.833ms ("20G") at lvl 19, as per guideline)
@@ -509,4 +510,11 @@ agg --font-family="DejaVu Sans Mono" --line-height=1.17 --renderer=resvg --font-
 ```
 
 
+
+<div  align="center">
+
 *„Piecement Places!“* - [CTWC 2016](https://www.youtube.com/watch?v=RlnlDKznIaw&t=121).
+  
+`██ ▄▄▄▄ ▄█▀ ▀█▄ ▄█▄ ▄▄█ █▄▄`
+
+</div>
