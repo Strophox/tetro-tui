@@ -98,11 +98,11 @@ For more technical details see [Features of the Tetrs Engine](#features-of-the-t
   
   | Key | Action |
   | -: | :-: |
-  | `A` | Rotate left |
-  | `D` | Rotate right |
-  | (not set) | Rotate around/180° |
   | `←` | Move left |
   | `→` | Move right |
+  | `A` | Rotate left |
+  | `D` | Rotate right |
+  | (not set) | Rotate around (180°) |
   | `↓` | Soft drop |
   | `↑` | Hard drop |
   | `Esc` | Pause game |
@@ -160,7 +160,7 @@ tetrs_engine = { git = "https://github.com/Strophox/tetrs.git" }
 
 <summary> Game Configuration Aspects </summary>
 
-- Gamemodes: Are encoded as a combination of *starting level* and *whether to increment level* and *limit* (which can be positive or negative).
+- Gamemodes: Are encoded as a combination of *starting level* and *whether to increment level* and (one/several positive/negative) *limits*.
 - Rotation Systems: *Ocular Rotation System*, *Classic Rotation System*, *Super Rotation System*. See [Ocular Rotation System](#ocular-rotation-system).
 - Tetromino Generators: *Recency-based*, *Bag*, *Uniformly random*. Default is recency. See [Tetromino Generation](#tetromino-generation).
 - Piece Preview (default 1)
@@ -185,9 +185,10 @@ All default values loosely based on the [Guideline](https://tetris.wiki/Tetris_G
 
 - Time: Game time is held abstract as "time elapsed since game started" and is not directly tied to real-world timestamps.
 - Game finish: The game knows if it finished, and if session was won or lost. Normal Game Over scenarios are:
-  - Block out: newly piece spawn location is occupied.
+  - Block out: new piece spawn location is occupied.
   - Lock out: a piece was completely locked above the skyline (row 21 and above).
-- Event queue: All game events are kept in an internal queue that is simulated through, up to the provided timestamp in a `Game::update` call.
+  - Forfeit: player stopped the current.
+- Event queue: All game events are kept in an internal queue that is simulated through (up to the provided timestamp in the `Game::update` call).
 - Buttons pressed state: The game keeps an abstract state of which buttons are currently pressed.
 - Board state: (Yes).
 - Active piece: The active piece is stored as a (tetromino, orientation, position) tuple plus some locking data.
@@ -216,7 +217,7 @@ The game provides some useful feedback events upon every `update`, usually used 
 
 While the [2009 Tetris Guideline](https://tetris.wiki/Tetris_Guideline) serves as good inspiration, I ended up doing a lot of amateur research into a variety of game details present in modern games online (thank you [Tetris Wiki](https://tetris.wiki/) and [HardDrop](https://harddrop.com/wiki)!) and also by getting some help from asking people. Thank you GrBtAce and KonSola5!
 
-In the following I detail various interesting concepts I tackled on my way to bringing this project to life - I was essentially new to Tetris and could not remember playing it more than a couple minutes in the last decade, so I had to figure all this out from scratch!
+In the following I detail various interesting concepts I tackled on my way to bringing this project to life - I was essentially new to Tetris and couldn't remember playing it for more than a couple minutes (in the last decade), so I had to figure all this out from scratch!
 
 
 ## Tetromino Generation
@@ -269,12 +270,13 @@ Good criteria for a rotation system I can think of would be:
 
 1. Symmetric rotations if the board and piece were appropriately mirrored.
 2. Equal-looking states must have the same behaviour.
-3. "Don't overdo it with crazy kicks".
-4. (But still allow fun things).
+3. The kicks should look sensible *(first try the first position one would expect, only then more lenient positions)*.
+4. The kicks should be fun *(if it looks like 'it could reasonably rotate', it should)*.
+5. "Don't overdo it with crazy kicks but still allow some neat stuff"
 
 The result of this was the *'Ocular' Rotation System*, which was made by... *looking* at each piece orientation and drawing the most *visually* sensible position(s) for it to land in after rotating.
 
-By overlapping all the kicks that are tested in sequential order, one gets a compact heatmap of where the piece will land, going from hottest color (bright yellow, first kick) to coldest (dark purple, last kick):
+By overlapping all the kicks that are tested sequentially in order, one gets a compact heatmap of where the piece will land, going from hottest color (bright yellow, first kick) to coldest (darkest purple, last kick attempt):
 
 <details>
 
@@ -284,7 +286,7 @@ By overlapping all the kicks that are tested in sequential order, one gets a com
 
 </details>
 
-Comparison with SRS:
+Here's a comparison with SRS:
 
 <details>
 
@@ -294,21 +296,22 @@ Comparison with SRS:
 
 </details>
 
-Although one starts to spot vague rotational symmetries as intended), the kicks are "all over the place" and have very lenient vertical range.
+So with SRS, although one does start to spot the vague rotational symmetries that were intended), they're overshadowed by asymmetrical kick states and quite lenient (upwards) vertical kicks all over the place.
 
 </details>
 
-In the end I'm happy with how this custom rotation system turned out.
+In the end I'm happy with how the custom rotation system turned out.
 It vaguely follows the mantra "if the rotation looks like it could reasonably work visually, it should" (+ some added kicks for flexibility and fun).
-*(\*it even uses all piece symmetries to store only half the kicks!)*
 
-On the fun side, *Puzzle Mode* in the frontend application is intended to show off some of the spins possible with this system.
-You should try it out; I somehow still managed to include a (decently sensible) *T-Spin Triple!*
+*(\*Bonus: the code can use the symmetry of the system and only store the minimum kick table required!)*
+
+On the fun side, *Puzzle Mode* in the playable application is intended to show off some of the spins possible with this system; 
+Feel free to try it out! I somehow still managed to include a ("sensible") *T-Spin Triple!*
 
 
 ## Piece Locking
 
-The mechanic of locking down a piece tends to be more complicated than it might seem at first.
+The mechanics of locking down a piece on the grid can be more complicated than it might sound at first glance.
 
 Good criteria for a locking system I can think of would be:
 
@@ -317,11 +320,11 @@ Good criteria for a locking system I can think of would be:
 3. Force players to *react/input faster* on higher levels, as speed is supposed to increase.
 4. Implement all these limitations as naturally/simply as possible.
 
-I started researching and deciding which locking system to use.
+So I started looking and deciding which locking system to implement;
 
 <details>
 
-<summary> Piece Locking ... </summary>
+<summary> Creating a Locking System. </summary>
 
 *Classic lock down* is simple, but if one decreases the lock timer at higher levels (3.) then it might become exceedingly difficult for players to actually have enough time to do adjustments (2.).
 
@@ -376,12 +379,13 @@ It's pretty flexible (2.) yet forces a decision (1.), but the 'count to 15 moves
 <sup>*(\*Also note that after the 15 moves run out one can still manipulate the piece till lock down.)*</sup>
 
 > **Idea.**
+> 
 > What if we limit the *total amount of time a piece may touch a surface* (1.) instead of number of moves/rotates (4.), though but at higher levels the piece *attempts* to lock down faster (3.), re-attempting later upon move/rotate;
 > This still allows for plenty <sup>*\*technically arbitrarily many*</sup> piece manipulations (2.) while still fulfilling the other points :D
 
 <details>
 
-<summary> Timer Extended Placement Lock Down </summary>
+<summary> 'Timer' Extended Placement Lock Down </summary>
 
 *Let 'ground time' denote the amount of time a piece touches a surface*
 
@@ -393,21 +397,23 @@ It's pretty flexible (2.) yet forces a decision (1.), but the 'count to 15 moves
 > - If the lock timer runs out *or* the ground time reaches 2.25s, lock the piece immediately as soon as it touches the next surface.
 > - If the piece falls below the previously lowest recorded y coordinate, reset the ground time.
 
+Nice.
+
 </details>
 
-Nice.
 Although now it *may potentially* be abused by players which keep pieces in the air, only to occasionally touch down and reset the lock timer while hardly adding any ground time (note that this problem vanishes at 20G).
 
 A small patch for this is to check the last time the piece touched the ground, and if that was, say, less than 2×(drop delay) ago, then act as if the piece had been touching ground all along. This way the piece is guaranteed to be counted as "continuously on ground" even with fast upward kicks of height ≤ 2.
 
 </details>
 
-In the end, a timer-based extended placement lockdown (+ ground continuity fix) is what I used. I have yet to find a nicer system.
+In the end, a timer-based extended placement lockdown (+ ground continuity fix) is what I used.
+Although there might be a nicer system somehow..
 
 
 ## Scoring
 
-The exact scoring formula is given by the following:
+The exact scoring formula is given as follows:
   <details>
   
   <summary>Scoring Details and Formula</summary>
@@ -425,7 +431,7 @@ The exact scoring formula is given by the following:
           combo = "number of consecutive pieces where line clear occurred"
           backToBack = "number of consecutive line clears where spin, perfect or quadruple line clear occurred"
   ```
-  A table of some bonuses is provided:
+  *A table of some example bonuses:*
   | Score bonus | Action |
   | -: | :- |
   | +10 | Single |
@@ -444,10 +450,10 @@ The exact scoring formula is given by the following:
 
 Coming up with a *good* [scoring system](https://tetris.wiki/Scoring#Recent_guideline_compatible_games) is easier with practical experience and playtesters.
 
-I earnestly tried to come up with a new, simple, fair formula, but it's tough to judge how much to reward the player for any given action *(how many points should a 'perfect clear' receive? - I've never achieved a single perfect clear in my life)*.
+I earnestly tried to come up with a new, simple, good formula, but it's tough to judge how much to reward the player for any given action *(how many points should a 'perfect clear' receive? - I've never achieved a single perfect clear in my life)*.
 The one I came up with, put mildly, *probably sucks*.
 
-But I still allowed myself to experiment, because I really liked the idea of [rewarding all spins](https://harddrop.com/wiki/List_of_twists) (and don't understand modern Tetris' obession with T-spins when L and J spins are also so satisfying).
+But I still allowed myself to experiment, because I really liked the idea of [rewarding all spins](https://harddrop.com/wiki/List_of_twists) (and don't understand modern Tetris' obession with T-spins when S-, Z-, L- and J-spins are also so satisfying).
 
 
 ## Controls
