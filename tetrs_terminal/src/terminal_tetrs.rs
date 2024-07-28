@@ -1334,8 +1334,10 @@ impl<T: Write> App<T> {
                             GraphicsColor::ColorRGB => GraphicsColor::Color16,
                         };
                     }
-                    2 if self.settings.game_fps >= 1.0 => {
-                        self.settings.game_fps -= 1.0;
+                    2 => {
+                        if self.settings.game_fps >= 1.0 {
+                            self.settings.game_fps -= 1.0;
+                        }
                     }
                     3 => {
                         self.settings.show_fps = !self.settings.show_fps;
