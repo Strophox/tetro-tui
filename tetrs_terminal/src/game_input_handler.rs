@@ -84,7 +84,6 @@ impl CrosstermHandler {
                     // Escape pressed: send pause.
                     Ok(Event::Key(KeyEvent {
                         code: KeyCode::Esc,
-                        kind: KeyEventKind::Press,
                         ..
                     })) => {
                         let _ = sender.send(Err(Sig::Pause));
@@ -96,7 +95,6 @@ impl CrosstermHandler {
                     // Candidate key pressed.
                     Ok(Event::Key(KeyEvent {
                         code: key,
-                        kind: KeyEventKind::Press,
                         ..
                     })) => {
                         if let Some(&button) = keybinds.get(&key) {

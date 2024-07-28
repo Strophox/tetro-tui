@@ -8,7 +8,7 @@ use std::{
 use crossterm::{
     cursor,
     event::KeyCode,
-    style::{self, Color, Print, Stylize},
+    style::{Color, PrintStyledContent, Stylize},
     terminal, QueueableCommand,
 };
 use tetrs_engine::{
@@ -140,9 +140,9 @@ impl ScreenBuf {
             u16::try_from(self.y_draw + y).unwrap(),
         ))?;
         if let Some(color) = col {
-            term.queue(style::PrintStyledContent(c.with(*color)))?;
+            term.queue(PrintStyledContent(c.with(*color)))?;
         } else {
-            term.queue(Print(c))?;
+            term.queue(PrintStyledContent(c.reset()))?;
         }
         Ok(())
     }
