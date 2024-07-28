@@ -307,7 +307,7 @@ You should try it out; I somehow still managed to include a (decently sensible) 
 
 ## Piece Locking
 
-The mechanic of locking a piece tends to be more complicated than it sounds.
+The mechanic of locking down a piece tends to be more complicated than it might seem at first.
 
 Good criteria for a locking system I can think of would be:
 
@@ -459,7 +459,7 @@ In a sample a few dozen opinions on reddit posts there was a 50/50 split on `←
 
 ## Menu Navigation
 
-Modeling how the TUI should handle menus and move between them very unclear initially.
+Modeling how a TUI should handle menus and move between them was unclear initially.
 Luckily, I was able to look at how [Noita](https://noitagame.com/)'s menus are connected and saw that it was quite structured:
 The menus form a graph (with menus as nodes and valid transitions as directed edges), with only some menus ('pop-ups') that allow backtracking to a previous menu.
 
@@ -491,6 +491,7 @@ On the Rust side of things I learned about;
 - [clap](https://docs.rs/clap/latest/clap/) to parse simple command line arguments & `cargo run -- --fps=60`,
 - [formatting](https://docs.rs/chrono/latest/chrono/struct.DateTime.html#method.format) the time with [chrono](https://rust-lang-nursery.github.io/rust-cookbook/datetime/parse.html#display-formatted-date-and-time) my favourite way,
 - the `format!` macro (which I discovered is the analogue to Python's f-strings my beloved),
+- [`debug_struct`](https://doc.rust-lang.org/std/fmt/struct.Formatter.html#method.debug_struct) proved quite helpful to ensure `Debug` for all structs,
 - some [annoyances](https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement) with terminal emulators, including how slow they are ~on Windows~,
 - the handy drop-in [`BufWriter`](https://doc.rust-lang.org/std/io/struct.BufWriter.html) wrapper to diminish flickering,
 - more practice with Rust's [module system](https://doc.rust-lang.org/book/ch07-00-managing-growing-projects-with-packages-crates-and-modules.html),
@@ -500,7 +501,7 @@ On the Rust side of things I learned about;
 - learning about [cross-compilation](https://blog.logrocket.com/guide-cross-compilation-rust/#how-rust-represents-platforms) for releases,
 - and as last honourable mention: Looking for a good input reading crate for *ages*, failing to get [device_query](https://crates.io/crates/device_query) to work, and settling on trusty Crossterm, which did its job perfectly and I couldn't be happier, considering how not-made-for-games consoles are.
 
-All in all, Rust, known for its safety and performance - while still having high-level constructs like abstract datatypes (my beloved) - proved to be an excellent choice for this project.
+All in all, Rust, known for its safety and performance - while still having high-level constructs like abstract datatypes - proved to be an excellent choice for this project.
 
 Also, I'd like to appreciate how nice the name *tetrs* fits for a Rust game that does not infringe on copyright <sup>~~though there are, like, a quadrillion other [`tetrs`](https://github.com/search?q=%22tetrs%22&type=repositories)'s on GitHub, ooof~~</sup>.
 
