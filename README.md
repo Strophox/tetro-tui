@@ -94,6 +94,7 @@ For more technical details see [Features of the Tetrs Engine](#features-of-the-t
 - Rotation systems: *Ocular*, *Classic* and *Super*.
 - Configurable controls.
   <details>
+- **Keep Savefile**: By default this program won't store anything and just let you play the game. If you **do** want `tetrs_terminal` to restore your settings and past games in the future then make sure this is toggled **on**!
   
   <summary> Default Game Controls </summary>
   
@@ -117,7 +118,11 @@ For more technical details see [Features of the Tetrs Engine](#features-of-the-t
 - History of games played in the past.
 - *(\*Games where 0 lines have been cleared are auto-deleted upon exit.)*
 
-\*Note that settings and game history are stored to / loaded from a local *`tetrs_terminal.json`* file if possible (in the same folder where `tetrs_terminal` is executed).
+> [!TIP]
+> If the "Keep savefile for tetrs" setting is toggled **on** then your settings and game history will be stored as a `.tetrs_terminal.json` in a location that tries to follow OS convention:
+> | | Windows | Linux | macOS | other |
+> | location | `%APPDATA%` | `~/.config/` | `~/Library/Application Support/` | `~/` |
+> (If this location fails it tries to store it locally (`./`)!)
 
 
 # Features of the Tetrs Engine
@@ -497,6 +502,7 @@ On the Rust side of things I learned about;
 - the [`std` traits](https://rust-lang.github.io/api-guidelines/interoperability.html),
 - using [serde](https://serde.rs/derive.html) a little for a hacky way to [save some structured data locally](https://stackoverflow.com/questions/62771576/how-do-i-save-structured-data-to-file),
 - [conditionally derive](https://stackoverflow.com/questions/42046327/conditionally-derive-based-on-feature-flag) feature flags & `cargo check --features serde`,
+- [conditionally compile](https://doc.rust-lang.org/reference/conditional-compilation.html),
 - [clap](https://docs.rs/clap/latest/clap/) to parse simple command line arguments & `cargo run -- --fps=60`,
 - [formatting](https://docs.rs/chrono/latest/chrono/struct.DateTime.html#method.format) the time with [chrono](https://rust-lang-nursery.github.io/rust-cookbook/datetime/parse.html#display-formatted-date-and-time) my favourite way,
 - the `format!` macro (which I discovered is the analogue to Python's f-strings my beloved),
