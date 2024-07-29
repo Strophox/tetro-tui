@@ -9,7 +9,7 @@
 - `tetrs_terminal`, a simple and polished cross-platform TUI implementation of the typical singleplayer game,
 - and `tetrs_engine`, a tetromino game engine implementing an abstract interface handling modern mechanics.
 
-**(Author's Note : After release v0.1.5 I am quite busy and may not get back to you on issues immediately)**
+**(Author's Note : Due to irl circumstances I cannot continue development right now - issues may be worked on at a later time)**
 
 
 ## How to run
