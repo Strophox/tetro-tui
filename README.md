@@ -9,7 +9,11 @@
 - `tetrs_terminal`, a simple and polished cross-platform TUI implementation of the typical singleplayer game,
 - and `tetrs_engine`, a tetromino game engine implementing an abstract interface handling modern mechanics.
 
+---
+
 **(Author's Note : Due to irl circumstances I cannot continue development right now - issues may be worked on at a later time)**
+
+---
 
 
 ## How to run
@@ -123,7 +127,7 @@ For more technical details see [Features of the Tetrs Engine](#features-of-the-t
 - *(\*Games where 0 lines have been cleared are auto-deleted upon exit.)*
 
 > [!NOTE]
-> If "Keep savefile for tetrs" is turned on then your settings and games will be stored in `.tetrs_terminal.json` under a directory that tries to follow OS conventions:
+> If "Keep savefile for tetrs" is turned on then your settings and games will be stored in `.tetrs_terminal.json` under a directory that tries to follow OS conventions [[1](https://softwareengineering.stackexchange.com/questions/3956/best-way-to-save-application-settings), [2](https://softwareengineering.stackexchange.com/questions/299869/where-is-the-appropriate-place-to-put-application-configuration-files-for-each-p)]:
 > | | Windows | Linux | macOS | other |
 > | -: | - | - | - | - |
 > | location | `%APPDATA%` | `~/.config/` | `~/Library/Application Support/` | (home directory) |
@@ -471,8 +475,14 @@ But I still allowed myself to experiment, because I really liked the idea of [re
 ## Controls
 
 A search for the 'best' / 'most ergonomic' game keybinds was [inconclusive](https://youtube.com/watch?v=6YhkkyXydNI&t=809).
-In a sample a few dozen opinions on reddit posts there was a 50/50 split on `←` `→` / `a` `d` or `z` `x` / `←` `→` for **move** / **rotate**, respectively.
-"Choose what feels best for you" was frequent advice - sounds about right.
+In a sample of a few dozen opinions from reddit posts there was about a 50/50 split on
+
+| move | rotate |
+| - | - |
+| `a` `d` | `←` `→` |
+| `←` `→` | `z` `x` |
+
+Frequent advice I saw, "Choose what feels best for you", which sounds about right.
 *(\*though some mentioned one should **not** hammer ` spacebar ` for hard drops, the only button the Guideline suggests for this action.)*
 
 
