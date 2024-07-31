@@ -13,9 +13,9 @@ use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifier
 
 use tetrs_engine::Button;
 
-pub type ButtonSignal = Result<(Instant, Button, bool), Sig>;
+pub type ButtonOrSignal = Result<(Instant, Button, bool), Signal>;
 
-pub enum Sig {
+pub enum Signal {
     WindowResize,
     Pause,
     ForfeitGame,
@@ -37,7 +37,7 @@ impl Drop for CrosstermHandler {
 
 impl CrosstermHandler {
     pub fn new(
-        sender: &Sender<ButtonSignal>,
+        sender: &Sender<ButtonOrSignal>,
         keybinds: &HashMap<KeyCode, Button>,
         kitty_enabled: bool,
     ) -> Self {
@@ -52,8 +52,19 @@ impl CrosstermHandler {
         }
     }
 
+    pub fn default_keybinds() -> HashMap<KeyCode, Button> {
+        HashMap::from([
+            (KeyCode::Left, Button::MoveLeft),
+            (KeyCode::Right, Button::MoveRight),
+            (KeyCode::Char('a'), Button::RotateLeft),
+            (KeyCode::Char('d'), Button::RotateRight),
+            (KeyCode::Down, Button::DropSoft),
+            (KeyCode::Up, Button::DropHard),
+        ])
+    }
+
     fn spawn_standard(
-        sender: Sender<ButtonSignal>,
+        sender: Sender<ButtonOrSignal>,
         flag: Arc<AtomicBool>,
         keybinds: HashMap<KeyCode, Button>,
     ) -> JoinHandle<()> {
@@ -70,7 +81,7 @@ impl CrosstermHandler {
                         modifiers: KeyModifiers::CONTROL,
                         ..
                     })) => {
-                        let _ = sender.send(Err(Sig::ExitProgram));
+                        let _ = sender.send(Err(Signal::ExitProgram));
                         break;
                     }
                     Ok(Event::Key(KeyEvent {
@@ -78,7 +89,7 @@ impl CrosstermHandler {
                         modifiers: KeyModifiers::CONTROL,
                         ..
                     })) => {
-                        let _ = sender.send(Err(Sig::ForfeitGame));
+                        let _ = sender.send(Err(Signal::ForfeitGame));
                         break;
                     }
                     // Escape pressed: send pause.
@@ -87,11 +98,11 @@ impl CrosstermHandler {
                         kind: KeyEventKind::Press,
                         ..
                     })) => {
-                        let _ = sender.send(Err(Sig::Pause));
+                        let _ = sender.send(Err(Signal::Pause));
                         break;
                     }
                     Ok(Event::Resize(..)) => {
-                        let _ = sender.send(Err(Sig::WindowResize));
+                        let _ = sender.send(Err(Signal::WindowResize));
                     }
                     // Candidate key pressed.
                     Ok(Event::Key(KeyEvent {
@@ -114,7 +125,7 @@ impl CrosstermHandler {
     }
 
     fn spawn_kitty(
-        sender: Sender<ButtonSignal>,
+        sender: Sender<ButtonOrSignal>,
         flag: Arc<AtomicBool>,
         keybinds: HashMap<KeyCode, Button>,
     ) -> JoinHandle<()> {
@@ -132,7 +143,7 @@ impl CrosstermHandler {
                         modifiers: KeyModifiers::CONTROL,
                         ..
                     })) => {
-                        let _ = sender.send(Err(Sig::ExitProgram));
+                        let _ = sender.send(Err(Signal::ExitProgram));
                         break;
                     }
                     Ok(Event::Key(KeyEvent {
@@ -140,7 +151,7 @@ impl CrosstermHandler {
                         modifiers: KeyModifiers::CONTROL,
                         ..
                     })) => {
-                        let _ = sender.send(Err(Sig::ForfeitGame));
+                        let _ = sender.send(Err(Signal::ForfeitGame));
                         break;
                     }
                     // Escape pressed: send pause.
@@ -149,11 +160,11 @@ impl CrosstermHandler {
                         kind: KeyEventKind::Press,
                         ..
                     })) => {
-                        let _ = sender.send(Err(Sig::Pause));
+                        let _ = sender.send(Err(Signal::Pause));
                         break;
                     }
                     Ok(Event::Resize(..)) => {
-                        let _ = sender.send(Err(Sig::WindowResize));
+                        let _ = sender.send(Err(Signal::WindowResize));
                     }
                     // TTY simulated press repeat: ignore.
                     Ok(Event::Key(KeyEvent {

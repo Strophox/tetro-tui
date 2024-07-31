@@ -125,9 +125,9 @@ pub enum InternalEvent {
     LineClear,
     Spawn,
     Lock,
-    Fall,
     HardDrop,
     SoftDrop,
+    Fall,
     MoveSlow,
     MoveFast,
     Rotate,
@@ -768,7 +768,7 @@ impl Game {
         if !dS0 && dS1 {
             self.state.events.insert(InternalEvent::SoftDrop, update_time);
         } else if dS0 && !dS1 {
-            self.state.events.insert(InternalEvent::Fall, update_time + self.drop_delay());
+            self.state.events.insert(InternalEvent::Fall, update_time + Self::drop_delay(&self.state.level));
         }
         // Hard drop button pressed.
         if !dH0 && dH1 {
@@ -786,7 +786,7 @@ impl Game {
             InternalEvent::Spawn => {
                 debug_assert!(
                     prev_piece.is_none(),
-                    "spawning new piece while an active piece is still in play"
+                    "spawning event but an active piece is still in play"
                 );
                 let tetromino = self.state.next_pieces.pop_front().unwrap_or_else(|| {
                     self.config
@@ -822,7 +822,7 @@ impl Game {
                 Some(next_piece)
             }
             InternalEvent::Rotate => {
-                let prev_piece = prev_piece.expect("rotating none active piece");
+                let prev_piece = prev_piece.expect("rotate event but no active piece");
                 // Special 20G fall immediately after.
                 if self.state.level >= Self::LEVEL_20G {
                     self.state.events.insert(InternalEvent::Fall, event_time);
@@ -844,7 +844,7 @@ impl Game {
             }
             InternalEvent::MoveSlow | InternalEvent::MoveFast => {
                 // Handle move attempt and auto repeat move.
-                let prev_piece = prev_piece.expect("moving none active piece");
+                let prev_piece = prev_piece.expect("move event but no active piece");
                 // Special 20G fall immediately after.
                 if self.state.level >= Self::LEVEL_20G {
                     self.state.events.insert(InternalEvent::Fall, event_time);
@@ -854,7 +854,7 @@ impl Game {
                 } else {
                     self.config.auto_repeat_rate
                 }
-                .min(self.lock_delay().saturating_sub(Duration::from_millis(1)));
+                .min(Self::lock_delay(&self.state.level).saturating_sub(Duration::from_millis(1)));
                 self.state
                     .events
                     .insert(InternalEvent::MoveFast, event_time + move_delay);
@@ -864,34 +864,29 @@ impl Game {
                     .fits_at(&self.state.board, (dx, 0))
                     .or(Some(prev_piece))
             }
-            InternalEvent::Fall | InternalEvent::SoftDrop => {
-                let prev_piece = prev_piece.expect("falling/softdropping none active piece");
+            InternalEvent::Fall => {
+                let prev_piece = prev_piece.expect("falling event but no active piece");
+                // Gravity at 20G is a special case to drop piece infinitely fast.
                 if self.state.level >= Self::LEVEL_20G {
-                    if event == InternalEvent::SoftDrop && !self.config.no_soft_drop_lock && prev_piece.fits_at(&self.state.board, (0, -1)).is_none() {
-                        self.state.events.insert(InternalEvent::Lock, event_time);
-                    }
                     Some(prev_piece.well_piece(&self.state.board))
+                // Ordinary gravity fall.
                 } else {
-                    let drop_delay = if self.state.buttons_pressed[Button::DropSoft] {
-                        Duration::from_secs_f64(
-                            self.drop_delay().as_secs_f64() / self.config.soft_drop_factor,
-                        )
-                    } else {
-                        self.drop_delay()
-                    };
-                    // Try to move active piece down.
+                    // Drop delay is possibly faster due to soft drop button pressed.
+                    let mut drop_delay = Self::drop_delay(&self.state.level);
+                    if self.state.buttons_pressed[Button::DropSoft] {
+                        drop_delay = Duration::from_secs_f64(
+                            drop_delay.as_secs_f64() / self.config.soft_drop_factor,
+                        );
+                    }
+                    // Try to drop active piece down by one, and queue next fall event.
                     if let Some(dropped_piece) = prev_piece.fits_at(&self.state.board, (0, -1)) {
                         self.state
                             .events
                             .insert(InternalEvent::Fall, event_time + drop_delay);
                         Some(dropped_piece)
-                    // Piece hit ground but SoftDrop was pressed.
-                    } else if event == InternalEvent::SoftDrop && !self.config.no_soft_drop_lock {
-                        self.state.events.insert(InternalEvent::Lock, event_time);
-                        Some(prev_piece)
-                    // Piece hit ground and tried to drop naturally: don't do anything but try falling again later.
                     } else {
-                        // NOTE: This could be changed if a reason for it appears.
+                        // Otherwise ciece could not move down.
+                        // Add fall attempt event anyway.
                         self.state
                             .events
                             .insert(InternalEvent::Fall, event_time + drop_delay);
@@ -899,8 +894,31 @@ impl Game {
                     }
                 }
             }
+            InternalEvent::SoftDrop => {
+                let prev_piece = prev_piece.expect("softdrop event but no active piece");
+                // Try to drop active piece down by one, and queue next fall event.
+                if let Some(dropped_piece) = prev_piece.fits_at(&self.state.board, (0, -1)) {
+                    let mut drop_delay = Self::drop_delay(&self.state.level);
+                    if self.state.buttons_pressed[Button::DropSoft] {
+                        drop_delay = Duration::from_secs_f64(
+                            drop_delay.as_secs_f64() / self.config.soft_drop_factor,
+                        );
+                    }
+                    self.state
+                        .events
+                        .insert(InternalEvent::Fall, event_time + drop_delay);
+                    Some(dropped_piece)
+                } else {
+                    // Otherwise ciece could not move down.
+                    // Immediately lock (unless option for it is disabled).
+                    if !self.config.no_soft_drop_lock {
+                        self.state.events.insert(InternalEvent::Lock, event_time);
+                    }
+                    Some(prev_piece)
+                } 
+            }
             InternalEvent::HardDrop => {
-                let prev_piece = prev_piece.expect("harddropping none active piece");
+                let prev_piece = prev_piece.expect("harddrop event but no active piece");
                 // Move piece all the way down.
                 let dropped_piece = prev_piece.well_piece(&self.state.board);
                 feedback_events.push((event_time, Feedback::HardDrop(prev_piece, dropped_piece)));
@@ -915,7 +933,7 @@ impl Game {
                 prev_piece
             }
             InternalEvent::Lock => {
-                let prev_piece = prev_piece.expect("locking none active piece");
+                let prev_piece = prev_piece.expect("lock event but no active piece");
                 feedback_events.push((event_time, Feedback::PieceLocked(prev_piece)));
                 // Attempt to lock active piece fully above skyline - Game over.
                 if prev_piece
@@ -1093,7 +1111,7 @@ impl Game {
                                 Some(last_touchdown) => {
                                     let (last_touchdown, ground_time_left) = if event_time
                                         .saturating_sub(last_liftoff)
-                                        <= 2 * self.drop_delay()
+                                        <= 2 * Self::drop_delay(&self.state.level)
                                     {
                                         (
                                             prev_locking_data.last_touchdown,
@@ -1150,7 +1168,7 @@ impl Game {
                     let remaining_ground_time = next_locking_data
                         .ground_time_left
                         .saturating_sub(current_ground_time);
-                    let lock_timer = std::cmp::min(self.lock_delay(), remaining_ground_time);
+                    let lock_timer = std::cmp::min(Self::lock_delay(&self.state.level), remaining_ground_time);
                     self.state
                         .events
                         .insert(InternalEvent::LockTimer, event_time + lock_timer);
@@ -1163,8 +1181,8 @@ impl Game {
     }
 
     #[rustfmt::skip]
-    const fn drop_delay(&self) -> Duration {
-        Duration::from_nanos(match self.state.level.get() {
+    const fn drop_delay(level: &NonZeroU32) -> Duration {
+        Duration::from_nanos(match level.get() {
              1 => 1_000_000_000,
              2 =>   793_000_000,
              3 =>   617_796_000,
@@ -1188,8 +1206,8 @@ impl Game {
     }
 
     #[rustfmt::skip]
-    const fn lock_delay(&self) -> Duration {
-        Duration::from_millis(match self.state.level.get() {
+    const fn lock_delay(level: &NonZeroU32) -> Duration {
+        Duration::from_millis(match level.get() {
             1..=19 => 500,
                 20 => 450,
                 21 => 400,

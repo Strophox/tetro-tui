@@ -25,7 +25,7 @@ use tetrs_engine::{Button, ButtonsPressed, Game, GameMode, GameState, Limits, Ro
 
 use crate::game_renderers::{cached::Renderer, GameScreenRenderer};
 use crate::{
-    game_input_handler::{ButtonSignal, CrosstermHandler, Sig},
+    game_input_handler::{ButtonOrSignal, CrosstermHandler, Signal},
     puzzle_mode,
 };
 
@@ -205,18 +205,10 @@ impl<T: Write> App<T> {
                 event::KeyboardEnhancementFlags::all(),
             ));
         }
-        let default_keybinds = HashMap::from([
-            (KeyCode::Left, Button::MoveLeft),
-            (KeyCode::Right, Button::MoveRight),
-            (KeyCode::Char('a'), Button::RotateLeft),
-            (KeyCode::Char('d'), Button::RotateRight),
-            (KeyCode::Down, Button::DropSoft),
-            (KeyCode::Up, Button::DropHard),
-        ]);
         let mut app = Self {
             term: terminal,
             settings: Settings {
-                keybinds: default_keybinds,
+                keybinds: CrosstermHandler::default_keybinds(),
                 game_fps: 30.0,
                 show_fps: false,
                 graphics_style: GraphicsStyle::Unicode,
@@ -452,7 +444,7 @@ impl<T: Write> App<T> {
                 self.term
                     .queue(MoveTo(
                         x_main,
-                        y_main + y_selection + 4 + u16::try_from(n_names).unwrap() + 3,
+                        y_main + y_selection + 4 + u16::try_from(n_names).unwrap() + 2,
                     ))?
                     .queue(PrintStyledContent(
                         format!("{:^w_main$}", "Use [←] [→] [↑] [↓] [Esc] [Enter].",).italic(),
@@ -874,7 +866,7 @@ impl<T: Write> App<T> {
         game.config_mut().rotation_system = self.settings.rotation_system;
         // Prepare channel with which to communicate `Button` inputs / game interrupt.
         let mut buttons_pressed = ButtonsPressed::default();
-        let (tx, rx) = mpsc::channel::<ButtonSignal>();
+        let (tx, rx) = mpsc::channel::<ButtonOrSignal>();
         let _input_handler =
             CrosstermHandler::new(&tx, &self.settings.keybinds, self.kitty_enabled);
         // Game Loop
@@ -911,24 +903,24 @@ impl<T: Write> App<T> {
             'idle_loop: loop {
                 let frame_idle_remaining = next_frame_at - Instant::now();
                 match rx.recv_timeout(frame_idle_remaining) {
-                    Ok(Err(Sig::ExitProgram)) => {
+                    Ok(Err(Signal::ExitProgram)) => {
                         self.store_game(game, running_game_stats);
                         break 'render_loop MenuUpdate::Push(Menu::Quit(
                             "exited with ctrl-c".to_string(),
                         ));
                     }
-                    Ok(Err(Sig::ForfeitGame)) => {
+                    Ok(Err(Signal::ForfeitGame)) => {
                         game.forfeit();
                         let finished_game_stats = self.store_game(game, running_game_stats);
                         break 'render_loop MenuUpdate::Push(Menu::GameOver(Box::new(
                             finished_game_stats,
                         )));
                     }
-                    Ok(Err(Sig::Pause)) => {
+                    Ok(Err(Signal::Pause)) => {
                         *last_paused = Instant::now();
                         break 'render_loop MenuUpdate::Push(Menu::Pause);
                     }
-                    Ok(Err(Sig::WindowResize)) => {
+                    Ok(Err(Signal::WindowResize)) => {
                         clean_screen = true;
                         continue 'idle_loop;
                     }
@@ -1280,7 +1272,7 @@ impl<T: Write> App<T> {
             self.term
                 .queue(MoveTo(
                     x_main,
-                    y_main + y_selection + 4 + u16::try_from(selection_len).unwrap() + 3,
+                    y_main + y_selection + 4 + u16::try_from(selection_len).unwrap() + 4,
                 ))?
                 .queue(PrintStyledContent(
                     format!("{:^w_main$}", "Use [←] [→] [↑] [↓] [Esc] [Enter].",).italic(),
@@ -1427,6 +1419,7 @@ impl<T: Write> App<T> {
             Button::DropSoft,
             Button::DropHard,
         ];
+        let selection_len = button_selection.len() + 1;
         let mut selected = 0usize;
         loop {
             let w_main = Self::W_MAIN.into();
@@ -1447,7 +1440,6 @@ impl<T: Write> App<T> {
                     )
                 })
                 .collect::<Vec<_>>();
-            let n_buttons = button_names.len();
             for (i, name) in button_names.into_iter().enumerate() {
                 self.term
                     .queue(MoveTo(
@@ -1464,9 +1456,22 @@ impl<T: Write> App<T> {
                     )))?;
             }
             self.term
+            .queue(MoveTo(
+                x_main,
+                y_main + y_selection + 4 + u16::try_from(selection_len - 1).unwrap(),
+            ))?
+            .queue(Print(format!(
+                "{:^w_main$}",
+                if selected == selection_len - 1 {
+                    ">>> [reset keybinds] <<<"
+                } else {
+                    "[reset keybinds]"
+                }
+            )))?;
+            self.term
                 .queue(MoveTo(
                     x_main,
-                    y_main + y_selection + 4 + u16::try_from(n_buttons).unwrap() + 3,
+                    y_main + y_selection + 4 + u16::try_from(selection_len).unwrap() + 2,
                 ))?
                 .queue(PrintStyledContent(
                     format!(
@@ -1500,26 +1505,30 @@ impl<T: Write> App<T> {
                     kind: Press,
                     ..
                 }) => {
-                    let current_button = button_selection[selected];
-                    self.term
-                        .execute(MoveTo(
-                            x_main,
-                            y_main + y_selection + 4 + u16::try_from(n_buttons).unwrap() + 3,
-                        ))?
-                        .execute(PrintStyledContent(
-                            format!(
-                                "{:^w_main$}",
-                                format!("Press a key for {current_button:?}..."),
-                            )
-                            .italic(),
-                        ))?;
-                    loop {
-                        if let Event::Key(KeyEvent {
-                            code, kind: Press, ..
-                        }) = event::read()?
-                        {
-                            self.settings.keybinds.insert(code, current_button);
-                            break;
+                    if selected == selection_len - 1 {
+                        self.settings.keybinds = CrosstermHandler::default_keybinds();
+                    } else {
+                        let current_button = button_selection[selected];
+                        self.term
+                            .execute(MoveTo(
+                                x_main,
+                                y_main + y_selection + 4 + u16::try_from(selection_len).unwrap() + 3,
+                            ))?
+                            .execute(PrintStyledContent(
+                                format!(
+                                    "{:^w_main$}",
+                                    format!("Press a key for {current_button:?}..."),
+                                )
+                                .italic(),
+                            ))?;
+                        loop {
+                            if let Event::Key(KeyEvent {
+                                code, kind: Press, ..
+                            }) = event::read()?
+                            {
+                                self.settings.keybinds.insert(code, current_button);
+                                break;
+                            }
                         }
                     }
                 }
@@ -1529,7 +1538,7 @@ impl<T: Write> App<T> {
                     kind: Press | Repeat,
                     ..
                 }) => {
-                    selected += button_selection.len() - 1;
+                    selected += selection_len - 1;
                 }
                 // Move selector down.
                 Event::Key(KeyEvent {
@@ -1542,7 +1551,7 @@ impl<T: Write> App<T> {
                 // Other event: don't care.
                 _ => {}
             }
-            selected = selected.rem_euclid(button_selection.len());
+            selected = selected.rem_euclid(selection_len);
         }
     }
 
