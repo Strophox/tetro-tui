@@ -28,7 +28,7 @@ pub type FnGameMod = Box<
         &mut GameMode,
         &mut GameState,
         &mut FeedbackEvents,
-        Result<InternalEvent, InternalEvent>,
+        &ModifierPoint,
     ),
 >;
 type EventMap = HashMap<InternalEvent, GameTime>;
@@ -195,6 +195,14 @@ pub enum Feedback {
         back_to_back: u32,
     },
     Message(String),
+}
+
+#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
+pub enum ModifierPoint {
+    BeforeEvent(InternalEvent),
+    AfterEvent(InternalEvent),
+    BeforeButtonChange(ButtonsPressed, ButtonsPressed),
+    AfterButtonChange,
 }
 
 impl Orientation {
@@ -506,10 +514,12 @@ impl fmt::Debug for Game {
 }
 
 impl Game {
-    pub const HEIGHT: usize = Self::SKYLINE + 7; // Max height *any* mino can reach before Lock out occurs.
+    // Max height *any* piece tile could reach before Lock out occurs.
+    pub const HEIGHT: usize = Self::SKYLINE + 7;
     pub const WIDTH: usize = 10;
-    pub const SKYLINE: usize = 20; // Typical maximal height of relevant (visible) playing grid.
-                                   // SAFETY: 19 > 0, and this is the level at which blocks start falling with 20G.
+    // Typical maximal height of relevant (visible) playing grid.
+    pub const SKYLINE: usize = 20;
+    // SAFETY: 19 > 0, and this is the level at which blocks start falling with 20G.
     const LEVEL_20G: NonZeroU32 = unsafe { NonZeroU32::new_unchecked(19) };
 
     pub fn new(gamemode: GameMode) -> Self {
@@ -618,7 +628,7 @@ impl Game {
     fn apply_modifiers(
         &mut self,
         feedback_events: &mut Vec<(GameTime, Feedback)>,
-        before_event: Result<InternalEvent, InternalEvent>,
+        modifier_point: &ModifierPoint,
     ) {
         for modify in &mut self.modifiers {
             modify(
@@ -626,7 +636,7 @@ impl Game {
                 &mut self.mode,
                 &mut self.state,
                 feedback_events,
-                before_event,
+                modifier_point,
             );
         }
     }
@@ -671,13 +681,13 @@ impl Game {
                 .unwrap();
             // Next event within requested update time, handle event first.
             if event_time <= update_time {
-                self.apply_modifiers(&mut feedback_events, Ok(event));
+                self.apply_modifiers(&mut feedback_events, &ModifierPoint::BeforeEvent(event));
                 // Remove next event and handle it.
                 self.state.events.remove_entry(&event);
                 let new_feedback_events = self.handle_event(event, event_time);
                 self.state.time = event_time;
                 feedback_events.extend(new_feedback_events);
-                self.apply_modifiers(&mut feedback_events, Err(event));
+                self.apply_modifiers(&mut feedback_events, &ModifierPoint::AfterEvent(event));
                 // Stop simulation early if event or modifier ended game.
                 self.update_game_end();
                 if self.ended() {
@@ -690,7 +700,9 @@ impl Game {
                 // Update button inputs.
                 if let Some(buttons_pressed) = new_button_state.take() {
                     if self.state.active_piece_data.is_some() {
+                        self.apply_modifiers(&mut feedback_events, &ModifierPoint::BeforeButtonChange(self.state.buttons_pressed, buttons_pressed));
                         self.add_input_events(buttons_pressed, update_time);
+                        self.apply_modifiers(&mut feedback_events, &ModifierPoint::AfterButtonChange);
                     }
                     self.state.buttons_pressed = buttons_pressed;
                 } else {
@@ -893,7 +905,7 @@ impl Game {
                     let mut drop_delay = Self::drop_delay(&self.state.level);
                     if self.state.buttons_pressed[Button::DropSoft] {
                         drop_delay = Duration::from_secs_f64(
-                            drop_delay.as_secs_f64() / self.config.soft_drop_factor,
+                            drop_delay.as_secs_f64() / self.config.soft_drop_factor.max(0.00001),
                         );
                     }
                     // Try to drop active piece down by one, and queue next fall event.
@@ -919,7 +931,7 @@ impl Game {
                     let mut drop_delay = Self::drop_delay(&self.state.level);
                     if self.state.buttons_pressed[Button::DropSoft] {
                         drop_delay = Duration::from_secs_f64(
-                            drop_delay.as_secs_f64() / self.config.soft_drop_factor,
+                            drop_delay.as_secs_f64() / self.config.soft_drop_factor.max(0.00001),
                         );
                     }
                     self.state

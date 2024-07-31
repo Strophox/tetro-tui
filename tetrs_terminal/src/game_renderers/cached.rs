@@ -357,7 +357,7 @@ impl GameScreenRenderer for Renderer {
                 format!("   Move    {:<11     }<! . . . . . . . . . .!>              ", key_icons_move),
                 format!("   Rotate  {:<11     }<! . . . . . . . . . .!>              ", key_icons_rotate),
                 format!("   Drop    {:<11     }<! . . . . . . . . . .!>              ", key_icons_drop),
-                format!("   Pause   {:<8    }  <!====================!>              ", key_icon_pause),
+                format!("   Pause   {:<11     }<!====================!>              ", key_icon_pause),
                format!(r"                        \/\/\/\/\/\/\/\/\/\/                ", ),
             ],
             GraphicsStyle::ASCII => vec![

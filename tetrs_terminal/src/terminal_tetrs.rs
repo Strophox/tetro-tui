@@ -21,7 +21,7 @@ use crossterm::{
     terminal::{self, Clear},
     ExecutableCommand, QueueableCommand,
 };
-use tetrs_engine::{Button, ButtonsPressed, Game, GameMode, GameState, Limits, RotationSystem};
+use tetrs_engine::{Button, ButtonsPressed, Game, GameConfig, GameMode, GameState, Limits, RotationSystem, TetrominoGenerator};
 
 use crate::game_renderers::{cached::Renderer, GameScreenRenderer};
 use crate::{
@@ -63,7 +63,8 @@ enum Menu {
     GameComplete(Box<FinishedGameStats>),
     Pause,
     Settings,
-    ConfigureControls,
+    ChangeControls,
+    ConfigureGame,
     Scores,
     About,
     Quit(String),
@@ -79,7 +80,8 @@ impl std::fmt::Display for Menu {
             Menu::GameComplete(_) => "Game Completed",
             Menu::Pause => "Pause",
             Menu::Settings => "Settings",
-            Menu::ConfigureControls => "Configure Controls",
+            Menu::ChangeControls => "Change Controls",
+            Menu::ConfigureGame => "Configure Game",
             Menu::Scores => "Scoreboard",
             Menu::About => "About",
             Menu::Quit(_) => "Quit",
@@ -121,8 +123,6 @@ pub struct Settings {
     pub show_fps: bool,
     pub graphics_style: GraphicsStyle,
     pub graphics_color: GraphicsColor,
-    pub rotation_system: RotationSystem,
-    pub no_soft_drop_lock: bool,
     pub save_data_on_exit: bool,
 }
 
@@ -153,7 +153,8 @@ pub struct App<T: Write> {
     pub term: T,
     kitty_enabled: bool,
     settings: Settings,
-    custom_game_settings: CustomModeSettings,
+    custom_mode_settings: CustomModeSettings,
+    game_config: GameConfig,
     past_games: Vec<FinishedGameStats>,
 }
 
@@ -180,9 +181,9 @@ impl<T: Write> Drop for App<T> {
             let _ = self.term.execute(event::PopKeyboardEnhancementFlags);
         }
         let _ = terminal::disable_raw_mode();
-        // let _ = self.term.execute(terminal::LeaveAlternateScreen); // NOTE: This is only manually done at the end of `run`, that way backtraces are not erased automatically here.
         let _ = self.term.execute(style::ResetColor);
         let _ = self.term.execute(cursor::Show);
+        let _ = self.term.execute(terminal::LeaveAlternateScreen);
     }
 }
 
@@ -214,16 +215,15 @@ impl<T: Write> App<T> {
                 show_fps: false,
                 graphics_style: GraphicsStyle::Unicode,
                 graphics_color: GraphicsColor::ColorRGB,
-                rotation_system: RotationSystem::Ocular,
-                no_soft_drop_lock: !kitty_enabled,
                 save_data_on_exit: false,
             },
-            custom_game_settings: CustomModeSettings {
+            custom_mode_settings: CustomModeSettings {
                 name: "Custom Mode".to_string(),
                 start_level: NonZeroU32::MIN,
                 increment_level: true,
                 mode_limit: Some(Stat::Time(Duration::from_secs(60))),
             },
+            game_config: GameConfig::default(),
             past_games: vec![],
             kitty_enabled,
         };
@@ -235,7 +235,7 @@ impl<T: Write> App<T> {
         if let Some(game_fps) = fps {
             app.settings.game_fps = game_fps.into();
         }
-        app.settings.no_soft_drop_lock = !kitty_enabled;
+        app.game_config.no_soft_drop_lock = !kitty_enabled;
         app
     }
 
@@ -280,7 +280,7 @@ impl<T: Write> App<T> {
             })
             .cloned()
             .collect::<Vec<_>>();
-        let save_state = (&self.settings, &self.custom_game_settings, &self.past_games);
+        let save_state = (&self.settings, &self.custom_mode_settings, &self.past_games);
         let save_str = serde_json::to_string(&save_state)?;
         let mut file = File::create(path)?;
         // TODO: Handle error?
@@ -292,7 +292,7 @@ impl<T: Write> App<T> {
         let mut file = File::open(Self::savefile_path())?;
         let mut save_str = String::new();
         file.read_to_string(&mut save_str)?;
-        (self.settings, self.custom_game_settings, self.past_games) =
+        (self.settings, self.custom_mode_settings, self.past_games) =
             serde_json::from_str(&save_str)?;
         Ok(())
     }
@@ -334,7 +334,8 @@ impl<T: Write> App<T> {
                 Menu::Scores => self.scores_menu(),
                 Menu::About => self.about_menu(),
                 Menu::Settings => self.settings_menu(),
-                Menu::ConfigureControls => self.configure_controls_menu(),
+                Menu::ChangeControls => self.change_controls_menu(),
+                Menu::ConfigureGame => self.configure_game_menu(),
                 Menu::Quit(string) => break string.clone(),
             }?;
             // Change screen session depending on what response screen gave.
@@ -355,8 +356,6 @@ impl<T: Write> App<T> {
                 }
             }
         };
-        // NOTE: This is done here manually (instead of `Drop::drop(self)`) so debug is not wiped in case the application crashes before reaching this point.
-        let _ = self.term.execute(terminal::LeaveAlternateScreen);
         Ok(msg)
     }
 
@@ -366,23 +365,6 @@ impl<T: Write> App<T> {
             w_console.saturating_sub(Self::W_MAIN) / 2,
             h_console.saturating_sub(Self::H_MAIN) / 2,
         )
-    }
-
-    pub fn produce_header() -> io::Result<String> {
-        let pat = " ██ ▄▄▄▄ ▄█▀ ▀█▄ ▄█▄ ▄▄█ █▄▄";
-        let pat_len = pat.chars().count();
-        // eprintln!("{pat_len}");
-        // std::thread::sleep(Duration::from_secs(5));
-        let w_term = usize::from(terminal::size()?.0);
-        let at_least = w_term / pat_len + 1;
-        let mut rep_pat = pat.repeat(at_least);
-        let idx = rep_pat
-            .char_indices()
-            .map(|(i, _)| i)
-            .nth(w_term - 1)
-            .unwrap_or(rep_pat.len());
-        rep_pat.truncate(idx);
-        Ok(rep_pat)
     }
 
     fn generic_placeholder_widget(
@@ -611,12 +593,12 @@ impl<T: Write> App<T> {
             // Render custom mode stuff.
             if selected == selected_cnt - 1 {
                 let stats_strs = [
-                    format!("* level start: {}", self.custom_game_settings.start_level),
+                    format!("* level start: {}", self.custom_mode_settings.start_level),
                     format!(
                         "* level increment: {}",
-                        self.custom_game_settings.increment_level
+                        self.custom_mode_settings.increment_level
                     ),
-                    format!("* limit: {:?}", self.custom_game_settings.mode_limit),
+                    format!("* limit: {:?}", self.custom_mode_settings.mode_limit),
                 ];
                 for (j, stat_str) in stats_strs.into_iter().enumerate() {
                     self.term
@@ -657,13 +639,13 @@ impl<T: Write> App<T> {
                     kind: Press,
                     ..
                 }) => {
-                    let mut game = if selected == selected_cnt - 1 {
+                    let game = if selected == selected_cnt - 1 {
                         let CustomModeSettings {
                             name,
                             start_level,
                             increment_level,
                             mode_limit: custom_mode_limit,
-                        } = self.custom_game_settings.clone();
+                        } = self.custom_mode_settings.clone();
                         let limits = match custom_mode_limit {
                             Some(Stat::Time(max_dur)) => Limits {
                                 time: Some((true, max_dur)),
@@ -687,20 +669,20 @@ impl<T: Write> App<T> {
                             },
                             None => Limits::default(),
                         };
-                        Game::new(GameMode {
-                            name,
-                            start_level,
-                            increment_level,
-                            limits,
-                        })
+                        Game::new(
+                            GameMode {
+                                name,
+                                start_level,
+                                increment_level,
+                                limits,
+                            },
+                        )
                     } else if selected == selected_cnt - 2 {
                         puzzle_mode::make_game()
                     } else {
                         // SAFETY: Index < selected_cnt - 2 = preset_gamemodes.len().
                         Game::new(preset_gamemodes.into_iter().nth(selected).unwrap())
                     };
-                    game.config_mut().rotation_system = self.settings.rotation_system;
-                    game.config_mut().no_soft_drop_lock = self.settings.no_soft_drop_lock;
 
                     // TODO: Remove or make accessible.
                     // unsafe {
@@ -728,17 +710,17 @@ impl<T: Write> App<T> {
                     if selected_custom > 0 {
                         match selected_custom {
                             1 => {
-                                self.custom_game_settings.start_level = self
-                                    .custom_game_settings
+                                self.custom_mode_settings.start_level = self
+                                    .custom_mode_settings
                                     .start_level
                                     .saturating_add(d_level);
                             }
                             2 => {
-                                self.custom_game_settings.increment_level =
-                                    !self.custom_game_settings.increment_level;
+                                self.custom_mode_settings.increment_level =
+                                    !self.custom_mode_settings.increment_level;
                             }
                             3 => {
-                                match self.custom_game_settings.mode_limit {
+                                match self.custom_mode_settings.mode_limit {
                                     Some(Stat::Time(ref mut dur)) => {
                                         *dur += d_time;
                                     }
@@ -773,17 +755,17 @@ impl<T: Write> App<T> {
                     if selected_custom > 0 {
                         match selected_custom {
                             1 => {
-                                self.custom_game_settings.start_level = NonZeroU32::try_from(
-                                    self.custom_game_settings.start_level.get() - d_level,
+                                self.custom_mode_settings.start_level = NonZeroU32::try_from(
+                                    self.custom_mode_settings.start_level.get() - d_level,
                                 )
                                 .unwrap_or(NonZeroU32::MIN);
                             }
                             2 => {
-                                self.custom_game_settings.increment_level =
-                                    !self.custom_game_settings.increment_level;
+                                self.custom_mode_settings.increment_level =
+                                    !self.custom_mode_settings.increment_level;
                             }
                             3 => {
-                                match self.custom_game_settings.mode_limit {
+                                match self.custom_mode_settings.mode_limit {
                                     Some(Stat::Time(ref mut dur)) => {
                                         *dur = dur.saturating_sub(d_time);
                                     }
@@ -830,8 +812,8 @@ impl<T: Write> App<T> {
                     if selected == selected_cnt - 1 {
                         // If reached last stat, cycle through stats for limit.
                         if selected_custom == selected_custom_cnt - 1 {
-                            self.custom_game_settings.mode_limit =
-                                match self.custom_game_settings.mode_limit {
+                            self.custom_mode_settings.mode_limit =
+                                match self.custom_mode_settings.mode_limit {
                                     Some(Stat::Time(_)) => Some(Stat::Score(9000)),
                                     Some(Stat::Score(_)) => Some(Stat::Pieces(100)),
                                     Some(Stat::Pieces(_)) => Some(Stat::Lines(40)),
@@ -864,7 +846,7 @@ impl<T: Write> App<T> {
         game_renderer: &mut impl GameScreenRenderer,
     ) -> io::Result<MenuUpdate> {
         // Update rotation system manually.
-        game.config_mut().rotation_system = self.settings.rotation_system;
+        game.config_mut().clone_from(&self.game_config);
         // Prepare channel with which to communicate `Button` inputs / game interrupt.
         let mut buttons_pressed = ButtonsPressed::default();
         let (tx, rx) = mpsc::channel::<ButtonOrSignal>();
@@ -1222,7 +1204,7 @@ impl<T: Write> App<T> {
     }
 
     fn settings_menu(&mut self) -> io::Result<MenuUpdate> {
-        let selection_len = 8;
+        let selection_len = 7;
         let mut selected = 0usize;
         loop {
             let w_main = Self::W_MAIN.into();
@@ -1235,25 +1217,18 @@ impl<T: Write> App<T> {
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
                 .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
             let labels = [
-                "| Configure Controls .. |".to_string(),
+                "| Change Controls .. |".to_string(),
+                "| Configure Game .. |".to_string(),
                 format!("graphics : '{:?}'", self.settings.graphics_style),
                 format!("color : '{:?}'", self.settings.graphics_color),
                 format!("framerate : {}", self.settings.game_fps),
                 format!("show fps : {}", self.settings.show_fps),
-                format!("rotation system : '{:?}'", self.settings.rotation_system),
-                format!("no soft drop lock* : {}", self.settings.no_soft_drop_lock),
                 if self.settings.save_data_on_exit {
                     "Keep savefile for tetrs : On"
                 } else {
                     "Keep savefile for tetrs : Off [WARNING: data will be lost on exit!]"
                 }
                 .to_string(),
-                String::new(),
-                format!(
-                    "(*automatically {} as keyboard enhancements are {}available)",
-                    if self.kitty_enabled { "off" } else { "on" },
-                    if self.kitty_enabled { "" } else { "UN" }
-                ),
             ];
             for (i, label) in labels.into_iter().enumerate() {
                 self.term
@@ -1273,7 +1248,7 @@ impl<T: Write> App<T> {
             self.term
                 .queue(MoveTo(
                     x_main,
-                    y_main + y_selection + 4 + u16::try_from(selection_len).unwrap() + 4,
+                    y_main + y_selection + 4 + u16::try_from(selection_len).unwrap() + 2,
                 ))?
                 .queue(PrintStyledContent(
                     format!("{:^w_main$}", "Use [←] [→] [↑] [↓] [Esc] [Enter].",).italic(),
@@ -1303,8 +1278,10 @@ impl<T: Write> App<T> {
                     kind: Press,
                     ..
                 }) => {
-                    if selected == 0 {
-                        break Ok(MenuUpdate::Push(Menu::ConfigureControls));
+                    match selected {
+                        0 => break Ok(MenuUpdate::Push(Menu::ChangeControls)),
+                        1 => break Ok(MenuUpdate::Push(Menu::ConfigureGame)),
+                        _ => {},
                     }
                 }
                 // Move selector up.
@@ -1328,37 +1305,27 @@ impl<T: Write> App<T> {
                     kind: Press | Repeat,
                     ..
                 }) => match selected {
-                    1 => {
+                    2 => {
                         self.settings.graphics_style = match self.settings.graphics_style {
                             GraphicsStyle::Electronika60 => GraphicsStyle::ASCII,
                             GraphicsStyle::ASCII => GraphicsStyle::Unicode,
                             GraphicsStyle::Unicode => GraphicsStyle::Electronika60,
                         };
                     }
-                    2 => {
+                    3 => {
                         self.settings.graphics_color = match self.settings.graphics_color {
                             GraphicsColor::Monochrome => GraphicsColor::Color16,
                             GraphicsColor::Color16 => GraphicsColor::ColorRGB,
                             GraphicsColor::ColorRGB => GraphicsColor::Monochrome,
                         };
                     }
-                    3 => {
+                    4 => {
                         self.settings.game_fps += 1.0;
                     }
-                    4 => {
+                    5 => {
                         self.settings.show_fps = !self.settings.show_fps;
                     }
-                    5 => {
-                        self.settings.rotation_system = match self.settings.rotation_system {
-                            RotationSystem::Ocular => RotationSystem::Classic,
-                            RotationSystem::Classic => RotationSystem::Super,
-                            RotationSystem::Super => RotationSystem::Ocular,
-                        }
-                    }
                     6 => {
-                        self.settings.no_soft_drop_lock = !self.settings.no_soft_drop_lock;
-                    }
-                    7 => {
                         self.settings.save_data_on_exit = !self.settings.save_data_on_exit;
                     }
                     _ => {}
@@ -1368,39 +1335,29 @@ impl<T: Write> App<T> {
                     kind: Press | Repeat,
                     ..
                 }) => match selected {
-                    1 => {
+                    2 => {
                         self.settings.graphics_style = match self.settings.graphics_style {
                             GraphicsStyle::Electronika60 => GraphicsStyle::Unicode,
                             GraphicsStyle::ASCII => GraphicsStyle::Electronika60,
                             GraphicsStyle::Unicode => GraphicsStyle::ASCII,
                         };
                     }
-                    2 => {
+                    3 => {
                         self.settings.graphics_color = match self.settings.graphics_color {
                             GraphicsColor::Monochrome => GraphicsColor::ColorRGB,
                             GraphicsColor::Color16 => GraphicsColor::Monochrome,
                             GraphicsColor::ColorRGB => GraphicsColor::Color16,
                         };
                     }
-                    3 => {
+                    4 => {
                         if self.settings.game_fps >= 1.0 {
                             self.settings.game_fps -= 1.0;
                         }
                     }
-                    4 => {
+                    5 => {
                         self.settings.show_fps = !self.settings.show_fps;
                     }
-                    5 => {
-                        self.settings.rotation_system = match self.settings.rotation_system {
-                            RotationSystem::Ocular => RotationSystem::Super,
-                            RotationSystem::Classic => RotationSystem::Ocular,
-                            RotationSystem::Super => RotationSystem::Classic,
-                        };
-                    }
                     6 => {
-                        self.settings.no_soft_drop_lock = !self.settings.no_soft_drop_lock;
-                    }
-                    7 => {
                         self.settings.save_data_on_exit = !self.settings.save_data_on_exit;
                     }
                     _ => {}
@@ -1412,7 +1369,7 @@ impl<T: Write> App<T> {
         }
     }
 
-    fn configure_controls_menu(&mut self) -> io::Result<MenuUpdate> {
+    fn change_controls_menu(&mut self) -> io::Result<MenuUpdate> {
         let button_selection = [
             Button::MoveLeft,
             Button::MoveRight,
@@ -1432,14 +1389,14 @@ impl<T: Write> App<T> {
             self.term
                 .queue(terminal::Clear(terminal::ClearType::All))?
                 .queue(MoveTo(x_main, y_main + y_selection))?
-                .queue(Print(format!("{:^w_main$}", "| Configure Controls |")))?
+                .queue(Print(format!("{:^w_main$}", "| Change Controls |")))?
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
                 .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
             let button_names = button_selection
                 .iter()
                 .map(|&button| {
                     format!(
-                        "{button:?}: {}",
+                        "{button:?} : {}",
                         format_keybinds(button, &self.settings.keybinds)
                     )
                 })
@@ -1462,7 +1419,7 @@ impl<T: Write> App<T> {
             self.term
                 .queue(MoveTo(
                     x_main,
-                    y_main + y_selection + 4 + u16::try_from(selection_len - 1).unwrap(),
+                    y_main + y_selection + 4 + u16::try_from(selection_len - 1).unwrap() + 1,
                 ))?
                 .queue(Print(format!(
                     "{:^w_main$}",
@@ -1475,7 +1432,7 @@ impl<T: Write> App<T> {
             self.term
                 .queue(MoveTo(
                     x_main,
-                    y_main + y_selection + 4 + u16::try_from(selection_len).unwrap() + 2,
+                    y_main + y_selection + 4 + u16::try_from(selection_len).unwrap() + 3,
                 ))?
                 .queue(PrintStyledContent(
                     format!(
@@ -1556,6 +1513,239 @@ impl<T: Write> App<T> {
                 }) => {
                     selected += 1;
                 }
+                // Other event: don't care.
+                _ => {}
+            }
+            selected = selected.rem_euclid(selection_len);
+        }
+    }
+
+    fn configure_game_menu(&mut self) -> io::Result<MenuUpdate> {
+        let selection_len = 12;
+        let mut selected = 0usize;
+        loop {
+            let w_main = Self::W_MAIN.into();
+            let (x_main, y_main) = Self::fetch_main_xy();
+            let y_selection = Self::H_MAIN / 5;
+            self.term
+                .queue(terminal::Clear(terminal::ClearType::All))?
+                .queue(MoveTo(x_main, y_main + y_selection))?
+                .queue(Print(format!("{:^w_main$}", "& Configure Game (requires new game) &")))?
+                .queue(MoveTo(x_main, y_main + y_selection + 2))?
+                .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
+            let labels = [
+                format!("rotation system : {:?}", self.game_config.rotation_system),
+                format!("piece generator : {}", match self.game_config.tetromino_generator {
+                    TetrominoGenerator::Uniform => "Uniform",
+                    TetrominoGenerator::Bag { .. } => "7-Bag",
+                    TetrominoGenerator::Recency { .. } => "Recency/History",
+                    TetrominoGenerator::TotalRelative { .. } => "Total Relative Counts",
+                }),
+                format!("preview count : {}", self.game_config.preview_count),
+                format!("delayed auto shift** : {:?}", self.game_config.delayed_auto_shift),
+                format!("auto repeat rate** : {:?}", self.game_config.auto_repeat_rate),
+                format!("soft drop factor** : {}", self.game_config.soft_drop_factor),
+                format!("hard drop delay : {:?}", self.game_config.hard_drop_delay),
+                format!("ground time max : {:?}", self.game_config.ground_time_max),
+                format!("line clear delay : {:?}", self.game_config.line_clear_delay),
+                format!("appearance delay : {:?}", self.game_config.appearance_delay),
+                format!("no soft drop lock* : {}", self.game_config.no_soft_drop_lock),
+            ];
+            for (i, label) in labels.into_iter().enumerate() {
+                self.term
+                    .queue(MoveTo(
+                        x_main,
+                        y_main + y_selection + 4 + u16::try_from(i).unwrap(),
+                    ))?
+                    .queue(Print(format!(
+                        "{:^w_main$}",
+                        if i == selected {
+                            format!(">>> {label} <<<")
+                        } else {
+                            label
+                        }
+                    )))?;
+            }
+            self.term
+                .queue(MoveTo(
+                    x_main,
+                    y_main + y_selection + 4 + u16::try_from(selection_len - 1).unwrap() + 1,
+                ))?
+                .queue(Print(format!(
+                    "{:^w_main$}",
+                    if selected == selection_len - 1 {
+                        ">>> [restore defaults] <<<"
+                    } else {
+                        "[restore defaults]"
+                    }
+                )))?;
+                self.term
+                    .queue(MoveTo(
+                        x_main,
+                        y_main + y_selection + 4 + u16::try_from(selection_len - 1).unwrap() + 4,
+                    ))?
+                    .queue(Print(format!(
+                        "{:^w_main$}", format!(
+                        "(*automatically {} because keyboard enhancements are {}available)",
+                        if self.kitty_enabled { "off" } else { "on" },
+                        if self.kitty_enabled { "" } else { "UN" }
+                    ))))?;
+                self.term
+                    .queue(MoveTo(
+                        x_main,
+                        y_main + y_selection + 4 + u16::try_from(selection_len - 1).unwrap() + 5,
+                    ))?
+                    .queue(Print(format!(
+                    "{:^w_main$}",
+                    "(**only take effect if keyboard enhancements are available)")))?;
+            self.term.flush()?;
+            // Wait for new input.
+            match event::read()? {
+                // Quit menu.
+                Event::Key(KeyEvent {
+                    code: KeyCode::Char('c'),
+                    modifiers: KeyModifiers::CONTROL,
+                    kind: Press | Repeat,
+                    state: _,
+                }) => {
+                    break Ok(MenuUpdate::Push(Menu::Quit(
+                        "exited with ctrl-c".to_string(),
+                    )))
+                }
+                Event::Key(KeyEvent {
+                    code: KeyCode::Esc,
+                    kind: Press,
+                    ..
+                }) => break Ok(MenuUpdate::Pop),
+                // Select next menu.
+                Event::Key(KeyEvent {
+                    code: KeyCode::Enter,
+                    kind: Press,
+                    ..
+                }) => {
+                    if selected == selection_len - 1 {
+                        self.game_config = GameConfig::default();
+                        self.game_config.no_soft_drop_lock = !self.kitty_enabled;
+                    }
+                }
+                // Move selector up.
+                Event::Key(KeyEvent {
+                    code: KeyCode::Up,
+                    kind: Press | Repeat,
+                    ..
+                }) => {
+                    selected += selection_len - 1;
+                }
+                // Move selector down.
+                Event::Key(KeyEvent {
+                    code: KeyCode::Down,
+                    kind: Press | Repeat,
+                    ..
+                }) => {
+                    selected += 1;
+                }
+                Event::Key(KeyEvent {
+                    code: KeyCode::Right,
+                    kind: Press | Repeat,
+                    ..
+                }) => match selected {
+                    0 => {
+                        self.game_config.rotation_system = match self.game_config.rotation_system {
+                            RotationSystem::Ocular => RotationSystem::Classic,
+                            RotationSystem::Classic => RotationSystem::Super,
+                            RotationSystem::Super => RotationSystem::Ocular,
+                        };
+                    }
+                    1 => {
+                        self.game_config.tetromino_generator = match self.game_config.tetromino_generator {
+                            TetrominoGenerator::Uniform => TetrominoGenerator::bag(NonZeroU32::MIN),
+                            TetrominoGenerator::Bag { .. } => TetrominoGenerator::recency(),
+                            TetrominoGenerator::Recency { .. } => TetrominoGenerator::total_relative(),
+                            TetrominoGenerator::TotalRelative { .. } => TetrominoGenerator::uniform(),
+                        };
+                    }
+                    2 => {
+                        self.game_config.preview_count += 1;
+                    }
+                    3 => {
+                        self.game_config.delayed_auto_shift += Duration::from_millis(1);
+                    }
+                    4 => {
+                        self.game_config.auto_repeat_rate += Duration::from_millis(1);
+                    }
+                    5 => {
+                        self.game_config.soft_drop_factor += 0.25;
+                    }
+                    6 => {
+                        self.game_config.hard_drop_delay += Duration::from_millis(1);
+                    }
+                    7 => {
+                        self.game_config.ground_time_max += Duration::from_millis(10);
+                    }
+                    8 => {
+                        self.game_config.line_clear_delay += Duration::from_millis(10);
+                    }
+                    9 => {
+                        self.game_config.appearance_delay += Duration::from_millis(10);
+                    }
+                    10 => {
+                        self.game_config.no_soft_drop_lock = !self.game_config.no_soft_drop_lock;
+                    }
+                    _ => {}
+                },
+                Event::Key(KeyEvent {
+                    code: KeyCode::Left,
+                    kind: Press | Repeat,
+                    ..
+                }) => match selected {
+                    0 => {
+                        self.game_config.rotation_system = match self.game_config.rotation_system {
+                            RotationSystem::Ocular => RotationSystem::Classic,
+                            RotationSystem::Classic => RotationSystem::Super,
+                            RotationSystem::Super => RotationSystem::Ocular,
+                        };
+                    }
+                    1 => {
+                        self.game_config.tetromino_generator = match self.game_config.tetromino_generator {
+                            TetrominoGenerator::Uniform => TetrominoGenerator::total_relative(),
+                            TetrominoGenerator::Bag { .. } => TetrominoGenerator::uniform(),
+                            TetrominoGenerator::Recency { .. } => TetrominoGenerator::bag(NonZeroU32::MIN),
+                            TetrominoGenerator::TotalRelative { .. } => TetrominoGenerator::recency(),
+                        };
+                    }
+                    2 => {
+                        self.game_config.preview_count = self.game_config.preview_count.saturating_sub(1);
+                    }
+                    3 => {
+                        self.game_config.delayed_auto_shift = self.game_config.delayed_auto_shift.saturating_sub(Duration::from_millis(1));
+                    }
+                    4 => {
+                        self.game_config.auto_repeat_rate = self.game_config.auto_repeat_rate.saturating_sub(Duration::from_millis(1));
+                    }
+                    5 => {
+                        if self.game_config.soft_drop_factor > 0.0 {
+                            self.game_config.soft_drop_factor -= 0.25;
+                        }
+                    }
+                    6 => {
+                        if self.game_config.hard_drop_delay >= Duration::from_millis(1) {
+                            self.game_config.hard_drop_delay = self.game_config.hard_drop_delay.saturating_sub(Duration::from_millis(1));
+                        }
+                    }
+                    7 => {
+                        self.game_config.ground_time_max = self.game_config.ground_time_max.saturating_sub(Duration::from_millis(10));
+                    }
+                    8 => {
+                        self.game_config.line_clear_delay = self.game_config.line_clear_delay.saturating_sub(Duration::from_millis(10));
+                    }
+                    9 => {
+                        self.game_config.appearance_delay = self.game_config.appearance_delay.saturating_sub(Duration::from_millis(10));
+                    }
+                    10 => {
+                        self.game_config.no_soft_drop_lock = !self.game_config.no_soft_drop_lock;
+                    }
+                    _ => {}
+                },
                 // Other event: don't care.
                 _ => {}
             }

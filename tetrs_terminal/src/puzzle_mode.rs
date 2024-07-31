@@ -1,8 +1,7 @@
 use std::{collections::VecDeque, num::NonZeroU32};
 
 use tetrs_engine::{
-    Feedback, FeedbackEvents, Game, GameConfig, GameMode, GameOver, GameState, InternalEvent,
-    Limits, Tetromino,
+    Feedback, FeedbackEvents, Game, GameConfig, GameMode, GameOver, GameState, InternalEvent, Limits, ModifierPoint, Tetromino
 };
 
 const MAX_STAGE_ATTEMPTS: usize = 3;
@@ -154,99 +153,102 @@ pub fn make_game() -> Game {
             b"OOOOO OOOO",
             ], VecDeque::from([Tetromino::T,Tetromino::J,Tetromino::L])),
     ];
-    let mut current_puzzle_level = 0;
-    let mut current_puzzle_attempt = 0;
+    let puzzles_len = puzzles.len();
+    let load_puzzle = move |state: &mut GameState, attempt: usize, current_puzzle_idx: usize, feedback_events: &mut FeedbackEvents| -> usize {
+        let (puzzle_name, puzzle_lines, puzzle_pieces) =
+            &puzzles[current_puzzle_idx];
+        // Game message.
+        feedback_events.push((
+            state.time,
+            Feedback::Message(if attempt == 1 {
+                format!(
+                    "Stage {}: {}",
+                    current_puzzle_idx + 1,
+                    puzzle_name.to_ascii_uppercase()
+                )
+            } else {
+                format!(
+                    "{}. TRY ({})",
+                    attempt,
+                    puzzle_name.to_ascii_uppercase()
+                )
+            }),
+        ));
+        // Queue pieces and lines.
+        state.next_pieces.clone_from(puzzle_pieces);
+        // Load in pieces.
+        for (puzzle_line, board_line) in puzzle_lines
+            .iter()
+            .rev()
+            .map(|line| {
+                line.map(|b| {
+                    if b == b' ' {
+                        None
+                    } else {
+                        Some(unsafe { NonZeroU32::new_unchecked(254) })
+                    }
+                })
+            })
+            .chain(std::iter::repeat(Default::default()))
+            .zip(state.board.iter_mut())
+        {
+            *board_line = puzzle_line;
+        }
+        puzzle_pieces.len()
+    };
+    let mut init = true;
+    let mut current_puzzle_idx = 0;
+    let mut current_puzzle_attempt = 1;
     let mut current_puzzle_piececnt_limit = 0;
-    let puzzle_num = NonZeroU32::try_from(u32::try_from(puzzles.len()).unwrap()).unwrap();
     let puzzle_modifier =
         move |config: &mut GameConfig,
               _mode: &mut GameMode,
               state: &mut GameState,
               feedback_events: &mut FeedbackEvents,
-              event: Result<InternalEvent, InternalEvent>| {
+              modifier_point: &ModifierPoint| {
             let game_piececnt = usize::try_from(state.pieces_played.iter().sum::<u32>()).unwrap();
-
-            if event.is_ok() {
+            if init {
+                let piececnt = load_puzzle(state, current_puzzle_attempt, current_puzzle_idx, feedback_events);
+                current_puzzle_piececnt_limit = game_piececnt + piececnt;
+                init = false;
+            } else if matches!(modifier_point, ModifierPoint::BeforeEvent(InternalEvent::Spawn)) && game_piececnt == current_puzzle_piececnt_limit {
+                let puzzle_done = state
+                    .board
+                    .iter()
+                    .all(|line| line.iter().all(|cell| cell.is_none()));
+                // Run out of attempts, game over.
+                if !puzzle_done && current_puzzle_attempt == MAX_STAGE_ATTEMPTS {
+                    state.end = Some(Err(GameOver::ModeLimit));
+                } else {
+                    if puzzle_done {
+                        current_puzzle_idx += 1;
+                        current_puzzle_attempt = 1;
+                    } else {
+                        current_puzzle_attempt += 1;
+                    }
+                    if current_puzzle_idx == puzzles_len {
+                        // Done with all puzzles, game completed.
+                        state.end = Some(Ok(()));
+                    } else {
+                        // Load in new puzzle.
+                        let piececnt = load_puzzle(state, current_puzzle_attempt, current_puzzle_idx, feedback_events);
+                        current_puzzle_piececnt_limit = game_piececnt + piececnt;
+                    }
+                }
+            }
+            if matches!(modifier_point, ModifierPoint::BeforeEvent(_) | ModifierPoint::BeforeButtonChange(_, _)) {
                 config.preview_count = 0;
                 state.level = NonZeroU32::try_from(SPEED_LEVEL).unwrap();
             } else {
                 config.preview_count = state.next_pieces.len();
                 state.level =
-                    NonZeroU32::try_from(u32::try_from(current_puzzle_level).unwrap()).unwrap();
+                    NonZeroU32::try_from(u32::try_from(current_puzzle_idx + 1).unwrap()).unwrap();
                 // Delete accolades.
                 feedback_events.retain(|evt| !matches!(evt, (_, Feedback::Accolade { .. })));
             }
             // Remove spurious spawn.
-            if event == Err(InternalEvent::Spawn) && state.end.is_some() {
+            if matches!(modifier_point, ModifierPoint::AfterEvent(InternalEvent::Spawn)) && state.end.is_some() {
                 state.active_piece_data = None;
-            }
-            if event != Ok(InternalEvent::Spawn) {
-                return;
-            }
-            // End of puzzle / start of new one.
-            if game_piececnt == current_puzzle_piececnt_limit {
-                let puzzle_done = state
-                    .board
-                    .iter()
-                    .all(|line| line.iter().all(|cell| cell.is_none()));
-                if !puzzle_done && current_puzzle_attempt >= MAX_STAGE_ATTEMPTS {
-                    // Run out of attempts, game over.
-                    state.end = Some(Err(GameOver::ModeLimit));
-                } else {
-                    // Change puzzle number or repeat attempt.
-                    if puzzle_done {
-                        current_puzzle_level += 1;
-                        current_puzzle_attempt = 1;
-                    } else {
-                        current_puzzle_attempt += 1;
-                    }
-                    if current_puzzle_level == puzzles.len() + 1 {
-                        // Done with all puzzles, game completed.
-                        state.end = Some(Ok(()));
-                    } else {
-                        // Load in new puzzle.
-                        let (puzzle_name, puzzle_lines, puzzle_pieces) =
-                            &puzzles[current_puzzle_level - 1];
-                        current_puzzle_piececnt_limit = game_piececnt + puzzle_pieces.len();
-                        // Game message.
-                        feedback_events.push((
-                            state.time,
-                            Feedback::Message(if current_puzzle_attempt == 1 {
-                                format!(
-                                    "Stage {}: {}",
-                                    current_puzzle_level,
-                                    puzzle_name.to_ascii_uppercase()
-                                )
-                            } else {
-                                format!(
-                                    "{}.RETRY ({})",
-                                    current_puzzle_attempt - 1,
-                                    puzzle_name.to_ascii_uppercase()
-                                )
-                            }),
-                        ));
-                        // Queue pieces and lines.
-                        state.next_pieces.clone_from(puzzle_pieces);
-                        // Load in pieces.
-                        for (puzzle_line, board_line) in puzzle_lines
-                            .iter()
-                            .rev()
-                            .map(|line| {
-                                line.map(|b| {
-                                    if b == b' ' {
-                                        None
-                                    } else {
-                                        Some(unsafe { NonZeroU32::new_unchecked(254) })
-                                    }
-                                })
-                            })
-                            .chain(std::iter::repeat(Default::default()))
-                            .zip(state.board.iter_mut())
-                        {
-                            *board_line = puzzle_line;
-                        }
-                    }
-                }
             }
         };
     let mut game = Game::new(GameMode {
@@ -254,7 +256,7 @@ pub fn make_game() -> Game {
         start_level: NonZeroU32::MIN.saturating_add(1),
         increment_level: false,
         limits: Limits {
-            level: Some((true, puzzle_num)),
+            level: Some((true, NonZeroU32::try_from(u32::try_from(puzzles_len).unwrap()).unwrap())),
             ..Default::default()
         },
     });
