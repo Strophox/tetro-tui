@@ -1460,18 +1460,18 @@ impl<T: Write> App<T> {
                     )))?;
             }
             self.term
-            .queue(MoveTo(
-                x_main,
-                y_main + y_selection + 4 + u16::try_from(selection_len - 1).unwrap(),
-            ))?
-            .queue(Print(format!(
-                "{:^w_main$}",
-                if selected == selection_len - 1 {
-                    ">>> [reset keybinds] <<<"
-                } else {
-                    "[reset keybinds]"
-                }
-            )))?;
+                .queue(MoveTo(
+                    x_main,
+                    y_main + y_selection + 4 + u16::try_from(selection_len - 1).unwrap(),
+                ))?
+                .queue(Print(format!(
+                    "{:^w_main$}",
+                    if selected == selection_len - 1 {
+                        ">>> [reset keybinds] <<<"
+                    } else {
+                        "[reset keybinds]"
+                    }
+                )))?;
             self.term
                 .queue(MoveTo(
                     x_main,
@@ -1516,7 +1516,11 @@ impl<T: Write> App<T> {
                         self.term
                             .execute(MoveTo(
                                 x_main,
-                                y_main + y_selection + 4 + u16::try_from(selection_len).unwrap() + 3,
+                                y_main
+                                    + y_selection
+                                    + 4
+                                    + u16::try_from(selection_len).unwrap()
+                                    + 3,
                             ))?
                             .execute(PrintStyledContent(
                                 format!(

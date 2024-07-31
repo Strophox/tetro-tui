@@ -702,11 +702,7 @@ impl Game {
         Ok(feedback_events)
     }
 
-    fn add_input_events(
-        &mut self,
-        next_buttons_pressed: ButtonsPressed,
-        update_time: GameTime,
-    ) {
+    fn add_input_events(&mut self, next_buttons_pressed: ButtonsPressed, update_time: GameTime) {
         #[allow(non_snake_case)]
         let [mL0, mR0, rL0, rR0, rA0, dS0, dH0, dC0] = self.state.buttons_pressed;
         #[allow(non_snake_case)]
@@ -733,11 +729,15 @@ impl Game {
         */
         // No buttons pressed -> one button pressed, add initial move.
         if (!mL0 && !mR0) && (mL1 != mR1) {
-            self.state.events.insert(InternalEvent::MoveSlow, update_time);
+            self.state
+                .events
+                .insert(InternalEvent::MoveSlow, update_time);
         // One/Two buttons pressed -> different/one button pressed, (re-)add fast repeat move.
         } else if (mL0 && (!mL1 && mR1)) || (mR0 && (mL1 && !mR1)) {
             self.state.events.remove(&InternalEvent::MoveFast);
-            self.state.events.insert(InternalEvent::MoveFast, update_time);
+            self.state
+                .events
+                .insert(InternalEvent::MoveFast, update_time);
         // Single button pressed -> both (un)pressed, remove future moves.
         } else if (mL0 != mR0) && (mL1 == mR1) {
             self.state.events.remove(&InternalEvent::MoveFast);
@@ -770,18 +770,27 @@ impl Game {
         }
         // Soft drop button pressed.
         if !dS0 && dS1 {
-            self.state.events.insert(InternalEvent::SoftDrop, update_time);
+            self.state
+                .events
+                .insert(InternalEvent::SoftDrop, update_time);
         // Soft drop button released: Reset fall timer.
         } else if dS0 && !dS1 {
-            self.state.events.insert(InternalEvent::Fall, update_time + Self::drop_delay(&self.state.level));
+            self.state.events.insert(
+                InternalEvent::Fall,
+                update_time + Self::drop_delay(&self.state.level),
+            );
         }
         // Sonic drop button pressed
         if !dC0 && dC1 {
-            self.state.events.insert(InternalEvent::SonicDrop, update_time);
+            self.state
+                .events
+                .insert(InternalEvent::SonicDrop, update_time);
         }
         // Hard drop button pressed.
         if !dH0 && dH1 {
-            self.state.events.insert(InternalEvent::HardDrop, update_time);
+            self.state
+                .events
+                .insert(InternalEvent::HardDrop, update_time);
         }
     }
 
@@ -924,7 +933,7 @@ impl Game {
                         self.state.events.insert(InternalEvent::Lock, event_time);
                     }
                     Some(prev_piece)
-                } 
+                }
             }
             InternalEvent::SonicDrop => {
                 let prev_piece = prev_piece.expect("sonicdrop event but no active piece");
@@ -988,11 +997,10 @@ impl Game {
                         self.state.back_to_back_special_clears = 0;
                     }
                     let score_bonus = 10
-                        * (n_lines_cleared * n_lines_cleared)
+                        * (n_lines_cleared + self.state.consecutive_line_clears - 1).pow(2)
+                        * self.state.back_to_back_special_clears.max(1)
                         * if spin { 4 } else { 1 }
-                        * if perfect_clear { 16 } else { 1 }
-                        * self.state.consecutive_line_clears
-                        * self.state.back_to_back_special_clears.max(1);
+                        * if perfect_clear { 100 } else { 1 };
                     self.state.score += score_bonus;
                     let yippie = Feedback::Accolade {
                         score_bonus,
@@ -1182,7 +1190,8 @@ impl Game {
                     let remaining_ground_time = next_locking_data
                         .ground_time_left
                         .saturating_sub(current_ground_time);
-                    let lock_timer = std::cmp::min(Self::lock_delay(&self.state.level), remaining_ground_time);
+                    let lock_timer =
+                        std::cmp::min(Self::lock_delay(&self.state.level), remaining_ground_time);
                     self.state
                         .events
                         .insert(InternalEvent::LockTimer, event_time + lock_timer);

@@ -95,10 +95,10 @@ For more technical details see [Features of the Tetrs Engine](#features-of-the-t
   
 ### Settings
 - Look of the game:
-  - Graphics (ASCII, Unicode).
-  - Coloring (Monochrome; full RGB Colors; 16 Colors (should work on all consoles)).
+  - Graphics (Unicode, ASCII, 'Electronika 60').
+  - Coloring (RGB Colors; 16 Colors (should work on all consoles), Monochrome).
 - Play of the game:
-  - Configurable controls.
+  - Configurable controls (resettable).
     <details>
     
     <summary> Default Game Controls </summary>
@@ -112,6 +112,7 @@ For more technical details see [Features of the Tetrs Engine](#features-of-the-t
     | (not set) | Rotate around (180°) |
     | `↓` | Soft drop |
     | `↑` | Hard drop |
+    | (not set) | Sonic drop |
     | `Esc` | Pause game |
     | `Ctrl`+`D` | Forfeit game |
     | `Ctrl`+`C` | Exit program |
@@ -430,43 +431,60 @@ Although there might be a nicer system somehow..
 ## Scoring
 
 The exact scoring formula is given as follows:
-  <details>
-  
-  <summary>Scoring Details and Formula</summary>
-  
-  ```haskell
-  score_bonus = 10
-              * (lines ^ 2)
-              * (if spin then 4 else 1)
-              * (if perfect then 16 else 1)
-              * combo
-              * maximum [1, backToBack]
-    where lines = "number of lines cleared simultaneously"
-          spin = "piece could not move up when locking occurred"
-          perfect = "board is empty after line clear"
-          combo = "number of consecutive played pieces where line clear occurred"
-          backToBack = "number of consecutive line clears where spin, perfect or quadruple line clear occurred"
-  ```
-  *A table of some example bonuses:*
-  | Score bonus | Action |
-  | -: | :- |
-  | +10 | Single |
-  | +40 | Double |
-  | +90 | Triple |
-  | +160 | Quadruple |
-  | +20 | Single (2.combo) |
-  | +30 | Single (3.combo) |
-  | +80 | Double (2.combo) |
-  | +120 | Double (3.combo) |
-  | +40 | ?-Spin Single |
-  | +160 | ?-Spin Double |
-  | +360 | ?-Spin Triple |
+<details>
 
-  </details>
+<summary>Scoring Formula</summary>
+
+```haskell
+score_bonus = 10
+            * (lines + combo - 1) ^ 2
+            * maximum [1, backToBack]
+            * (if spin then 4 else 1)
+            * (if perfect then 100 else 1)
+  where lines = "number of lines cleared simultaneously"
+        spin = "piece could not move up when locking occurred"
+        perfect = "board is empty after line clear"
+        combo = "number of consecutive played pieces where line clear occurred"
+        backToBack = "number of consecutive line clears where spin, perfect or quadruple line clear occurred"
+```
+
+</details>
+
+
+<details>
+
+<summary>Table of Example Bonuses</summary>
+
+*A table of some example bonuses:*
+| Score bonus | Action |
+| -: | :- |
+| +10 | Single |
+| +40 | Double |
+| +90 | Triple |
+| +160 | Quadruple |
+| +40 | ?-Spin Single |
+| +160 | ?-Spin Double |
+| +360 | ?-Spin Triple |
+| +40 | Single (2.combo) |
+| +90 | Single (3.combo) |
+| +160 | Single (4.combo) |
+| +90 | Double (2.combo) |
+| +160 | Double (3.combo) |
+| +250 | Double (4.combo) |
+| +160 | Triple (2.combo) |
+| +250 | Triple (3.combo) |
+| +360 | Triple (4.combo) |
+| +320 | Quadruple (2.B2B) |
+| +480 | Quadruple (3.B2B) |
+| +640 | Quadruple (4.B2B) |
+| +1'000 | Perfect Single |
+| +16'000 | Perfect L-Spin Double |
+
+</details>
 
 Coming up with a *good* [scoring system](https://tetris.wiki/Scoring#Recent_guideline_compatible_games) is easier with practical experience and playtesters.
 
-I earnestly tried to come up with a new, simple, good formula, but it's tough to judge how much to reward the player for any given action *(how many points should a 'perfect clear' receive? - I've never achieved a single perfect clear in my life)*.
+I did actually try to come up with a new, simple, good formula, but it's tough to judge how much to reward the player for any given action *(how many points should a 'perfect clear' receive? - I've never achieved a single perfect clear in my life!)*.
 The one I came up with, put mildly, *probably sucks*.
 
 But I still allowed myself to experiment, because I really liked the idea of [rewarding all spins](https://harddrop.com/wiki/List_of_twists) (and don't understand modern Tetris' obession with T-spins when S-, Z-, L- and J-spins are also so satisfying).

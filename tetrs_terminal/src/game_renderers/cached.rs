@@ -462,7 +462,9 @@ impl GameScreenRenderer for Renderer {
             let elapsed = game_time.saturating_sub(*event_time);
             let luminance_map = match app.settings().graphics_style {
                 GraphicsStyle::Electronika60 => [" .", " .", " .", " .", " .", " .", " .", " ."],
-                GraphicsStyle::ASCII | GraphicsStyle::Unicode => ["@@", "$$", "##", "%%", "**", "++", "~~", ".."],
+                GraphicsStyle::ASCII | GraphicsStyle::Unicode => {
+                    ["@@", "$$", "##", "%%", "**", "++", "~~", ".."]
+                }
             };
             // let Some(&char) = [50, 60, 70, 80, 90, 110, 140, 180]
             let Some(tile) = [50, 70, 90, 110, 130, 150, 180, 240]
@@ -479,7 +481,7 @@ impl GameScreenRenderer for Renderer {
         }
         self.hard_drop_tiles.retain(|elt| elt.4);
         // Board: draw fixed tiles.
-        let (tile_fixed, tile_ghost, tile_active, tile_preview) =
+        let (tile_ground, tile_ghost, tile_active, tile_preview) =
             match app.settings().graphics_style {
                 GraphicsStyle::Electronika60 => ("▮▮", " .", "▮▮", "▮▮"),
                 GraphicsStyle::ASCII => ("##", "::", "[]", "[]"),
@@ -489,7 +491,7 @@ impl GameScreenRenderer for Renderer {
             for (x, cell) in line.iter().enumerate() {
                 if let Some(tile_type_id) = cell {
                     self.screen.buffer_str(
-                        tile_fixed,
+                        tile_ground,
                         tile_color(*tile_type_id),
                         pos_board((x, y)),
                     );
@@ -673,7 +675,7 @@ impl GameScreenRenderer for Renderer {
                     let mut strs = Vec::new();
                     strs.push(format!("+{score_bonus}"));
                     if *perfect_clear {
-                        strs.push("PERFECT".to_string());
+                        strs.push("Perfect".to_string());
                     }
                     if *spin {
                         strs.push(format!("{shape:?}-Spin"));
