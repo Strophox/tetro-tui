@@ -17,10 +17,10 @@
 
 
 ## How to run
-> Pre-built.
-> - [Download a release](https://github.com/Strophox/tetrs/releases) for your platform if available and run the application.
+- [Download a release](https://github.com/Strophox/tetrs/releases) for your platform if available.
+- Run the application in your favourite terminal
 
-> Compiling yourself.
+> Or compile it yourself:
 > - Have [Rust](https://www.rust-lang.org/) (1.80.0+) installed.
 > - Download / `git clone` this repository.
 > - Navigate to `tetrs_terminal/` and `cargo run`.
