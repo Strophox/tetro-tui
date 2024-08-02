@@ -267,8 +267,8 @@ pub enum InternalEvent {
     MoveSlow,
     /// Event of the active piece moving sideways (any direction), at 'ARR' speed.
     MoveFast,
-    /// Event of the active piece rotating (any direction).
-    Rotate,
+    /// Event of the active piece rotating some number of right turns.
+    Rotate(i32),
     /// Event of attempted piece lock down.
     LockTimer,
 }
@@ -1058,8 +1058,18 @@ impl Game {
         This always causes a rotation event (with no cancellation possible with rL,rR).
         */
         // Either a 180 rotation, or a single L/R rotation button was pressed.
-        if (!rA0 && rA1) || (((!rR0 && rR1) || (!rL0 && rL1)) && (rL0 || rR0 || !rR1 || !rL1)) {
-            self.state.events.insert(InternalEvent::Rotate, update_time);
+        let mut turns = 0;
+        if !rR0 && rR1 {
+            turns += 1;
+        }
+        if !rA0 && rA1 {
+            turns += 2;
+        }
+        if !rL0 && rL1 {
+            turns -= 1;
+        }
+        if turns != 0 {
+            self.state.events.insert(InternalEvent::Rotate(turns), update_time);
         }
         // Soft drop button pressed.
         if !dS0 && dS1 {
@@ -1160,33 +1170,30 @@ impl Game {
                         .events
                         .insert(InternalEvent::MoveFast, event_time);
                 }
-                if self.state.buttons_pressed[Button::RotateLeft]
-                    || self.state.buttons_pressed[Button::RotateRight]
-                    || self.state.buttons_pressed[Button::RotateAround]
-                {
-                    self.state.events.insert(InternalEvent::Rotate, event_time);
+                let mut turns = 0;
+                if self.state.buttons_pressed[Button::RotateRight] {
+                    turns += 1;
+                }
+                if self.state.buttons_pressed[Button::RotateAround] {
+                    turns += 2;
+                }
+                if self.state.buttons_pressed[Button::RotateLeft] {
+                    turns -= 1;
+                }
+                if turns != 0 {
+                    self.state.events.insert(InternalEvent::Rotate(turns), event_time);
                 }
                 Some(next_piece)
             }
-            InternalEvent::Rotate => {
+            InternalEvent::Rotate(turns) => {
                 let prev_piece = prev_piece.expect("rotate event but no active piece");
                 // Special 20G fall immediately after.
                 if self.state.level >= Self::LEVEL_20G {
                     self.state.events.insert(InternalEvent::Fall, event_time);
                 }
-                let mut rotation = 0;
-                if self.state.buttons_pressed[Button::RotateLeft] {
-                    rotation -= 1;
-                }
-                if self.state.buttons_pressed[Button::RotateRight] {
-                    rotation += 1;
-                }
-                if self.state.buttons_pressed[Button::RotateAround] {
-                    rotation += 2;
-                }
                 self.config
                     .rotation_system
-                    .rotate(&prev_piece, &self.state.board, rotation)
+                    .rotate(&prev_piece, &self.state.board, turns)
                     .or(Some(prev_piece))
             }
             InternalEvent::MoveSlow | InternalEvent::MoveFast => {
@@ -1206,7 +1213,13 @@ impl Game {
                     .events
                     .insert(InternalEvent::MoveFast, event_time + move_delay);
                 #[rustfmt::skip]
-                let dx = if self.state.buttons_pressed[Button::MoveLeft] { -1 } else { 1 };
+                let mut dx = 0;
+                if self.state.buttons_pressed[Button::MoveLeft] {
+                    dx -= 1;
+                }
+                if self.state.buttons_pressed[Button::MoveRight] {
+                    dx += 1;
+                }
                 prev_piece
                     .fits_at(&self.state.board, (dx, 0))
                     .or(Some(prev_piece))
@@ -1509,7 +1522,7 @@ impl Game {
                     .map(|(prev_piece, _)| prev_piece != next_piece)
                     .unwrap_or(false);
                 #[rustfmt::skip]
-                let move_rotate = matches!(event, InternalEvent::Rotate | InternalEvent::MoveSlow | InternalEvent::MoveFast);
+                let move_rotate = matches!(event, InternalEvent::Rotate(_) | InternalEvent::MoveSlow | InternalEvent::MoveFast);
                 if !self.state.events.contains_key(&InternalEvent::LockTimer)
                     || (repositioned && move_rotate)
                 {
