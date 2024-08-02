@@ -1,9 +1,24 @@
 [package]
 name = "tetrs_engine"
 version = "0.1.0"
-edition = "2021"
+authors = ["L. Werner"]
 description = "An implementation of a tetromino game engine, able to handle numerous modern mechanics."
+repository = "https://github.com/Strophox/tetrs"
+# documentation = "https://docs.rs/..."
 license = "MIT"
+# keywords = [...]
+readme = "README.md"
+edition = "2021"
+rust-version = "1.79.0"
+# categories = [...]
+
+[lib]
+name = "tetrs_engine"
+path = "src/lib.rs"
+
+[features]
+default = []
+serde = ["dep:serde"]
 
 [dependencies]
 rand = "0.8.5"

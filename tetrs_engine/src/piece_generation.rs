@@ -1,3 +1,7 @@
+/*!
+This module handles random generation of [`Tetromino`]s.
+*/
+
 use std::num::NonZeroU32;
 
 use rand::{
@@ -26,7 +30,9 @@ pub enum TetrominoGenerator {
     /// It works by picking `n` copies of each [`Tetromino`] type, and then uniformly random
     /// handing them out until the bag is empty and is refilled again.
     Bag {
+        /// The number of each  piece type left in the bag.
         pieces_left: [u32; 7],
+        /// How many of each piece type to refill with.
         multiplicity: NonZeroU32,
     },
     /// Recency/history-based piece generator.
@@ -35,10 +41,21 @@ pub enum TetrominoGenerator {
     /// It picks pieces by weighing them by this information, such that it is impossible to choose a
     /// piece picked last time, and a bit more than quadratically (`x.powf(2.5)`) more likely to
     /// choose the index of another piece.
-    Recency { last_generated: [u32; 7] },
+    Recency {
+        /// The last time a piece was seen.
+        ///
+        /// `0` here denotes that it was the most recent piece generated.
+        last_generated: [u32; 7],
+    },
     /// Experimental generator based off of how many times each [`Tetromino`] type has been seen
     /// *in total so far*.
-    TotalRelative { relative_counts: [u32; 7] },
+    TotalRelative {
+        /// The relative number of times each piece type has been seen more/less than the others.
+        ///
+        /// Note that this is normalized, i.e. all entries are decremented simultaneously until
+        /// at least one is `0`.
+        relative_counts: [u32; 7],
+    },
 }
 
 #[allow(dead_code)]
@@ -92,7 +109,9 @@ impl Clone for TetrominoGenerator {
 
 /// Struct produced from [`TetrominoGenerator::with_rng`] which implements [`Iterator`].
 pub struct TetrominoIterator<'a, 'b> {
+    /// Selected tetromino generator to use as information source.
     pub tetromino_generator: &'a mut TetrominoGenerator,
+    /// Thread random number generator for raw soure of randomness.
     pub rng: &'b mut ThreadRng,
 }
 

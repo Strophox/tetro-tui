@@ -233,7 +233,9 @@ The game provides some useful feedback events upon every `update`, usually used 
 
 </details>
 
-<!--TODO: "Also see documentation (`cargo doc --open`)."-->
+*\*Many small details of the `tetrs_engine` may have been left out of this readme (such as the initial rotation mechanic that immediately rotates a piece if a rotation button is pressed upon spawning). It is intended that this might be elaborated on at a later point in time.*
+
+*\*Another minor defect is current crate documentation (`cargo doc --open`) being unfortunately sparse at this time. Apologies from the author; I hope this can be fixed sometime!*
 
 
 # Project Highlights

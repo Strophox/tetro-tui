@@ -1,9 +1,43 @@
-//! # Tetrs Engine
-//!
-//! `tetrs_engine` is an implementation of a tetromino game engine, able to handle numerous modern
-//! mechanics:
-// TODO: Complete all features.
-//! - stuff
+/*!
+# Tetrs Engine
+
+`tetrs_engine` is an implementation of a tetromino game engine, able to handle numerous modern
+mechanics.
+
+# Examples
+
+```
+use tetrs_engine::*;
+
+// Starting a game.
+let game = Game::new(Gamemode::marathon());
+
+let button_state_1 = ButtonsPressed::default();
+button_state_1[Button::MoveLeft] = true;
+
+let update_time_1 = Duration::from_secs(3);
+
+// Updating the game with 'left' pressed at second 3.
+game.update(Some(button_state_1), update_time_1);
+
+// ...
+
+let update_time_2 = Duration::from_secs(4);
+
+// Updating the game with *no* change in (left pressed) button state (since second 3).
+game.update(None, update_time_2);
+
+// View game state
+let GameState { board, .. } = game.state();
+// (Render the board, etc..)
+```
+
+TODO:
+- All features (including IRS, etc.)
+- Crate features (serde),
+*/
+
+#![warn(missing_docs)]
 
 pub mod piece_generation;
 pub mod piece_rotation;
@@ -20,15 +54,24 @@ use piece_generation::TetrominoGenerator;
 use piece_rotation::RotationSystem;
 use rand::rngs::ThreadRng;
 
+/// A mapping for which buttons are pressed, usable through `impl Index<Button> for [T; 8]`.
 pub type ButtonsPressed = [bool; 8];
-// NOTE: Would've liked to use `impl Game { type Board = ...` (https://github.com/rust-lang/rust/issues/8995)
+/// Abstract identifier for which type of tile occupies a cell in the grid.
 pub type TileTypeID = NonZeroU32;
+/// The type of horizontal lines of the playing grid.
 pub type Line = [Option<TileTypeID>; Game::WIDTH];
+// NOTE: Would've liked to use `impl Game { type Board = ...` (https://github.com/rust-lang/rust/issues/8995)
+/// The type of the entire two-dimensional playing grid.
 pub type Board = Vec<Line>;
+/// Coordinates conventionally used to index into the [`Board`], starting in the bottom left.
 pub type Coord = (usize, usize);
+/// Coordinates offsets that can be [`add`]ed to [`Coord`]inates.
 pub type Offset = (isize, isize);
+/// The type used to identify points in time in a game's internal timeline.
 pub type GameTime = Duration;
+/// Convenient type alias to denote a collection of [`Feedback`]s associated with some [`GameTime`].
 pub type FeedbackEvents = Vec<(GameTime, Feedback)>;
+/// Type of functions that can be used to modify a game, c.f. [`Game::add_modifier`].
 pub type FnGameMod = Box<
     dyn FnMut(&mut GameConfig, &mut GameMode, &mut GameState, &mut FeedbackEvents, &ModifierPoint),
 >;
@@ -102,17 +145,16 @@ pub enum Tetromino {
 
 /// An active tetromino in play.
 ///
-/// An active piece in principle is designated only(!) by its Tetromino shape,
-/// re-orientation thereof into one of four directions, and a coordinate
-/// on the current playing grid.
-///
 /// Notably, the [`Game`] additionally stores [`LockingData`] corresponding
 /// to the main active piece outside this struct.
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ActivePiece {
+    /// Type of tetromino the active piece is.
     pub shape: Tetromino,
+    /// In which way the tetromino is re-oriented.
     pub orientation: Orientation,
+    /// The position of the active piece on a playing grid.
     pub position: Coord,
 }
 
@@ -174,9 +216,9 @@ pub struct GameMode {
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct GameConfig {
-    /// The [`RotationSystem`] used.
+    /// The method of tetromino rotation used.
     pub rotation_system: RotationSystem,
-    /// The [`TetrominoGenerator`] used.
+    /// The method (and internal state) of tetromino generation used.
     pub tetromino_generator: TetrominoGenerator,
     /// How many pieces should be pre-generated and accessible/visible in the game state.
     pub preview_count: usize,
@@ -205,16 +247,29 @@ pub struct GameConfig {
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum InternalEvent {
+    /// Event of a line being cleared from the board.
     LineClear,
+    /// Event of a new [`ActivePiece`] coming into play.
     Spawn,
+    /// Event of the current [`ActivePiece`] being fixed on the board, allowing no further updates
+    /// to its state.
     Lock,
+    /// Event of the active piece being dropped down and a fast [`InternalEvent::LockTimer`] being initiated.
     HardDrop,
+    /// Event of the active piece being dropped down (without any further action or locking).
     SonicDrop,
+    /// Event of the active piece immediately dropping down by one.
     SoftDrop,
+    /// Event of the active piece moving down due to ordinary game gravity.
     Fall,
+    /// Event of the active piece moving sideways (any direction), conventionally waiting for one
+    /// period of 'DAS', until 'ARR' begins.
     MoveSlow,
+    /// Event of the active piece moving sideways (any direction), at 'ARR' speed.
     MoveFast,
+    /// Event of the active piece rotating (any direction).
     Rotate,
+    /// Event of attempted piece lock down.
     LockTimer,
 }
 
@@ -222,39 +277,65 @@ pub enum InternalEvent {
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum GameOver {
+    /// 'Lock out' denotes the most recent piece being completely locked down at
+    /// or above the [`Game::SKYLINE`].
     LockOut,
+    /// 'Block out' denotes a new piece being unable to spawn due to pre-existing board tile
+    /// blocking one or several of the spawn cells.
     BlockOut,
+    /// Generic game over by having reached a (negative) game limit.
     ModeLimit,
+    /// Generic game over by player forfeit.
     Forfeit,
 }
 
-///
+// TODO: Invariants:
+// * Until the game has finished there will always be more events: `finished.is_some() || !next_events.is_empty()`.
+// * Unhandled events lie in the future: `for (event,event_time) in self.events { assert(self.time_updated < event_time); }`.
+/// Struct storing internal game state that changes over the course of play.
 #[derive(Eq, PartialEq, Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct GameState {
+    /// Current in-game time.
     pub time: GameTime,
+    /// Whether the game has ended and how.
     pub end: Option<Result<(), GameOver>>,
-    /// Invariants:
-    /// * Until the game has finished there will always be more events: `finished.is_some() || !next_events.is_empty()`.
-    /// * Unhandled events lie in the future: `for (event,event_time) in self.events { assert(self.time_updated < event_time); }`.
+    /// Upcoming game events.
     pub events: EventMap,
+    /// The current state of buttons being pressed in the game.
     pub buttons_pressed: ButtonsPressed,
+    /// The main playing grid storing empty (`None`) and filled, fixed tiles (`Some(nz_u32)`).
     pub board: Board,
+    /// All relevant data of the current piece in play.
     pub active_piece_data: Option<(ActivePiece, LockingData)>,
+    /// Upcoming pieces to be played.
     pub next_pieces: VecDeque<Tetromino>,
+    /// Tallies of how many pieces of each type have been played so far.
+    ///
+    /// Accessibe through `impl Index<Tetromino> for [T; 7]`.
     pub pieces_played: [u32; 7],
+    /// The total number of lines that have been cleared.
     pub lines_cleared: usize,
+    /// The current (speed) level the game is at.
     pub level: NonZeroU32,
+    /// The current total score the player has achieved in this round of play.
     pub score: u32,
+    /// The number of consecutive pieces that have been played and caused a line clear.
     pub consecutive_line_clears: u32,
+    /// The number of line clears that were either a quadruple, spin or perfect clear.
     pub back_to_back_special_clears: u32,
 }
 
+/// An error that can be thrown by [`Game::update`].
 pub enum GameUpdateError {
+    /// Error variant caused by an attempt to update the game with a requested `update_time` that lies in
+    /// the game's past (` < game.state().time`).
     DurationPassed,
+    /// Error variant caused by an attempt to update a game that has ended (`game.ended() == true`).
     GameEnded,
 }
 
+/// Main game struct representing one round of play.
 pub struct Game {
     config: GameConfig,
     mode: GameMode,
@@ -263,33 +344,64 @@ pub struct Game {
     modifiers: Vec<FnGameMod>,
 }
 
+/// A number of feedback events that can be returned by the game.
+///
+/// These can be used to more easily render visual feedback to the player.
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Hash, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Feedback {
+    /// A piece was locked down in a certain configuration.
     PieceLocked(ActivePiece),
+    /// A number of lines were cleared.
+    ///
+    /// The duration indicates the line clear delay the game was configured with at the time.
     LineClears(Vec<usize>, Duration),
+    /// A piece was quickly dropped from its original position to a new one.
+    // TODO: Rename to `QuickDrop` and make the `InternalEvent::DropSonic` cause this too?
     HardDrop(ActivePiece, ActivePiece),
+    /// The player cleared some lines with a number of other stats that might have increased their
+    /// score bonus.
     Accolade {
+        /// The final computed score bonus caused by the action.
         score_bonus: u32,
+        /// The shape that was locked.
         shape: Tetromino,
+        /// Whether the piece was spun into place.
         spin: bool,
+        /// How many lines were cleared by the piece simultaneously
         lineclears: u32,
+        /// Whether the entire board was cleared empty by this action.
         perfect_clear: bool,
+        /// The number of consecutive pieces played that caused a lineclear.
         combo: u32,
+        /// The number of consecutive lineclears where a spin, quadruple or perfect clear occurred.
         back_to_back: u32,
     },
+    /// Generic text feedback message.
+    ///
+    /// This is currently unused in base game modes.
     Message(String),
 }
 
+/// The points at which a [`FnGameMod`] will be applied.
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
 pub enum ModifierPoint {
+    /// Passed when the modifier is called immediately before an [`InternalEvent`] is handled.
     BeforeEvent(InternalEvent),
+    /// Passed when the modifier is called immediately after an [`InternalEvent`] has been handled.
     AfterEvent(InternalEvent),
+    /// Passed when the modifier is called immediately before new user input is handled.
+    ///
+    /// The expressions inside the tuple denote the buttons pressed previously, and the new input.
     BeforeButtonChange(ButtonsPressed, ButtonsPressed),
+    /// Passed when the modifier is called immediately after new user input has been handled.
     AfterButtonChange,
 }
 
 impl Orientation {
+    /// Find a new direction by turning right some number of times.
+    ///
+    /// This accepts `i32` to allow for left rotation.
     pub fn rotate_r(&self, right_turns: i32) -> Self {
         use Orientation::*;
         let base = match self {
@@ -309,6 +421,7 @@ impl Orientation {
 }
 
 impl Tetromino {
+    /// Returns the mino offsets of a tetromino shape, given an orientation.
     pub fn minos(&self, oriented: Orientation) -> [Coord; 4] {
         use Orientation::*;
         match self {
@@ -346,6 +459,7 @@ impl Tetromino {
         }
     }
 
+    /// Returns the convened-on standard tile id corresponding to the given tetromino.
     pub const fn tiletypeid(&self) -> TileTypeID {
         use Tetromino::*;
         let u8 = match self {
@@ -411,6 +525,7 @@ impl<T> ops::IndexMut<Tetromino> for [T; 7] {
 }
 
 impl ActivePiece {
+    /// Returns the coordinates and tile types for he piece on the board.
     pub fn tiles(&self) -> [(Coord, TileTypeID); 4] {
         let Self {
             shape,
@@ -423,18 +538,22 @@ impl ActivePiece {
             .map(|(dx, dy)| ((x + dx, y + dy), tile_type_id))
     }
 
+    /// Checks whether the piece fits at its current location onto the board.
     pub fn fits(&self, board: &Board) -> bool {
         self.tiles()
             .iter()
             .all(|&((x, y), _)| x < Game::WIDTH && y < Game::HEIGHT && board[y][x].is_none())
     }
 
+    /// Checks whether the piece fits a given offset from its current location onto the board.
     pub fn fits_at(&self, board: &Board, offset: Offset) -> Option<ActivePiece> {
         let mut new_piece = *self;
         new_piece.position = add(self.position, offset)?;
         new_piece.fits(board).then_some(new_piece)
     }
 
+    /// Checks whether the piece fits a given offset from its current location onto the board, with
+    /// its rotation changed by some number of right turns.
     pub fn fits_at_rotated(
         &self,
         board: &Board,
@@ -447,6 +566,8 @@ impl ActivePiece {
         new_piece.fits(board).then_some(new_piece)
     }
 
+    /// Given an iterator over some offsets, checks whether the rotated piece fits at any offset
+    /// location onto the board.
     pub fn first_fit(
         &self,
         board: &Board,
@@ -462,6 +583,8 @@ impl ActivePiece {
         })
     }
 
+    /// Returns the lowest position the piece can reached until it touches ground if dropped
+    /// straight down.
     pub fn well_piece(&self, board: &Board) -> ActivePiece {
         let mut well_piece = *self;
         // Move piece all the way down.
@@ -473,7 +596,13 @@ impl ActivePiece {
 }
 
 impl GameMode {
-    #[allow(dead_code)]
+    /// Produce a game mode template for "Marathon" mode.
+    ///
+    /// Settings:
+    /// - Name: "Marathon".
+    /// - Start level: 1.
+    /// - Level increment: Yes.
+    /// - Limits: Level 19.
     pub fn marathon() -> Self {
         Self {
             name: String::from("Marathon"),
@@ -486,7 +615,13 @@ impl GameMode {
         }
     }
 
-    #[allow(dead_code)]
+    /// Produce a game mode template for "40-Lines" mode.
+    ///
+    /// Settings:
+    /// - Name: "40-Lines".
+    /// - Start level: (variable).
+    /// - Level increment: No.
+    /// - Limits: 40 line clears.
     pub fn sprint(start_level: NonZeroU32) -> Self {
         Self {
             name: String::from("40-Lines"),
@@ -499,7 +634,13 @@ impl GameMode {
         }
     }
 
-    #[allow(dead_code)]
+    /// Produce a game mode template for "Time Trial" mode.
+    ///
+    /// Settings:
+    /// - Name: "Time Trial".
+    /// - Start level: (variable).
+    /// - Level increment: No.
+    /// - Limits: 180 seconds.
     pub fn ultra(start_level: NonZeroU32) -> Self {
         Self {
             name: String::from("Time Trial"),
@@ -512,7 +653,13 @@ impl GameMode {
         }
     }
 
-    #[allow(dead_code)]
+    /// Produce a game mode template for "Master" mode.
+    ///
+    /// Settings:
+    /// - Name: "Master".
+    /// - Start level: 19.
+    /// - Level increment: Yes.
+    /// - Limits: 300 Lines.
     pub fn master() -> Self {
         Self {
             name: String::from("Master"),
@@ -525,7 +672,13 @@ impl GameMode {
         }
     }
 
-    #[allow(dead_code)]
+    /// Produce a game mode template for "Endless" mode.
+    ///
+    /// Settings:
+    /// - Name: "Endless".
+    /// - Start level: 1.
+    /// - Level increment: No.
+    /// - Limits: None.
     pub fn zen() -> Self {
         Self {
             name: String::from("Endless"),
@@ -598,18 +751,21 @@ impl fmt::Debug for Game {
 }
 
 impl Game {
-    // Max height *any* piece tile could reach before Lock out occurs.
+    /// The maximum height *any* piece tile could reach before [`GameOver::LockOut`] occurs.
     pub const HEIGHT: usize = Self::SKYLINE + 7;
+    /// The game field width.
     pub const WIDTH: usize = 10;
-    // Typical maximal height of relevant (visible) playing grid.
+    /// The maximal height of the (conventionally visible) playing grid that can be played in.
     pub const SKYLINE: usize = 20;
     // SAFETY: 19 > 0, and this is the level at which blocks start falling with 20G.
     const LEVEL_20G: NonZeroU32 = unsafe { NonZeroU32::new_unchecked(19) };
 
+    /// Start a new game given some game mode.
     pub fn new(game_mode: GameMode) -> Self {
         Self::with_config(game_mode, GameConfig::default())
     }
 
+    /// Start a new game given a gamemode and some advanced configuration options.
     pub fn with_config(game_mode: GameMode, config: GameConfig) -> Self {
         let state = GameState {
             time: Duration::ZERO,
@@ -637,37 +793,53 @@ impl Game {
         }
     }
 
+    /// Immediately end a game by forfeiting the current round.
+    ///
+    /// This can be used so `game.ended()` returns true and prevents future
+    /// calls to `update` from continuing to advance the game.
     pub fn forfeit(&mut self) {
         self.state.end = Some(Err(GameOver::Forfeit))
     }
 
+    /// Whether the game has ended, or whether it can continue to update.
     pub fn ended(&self) -> bool {
         self.state.end.is_some()
     }
 
+    /// Immutable accessor for the current game configurations.
     pub fn config(&self) -> &GameConfig {
         &self.config
     }
 
+    /// Mutable accessor for the current game configurations.
     pub fn config_mut(&mut self) -> &mut GameConfig {
         &mut self.config
     }
 
+    /// Immutable accessor for the current game mode.
     pub fn mode(&self) -> &GameMode {
         &self.mode
     }
 
+    /// Immutable accessor for the current game state.
     pub fn state(&self) -> &GameState {
         &self.state
     }
 
+    /// Adds a 'game mod' that will get executed regularly before and after each [`InternalEvent`].
+    ///
     /// # Safety
     ///
-    /// TODO: Documentation of this. Generally speaking, this allows raw access to the `state` and `mode` internals and wrong mods might mangle internals and invariants.
+    // TODO: Document!
+    /// This indirectly allows raw, mutable access to the game's internal `GameConfig`, `GameMode`
+    /// and `GameState`, with no guardrails on their modificaiton possibly mangling internal invariants.
+    /// No undefined behaviour is involved, but may lead to spurious `panic!`s or other unexpected
+    /// gameplay behaviour.
     pub unsafe fn add_modifier(&mut self, game_mod: FnGameMod) {
         self.modifiers.push(game_mod)
     }
 
+    /// Updates the internal `self.state.end` state, checking whether any [`Limits`] have been reached.
     fn update_game_end(&mut self) {
         self.state.end = self.state.end.or_else(|| {
             [
@@ -704,6 +876,7 @@ impl Game {
         });
     }
 
+    /// Goes through all internal 'game mods' and applies them sequentially at the given [`ModifierPoint`].
     fn apply_modifiers(
         &mut self,
         feedback_events: &mut Vec<(GameTime, Feedback)>,
@@ -720,6 +893,24 @@ impl Game {
         }
     }
 
+    /// The main function used to advance the game state.
+    ///
+    /// This will cause an internal update of all [`InternalEvent`]s up to and including the given
+    /// `update_time` requested.
+    /// If `new_button_state.is_some()` then the same thing happens, except that the very last
+    /// 'event' will be the change of [`ButtonsPressed`] at `update_time` (which might cause some
+    /// further events that are handled at `update_time` before finally returning).
+    ///
+    /// Unless an error occurs, this function will return all [`FeedbackEvents`] caused between the
+    /// previous and the current `update` call, in chronological order.
+    ///
+    /// # Errors
+    ///
+    /// This function may error with:
+    /// - [`GameUpdateError::GameEnded`] if `game.ended()` is `true`, indicating that no more updates
+    ///   can change the game state, or
+    /// - [`GameUpdateError::DurationPassed`] if `update_time < game.state().time`, indicating that
+    ///   the requested update lies in the past.
     pub fn update(
         &mut self,
         mut new_button_state: Option<ButtonsPressed>,
@@ -802,6 +993,8 @@ impl Game {
         Ok(feedback_events)
     }
 
+    /// Computes and adds to the internal event queue any relevant [`InternalEvent`]s caused by the
+    /// player in form of a change of button states.
     fn add_input_events(&mut self, next_buttons_pressed: ButtonsPressed, update_time: GameTime) {
         #[allow(non_snake_case)]
         let [mL0, mR0, rL0, rR0, rA0, dS0, dH0, dC0] = self.state.buttons_pressed;
@@ -894,6 +1087,8 @@ impl Game {
         }
     }
 
+    /// Given a tetromino variant to be spawned onto the board, returns the correct initial state of
+    /// [`ActivePiece`].
     fn position_tetromino(shape: Tetromino) -> ActivePiece {
         let pos = match shape {
             Tetromino::O => (4, 20),
@@ -917,6 +1112,11 @@ impl Game {
         }
     }
 
+    /// Given an event, update the internal game state, possibly adding new future events.
+    ///
+    /// This function is likely the most important part of a game update as it handles the logic of
+    /// spawning, dropping, moving, locking the active piece, etc.
+    /// It also returns some feedback events caused by clearing lines, locking the piece, etc.
     fn handle_event(&mut self, event: InternalEvent, event_time: GameTime) -> FeedbackEvents {
         // Active piece touches the ground before update (or doesn't exist, counts as not touching).
         let mut feedback_events = Vec::new();
@@ -1198,6 +1398,7 @@ impl Game {
     }
 
     // TODO: THIS is, by far, the ugliest part of this entire program. For the love of what's good, I hope this code can someday be surgically excised and drop-in replaced with elegant code.
+    /// Calculates the newest locking details for the main active piece.
     fn calculate_locking_data(
         &mut self,
         event: InternalEvent,
@@ -1331,6 +1532,8 @@ impl Game {
         }
     }
 
+    /// The amount of time left for a piece to fall naturally, purely dependent on level
+    /// and an optional soft-drop-factor.
     #[rustfmt::skip]
     fn drop_delay(level: NonZeroU32, soft_drop: Option<f64>) -> Duration {
         let mut drop_delay = Duration::from_nanos(match level.get() {
@@ -1362,6 +1565,7 @@ impl Game {
         drop_delay
     }
 
+    /// The amount of time left for an common ground lock timer, purely dependent on level.
     #[rustfmt::skip]
     const fn lock_delay(level: &NonZeroU32) -> Duration {
         Duration::from_millis(match level.get() {
@@ -1393,6 +1597,8 @@ impl Ord for FeedbackEvent {
     }
 }*/
 
+/// Adds an offset to a board coordinate, failing if the result is out of bounds
+/// (negative or positive overflow in either direction).
 pub fn add((x0, y0): Coord, (x1, y1): Offset) -> Option<Coord> {
     Some((x0.checked_add_signed(x1)?, y0.checked_add_signed(y1)?))
 }

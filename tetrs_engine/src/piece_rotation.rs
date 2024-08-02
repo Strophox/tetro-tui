@@ -1,3 +1,7 @@
+/*!
+This module handles rotation of [`ActivePiece`]s.
+*/
+
 use crate::{ActivePiece, Board, Orientation, Tetromino};
 
 /// Handles the logic of how to rotate a tetromino in play.

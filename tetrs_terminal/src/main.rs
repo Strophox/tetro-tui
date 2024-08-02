@@ -8,7 +8,6 @@ use std::io::{self, Write};
 
 use clap::Parser;
 
-/// Terminal frontend for playing tetrs.
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
@@ -17,7 +16,7 @@ struct Args {
     fps: Option<u32>,
 }
 
-fn main() -> Result<(), io::Error> {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
     let stdout = io::BufWriter::new(io::stdout());
     let mut app = terminal_tetrs::App::new(stdout, args.fps);
