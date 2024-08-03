@@ -1027,7 +1027,6 @@ impl Game {
                 .insert(InternalEvent::MoveSlow, update_time);
         // One/Two buttons pressed -> different/one button pressed, (re-)add fast repeat move.
         } else if (mL0 && (!mL1 && mR1)) || (mR0 && (mL1 && !mR1)) {
-            self.state.events.remove(&InternalEvent::MoveFast);
             self.state
                 .events
                 .insert(InternalEvent::MoveFast, update_time);
@@ -1162,14 +1161,6 @@ impl Game {
                     self.state.end = Some(Err(GameOver::BlockOut));
                     return feedback_events;
                 }
-                self.state.events.insert(InternalEvent::Fall, event_time);
-                if self.state.buttons_pressed[Button::MoveLeft]
-                    || self.state.buttons_pressed[Button::MoveRight]
-                {
-                    self.state
-                        .events
-                        .insert(InternalEvent::MoveFast, event_time);
-                }
                 let mut turns = 0;
                 if self.state.buttons_pressed[Button::RotateRight] {
                     turns += 1;
@@ -1183,14 +1174,11 @@ impl Game {
                 if turns != 0 {
                     self.state.events.insert(InternalEvent::Rotate(turns), event_time);
                 }
+                self.state.events.insert(InternalEvent::Fall, event_time);
                 Some(next_piece)
             }
             InternalEvent::Rotate(turns) => {
                 let prev_piece = prev_piece.expect("rotate event but no active piece");
-                // Special 20G fall immediately after.
-                if self.state.level >= Self::LEVEL_20G {
-                    self.state.events.insert(InternalEvent::Fall, event_time);
-                }
                 self.config
                     .rotation_system
                     .rotate(&prev_piece, &self.state.board, turns)
@@ -1199,19 +1187,6 @@ impl Game {
             InternalEvent::MoveSlow | InternalEvent::MoveFast => {
                 // Handle move attempt and auto repeat move.
                 let prev_piece = prev_piece.expect("move event but no active piece");
-                // Special 20G fall immediately after.
-                if self.state.level >= Self::LEVEL_20G {
-                    self.state.events.insert(InternalEvent::Fall, event_time);
-                }
-                let move_delay = if event == InternalEvent::MoveSlow {
-                    self.config.delayed_auto_shift
-                } else {
-                    self.config.auto_repeat_rate
-                }
-                .min(Self::lock_delay(&self.state.level).saturating_sub(Duration::from_millis(1)));
-                self.state
-                    .events
-                    .insert(InternalEvent::MoveFast, event_time + move_delay);
                 #[rustfmt::skip]
                 let mut dx = 0;
                 if self.state.buttons_pressed[Button::MoveLeft] {
@@ -1220,61 +1195,57 @@ impl Game {
                 if self.state.buttons_pressed[Button::MoveRight] {
                     dx += 1;
                 }
-                prev_piece
-                    .fits_at(&self.state.board, (dx, 0))
-                    .or(Some(prev_piece))
+                Some(if let Some(next_piece) = prev_piece.fits_at(&self.state.board, (dx, 0)) {
+                    let move_delay = if event == InternalEvent::MoveSlow {
+                        self.config.delayed_auto_shift
+                    } else {
+                        self.config.auto_repeat_rate
+                    }
+                    .min(Self::lock_delay(&self.state.level).saturating_sub(Duration::from_millis(1)));
+                    self.state
+                        .events
+                        .insert(InternalEvent::MoveFast, event_time + move_delay);
+                    next_piece
+                } else {
+                    prev_piece
+                })
             }
             InternalEvent::Fall => {
                 let prev_piece = prev_piece.expect("falling event but no active piece");
-                // Gravity at 20G is a special case to drop piece infinitely fast.
-                if self.state.level >= Self::LEVEL_20G {
-                    Some(prev_piece.well_piece(&self.state.board))
-                // Ordinary gravity fall.
-                } else {
+                // Try to drop active piece down by one, and queue next fall event.
+                Some(if let Some(dropped_piece) = prev_piece.fits_at(&self.state.board, (0, -1)) {
                     // Drop delay is possibly faster due to soft drop button pressed.
                     let soft_drop = self.state.buttons_pressed[Button::DropSoft]
                         .then_some(self.config.soft_drop_factor);
                     let drop_delay = Self::drop_delay(self.state.level, soft_drop);
-                    // Try to drop active piece down by one, and queue next fall event.
-                    if let Some(dropped_piece) = prev_piece.fits_at(&self.state.board, (0, -1)) {
-                        self.state
-                            .events
-                            .insert(InternalEvent::Fall, event_time + drop_delay);
-                        Some(dropped_piece)
-                    } else {
-                        // Otherwise ciece could not move down.
-                        // Add fall attempt event anyway.
-                        self.state
-                            .events
-                            .insert(InternalEvent::Fall, event_time + drop_delay);
-                        Some(prev_piece)
-                    }
-                }
+                    self.state
+                        .events
+                        .insert(InternalEvent::Fall, event_time + drop_delay);
+                    dropped_piece
+                } else {
+                    // Otherwise piece could not move down.
+                    prev_piece
+                })
             }
             InternalEvent::SoftDrop => {
                 let prev_piece = prev_piece.expect("softdrop event but no active piece");
                 // Try to drop active piece down by one, and queue next fall event.
-                if let Some(dropped_piece) = prev_piece.fits_at(&self.state.board, (0, -1)) {
+                Some(if let Some(dropped_piece) = prev_piece.fits_at(&self.state.board, (0, -1)) {
                     let soft_drop = self.state.buttons_pressed[Button::DropSoft]
                         .then_some(self.config.soft_drop_factor);
-                    let mut drop_delay = Self::drop_delay(self.state.level, soft_drop);
-                    if self.state.buttons_pressed[Button::DropSoft] {
-                        drop_delay = Duration::from_secs_f64(
-                            drop_delay.as_secs_f64() / self.config.soft_drop_factor.max(0.00001),
-                        );
-                    }
+                    let drop_delay = Self::drop_delay(self.state.level, soft_drop);
                     self.state
                         .events
                         .insert(InternalEvent::Fall, event_time + drop_delay);
-                    Some(dropped_piece)
+                    dropped_piece
                 } else {
                     // Otherwise ciece could not move down.
                     // Immediately lock (unless option for it is disabled).
                     if !self.config.no_soft_drop_lock {
                         self.state.events.insert(InternalEvent::Lock, event_time);
                     }
-                    Some(prev_piece)
-                }
+                    prev_piece
+                })
             }
             InternalEvent::SonicDrop => {
                 let prev_piece = prev_piece.expect("sonicdrop event but no active piece");
@@ -1395,6 +1366,20 @@ impl Game {
                 None
             }
         };
+        // Piece changed.
+        if next_piece.is_some() && prev_piece != next_piece {
+            // No move event scheduled but user wants to move to one side, add a move event.
+            if !(self.state.events.contains_key(&InternalEvent::MoveSlow) || self.state.events.contains_key(&InternalEvent::MoveFast))
+                && (self.state.buttons_pressed[Button::MoveLeft] != self.state.buttons_pressed[Button::MoveRight]) {
+                self.state.events.insert(InternalEvent::MoveFast, event_time);
+            }
+            // No fall event scheduled but piece might be able to, schedule fall event.
+            if !self.state.events.contains_key(&InternalEvent::Fall) {
+                let soft_drop = self.state.buttons_pressed[Button::DropSoft].then_some(self.config.soft_drop_factor);
+                let drop_delay = Self::drop_delay(self.state.level, soft_drop);
+                self.state.events.insert(InternalEvent::Fall, event_time + drop_delay);
+            }
+        }
         self.state.active_piece_data = next_piece.map(|next_piece| {
             (
                 next_piece,
@@ -1568,7 +1553,8 @@ impl Game {
             16 =>     4_263_557,
             17 =>     2_520_084,
             18 =>     1_457_139,
-             _ =>       823_907, // NOTE: 20G is at `833_333`, but falling speeds at that level are handled especially by the engine.
+            19 =>       823_907, // NOTE: 20G is at `833_333`, but falling speeds at that level are handled especially by the engine.
+             _ =>             0,
         });
         if let Some(soft_drop_factor) = soft_drop {
             drop_delay = Duration::from_secs_f64(

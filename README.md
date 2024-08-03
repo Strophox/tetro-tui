@@ -25,7 +25,7 @@
 > - Download / `git clone` this repository.
 > - Navigate to `tetrs_terminal/` and `cargo run`.
 
-> [!NOTE]
+> [!IMPORTANT]
 > Use a terminal like [kitty](<https://sw.kovidgoyal.net/kitty/>) (or any terminal with [support for progressive keyboard enhancement](https://docs.rs/crossterm/latest/crossterm/event/struct.PushKeyboardEnhancementFlags.html)) for smooth gameplay **controls** and/or visual experience. 
 > 
 > > <details>
