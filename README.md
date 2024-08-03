@@ -26,16 +26,17 @@
 > - Navigate to `tetrs_terminal/` and `cargo run`.
 
 > [!IMPORTANT]
-> Use a terminal like [kitty](<https://sw.kovidgoyal.net/kitty/>) (or any terminal with [support for progressive keyboard enhancement](https://docs.rs/crossterm/latest/crossterm/event/struct.PushKeyboardEnhancementFlags.html)) for smooth gameplay **controls** and/or visual experience. 
+> Use a terminal like [kitty](<https://sw.kovidgoyal.net/kitty/>) (or any terminal with [support for progressive keyboard enhancement](https://docs.rs/crossterm/latest/crossterm/event/struct.PushKeyboardEnhancementFlags.html)) for smoother gameplay experience.
+> **Note that otherwise DAS/ARR/Soft drop speed will be determined by Keyboard/OS/terminal emulator settings.** 
 > 
 > > <details>
 > > 
 > > <summary> Explanation. </summary>
 > > 
 > > Terminals do not usually send "key released" signals, which is a problem for mechanics such as "press left to move left repeatedly **until key is released**".
-> > [Crossterm](https://docs.rs/crossterm/latest/crossterm/) automatically detects ['kitty-protocol'-compatible terminals]([https://docs.rs/crossterm/latest/crossterm/event/struct.PushKeyboardEnhancementFlags.html](https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement)) where this issue is solved.
-> > Otherwise DAS/ARR will be determined by Keyboard/OS/terminal emulator settings.
-> > *(This also affects Soft Drop, where e.g. with kitty a piece may land the ground with Soft Drop being held without locking due to external ARR. This is mitigated by the 'No soft drop lock' setting.)*
+> > [Crossterm](https://docs.rs/crossterm/latest/crossterm/) automatically detects ['kitty-protocol'-compatible terminals]([https://docs.rs/crossterm/latest/crossterm/event/struct.PushKeyboardEnhancementFlags.html](https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement)) where this issue is solved, allowing for smooth, configurable gameplay controls.
+> >
+> > (\*This also affects holding Soft Drop locking pieces on ground instantly, as opposed to only upon press down -- for ergonomics this is explicitly mitigated by the 'No soft drop lock' configuration.)*
 > > 
 > > </details>
 
