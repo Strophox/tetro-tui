@@ -29,7 +29,7 @@ use tetrs_engine::{
 use crate::game_renderers::{cached::Renderer, GameScreenRenderer};
 use crate::{
     game_input_handler::{ButtonOrSignal, CrosstermHandler, Signal},
-    puzzle_mode,
+    game_mods,
 };
 
 // NOTE: This could be more general and less ad-hoc. Count number of I-Spins, J-Spins, etc..
@@ -525,10 +525,10 @@ impl<T: Write> App<T> {
 
     fn newgame(&mut self) -> io::Result<MenuUpdate> {
         let preset_gamemodes = [
-            GameMode::sprint(NonZeroU32::try_from(3).unwrap()),
-            GameMode::marathon(),
-            GameMode::ultra(NonZeroU32::try_from(3).unwrap()),
-            GameMode::master(),
+            (GameMode::sprint(NonZeroU32::try_from(3).unwrap()), "how fast can you clear?"),
+            (GameMode::marathon(), "can you reach level 20?"),
+            (GameMode::ultra(NonZeroU32::try_from(3).unwrap()), "3min. is all you got!"),
+            (GameMode::master(), "challenging - the pieces don't even fly!"),
         ];
         let (d_time, d_score, d_pieces, d_lines, d_level) = (Duration::from_secs(5), 200, 10, 5, 1);
         let mut selected = 0usize;
@@ -553,9 +553,9 @@ impl<T: Write> App<T> {
             let names = preset_gamemodes
                 .iter()
                 .cloned()
-                .map(|gm| gm.name)
+                .map(|(gm, details)| (gm.name, details))
                 .collect::<Vec<_>>();
-            for (i, name) in names.into_iter().enumerate() {
+            for (i, (name, details)) in names.into_iter().enumerate() {
                 self.term
                     .queue(MoveTo(
                         x_main,
@@ -564,7 +564,7 @@ impl<T: Write> App<T> {
                     .queue(Print(format!(
                         "{:^w_main$}",
                         if i == selected {
-                            format!(">>> {name} <<<")
+                            format!(">>> {name}: {details} <<<")
                         } else {
                             name
                         }
@@ -579,9 +579,9 @@ impl<T: Write> App<T> {
                 .queue(Print(format!(
                     "{:^w_main$}",
                     if selected == selected_cnt - 2 {
-                        ">>> Puzzle Mode: Spins and perfect clears! <<<"
+                        ">>> Puzzle: only spins and perfect clears! <<<"
                     } else {
-                        "Puzzle Mode ..."
+                        "~ Puzzle ~"
                     }
                 )))?;
             // Render custom mode option.
@@ -594,12 +594,12 @@ impl<T: Write> App<T> {
                     "{:^w_main$}",
                     if selected == selected_cnt - 1 {
                         if selected_custom == 0 {
-                            "▓▓> Custom Mode: (press right repeatedly to change 'limit')"
+                            "▓▓> Custom mode: (press right repeatedly to change 'limit')"
                         } else {
-                            "  > Custom Mode: (press right repeatedly to change 'limit')"
+                            "  > Custom mode: (press right repeatedly to change 'limit')"
                         }
                     } else {
-                        "Custom Mode ..."
+                        "Custom mode ..."
                     }
                 )))?;
             // Render custom mode stuff.
@@ -685,10 +685,10 @@ impl<T: Write> App<T> {
                             limits,
                         })
                     } else if selected == selected_cnt - 2 {
-                        puzzle_mode::make_game()
+                        game_mods::puzzle_mode::make_game()
                     } else {
                         // SAFETY: Index < selected_cnt - 2 = preset_gamemodes.len().
-                        Game::new(preset_gamemodes.into_iter().nth(selected).unwrap())
+                        Game::new(preset_gamemodes.into_iter().nth(selected).unwrap().0)
                     };
 
                     // Set config.

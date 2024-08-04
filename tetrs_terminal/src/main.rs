@@ -1,7 +1,6 @@
 mod game_input_handler;
 mod game_mods;
 mod game_renderers;
-mod puzzle_mode;
 pub mod terminal_tetrs;
 
 use std::io::{self, Write};

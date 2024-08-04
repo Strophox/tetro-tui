@@ -4,7 +4,7 @@ use tetrs_engine::{
 };
 
 #[allow(dead_code)]
-pub fn display_tetromino_likelihood_mod(
+pub fn display_tetromino_likelihood(
     config: &mut GameConfig,
     _mode: &mut GameMode,
     state: &mut GameState,
