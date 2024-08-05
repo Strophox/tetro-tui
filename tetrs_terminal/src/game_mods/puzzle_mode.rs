@@ -280,6 +280,12 @@ fn list_of_puzzles() -> [(&'static str, Vec<&'static [u8; 10]>, VecDeque<Tetromi
             b"OOO  OOOOO",
             b"OOO   OOOO",
             ], VecDeque::from([Tetromino::T,Tetromino::T])),
+        ("T-insert", vec![
+            b"OOOO  OOOO",
+            b"OOOO  OOOO",
+            b"OOOOO OOOO",
+            b"OOOO   OOO",
+            ], VecDeque::from([Tetromino::T,Tetromino::O])),
         ("T-go-round", vec![
             b"OOO  OOOOO",
             b"OOO   OOOO",
@@ -300,12 +306,6 @@ fn list_of_puzzles() -> [(&'static str, Vec<&'static [u8; 10]>, VecDeque<Tetromi
             b"OOO  OOOOO",
             b"OOOO OOOOO",
             ], VecDeque::from([Tetromino::T,Tetromino::L,Tetromino::J])),
-        ("T-insert", vec![
-            b"OOOO  OOOO",
-            b"OOOO  OOOO",
-            b"OOOOO OOOO",
-            b"OOOO   OOO",
-            ], VecDeque::from([Tetromino::T,Tetromino::O])),
         ("~ Finale ~", vec![ // v2.2.1
             b"OOOO  OOOO",
             b"O  O  OOOO",
