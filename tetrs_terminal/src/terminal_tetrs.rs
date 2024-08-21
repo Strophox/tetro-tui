@@ -18,7 +18,7 @@ use crossterm::{
         KeyModifiers,
     },
     style::{self, Print, PrintStyledContent, Stylize},
-    terminal::{self, Clear},
+    terminal::{self, Clear, ClearType},
     ExecutableCommand, QueueableCommand,
 };
 use tetrs_engine::{
@@ -392,14 +392,14 @@ impl<T: Write> App<T> {
             let y_selection = Self::H_MAIN / 5;
             if current_menu_name.is_empty() {
                 self.term
-                    .queue(terminal::Clear(terminal::ClearType::All))?
+                    .queue(Clear(ClearType::All))?
                     .queue(MoveTo(x_main, y_main + y_selection))?
                     .queue(Print(format!("{:^w_main$}", "▀█▀ ██ ▀█▀ █▀▀ ▄█▀")))?
                     .queue(MoveTo(x_main, y_main + y_selection + 1))?
                     .queue(Print(format!("{:^w_main$}", "    █▄▄▄▄▄▄       ")))?;
             } else {
                 self.term
-                    .queue(terminal::Clear(terminal::ClearType::All))?
+                    .queue(Clear(ClearType::All))?
                     .queue(MoveTo(x_main, y_main + y_selection))?
                     .queue(Print(format!(
                         "{:^w_main$}",
@@ -447,7 +447,7 @@ impl<T: Write> App<T> {
             }
             if easteregg.abs() == 42 {
                 self.term
-                    .queue(Clear(terminal::ClearType::All))?
+                    .queue(Clear(ClearType::All))?
                     .queue(MoveTo(0, y_main))?
                     .queue(PrintStyledContent(Self::DAVIS.italic()))?;
             }
@@ -553,7 +553,7 @@ impl<T: Write> App<T> {
             let y_selection = Self::H_MAIN / 5;
             // Render menu title.
             self.term
-                .queue(terminal::Clear(terminal::ClearType::All))?
+                .queue(Clear(ClearType::All))?
                 .queue(MoveTo(x_main, y_main + y_selection))?
                 .queue(Print(format!("{:^w_main$}", "* Start New Game *")))?
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
@@ -972,14 +972,14 @@ impl<T: Write> App<T> {
                 for i in 0..h_console {
                     self.term
                         .execute(MoveTo(0, i))?
-                        .execute(Clear(terminal::ClearType::CurrentLine))?;
+                        .execute(Clear(ClearType::CurrentLine))?;
                     std::thread::sleep(Duration::from_secs_f32(0.01));
                 }
             } else {
                 for i in (0..h_console).rev() {
                     self.term
                         .execute(MoveTo(0, i))?
-                        .execute(Clear(terminal::ClearType::CurrentLine))?;
+                        .execute(Clear(ClearType::CurrentLine))?;
                     std::thread::sleep(Duration::from_secs_f32(0.01));
                 }
             };
@@ -1049,7 +1049,7 @@ impl<T: Write> App<T> {
             let (x_main, y_main) = Self::fetch_main_xy();
             let y_selection = Self::H_MAIN / 5;
             self.term
-                .queue(Clear(terminal::ClearType::All))?
+                .queue(Clear(ClearType::All))?
                 .queue(MoveTo(x_main, y_main + y_selection))?
                 .queue(Print(format!(
                     "{:^w_main$}",
@@ -1225,22 +1225,22 @@ impl<T: Write> App<T> {
             let (x_main, y_main) = Self::fetch_main_xy();
             let y_selection = Self::H_MAIN / 5;
             self.term
-                .queue(terminal::Clear(terminal::ClearType::All))?
+                .queue(Clear(ClearType::All))?
                 .queue(MoveTo(x_main, y_main + y_selection))?
                 .queue(Print(format!("{:^w_main$}", "% Settings %")))?
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
                 .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
             let labels = [
                 "| Change Controls .. |".to_string(),
-                "| Configure Game .. |".to_string(),
+                "| Configure Game  .. |".to_string(),
                 format!("graphics : '{:?}'", self.settings.graphics_style),
                 format!("color : '{:?}'", self.settings.graphics_color),
                 format!("framerate : {}", self.settings.game_fps),
                 format!("show fps : {}", self.settings.show_fps),
                 if self.settings.save_data_on_exit {
-                    "Keep savefile for tetrs : On"
+                    "Keep save file for tetrs : On"
                 } else {
-                    "Keep savefile for tetrs : Off (!)"
+                    "Keep save file for tetrs : Off (!)"
                 }
                 .to_string(),
                 if self.settings.save_data_on_exit {
@@ -1404,7 +1404,7 @@ impl<T: Write> App<T> {
             let (x_main, y_main) = Self::fetch_main_xy();
             let y_selection = Self::H_MAIN / 5;
             self.term
-                .queue(terminal::Clear(terminal::ClearType::All))?
+                .queue(Clear(ClearType::All))?
                 .queue(MoveTo(x_main, y_main + y_selection))?
                 .queue(Print(format!("{:^w_main$}", "| Change Controls |")))?
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
@@ -1445,8 +1445,7 @@ impl<T: Write> App<T> {
                     } else {
                         "[restore defaults]"
                     }
-                )))?;
-            self.term
+                )))?
                 .queue(MoveTo(
                     x_main,
                     y_main + y_selection + 4 + u16::try_from(selection_len).unwrap() + 3,
@@ -1454,7 +1453,18 @@ impl<T: Write> App<T> {
                 .queue(PrintStyledContent(
                     format!(
                         "{:^w_main$}",
-                        "Press [Enter] to add a keybind to an action.",
+                        "Press [Enter] to add keybinds.",
+                    )
+                    .italic(),
+                ))?
+                .queue(MoveTo(
+                    x_main,
+                    y_main + y_selection + 4 + u16::try_from(selection_len).unwrap() + 4,
+                ))?
+                .queue(PrintStyledContent(
+                    format!(
+                        "{:^w_main$}",
+                        "Press [Delete] to remove keybinds.",
                     )
                     .italic(),
                 ))?;
@@ -1502,7 +1512,9 @@ impl<T: Write> App<T> {
                                     format!("Press a key for {current_button:?}..."),
                                 )
                                 .italic(),
-                            ))?;
+                            ))?
+                            .execute(cursor::MoveToNextLine(1))?
+                            .execute(Clear(ClearType::CurrentLine))?;
                         loop {
                             if let Event::Key(KeyEvent {
                                 code, kind: Press, ..
@@ -1512,6 +1524,19 @@ impl<T: Write> App<T> {
                                 break;
                             }
                         }
+                    }
+                }
+                // Select button to delete.
+                Event::Key(KeyEvent {
+                    code: KeyCode::Delete,
+                    kind: Press,
+                    ..
+                }) => {
+                    if selected == selection_len - 1 {
+                        self.settings.keybinds.clear();
+                    } else {
+                        let current_button = button_selection[selected];
+                        self.settings.keybinds.retain(|_code, button| *button != current_button);
                     }
                 }
                 // Move selector up.
@@ -1545,7 +1570,7 @@ impl<T: Write> App<T> {
             let (x_main, y_main) = Self::fetch_main_xy();
             let y_selection = Self::H_MAIN / 5;
             self.term
-                .queue(terminal::Clear(terminal::ClearType::All))?
+                .queue(Clear(ClearType::All))?
                 .queue(MoveTo(x_main, y_main + y_selection))?
                 .queue(Print(format!(
                     "{:^w_main$}",
@@ -1831,7 +1856,7 @@ impl<T: Write> App<T> {
             let (x_main, y_main) = Self::fetch_main_xy();
             let y_selection = Self::H_MAIN / 5;
             self.term
-                .queue(terminal::Clear(terminal::ClearType::All))?
+                .queue(Clear(ClearType::All))?
                 .queue(MoveTo(x_main, y_main + y_selection))?
                 .queue(Print(format!("{:^w_main$}", "# Scoreboard #")))?
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
