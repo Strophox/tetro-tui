@@ -91,11 +91,12 @@
 # Features of the Application
 
 ### Gamemodes
-- 'Marathon' (reach lvl 20) - 'Sprint' (40-Lines) - 'Ultra' (Time Trial) - Master (20G).
-- Puzzle Mode
-  - Perfect-clear yourself through short puzzle stages with piece acrobatics enabled by the self-developed 'ocular' rotation system! *(\*Up to five attempts per puzzle stage.)*
-- Custom Mode
-  - Change start level, toggle level increment, set game limit *(Time, Score, Pieces, Lines, Level, or None)*.
+- 'Sprint': Clear 40-Lines (as quickly as possible).
+- 'Marathon': Reach level 20 (with the highest score possible).
+- Master: Clear 300 lines (at 20G = instant falling speed).
+- Cheese: Eat yourself through 32 lines with random holes (with as few pieces as possible).
+- Puzzle Mode: Advance through all 24 puzzle stages using perfect clears (and up to 5 attempts), enabled by piece acrobatics of the 'ocular' rotation system.
+- Custom Mode: Change start level, toggle level increment, set game limit *(Time, Score, Pieces, Lines, Level, or No limit)*.
 
 ### Gameplay
 - Familiar game experience of moving, rotating, hard-/softdropping *tetrominos* with the aim to clear lines.
