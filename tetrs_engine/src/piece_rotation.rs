@@ -104,7 +104,7 @@ fn ocular_rotate(piece: &ActivePiece, board: &Board, right_turns: i32) -> Option
                     (mirror, left) = (Some(mx), !left);
                     continue 'calculate_kicks;
                 } else  {
-                    break [(-1, 0), (-1,-1), (-1, 1), ( 0, 0)].iter();
+                    break [(-1, 0), (-1,-1), (-1, 1)].iter();
                 }
             },
             Tetromino::I => {

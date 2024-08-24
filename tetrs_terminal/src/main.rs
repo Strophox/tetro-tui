@@ -1,7 +1,7 @@
 mod game_input_handler;
 mod game_mods;
 mod game_renderers;
-pub mod terminal_tetrs;
+pub mod terminal_app;
 
 use std::io::{self, Write};
 
@@ -18,7 +18,7 @@ struct Args {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
     let stdout = io::BufWriter::new(io::stdout());
-    let mut app = terminal_tetrs::App::new(stdout, args.fps);
+    let mut app = terminal_app::TerminalApp::new(stdout, args.fps);
     std::panic::set_hook(Box::new(|panic_info| {
         if let Ok(mut file) = std::fs::File::create("tetrs_terminal_error_message.txt") {
             let _ = file.write(panic_info.to_string().as_bytes());

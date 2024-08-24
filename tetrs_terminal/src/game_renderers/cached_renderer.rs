@@ -17,10 +17,10 @@ use tetrs_engine::{
 };
 
 use crate::{
-    game_renderers::GameScreenRenderer,
-    terminal_tetrs::{
-        format_duration, format_key, format_keybinds, App, GraphicsColor, GraphicsStyle,
-        RunningGameStats,
+    game_renderers::Renderer,
+    terminal_app::{
+        format_duration, format_key, format_keybinds, GraphicsColor, GraphicsStyle,
+        RunningGameStats, TerminalApp,
     },
 };
 
@@ -200,18 +200,18 @@ impl ScreenBuf {
 }
 
 #[derive(Clone, Default, Debug)]
-pub struct Renderer {
+pub struct CachedRenderer {
     screen: ScreenBuf,
     visual_events: Vec<(GameTime, Feedback, bool)>,
     messages: Vec<(GameTime, String)>,
     hard_drop_tiles: Vec<(GameTime, Coord, usize, TileTypeID, bool)>,
 }
 
-impl GameScreenRenderer for Renderer {
+impl Renderer for CachedRenderer {
     // NOTE self: what is the concept of having an ADT but some functions are only defined on some variants (that may contain record data)?
     fn render<T>(
         &mut self,
-        app: &mut App<T>,
+        app: &mut TerminalApp<T>,
         game: &mut Game,
         action_stats: &mut RunningGameStats,
         new_feedback_events: FeedbackEvents,
@@ -221,7 +221,7 @@ impl GameScreenRenderer for Renderer {
         T: Write,
     {
         if screen_resized {
-            let (x_main, y_main) = App::<T>::fetch_main_xy();
+            let (x_main, y_main) = TerminalApp::<T>::fetch_main_xy();
             self.screen
                 .buffer_reset((usize::from(x_main), usize::from(y_main)));
         }

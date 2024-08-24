@@ -1,16 +1,16 @@
-pub mod cached;
-pub mod naive;
+pub mod cached_renderer;
+pub mod debug_renderer;
 
 use std::io::{self, Write};
 
 use tetrs_engine::{FeedbackEvents, Game};
 
-use crate::terminal_tetrs::{App, RunningGameStats};
+use crate::terminal_app::{RunningGameStats, TerminalApp};
 
-pub trait GameScreenRenderer {
+pub trait Renderer {
     fn render<T>(
         &mut self,
-        app: &mut App<T>,
+        app: &mut TerminalApp<T>,
         game: &mut Game,
         action_stats: &mut RunningGameStats,
         new_feedback_events: FeedbackEvents,

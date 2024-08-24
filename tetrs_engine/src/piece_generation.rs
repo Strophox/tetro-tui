@@ -20,8 +20,7 @@ use crate::Tetromino;
 /// [`TetrominoIterator`] that implements [`Iterator`].
 #[derive(Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[allow(dead_code)]
-pub enum TetrominoGenerator {
+pub enum TetrominoSource {
     /// Uniformly random piece generator.
     Uniform,
     /// Standard 'bag' generator.
@@ -58,8 +57,7 @@ pub enum TetrominoGenerator {
     },
 }
 
-#[allow(dead_code)]
-impl TetrominoGenerator {
+impl TetrominoSource {
     /// Initialize a new instance of the [`TetrominoGenerator::Uniform`] variant.
     pub fn uniform() -> Self {
         Self::Uniform
@@ -96,7 +94,7 @@ impl TetrominoGenerator {
     }
 }
 
-impl Clone for TetrominoGenerator {
+impl Clone for TetrominoSource {
     fn clone(&self) -> Self {
         match self {
             Self::Uniform => Self::uniform(),
@@ -110,7 +108,7 @@ impl Clone for TetrominoGenerator {
 /// Struct produced from [`TetrominoGenerator::with_rng`] which implements [`Iterator`].
 pub struct TetrominoIterator<'a, 'b> {
     /// Selected tetromino generator to use as information source.
-    pub tetromino_generator: &'a mut TetrominoGenerator,
+    pub tetromino_generator: &'a mut TetrominoSource,
     /// Thread random number generator for raw soure of randomness.
     pub rng: &'b mut ThreadRng,
 }
@@ -120,8 +118,8 @@ impl<'a, 'b> Iterator for TetrominoIterator<'a, 'b> {
 
     fn next(&mut self) -> Option<Self::Item> {
         match &mut self.tetromino_generator {
-            TetrominoGenerator::Uniform => Some(self.rng.gen_range(0..=6).try_into().unwrap()),
-            TetrominoGenerator::Bag {
+            TetrominoSource::Uniform => Some(self.rng.gen_range(0..=6).try_into().unwrap()),
+            TetrominoSource::Bag {
                 pieces_left,
                 multiplicity,
             } => {
@@ -136,7 +134,7 @@ impl<'a, 'b> Iterator for TetrominoIterator<'a, 'b> {
                 // SAFETY: 0 <= idx <= 6.
                 Some(idx.try_into().unwrap())
             }
-            TetrominoGenerator::TotalRelative { relative_counts } => {
+            TetrominoSource::TotalRelative { relative_counts } => {
                 let weighing = |&x| 1.0 / f64::from(x).exp(); // Alternative weighing function: `1.0 / (f64::from(x) + 1.0);`
                 let weights = relative_counts.iter().map(weighing);
                 // SAFETY: `weights` will always be non-zero due to `weighing`.
@@ -153,7 +151,7 @@ impl<'a, 'b> Iterator for TetrominoIterator<'a, 'b> {
                 // SAFETY: 0 <= idx <= 6.
                 Some(idx.try_into().unwrap())
             }
-            TetrominoGenerator::Recency { last_generated } => {
+            TetrominoSource::Recency { last_generated } => {
                 let weighing = |&x| f64::from(x).powf(2.5);
                 let weights = last_generated.iter().map(weighing);
                 // SAFETY: `weights` will always be non-zero due to `weighing`.

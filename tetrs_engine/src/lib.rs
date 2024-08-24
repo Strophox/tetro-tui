@@ -50,8 +50,8 @@ use std::{
     time::Duration,
 };
 
-use piece_generation::TetrominoGenerator;
-use piece_rotation::RotationSystem;
+pub use piece_generation::TetrominoSource;
+pub use piece_rotation::RotationSystem;
 use rand::rngs::ThreadRng;
 
 /// A mapping for which buttons are pressed, usable through `impl Index<Button> for [T; 8]`.
@@ -219,7 +219,7 @@ pub struct GameConfig {
     /// The method of tetromino rotation used.
     pub rotation_system: RotationSystem,
     /// The method (and internal state) of tetromino generation used.
-    pub tetromino_generator: TetrominoGenerator,
+    pub tetromino_generator: TetrominoSource,
     /// How many pieces should be pre-generated and accessible/visible in the game state.
     pub preview_count: usize,
     /// How long it takes for the active piece to start automatically shifting more to the side
@@ -402,7 +402,7 @@ impl Orientation {
     /// Find a new direction by turning right some number of times.
     ///
     /// This accepts `i32` to allow for left rotation.
-    pub fn rotate_r(&self, right_turns: i32) -> Self {
+    pub fn rotate_right(&self, right_turns: i32) -> Self {
         use Orientation::*;
         let base = match self {
             N => 0,
@@ -561,7 +561,7 @@ impl ActivePiece {
         right_turns: i32,
     ) -> Option<ActivePiece> {
         let mut new_piece = *self;
-        new_piece.orientation = new_piece.orientation.rotate_r(right_turns);
+        new_piece.orientation = new_piece.orientation.rotate_right(right_turns);
         new_piece.position = add(self.position, offset)?;
         new_piece.fits(board).then_some(new_piece)
     }
@@ -575,7 +575,7 @@ impl ActivePiece {
         right_turns: i32,
     ) -> Option<ActivePiece> {
         let mut new_piece = *self;
-        new_piece.orientation = new_piece.orientation.rotate_r(right_turns);
+        new_piece.orientation = new_piece.orientation.rotate_right(right_turns);
         let old_pos = self.position;
         offsets.into_iter().find_map(|offset| {
             new_piece.position = add(old_pos, offset)?;
@@ -725,7 +725,7 @@ impl Default for GameConfig {
     fn default() -> Self {
         Self {
             rotation_system: RotationSystem::Ocular,
-            tetromino_generator: TetrominoGenerator::recency(),
+            tetromino_generator: TetrominoSource::recency(),
             preview_count: 1,
             delayed_auto_shift: Duration::from_millis(167),
             auto_repeat_rate: Duration::from_millis(33),

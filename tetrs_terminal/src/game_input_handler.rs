@@ -23,11 +23,11 @@ pub enum Signal {
 }
 
 #[derive(Debug)]
-pub struct CrosstermHandler {
+pub struct CrosstermInputHandler {
     _handle: Option<(JoinHandle<()>, Arc<AtomicBool>)>,
 }
 
-impl Drop for CrosstermHandler {
+impl Drop for CrosstermInputHandler {
     fn drop(&mut self) {
         if let Some((_, flag)) = self._handle.take() {
             flag.store(false, Ordering::Release);
@@ -35,7 +35,7 @@ impl Drop for CrosstermHandler {
     }
 }
 
-impl CrosstermHandler {
+impl CrosstermInputHandler {
     pub fn new(
         sender: &Sender<ButtonOrSignal>,
         keybinds: &HashMap<KeyCode, Button>,
@@ -47,7 +47,7 @@ impl CrosstermHandler {
             Self::spawn_standard
         };
         let flag = Arc::new(AtomicBool::new(true));
-        CrosstermHandler {
+        CrosstermInputHandler {
             _handle: Some((spawn(sender.clone(), flag.clone(), keybinds.clone()), flag)),
         }
     }

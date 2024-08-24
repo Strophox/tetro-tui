@@ -11,19 +11,19 @@ use crossterm::{
 use tetrs_engine::{Feedback, FeedbackEvents, Game, GameState, GameTime};
 
 use crate::{
-    game_renderers::GameScreenRenderer,
-    terminal_tetrs::{App, RunningGameStats},
+    game_renderers::Renderer,
+    terminal_app::{RunningGameStats, TerminalApp},
 };
 
 #[derive(Clone, Default, Debug)]
-pub struct Renderer {
+pub struct DebugRenderer {
     feedback_event_buffer: VecDeque<(GameTime, Feedback)>,
 }
 
-impl GameScreenRenderer for Renderer {
+impl Renderer for DebugRenderer {
     fn render<T>(
         &mut self,
-        app: &mut App<T>,
+        app: &mut TerminalApp<T>,
         game: &mut Game,
         _action_stats: &mut RunningGameStats,
         new_feedback_events: FeedbackEvents,

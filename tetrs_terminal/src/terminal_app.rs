@@ -22,13 +22,13 @@ use crossterm::{
     ExecutableCommand, QueueableCommand,
 };
 use tetrs_engine::{
-    piece_generation::TetrominoGenerator, piece_rotation::RotationSystem, Button, ButtonsPressed,
+    piece_generation::TetrominoSource, piece_rotation::RotationSystem, Button, ButtonsPressed,
     Game, GameConfig, GameMode, GameState, Limits,
 };
 
-use crate::game_renderers::{cached::Renderer, GameScreenRenderer};
+use crate::game_renderers::{cached_renderer::CachedRenderer, Renderer};
 use crate::{
-    game_input_handler::{ButtonOrSignal, CrosstermHandler, Signal},
+    game_input_handler::{ButtonOrSignal, CrosstermInputHandler, Signal},
     game_mods,
 };
 
@@ -60,7 +60,7 @@ enum Menu {
         last_paused: Instant,
         total_duration_paused: Duration,
         running_game_stats: RunningGameStats,
-        game_renderer: Box<Renderer>,
+        game_renderer: Box<CachedRenderer>,
     },
     GameOver(Box<FinishedGameStats>),
     GameComplete(Box<FinishedGameStats>),
@@ -152,7 +152,7 @@ pub struct CustomModeStore {
 }
 
 #[derive(Clone, Debug)]
-pub struct App<T: Write> {
+pub struct TerminalApp<T: Write> {
     pub term: T,
     kitty_enabled: bool,
     settings: Settings,
@@ -161,7 +161,7 @@ pub struct App<T: Write> {
     past_games: Vec<FinishedGameStats>,
 }
 
-impl<T: Write> Drop for App<T> {
+impl<T: Write> Drop for TerminalApp<T> {
     fn drop(&mut self) {
         // TODO: Handle errors?
         let savefile_path = Self::savefile_path();
@@ -179,7 +179,7 @@ impl<T: Write> Drop for App<T> {
                 let _ = std::fs::remove_file(savefile_path);
             }
         }
-        // Console epilogue: de-initialization.
+        // Console epilogue: De-initialization.
         if self.kitty_enabled {
             let _ = self.term.execute(event::PopKeyboardEnhancementFlags);
         }
@@ -190,14 +190,14 @@ impl<T: Write> Drop for App<T> {
     }
 }
 
-impl<T: Write> App<T> {
+impl<T: Write> TerminalApp<T> {
     pub const W_MAIN: u16 = 80;
     pub const H_MAIN: u16 = 24;
 
     pub const SAVEFILE_NAME: &'static str = ".tetrs_terminal.json";
 
     pub fn new(mut terminal: T, fps: Option<u32>) -> Self {
-        // Console prologue: Initializion.
+        // Console prologue: Initialization.
         // TODO: Handle errors?
         let _ = terminal.execute(terminal::EnterAlternateScreen);
         let _ = terminal.execute(terminal::SetTitle("Tetrs Terminal"));
@@ -213,7 +213,7 @@ impl<T: Write> App<T> {
         let mut app = Self {
             term: terminal,
             settings: Settings {
-                keybinds: CrosstermHandler::default_keybinds(),
+                keybinds: CrosstermInputHandler::default_keybinds(),
                 game_fps: 30.0,
                 show_fps: false,
                 graphics_style: GraphicsStyle::Unicode,
@@ -449,7 +449,7 @@ impl<T: Write> App<T> {
                 self.term
                     .queue(Clear(ClearType::All))?
                     .queue(MoveTo(0, y_main))?
-                    .queue(PrintStyledContent(Self::DAVIS.italic()))?;
+                    .queue(PrintStyledContent(DAVIS.italic()))?;
             }
             self.term.flush()?;
             // Wait for new input.
@@ -875,13 +875,13 @@ impl<T: Write> App<T> {
         last_paused: &mut Instant,
         total_duration_paused: &mut Duration,
         running_game_stats: &mut RunningGameStats,
-        game_renderer: &mut impl GameScreenRenderer,
+        game_renderer: &mut impl Renderer,
     ) -> io::Result<MenuUpdate> {
         // Prepare channel with which to communicate `Button` inputs / game interrupt.
         let mut buttons_pressed = ButtonsPressed::default();
         let (tx, rx) = mpsc::channel::<ButtonOrSignal>();
         let _input_handler =
-            CrosstermHandler::new(&tx, &self.settings.keybinds, self.kitty_enabled);
+            CrosstermInputHandler::new(&tx, &self.settings.keybinds, self.kitty_enabled);
         // Game Loop
         let session_resumed = Instant::now();
         *total_duration_paused += session_resumed.saturating_duration_since(*last_paused);
@@ -1502,7 +1502,7 @@ impl<T: Write> App<T> {
                     ..
                 }) => {
                     if selected == selection_len - 1 {
-                        self.settings.keybinds = CrosstermHandler::default_keybinds();
+                        self.settings.keybinds = CrosstermInputHandler::default_keybinds();
                     } else {
                         let current_button = button_selection[selected];
                         self.term
@@ -1593,10 +1593,10 @@ impl<T: Write> App<T> {
                 format!(
                     "piece generator : {}",
                     match self.game_config.tetromino_generator {
-                        TetrominoGenerator::Uniform => "Uniform",
-                        TetrominoGenerator::Bag { .. } => "7-Bag",
-                        TetrominoGenerator::Recency { .. } => "Recency/History",
-                        TetrominoGenerator::TotalRelative { .. } => "Total Relative Counts",
+                        TetrominoSource::Uniform => "Uniform",
+                        TetrominoSource::Bag { .. } => "7-Bag",
+                        TetrominoSource::Recency { .. } => "Recency/History",
+                        TetrominoSource::TotalRelative { .. } => "Total Relative Counts",
                     }
                 ),
                 format!("preview count : {}", self.game_config.preview_count),
@@ -1735,14 +1735,10 @@ impl<T: Write> App<T> {
                             .game_config
                             .tetromino_generator
                         {
-                            TetrominoGenerator::Uniform => TetrominoGenerator::bag(NonZeroU32::MIN),
-                            TetrominoGenerator::Bag { .. } => TetrominoGenerator::recency(),
-                            TetrominoGenerator::Recency { .. } => {
-                                TetrominoGenerator::total_relative()
-                            }
-                            TetrominoGenerator::TotalRelative { .. } => {
-                                TetrominoGenerator::uniform()
-                            }
+                            TetrominoSource::Uniform => TetrominoSource::bag(NonZeroU32::MIN),
+                            TetrominoSource::Bag { .. } => TetrominoSource::recency(),
+                            TetrominoSource::Recency { .. } => TetrominoSource::total_relative(),
+                            TetrominoSource::TotalRelative { .. } => TetrominoSource::uniform(),
                         };
                     }
                     2 => {
@@ -1789,14 +1785,12 @@ impl<T: Write> App<T> {
                     1 => {
                         self.game_config.tetromino_generator =
                             match self.game_config.tetromino_generator {
-                                TetrominoGenerator::Uniform => TetrominoGenerator::total_relative(),
-                                TetrominoGenerator::Bag { .. } => TetrominoGenerator::uniform(),
-                                TetrominoGenerator::Recency { .. } => {
-                                    TetrominoGenerator::bag(NonZeroU32::MIN)
+                                TetrominoSource::Uniform => TetrominoSource::total_relative(),
+                                TetrominoSource::Bag { .. } => TetrominoSource::uniform(),
+                                TetrominoSource::Recency { .. } => {
+                                    TetrominoSource::bag(NonZeroU32::MIN)
                                 }
-                                TetrominoGenerator::TotalRelative { .. } => {
-                                    TetrominoGenerator::recency()
-                                }
+                                TetrominoSource::TotalRelative { .. } => TetrominoSource::recency(),
                             };
                     }
                     2 => {
@@ -2179,9 +2173,9 @@ impl<T: Write> App<T> {
             });
         finished_game_stats
     }
-
-    const DAVIS: &'static str = " ▀█▀ \"I am like Solomon because I built God's temple, an operating system. God said 640x480 16 color graphics but the operating system is 64-bit and multi-cored! Go draw a 16 color elephant. Then, draw a 24-bit elephant in MS Paint and be enlightened. Artist stopped photorealism when the camera was invented. A cartoon is actually better than photorealistic. For the next thousand years, first-person shooters are going to get boring. Tetris looks good.\" - In memory of Terry A. Davis";
 }
+
+const DAVIS: &'static str = " ▀█▀ \"I am like Solomon because I built God's temple, an operating system. God said 640x480 16 color graphics but the operating system is 64-bit and multi-cored! Go draw a 16 color elephant. Then, draw a 24-bit elephant in MS Paint and be enlightened. Artist stopped photorealism when the camera was invented. A cartoon is actually better than photorealistic. For the next thousand years, first-person shooters are going to get boring. Tetris looks good.\" - In memory of Terry A. Davis";
 
 pub fn format_duration(dur: Duration) -> String {
     format!(
