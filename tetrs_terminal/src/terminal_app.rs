@@ -534,15 +534,15 @@ impl<T: Write> TerminalApp<T> {
                 GameMode::sprint(NonZeroU32::try_from(3).unwrap()),
                 "how fast can you clear?",
             ),
-            (GameMode::marathon(), "can you reach level 20?"),
+            (
+                GameMode::marathon(),
+                "can you reach the highest speed level?",
+            ),
             /*(
                 GameMode::ultra(NonZeroU32::try_from(3).unwrap()),
                 "3min. is all you got!",
             ),*/
-            (
-                GameMode::master(),
-                "challenging - the pieces don't even fly!",
-            ),
+            (GameMode::master(), "challenge - start at instant gravity."),
         ];
         let (d_time, d_score, d_pieces, d_lines, d_level) = (Duration::from_secs(5), 200, 10, 5, 1);
         let mut selected = 0usize;
@@ -573,7 +573,7 @@ impl<T: Write> TerminalApp<T> {
                 self.term
                     .queue(MoveTo(
                         x_main,
-                        y_main + y_selection + 4 + 2 * u16::try_from(i).unwrap(),
+                        y_main + y_selection + 4 + u16::try_from(i).unwrap(),
                     ))?
                     .queue(Print(format!(
                         "{:^w_main$}",
@@ -588,7 +588,7 @@ impl<T: Write> TerminalApp<T> {
             self.term
                 .queue(MoveTo(
                     x_main,
-                    y_main + y_selection + 4 + 2 * u16::try_from(selected_cnt - 4).unwrap(),
+                    y_main + y_selection + 4 + u16::try_from(1 + selected_cnt - 4).unwrap(),
                 ))?
                 .queue(Print(format!(
                     "{:^w_main$}",
@@ -602,12 +602,12 @@ impl<T: Write> TerminalApp<T> {
             self.term
                 .queue(MoveTo(
                     x_main,
-                    y_main + y_selection + 4 + 2 * u16::try_from(selected_cnt - 3).unwrap(),
+                    y_main + y_selection + 4 + u16::try_from(1 + selected_cnt - 3).unwrap(),
                 ))?
                 .queue(Print(format!(
                     "{:^w_main$}",
                     if selected == selected_cnt - 3 {
-                        ">>> Cheese: eat your way through 32 lines? <<<"
+                        ">>> Cheese: eat your way through 32 lines! <<<"
                     } else {
                         "Cheese"
                     }
@@ -616,7 +616,7 @@ impl<T: Write> TerminalApp<T> {
             self.term
                 .queue(MoveTo(
                     x_main,
-                    y_main + y_selection + 4 + 2 * u16::try_from(selected_cnt - 2).unwrap(),
+                    y_main + y_selection + 4 + u16::try_from(1 + selected_cnt - 2).unwrap(),
                 ))?
                 .queue(Print(format!(
                     "{:^w_main$}",
@@ -630,7 +630,7 @@ impl<T: Write> TerminalApp<T> {
             self.term
                 .queue(MoveTo(
                     x_main,
-                    y_main + y_selection + 4 + 2 * u16::try_from(selected_cnt - 1).unwrap(),
+                    y_main + y_selection + 4 + u16::try_from(2 + selected_cnt - 1).unwrap(),
                 ))?
                 .queue(Print(format!(
                     "{:^w_main$}",
@@ -655,7 +655,7 @@ impl<T: Write> TerminalApp<T> {
                     self.term
                         .queue(MoveTo(
                             x_main + 16 + 4 * u16::try_from(j).unwrap(),
-                            y_main + y_selection + 4 + u16::try_from(j + 2 * selected_cnt).unwrap(),
+                            y_main + y_selection + 4 + u16::try_from(2 + j + selected_cnt).unwrap(),
                         ))?
                         .queue(Print(if j + 1 == selected_custom {
                             format!("▓▓{stat_str}")
