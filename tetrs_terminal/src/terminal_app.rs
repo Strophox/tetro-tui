@@ -279,7 +279,12 @@ impl<T: Write> TerminalApp<T> {
             .iter()
             .filter(|finished_game_stats| {
                 finished_game_stats.was_successful()
-                    || finished_game_stats.last_state.lines_cleared > 0
+                    || finished_game_stats.last_state.lines_cleared
+                        > if finished_game_stats.gamemode.name == "Combo" {
+                            9
+                        } else {
+                            0
+                        }
             })
             .cloned()
             .collect::<Vec<_>>();
@@ -542,8 +547,8 @@ impl<T: Write> TerminalApp<T> {
         let (d_time, d_score, d_pieces, d_lines, d_level) = (Duration::from_secs(5), 200, 10, 5, 1);
         let mut selected = 0usize;
         let mut selected_custom = 0usize;
-        // There are the preset gamemodes + cheese + puzzle + custom gamemode.
-        let selected_cnt = preset_gamemodes.len() + 3;
+        // There are the preset gamemodes + cheese + combo + puzzle + custom gamemode.
+        let selected_cnt = preset_gamemodes.len() + 4;
         // There are four columns for the custom stat selection.
         let selected_custom_cnt = 4;
         loop {
@@ -579,6 +584,20 @@ impl<T: Write> TerminalApp<T> {
                         }
                     )))?;
             }
+            // Render puzzle mode option.
+            self.term
+                .queue(MoveTo(
+                    x_main,
+                    y_main + y_selection + 4 + 2 * u16::try_from(selected_cnt - 4).unwrap(),
+                ))?
+                .queue(Print(format!(
+                    "{:^w_main$}",
+                    if selected == selected_cnt - 4 {
+                        ">>> Puzzle: 24 stages of perfect clears! <<<"
+                    } else {
+                        "Puzzle"
+                    }
+                )))?;
             // Render cheese mode option.
             self.term
                 .queue(MoveTo(
@@ -593,7 +612,7 @@ impl<T: Write> TerminalApp<T> {
                         "Cheese"
                     }
                 )))?;
-            // Render puzzle mode option.
+            // Render combo mode option.
             self.term
                 .queue(MoveTo(
                     x_main,
@@ -602,9 +621,9 @@ impl<T: Write> TerminalApp<T> {
                 .queue(Print(format!(
                     "{:^w_main$}",
                     if selected == selected_cnt - 2 {
-                        ">>> Puzzle: only spins and perfect clears! <<<"
+                        ">>> Combo: How far can you chain? <<<"
                     } else {
-                        "Puzzle"
+                        "Combo"
                     }
                 )))?;
             // Render custom mode option.
@@ -708,9 +727,11 @@ impl<T: Write> TerminalApp<T> {
                             limits,
                         })
                     } else if selected == selected_cnt - 2 {
-                        game_mods::puzzle_mode::new_game()
+                        game_mods::combo_mode::new_game()
                     } else if selected == selected_cnt - 3 {
                         game_mods::cheese_mode::new_game(Some(32))
+                    } else if selected == selected_cnt - 4 {
+                        game_mods::puzzle_mode::new_game()
                     } else {
                         // SAFETY: Index < selected_cnt - 2 = preset_gamemodes.len().
                         Game::new(preset_gamemodes.into_iter().nth(selected).unwrap().0)
@@ -1855,7 +1876,7 @@ impl<T: Write> TerminalApp<T> {
     }
 
     fn scores_menu(&mut self) -> io::Result<MenuUpdate> {
-        let max_entries = 16;
+        let max_entries = 14;
         let mut scroll = 0usize;
         loop {
             let w_main = Self::W_MAIN.into();
@@ -1952,24 +1973,6 @@ impl<T: Write> TerminalApp<T> {
                                     last_state.lines_cleared, max_lns
                                 )
                             }
-                            "Puzzle" => {
-                                format!(
-                                    "{timestamp} ~ Puzzle: {}{}",
-                                    format_duration(last_state.time),
-                                    if last_state.end.is_some_and(|end| end.is_ok()) {
-                                        "".to_string()
-                                    } else {
-                                        let Limits {
-                                            level: Some((_, max_lvl)),
-                                            ..
-                                        } = gamemode.limits
-                                        else {
-                                            panic!()
-                                        };
-                                        format!(" ({}/{} lvl)", last_state.level, max_lvl)
-                                    },
-                                )
-                            }
                             "Cheese" => {
                                 format!(
                                     "{timestamp} ~ Cheese: {}{}",
@@ -1985,6 +1988,27 @@ impl<T: Write> TerminalApp<T> {
                                             panic!()
                                         };
                                         format!(" ({}/{} lns)", last_state.lines_cleared, max_lns)
+                                    },
+                                )
+                            }
+                            "Combo" => {
+                                format!("{timestamp} ~ Combo: {} lns", last_state.lines_cleared)
+                            }
+                            "Puzzle" => {
+                                format!(
+                                    "{timestamp} ~ Puzzle: {}{}",
+                                    format_duration(last_state.time),
+                                    if last_state.end.is_some_and(|end| end.is_ok()) {
+                                        "".to_string()
+                                    } else {
+                                        let Limits {
+                                            level: Some((_, max_lvl)),
+                                            ..
+                                        } = gamemode.limits
+                                        else {
+                                            panic!()
+                                        };
+                                        format!(" ({}/{} lvl)", last_state.level, max_lvl)
                                     },
                                 )
                             }
@@ -2148,18 +2172,22 @@ impl<T: Write> TerminalApp<T> {
                                 // Sort desc by lines.
                                 stats1.last_state.lines_cleared.cmp(&stats2.last_state.lines_cleared).reverse()
                             },
-                            "Puzzle" => {
-                                // Sort desc by level.
-                                stats1.last_state.level.cmp(&stats2.last_state.level).reverse().then_with(||
-                                    // Sort asc by time.
-                                    stats1.last_state.time.cmp(&stats2.last_state.time)
-                                )
-                            },
                             "Cheese" => {
                                 // Sort desc by lines.
                                 stats1.last_state.lines_cleared.cmp(&stats2.last_state.lines_cleared).reverse().then_with(||
                                     // Sort asc by number of pieces played.
                                     stats1.last_state.pieces_played.iter().sum::<u32>().cmp(&stats2.last_state.pieces_played.iter().sum::<u32>())
+                                )
+                            },
+                            "Combo" => {
+                                // Sort desc by lines.
+                                stats1.last_state.lines_cleared.cmp(&stats2.last_state.lines_cleared).reverse()
+                            },
+                            "Puzzle" => {
+                                // Sort desc by level.
+                                stats1.last_state.level.cmp(&stats2.last_state.level).reverse().then_with(||
+                                    // Sort asc by time.
+                                    stats1.last_state.time.cmp(&stats2.last_state.time)
                                 )
                             },
                             _ => {

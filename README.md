@@ -102,10 +102,11 @@ For more technical details see [Features of the Tetrs Engine](#features-of-the-t
 
 ### Gamemodes
 - **40-Lines**: Clear 40-Lines as quickly as possible.
-- **Marathon**: Reach the highest speed level (with the highest score possible).
-- **Master**: Clear 300 lines starting *at* the highest speed level.
-- **Cheese**: Eat yourself through 32 lines with random holes (with as few pieces as possible).
+- **Marathon**: Reach the highest speed level with the highest score possible.
+- **Master**: Clear 300 lines starting at the highest speed level *(\*inspired by TE:C)*.
 - **Puzzle**: Advance through all 24 puzzle stages using perfect clears (and up to 5 attempts), enabled by piece acrobatics of the 'ocular' rotation system.
+- **Combo**: Keep a line clear combo for as long as possible inside an infinite 4-wide well and 3 helper tiles *(\*inspired by Nuketris)*.
+- **Cheese**: Eat yourself through 32 lines with random holes, with as few pieces as possible *(\*inspired by Jstris)*.
 - **Custom**: Change start level, toggle level increment, set game limit *(Time, Score, Pieces, Lines, Level, or No limit)*.
   
 ### Settings
@@ -274,7 +275,7 @@ A goal of mine would be to (at least partially) amend these problems, step-by-st
 
 While the [2009 Tetris Guideline](https://tetris.wiki/Tetris_Guideline) serves as good inspiration, I ended up doing a lot of amateur research into a variety of game details present in modern games online (thank you [Tetris Wiki](https://tetris.wiki/) and [HardDrop](https://harddrop.com/wiki)!) and also by getting some help from asking people. Thank you GrBtAce and KonSola5!
 
-In the following I detail various interesting concepts I tackled on my way to bringing this project to life - I was essentially new to Tetris and couldn't remember playing it for more than a couple minutes (in the last decade), so I had to figure all this out from scratch!
+In the following I detail various interesting concepts I tackled on my way to bringing this project to life - I was essentially new to the Tetris Community and couldn't remember playing it for more than a couple minutes (in the last decade), so I had to figure all this out from scratch!
 
 
 ## Tetromino Generation
@@ -568,7 +569,7 @@ Coming up with a *good* [scoring system](https://tetris.wiki/Scoring#Recent_guid
 I did actually try to come up with a new, simple, good formula, but it's tough to judge how much to reward the player for any given action *(how many points should a 'perfect clear' receive? - I've never achieved a single perfect clear in my life!)*.
 The one I came up with, put mildly, *probably sucks*.
 
-But I still allowed myself to experiment, because I really liked the idea of [rewarding all spins](https://harddrop.com/wiki/List_of_twists) (and don't understand modern Tetris' obession with T-spins when S-, Z-, L- and J-spins are also so satisfying).
+But I still allowed myself to experiment, because I really liked the idea of [rewarding all spins](https://harddrop.com/wiki/List_of_twists) (and don't understand modern Tetris' obsession with T-spins when S-, Z-, L- and J-spins are also so satisfying).
 
 
 ## Controls

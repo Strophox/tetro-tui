@@ -64,7 +64,7 @@ pub fn new_game() -> Game {
     let mut current_puzzle_idx = 0; //+16+8; // TODO: Remove.
     let mut current_puzzle_attempt = 1;
     let mut current_puzzle_piececnt_limit = 0;
-    let puzzle_modifier: FnGameMod = Box::new(
+    let puzzle_mode: FnGameMod = Box::new(
         move |config: &mut GameConfig,
               _mode: &mut GameMode,
               state: &mut GameState,
@@ -152,7 +152,7 @@ pub fn new_game() -> Game {
         },
     });
     game.config_mut().preview_count = 0;
-    unsafe { game.add_modifier(puzzle_modifier) };
+    unsafe { game.add_modifier(puzzle_mode) };
     game
 }
 

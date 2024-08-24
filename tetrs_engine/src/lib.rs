@@ -137,7 +137,7 @@ pub enum Tetromino {
     S,
     /// 'Z'-Tetromino: Four tiles arranged in a right-snaking manner; '⠞', `▀█▄`.
     Z,
-    /// 'T'-Tetromino: Four tiles arranged in a 'T'-shape; '⠲⠂', `▄█▄`.
+    /// 'T'-Tetromino: Four tiles arranged in a 'T'-shape; '⠗', `▄█▄`.
     T,
     /// 'L'-Tetromino: Four tiles arranged in a 'L'-shape; '⠧', `▄▄█`.
     L,
@@ -1398,13 +1398,15 @@ impl Game {
                     // Full line: move it to the cleared lines storage and push an empty line to the board.
                     if self.state.board[y].iter().all(|mino| mino.is_some()) {
                         self.state.board.remove(y);
-                        self.state.board.push(Default::default());
                         self.state.lines_cleared += 1;
                         // Increment level if 10 lines cleared.
                         if self.mode.increment_level && self.state.lines_cleared % 10 == 0 {
                             self.state.level = self.state.level.saturating_add(1);
                         }
                     }
+                }
+                while self.state.board.len() < Self::HEIGHT {
+                    self.state.board.push(Default::default());
                 }
                 self.state.events.insert(
                     InternalEvent::Spawn,

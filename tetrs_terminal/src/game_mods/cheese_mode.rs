@@ -23,22 +23,19 @@ fn is_cheese_line(line: &Line) -> bool {
         .any(|cell| *cell == Some(NonZeroU8::try_from(254).unwrap()))
 }
 
-// TODO: Why do I have to specify 'static here??
-//pub fn new_game<T: 'static + Iterator<Item = Line>>(cheese_generator: impl IntoIterator<IntoIter = T>, cheese_limit: Option<usize>) -> Game {
-// let mut cheese_lines = cheese_generator.into_iter();
 pub fn new_game(cheese_limit: Option<usize>) -> Game {
-    let mut cheese_lines = random_hole_lines();
+    let mut line_source = random_hole_lines();
     let mut temp_cheese_tally = 0;
     let mut temp_normal_tally = 0;
     let mut init = false;
-    let cheese_modifier: FnGameMod = Box::new(
+    let cheese_mode: FnGameMod = Box::new(
         move |_config: &mut GameConfig,
               _mode: &mut GameMode,
               state: &mut GameState,
               _feedback_events: &mut FeedbackEvents,
               modifier_point: &ModifierPoint| {
             if !init {
-                for (line, cheese) in state.board.iter_mut().take(8).rev().zip(&mut cheese_lines) {
+                for (line, cheese) in state.board.iter_mut().take(8).rev().zip(&mut line_source) {
                     *line = cheese;
                 }
                 init = true;
@@ -60,7 +57,7 @@ pub fn new_game(cheese_limit: Option<usize>) -> Game {
                 modifier_point,
                 ModifierPoint::AfterEvent(InternalEvent::LineClear)
             ) {
-                for cheese in cheese_lines.by_ref().take(temp_cheese_tally) {
+                for cheese in line_source.by_ref().take(temp_cheese_tally) {
                     state.board.insert(0, cheese);
                 }
                 temp_cheese_tally = 0;
@@ -78,6 +75,6 @@ pub fn new_game(cheese_limit: Option<usize>) -> Game {
             ..Default::default()
         },
     });
-    unsafe { game.add_modifier(cheese_modifier) };
+    unsafe { game.add_modifier(cheese_mode) };
     game
 }
