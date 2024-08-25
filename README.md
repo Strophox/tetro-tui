@@ -273,7 +273,11 @@ A goal of mine would be to (at least partially) amend these problems, step-by-st
 
 # Project Highlights
 
-While the [2009 Tetris Guideline](https://tetris.wiki/Tetris_Guideline) serves as good inspiration, I ended up doing a lot of amateur research into a variety of game details present in modern games online (thank you [Tetris Wiki](https://tetris.wiki/) and [HardDrop](https://harddrop.com/wiki)!) and also by getting some help from asking people. Thank you GrBtAce and KonSola5!
+While the [2009 Tetris Guideline](https://tetris.wiki/Tetris_Guideline) serves as good inspiration, I ended up doing a lot of amateur research into a variety of game details present in modern games online (thank you [Tetris Wiki](https://tetris.wiki/) and [HardDrop](https://harddrop.com/wiki)!) and also by getting some help from asking people.
+I'd particularly like to thank the following people:
+- **GrBtAce**, **KonSola5** and **bennxt** for helping me with my questions early in development :-)
+- **Dunspixel** for the O-spin inspiration,
+- and **madkiwi** for advice regarding 4wide 6res layouts.
 
 In the following I detail various interesting concepts I tackled on my way to bringing this project to life - I was essentially new to the Tetris Community and couldn't remember playing it for more than a couple minutes (in the last decade), so I had to figure all this out from scratch!
 
