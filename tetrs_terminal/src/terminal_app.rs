@@ -152,7 +152,7 @@ pub struct GameModeStore {
     start_level: NonZeroU32,
     increment_level: bool,
     mode_limit: Option<Stat>,
-    combo_mode_initial_layout: u32,
+    initial_combo_layout: u16,
 }
 
 #[derive(Clone, Debug)]
@@ -200,7 +200,11 @@ impl<T: Write> TerminalApp<T> {
 
     pub const SAVEFILE_NAME: &'static str = ".tetrs_terminal.json";
 
-    pub fn new(mut terminal: T, display_probabilities_mod: Option<bool>) -> Self {
+    pub fn new(
+        mut terminal: T,
+        display_probabilities_mod: bool,
+        initial_combo_layout: Option<u16>,
+    ) -> Self {
         // Console prologue: Initialization.
         // TODO: Handle errors?
         let _ = terminal.execute(terminal::EnterAlternateScreen);
@@ -230,7 +234,7 @@ impl<T: Write> TerminalApp<T> {
                 start_level: NonZeroU32::MIN,
                 increment_level: true,
                 mode_limit: Some(Stat::Time(Duration::from_secs(180))),
-                combo_mode_initial_layout: 0,
+                initial_combo_layout: game_mods::combo_mode::LAYOUTS[0],
             },
             game_config: GameConfig::default(),
             past_games: vec![],
@@ -241,8 +245,9 @@ impl<T: Write> TerminalApp<T> {
             //eprintln!("Could not loading settings: {e}");
             //std::thread::sleep(Duration::from_secs(5));
         }
-        if let Some(display_probabilities_mod) = display_probabilities_mod {
-            app.settings.display_probabilities_mod = display_probabilities_mod;
+        app.settings.display_probabilities_mod = display_probabilities_mod;
+        if let Some(initial_combo_layout) = initial_combo_layout {
+            app.game_mode_store.initial_combo_layout = initial_combo_layout;
         }
         app.game_config.preview_count = 4;
         app.game_config.no_soft_drop_lock = !kitty_enabled;
@@ -629,8 +634,8 @@ impl<T: Write> TerminalApp<T> {
                     "{:^w_main$}",
                     if selected == selected_cnt - 2 {
                         format!(
-                            ">>> Combo: How far can you chain? (init={}) <<<",
-                            self.game_mode_store.combo_mode_initial_layout
+                            ">>> Combo: How far can you chain? (init={:b}) <<<",
+                            self.game_mode_store.initial_combo_layout
                         )
                     } else {
                         "Combo".to_string()
@@ -709,7 +714,7 @@ impl<T: Write> TerminalApp<T> {
                             start_level,
                             increment_level,
                             mode_limit: custom_mode_limit,
-                            combo_mode_initial_layout: _,
+                            initial_combo_layout: _,
                         } = self.game_mode_store.clone();
                         let limits = match custom_mode_limit {
                             Some(Stat::Time(max_dur)) => Limits {
@@ -741,9 +746,7 @@ impl<T: Write> TerminalApp<T> {
                             limits,
                         })
                     } else if selected == selected_cnt - 2 {
-                        game_mods::combo_mode::new_game(
-                            self.game_mode_store.combo_mode_initial_layout,
-                        )
+                        game_mods::combo_mode::new_game(self.game_mode_store.initial_combo_layout)
                     } else if selected == selected_cnt - 3 {
                         game_mods::cheese_mode::new_game(Some(32))
                     } else if selected == selected_cnt - 4 {
@@ -872,11 +875,17 @@ impl<T: Write> TerminalApp<T> {
                     if selected == selected_cnt - 1 && selected_custom > 0 {
                         selected_custom += selected_custom_cnt - 1
                     } else if selected == selected_cnt - 2 {
-                        self.game_mode_store.combo_mode_initial_layout +=
-                            crate::game_mods::combo_mode::INITIAL_LAYOUTS;
-                        self.game_mode_store.combo_mode_initial_layout -= 1;
-                        self.game_mode_store.combo_mode_initial_layout %=
-                            crate::game_mods::combo_mode::INITIAL_LAYOUTS;
+                        let new_layout_idx = if let Some(i) = game_mods::combo_mode::LAYOUTS
+                            .iter()
+                            .position(|lay| *lay == self.game_mode_store.initial_combo_layout)
+                        {
+                            let layout_cnt = game_mods::combo_mode::LAYOUTS.len();
+                            (i + layout_cnt - 1) % layout_cnt
+                        } else {
+                            0
+                        };
+                        self.game_mode_store.initial_combo_layout =
+                            game_mods::combo_mode::LAYOUTS[new_layout_idx];
                     }
                 }
                 // Move selector right (select stat).
@@ -905,9 +914,17 @@ impl<T: Write> TerminalApp<T> {
                         }
                     }
                     if selected == selected_cnt - 2 {
-                        self.game_mode_store.combo_mode_initial_layout += 1;
-                        self.game_mode_store.combo_mode_initial_layout %=
-                            crate::game_mods::combo_mode::INITIAL_LAYOUTS;
+                        let new_layout_idx = if let Some(i) = crate::game_mods::combo_mode::LAYOUTS
+                            .iter()
+                            .position(|lay| *lay == self.game_mode_store.initial_combo_layout)
+                        {
+                            let layout_cnt = crate::game_mods::combo_mode::LAYOUTS.len();
+                            (i + 1) % layout_cnt
+                        } else {
+                            0
+                        };
+                        self.game_mode_store.initial_combo_layout =
+                            crate::game_mods::combo_mode::LAYOUTS[new_layout_idx];
                     }
                 }
                 // Other event: don't care.

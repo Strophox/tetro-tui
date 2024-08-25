@@ -12,13 +12,16 @@ use clap::Parser;
 struct Args {
     /// Whether to enable the display_tetromino_likelihood modifier.
     #[arg(short, long)]
-    modded: Option<bool>,
+    mod_display: bool,
+    /// A custom Combo mode starting layout.
+    #[arg(short, long)]
+    combo_layout: Option<u16>,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
     let stdout = io::BufWriter::new(io::stdout());
-    let mut app = terminal_app::TerminalApp::new(stdout, args.modded);
+    let mut app = terminal_app::TerminalApp::new(stdout, args.mod_display, args.combo_layout);
     std::panic::set_hook(Box::new(|panic_info| {
         if let Ok(mut file) = std::fs::File::create("tetrs_terminal_error_message.txt") {
             let _ = file.write(panic_info.to_string().as_bytes());

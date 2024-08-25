@@ -5,7 +5,17 @@ use tetrs_engine::{
     Line, ModifierPoint, Tetromino,
 };
 
-pub const INITIAL_LAYOUTS: u32 = 8;
+pub const LAYOUTS: [u16; 4] = [
+    0b0000_0000_1100_1000, // "r"
+    //0b0000_0000_0000_1110, // "_"
+    0b0000_1100_1000_1011, // "f _"
+    0b0000_1100_1000_1101, // "k ."
+    0b1000_1000_1000_1101, // "L ."
+                           //0b0000_1001_1001_1001, // "I I"
+                           //0b0001_0001_1001_1100, // "l i"
+                           //0b1000_1000_1100_1100, // "b"
+                           //0b0000_0000_1110_1011, // "rl"
+];
 
 pub fn four_well_lines() -> impl Iterator<Item = Line> {
     let color_tiles = [
@@ -36,7 +46,7 @@ pub fn four_well_lines() -> impl Iterator<Item = Line> {
         })
 }
 
-pub fn new_game(initial_layout: u32) -> Game {
+pub fn new_game(initial_layout: u16) -> Game {
     let mut line_source = four_well_lines();
     let mut init = false;
     let combo_mode: FnGameMod = Box::new(
@@ -80,21 +90,23 @@ pub fn new_game(initial_layout: u32) -> Game {
     game
 }
 
-fn init_board(board: &mut Board, initial_layout: u32) {
-    #[rustfmt::skip]
-    let coords = match initial_layout {
-        0 => [(0,0),(0,1),(1,1)].iter(), // "r"
-        1 => [(0,0),(1,0),(2,0)].iter(), // "_"
-        2 => [(0,0),(0,1),(1,1), (2,1),(2,0),(3,0)].iter(), // "rl"
-        3 => [(0,0),(0,1),(0,2),  (3,0),(3,1),(3,2)].iter(), // "I I"
-        4 => [(0,0),(1,0),(0, 1),(0,2),(1,2),  (3,0)].iter(), // "k ."
-        5 => [(0,0),(1,0),(0,1),  (3, 1),(3,2),(3,3)].iter(), // "l i"
-        6 => [(0,0),(1,0), (0,1),(1,1), (0,2), (0,3)].iter(), // "b"
-        7 => [(0,0),(0,1),(0,2),(0,3),( 1,0),  (3,0)].iter(), // "L ."
-        _ => [(0,0),(0,1),(1,1)].iter(), // TODO: panic!("unknown initial_layout id {initial_layout} for combo mode"),
-    };
+fn init_board(board: &mut Board, mut init_layout: u16) {
     let grey_tile = Some(NonZeroU8::try_from(254).unwrap());
-    for (x, y) in coords {
-        board[*y][3 + x] = grey_tile;
+    let mut y = 0;
+    while init_layout != 0 {
+        if init_layout & 0b1000 != 0 {
+            board[y][3] = grey_tile;
+        }
+        if init_layout & 0b0100 != 0 {
+            board[y][4] = grey_tile;
+        }
+        if init_layout & 0b0010 != 0 {
+            board[y][5] = grey_tile;
+        }
+        if init_layout & 0b0001 != 0 {
+            board[y][6] = grey_tile;
+        }
+        init_layout /= 0b1_0000;
+        y += 1;
     }
 }
