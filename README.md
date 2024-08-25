@@ -105,7 +105,7 @@ For more technical details see [Features of the Tetrs Engine](#features-of-the-t
 - **Marathon**: Reach the highest speed level with the highest score possible.
 - **Master**: Clear 300 lines starting at the highest speed level *(\*inspired by TE:C)*.
 - **Puzzle**: Advance through all 24 puzzle stages using perfect clears (and up to 5 attempts), enabled by piece acrobatics of the 'ocular' rotation system.
-- **Combo**: Keep a line clear combo for as long as possible inside an infinite 4-wide well and 3 helper tiles *(\*inspired by Nuketris)* <sup>hint: use `--combo-layout=N` with `N=0..7` on startup to set a new initial layout for this mode)</sup>.
+- **Combo**: Keep a line clear combo for as long as possible inside an infinite 4-wide well and 3 helper tiles *(\*inspired by Nuketris)*.
 - **Cheese**: Eat yourself through 32 lines with random holes, with as few pieces as possible *(\*inspired by Jstris)*.
 - **Custom**: Change start level, toggle level increment, set game limit *(Time, Score, Pieces, Lines, Level, or No limit)*.
   

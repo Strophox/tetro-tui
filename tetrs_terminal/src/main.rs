@@ -10,15 +10,15 @@ use clap::Parser;
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
-    /// The framerate at which to run the main game.
+    /// Whether to enable the display_tetromino_likelihood modifier.
     #[arg(short, long)]
-    combo_layout: Option<u32>,
+    modded: Option<bool>,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
     let stdout = io::BufWriter::new(io::stdout());
-    let mut app = terminal_app::TerminalApp::new(stdout, args.combo_layout);
+    let mut app = terminal_app::TerminalApp::new(stdout, args.modded);
     std::panic::set_hook(Box::new(|panic_info| {
         if let Ok(mut file) = std::fs::File::create("tetrs_terminal_error_message.txt") {
             let _ = file.write(panic_info.to_string().as_bytes());

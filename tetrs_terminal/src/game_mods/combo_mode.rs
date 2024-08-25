@@ -5,6 +5,8 @@ use tetrs_engine::{
     Line, ModifierPoint, Tetromino,
 };
 
+pub const INITIAL_LAYOUTS: u32 = 8;
+
 pub fn four_well_lines() -> impl Iterator<Item = Line> {
     let color_tiles = [
         Tetromino::Z,

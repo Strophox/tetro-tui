@@ -129,6 +129,7 @@ pub struct Settings {
     pub graphics_style: GraphicsStyle,
     pub graphics_color: GraphicsColor,
     pub save_data_on_exit: bool,
+    pub display_probabilities_mod: bool,
 }
 
 // For the "New Game" menu.
@@ -199,7 +200,7 @@ impl<T: Write> TerminalApp<T> {
 
     pub const SAVEFILE_NAME: &'static str = ".tetrs_terminal.json";
 
-    pub fn new(mut terminal: T, combo_mode_initial_layout: Option<u32>) -> Self {
+    pub fn new(mut terminal: T, display_probabilities_mod: Option<bool>) -> Self {
         // Console prologue: Initialization.
         // TODO: Handle errors?
         let _ = terminal.execute(terminal::EnterAlternateScreen);
@@ -222,6 +223,7 @@ impl<T: Write> TerminalApp<T> {
                 graphics_style: GraphicsStyle::Unicode,
                 graphics_color: GraphicsColor::ColorRGB,
                 save_data_on_exit: false,
+                display_probabilities_mod: false,
             },
             game_mode_store: GameModeStore {
                 name: "Custom Mode".to_string(),
@@ -239,9 +241,10 @@ impl<T: Write> TerminalApp<T> {
             //eprintln!("Could not loading settings: {e}");
             //std::thread::sleep(Duration::from_secs(5));
         }
-        if let Some(combo_mode_initial_layout) = combo_mode_initial_layout {
-            app.game_mode_store.combo_mode_initial_layout = combo_mode_initial_layout;
+        if let Some(display_probabilities_mod) = display_probabilities_mod {
+            app.settings.display_probabilities_mod = display_probabilities_mod;
         }
+        app.game_config.preview_count = 4;
         app.game_config.no_soft_drop_lock = !kitty_enabled;
         app
     }
@@ -625,9 +628,12 @@ impl<T: Write> TerminalApp<T> {
                 .queue(Print(format!(
                     "{:^w_main$}",
                     if selected == selected_cnt - 2 {
-                        ">>> Combo: How far can you chain? <<<"
+                        format!(
+                            ">>> Combo: How far can you chain? (init={}) <<<",
+                            self.game_mode_store.combo_mode_initial_layout
+                        )
                     } else {
-                        "Combo"
+                        "Combo".to_string()
                     }
                 )))?;
             // Render custom mode option.
@@ -750,12 +756,13 @@ impl<T: Write> TerminalApp<T> {
                     // Set config.
                     game.config_mut().clone_from(&self.game_config);
 
-                    // TODO: Remove or make accessible.
-                    // unsafe {
-                    //     game.add_modifier(Box::new(
-                    //         crate::game_mods::display_tetromino_likelihood_mod,
-                    //     ))
-                    // };
+                    if self.settings.display_probabilities_mod {
+                        unsafe {
+                            game.add_modifier(Box::new(
+                                crate::game_mods::utils::display_tetromino_likelihood,
+                            ))
+                        };
+                    }
 
                     let now = Instant::now();
                     break Ok(MenuUpdate::Push(Menu::Game {
@@ -864,6 +871,12 @@ impl<T: Write> TerminalApp<T> {
                 }) => {
                     if selected == selected_cnt - 1 && selected_custom > 0 {
                         selected_custom += selected_custom_cnt - 1
+                    } else if selected == selected_cnt - 2 {
+                        self.game_mode_store.combo_mode_initial_layout +=
+                            crate::game_mods::combo_mode::INITIAL_LAYOUTS;
+                        self.game_mode_store.combo_mode_initial_layout -= 1;
+                        self.game_mode_store.combo_mode_initial_layout %=
+                            crate::game_mods::combo_mode::INITIAL_LAYOUTS;
                     }
                 }
                 // Move selector right (select stat).
@@ -890,6 +903,11 @@ impl<T: Write> TerminalApp<T> {
                         } else {
                             selected_custom += 1
                         }
+                    }
+                    if selected == selected_cnt - 2 {
+                        self.game_mode_store.combo_mode_initial_layout += 1;
+                        self.game_mode_store.combo_mode_initial_layout %=
+                            crate::game_mods::combo_mode::INITIAL_LAYOUTS;
                     }
                 }
                 // Other event: don't care.
