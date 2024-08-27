@@ -165,15 +165,15 @@ pub struct ActivePiece {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct LockingData {
     /// Whether the main piece currently touches a surface below.
-    touches_ground: bool,
+    pub touches_ground: bool,
     /// The last time the main piece was recorded to touching ground after not having done previously.
-    last_touchdown: Option<GameTime>,
+    pub last_touchdown: Option<GameTime>,
     /// The last time the main piece was recorded to be afloat after not having been previously.
-    last_liftoff: Option<GameTime>,
+    pub last_liftoff: Option<GameTime>,
     /// The total duration the main piece is allowed to touch ground until it should immediately lock down.
-    ground_time_left: Duration,
+    pub ground_time_left: Duration,
     /// The lowest recorded vertical position of the main piece.
-    lowest_y: usize,
+    pub lowest_y: usize,
 }
 
 /// Stores the ways in which a round of the game should be limited.
@@ -392,6 +392,8 @@ pub enum Feedback {
 /// The points at which a [`FnGameMod`] will be applied.
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
 pub enum ModifierPoint {
+    /// Passed at the beginning of any call to [`Game::update`].
+    UpdateStart,
     /// Passed when the modifier is called immediately before an [`InternalEvent`] is handled.
     BeforeEvent(InternalEvent),
     /// Passed when the modifier is called immediately after an [`InternalEvent`] has been handled.
@@ -943,61 +945,64 @@ impl Game {
         if update_time < self.state.time {
             return Err(GameUpdateError::DurationPassed);
         }
-        // NOTE: Returning an empty Vec is efficient because it won't even allocate (as by Rust API).
-        let mut feedback_events = Vec::new();
         if self.ended() {
             return Err(GameUpdateError::GameEnded);
         };
+        // NOTE: Returning an empty Vec is efficient because it won't even allocate (as by Rust API).
+        let mut feedback_events = Vec::new();
+        self.apply_modifiers(&mut feedback_events, &ModifierPoint::UpdateStart);
         // We linearly process all events until we reach the update time.
         'event_simulation: loop {
             // Peek the next closest event.
             // SAFETY: `Game` invariants guarantee there's some event.
-            let (&event, &event_time) = self
+            let next_event = self
                 .state
                 .events
                 .iter()
-                .min_by_key(|(&event, &event_time)| (event_time, event))
-                .unwrap();
-            // Next event within requested update time, handle event first.
-            if event_time <= update_time {
-                self.apply_modifiers(&mut feedback_events, &ModifierPoint::BeforeEvent(event));
-                // Remove next event and handle it.
-                self.state.events.remove_entry(&event);
-                let new_feedback_events = self.handle_event(event, event_time);
-                self.state.time = event_time;
-                feedback_events.extend(new_feedback_events);
-                self.apply_modifiers(&mut feedback_events, &ModifierPoint::AfterEvent(event));
-                // Stop simulation early if event or modifier ended game.
-                self.update_game_end();
-                if self.ended() {
-                    break 'event_simulation;
-                }
-            // Possibly process user input events now or break out.
-            } else {
-                // NOTE: We should be able to update the time here because `self.process_input(...)` does not access it.
-                self.state.time = update_time;
-                // Update button inputs.
-                if let Some(buttons_pressed) = new_button_state.take() {
-                    if self.state.active_piece_data.is_some() {
-                        self.apply_modifiers(
-                            &mut feedback_events,
-                            &ModifierPoint::BeforeButtonChange(
-                                self.state.buttons_pressed,
-                                buttons_pressed,
-                            ),
-                        );
-                        self.add_input_events(buttons_pressed, update_time);
-                        self.apply_modifiers(
-                            &mut feedback_events,
-                            &ModifierPoint::AfterButtonChange,
-                        );
-                    }
-                    self.state.buttons_pressed = buttons_pressed;
-                } else {
+                .min_by_key(|(&event, &event_time)| (event_time, event));
+            match next_event {
+                // Next event within requested update time, handle event first.
+                Some((&event, &event_time)) if event_time <= update_time => {
+                    self.apply_modifiers(&mut feedback_events, &ModifierPoint::BeforeEvent(event));
+                    // Remove next event and handle it.
+                    self.state.events.remove_entry(&event);
+                    let new_feedback_events = self.handle_event(event, event_time);
+                    self.state.time = event_time;
+                    feedback_events.extend(new_feedback_events);
+                    self.apply_modifiers(&mut feedback_events, &ModifierPoint::AfterEvent(event));
+                    // Stop simulation early if event or modifier ended game.
                     self.update_game_end();
-                    break 'event_simulation;
+                    if self.ended() {
+                        break 'event_simulation;
+                    }
                 }
-            }
+                _ => {
+                    // Possibly process user input events now or break out.
+                    // NOTE: We should be able to update the time here because `self.process_input(...)` does not access it.
+                    self.state.time = update_time;
+                    // Update button inputs.
+                    if let Some(buttons_pressed) = new_button_state.take() {
+                        if self.state.active_piece_data.is_some() {
+                            self.apply_modifiers(
+                                &mut feedback_events,
+                                &ModifierPoint::BeforeButtonChange(
+                                    self.state.buttons_pressed,
+                                    buttons_pressed,
+                                ),
+                            );
+                            self.add_input_events(buttons_pressed, update_time);
+                            self.apply_modifiers(
+                                &mut feedback_events,
+                                &ModifierPoint::AfterButtonChange,
+                            );
+                        }
+                        self.state.buttons_pressed = buttons_pressed;
+                    } else {
+                        self.update_game_end();
+                        break 'event_simulation;
+                    }
+                }
+            };
         }
         Ok(feedback_events)
     }
@@ -1282,9 +1287,11 @@ impl Game {
                         dropped_piece
                     } else {
                         // Otherwise ciece could not move down.
-                        // Immediately lock (unless option for it is disabled).
+                        // Immediately queue lock (unless option for it is disabled).
                         if !self.config.no_soft_drop_lock {
-                            self.state.events.insert(InternalEvent::Lock, event_time);
+                            self.state
+                                .events
+                                .insert(InternalEvent::LockTimer, event_time);
                         }
                         prev_piece
                     },

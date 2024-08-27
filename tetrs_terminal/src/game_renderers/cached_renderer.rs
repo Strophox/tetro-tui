@@ -439,9 +439,9 @@ impl Renderer for CachedRenderer {
                           5 => Color::DarkMagenta,
                           6 => Color::Red,
                           7 => Color::Blue,
-                        253 => Color::White,
+                        253 => Color::Black,
                         254 => Color::DarkGrey,
-                        255 => Color::Black,
+                        255 => Color::White,
                         t => unimplemented!("formatting unknown tile id {t}"),
                     })
                 }
@@ -456,9 +456,9 @@ impl Renderer for CachedRenderer {
                           5 => Color::Rgb { r:149, g: 45, b:152 },
                           6 => Color::Rgb { r:255, g:121, b:  0 },
                           7 => Color::Rgb { r:  0, g:101, b:189 },
-                        252 => Color::Rgb { r:255, g:255, b:255 },
+                        253 => Color::Rgb { r:  0, g:  0, b:  0 },
                         254 => Color::Rgb { r:127, g:127, b:127 },
-                        255 => Color::Rgb { r:  0, g:  0, b: 0 },
+                        255 => Color::Rgb { r:255, g:255, b:255 },
                         t => unimplemented!("formatting unknown tile id {t}"),
                     })
                 }
@@ -529,7 +529,6 @@ impl Renderer for CachedRenderer {
             }
         }
         // Draw preview.
-        // TODO: Possibly implement more preview.
         if let Some(next_piece) = next_pieces.front() {
             let color = tile_color(next_piece.tiletypeid());
             for (x, y) in next_piece.minos(Orientation::N) {

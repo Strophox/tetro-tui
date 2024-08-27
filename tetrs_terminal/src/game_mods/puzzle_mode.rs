@@ -8,7 +8,7 @@ use tetrs_engine::{
     InternalEvent, Limits, ModifierPoint, Tetromino,
 };
 
-const MAX_STAGE_ATTEMPTS: usize = 5; // TODO: Remove.
+const MAX_STAGE_ATTEMPTS: usize = 5;
 const SPEED_LEVEL: u32 = 3;
 
 pub fn new_game() -> Game {
@@ -61,7 +61,7 @@ pub fn new_game() -> Game {
         puzzle_pieces.len()
     };
     let mut init = false;
-    let mut current_puzzle_idx = 0; //+16+8; // TODO: Remove.
+    let mut current_puzzle_idx = 0;
     let mut current_puzzle_attempt = 1;
     let mut current_puzzle_piececnt_limit = 0;
     let puzzle_mode: FnGameMod = Box::new(
@@ -70,8 +70,6 @@ pub fn new_game() -> Game {
               state: &mut GameState,
               feedback_events: &mut FeedbackEvents,
               modifier_point: &ModifierPoint| {
-            // TODO: Remove.
-            // config.soft_drop_factor = 0.0;
             let game_piececnt = usize::try_from(state.pieces_played.iter().sum::<u32>()).unwrap();
             if !init {
                 let piececnt = load_puzzle(
@@ -116,6 +114,7 @@ pub fn new_game() -> Game {
                     }
                 }
             }
+            // Keep custom game state that's also visible to player, but hide it from the game engine that handles gameplay.
             if matches!(
                 modifier_point,
                 ModifierPoint::BeforeEvent(_) | ModifierPoint::BeforeButtonChange(_, _)
@@ -136,6 +135,10 @@ pub fn new_game() -> Game {
             ) && state.end.is_some()
             {
                 state.active_piece_data = None;
+            }
+            // Remove ability to hold.
+            if matches!(modifier_point, ModifierPoint::AfterButtonChange) {
+                state.events.remove(&InternalEvent::HoldPiece);
             }
         },
     );
@@ -168,6 +171,16 @@ fn puzzle_list() -> [(&'static str, Vec<&'static [u8; 10]>, VecDeque<Tetromino>)
             b"OOOOOOOOOO",
         ], VecDeque::from([Tetromino::I,])),
         */
+        /*("DEBUG L/J", vec![
+            b" O O O O O",
+            b"         O",
+            b" O O O O O",
+            b"         O",
+            b" O O O O O",
+            b"         O",
+            b" O O O O O",
+            b"         O",
+        ], VecDeque::from([Tetromino::L,Tetromino::J])),*/
         // 4 I-spins.
         ("I-spin", vec![
             b"OOOOO OOOO",

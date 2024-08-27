@@ -10,10 +10,11 @@ use clap::Parser;
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
-    /// Whether to enable the display_tetromino_likelihood modifier.
+    /// Whether to show Descent mode in the New Game menu.
     #[arg(short, long)]
-    mod_display: bool,
-    /// A custom Combo mode starting layout.
+    descent_mode: bool,
+    /// A custom starting layout for Combo mode, encoded in binary, by 4-wide rows.
+    /// Example: "▀▄▄▀" -> "10010110"
     #[arg(short, long)]
     combo_layout: Option<u16>,
 }
@@ -21,7 +22,7 @@ struct Args {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
     let stdout = io::BufWriter::new(io::stdout());
-    let mut app = terminal_app::TerminalApp::new(stdout, args.mod_display, args.combo_layout);
+    let mut app = terminal_app::TerminalApp::new(stdout, args.descent_mode, args.combo_layout);
     std::panic::set_hook(Box::new(|panic_info| {
         if let Ok(mut file) = std::fs::File::create("tetrs_terminal_error_message.txt") {
             let _ = file.write(panic_info.to_string().as_bytes());

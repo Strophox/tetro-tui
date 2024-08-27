@@ -17,7 +17,7 @@ pub const LAYOUTS: [u16; 4] = [
                            //0b0000_0000_1110_1011, // "rl"
 ];
 
-pub fn four_well_lines() -> impl Iterator<Item = Line> {
+pub fn four_wide_lines() -> impl Iterator<Item = Line> {
     let color_tiles = [
         Tetromino::Z,
         Tetromino::L,
@@ -44,7 +44,7 @@ pub fn four_well_lines() -> impl Iterator<Item = Line> {
 }
 
 pub fn new_game(initial_layout: u16) -> Game {
-    let mut line_source = four_well_lines();
+    let mut line_source = four_wide_lines();
     let mut init = false;
     let combo_mode: FnGameMod = Box::new(
         move |_config: &mut GameConfig,

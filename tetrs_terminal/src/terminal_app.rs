@@ -32,8 +32,6 @@ use crate::{
     game_mods,
 };
 
-const TAG: &str = "v0.2.1";
-
 // NOTE: This could be more general and less ad-hoc. Count number of I-Spins, J-Spins, etc..
 pub type RunningGameStats = ([u32; 5], Vec<u32>);
 
@@ -129,7 +127,6 @@ pub struct Settings {
     pub graphics_style: GraphicsStyle,
     pub graphics_color: GraphicsColor,
     pub save_data_on_exit: bool,
-    pub display_probabilities_mod: bool,
 }
 
 // For the "New Game" menu.
@@ -153,6 +150,7 @@ pub struct GameModeStore {
     increment_level: bool,
     mode_limit: Option<Stat>,
     initial_combo_layout: u16,
+    descent_mode: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -200,11 +198,7 @@ impl<T: Write> TerminalApp<T> {
 
     pub const SAVEFILE_NAME: &'static str = ".tetrs_terminal.json";
 
-    pub fn new(
-        mut terminal: T,
-        display_probabilities_mod: bool,
-        initial_combo_layout: Option<u16>,
-    ) -> Self {
+    pub fn new(mut terminal: T, descent_mode: bool, initial_combo_layout: Option<u16>) -> Self {
         // Console prologue: Initialization.
         // TODO: Handle errors?
         let _ = terminal.execute(terminal::EnterAlternateScreen);
@@ -227,7 +221,6 @@ impl<T: Write> TerminalApp<T> {
                 graphics_style: GraphicsStyle::Unicode,
                 graphics_color: GraphicsColor::ColorRGB,
                 save_data_on_exit: false,
-                display_probabilities_mod: false,
             },
             game_mode_store: GameModeStore {
                 name: "Custom Mode".to_string(),
@@ -235,6 +228,7 @@ impl<T: Write> TerminalApp<T> {
                 increment_level: true,
                 mode_limit: Some(Stat::Time(Duration::from_secs(180))),
                 initial_combo_layout: game_mods::combo_mode::LAYOUTS[0],
+                descent_mode: false,
             },
             game_config: GameConfig::default(),
             past_games: vec![],
@@ -245,7 +239,7 @@ impl<T: Write> TerminalApp<T> {
             //eprintln!("Could not loading settings: {e}");
             //std::thread::sleep(Duration::from_secs(5));
         }
-        app.settings.display_probabilities_mod = display_probabilities_mod;
+        app.game_mode_store.descent_mode = descent_mode;
         if let Some(initial_combo_layout) = initial_combo_layout {
             app.game_mode_store.initial_combo_layout = initial_combo_layout;
         }
@@ -550,11 +544,11 @@ impl<T: Write> TerminalApp<T> {
                 GameMode::marathon(),
                 "can you reach the highest speed level?",
             ),
-            /*(
-                GameMode::ultra(NonZeroU32::try_from(3).unwrap()),
-                "3min. is all you got!",
-            ),*/
-            (GameMode::master(), "challenge - start at instant gravity."),
+            (
+                GameMode::ultra(NonZeroU32::MIN),
+                "get a highscore in 3 minutes!",
+            ),
+            (GameMode::master(), "start at instant gravity."),
         ];
         let (d_time, d_score, d_pieces, d_lines, d_level) = (Duration::from_secs(5), 200, 10, 5, 1);
         let mut selected = 0usize;
@@ -597,6 +591,7 @@ impl<T: Write> TerminalApp<T> {
                     )))?;
             }
             // Render puzzle mode option.
+            #[allow(clippy::collapsible_else_if)]
             self.term
                 .queue(MoveTo(
                     x_main,
@@ -604,10 +599,18 @@ impl<T: Write> TerminalApp<T> {
                 ))?
                 .queue(Print(format!(
                     "{:^w_main$}",
-                    if selected == selected_cnt - 4 {
-                        ">>> Puzzle: 24 stages of perfect clears! <<<"
+                    if self.game_mode_store.descent_mode {
+                        if selected == selected_cnt - 4 {
+                            ">>> Descent: Collect gems on your way down by touching them. <<<"
+                        } else {
+                            "Descent"
+                        }
                     } else {
-                        "Puzzle"
+                        if selected == selected_cnt - 4 {
+                            ">>> Puzzle: 24 stages of perfect clears! <<<"
+                        } else {
+                            "Puzzle"
+                        }
                     }
                 )))?;
             // Render cheese mode option.
@@ -715,6 +718,7 @@ impl<T: Write> TerminalApp<T> {
                             increment_level,
                             mode_limit: custom_mode_limit,
                             initial_combo_layout: _,
+                            descent_mode: _,
                         } = self.game_mode_store.clone();
                         let limits = match custom_mode_limit {
                             Some(Stat::Time(max_dur)) => Limits {
@@ -750,7 +754,11 @@ impl<T: Write> TerminalApp<T> {
                     } else if selected == selected_cnt - 3 {
                         game_mods::cheese_mode::new_game(Some(32))
                     } else if selected == selected_cnt - 4 {
-                        game_mods::puzzle_mode::new_game()
+                        if self.game_mode_store.descent_mode {
+                            crate::game_mods::descent_mode::new_game()
+                        } else {
+                            game_mods::puzzle_mode::new_game()
+                        }
                     } else {
                         // SAFETY: Index < selected_cnt - 2 = preset_gamemodes.len().
                         Game::new(preset_gamemodes.into_iter().nth(selected).unwrap().0)
@@ -759,13 +767,12 @@ impl<T: Write> TerminalApp<T> {
                     // Set config.
                     game.config_mut().clone_from(&self.game_config);
 
-                    if self.settings.display_probabilities_mod {
-                        unsafe {
-                            game.add_modifier(Box::new(
-                                crate::game_mods::utils::display_tetromino_likelihood,
-                            ))
-                        };
-                    }
+                    // TODO: Remove or rewrite.
+                    // unsafe {
+                    //     game.add_modifier(Box::new(
+                    //         crate::game_mods::utils::display_tetromino_likelihood,
+                    //     ))
+                    // };
 
                     let now = Instant::now();
                     break Ok(MenuUpdate::Push(Menu::Game {
@@ -2019,6 +2026,30 @@ impl<T: Write> TerminalApp<T> {
                                     last_state.lines_cleared, max_lns
                                 )
                             }
+                            "Puzzle" => {
+                                format!(
+                                    "{timestamp} ~ Puzzle: {}{}",
+                                    format_duration(last_state.time),
+                                    if last_state.end.is_some_and(|end| end.is_ok()) {
+                                        "".to_string()
+                                    } else {
+                                        let Limits {
+                                            level: Some((_, max_lvl)),
+                                            ..
+                                        } = gamemode.limits
+                                        else {
+                                            panic!()
+                                        };
+                                        format!(" ({}/{} lvl)", last_state.level, max_lvl)
+                                    },
+                                )
+                            }
+                            "Descent" => {
+                                format!(
+                                    "{timestamp} ~ Descent: {} gems, depth {}",
+                                    last_state.score, last_state.lines_cleared,
+                                )
+                            }
                             "Cheese" => {
                                 format!(
                                     "{timestamp} ~ Cheese: {}{}",
@@ -2039,24 +2070,6 @@ impl<T: Write> TerminalApp<T> {
                             }
                             "Combo" => {
                                 format!("{timestamp} ~ Combo: {} lns", last_state.lines_cleared)
-                            }
-                            "Puzzle" => {
-                                format!(
-                                    "{timestamp} ~ Puzzle: {}{}",
-                                    format_duration(last_state.time),
-                                    if last_state.end.is_some_and(|end| end.is_ok()) {
-                                        "".to_string()
-                                    } else {
-                                        let Limits {
-                                            level: Some((_, max_lvl)),
-                                            ..
-                                        } = gamemode.limits
-                                        else {
-                                            panic!()
-                                        };
-                                        format!(" ({}/{} lvl)", last_state.level, max_lvl)
-                                    },
-                                )
                             }
                             _ => {
                                 format!(
@@ -2164,7 +2177,7 @@ impl<T: Write> TerminalApp<T> {
     fn about_menu(&mut self) -> io::Result<MenuUpdate> {
         /* TODO: About menu. */
         self.generic_placeholder_widget(
-            &format!("About tetrs {TAG} - Visit https://github.com/Strophox/tetrs"),
+            "About tetrs - Visit https://github.com/Strophox/tetrs",
             vec![],
         )
     }
@@ -2218,6 +2231,20 @@ impl<T: Write> TerminalApp<T> {
                                 // Sort desc by lines.
                                 stats1.last_state.lines_cleared.cmp(&stats2.last_state.lines_cleared).reverse()
                             },
+                            "Puzzle" => {
+                                // Sort desc by level.
+                                stats1.last_state.level.cmp(&stats2.last_state.level).reverse().then_with(||
+                                    // Sort asc by time.
+                                    stats1.last_state.time.cmp(&stats2.last_state.time)
+                                )
+                            },
+                            "Descent" => {
+                                // Sort desc by score.
+                                stats1.last_state.score.cmp(&stats2.last_state.score).reverse().then_with(||
+                                    // Sort desc by depth.
+                                    stats1.last_state.lines_cleared.cmp(&stats2.last_state.lines_cleared).reverse()
+                                )
+                            },
                             "Cheese" => {
                                 // Sort desc by lines.
                                 stats1.last_state.lines_cleared.cmp(&stats2.last_state.lines_cleared).reverse().then_with(||
@@ -2228,13 +2255,6 @@ impl<T: Write> TerminalApp<T> {
                             "Combo" => {
                                 // Sort desc by lines.
                                 stats1.last_state.lines_cleared.cmp(&stats2.last_state.lines_cleared).reverse()
-                            },
-                            "Puzzle" => {
-                                // Sort desc by level.
-                                stats1.last_state.level.cmp(&stats2.last_state.level).reverse().then_with(||
-                                    // Sort asc by time.
-                                    stats1.last_state.time.cmp(&stats2.last_state.time)
-                                )
                             },
                             _ => {
                                 // Sort desc by lines.
