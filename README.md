@@ -590,8 +590,8 @@ In a sample of a few dozen opinions from reddit posts there was about a 50/50 sp
 | `a` `d` | `←` `→` |
 | `←` `→` | `z` `x` |
 
-Frequent advice I saw, "Choose what feels best for you", which sounds about right.
-*(\*though some mentioned one should **not** hammer ` spacebar ` for hard drops, the only button the Guideline suggests for this action.)*
+Frequent advice I saw was: "choose what feels best for you", which sounds about right. :P
+*(\*though some mentioned one should **not** hammer ` spacebar ` for hard drops, though it's the only button the Guideline binds to this action.)*
 
 
 ## Menu Navigation
@@ -611,40 +611,39 @@ The menus form a graph (with menus as nodes and valid transitions as directed ed
 
 ## Miscellaneous Author Notes
 
-In the two very intense weeks of developing this project I've had my first proper learning experiences with programming a larger Rust project, an interactive game (in the console no less), and the intricacies of modern tetrs mechanics themselves.
+In the two very intense weeks of developing a majority of this project I had my first proper learning experience with building: a larger Rust project, an interactive game (in the console no less), and the intricacies of modern tetrs mechanics, all at the same time.
 
-Gamedev-wise I can mention learning about the [modern](https://gafferongames.com/post/fix_your_timestep/) [game](http://gameprogrammingpatterns.com/game-loop.html) [loop](https://dewitters.com/dewitters-gameloop/);
-Finding the proper abstraction for `Game::update` (allow arbitrary-time user input, make updates decoupled from framerate) was still hard.
+Gamedev-wise I can mention the [modern](https://gafferongames.com/post/fix_your_timestep/) [game](http://gameprogrammingpatterns.com/game-loop.html) [loop](https://dewitters.com/dewitters-gameloop/);
+Finding a proper abstraction for `Game::update` (allowing arbitrary-time user input, making updates decoupled from framerate) wasn't so obvious at the beginning.
 
-Frontend-wise I may have used [Ratatui](https://crates.io/crates/ratatui/), but decided to just do some basic menus myself using the trusty [Crossterm](https://crates.io/crates/crossterm) for cross-platform terminal manipulation.
-Next time I'd use a TUI crate so as to sleep more peacefully at night not having to think about the ~horrible ad-hoc code I wrote for the interface~
+Frontend-wise I may as well have used [Ratatui](https://crates.io/crates/ratatui/), but decided to just do some basic menus using trusty [Crossterm](https://crates.io/crates/crossterm) for cross-platform terminal manipulation.
+However, next time I should use a TUI crate so as to sleep more peacefully at night not having to take responsibility for the ~horrible ad-hoc code I wrote for the interface aaaAAAA .~
 
-On the Rust side of things I learned about;
-- Some [coding](https://docs.kernel.org/rust/coding-guidelines.html) [style](https://doc.rust-lang.org/nightly/style-guide/) [guidelines](https://github.com/rust-lang/rust-analyzer/blob/master/docs/dev/style.md#getters--setters) & `cargo fmt` (~`#[rustfmt::skip]`~),
+On the Rust side of things I read / learned about / read:
+- some primers on [coding](https://docs.kernel.org/rust/coding-guidelines.html) [style](https://doc.rust-lang.org/nightly/style-guide/) [guidelines](https://github.com/rust-lang/rust-analyzer/blob/master/docs/dev/style.md#getters--setters) & `cargo fmt` (~`#[rustfmt::skip]`~),
 - "[How to order Rust code](https://deterministic.space/how-to-order-rust-code.html)",
-- introduction to [writing](https://doc.rust-lang.org/book/ch14-02-publishing-to-crates-io.html) [documentation](https://rust-lang.github.io/api-guidelines/documentation.html) (and the fact they can [contain tested examples](https://blog.guillaume-gomez.fr/articles/2020-03-12+Guide+on+how+to+write+documentation+for+a+Rust+crate#Hiding-lines)) & `cargo doc`,
-- the [`std` traits](https://rust-lang.github.io/api-guidelines/interoperability.html),
-- using [serde](https://serde.rs/derive.html) a little for a hacky way to [save some structured data locally](https://stackoverflow.com/questions/62771576/how-do-i-save-structured-data-to-file),
-- [conditionally derive](https://stackoverflow.com/questions/42046327/conditionally-derive-based-on-feature-flag) feature flags & `cargo check --features serde`,
-- [conditionally compile](https://doc.rust-lang.org/reference/conditional-compilation.html),
+- an introduction to [writing](https://doc.rust-lang.org/book/ch14-02-publishing-to-crates-io.html) [documentation](https://rust-lang.github.io/api-guidelines/documentation.html) (like the fact they can even contain [tested examples](https://blog.guillaume-gomez.fr/articles/2020-03-12+Guide+on+how+to+write+documentation+for+a+Rust+crate#Hiding-lines)) & `cargo doc`,
+- [`std` traits](https://rust-lang.github.io/api-guidelines/interoperability.html),
+- using [serde](https://serde.rs/derive.html) (to [save some structured data locally](https://stackoverflow.com/questions/62771576/how-do-i-save-structured-data-to-file)),
+- [conditional derives based on feature flags](https://stackoverflow.com/questions/42046327/conditionally-derive-based-on-feature-flag) & `cargo check --features serde`,
+- [conditional compilation](https://doc.rust-lang.org/reference/conditional-compilation.html),
 - basic [file system](https://doc.rust-lang.org/std/fs/index.html) shenanigans,
-- [clap](https://docs.rs/clap/latest/clap/) to parse simple command line arguments & `cargo run -- --fps=60`,
-- [formatting](https://docs.rs/chrono/latest/chrono/struct.DateTime.html#method.format) the time with [chrono](https://rust-lang-nursery.github.io/rust-cookbook/datetime/parse.html#display-formatted-date-and-time) my favourite way,
-- the `format!` macro (which I discovered is the analogue to Python's f-strings my beloved),
-- [`debug_struct`](https://doc.rust-lang.org/std/fmt/struct.Formatter.html#method.debug_struct) proved quite helpful to ensure `Debug` for all structs,
-- some [annoyances](https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement) with terminal emulators, including how slow they are ~on Windows~,
-- the handy drop-in [`BufWriter`](https://doc.rust-lang.org/std/io/struct.BufWriter.html) wrapper to diminish flickering,
-- settings a custom [panic hook](https://doc.rust-lang.org/std/panic/fn.set_hook.html) (since TUI shenanigans mess with error output),
-- more practice with Rust's [module system](https://doc.rust-lang.org/book/ch07-00-managing-growing-projects-with-packages-crates-and-modules.html),
-- multithreading with [`std::sync::mpsc`](https://doc.rust-lang.org/std/sync/mpsc/)
-- [cargo workspaces](https://doc.rust-lang.org/book/ch14-03-cargo-workspaces.html) to fully separate frontend and backend,
-- [cargo git dependencies](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#specifying-dependencies-from-git-repositories) so other people *could* reuse the backend,
-- learning about [cross-compilation](https://blog.logrocket.com/guide-cross-compilation-rust/#how-rust-represents-platforms) for releases,
-- and as last honourable mention: Looking for a good input reading crate for *ages*, failing to get [device_query](https://crates.io/crates/device_query) to work, and settling on trusty Crossterm, which did its job perfectly and I couldn't be happier, considering how not-made-for-games consoles are.
+- [clap](https://docs.rs/clap/latest/clap/) to parse simple command line arguments (& passing them with `cargo run -- --descent-mode`),
+- [formatting the time](https://docs.rs/chrono/latest/chrono/struct.DateTime.html#method.format) with [chrono](https://rust-lang-nursery.github.io/rust-cookbook/datetime/parse.html#display-formatted-date-and-time),
+- [the `format!` macro](https://doc.rust-lang.org/std/fmt/#fillalignment) (the analogue to Python's f-strings! my beloved),
+- [`debug_struct`](https://doc.rust-lang.org/std/fmt/struct.Formatter.html#method.debug_struct) (helpful to `impl Debug` for structs with weird fields),
+- [the annoyances with terminal emulators](https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement) ~including how slow they can be~,
+- [`BufWriter`](https://doc.rust-lang.org/std/io/struct.BufWriter.html) as an easy wrapper (diminished flickering!),
+- [setting a custom panic hook](https://doc.rust-lang.org/std/panic/fn.set_hook.html) (TUI stuff tends to mess with console state upon crash),
+- more practice with [Rust's module system](https://doc.rust-lang.org/book/ch07-00-managing-growing-projects-with-packages-crates-and-modules.html),
+- super handy multithreading with [`std::sync::mpsc`](https://doc.rust-lang.org/std/sync/mpsc/)
+- [cargo workspaces](https://doc.rust-lang.org/book/ch14-03-cargo-workspaces.html) (to fully separate frontend and backend),
+- how [cargo git dependencies](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#specifying-dependencies-from-git-repositories) work (so one could reuse the backend from this repository),
+- and [cross-compilation](https://blog.logrocket.com/guide-cross-compilation-rust/#how-rust-represents-platforms) (for releases).
 
-All in all, Rust, known for its safety and performance - while still having high-level constructs like abstract datatypes - proved to be an excellent choice for this project.
+All in all, Rust (known for its safety and performance while still providing ADTs) - proved to be an excellent choice for this project!
 
-Also, I'd like to appreciate how nice the name *tetrs* fits for a Rust game that does not infringe on copyright <sup>~~though there are, like, a quadrillion other [`tetrs`](https://github.com/search?q=%22tetrs%22&type=repositories)'s on GitHub, ooof~~</sup>.
+Also, can we appreciate how nice the name *tetrs* fits for a Rust game that does not infringe on TTC's copyright? <sup>~~though there were like a million other [`tetrs`](https://github.com/search?q=%22tetrs%22&type=repositories)'s on GitHub before me oof~~</sup>.
 
 - For the menu navigation graph I used [graphviz](http://magjac.com/graphviz-visual-editor/).
 - For the terminal GIF recordings I used [asciinema](https://asciinema.org/) + [agg](https://github.com/asciinema/agg):
