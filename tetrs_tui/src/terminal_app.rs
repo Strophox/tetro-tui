@@ -4,7 +4,7 @@ use std::{
     fmt::Debug,
     fs::File,
     io::{self, Read, Write},
-    num::NonZeroU32,
+    num::{NonZeroU32, NonZeroUsize},
     path::PathBuf,
     sync::mpsc,
     time::{Duration, Instant},
@@ -148,7 +148,8 @@ pub struct GameModeStore {
     name: String,
     start_level: NonZeroU32,
     increment_level: bool,
-    mode_limit: Option<Stat>,
+    custom_mode_limit: Option<Stat>,
+    cheese_mode_limit: Option<NonZeroUsize>,
     initial_combo_layout: u16,
     descent_mode: bool,
 }
@@ -234,7 +235,8 @@ impl<T: Write> TerminalApp<T> {
                 name: "Custom Mode".to_string(),
                 start_level: NonZeroU32::MIN,
                 increment_level: false,
-                mode_limit: None,
+                custom_mode_limit: None,
+                cheese_mode_limit: Some(NonZeroUsize::try_from(20).unwrap()),
                 initial_combo_layout: game_mods::combo_mode::LAYOUTS[0],
                 descent_mode: false,
             },
@@ -628,9 +630,9 @@ impl<T: Write> TerminalApp<T> {
                 .queue(Print(format!(
                     "{:^w_main$}",
                     if selected == selected_cnt - 3 {
-                        ">>> Cheese: eat your way through 32 lines! <<<"
+                        format!(">>> Cheese: eat your way through! (limit: {:?}) <<<", self.game_mode_store.cheese_mode_limit)
                     } else {
-                        "Cheese"
+                        "Cheese".to_string()
                     }
                 )))?;
             // Render combo mode option.
@@ -676,7 +678,7 @@ impl<T: Write> TerminalApp<T> {
                         "| level increment: {}",
                         self.game_mode_store.increment_level
                     ),
-                    format!("| limit: {:?}", self.game_mode_store.mode_limit),
+                    format!("| limit: {:?}", self.game_mode_store.custom_mode_limit),
                 ];
                 for (j, stat_str) in stats_strs.into_iter().enumerate() {
                     self.term
@@ -722,7 +724,8 @@ impl<T: Write> TerminalApp<T> {
                             name,
                             start_level,
                             increment_level,
-                            mode_limit: custom_mode_limit,
+                            custom_mode_limit,
+                            cheese_mode_limit: _,
                             initial_combo_layout: _,
                             descent_mode: _,
                         } = self.game_mode_store.clone();
@@ -766,7 +769,7 @@ impl<T: Write> TerminalApp<T> {
                     } else if selected == selected_cnt - 2 {
                         game_mods::combo_mode::new_game(self.game_mode_store.initial_combo_layout)
                     } else if selected == selected_cnt - 3 {
-                        game_mods::cheese_mode::new_game(Some(32))
+                        game_mods::cheese_mode::new_game(self.game_mode_store.cheese_mode_limit)
                     } else if selected == selected_cnt - 4 {
                         if self.game_mode_store.descent_mode {
                             crate::game_mods::descent_mode::new_game()
@@ -815,7 +818,7 @@ impl<T: Write> TerminalApp<T> {
                                     !self.game_mode_store.increment_level;
                             }
                             3 => {
-                                match self.game_mode_store.mode_limit {
+                                match self.game_mode_store.custom_mode_limit {
                                     Some(Stat::Time(ref mut dur)) => {
                                         *dur += d_time;
                                     }
@@ -860,7 +863,7 @@ impl<T: Write> TerminalApp<T> {
                                     !self.game_mode_store.increment_level;
                             }
                             3 => {
-                                match self.game_mode_store.mode_limit {
+                                match self.game_mode_store.custom_mode_limit {
                                     Some(Stat::Time(ref mut dur)) => {
                                         *dur = dur.saturating_sub(d_time);
                                     }
@@ -907,6 +910,10 @@ impl<T: Write> TerminalApp<T> {
                         };
                         self.game_mode_store.initial_combo_layout =
                             game_mods::combo_mode::LAYOUTS[new_layout_idx];
+                    } else if selected == selected_cnt - 3 {
+                        if let Some(limit) = self.game_mode_store.cheese_mode_limit {
+                            self.game_mode_store.cheese_mode_limit = NonZeroUsize::try_from(limit.get() - 1).ok();
+                        }
                     }
                 }
                 // Move selector right (select stat).
@@ -919,7 +926,7 @@ impl<T: Write> TerminalApp<T> {
                     if selected == selected_cnt - 1 {
                         // If reached last stat, cycle through stats for limit.
                         if selected_custom == selected_custom_cnt - 1 {
-                            self.game_mode_store.mode_limit = match self.game_mode_store.mode_limit
+                            self.game_mode_store.custom_mode_limit = match self.game_mode_store.custom_mode_limit
                             {
                                 Some(Stat::Time(_)) => Some(Stat::Score(9000)),
                                 Some(Stat::Score(_)) => Some(Stat::Pieces(100)),
@@ -933,8 +940,7 @@ impl<T: Write> TerminalApp<T> {
                         } else {
                             selected_custom += 1
                         }
-                    }
-                    if selected == selected_cnt - 2 {
+                    } else if selected == selected_cnt - 2 {
                         let new_layout_idx = if let Some(i) = crate::game_mods::combo_mode::LAYOUTS
                             .iter()
                             .position(|lay| *lay == self.game_mode_store.initial_combo_layout)
@@ -946,6 +952,12 @@ impl<T: Write> TerminalApp<T> {
                         };
                         self.game_mode_store.initial_combo_layout =
                             crate::game_mods::combo_mode::LAYOUTS[new_layout_idx];
+                    } else if selected == selected_cnt - 3 {
+                        self.game_mode_store.cheese_mode_limit = if let Some(limit) = self.game_mode_store.cheese_mode_limit {
+                            limit.checked_add(1)
+                        } else {
+                            Some(NonZeroUsize::MIN)
+                        };
                     }
                 }
                 // Other event: don't care.
@@ -2068,18 +2080,7 @@ impl<T: Write> TerminalApp<T> {
                                 format!(
                                     "{timestamp} ~ Cheese: {}{}",
                                     last_state.pieces_played.iter().sum::<u32>(),
-                                    if last_state.end.is_some_and(|end| end.is_ok()) {
-                                        "".to_string()
-                                    } else {
-                                        let Limits {
-                                            lines: Some((_, max_lns)),
-                                            ..
-                                        } = gamemode.limits
-                                        else {
-                                            panic!()
-                                        };
-                                        format!(" ({}/{} lns)", last_state.lines_cleared, max_lns)
-                                    },
+                                    format!(" ({}/{} lns)", last_state.lines_cleared, gamemode.limits.lines.map_or("∞".to_string(), |(_, max_lns)| max_lns.to_string()))
                                 )
                             }
                             "Combo" => {

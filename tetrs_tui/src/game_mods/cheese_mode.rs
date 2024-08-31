@@ -1,4 +1,4 @@
-use std::num::{NonZeroU32, NonZeroU8};
+use std::num::{NonZeroU32, NonZeroU8, NonZeroUsize};
 
 use rand::{self, prelude::SliceRandom};
 
@@ -23,8 +23,8 @@ fn is_cheese_line(line: &Line) -> bool {
         .any(|cell| *cell == Some(NonZeroU8::try_from(254).unwrap()))
 }
 
-pub fn new_game(cheese_limit: Option<usize>) -> Game {
-    let mut line_source = random_hole_lines().take(cheese_limit.unwrap_or(usize::MAX));
+pub fn new_game(cheese_limit: Option<NonZeroUsize>) -> Game {
+    let mut line_source = random_hole_lines().take(cheese_limit.unwrap_or(NonZeroUsize::MAX).get());
     let mut temp_cheese_tally = 0;
     let mut temp_normal_tally = 0;
     let mut init = false;
@@ -71,7 +71,7 @@ pub fn new_game(cheese_limit: Option<usize>) -> Game {
         start_level: NonZeroU32::MIN,
         increment_level: false,
         limits: Limits {
-            lines: cheese_limit.map(|line_count| (true, line_count)),
+            lines: cheese_limit.map(|line_count| (true, line_count.get())),
             ..Default::default()
         },
     });
