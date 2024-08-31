@@ -233,7 +233,7 @@ impl Renderer for CachedRenderer {
             buttons_pressed: _,
             board,
             active_piece_data,
-            holding_piece,
+            holding_piece: hold_piece,
             next_pieces,
             pieces_played,
             lines_cleared,
@@ -364,19 +364,19 @@ impl Renderer for CachedRenderer {
             ],
             GraphicsStyle::ASCII => vec![
                 format!("                                                            ", ),
-                format!("                +-hold-|- - - - - - - - - - +{:-^w$       }+", "mode", w=mode_name_space),
-                format!("   ALL STATS    |      |                    |{: ^w$       }|", mode_name, w=mode_name_space),
-                format!("   ----------   +------|                    +{:-^w$       }+", "", w=mode_name_space),
+                format!("                {     }|- - - - - - - - - - +{:-^w$       }+", if hold_piece.is_some() { "+-hold-" } else {"       "}, "mode", w=mode_name_space),
+                format!("   ALL STATS    {}     |                    |{: ^w$       }|", if hold_piece.is_some() { "| " } else {"  "}, mode_name, w=mode_name_space),
+                format!("   ----------   {     }|                    +{:-^w$       }+", if hold_piece.is_some() { "+------" } else {"       "}, "", w=mode_name_space),
                 format!("   Level: {:<13       }|                    |  {           }", level, goal_name),
                 format!("   Score: {:<13       }|                    |{:^15         }", score, goal_value),
                 format!("   Lines: {:<13       }|                    |               ", lines_cleared),
                 format!("                       |                    |  {           }", focus_name),
                 format!("   Time elapsed        |                    |{:^15         }", focus_value),
                 format!("    {:<19             }|                    |               ", format_duration(*game_time)),
-                format!("                       |                    |-----next-----+", ),
-                format!("   TETROMINOS          |                    |              |", ),
-                format!("   -------             |                    |              |", ),
-                format!("   {:<20              }|                    |--------------+", piececnts_o),
+                format!("                       |                    |{             }", if !next_pieces.is_empty() { "-----next-----+" } else {"               "}),
+                format!("   TETROMINOS          |                    |             {}", if !next_pieces.is_empty() { " |" } else {"  "}),
+                format!("   -------             |                    |             {}", if !next_pieces.is_empty() { " |" } else {"  "}),
+                format!("   {:<20              }|                    |{             }", piececnts_o, if !next_pieces.is_empty() { "--------------+" } else {"               "}),
                 format!("   {:<20              }|                    |               ", piececnts_i_s_z),
                 format!("   {:<20              }|                    |               ", piececnts_t_l_j),
                 format!("                       |                    |               ", ),
@@ -390,19 +390,19 @@ impl Renderer for CachedRenderer {
             ],
         GraphicsStyle::Unicode => vec![
                 format!("                                                            ", ),
-                format!("                ┌─hold─╓╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╥{:─^w$       }┐", "mode", w=mode_name_space),
-                format!("   ALL STATS    │      ║                    ║{: ^w$       }│", mode_name, w=mode_name_space),
-                format!("   ─────────╴   └──────║                    ╟{:─^w$       }┘", "", w=mode_name_space),
+                format!("                {     }╓╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╥{:─^w$       }┐", if hold_piece.is_some() { "┌─hold─" } else {"       "}, "mode", w=mode_name_space),
+                format!("   ALL STATS    {}     ║                    ║{: ^w$       }│", if hold_piece.is_some() { "│ " } else {"  "}, mode_name, w=mode_name_space),
+                format!("   ─────────╴   {     }║                    ╟{:─^w$       }┘", if hold_piece.is_some() { "└──────" } else {"       "}, "", w=mode_name_space),
                 format!("   Level: {:<13       }║                    ║  {           }", level, goal_name),
                 format!("   Score: {:<13       }║                    ║{:^15         }", score, goal_value),
                 format!("   Lines: {:<13       }║                    ║               ", lines_cleared),
                 format!("                       ║                    ║  {           }", focus_name),
                 format!("   Time elapsed        ║                    ║{:^15         }", focus_value),
                 format!("    {:<19             }║                    ║               ", format_duration(*game_time)),
-                format!("                       ║                    ║─────next─────┐", ),
-                format!("   TETROMINOS          ║                    ║              │", ),
-                format!("   ──────╴             ║                    ║              │", ),
-                format!("   {:<20              }║                    ║──────────────┘", piececnts_o),
+                format!("                       ║                    ║{             }", if !next_pieces.is_empty() { "─────next─────┐" } else {"               "}),
+                format!("   TETROMINOS          ║                    ║             {}", if !next_pieces.is_empty() { " │" } else {"  "}),
+                format!("   ──────╴             ║                    ║             {}", if !next_pieces.is_empty() { " │" } else {"  "}),
+                format!("   {:<20              }║                    ║{             }", piececnts_o, if !next_pieces.is_empty() { "──────────────┘" } else {"               "}),
                 format!("   {:<20              }║                    ║               ", piececnts_i_s_z),
                 format!("   {:<20              }║                    ║               ", piececnts_t_l_j),
                 format!("                       ║                    ║               ", ),
@@ -580,7 +580,7 @@ impl Renderer for CachedRenderer {
             x_offset_minuscule += str.chars().count() + 1;
         }
         // Draw held piece.
-        if let Some((tet, swap_allowed)) = holding_piece {
+        if let Some((tet, swap_allowed)) = hold_piece {
             let str = preview_small(tet);
             let color = tile_color(if *swap_allowed {
                 tet.tiletypeid()

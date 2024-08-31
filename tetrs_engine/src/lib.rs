@@ -736,7 +736,7 @@ impl Default for GameConfig {
         Self {
             rotation_system: RotationSystem::Ocular,
             tetromino_generator: TetrominoSource::recency(),
-            preview_count: 1,
+            preview_count: 4,
             delayed_auto_shift: Duration::from_millis(167),
             auto_repeat_rate: Duration::from_millis(33),
             soft_drop_factor: 15.0,
@@ -1648,18 +1648,6 @@ impl Game {
         })
     }
 }
-
-/*impl PartialOrd for FeedbackEvent {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for FeedbackEvent {
-    fn cmp(&self, _other: &Self) -> std::cmp::Ordering {
-        std::cmp::Ordering::Equal
-    }
-}*/
 
 /// Adds an offset to a board coordinate, failing if the result is out of bounds
 /// (negative or positive overflow in either direction).

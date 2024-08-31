@@ -24,7 +24,7 @@ fn is_cheese_line(line: &Line) -> bool {
 }
 
 pub fn new_game(cheese_limit: Option<usize>) -> Game {
-    let mut line_source = random_hole_lines();
+    let mut line_source = random_hole_lines().take(cheese_limit.unwrap_or(usize::MAX));
     let mut temp_cheese_tally = 0;
     let mut temp_normal_tally = 0;
     let mut init = false;
@@ -57,11 +57,11 @@ pub fn new_game(cheese_limit: Option<usize>) -> Game {
                 modifier_point,
                 ModifierPoint::AfterEvent(InternalEvent::LineClear)
             ) {
+                state.lines_cleared -= temp_normal_tally;
                 for cheese in line_source.by_ref().take(temp_cheese_tally) {
                     state.board.insert(0, cheese);
                 }
                 temp_cheese_tally = 0;
-                state.lines_cleared -= temp_normal_tally;
                 temp_normal_tally = 0;
             }
         },

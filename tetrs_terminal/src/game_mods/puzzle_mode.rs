@@ -9,7 +9,7 @@ use tetrs_engine::{
 };
 
 const MAX_STAGE_ATTEMPTS: usize = 5;
-const SPEED_LEVEL: u32 = 3;
+const PUZZLE_SPEED_LEVEL: u32 = 1;
 
 pub fn new_game() -> Game {
     #[rustfmt::skip]
@@ -120,7 +120,7 @@ pub fn new_game() -> Game {
                 ModifierPoint::BeforeEvent(_) | ModifierPoint::BeforeButtonChange(_, _)
             ) {
                 config.preview_count = 0;
-                state.level = NonZeroU32::try_from(SPEED_LEVEL).unwrap();
+                state.level = NonZeroU32::try_from(PUZZLE_SPEED_LEVEL).unwrap();
             } else {
                 config.preview_count = state.next_pieces.len();
                 state.level =

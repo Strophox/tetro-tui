@@ -158,9 +158,10 @@ pub struct TerminalApp<T: Write> {
     pub term: T,
     kitty_enabled: bool,
     settings: Settings,
-    game_mode_store: GameModeStore,
     game_config: GameConfig,
+    game_mode_store: GameModeStore,
     past_games: Vec<FinishedGameStats>,
+    custom_starting_board: Option<u128>,
 }
 
 impl<T: Write> Drop for TerminalApp<T> {
@@ -198,7 +199,12 @@ impl<T: Write> TerminalApp<T> {
 
     pub const SAVEFILE_NAME: &'static str = ".tetrs_terminal.json";
 
-    pub fn new(mut terminal: T, descent_mode: bool, initial_combo_layout: Option<u16>) -> Self {
+    pub fn new(
+        mut terminal: T,
+        descent_mode: bool,
+        initial_combo_layout: Option<u16>,
+        experimental_custom_layout: Option<u128>,
+    ) -> Self {
         // Console prologue: Initialization.
         // TODO: Handle errors?
         let _ = terminal.execute(terminal::EnterAlternateScreen);
@@ -214,6 +220,7 @@ impl<T: Write> TerminalApp<T> {
         }
         let mut app = Self {
             term: terminal,
+            kitty_enabled,
             settings: Settings {
                 keybinds: CrosstermInputHandler::default_keybinds(),
                 game_fps: 30.0,
@@ -222,17 +229,17 @@ impl<T: Write> TerminalApp<T> {
                 graphics_color: GraphicsColor::ColorRGB,
                 save_data_on_exit: false,
             },
+            game_config: GameConfig::default(),
             game_mode_store: GameModeStore {
                 name: "Custom Mode".to_string(),
                 start_level: NonZeroU32::MIN,
-                increment_level: true,
-                mode_limit: Some(Stat::Time(Duration::from_secs(180))),
+                increment_level: false,
+                mode_limit: None,
                 initial_combo_layout: game_mods::combo_mode::LAYOUTS[0],
                 descent_mode: false,
             },
-            game_config: GameConfig::default(),
             past_games: vec![],
-            kitty_enabled,
+            custom_starting_board: experimental_custom_layout,
         };
         if let Err(_e) = app.load_local() {
             // TODO: Make this debuggable.
@@ -654,32 +661,32 @@ impl<T: Write> TerminalApp<T> {
                     "{:^w_main$}",
                     if selected == selected_cnt - 1 {
                         if selected_custom == 0 {
-                            "▓▓* Custom: (press right repeatedly to change 'limit')"
+                            ">>> Custom (press right repeatedly to toggle \"limit\"):"
                         } else {
-                            "  * Custom: (press right repeatedly to change 'limit')"
+                            "  | Custom (press right repeatedly to toggle \"limit\"):"
                         }
                     } else {
-                        "* Custom"
+                        "| Custom"
                     }
                 )))?;
             // Render custom mode stuff.
             if selected == selected_cnt - 1 {
                 let stats_strs = [
-                    format!("* level start: {}", self.game_mode_store.start_level),
+                    format!("| level start: {}", self.game_mode_store.start_level),
                     format!(
-                        "* level increment: {}",
+                        "| level increment: {}",
                         self.game_mode_store.increment_level
                     ),
-                    format!("* limit: {:?}", self.game_mode_store.mode_limit),
+                    format!("| limit: {:?}", self.game_mode_store.mode_limit),
                 ];
                 for (j, stat_str) in stats_strs.into_iter().enumerate() {
                     self.term
                         .queue(MoveTo(
-                            x_main + 18 + 4 * u16::try_from(j).unwrap(),
+                            x_main + 19 + 4 * u16::try_from(j).unwrap(),
                             y_main + y_selection + 4 + u16::try_from(2 + j + selected_cnt).unwrap(),
                         ))?
                         .queue(Print(if j + 1 == selected_custom {
-                            format!("▓▓{stat_str}")
+                            format!(">{stat_str}")
                         } else {
                             stat_str
                         }))?;
@@ -743,12 +750,20 @@ impl<T: Write> TerminalApp<T> {
                             },
                             None => Limits::default(),
                         };
-                        Game::new(GameMode {
+                        let mut custom_game = Game::new(GameMode {
                             name,
                             start_level,
                             increment_level,
                             limits,
-                        })
+                        });
+                        if let Some(layout_bits) = self.custom_starting_board {
+                            unsafe {
+                                custom_game.add_modifier(game_mods::utils::custom_starting_board(
+                                    layout_bits,
+                                ));
+                            }
+                        }
+                        custom_game
                     } else if selected == selected_cnt - 2 {
                         game_mods::combo_mode::new_game(self.game_mode_store.initial_combo_layout)
                     } else if selected == selected_cnt - 3 {
@@ -761,7 +776,7 @@ impl<T: Write> TerminalApp<T> {
                         }
                     } else {
                         // SAFETY: Index < selected_cnt - 2 = preset_gamemodes.len().
-                        Game::new(preset_gamemodes.into_iter().nth(selected).unwrap().0)
+                        Game::new(preset_gamemodes[selected].0.clone())
                     };
 
                     // Set config.
@@ -1827,13 +1842,13 @@ impl<T: Write> TerminalApp<T> {
                         self.game_config.auto_repeat_rate += Duration::from_millis(1);
                     }
                     5 => {
-                        self.game_config.soft_drop_factor += 0.25;
+                        self.game_config.soft_drop_factor += 0.5;
                     }
                     6 => {
                         self.game_config.hard_drop_delay += Duration::from_millis(1);
                     }
                     7 => {
-                        self.game_config.ground_time_max += Duration::from_millis(10);
+                        self.game_config.ground_time_max += Duration::from_millis(250);
                     }
                     8 => {
                         self.game_config.line_clear_delay += Duration::from_millis(10);
@@ -1887,7 +1902,7 @@ impl<T: Write> TerminalApp<T> {
                     }
                     5 => {
                         if self.game_config.soft_drop_factor > 0.0 {
-                            self.game_config.soft_drop_factor -= 0.25;
+                            self.game_config.soft_drop_factor -= 0.5;
                         }
                     }
                     6 => {
@@ -1902,7 +1917,7 @@ impl<T: Write> TerminalApp<T> {
                         self.game_config.ground_time_max = self
                             .game_config
                             .ground_time_max
-                            .saturating_sub(Duration::from_millis(10));
+                            .saturating_sub(Duration::from_millis(250));
                     }
                     8 => {
                         self.game_config.line_clear_delay = self
