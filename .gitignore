@@ -20,4 +20,4 @@ Cargo.lock
 
 # Custom savefile file
 
-tetrs_savefile.json
+tetrs_tui_savefile.json

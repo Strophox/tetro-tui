@@ -1,7 +1,7 @@
-mod game_input_handler;
 mod game_mods;
 mod game_renderers;
-pub mod terminal_app;
+mod game_input_handlers;
+mod terminal_app;
 
 use std::io::{self, Write};
 
@@ -10,9 +10,9 @@ use clap::Parser;
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
-    /// Whether to show Descent mode in the New Game menu.
+    /*TODO: Activate Combo Bot./// Whether to show Descent mode in the New Game menu.
     #[arg(short, long)]
-    descent_mode: bool,
+    descent_mode: bool,*/
     /// A custom starting layout for Combo mode, encoded in binary, by 4-wide rows.
     /// Example: "▀▄▄▀" => 0b_1001_0110 = 150
     ///          => `./tetrs_tui -c 150`.
@@ -30,7 +30,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let stdout = io::BufWriter::new(io::stdout());
     let mut app = terminal_app::TerminalApp::new(
         stdout,
-        args.descent_mode,
         args.combo_layout,
         args.custom_start,
     );

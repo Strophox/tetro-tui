@@ -26,10 +26,10 @@ use tetrs_engine::{
     Game, GameConfig, GameMode, GameState, Limits,
 };
 
-use crate::game_renderers::{cached_renderer::CachedRenderer, Renderer};
 use crate::{
-    game_input_handler::{ButtonOrSignal, CrosstermInputHandler, Signal},
+    game_input_handlers::{crossterm_handler::CrosstermHandler, Interrupt},
     game_mods,
+    game_renderers::{cached_renderer::CachedRenderer, Renderer},
 };
 
 // NOTE: This could be more general and less ad-hoc. Count number of I-Spins, J-Spins, etc..
@@ -150,7 +150,7 @@ pub struct GameModeStore {
     increment_level: bool,
     custom_mode_limit: Option<Stat>,
     cheese_mode_limit: Option<NonZeroUsize>,
-    initial_combo_layout: u16,
+    combo_starting_layout: u16,
     descent_mode: bool,
 }
 
@@ -202,7 +202,6 @@ impl<T: Write> TerminalApp<T> {
 
     pub fn new(
         mut terminal: T,
-        descent_mode: bool,
         initial_combo_layout: Option<u16>,
         experimental_custom_layout: Option<u128>,
     ) -> Self {
@@ -223,7 +222,7 @@ impl<T: Write> TerminalApp<T> {
             term: terminal,
             kitty_enabled,
             settings: Settings {
-                keybinds: CrosstermInputHandler::default_keybinds(),
+                keybinds: CrosstermHandler::default_keybinds(),
                 game_fps: 30.0,
                 show_fps: false,
                 graphics_style: GraphicsStyle::Unicode,
@@ -237,7 +236,7 @@ impl<T: Write> TerminalApp<T> {
                 increment_level: false,
                 custom_mode_limit: None,
                 cheese_mode_limit: Some(NonZeroUsize::try_from(20).unwrap()),
-                initial_combo_layout: game_mods::combo_mode::LAYOUTS[0],
+                combo_starting_layout: game_mods::combo_mode::LAYOUTS[0],
                 descent_mode: false,
             },
             past_games: vec![],
@@ -248,9 +247,8 @@ impl<T: Write> TerminalApp<T> {
             //eprintln!("Could not loading settings: {e}");
             //std::thread::sleep(Duration::from_secs(5));
         }
-        app.game_mode_store.descent_mode = descent_mode;
         if let Some(initial_combo_layout) = initial_combo_layout {
-            app.game_mode_store.initial_combo_layout = initial_combo_layout;
+            app.game_mode_store.combo_starting_layout = initial_combo_layout;
         }
         app.game_config.no_soft_drop_lock = !kitty_enabled;
         app
@@ -543,33 +541,68 @@ impl<T: Write> TerminalApp<T> {
     }
 
     fn newgame(&mut self) -> io::Result<MenuUpdate> {
-        let preset_gamemodes = [
+        let normal_gamemodes: [(_, _, Box<dyn Fn() -> Game>); 4] = [
             (
-                GameMode::sprint(NonZeroU32::try_from(3).unwrap()),
-                "how fast can you clear?",
+                "40-Lines",
+                "how fast can you clear?".to_string(),
+                Box::new(|| Game::new(GameMode::sprint(NonZeroU32::try_from(3).unwrap()))),
             ),
             (
-                GameMode::marathon(),
-                "can you reach the highest speed level?",
+                "Marathon",
+                "can you reach the highest speed level?".to_string(),
+                Box::new(|| Game::new(GameMode::marathon())),
             ),
             (
-                GameMode::ultra(NonZeroU32::MIN),
-                "get a highscore in 3 minutes!",
+                "Time Trial",
+                "get a highscore in 3 minutes!".to_string(),
+                Box::new(|| Game::new(GameMode::ultra(NonZeroU32::MIN))),
             ),
-            (GameMode::master(), "start at instant gravity."),
+            (
+                "Master",
+                "start at instant gravity.".to_string(),
+                Box::new(|| Game::new(GameMode::master())),
+            ),
         ];
-        let (d_time, d_score, d_pieces, d_lines, d_level) = (Duration::from_secs(5), 200, 10, 5, 1);
         let mut selected = 0usize;
-        let mut selected_custom = 0usize;
-        // There are the preset gamemodes + cheese + combo + puzzle + custom gamemode.
-        let selected_cnt = preset_gamemodes.len() + 4;
-        // There are four columns for the custom stat selection.
-        let selected_custom_cnt = 4;
+        let mut customization_selected = 0usize;
+        let (d_time, d_score, d_pieces, d_lines, d_level) = (Duration::from_secs(5), 200, 10, 5, 1);
         loop {
             // First part: rendering the menu.
             let w_main = Self::W_MAIN.into();
             let (x_main, y_main) = Self::fetch_main_xy();
             let y_selection = Self::H_MAIN / 5;
+            let cheese_mode_limit = self.game_mode_store.cheese_mode_limit;
+            let combo_starting_layout = self.game_mode_store.combo_starting_layout;
+            let mut special_gamemodes: Vec<(_, _, Box<dyn Fn() -> Game>)> = vec![
+                (
+                    "Puzzle",
+                    "24 stages of perfect clears!".to_string(),
+                    Box::new(|| game_mods::puzzle_mode::new_game()),
+                ),
+                (
+                    "Cheese",
+                    format!("eat your way through! (limit: {:?})", self.game_mode_store.cheese_mode_limit),
+                    Box::new(|| game_mods::cheese_mode::new_game(cheese_mode_limit)),
+                ),
+                (
+                    "Combo",
+                    format!("how long can you chain? (start: {:b})", self.game_mode_store.combo_starting_layout),
+                    Box::new(|| game_mods::combo_mode::new_game(combo_starting_layout)),
+                ),
+            ];
+            if self.game_mode_store.descent_mode {
+                special_gamemodes.insert(1, (
+                    "Descent",
+                    "spin the piece and collect gems by touching them.".to_string(),
+                    Box::new(|| game_mods::descent_mode::new_game()),
+                ))
+            }
+            // There are the normal, special, + the custom gamemode.
+            let selection_size = normal_gamemodes.len() + special_gamemodes.len() + 1;
+            // There are four columns for the custom stat selection.
+            let customization_selection_size = 4;
+            selected = selected.rem_euclid(selection_size);
+            customization_selected = customization_selected.rem_euclid(customization_selection_size);
             // Render menu title.
             self.term
                 .queue(Clear(ClearType::All))?
@@ -577,91 +610,32 @@ impl<T: Write> TerminalApp<T> {
                 .queue(Print(format!("{:^w_main$}", "* Start New Game *")))?
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
                 .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
-            // Render preset selection.
-            let names = preset_gamemodes
-                .iter()
-                .cloned()
-                .map(|(gm, details)| (gm.name, details))
-                .collect::<Vec<_>>();
-            for (i, (name, details)) in names.into_iter().enumerate() {
+            // Render normal and special gamemodes.
+            for (i, (name, details, _)) in normal_gamemodes.iter().chain(special_gamemodes.iter()).enumerate() {
                 self.term
                     .queue(MoveTo(
                         x_main,
-                        y_main + y_selection + 4 + u16::try_from(i).unwrap(),
+                        y_main + y_selection + 4 + u16::try_from(i + if normal_gamemodes.len() <= i { 1 } else { 0 }).unwrap(),
                     ))?
                     .queue(Print(format!(
                         "{:^w_main$}",
                         if i == selected {
                             format!(">>> {name}: {details} <<<")
                         } else {
-                            name
+                            name.to_string()
                         }
                     )))?;
             }
-            // Render puzzle mode option.
-            #[allow(clippy::collapsible_else_if)]
-            self.term
-                .queue(MoveTo(
-                    x_main,
-                    y_main + y_selection + 4 + u16::try_from(1 + selected_cnt - 4).unwrap(),
-                ))?
-                .queue(Print(format!(
-                    "{:^w_main$}",
-                    if self.game_mode_store.descent_mode {
-                        if selected == selected_cnt - 4 {
-                            ">>> Descent: Collect gems on your way down by touching them. <<<"
-                        } else {
-                            "Descent"
-                        }
-                    } else {
-                        if selected == selected_cnt - 4 {
-                            ">>> Puzzle: 24 stages of perfect clears! <<<"
-                        } else {
-                            "Puzzle"
-                        }
-                    }
-                )))?;
-            // Render cheese mode option.
-            self.term
-                .queue(MoveTo(
-                    x_main,
-                    y_main + y_selection + 4 + u16::try_from(1 + selected_cnt - 3).unwrap(),
-                ))?
-                .queue(Print(format!(
-                    "{:^w_main$}",
-                    if selected == selected_cnt - 3 {
-                        format!(">>> Cheese: eat your way through! (limit: {:?}) <<<", self.game_mode_store.cheese_mode_limit)
-                    } else {
-                        "Cheese".to_string()
-                    }
-                )))?;
-            // Render combo mode option.
-            self.term
-                .queue(MoveTo(
-                    x_main,
-                    y_main + y_selection + 4 + u16::try_from(1 + selected_cnt - 2).unwrap(),
-                ))?
-                .queue(Print(format!(
-                    "{:^w_main$}",
-                    if selected == selected_cnt - 2 {
-                        format!(
-                            ">>> Combo: How far can you chain? [init={:b}] <<<",
-                            self.game_mode_store.initial_combo_layout
-                        )
-                    } else {
-                        "Combo".to_string()
-                    }
-                )))?;
             // Render custom mode option.
             self.term
                 .queue(MoveTo(
                     x_main,
-                    y_main + y_selection + 4 + u16::try_from(2 + selected_cnt - 1).unwrap(),
+                    y_main + y_selection + 4 + u16::try_from(normal_gamemodes.len() + 1 + special_gamemodes.len() + 1).unwrap(),
                 ))?
                 .queue(Print(format!(
                     "{:^w_main$}",
-                    if selected == selected_cnt - 1 {
-                        if selected_custom == 0 {
+                    if selected == selection_size - 1 {
+                        if customization_selected == 0 {
                             ">>> Custom (press right repeatedly to toggle \"limit\"):"
                         } else {
                             "  | Custom (press right repeatedly to toggle \"limit\"):"
@@ -671,7 +645,7 @@ impl<T: Write> TerminalApp<T> {
                     }
                 )))?;
             // Render custom mode stuff.
-            if selected == selected_cnt - 1 {
+            if selected == selection_size - 1 {
                 let stats_strs = [
                     format!("| level start: {}", self.game_mode_store.start_level),
                     format!(
@@ -684,9 +658,9 @@ impl<T: Write> TerminalApp<T> {
                     self.term
                         .queue(MoveTo(
                             x_main + 19 + 4 * u16::try_from(j).unwrap(),
-                            y_main + y_selection + 4 + u16::try_from(2 + j + selected_cnt).unwrap(),
+                            y_main + y_selection + 4 + u16::try_from(2 + j + selection_size).unwrap(),
                         ))?
-                        .queue(Print(if j + 1 == selected_custom {
+                        .queue(Print(if j + 1 == customization_selected {
                             format!(">{stat_str}")
                         } else {
                             stat_str
@@ -719,14 +693,18 @@ impl<T: Write> TerminalApp<T> {
                     kind: Press,
                     ..
                 }) => {
-                    let mut game = if selected == selected_cnt - 1 {
+                    let mut game = if selected < normal_gamemodes.len() {
+                        normal_gamemodes[selected].2()
+                    } else if selected < normal_gamemodes.len() + special_gamemodes.len() {
+                        special_gamemodes[selected - normal_gamemodes.len()].2()
+                    } else {
                         let GameModeStore {
                             name,
                             start_level,
                             increment_level,
                             custom_mode_limit,
                             cheese_mode_limit: _,
-                            initial_combo_layout: _,
+                            combo_starting_layout: _,
                             descent_mode: _,
                         } = self.game_mode_store.clone();
                         let limits = match custom_mode_limit {
@@ -766,31 +744,15 @@ impl<T: Write> TerminalApp<T> {
                             }
                         }
                         custom_game
-                    } else if selected == selected_cnt - 2 {
-                        game_mods::combo_mode::new_game(self.game_mode_store.initial_combo_layout)
-                    } else if selected == selected_cnt - 3 {
-                        game_mods::cheese_mode::new_game(self.game_mode_store.cheese_mode_limit)
-                    } else if selected == selected_cnt - 4 {
-                        if self.game_mode_store.descent_mode {
-                            crate::game_mods::descent_mode::new_game()
-                        } else {
-                            game_mods::puzzle_mode::new_game()
-                        }
-                    } else {
-                        // SAFETY: Index < selected_cnt - 2 = preset_gamemodes.len().
-                        Game::new(preset_gamemodes[selected].0.clone())
                     };
-
                     // Set config.
                     game.config_mut().clone_from(&self.game_config);
-
                     // TODO: Remove or rewrite.
                     // unsafe {
                     //     game.add_modifier(Box::new(
                     //         crate::game_mods::utils::display_tetromino_likelihood,
                     //     ))
                     // };
-
                     let now = Instant::now();
                     break Ok(MenuUpdate::Push(Menu::Game {
                         game: Box::new(game),
@@ -807,8 +769,8 @@ impl<T: Write> TerminalApp<T> {
                     kind: Press | Repeat,
                     ..
                 }) => {
-                    if selected_custom > 0 {
-                        match selected_custom {
+                    if customization_selected > 0 {
+                        match customization_selected {
                             1 => {
                                 self.game_mode_store.start_level =
                                     self.game_mode_store.start_level.saturating_add(d_level);
@@ -840,7 +802,7 @@ impl<T: Write> TerminalApp<T> {
                             _ => unreachable!(),
                         }
                     } else {
-                        selected += selected_cnt - 1;
+                        selected += selection_size - 1;
                     }
                 }
                 // Move selector down or decrease stat.
@@ -850,8 +812,8 @@ impl<T: Write> TerminalApp<T> {
                     ..
                 }) => {
                     // Selected custom stat; decrease it.
-                    if selected_custom > 0 {
-                        match selected_custom {
+                    if customization_selected > 0 {
+                        match customization_selected {
                             1 => {
                                 self.game_mode_store.start_level = NonZeroU32::try_from(
                                     self.game_mode_store.start_level.get() - d_level,
@@ -896,21 +858,21 @@ impl<T: Write> TerminalApp<T> {
                     kind: Press | Repeat,
                     ..
                 }) => {
-                    if selected == selected_cnt - 1 && selected_custom > 0 {
-                        selected_custom += selected_custom_cnt - 1
-                    } else if selected == selected_cnt - 2 {
+                    if selected == selection_size - 1 && customization_selected > 0 {
+                        customization_selected += customization_selection_size - 1
+                    } else if selected == selection_size - 2 {
                         let new_layout_idx = if let Some(i) = game_mods::combo_mode::LAYOUTS
                             .iter()
-                            .position(|lay| *lay == self.game_mode_store.initial_combo_layout)
+                            .position(|lay| *lay == self.game_mode_store.combo_starting_layout)
                         {
                             let layout_cnt = game_mods::combo_mode::LAYOUTS.len();
                             (i + layout_cnt - 1) % layout_cnt
                         } else {
                             0
                         };
-                        self.game_mode_store.initial_combo_layout =
+                        self.game_mode_store.combo_starting_layout =
                             game_mods::combo_mode::LAYOUTS[new_layout_idx];
-                    } else if selected == selected_cnt - 3 {
+                    } else if selected == selection_size - 3 {
                         if let Some(limit) = self.game_mode_store.cheese_mode_limit {
                             self.game_mode_store.cheese_mode_limit = NonZeroUsize::try_from(limit.get() - 1).ok();
                         }
@@ -923,9 +885,9 @@ impl<T: Write> TerminalApp<T> {
                     ..
                 }) => {
                     // If custom gamemode selected, allow incrementing stat selection.
-                    if selected == selected_cnt - 1 {
+                    if selected == selection_size - 1 {
                         // If reached last stat, cycle through stats for limit.
-                        if selected_custom == selected_custom_cnt - 1 {
+                        if customization_selected == customization_selection_size - 1 {
                             self.game_mode_store.custom_mode_limit = match self.game_mode_store.custom_mode_limit
                             {
                                 Some(Stat::Time(_)) => Some(Stat::Score(9000)),
@@ -938,21 +900,21 @@ impl<T: Write> TerminalApp<T> {
                                 None => Some(Stat::Time(Duration::from_secs(180))),
                             };
                         } else {
-                            selected_custom += 1
+                            customization_selected += 1
                         }
-                    } else if selected == selected_cnt - 2 {
+                    } else if selected == selection_size - 2 {
                         let new_layout_idx = if let Some(i) = crate::game_mods::combo_mode::LAYOUTS
                             .iter()
-                            .position(|lay| *lay == self.game_mode_store.initial_combo_layout)
+                            .position(|lay| *lay == self.game_mode_store.combo_starting_layout)
                         {
                             let layout_cnt = crate::game_mods::combo_mode::LAYOUTS.len();
                             (i + 1) % layout_cnt
                         } else {
                             0
                         };
-                        self.game_mode_store.initial_combo_layout =
+                        self.game_mode_store.combo_starting_layout =
                             crate::game_mods::combo_mode::LAYOUTS[new_layout_idx];
-                    } else if selected == selected_cnt - 3 {
+                    } else if selected == selection_size - 3 {
                         self.game_mode_store.cheese_mode_limit = if let Some(limit) = self.game_mode_store.cheese_mode_limit {
                             limit.checked_add(1)
                         } else {
@@ -963,8 +925,6 @@ impl<T: Write> TerminalApp<T> {
                 // Other event: don't care.
                 _ => {}
             }
-            selected = selected.rem_euclid(selected_cnt);
-            selected_custom = selected_custom.rem_euclid(selected_custom_cnt);
         }
     }
 
@@ -979,9 +939,9 @@ impl<T: Write> TerminalApp<T> {
     ) -> io::Result<MenuUpdate> {
         // Prepare channel with which to communicate `Button` inputs / game interrupt.
         let mut buttons_pressed = ButtonsPressed::default();
-        let (tx, rx) = mpsc::channel::<ButtonOrSignal>();
+        let (tx, rx) = mpsc::channel();
         let _input_handler =
-            CrosstermInputHandler::new(&tx, &self.settings.keybinds, self.kitty_enabled);
+            CrosstermHandler::new(&tx, &self.settings.keybinds, self.kitty_enabled);
         // Game Loop
         let session_resumed = Instant::now();
         *total_duration_paused += session_resumed.saturating_duration_since(*last_paused);
@@ -1016,24 +976,24 @@ impl<T: Write> TerminalApp<T> {
             'idle_loop: loop {
                 let frame_idle_remaining = next_frame_at - Instant::now();
                 match rx.recv_timeout(frame_idle_remaining) {
-                    Ok(Err(Signal::ExitProgram)) => {
+                    Ok(Err(Interrupt::ExitProgram)) => {
                         self.store_game(game, running_game_stats);
                         break 'render_loop MenuUpdate::Push(Menu::Quit(
                             "exited with ctrl-c".to_string(),
                         ));
                     }
-                    Ok(Err(Signal::ForfeitGame)) => {
+                    Ok(Err(Interrupt::ForfeitGame)) => {
                         game.forfeit();
                         let finished_game_stats = self.store_game(game, running_game_stats);
                         break 'render_loop MenuUpdate::Push(Menu::GameOver(Box::new(
                             finished_game_stats,
                         )));
                     }
-                    Ok(Err(Signal::Pause)) => {
+                    Ok(Err(Interrupt::Pause)) => {
                         *last_paused = Instant::now();
                         break 'render_loop MenuUpdate::Push(Menu::Pause);
                     }
-                    Ok(Err(Signal::WindowResize)) => {
+                    Ok(Err(Interrupt::WindowResize)) => {
                         clean_screen = true;
                         continue 'idle_loop;
                     }
@@ -1132,6 +1092,9 @@ impl<T: Write> TerminalApp<T> {
             consecutive_line_clears: _,
             back_to_back_special_clears: _,
         } = last_state;
+        if gamemode.name == "Puzzle" && success {
+            self.game_mode_store.descent_mode = true;
+        }
         let actions_str = [
             format!(
                 "{} Single{}",
@@ -1605,7 +1568,7 @@ impl<T: Write> TerminalApp<T> {
                     ..
                 }) => {
                     if selected == selection_len - 1 {
-                        self.settings.keybinds = CrosstermInputHandler::default_keybinds();
+                        self.settings.keybinds = CrosstermHandler::default_keybinds();
                     } else {
                         let current_button = button_selection[selected];
                         self.term

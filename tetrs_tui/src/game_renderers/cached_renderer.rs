@@ -193,7 +193,7 @@ impl ScreenBuf {
         term.queue(terminal::EndSynchronizedUpdate)?;
         term.flush()?;
         // Clear old.
-        self.prev = Vec::new();
+        self.prev.clear();
         // Swap buffers.
         std::mem::swap(&mut self.prev, &mut self.next);
         Ok(())
@@ -478,7 +478,7 @@ impl Renderer for CachedRenderer {
                 .iter()
                 .enumerate()
                 .find_map(|(idx, ms)| (elapsed < Duration::from_millis(*ms)).then_some(idx))
-                .and_then(|dt| luminance_map.get(*h / 2 + dt))
+                .and_then(|dt| luminance_map.get(*h * 4 / 7 + dt))
             else {
                 *relevant = false;
                 continue;
