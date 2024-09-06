@@ -24,8 +24,8 @@ impl Renderer for DebugRenderer {
     fn render<T>(
         &mut self,
         app: &mut TerminalApp<T>,
-        game: &mut Game,
-        _action_stats: &mut RunningGameStats,
+        _running_game_stats: &mut RunningGameStats,
+        game: &Game,
         new_feedback_events: FeedbackEvents,
         _screen_resized: bool,
     ) -> io::Result<()>
@@ -120,6 +120,7 @@ impl Renderer for DebugRenderer {
                     strs.push(format!("+{score_bonus}"));
                     strs.join(" ")
                 }
+                Feedback::PieceSpawned(_) => continue,
                 Feedback::PieceLocked(_) => continue,
                 Feedback::LineClears(..) => continue,
                 Feedback::HardDrop(_, _) => continue,

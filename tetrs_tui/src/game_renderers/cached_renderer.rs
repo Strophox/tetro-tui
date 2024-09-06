@@ -20,7 +20,7 @@ use tetrs_engine::{
 use crate::{
     game_renderers::Renderer,
     terminal_app::{
-        format_duration, format_key, format_keybinds, GraphicsColor, GraphicsStyle,
+        fmt_duration, fmt_key, fmt_keybinds, GraphicsColor, GraphicsStyle,
         RunningGameStats, TerminalApp,
     },
 };
@@ -213,8 +213,8 @@ impl Renderer for CachedRenderer {
     fn render<T>(
         &mut self,
         app: &mut TerminalApp<T>,
-        game: &mut Game,
-        action_stats: &mut RunningGameStats,
+        running_game_stats: &mut RunningGameStats,
+        game: &Game,
         new_feedback_events: FeedbackEvents,
         screen_resized: bool,
     ) -> io::Result<()>
@@ -233,7 +233,7 @@ impl Renderer for CachedRenderer {
             buttons_pressed: _,
             board,
             active_piece_data,
-            holding_piece: hold_piece,
+            hold_piece,
             next_pieces,
             pieces_played,
             lines_cleared,
@@ -249,7 +249,7 @@ impl Renderer for CachedRenderer {
             game.mode().limits.time.map(|(_, max_dur)| {
                 (
                     "Time left:",
-                    format_duration(max_dur.saturating_sub(*game_time)),
+                    fmt_duration(max_dur.saturating_sub(*game_time)),
                 )
             }),
             game.mode().limits.pieces.map(|(_, max_pcs)| {
@@ -284,21 +284,21 @@ impl Renderer for CachedRenderer {
         .unwrap_or_default();
         let (focus_name, focus_value) = match game.mode().name.as_str() {
             "Marathon" => ("Score:", score.to_string()),
-            "40-Lines" => ("Time taken:", format_duration(*game_time)),
+            "40-Lines" => ("Time taken:", fmt_duration(*game_time)),
             "Time Trial" => ("Lines cleared:", lines_cleared.to_string()),
             "Master" => ("Lines cleared:", lines_cleared.to_string()),
             "Puzzle" => ("", "".to_string()),
             _ => ("Lines cleared:", lines_cleared.to_string()),
         };
-        let key_icon_pause = format_key(KeyCode::Esc);
-        let key_icons_moveleft = format_keybinds(Button::MoveLeft, &app.settings().keybinds);
-        let key_icons_moveright = format_keybinds(Button::MoveRight, &app.settings().keybinds);
+        let key_icon_pause = fmt_key(KeyCode::Esc);
+        let key_icons_moveleft = fmt_keybinds(Button::MoveLeft, &app.settings().keybinds);
+        let key_icons_moveright = fmt_keybinds(Button::MoveRight, &app.settings().keybinds);
         let mut key_icons_move = format!("{key_icons_moveleft} {key_icons_moveright}");
-        let key_icons_rotateleft = format_keybinds(Button::RotateLeft, &app.settings().keybinds);
-        let key_icons_rotateright = format_keybinds(Button::RotateRight, &app.settings().keybinds);
+        let key_icons_rotateleft = fmt_keybinds(Button::RotateLeft, &app.settings().keybinds);
+        let key_icons_rotateright = fmt_keybinds(Button::RotateRight, &app.settings().keybinds);
         let mut key_icons_rotate = format!("{key_icons_rotateleft} {key_icons_rotateright}");
-        let key_icons_dropsoft = format_keybinds(Button::DropSoft, &app.settings().keybinds);
-        let key_icons_drophard = format_keybinds(Button::DropHard, &app.settings().keybinds);
+        let key_icons_dropsoft = fmt_keybinds(Button::DropSoft, &app.settings().keybinds);
+        let key_icons_drophard = fmt_keybinds(Button::DropHard, &app.settings().keybinds);
         let mut key_icons_drop = format!("{key_icons_dropsoft} {key_icons_drophard}");
         // JESUS Christ https://users.rust-lang.org/t/truncating-a-string/77903/9 :
         let eleven = key_icons_move
@@ -346,7 +346,7 @@ impl Renderer for CachedRenderer {
                 format!("   Lines: {:<12      }<! . . . . . . . . . .!>              ", lines_cleared),
                 format!("                      <! . . . . . . . . . .!>  {          }", focus_name),
                 format!("   Time elapsed       <! . . . . . . . . . .!>{:^14        }", focus_value),
-                format!("    {:<18            }<! . . . . . . . . . .!>              ", format_duration(*game_time)),
+                format!("    {:<18            }<! . . . . . . . . . .!>              ", fmt_duration(*game_time)),
                 format!("                      <! . . . . . . . . . .!>              ", ),
                 format!("   TETROMINOS         <! . . . . . . . . . .!>              ", ),
                 format!("   -------            <! . . . . . . . . . .!>              ", ),
@@ -372,7 +372,7 @@ impl Renderer for CachedRenderer {
                 format!("   Lines: {:<13       }|                    |               ", lines_cleared),
                 format!("                       |                    |  {           }", focus_name),
                 format!("   Time elapsed        |                    |{:^15         }", focus_value),
-                format!("    {:<19             }|                    |               ", format_duration(*game_time)),
+                format!("    {:<19             }|                    |               ", fmt_duration(*game_time)),
                 format!("                       |                    |{             }", if !next_pieces.is_empty() { "-----next-----+" } else {"               "}),
                 format!("   TETROMINOS          |                    |             {}", if !next_pieces.is_empty() { " |" } else {"  "}),
                 format!("   -------             |                    |             {}", if !next_pieces.is_empty() { " |" } else {"  "}),
@@ -398,7 +398,7 @@ impl Renderer for CachedRenderer {
                 format!("   Lines: {:<13       }║                    ║               ", lines_cleared),
                 format!("                       ║                    ║  {           }", focus_name),
                 format!("   Time elapsed        ║                    ║{:^15         }", focus_value),
-                format!("    {:<19             }║                    ║               ", format_duration(*game_time)),
+                format!("    {:<19             }║                    ║               ", fmt_duration(*game_time)),
                 format!("                       ║                    ║{             }", if !next_pieces.is_empty() { "─────next─────┐" } else {"               "}),
                 format!("   TETROMINOS          ║                    ║             {}", if !next_pieces.is_empty() { " │" } else {"  "}),
                 format!("   ──────╴             ║                    ║             {}", if !next_pieces.is_empty() { " │" } else {"  "}),
@@ -558,16 +558,17 @@ impl Renderer for CachedRenderer {
         }
         // Draw minuscule preview pieces 5,6,7,8.
         let preview_minuscule = |t: &Tetromino| match t {
-            Tetromino::O => "⠶",//"⠶",
-            Tetromino::I => "⡇",//"⠤⠤",
-            Tetromino::S => "⠳",//"⠴⠂",
-            Tetromino::Z => "⠞",//"⠲⠄",
-            Tetromino::T => "⠗",//"⠴⠄",
-            Tetromino::L => "⠧",//"⠤⠆",
-            Tetromino::J => "⠼",//"⠦⠄",
+            Tetromino::O => "⠶", //"⠶",
+            Tetromino::I => "⡇", //"⠤⠤",
+            Tetromino::S => "⠳", //"⠴⠂",
+            Tetromino::Z => "⠞", //"⠲⠄",
+            Tetromino::T => "⠗", //"⠴⠄",
+            Tetromino::L => "⠧", //"⠤⠆",
+            Tetromino::J => "⠼", //"⠦⠄",
         };
         let mut x_offset_minuscule = 0;
-        for tet in next_pieces.iter().skip(4) {//.take(5) {
+        for tet in next_pieces.iter().skip(4) {
+            //.take(5) {
             let str = preview_minuscule(tet);
             self.screen.buffer_str(
                 str,
@@ -599,6 +600,9 @@ impl Renderer for CachedRenderer {
         for (event_time, event, relevant) in self.visual_events.iter_mut() {
             let elapsed = game_time.saturating_sub(*event_time);
             match event {
+                Feedback::PieceSpawned(_piece) => {
+                    *relevant = false;
+                }
                 Feedback::PieceLocked(piece) => {
                     #[rustfmt::skip]
                     let animation_locking = match app.settings().graphics_style {
@@ -728,7 +732,7 @@ impl Renderer for CachedRenderer {
                     combo,
                     back_to_back,
                 } => {
-                    action_stats.1.push(*score_bonus);
+                    running_game_stats.1.push(*score_bonus);
                     let mut strs = Vec::new();
                     strs.push(format!("+{score_bonus}"));
                     if *perfect_clear {
@@ -736,7 +740,7 @@ impl Renderer for CachedRenderer {
                     }
                     if *spin {
                         strs.push(format!("{shape:?}-Spin"));
-                        action_stats.0[0] += 1;
+                        running_game_stats.0[0] += 1;
                     }
                     let clear_action = match lineclears {
                         1 => "Single",
@@ -764,7 +768,7 @@ impl Renderer for CachedRenderer {
                     }
                     .to_string();
                     if *lineclears <= 4 {
-                        action_stats.0[usize::try_from(*lineclears).unwrap()] += 1;
+                        running_game_stats.0[usize::try_from(*lineclears).unwrap()] += 1;
                     } else {
                         // TODO: Record higher lineclears, if even possible.
                     }
@@ -791,7 +795,7 @@ impl Renderer for CachedRenderer {
             self.screen.buffer_str(message, None, pos);
         }
         self.messages.retain(|(timestamp, _message)| {
-            game_time.saturating_sub(*timestamp) < Duration::from_millis(10000)
+            game_time.saturating_sub(*timestamp) < Duration::from_millis(7000)
         });
         self.screen.flush(&mut app.term)
     }

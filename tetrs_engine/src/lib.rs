@@ -10,19 +10,19 @@ mechanics.
 use tetrs_engine::*;
 
 // Starting a game.
-let game = Game::new(Gamemode::marathon());
+let mut game = Game::new(GameMode::marathon());
 
-let button_state_1 = ButtonsPressed::default();
+let mut button_state_1 = ButtonsPressed::default();
 button_state_1[Button::MoveLeft] = true;
 
-let update_time_1 = Duration::from_secs(3);
+let update_time_1 = std::time::Duration::from_secs(3);
 
 // Updating the game with 'left' pressed at second 3.
 game.update(Some(button_state_1), update_time_1);
 
 // ...
 
-let update_time_2 = Duration::from_secs(4);
+let update_time_2 = std::time::Duration::from_secs(4);
 
 // Updating the game with *no* change in (left pressed) button state (since second 3).
 game.update(None, update_time_2);
@@ -194,7 +194,7 @@ pub struct Limits {
     /// The number of levels to reach.
     pub level: Option<(bool, NonZeroU32)>,
     /// The number of game points to earn.
-    pub score: Option<(bool, u32)>,
+    pub score: Option<(bool, u64)>,
 }
 
 /// The playing configuration specific to the single, current round of play.
@@ -313,7 +313,7 @@ pub struct GameState {
     /// All relevant data of the current piece in play.
     pub active_piece_data: Option<(ActivePiece, LockingData)>,
     /// Data about the piece being held. `true` denotes that the held piece can be swapped back in.
-    pub holding_piece: Option<(Tetromino, bool)>,
+    pub hold_piece: Option<(Tetromino, bool)>,
     /// Upcoming pieces to be played.
     pub next_pieces: VecDeque<Tetromino>,
     /// Tallies of how many pieces of each type have been played so far.
@@ -325,7 +325,7 @@ pub struct GameState {
     /// The current (speed) level the game is at.
     pub level: NonZeroU32,
     /// The current total score the player has achieved in this round of play.
-    pub score: u32,
+    pub score: u64,
     /// The number of consecutive pieces that have been played and caused a line clear.
     pub consecutive_line_clears: u32,
     /// The number of line clears that were either a quadruple, spin or perfect clear.
@@ -356,6 +356,8 @@ pub struct Game {
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Hash, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Feedback {
+    /// A new piece was spawned.
+    PieceSpawned(ActivePiece),
     /// A piece was locked down in a certain configuration.
     PieceLocked(ActivePiece),
     /// A number of lines were cleared.
@@ -429,6 +431,12 @@ impl Orientation {
 }
 
 impl Tetromino {
+    /// The Tetromino variants.
+    pub const SHAPES: [Self; 7] = {
+        use Tetromino::*;
+        [O, I, S, Z, T, L, J]
+    };
+
     /// Returns the mino offsets of a tetromino shape, given an orientation.
     pub fn minos(&self, oriented: Orientation) -> [Coord; 4] {
         use Orientation::*;
@@ -481,24 +489,6 @@ impl Tetromino {
         };
         // SAFETY: Ye, `u8 > 0`;
         unsafe { NonZeroU8::new_unchecked(u8) }
-    }
-}
-
-impl TryFrom<usize> for Tetromino {
-    type Error = ();
-
-    fn try_from(value: usize) -> Result<Self, Self::Error> {
-        use Tetromino::*;
-        Ok(match value {
-            0 => O,
-            1 => I,
-            2 => S,
-            3 => Z,
-            4 => T,
-            5 => L,
-            6 => J,
-            _ => Err(())?,
-        })
     }
 }
 
@@ -786,7 +776,7 @@ impl Game {
                 .take(Self::HEIGHT)
                 .collect(),
             active_piece_data: None,
-            holding_piece: None,
+            hold_piece: None,
             next_pieces: VecDeque::new(),
             pieces_played: [0; 7],
             lines_cleared: 0,
@@ -832,20 +822,44 @@ impl Game {
         &self.mode
     }
 
+    /// Mutable accessor for the current game mode.
+    ///
+    /// # Safety
+    ///
+    // TODO: Document Safety.
+    /// This directly allows raw, mutable access to the game's [`GameMode`] field.
+    /// This should not cause undefined behaviour per se, but may lead to spurious `panic!`s or
+    /// other unexpected gameplay behaviour due to violating internal invarints.
+    pub unsafe fn mode_mut(&mut self) -> &mut GameMode {
+        &mut self.mode
+    }
+
     /// Immutable accessor for the current game state.
     pub fn state(&self) -> &GameState {
         &self.state
+    }
+
+    /// Mutable accessor for the current game mode.
+    ///
+    /// # Safety
+    ///
+    // TODO: Document Safety.
+    /// This directly allows raw, mutable access to the game's [`GameState`] field.
+    /// This should not cause undefined behaviour per se, but may lead to spurious `panic!`s or
+    /// other unexpected gameplay behaviour due to violating internal invarints.
+    pub unsafe fn state_mut(&mut self) -> &mut GameState {
+        &mut self.state
     }
 
     /// Adds a 'game mod' that will get executed regularly before and after each [`InternalEvent`].
     ///
     /// # Safety
     ///
-    // TODO: Document!
-    /// This indirectly allows raw, mutable access to the game's internal `GameConfig`, `GameMode`
-    /// and `GameState`, with no guardrails on their modificaiton possibly mangling internal invariants.
-    /// No undefined behaviour is involved, but may lead to spurious `panic!`s or other unexpected
-    /// gameplay behaviour.
+    // TODO: Document Safety.
+    /// This indirectly allows raw, mutable access to the game's [`GameMode`]
+    /// and [`GameState`] fields.
+    /// This should not cause undefined behaviour per se, but may lead to spurious `panic!`s or
+    /// other unexpected gameplay behaviour due to violating internal invarints.
     pub unsafe fn add_modifier(&mut self, game_mod: FnGameMod) {
         self.modifiers.push(game_mod)
     }
@@ -1178,6 +1192,7 @@ impl Game {
                         ),
                 );
                 let next_piece = Self::position_tetromino(tetromino);
+                feedback_events.push((event_time, Feedback::PieceSpawned(next_piece)));
                 // Newly spawned piece conflicts with board - Game over.
                 if !next_piece.fits(&self.state.board) {
                     self.state.end = Some(Err(GameOver::BlockOut));
@@ -1203,12 +1218,14 @@ impl Game {
             }
             InternalEvent::HoldPiece => {
                 let prev_piece = prev_piece.expect("hold piece event but no active piece");
-                match self.state.holding_piece {
+                match self.state.hold_piece {
                     None | Some((_, true)) => {
-                        if let Some((held_piece, _)) = self.state.holding_piece {
+                        if let Some((held_piece, _)) = self.state.hold_piece {
                             self.state.next_pieces.push_front(held_piece);
+                        } else {
+                            self.state.next_pieces.extend(self.config.tetromino_generator.with_rng(&mut self.rng).take(1));
                         }
-                        self.state.holding_piece = Some((prev_piece.shape, false));
+                        self.state.hold_piece = Some((prev_piece.shape, false));
                         self.state.events.clear();
                         self.state.events.insert(InternalEvent::Spawn, event_time);
                         None
@@ -1346,11 +1363,10 @@ impl Game {
                 let n_lines_cleared = u32::try_from(lines_cleared.len()).unwrap();
                 if n_lines_cleared > 0 {
                     // Add score bonus.
-                    let perfect_clear = self
-                        .state
-                        .board
-                        .iter()
-                        .all(|line| line.iter().all(|tile| tile.is_none()) || line.iter().all(|tile| tile.is_some()));
+                    let perfect_clear = self.state.board.iter().all(|line| {
+                        line.iter().all(|tile| tile.is_none())
+                            || line.iter().all(|tile| tile.is_some())
+                    });
                     self.state.consecutive_line_clears += 1;
                     let special_clear = n_lines_cleared >= 4 || spin || perfect_clear;
                     if special_clear {
@@ -1363,7 +1379,7 @@ impl Game {
                         * self.state.back_to_back_special_clears.max(1)
                         * if spin { 4 } else { 1 }
                         * if perfect_clear { 100 } else { 1 };
-                    self.state.score += score_bonus;
+                    self.state.score += u64::from(score_bonus);
                     let yippie = Feedback::Accolade {
                         score_bonus,
                         shape: prev_piece.shape,
@@ -1394,9 +1410,9 @@ impl Game {
                         event_time + self.config.appearance_delay,
                     );
                 }
-                self.state.holding_piece = self
+                self.state.hold_piece = self
                     .state
-                    .holding_piece
+                    .hold_piece
                     .map(|(held_piece, _swap_allowed)| (held_piece, true));
                 None
             }

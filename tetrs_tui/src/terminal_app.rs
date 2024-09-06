@@ -23,11 +23,11 @@ use crossterm::{
 };
 use tetrs_engine::{
     piece_generation::TetrominoSource, piece_rotation::RotationSystem, Button, ButtonsPressed,
-    Game, GameConfig, GameMode, GameState, Limits,
+    FeedbackEvents, Game, GameConfig, GameMode, GameState, Limits,
 };
 
 use crate::{
-    game_input_handlers::{crossterm_handler::CrosstermHandler, Interrupt},
+    game_input_handlers::{combo_bot::ComboBotHandler, crossterm::CrosstermHandler, Interrupt},
     game_mods,
     game_renderers::{cached_renderer::CachedRenderer, Renderer},
 };
@@ -138,7 +138,7 @@ pub enum Stat {
     Pieces(u32),
     Lines(usize),
     Level(NonZeroU32),
-    Score(u32),
+    Score(u64),
 }
 
 #[derive(
@@ -163,6 +163,7 @@ pub struct TerminalApp<T: Write> {
     game_mode_store: GameModeStore,
     past_games: Vec<FinishedGameStats>,
     custom_starting_board: Option<u128>,
+    combo_bot_enabled: bool,
 }
 
 impl<T: Write> Drop for TerminalApp<T> {
@@ -204,6 +205,7 @@ impl<T: Write> TerminalApp<T> {
         mut terminal: T,
         initial_combo_layout: Option<u16>,
         experimental_custom_layout: Option<u128>,
+        combo_bot_enabled: bool,
     ) -> Self {
         // Console prologue: Initialization.
         // TODO: Handle errors?
@@ -241,6 +243,7 @@ impl<T: Write> TerminalApp<T> {
             },
             past_games: vec![],
             custom_starting_board: experimental_custom_layout,
+            combo_bot_enabled,
         };
         if let Err(_e) = app.load_local() {
             // TODO: Make this debuggable.
@@ -292,7 +295,9 @@ impl<T: Write> TerminalApp<T> {
             .filter(|finished_game_stats| {
                 finished_game_stats.was_successful()
                     || finished_game_stats.last_state.lines_cleared
-                        > if finished_game_stats.gamemode.name == "Combo" {
+                        > if finished_game_stats.gamemode.name == "Combo"
+                            || finished_game_stats.gamemode.name == "Combo (Bot)"
+                        {
                             9
                         } else {
                             0
@@ -581,28 +586,47 @@ impl<T: Write> TerminalApp<T> {
                 ),
                 (
                     "Cheese",
-                    format!("eat your way through! (limit: {:?})", self.game_mode_store.cheese_mode_limit),
+                    format!(
+                        "eat your way through! (limit: {:?})",
+                        self.game_mode_store.cheese_mode_limit
+                    ),
                     Box::new(|| game_mods::cheese_mode::new_game(cheese_mode_limit)),
                 ),
                 (
                     "Combo",
-                    format!("how long can you chain? (start: {:b})", self.game_mode_store.combo_starting_layout),
-                    Box::new(|| game_mods::combo_mode::new_game(combo_starting_layout)),
+                    format!(
+                        "how long can you chain? (start: {:b})",
+                        self.game_mode_store.combo_starting_layout
+                    ),
+                    Box::new(|| {
+                        let mut combo_game = game_mods::combo_mode::new_game(combo_starting_layout);
+                        if self.combo_bot_enabled {
+                            // SAFETY: We only add the information that this will be botted.
+                            unsafe {
+                                combo_game.mode_mut().name.push_str(" (Bot)");
+                            }
+                        }
+                        combo_game
+                    }),
                 ),
             ];
             if self.game_mode_store.descent_mode {
-                special_gamemodes.insert(1, (
-                    "Descent",
-                    "spin the piece and collect gems by touching them.".to_string(),
-                    Box::new(|| game_mods::descent_mode::new_game()),
-                ))
+                special_gamemodes.insert(
+                    1,
+                    (
+                        "Descent",
+                        "spin the piece and collect gems by touching them.".to_string(),
+                        Box::new(|| game_mods::descent_mode::new_game()),
+                    ),
+                )
             }
             // There are the normal, special, + the custom gamemode.
             let selection_size = normal_gamemodes.len() + special_gamemodes.len() + 1;
             // There are four columns for the custom stat selection.
             let customization_selection_size = 4;
             selected = selected.rem_euclid(selection_size);
-            customization_selected = customization_selected.rem_euclid(customization_selection_size);
+            customization_selected =
+                customization_selected.rem_euclid(customization_selection_size);
             // Render menu title.
             self.term
                 .queue(Clear(ClearType::All))?
@@ -611,11 +635,19 @@ impl<T: Write> TerminalApp<T> {
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
                 .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
             // Render normal and special gamemodes.
-            for (i, (name, details, _)) in normal_gamemodes.iter().chain(special_gamemodes.iter()).enumerate() {
+            for (i, (name, details, _)) in normal_gamemodes
+                .iter()
+                .chain(special_gamemodes.iter())
+                .enumerate()
+            {
                 self.term
                     .queue(MoveTo(
                         x_main,
-                        y_main + y_selection + 4 + u16::try_from(i + if normal_gamemodes.len() <= i { 1 } else { 0 }).unwrap(),
+                        y_main
+                            + y_selection
+                            + 4
+                            + u16::try_from(i + if normal_gamemodes.len() <= i { 1 } else { 0 })
+                                .unwrap(),
                     ))?
                     .queue(Print(format!(
                         "{:^w_main$}",
@@ -630,7 +662,11 @@ impl<T: Write> TerminalApp<T> {
             self.term
                 .queue(MoveTo(
                     x_main,
-                    y_main + y_selection + 4 + u16::try_from(normal_gamemodes.len() + 1 + special_gamemodes.len() + 1).unwrap(),
+                    y_main
+                        + y_selection
+                        + 4
+                        + u16::try_from(normal_gamemodes.len() + 1 + special_gamemodes.len() + 1)
+                            .unwrap(),
                 ))?
                 .queue(Print(format!(
                     "{:^w_main$}",
@@ -658,7 +694,10 @@ impl<T: Write> TerminalApp<T> {
                     self.term
                         .queue(MoveTo(
                             x_main + 19 + 4 * u16::try_from(j).unwrap(),
-                            y_main + y_selection + 4 + u16::try_from(2 + j + selection_size).unwrap(),
+                            y_main
+                                + y_selection
+                                + 4
+                                + u16::try_from(2 + j + selection_size).unwrap(),
                         ))?
                         .queue(Print(if j + 1 == customization_selected {
                             format!(">{stat_str}")
@@ -874,7 +913,8 @@ impl<T: Write> TerminalApp<T> {
                             game_mods::combo_mode::LAYOUTS[new_layout_idx];
                     } else if selected == selection_size - 3 {
                         if let Some(limit) = self.game_mode_store.cheese_mode_limit {
-                            self.game_mode_store.cheese_mode_limit = NonZeroUsize::try_from(limit.get() - 1).ok();
+                            self.game_mode_store.cheese_mode_limit =
+                                NonZeroUsize::try_from(limit.get() - 1).ok();
                         }
                     }
                 }
@@ -888,17 +928,17 @@ impl<T: Write> TerminalApp<T> {
                     if selected == selection_size - 1 {
                         // If reached last stat, cycle through stats for limit.
                         if customization_selected == customization_selection_size - 1 {
-                            self.game_mode_store.custom_mode_limit = match self.game_mode_store.custom_mode_limit
-                            {
-                                Some(Stat::Time(_)) => Some(Stat::Score(9000)),
-                                Some(Stat::Score(_)) => Some(Stat::Pieces(100)),
-                                Some(Stat::Pieces(_)) => Some(Stat::Lines(40)),
-                                Some(Stat::Lines(_)) => {
-                                    Some(Stat::Level(NonZeroU32::try_from(25).unwrap()))
-                                }
-                                Some(Stat::Level(_)) => None,
-                                None => Some(Stat::Time(Duration::from_secs(180))),
-                            };
+                            self.game_mode_store.custom_mode_limit =
+                                match self.game_mode_store.custom_mode_limit {
+                                    Some(Stat::Time(_)) => Some(Stat::Score(9000)),
+                                    Some(Stat::Score(_)) => Some(Stat::Pieces(100)),
+                                    Some(Stat::Pieces(_)) => Some(Stat::Lines(40)),
+                                    Some(Stat::Lines(_)) => {
+                                        Some(Stat::Level(NonZeroU32::try_from(25).unwrap()))
+                                    }
+                                    Some(Stat::Level(_)) => None,
+                                    None => Some(Stat::Time(Duration::from_secs(180))),
+                                };
                         } else {
                             customization_selected += 1
                         }
@@ -915,11 +955,12 @@ impl<T: Write> TerminalApp<T> {
                         self.game_mode_store.combo_starting_layout =
                             crate::game_mods::combo_mode::LAYOUTS[new_layout_idx];
                     } else if selected == selection_size - 3 {
-                        self.game_mode_store.cheese_mode_limit = if let Some(limit) = self.game_mode_store.cheese_mode_limit {
-                            limit.checked_add(1)
-                        } else {
-                            Some(NonZeroUsize::MIN)
-                        };
+                        self.game_mode_store.cheese_mode_limit =
+                            if let Some(limit) = self.game_mode_store.cheese_mode_limit {
+                                limit.checked_add(1)
+                            } else {
+                                Some(NonZeroUsize::MIN)
+                            };
                     }
                 }
                 // Other event: don't care.
@@ -939,9 +980,24 @@ impl<T: Write> TerminalApp<T> {
     ) -> io::Result<MenuUpdate> {
         // Prepare channel with which to communicate `Button` inputs / game interrupt.
         let mut buttons_pressed = ButtonsPressed::default();
-        let (tx, rx) = mpsc::channel();
+        let (button_sender, button_receiver) = mpsc::channel();
         let _input_handler =
-            CrosstermHandler::new(&tx, &self.settings.keybinds, self.kitty_enabled);
+            CrosstermHandler::new(&button_sender, &self.settings.keybinds, self.kitty_enabled);
+        let mut combo_bot_handler = (game.mode().name == "Combo (Bot)")
+            .then(|| ComboBotHandler::new(&button_sender, Duration::from_millis(100)));
+        let mut inform_combo_bot = |game: &Game, evts: &FeedbackEvents| {
+            if let Some((_, state_sender)) = &mut combo_bot_handler {
+                if evts.iter().any(|(_, feedback)| {
+                    matches!(feedback, tetrs_engine::Feedback::PieceSpawned(_))
+                }) {
+                    let combo_state = ComboBotHandler::encode(game).unwrap();
+                    /*TODO: Remove debug: let s=format!("[ 1 game.state().next_pieces = {:?}, combo_state = {} = {combo_state:?} ]\n", game.state().next_pieces, game_input_handlers::combo_bot::fmt_statenode(&(0, combo_state)));let _=std::io::Write::write(&mut std::fs::OpenOptions::new().append(true).open("tetrs_tui_error_message_COMBO.txt").unwrap(), s.as_bytes());*/
+                    if state_sender.send(combo_state).is_err() {
+                        combo_bot_handler = None;
+                    }
+                }
+            }
+        };
         // Game Loop
         let session_resumed = Instant::now();
         *total_duration_paused += session_resumed.saturating_duration_since(*last_paused);
@@ -949,7 +1005,7 @@ impl<T: Write> TerminalApp<T> {
         let mut f = 0u32;
         let mut fps_counter = 0;
         let mut fps_counter_started = Instant::now();
-        let menu_update = 'render_loop: loop {
+        let menu_update = 'render: loop {
             // Exit if game ended
             if game.ended() {
                 let finished_game_stats = self.store_game(game, running_game_stats);
@@ -958,7 +1014,7 @@ impl<T: Write> TerminalApp<T> {
                 } else {
                     Menu::GameOver
                 }(Box::new(finished_game_stats));
-                break 'render_loop MenuUpdate::Push(menu);
+                break 'render MenuUpdate::Push(menu);
             }
             // Start next frame
             f += 1;
@@ -973,29 +1029,29 @@ impl<T: Write> TerminalApp<T> {
                 }
             };
             let mut new_feedback_events = Vec::new();
-            'idle_loop: loop {
+            'frame_idle: loop {
                 let frame_idle_remaining = next_frame_at - Instant::now();
-                match rx.recv_timeout(frame_idle_remaining) {
+                match button_receiver.recv_timeout(frame_idle_remaining) {
                     Ok(Err(Interrupt::ExitProgram)) => {
                         self.store_game(game, running_game_stats);
-                        break 'render_loop MenuUpdate::Push(Menu::Quit(
+                        break 'render MenuUpdate::Push(Menu::Quit(
                             "exited with ctrl-c".to_string(),
                         ));
                     }
                     Ok(Err(Interrupt::ForfeitGame)) => {
                         game.forfeit();
                         let finished_game_stats = self.store_game(game, running_game_stats);
-                        break 'render_loop MenuUpdate::Push(Menu::GameOver(Box::new(
+                        break 'render MenuUpdate::Push(Menu::GameOver(Box::new(
                             finished_game_stats,
                         )));
                     }
                     Ok(Err(Interrupt::Pause)) => {
                         *last_paused = Instant::now();
-                        break 'render_loop MenuUpdate::Push(Menu::Pause);
+                        break 'render MenuUpdate::Push(Menu::Pause);
                     }
                     Ok(Err(Interrupt::WindowResize)) => {
                         clean_screen = true;
-                        continue 'idle_loop;
+                        continue 'frame_idle;
                     }
                     Ok(Ok((instant, button, button_state))) => {
                         buttons_pressed[button] = button_state;
@@ -1004,6 +1060,7 @@ impl<T: Write> TerminalApp<T> {
                         let game_now = std::cmp::max(game_time_userinput, game.state().time);
                         // TODO: Handle/ensure no Err.
                         if let Ok(evts) = game.update(Some(buttons_pressed), game_now) {
+                            inform_combo_bot(game, &evts);
                             new_feedback_events.extend(evts);
                         }
                     }
@@ -1012,20 +1069,21 @@ impl<T: Write> TerminalApp<T> {
                             - *total_duration_paused;
                         // TODO: Handle/ensure no Err.
                         if let Ok(evts) = game.update(None, game_time_now) {
+                            inform_combo_bot(game, &evts);
                             new_feedback_events.extend(evts);
                         }
-                        break 'idle_loop;
+                        break 'frame_idle;
                     }
                     Err(mpsc::RecvTimeoutError::Disconnected) => {
                         // NOTE: We kind of rely on this not happening too often.
-                        break 'render_loop MenuUpdate::Push(Menu::Pause);
+                        break 'render MenuUpdate::Push(Menu::Pause);
                     }
                 };
             }
             game_renderer.render(
                 self,
-                game,
                 running_game_stats,
+                game,
                 new_feedback_events,
                 clean_screen,
             )?;
@@ -1083,7 +1141,7 @@ impl<T: Write> TerminalApp<T> {
             buttons_pressed: _,
             board: _,
             active_piece_data: _,
-            holding_piece: _,
+            hold_piece: _,
             next_pieces: _,
             pieces_played,
             lines_cleared,
@@ -1167,7 +1225,7 @@ impl<T: Write> TerminalApp<T> {
                 .queue(MoveTo(x_main, y_main + y_selection + 8))?
                 .queue(Print(format!(
                     "{:^w_main$}",
-                    format!("Time: {}", format_duration(*game_time))
+                    format!("Time: {}", fmt_duration(*game_time))
                 )))?
                 .queue(MoveTo(x_main, y_main + y_selection + 10))?
                 .queue(Print(format!("{:^w_main$}", actions_str)))?
@@ -1176,7 +1234,7 @@ impl<T: Write> TerminalApp<T> {
                     "{:^w_main$}",
                     format!(
                         "Average score bonus: {:.1}",
-                        f64::from(score_bonuses.iter().sum::<u32>())
+                        score_bonuses.iter().copied().map(u64::from).sum::<u64>() as f64
                             / (score_bonuses.len() as f64/*I give up*/)
                     )
                 )))?
@@ -1496,7 +1554,7 @@ impl<T: Write> TerminalApp<T> {
                 .map(|&button| {
                     format!(
                         "{button:?} : {}",
-                        format_keybinds(button, &self.settings.keybinds)
+                        fmt_keybinds(button, &self.settings.keybinds)
                     )
                 })
                 .collect::<Vec<_>>();
@@ -1663,6 +1721,7 @@ impl<T: Write> TerminalApp<T> {
                         TetrominoSource::Bag { .. } => "7-Bag",
                         TetrominoSource::Recency { .. } => "Recency/History",
                         TetrominoSource::TotalRelative { .. } => "Total Relative Counts",
+                        TetrominoSource::Cycle { .. } => "Pattern Cycle"
                     }
                 ),
                 format!("preview count : {}", self.game_config.preview_count),
@@ -1805,6 +1864,7 @@ impl<T: Write> TerminalApp<T> {
                             TetrominoSource::Bag { .. } => TetrominoSource::recency(),
                             TetrominoSource::Recency { .. } => TetrominoSource::total_relative(),
                             TetrominoSource::TotalRelative { .. } => TetrominoSource::uniform(),
+                            TetrominoSource::Cycle { .. } => TetrominoSource::uniform(),
                         };
                     }
                     2 => {
@@ -1857,6 +1917,7 @@ impl<T: Write> TerminalApp<T> {
                                     TetrominoSource::bag(NonZeroU32::MIN)
                                 }
                                 TetrominoSource::TotalRelative { .. } => TetrominoSource::recency(),
+                                TetrominoSource::Cycle { .. } => TetrominoSource::uniform(),
                             };
                     }
                     2 => {
@@ -1966,7 +2027,7 @@ impl<T: Write> TerminalApp<T> {
                             "40-Lines" => {
                                 format!(
                                     "{timestamp} ~ 40-Lines: {}{}",
-                                    format_duration(last_state.time),
+                                    fmt_duration(last_state.time),
                                     if last_state.end.is_some_and(|end| end.is_ok()) {
                                         "".to_string()
                                     } else {
@@ -1997,8 +2058,8 @@ impl<T: Write> TerminalApp<T> {
                                         };
                                         format!(
                                             " ({} / {})",
-                                            format_duration(last_state.time),
-                                            format_duration(max_dur)
+                                            fmt_duration(last_state.time),
+                                            fmt_duration(max_dur)
                                         )
                                     },
                                 )
@@ -2019,7 +2080,7 @@ impl<T: Write> TerminalApp<T> {
                             "Puzzle" => {
                                 format!(
                                     "{timestamp} ~ Puzzle: {}{}",
-                                    format_duration(last_state.time),
+                                    fmt_duration(last_state.time),
                                     if last_state.end.is_some_and(|end| end.is_ok()) {
                                         "".to_string()
                                     } else {
@@ -2044,23 +2105,37 @@ impl<T: Write> TerminalApp<T> {
                                 format!(
                                     "{timestamp} ~ Cheese: {}{}",
                                     last_state.pieces_played.iter().sum::<u32>(),
-                                    format!(" ({}/{} lns)", last_state.lines_cleared, gamemode.limits.lines.map_or("∞".to_string(), |(_, max_lns)| max_lns.to_string()))
+                                    format!(
+                                        " ({}/{} lns)",
+                                        last_state.lines_cleared,
+                                        gamemode
+                                            .limits
+                                            .lines
+                                            .map_or("∞".to_string(), |(_, max_lns)| max_lns
+                                                .to_string())
+                                    )
                                 )
                             }
                             "Combo" => {
                                 format!("{timestamp} ~ Combo: {} lns", last_state.lines_cleared)
+                            }
+                            "Combo (Bot)" => {
+                                format!(
+                                    "{timestamp} ~ Combo (Bot): {} lns",
+                                    last_state.lines_cleared
+                                )
                             }
                             _ => {
                                 format!(
                                     "{timestamp} ~ Custom Mode: {} lns, {} pts, {}{}",
                                     last_state.lines_cleared,
                                     last_state.score,
-                                    format_duration(last_state.time),
+                                    fmt_duration(last_state.time),
                                     [
                                         gamemode.limits.time.map(|(_, max_dur)| format!(
                                             " ({} / {})",
-                                            format_duration(last_state.time),
-                                            format_duration(max_dur)
+                                            fmt_duration(last_state.time),
+                                            fmt_duration(max_dur)
                                         )),
                                         gamemode.limits.pieces.map(|(_, max_pcs)| format!(
                                             " ({}/{} pcs)",
@@ -2252,7 +2327,7 @@ impl<T: Write> TerminalApp<T> {
 
 const DAVIS: &str = " ▀█▀ \"I am like Solomon because I built God's temple, an operating system. God said 640x480 16 color graphics but the operating system is 64-bit and multi-cored! Go draw a 16 color elephant. Then, draw a 24-bit elephant in MS Paint and be enlightened. Artist stopped photorealism when the camera was invented. A cartoon is actually better than photorealistic. For the next thousand years, first-person shooters are going to get boring. Tetris looks good.\" - In memory of Terry A. Davis";
 
-pub fn format_duration(dur: Duration) -> String {
+pub fn fmt_duration(dur: Duration) -> String {
     format!(
         "{}min {}.{:02}sec",
         dur.as_secs() / 60,
@@ -2261,7 +2336,7 @@ pub fn format_duration(dur: Duration) -> String {
     )
 }
 
-pub fn format_key(key: KeyCode) -> String {
+pub fn fmt_key(key: KeyCode) -> String {
     format!(
         "[{}]",
         match key {
@@ -2285,10 +2360,10 @@ pub fn format_key(key: KeyCode) -> String {
     )
 }
 
-pub fn format_keybinds(button: Button, keybinds: &HashMap<KeyCode, Button>) -> String {
+pub fn fmt_keybinds(button: Button, keybinds: &HashMap<KeyCode, Button>) -> String {
     keybinds
         .iter()
-        .filter_map(|(&k, &b)| (b == button).then_some(format_key(k)))
+        .filter_map(|(&k, &b)| (b == button).then_some(fmt_key(k)))
         .collect::<Vec<String>>()
         .join(" ")
 }

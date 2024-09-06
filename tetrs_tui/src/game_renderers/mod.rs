@@ -11,8 +11,8 @@ pub trait Renderer {
     fn render<T>(
         &mut self,
         app: &mut TerminalApp<T>,
-        game: &mut Game,
-        action_stats: &mut RunningGameStats,
+        running_game_stats: &mut RunningGameStats,
+        game: &Game,
         new_feedback_events: FeedbackEvents,
         screen_resized: bool,
     ) -> io::Result<()>

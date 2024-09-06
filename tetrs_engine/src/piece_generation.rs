@@ -55,15 +55,22 @@ pub enum TetrominoSource {
         /// at least one is `0`.
         relative_counts: [u32; 7],
     },
+    /// Debug generator which repeats a certain pattern of [`Tetromino`]s forever.
+    Cycle {
+        /// The sequence of pieces that is repeated.
+        pattern: Vec<Tetromino>,
+        /// Index to the piece that will be yielded next.
+        index: usize,
+    }
 }
 
 impl TetrominoSource {
-    /// Initialize a new instance of the [`TetrominoGenerator::Uniform`] variant.
+    /// Initialize a new instance of the [`TetrominoSource::Uniform`] variant.
     pub fn uniform() -> Self {
         Self::Uniform
     }
 
-    /// Initialize a new instance of the [`TetrominoGenerator::Bag`] variant with some multiplicity.
+    /// Initialize a new instance of the [`TetrominoSource::Bag`] variant with some multiplicity.
     pub fn bag(multiplicity: NonZeroU32) -> Self {
         Self::Bag {
             pieces_left: [multiplicity.get(); 7],
@@ -71,21 +78,26 @@ impl TetrominoSource {
         }
     }
 
-    /// Initialize a new instance of the [`TetrominoGenerator::Recency`] variant.
+    /// Initialize a new instance of the [`TetrominoSource::Recency`] variant.
     pub fn recency() -> Self {
         let mut last_generated = [0, 1, 2, 3, 4, 5, 6];
         last_generated.shuffle(&mut rand::thread_rng());
         Self::Recency { last_generated }
     }
 
-    /// Initialize a new instance of the [`TetrominoGenerator::TotalRelative`] variant.
+    /// Initialize a new instance of the [`TetrominoSource::TotalRelative`] variant.
     pub fn total_relative() -> Self {
         Self::TotalRelative {
             relative_counts: [0; 7],
         }
     }
 
-    /// Method that allows `TetrominoGenerator` to be used as an [`Iterator`].
+    /// Initialize a new instance of the [`TetrominoSource::Cycle`] variant.
+    pub fn cycle(pattern: Vec<Tetromino>) -> Self {
+        Self::Cycle { pattern, index: 0 }
+    }
+
+    /// Method that allows `TetrominoSource` to be used as an [`Iterator`].
     pub fn with_rng<'a, 'b>(&'a mut self, rng: &'b mut ThreadRng) -> TetrominoIterator<'a, 'b> {
         TetrominoIterator {
             tetromino_generator: self,
@@ -101,11 +113,12 @@ impl Clone for TetrominoSource {
             Self::Bag { multiplicity, .. } => Self::bag(*multiplicity),
             Self::Recency { .. } => Self::recency(),
             Self::TotalRelative { .. } => Self::total_relative(),
+            Self::Cycle { pattern, .. } => Self::cycle(pattern.clone()),
         }
     }
 }
 
-/// Struct produced from [`TetrominoGenerator::with_rng`] which implements [`Iterator`].
+/// Struct produced from [`TetrominoSource::with_rng`] which implements [`Iterator`].
 pub struct TetrominoIterator<'a, 'b> {
     /// Selected tetromino generator to use as information source.
     pub tetromino_generator: &'a mut TetrominoSource,
@@ -118,7 +131,7 @@ impl<'a, 'b> Iterator for TetrominoIterator<'a, 'b> {
 
     fn next(&mut self) -> Option<Self::Item> {
         match &mut self.tetromino_generator {
-            TetrominoSource::Uniform => Some(self.rng.gen_range(0..=6).try_into().unwrap()),
+            TetrominoSource::Uniform => Some(Tetromino::SHAPES[self.rng.gen_range(0..=6)]),
             TetrominoSource::Bag {
                 pieces_left,
                 multiplicity,
@@ -132,7 +145,7 @@ impl<'a, 'b> Iterator for TetrominoIterator<'a, 'b> {
                     *pieces_left = [multiplicity.get(); 7];
                 }
                 // SAFETY: 0 <= idx <= 6.
-                Some(idx.try_into().unwrap())
+                Some(Tetromino::SHAPES[idx])
             }
             TetrominoSource::TotalRelative { relative_counts } => {
                 let weighing = |&x| 1.0 / f64::from(x).exp(); // Alternative weighing function: `1.0 / (f64::from(x) + 1.0);`
@@ -149,7 +162,7 @@ impl<'a, 'b> Iterator for TetrominoIterator<'a, 'b> {
                     }
                 }
                 // SAFETY: 0 <= idx <= 6.
-                Some(idx.try_into().unwrap())
+                Some(Tetromino::SHAPES[idx])
             }
             TetrominoSource::Recency { last_generated } => {
                 let weighing = |&x| f64::from(x).powf(2.5);
@@ -162,7 +175,15 @@ impl<'a, 'b> Iterator for TetrominoIterator<'a, 'b> {
                 }
                 last_generated[idx] = 0;
                 // SAFETY: 0 <= idx <= 6.
-                Some(idx.try_into().unwrap())
+                Some(Tetromino::SHAPES[idx])
+            }
+            TetrominoSource::Cycle { pattern, index } => {
+                let tetromino = pattern[*index];
+                *index += 1;
+                if *index == pattern.len() {
+                    *index = 0;
+                }
+                Some(tetromino)
             }
         }
     }

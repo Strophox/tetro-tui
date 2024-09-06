@@ -17,12 +17,12 @@ use crate::game_input_handlers::{InputOrInterrupt, Interrupt};
 
 #[derive(Debug)]
 pub struct CrosstermHandler {
-    handle: Option<(JoinHandle<()>, Arc<AtomicBool>)>,
+    handles: Option<(Arc<AtomicBool>, JoinHandle<()>)>,
 }
 
 impl Drop for CrosstermHandler {
     fn drop(&mut self) {
-        if let Some((_, flag)) = self.handle.take() {
+        if let Some((flag, _)) = self.handles.take() {
             flag.store(false, Ordering::Release);
         }
     }
@@ -30,18 +30,18 @@ impl Drop for CrosstermHandler {
 
 impl CrosstermHandler {
     pub fn new(
-        sender: &Sender<InputOrInterrupt>,
+        button_sender: &Sender<InputOrInterrupt>,
         keybinds: &HashMap<KeyCode, Button>,
         kitty_enabled: bool,
     ) -> Self {
-        let spawn = if kitty_enabled {
+        let flag = Arc::new(AtomicBool::new(true));
+        let join_handle = if kitty_enabled {
             Self::spawn_kitty
         } else {
             Self::spawn_standard
-        };
-        let flag = Arc::new(AtomicBool::new(true));
+        }(flag.clone(), button_sender.clone(), keybinds.clone());
         CrosstermHandler {
-            handle: Some((spawn(sender.clone(), flag.clone(), keybinds.clone()), flag)),
+            handles: Some((flag, join_handle)),
         }
     }
 
@@ -60,16 +60,16 @@ impl CrosstermHandler {
     }
 
     fn spawn_standard(
-        sender: Sender<InputOrInterrupt>,
         flag: Arc<AtomicBool>,
+        button_sender: Sender<InputOrInterrupt>,
         keybinds: HashMap<KeyCode, Button>,
     ) -> JoinHandle<()> {
         thread::spawn(move || {
-            loop {
+            'react_to_event: loop {
                 // Maybe stop thread.
                 let running = flag.load(Ordering::Acquire);
                 if !running {
-                    break;
+                    break 'react_to_event;
                 };
                 match event::read() {
                     Ok(Event::Key(KeyEvent {
@@ -77,16 +77,16 @@ impl CrosstermHandler {
                         modifiers: KeyModifiers::CONTROL,
                         ..
                     })) => {
-                        let _ = sender.send(Err(Interrupt::ExitProgram));
-                        break;
+                        let _ = button_sender.send(Err(Interrupt::ExitProgram));
+                        break 'react_to_event;
                     }
                     Ok(Event::Key(KeyEvent {
                         code: KeyCode::Char('d'),
                         modifiers: KeyModifiers::CONTROL,
                         ..
                     })) => {
-                        let _ = sender.send(Err(Interrupt::ForfeitGame));
-                        break;
+                        let _ = button_sender.send(Err(Interrupt::ForfeitGame));
+                        break 'react_to_event;
                     }
                     // Escape pressed: send pause.
                     Ok(Event::Key(KeyEvent {
@@ -94,11 +94,11 @@ impl CrosstermHandler {
                         kind: KeyEventKind::Press,
                         ..
                     })) => {
-                        let _ = sender.send(Err(Interrupt::Pause));
-                        break;
+                        let _ = button_sender.send(Err(Interrupt::Pause));
+                        break 'react_to_event;
                     }
                     Ok(Event::Resize(..)) => {
-                        let _ = sender.send(Err(Interrupt::WindowResize));
+                        let _ = button_sender.send(Err(Interrupt::WindowResize));
                     }
                     // Candidate key pressed.
                     Ok(Event::Key(KeyEvent {
@@ -109,8 +109,8 @@ impl CrosstermHandler {
                         if let Some(&button) = keybinds.get(&key) {
                             // Binding found: send button press.
                             let now = Instant::now();
-                            let _ = sender.send(Ok((now, button, true)));
-                            let _ = sender.send(Ok((now, button, false)));
+                            let _ = button_sender.send(Ok((now, button, true)));
+                            let _ = button_sender.send(Ok((now, button, false)));
                         }
                     }
                     // Don't care about other events: ignore.
@@ -121,17 +121,21 @@ impl CrosstermHandler {
     }
 
     fn spawn_kitty(
-        sender: Sender<InputOrInterrupt>,
         flag: Arc<AtomicBool>,
+        button_sender: Sender<InputOrInterrupt>,
         keybinds: HashMap<KeyCode, Button>,
     ) -> JoinHandle<()> {
         thread::spawn(move || {
-            loop {
+            'react_to_event: loop {
                 // Maybe stop thread.
                 let running = flag.load(Ordering::Acquire);
                 if !running {
-                    break;
+                    break 'react_to_event;
                 };
+                match event::poll(std::time::Duration::from_secs(1)) {
+                    Ok(true) => {}
+                    Ok(false) | Err(_) => continue 'react_to_event,
+                }
                 match event::read() {
                     // Direct interrupt.
                     Ok(Event::Key(KeyEvent {
@@ -139,16 +143,16 @@ impl CrosstermHandler {
                         modifiers: KeyModifiers::CONTROL,
                         ..
                     })) => {
-                        let _ = sender.send(Err(Interrupt::ExitProgram));
-                        break;
+                        let _ = button_sender.send(Err(Interrupt::ExitProgram));
+                        break 'react_to_event;
                     }
                     Ok(Event::Key(KeyEvent {
                         code: KeyCode::Char('d'),
                         modifiers: KeyModifiers::CONTROL,
                         ..
                     })) => {
-                        let _ = sender.send(Err(Interrupt::ForfeitGame));
-                        break;
+                        let _ = button_sender.send(Err(Interrupt::ForfeitGame));
+                        break 'react_to_event;
                     }
                     // Escape pressed: send pause.
                     Ok(Event::Key(KeyEvent {
@@ -156,11 +160,11 @@ impl CrosstermHandler {
                         kind: KeyEventKind::Press,
                         ..
                     })) => {
-                        let _ = sender.send(Err(Interrupt::Pause));
-                        break;
+                        let _ = button_sender.send(Err(Interrupt::Pause));
+                        break 'react_to_event;
                     }
                     Ok(Event::Resize(..)) => {
-                        let _ = sender.send(Err(Interrupt::WindowResize));
+                        let _ = button_sender.send(Err(Interrupt::WindowResize));
                     }
                     // TTY simulated press repeat: ignore.
                     Ok(Event::Key(KeyEvent {
@@ -173,7 +177,7 @@ impl CrosstermHandler {
                         None => {}
                         // Binding found: send button un-/press.
                         Some(&button) => {
-                            let _ = sender.send(Ok((
+                            let _ = button_sender.send(Ok((
                                 Instant::now(),
                                 button,
                                 kind == KeyEventKind::Press,
