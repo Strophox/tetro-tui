@@ -1223,7 +1223,12 @@ impl Game {
                         if let Some((held_piece, _)) = self.state.hold_piece {
                             self.state.next_pieces.push_front(held_piece);
                         } else {
-                            self.state.next_pieces.extend(self.config.tetromino_generator.with_rng(&mut self.rng).take(1));
+                            self.state.next_pieces.extend(
+                                self.config
+                                    .tetromino_generator
+                                    .with_rng(&mut self.rng)
+                                    .take(1),
+                            );
                         }
                         self.state.hold_piece = Some((prev_piece.shape, false));
                         self.state.events.clear();

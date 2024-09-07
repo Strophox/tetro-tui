@@ -7,7 +7,7 @@ use std::num::NonZeroU32;
 use rand::{
     self,
     distributions::{Distribution, WeightedIndex},
-    prelude::SliceRandom,
+    //prelude::SliceRandom, // vec.shuffle(rng)...
     rngs::ThreadRng,
     Rng,
 };
@@ -25,30 +25,36 @@ pub enum TetrominoSource {
     Uniform,
     /// Standard 'bag' generator.
     ///
-    /// It is not limited to '7-bag' and allows for other multiplicities `n` as well.
-    /// It works by picking `n` copies of each [`Tetromino`] type, and then uniformly random
-    /// handing them out until the bag is empty and is refilled again.
-    Bag {
+    /// Stock works by picking `n` copies of each [`Tetromino`] type, and then uniformly randomly
+    /// handing them out until a lower stock threshold is reached and restocked with `n` copies.
+    /// A multiplicity of `1` and restock threshold of `0` corresponds to the common 7-Bag.
+    Stock {
         /// The number of each  piece type left in the bag.
         pieces_left: [u32; 7],
         /// How many of each piece type to refill with.
         multiplicity: NonZeroU32,
+        /// Bag threshold upon which to restock.
+        restock_threshold: u32,
     },
     /// Recency/history-based piece generator.
     ///
     /// This generator keeps track of the last time each [`Tetromino`] type has been seen.
-    /// It picks pieces by weighing them by this information, such that it is impossible to choose a
-    /// piece picked last time, and a bit more than quadratically (`x.powf(2.5)`) more likely to
-    /// choose the index of another piece.
+    /// It picks pieces by weighing them by this information as given by the `snap` field, which is
+    /// used as the exponent of the last time the piece was seen. Note that this makes it impossible
+    /// for a piece that was just played (index `0`) to be played again.
     Recency {
         /// The last time a piece was seen.
         ///
         /// `0` here denotes that it was the most recent piece generated.
         last_generated: [u32; 7],
+        /// Determines how strongly it weighs pieces not generated in a while.
+        ///
+        ///
+        snap: f64,
     },
     /// Experimental generator based off of how many times each [`Tetromino`] type has been seen
     /// *in total so far*.
-    TotalRelative {
+    BalanceRelative {
         /// The relative number of times each piece type has been seen more/less than the others.
         ///
         /// Note that this is normalized, i.e. all entries are decremented simultaneously until
@@ -61,43 +67,63 @@ pub enum TetrominoSource {
         pattern: Vec<Tetromino>,
         /// Index to the piece that will be yielded next.
         index: usize,
-    }
+    },
 }
 
 impl TetrominoSource {
-    /// Initialize a new instance of the [`TetrominoSource::Uniform`] variant.
-    pub fn uniform() -> Self {
+    /// Initialize an instance of the [`TetrominoSource::Uniform`] variant.
+    pub const fn uniform() -> Self {
         Self::Uniform
     }
 
-    /// Initialize a new instance of the [`TetrominoSource::Bag`] variant with some multiplicity.
-    pub fn bag(multiplicity: NonZeroU32) -> Self {
-        Self::Bag {
-            pieces_left: [multiplicity.get(); 7],
-            multiplicity,
+    /// Initialize a 7-Bag instance of the [`TetrominoSource::Stock`] variant.
+    pub const fn bag() -> Self {
+        Self::Stock {
+            pieces_left: [1; 7],
+            multiplicity: NonZeroU32::MIN,
+            restock_threshold: 0,
         }
     }
 
-    /// Initialize a new instance of the [`TetrominoSource::Recency`] variant.
-    pub fn recency() -> Self {
-        let mut last_generated = [0, 1, 2, 3, 4, 5, 6];
-        last_generated.shuffle(&mut rand::thread_rng());
-        Self::Recency { last_generated }
+    /// Initialize a custom instance of the [`TetrominoSource::Stock`] variant.
+    pub const fn stock(multiplicity: NonZeroU32, refill_threshold: u32) -> Option<Self> {
+        if refill_threshold < multiplicity.get() * 7 {
+            Some(Self::Stock {
+                pieces_left: [multiplicity.get(); 7],
+                multiplicity,
+                restock_threshold: refill_threshold,
+            })
+        } else {
+            None
+        }
     }
 
-    /// Initialize a new instance of the [`TetrominoSource::TotalRelative`] variant.
-    pub fn total_relative() -> Self {
-        Self::TotalRelative {
+    /// Initialize a default instance of the [`TetrominoSource::Recency`] variant.
+    pub const fn recency() -> Self {
+        Self::recency_with(2.5)
+    }
+
+    /// Initialize a custom instance of the [`TetrominoSource::Recency`] variant.
+    pub const fn recency_with(snap: f64) -> Self {
+        Self::Recency {
+            last_generated: [1; 7],
+            snap,
+        }
+    }
+
+    /// Initialize an instance of the [`TetrominoSource::BalanceRelative`] variant.
+    pub const fn balance_relative() -> Self {
+        Self::BalanceRelative {
             relative_counts: [0; 7],
         }
     }
 
-    /// Initialize a new instance of the [`TetrominoSource::Cycle`] variant.
-    pub fn cycle(pattern: Vec<Tetromino>) -> Self {
+    /// Initialize a custom instance of the [`TetrominoSource::Cycle`] variant.
+    pub const fn cycle(pattern: Vec<Tetromino>) -> Self {
         Self::Cycle { pattern, index: 0 }
     }
 
-    /// Method that allows `TetrominoSource` to be used as an [`Iterator`].
+    /// Method that allows `TetrominoSource` to be used as [`Iterator`].
     pub fn with_rng<'a, 'b>(&'a mut self, rng: &'b mut ThreadRng) -> TetrominoIterator<'a, 'b> {
         TetrominoIterator {
             tetromino_generator: self,
@@ -110,10 +136,17 @@ impl Clone for TetrominoSource {
     fn clone(&self) -> Self {
         match self {
             Self::Uniform => Self::uniform(),
-            Self::Bag { multiplicity, .. } => Self::bag(*multiplicity),
-            Self::Recency { .. } => Self::recency(),
-            Self::TotalRelative { .. } => Self::total_relative(),
-            Self::Cycle { pattern, .. } => Self::cycle(pattern.clone()),
+            Self::Stock {
+                pieces_left: _,
+                multiplicity,
+                restock_threshold,
+            } => Self::stock(*multiplicity, *restock_threshold).unwrap(),
+            Self::Recency {
+                last_generated: _,
+                snap,
+            } => Self::recency_with(*snap),
+            Self::BalanceRelative { relative_counts: _ } => Self::balance_relative(),
+            Self::Cycle { pattern, index: _ } => Self::cycle(pattern.clone()),
         }
     }
 }
@@ -132,22 +165,25 @@ impl<'a, 'b> Iterator for TetrominoIterator<'a, 'b> {
     fn next(&mut self) -> Option<Self::Item> {
         match &mut self.tetromino_generator {
             TetrominoSource::Uniform => Some(Tetromino::SHAPES[self.rng.gen_range(0..=6)]),
-            TetrominoSource::Bag {
+            TetrominoSource::Stock {
                 pieces_left,
                 multiplicity,
+                restock_threshold: refill_threshold,
             } => {
-                let weights = pieces_left.iter().map(|&c| if c > 0 { 1 } else { 0 });
+                let weights = pieces_left.iter();
                 // SAFETY: Struct invariant.
                 let idx = WeightedIndex::new(weights).unwrap().sample(&mut self.rng);
                 // Update individual tetromino number and maybe replenish bag (ensuring invariant).
                 pieces_left[idx] -= 1;
-                if pieces_left.iter().sum::<u32>() == 0 {
-                    *pieces_left = [multiplicity.get(); 7];
+                if pieces_left.iter().sum::<u32>() == *refill_threshold {
+                    for cnt in pieces_left {
+                        *cnt += multiplicity.get();
+                    }
                 }
                 // SAFETY: 0 <= idx <= 6.
                 Some(Tetromino::SHAPES[idx])
             }
-            TetrominoSource::TotalRelative { relative_counts } => {
+            TetrominoSource::BalanceRelative { relative_counts } => {
                 let weighing = |&x| 1.0 / f64::from(x).exp(); // Alternative weighing function: `1.0 / (f64::from(x) + 1.0);`
                 let weights = relative_counts.iter().map(weighing);
                 // SAFETY: `weights` will always be non-zero due to `weighing`.
@@ -164,10 +200,13 @@ impl<'a, 'b> Iterator for TetrominoIterator<'a, 'b> {
                 // SAFETY: 0 <= idx <= 6.
                 Some(Tetromino::SHAPES[idx])
             }
-            TetrominoSource::Recency { last_generated } => {
-                let weighing = |&x| f64::from(x).powf(2.5);
+            TetrominoSource::Recency {
+                last_generated,
+                snap,
+            } => {
+                let weighing = |&x| f64::from(x).powf(*snap);
                 let weights = last_generated.iter().map(weighing);
-                // SAFETY: `weights` will always be non-zero due to `weighing`.
+                // SAFETY: `weights` will always be non-zero due to struct invarian.
                 let idx = WeightedIndex::new(weights).unwrap().sample(&mut self.rng);
                 // Update all tetromino last_played values and maybe rebalance all relative counts..
                 for x in last_generated.iter_mut() {

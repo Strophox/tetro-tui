@@ -41,7 +41,11 @@ pub fn display_tetromino_likelihood() -> FnGameMod {
             ) {
                 return;
             }
-            let TetrominoSource::Recency { last_generated } = config.tetromino_generator else {
+            let TetrominoSource::Recency {
+                last_generated,
+                snap: _,
+            } = config.tetromino_generator
+            else {
                 return;
             };
             let mut pieces_played_strs = [

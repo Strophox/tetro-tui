@@ -20,8 +20,8 @@ use tetrs_engine::{
 use crate::{
     game_renderers::Renderer,
     terminal_app::{
-        fmt_duration, fmt_key, fmt_keybinds, GraphicsColor, GraphicsStyle,
-        RunningGameStats, TerminalApp,
+        fmt_duration, fmt_key, fmt_keybinds, GraphicsColor, GraphicsStyle, RunningGameStats,
+        TerminalApp,
     },
 };
 

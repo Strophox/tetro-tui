@@ -104,6 +104,7 @@ enum MenuUpdate {
 )]
 pub enum GraphicsStyle {
     Electronika60,
+    #[allow(clippy::upper_case_acronyms)]
     ASCII,
     Unicode,
 }
@@ -582,7 +583,7 @@ impl<T: Write> TerminalApp<T> {
                 (
                     "Puzzle",
                     "24 stages of perfect clears!".to_string(),
-                    Box::new(|| game_mods::puzzle_mode::new_game()),
+                    Box::new(game_mods::puzzle_mode::new_game),
                 ),
                 (
                     "Cheese",
@@ -616,7 +617,7 @@ impl<T: Write> TerminalApp<T> {
                     (
                         "Descent",
                         "spin the piece and collect gems by touching them.".to_string(),
-                        Box::new(|| game_mods::descent_mode::new_game()),
+                        Box::new(game_mods::descent_mode::new_game),
                     ),
                 )
             }
@@ -1716,12 +1717,14 @@ impl<T: Write> TerminalApp<T> {
                 format!("rotation system : {:?}", self.game_config.rotation_system),
                 format!(
                     "piece generator : {}",
-                    match self.game_config.tetromino_generator {
-                        TetrominoSource::Uniform => "Uniform",
-                        TetrominoSource::Bag { .. } => "7-Bag",
-                        TetrominoSource::Recency { .. } => "Recency/History",
-                        TetrominoSource::TotalRelative { .. } => "Total Relative Counts",
-                        TetrominoSource::Cycle { .. } => "Pattern Cycle"
+                    match &self.game_config.tetromino_generator {
+                        TetrominoSource::Uniform => "Uniform".to_string(),
+                        TetrominoSource::Stock { .. } => "Bag (Stock)".to_string(),
+                        TetrominoSource::Recency { .. } => "Recency-based".to_string(),
+                        TetrominoSource::BalanceRelative { .. } =>
+                            "Balance Relative Counts".to_string(),
+                        TetrominoSource::Cycle { pattern, index: _ } =>
+                            format!("Cycle Pattern {pattern:?}"),
                     }
                 ),
                 format!("preview count : {}", self.game_config.preview_count),
@@ -1860,10 +1863,10 @@ impl<T: Write> TerminalApp<T> {
                             .game_config
                             .tetromino_generator
                         {
-                            TetrominoSource::Uniform => TetrominoSource::bag(NonZeroU32::MIN),
-                            TetrominoSource::Bag { .. } => TetrominoSource::recency(),
-                            TetrominoSource::Recency { .. } => TetrominoSource::total_relative(),
-                            TetrominoSource::TotalRelative { .. } => TetrominoSource::uniform(),
+                            TetrominoSource::Uniform => TetrominoSource::bag(),
+                            TetrominoSource::Stock { .. } => TetrominoSource::recency(),
+                            TetrominoSource::Recency { .. } => TetrominoSource::balance_relative(),
+                            TetrominoSource::BalanceRelative { .. } => TetrominoSource::uniform(),
                             TetrominoSource::Cycle { .. } => TetrominoSource::uniform(),
                         };
                     }
@@ -1909,16 +1912,16 @@ impl<T: Write> TerminalApp<T> {
                         };
                     }
                     1 => {
-                        self.game_config.tetromino_generator =
-                            match self.game_config.tetromino_generator {
-                                TetrominoSource::Uniform => TetrominoSource::total_relative(),
-                                TetrominoSource::Bag { .. } => TetrominoSource::uniform(),
-                                TetrominoSource::Recency { .. } => {
-                                    TetrominoSource::bag(NonZeroU32::MIN)
-                                }
-                                TetrominoSource::TotalRelative { .. } => TetrominoSource::recency(),
-                                TetrominoSource::Cycle { .. } => TetrominoSource::uniform(),
-                            };
+                        self.game_config.tetromino_generator = match self
+                            .game_config
+                            .tetromino_generator
+                        {
+                            TetrominoSource::Uniform => TetrominoSource::balance_relative(),
+                            TetrominoSource::Stock { .. } => TetrominoSource::uniform(),
+                            TetrominoSource::Recency { .. } => TetrominoSource::bag(),
+                            TetrominoSource::BalanceRelative { .. } => TetrominoSource::recency(),
+                            TetrominoSource::Cycle { .. } => TetrominoSource::uniform(),
+                        };
                     }
                     2 => {
                         self.game_config.preview_count =
@@ -2103,17 +2106,14 @@ impl<T: Write> TerminalApp<T> {
                             }
                             "Cheese" => {
                                 format!(
-                                    "{timestamp} ~ Cheese: {}{}",
+                                    "{timestamp} ~ Cheese: {} ({}/{} lns)",
                                     last_state.pieces_played.iter().sum::<u32>(),
-                                    format!(
-                                        " ({}/{} lns)",
-                                        last_state.lines_cleared,
-                                        gamemode
-                                            .limits
-                                            .lines
-                                            .map_or("∞".to_string(), |(_, max_lns)| max_lns
-                                                .to_string())
-                                    )
+                                    last_state.lines_cleared,
+                                    gamemode
+                                        .limits
+                                        .lines
+                                        .map_or("∞".to_string(), |(_, max_lns)| max_lns
+                                            .to_string())
                                 )
                             }
                             "Combo" => {

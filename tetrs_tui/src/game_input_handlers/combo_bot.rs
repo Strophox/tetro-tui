@@ -1,5 +1,14 @@
+#![allow(clippy::just_underscores_and_digits)]
+
 use std::{
-    collections::{HashSet, VecDeque}, fmt::Debug, fs::File, io::Write, sync::mpsc::{self, Receiver, RecvError, Sender}, thread::{self, JoinHandle}, time::{Duration, Instant}, vec
+    collections::{HashSet, VecDeque},
+    fmt::Debug,
+    fs::File,
+    io::Write,
+    sync::mpsc::{self, Receiver, RecvError, Sender},
+    thread::{self, JoinHandle},
+    time::{Duration, Instant},
+    vec,
 };
 
 use tetrs_engine::{Button, Game, Tetromino};
@@ -114,7 +123,9 @@ impl ComboBotHandler {
             layout: (pattern, flipped),
             active: Some(game.state().active_piece_data.unwrap().0.shape),
             hold: game.state().hold_piece,
-            next_pieces: Self::encode_next_queue(game.state().next_pieces.iter().take(MAX_LOOKAHEAD)),
+            next_pieces: Self::encode_next_queue(
+                game.state().next_pieces.iter().take(MAX_LOOKAHEAD),
+            ),
             depth: 0,
         })
     }
@@ -151,9 +162,12 @@ impl ComboBotHandler {
                         ) = neighbors(state_lvl0).into_iter().unzip();
                         /*TODO: Remove debug: let s=format!("[ main2 states_lvl1 = {:?} = {states_lvl1:?} ]\n", states_lvl1.iter().map(|state| fmt_statenode(&(0, *state))).collect::<Vec<_>>());let _=std::io::Write::write(&mut std::fs::OpenOptions::new().append(true).open("tetrs_tui_error_message_COMBO.txt").unwrap(), s.as_bytes());*/
                         // No more options to continue.
-                        let Some(branch_choice) = choose_branch(states_lvl1, GRAPHVIZ.then_some(state_lvl0)) else {
+                        let Some(branch_choice) =
+                            choose_branch(states_lvl1, GRAPHVIZ.then_some(state_lvl0))
+                        else {
                             /*TODO: Remove debug: let s=format!("[ main3 uhhhhhh ]\n");let _=std::io::Write::write(&mut std::fs::OpenOptions::new().append(true).open("tetrs_tui_error_message_COMBO.txt").unwrap(), s.as_bytes());*/
-                            let _ = button_sender.send(Err(crate::game_input_handlers::Interrupt::Pause));
+                            let _ = button_sender
+                                .send(Err(crate::game_input_handlers::Interrupt::Pause));
                             break 'react_to_game;
                         };
                         for mut button in states_lvl1_buttons[branch_choice].iter().copied() {
@@ -164,7 +178,11 @@ impl ComboBotHandler {
                                     Button::MoveRight => Button::MoveLeft,
                                     Button::RotateLeft => Button::RotateRight,
                                     Button::RotateRight => Button::RotateLeft,
-                                    Button::RotateAround | Button::DropSoft | Button::DropHard | Button::DropSonic | Button::Hold => button,
+                                    Button::RotateAround
+                                    | Button::DropSoft
+                                    | Button::DropHard
+                                    | Button::DropSonic
+                                    | Button::Hold => button,
                                 };
                             }
                             let _ = button_sender.send(Ok((Instant::now(), button, true)));
@@ -181,7 +199,10 @@ impl ComboBotHandler {
     }
 }
 
-fn choose_branch(states_lvl1: Vec<ComboState>, debug_state_lvl0: Option<ComboState>) -> Option<usize> {
+fn choose_branch(
+    states_lvl1: Vec<ComboState>,
+    debug_state_lvl0: Option<ComboState>,
+) -> Option<usize> {
     /*TODO: Remove debug: let s=format!("[ chbr1 examine states = {states_lvl1:?} ]\n");let _=std::io::Write::write(&mut std::fs::OpenOptions::new().append(true).open("tetrs_tui_error_message_COMBO.txt").unwrap(), s.as_bytes());*/
     if states_lvl1.is_empty() {
         /*TODO: Remove debug: let s=format!("[ chbr2 empty ]\n");let _=std::io::Write::write(&mut std::fs::OpenOptions::new().append(true).open("tetrs_tui_error_message_COMBO.txt").unwrap(), s.as_bytes());*/
@@ -194,17 +215,26 @@ fn choose_branch(states_lvl1: Vec<ComboState>, debug_state_lvl0: Option<ComboSta
     } else {
         /*TODO: Remove debug: let s=format!("[ chbr multianalyze ]\n");let _=std::io::Write::write(&mut std::fs::OpenOptions::new().append(true).open("tetrs_tui_error_message_COMBO.txt").unwrap(), s.as_bytes());*/
         let num_states = states_lvl1.len();
-        let mut queue: VecDeque<(usize, ComboState)> = states_lvl1.into_iter().enumerate().collect();
+        let mut queue: VecDeque<(usize, ComboState)> =
+            states_lvl1.into_iter().enumerate().collect();
         let mut graphviz_str = String::new();
         if let Some(state_lvl0) = debug_state_lvl0 {
             graphviz_str.push_str("strict digraph {\n");
             graphviz_str.push_str(&format!("\"{}\"\n", fmt_statenode(&(0, state_lvl0))));
             for statenode in queue.iter() {
-               graphviz_str.push_str(&format!("\"{}\" -> \"{}\"\n", fmt_statenode(&(0, state_lvl0)), fmt_statenode(statenode)));
+                graphviz_str.push_str(&format!(
+                    "\"{}\" -> \"{}\"\n",
+                    fmt_statenode(&(0, state_lvl0)),
+                    fmt_statenode(statenode)
+                ));
             }
         }
         let mut depth_best = queue.iter().map(|(_, state)| state.depth).max().unwrap();
-        let mut states_best = queue.iter().filter(|(_, state)| state.depth == depth_best).copied().collect::<Vec<_>>();
+        let mut states_best = queue
+            .iter()
+            .filter(|(_, state)| state.depth == depth_best)
+            .copied()
+            .collect::<Vec<_>>();
         /*TODO: Remove debug: let s=format!("[ chbr before-while ]\n");let _=std::io::Write::write(&mut std::fs::OpenOptions::new().append(true).open("tetrs_tui_error_message_COMBO.txt").unwrap(), s.as_bytes());*/
         while let Some(statenode @ (branch, state)) = queue.pop_front() {
             let neighbors: Vec<_> = neighbors(state)
@@ -213,17 +243,26 @@ fn choose_branch(states_lvl1: Vec<ComboState>, debug_state_lvl0: Option<ComboSta
                 .collect();
             if debug_state_lvl0.is_some() {
                 for state in neighbors.iter() {
-                    graphviz_str.push_str(&format!("\"{}\" -> \"{}\"\n", fmt_statenode(&statenode), fmt_statenode(state)));
+                    graphviz_str.push_str(&format!(
+                        "\"{}\" -> \"{}\"\n",
+                        fmt_statenode(&statenode),
+                        fmt_statenode(state)
+                    ));
                 }
             }
             for neighbor in neighbors.iter() {
                 let depth = neighbor.1.depth;
-                if depth > depth_best{
-                    depth_best = depth;
-                    states_best.clear();
-                    states_best.push(*neighbor);
-                } else if depth == depth_best {
-                    states_best.push(*neighbor);
+                use std::cmp::Ordering::*;
+                match depth_best.cmp(&depth) {
+                    Less => {
+                        depth_best = depth;
+                        states_best.clear();
+                        states_best.push(*neighbor);
+                    }
+                    Equal => {
+                        states_best.push(*neighbor);
+                    }
+                    Greater => {}
                 }
             }
             queue.extend(neighbors);
@@ -232,14 +271,12 @@ fn choose_branch(states_lvl1: Vec<ComboState>, debug_state_lvl0: Option<ComboSta
         if debug_state_lvl0.is_some() {
             graphviz_str.push_str("\n}");
 
-            File::options()
-            .create(true)
-            .append(true)
-            .open(GRAPHVIZ_FILENAME)
-            .unwrap()
-            .write(format!("graphviz: \"\"\"\n{graphviz_str}\n\"\"\"\n").as_bytes())
-            .unwrap();
-            /*TODO: Remove debug: let s=format!("[ chbr graphviz_str = \"\"\"{graphviz_str}\"\"\" ]\n");let _=std::io::Write::write(&mut std::fs::OpenOptions::new().append(true).open("tetrs_tui_error_message_COMBO.txt").unwrap(), s.as_bytes());*/
+            let _ = File::options()
+                .create(true)
+                .append(true)
+                .open(GRAPHVIZ_FILENAME)
+                .unwrap()
+                .write(format!("graphviz: \"\"\"\n{graphviz_str}\n\"\"\"\n").as_bytes());
         }
         /*TODO: Remove debug: let s=format!("[ chbr states_best = {states_best:?} ]\n");let _=std::io::Write::write(&mut std::fs::OpenOptions::new().append(true).open("tetrs_tui_error_message_COMBO.txt").unwrap(), s.as_bytes());*/
         //states_lvlx.sort_by_key(|(_, ComboState { layout, .. })| layout.0);
@@ -302,52 +339,50 @@ fn neighbors(
         /*TODO: Remove debug: let s=format!("[ nbrs2 early-ret ]\n");let _=std::io::Write::write(&mut std::fs::OpenOptions::new().append(true).open("tetrs_tui_error_message_COMBO.txt").unwrap(), s.as_bytes());*/
         return neighbors;
     };
-    let new_active = (next_pieces != 0).then(|| Tetromino::SHAPES[usize::try_from(next_pieces & 0b111).unwrap() - 1]);
+    let new_active = (next_pieces != 0)
+        .then(|| Tetromino::SHAPES[usize::try_from(next_pieces & 0b111).unwrap() - 1]);
     let new_next_pieces = next_pieces >> 3;
     // Add neighbors reachable with just holding / swapping with the active piece.
     if let Some((held, swap_allowed)) = hold {
         if swap_allowed {
-            neighbors.push(
-                (
-                    ComboState {
-                        layout,
-                        active: Some(held),
-                        hold: Some((active, false)),
-                        next_pieces,
-                        depth
-                    },
-                    &[Button::Hold][..],
-                )
-            );
-        }
-    } else {
-        neighbors.push(
-            (
+            neighbors.push((
                 ComboState {
                     layout,
-                    active: new_active,
+                    active: Some(held),
                     hold: Some((active, false)),
                     next_pieces,
-                    depth
+                    depth,
                 },
                 &[Button::Hold][..],
-            )
-        );
+            ));
+        }
+    } else {
+        neighbors.push((
+            ComboState {
+                layout,
+                active: new_active,
+                hold: Some((active, false)),
+                next_pieces,
+                depth,
+            },
+            &[Button::Hold][..],
+        ));
     }
-    neighbors.extend(reachable_with(layout, active)
-        .into_iter()
-        .map(|(next_layout, buttons)| {
-            (
-                ComboState {
-                    layout: next_layout,
-                    active: new_active,
-                    hold: hold.map(|(held, _swap_allowed)| (held, true)),
-                    next_pieces: new_next_pieces,
-                    depth: depth + 1,
-                },
-                buttons,
-            )
-        })
+    neighbors.extend(
+        reachable_with(layout, active)
+            .into_iter()
+            .map(|(next_layout, buttons)| {
+                (
+                    ComboState {
+                        layout: next_layout,
+                        active: new_active,
+                        hold: hold.map(|(held, _swap_allowed)| (held, true)),
+                        next_pieces: new_next_pieces,
+                        depth: depth + 1,
+                    },
+                    buttons,
+                )
+            }),
     );
     neighbors
 }
@@ -564,94 +599,366 @@ pub fn fmt_statenode(
 
 #[cfg(test)]
 mod tests {
-    use std::num::NonZeroU32;
+    use std::{collections::HashMap, num::NonZeroU32};
 
     use super::*;
-    use tetrs_engine::piece_generation::TetrominoSource;
+    use tetrs_engine::piece_generation::{TetrominoIterator, TetrominoSource};
+
+    const COMBO_MAX: usize = 1_000_000;
 
     #[test]
-    fn run_mini_bench() {
-        const N_RUNS: usize = 10_000;
-        const N_PREVIEW: usize = 6;
+    fn benchmark_simple() {
+        let sample_count = 10_000;
+        let lookahead = 7;
+        let randomizer = (TetrominoSource::recency(), "recency");
+        run_analyses_on(sample_count, std::iter::once((lookahead, randomizer)));
+    }
+
+    #[test]
+    fn benchmark_lookaheads() {
+        let sample_count = 100_000;
+        let lookaheads = 1..6;
+        let randomizer = (TetrominoSource::recency(), "recency");
+        run_analyses_on(sample_count, lookaheads.zip(std::iter::repeat(randomizer)));
+    }
+
+    #[test]
+    fn benchmark_randomizers() {
+        let sample_count = 100_000;
+        let lookahead = 3;
+        let randomizers = [
+            (TetrominoSource::uniform(), "uniform"),
+            (TetrominoSource::balance_relative(), "balance_relative"),
+            (TetrominoSource::bag(), "bag"),
+            (
+                TetrominoSource::stock(NonZeroU32::MIN.saturating_add(1), 0).unwrap(),
+                "bag-2",
+            ),
+            (
+                TetrominoSource::stock(NonZeroU32::MIN.saturating_add(1), 0).unwrap(),
+                "bag-4",
+            ),
+            (
+                TetrominoSource::stock(NonZeroU32::MIN.saturating_add(1), 7).unwrap(),
+                "bag-2-re1",
+            ),
+            (
+                TetrominoSource::stock(NonZeroU32::MIN.saturating_add(1), 7).unwrap(),
+                "bag-4-re2",
+            ),
+            (TetrominoSource::recency_with(0.0), "recency-0.0"),
+            (TetrominoSource::recency_with(0.5), "recency-0.5"),
+            (TetrominoSource::recency_with(1.0), "recency-1.0"),
+            (TetrominoSource::recency_with(1.5), "recency-1.5"),
+            (TetrominoSource::recency_with(2.0), "recency-2.0"),
+            (TetrominoSource::recency(), "recency-2.5"),
+            (TetrominoSource::recency_with(3.0), "recency-3.0"),
+            (TetrominoSource::recency_with(8.0), "recency-7.0"),
+            (TetrominoSource::recency_with(16.0), "recency-16.0"),
+            (TetrominoSource::recency_with(32.0), "recency-32.0"),
+        ];
+        run_analyses_on(sample_count, std::iter::repeat(lookahead).zip(randomizers));
+    }
+
+    fn run_analyses_on<'a>(
+        sample_count: usize,
+        configurations: impl IntoIterator<Item = (usize, (TetrominoSource, &'a str))>,
+    ) {
         let timestamp = chrono::Utc::now().format("%Y-%m-%d_%H-%M-%S").to_string();
-        let filename = format!("combot_lookahead-{N_PREVIEW}_{timestamp}.md");
+        let summaries_filename = format!("combot-{timestamp}.md");
         let mut file = File::options()
             .create(true)
             .append(true)
-            .open(filename)
+            .open(summaries_filename)
             .unwrap();
         file.write(
-            format!("# Benchmark ({timestamp})\nN_RUNS = {N_RUNS}, N_PREVIEW = {N_PREVIEW}\n")
-                .as_bytes(),
+            format!("# Tetrs Combo (4-wide 3-res.) - Bot statistics summary\n\n").as_bytes(),
         )
         .unwrap();
-        let generators = [
-            TetrominoSource::recency(),
-            TetrominoSource::bag(NonZeroU32::MIN),
-            TetrominoSource::total_relative(),
-            TetrominoSource::uniform(),
-        ];
         let mut rng = rand::thread_rng();
-        for generator in generators {
-            let mut runs = std::iter::repeat_with(|| {
-                let mut source = generator.clone();
-                let mut next_pieces: VecDeque<_> = source.with_rng(&mut rng).take(N_PREVIEW).collect();
-                let mut state = ComboState {
-                    layout: (Pat::_200, false),
-                    active: Some(source.with_rng(&mut rng).next().unwrap()),
-                    hold: None,
-                    next_pieces: ComboBotHandler::encode_next_queue(next_pieces.iter()),
-                    depth: 0,
-                };
-                let mut it: u32 = 0;
-                loop {
-                    let states_lvl1 = neighbors(state);
-                    // No more options to continue.
-                    let Some(branch) = choose_branch(states_lvl1.iter()
-                        .map(|(state_lvl1, _)| *state_lvl1)
-                        .collect(), None)
-                    else {
-                        break;
-                    };
-                    let did_hold = states_lvl1[branch].1.contains(&Button::Hold);
-                    let mut new_state = states_lvl1[branch].0;
-                    if new_state.active.is_none() {
-                        new_state.active = Some(source.with_rng(&mut rng).next().unwrap());
-                    } else if !did_hold || (did_hold && state.hold.is_none()) {
-                        next_pieces.push_back(source.with_rng(&mut rng).next().unwrap());
-                        next_pieces.pop_front();
-                    }
-                    new_state.next_pieces = ComboBotHandler::encode_next_queue(next_pieces.iter());
-                    state = new_state;
-                    // Only count if piece was not dropped i.e. used.
-                    if !did_hold {
-                        it += 1;
-                    }
-                }
-                it
+        for (lookahead, (randomizer, randomizer_name)) in configurations {
+            let combos = std::iter::repeat_with(|| {
+                run_bot(lookahead, &mut randomizer.clone().with_rng(&mut rng))
             })
-            .take(N_RUNS)
-            .collect::<Vec<_>>();
-            runs.sort_unstable();
-            let min = runs.iter().min().unwrap();
-            let max = runs.iter().max().unwrap();
-            let median = if runs.len() % 2 == 0 {
-                (runs[runs.len() / 2 - 1] + runs[runs.len() / 2]) as f64 / 2.0
-            } else {
-                runs[runs.len() / 2] as f64
-            };
-            let mut counts = std::collections::HashMap::new();
-            let mode = runs
-                .iter()
-                .max_by_key(|n| {
-                    let count = counts.entry(*n).or_insert(0);
-                    *count += 1;
-                    *count
-                })
-                .unwrap();
-            let average = f64::from(runs.iter().sum::<u32>()) / N_RUNS as f64;
-            let results = format!("* min {min}, median {median:.01}, max {max}, mode {mode}, average {average} :: {generator:?}\n");
-            file.write(results.as_bytes()).unwrap();
+            .take(sample_count);
+            let filename_svg = format!("combot-{timestamp}_L{lookahead}_{randomizer_name}.svg");
+            let summary = run_analysis(combos, lookahead, randomizer_name, &filename_svg);
+            file.write(format!("- {summary}\n").as_bytes()).unwrap();
         }
+    }
+
+    fn run_bot(lookahead: usize, iter: &mut TetrominoIterator) -> usize {
+        let mut next_pieces: VecDeque<_> = iter.take(lookahead).collect();
+        let mut state = ComboState {
+            layout: (Pat::_200, false),
+            active: Some(iter.next().unwrap()),
+            hold: None,
+            next_pieces: ComboBotHandler::encode_next_queue(next_pieces.iter()),
+            depth: 0,
+        };
+        let mut it: usize = 0;
+        loop {
+            let states_lvl1 = neighbors(state);
+            // No more options to continue.
+            let Some(branch) = choose_branch(
+                states_lvl1
+                    .iter()
+                    .map(|(state_lvl1, _)| *state_lvl1)
+                    .collect(),
+                None,
+            ) else {
+                break;
+            };
+            let did_hold = states_lvl1[branch].1.contains(&Button::Hold);
+            let mut new_state = states_lvl1[branch].0;
+            if new_state.active.is_none() {
+                new_state.active = Some(iter.next().unwrap());
+            } else if !did_hold || (did_hold && state.hold.is_none()) {
+                next_pieces.push_back(iter.next().unwrap());
+                next_pieces.pop_front();
+            }
+            new_state.next_pieces = ComboBotHandler::encode_next_queue(next_pieces.iter());
+            state = new_state;
+            // Only count if piece was not dropped i.e. used.
+            if !did_hold {
+                it += 1;
+            }
+            if it == COMBO_MAX {
+                break;
+            }
+        }
+        it
+    }
+
+    fn run_analysis(
+        combos: impl IntoIterator<Item = usize>,
+        lookahead: usize,
+        randomizer_name: &str,
+        filename_svg: &str,
+    ) -> String {
+        let mut frequencies = HashMap::<usize, usize>::new();
+        let mut sum = 0;
+        let mut len = 0;
+        for combo in combos {
+            *frequencies.entry(combo).or_default() += 1;
+            sum += combo;
+            len += 1;
+        }
+        let mut frequencies = frequencies.into_iter().collect::<Vec<_>>();
+        frequencies.sort_unstable();
+        0;
+        let mut tmp = 0;
+        let combo_median = 'calc: {
+            for (combo, frequency) in frequencies.iter() {
+                if tmp > len / 2 {
+                    break 'calc combo;
+                }
+                tmp += frequency;
+            }
+            unreachable!()
+        };
+        let combo_max = frequencies.last().unwrap().0;
+        let combo_average = sum / len;
+        let frequency_max = *frequencies.iter().map(|(_k, v)| v).max().unwrap();
+        let summary = format!("randomizer = {randomizer_name}, lookahead = {lookahead}; combo_average = {combo_average}, combo_median = {combo_median}, combo_max = {combo_max}, frequency_max = {frequency_max}");
+
+        let font_size = 15;
+        let margin_x = 20 * font_size;
+        let margin_y = 20 * font_size;
+        let gridgranularity_x = 5;
+        let gridgranularity_y = 5;
+        let chart_max_x = combo_max + (gridgranularity_x - combo_max % gridgranularity_x);
+        let chart_max_y = frequency_max + (gridgranularity_y - frequency_max % gridgranularity_y);
+        let scale_y = 10;
+        let y_0 = margin_y + scale_y * chart_max_y;
+        let scale_x = (5).max(scale_y * chart_max_y / chart_max_x);
+        let x_0 = margin_x;
+        let w_svg = scale_x * chart_max_x + 2 * margin_x;
+        let h_svg = scale_y * chart_max_y + 2 * margin_y;
+
+        let file = File::options()
+            .create(true)
+            .append(true)
+            .open(filename_svg)
+            .unwrap();
+        let mut file = std::io::BufWriter::new(file);
+
+        #[rustfmt::skip] {
+        file.write(format!(
+r##"<svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="100%" height="100%"
+    viewBox="0 0 {w_svg} {h_svg}"
+>
+
+<!--, {summary} -->
+
+"##).as_bytes()).unwrap();
+
+    file.write(format!(
+r##"<!-- Background. -->
+<rect width="100%" height="100%" fill="#3f3f3f" />
+"##).as_bytes()).unwrap();
+
+    file.write(format!(
+r##"<!-- Grid lines. -->
+<g stroke="#FFFFFF" stroke-opacity=".25" stroke-width="2" stroke-linecap="square">
+"##).as_bytes()).unwrap();
+
+    file.write(format!(
+r##"    <!-- Horizontal grid lines. -->
+    <g>
+"##).as_bytes()).unwrap();
+
+    for i in 0 ..= chart_max_y/gridgranularity_y {
+        let y = y_0 - scale_y *(i * gridgranularity_y);
+        file.write(format!(
+r##"        <line x1="{}" y1="{}"  x2="{}" y2="{}" ></line>
+"##, x_0, y, x_0 + scale_x *chart_max_x, y).as_bytes()).unwrap();
+    }
+
+    file.write(format!(
+r##"    </g>
+"##).as_bytes()).unwrap(); // <!-- Horizontal grid lines. -->
+
+    file.write(format!(
+r##"    <!-- Vertical grid lines. -->
+    <g>
+"##).as_bytes()).unwrap();
+
+    for j in 0 ..= chart_max_x/gridgranularity_x {
+        let x = x_0 + scale_x *(j * gridgranularity_x);
+        file.write(format!(
+r##"        <line x1="{}" y1="{}"  x2="{}" y2="{}" ></line>
+"##, x, y_0, x, y_0 - scale_y *chart_max_y).as_bytes()).unwrap();
+    }
+
+    // Combo average indicator.
+    file.write(format!(
+r##"        <line x1="{}" y1="{}"  x2="{}" y2="{}" stroke="#00FFFF" ></line>
+"##, x_0 + scale_x *combo_average, y_0, x_0 + scale_x *combo_average, y_0 - scale_y *chart_max_y).as_bytes()).unwrap();
+
+    // Combo median indicator.
+    file.write(format!(
+r##"        <line x1="{}" y1="{}"  x2="{}" y2="{}" stroke="#FF7F00" ></line>
+"##, x_0 + scale_x *combo_median, y_0, x_0 + scale_x *combo_median, y_0 - scale_y *chart_max_y).as_bytes()).unwrap();
+
+    file.write(format!(
+r##"    </g>
+"##).as_bytes()).unwrap(); // <!-- Vertical grid lines. -->
+
+    file.write(format!(
+r##"</g>
+"##).as_bytes()).unwrap(); // <!-- Grid lines. -->
+
+    file.write(format!(
+r##"<!-- Labels. -->
+<g fill="#FFFFFF" font-size="{}px" font-family="monospace">
+"##, font_size).as_bytes()).unwrap();
+
+    file.write(format!(
+r##"        <text x="{}" y="{}" font-size="{}px" font-weight="bold" text-anchor="start" fill="#00FFFF" >Tetrs Combo (4-wide 3-res.) - Bot run statistics.</text>
+"##, x_0, y_0 + font_size * 3 + font_size / 2, font_size * 5 / 4).as_bytes()).unwrap();
+
+    file.write(format!(
+r##"        <text x="{}" y="{}" text-anchor="start">{len} samples with lookahead={lookahead}, randomizer={randomizer_name}.</text>
+"##, x_0, y_0 + font_size * 5).as_bytes()).unwrap();
+
+    file.write(format!(
+r##"    <!-- y-axis labels. -->
+    <g text-anchor="end">
+"##).as_bytes()).unwrap();
+
+    for i in 0 ..= chart_max_y/gridgranularity_y {
+        let y = y_0 - scale_y *(i * gridgranularity_y) + font_size / 2;
+        file.write(format!(
+r##"        <text x="{}" y="{}">{}</text>
+"##, x_0 - font_size / 2, y, i*gridgranularity_y).as_bytes()).unwrap();
+    }
+
+    file.write(format!(
+r##"        <text x="{}" y="{}" text-anchor="middle">Frequency</text>
+"##, x_0, margin_y - font_size).as_bytes()).unwrap();
+
+    file.write(format!(
+r##"        <text x="{}" y="{}" fill="#00FFFF" text-anchor="middle">Average</text>
+"##, x_0 + scale_x* combo_average, margin_y - font_size).as_bytes()).unwrap();
+
+    file.write(format!(
+r##"        <text x="{}" y="{}" fill="#FF7F00" text-anchor="middle">Median</text>
+"##, x_0 + scale_x* combo_median, margin_y - font_size).as_bytes()).unwrap();
+
+    file.write(format!(
+r##"    </g>
+"##).as_bytes()).unwrap(); // <!-- y-axis labels. -->
+
+    file.write(format!(
+r##"    <!-- x-axis labels. -->
+    <g text-anchor="middle">
+"##).as_bytes()).unwrap();
+
+    for i in 0 ..= chart_max_x/gridgranularity_x {
+        let x = x_0 + scale_x *(i * gridgranularity_x);
+        file.write(format!(
+r##"        <text transform="translate({},{}) rotate(45)">{}</text>
+"##, x - font_size / 2, y_0 + font_size * 3 / 2, i*gridgranularity_x).as_bytes()).unwrap();
+    }
+
+    file.write(format!(
+r##"        <text x="{}" y="{}" text-anchor="start">Combo Length</text>
+"##, x_0 + scale_x* chart_max_x + font_size, y_0 + font_size / 2).as_bytes()).unwrap();
+
+    file.write(format!(
+r##"    </g>
+"##).as_bytes()).unwrap(); // <!-- x-axis labels. -->*/
+
+    file.write(format!(
+r##"</g>
+"##).as_bytes()).unwrap(); // <!-- Labels. -->
+
+    file.write(format!(
+r##"<!-- Surface graph path. -->
+<path
+    stroke="#FFFFFF"
+    stroke-width="1"
+    fill="#FFFFFF"
+    fill-opacity=".5"
+    d="
+        M {x_0},{y_0}
+"##).as_bytes()).unwrap();
+
+    for (combo, frequency) in frequencies.iter() {
+        file.write(format!(
+r##"        L{},{}
+"##, x_0 + scale_x* combo, y_0 - scale_y *frequency).as_bytes()).unwrap();
+    }
+
+    file.write(format!(
+r##"        L{},{}
+        M {x_0},{y_0}
+    "
+/>"##, x_0 + scale_x *combo_max, y_0).as_bytes()).unwrap(); // <!-- Surface graph path. -->
+
+    file.write(format!(
+r##"<!-- Graph data points. -->
+<g fill="#00FFFF">
+"##).as_bytes()).unwrap();
+
+        for (combo, frequency) in frequencies.iter() {
+            file.write(format!(
+r##"    <circle cx="{}" cy="{}"  r="{}" />
+"##, x_0 + scale_x *combo, y_0 - scale_y *frequency, font_size / 5).as_bytes()).unwrap();
+        }
+
+        file.write(format!(
+r##"</g>
+"##).as_bytes()).unwrap(); // <!-- Graph data points.. -->
+
+    file.write(format!(
+r##"</svg>
+"##).as_bytes()).unwrap();
+    };
+
+        summary
     }
 }
