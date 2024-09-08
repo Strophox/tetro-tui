@@ -609,6 +609,46 @@ The menus form a graph (with menus as nodes and valid transitions as directed ed
 </details>
 
 
+## Combo Bot
+
+The goal of 'Combo Mode' is to keep a combo for as long as possible *(where a combo is increased by clearing lines with consecutively placed pieces)*.
+
+The fact that this is even remotely playable as a gamemode by itself is due to "4-wide 3-residual" combos, where the board is filled up except for a 4-wide vertical tunnel, at the bottom of which there are always 3 additional pieces that set up the next line clear.
+
+Due to the fact that a tetromino consists of 4 cells, clearing a line like this will again leave 3 cells in the otherwise perfectly vertical 4-wide tunnel.
+
+It turns out there are only a finite number of combo states that can lead to each other and continue a possibly infinite chain.
+
+<!-- TODO: Graph here. -->
+
+Therefore, given a finite piece preview, and armed with the knowledge of how these combo states transition into each other, playing Combo Mode is reduced to a graph problem - ideal for a computer to solve!
+
+This is what the bot's brain looks like when it's thinking about what it might do given 4 pieces of preview:
+
+<!-- TODO: Graph here. -->
+
+To "think", the bot gets the current state of the game and produces the entire graph of possible future moves.
+Among these, it must choose the next step to take. For this, it wants to play as far as possible. In the case that several branches max out the preview it uses the heuristic of choosing the branch with the most possible continuations of all distinct states at the bottom of the branch. In the above case, the bot would choose the middle branch because it has better states at the very bottom:
+
+<!-- TODO: Graph here. -->
+
+The size of this graph gets slightly out of hand for bigger previews:
+
+<!-- TODO: Graph here. -->
+
+Luckily, empirically the length of combos increases exponentially for every additional preview (e.g. a 128k-combo with only 7 preview.)
+
+In fact, I learned SVG just for the purpose of manually visualizing the distribution of runs given a certain preview:
+
+<!-- TODO: Graph here. -->
+
+indeed, it seems as if this distribution, too, is exponential.
+
+Here are some text stats given various randomizers and lookahead values:
+
+<!-- TODO: Table here. -->
+
+
 ## Miscellaneous Author Notes
 
 In the two very intense weeks of developing a majority of this project I had my first proper learning experience with building: a larger Rust project, an interactive game (in the console no less), and the intricacies of modern tetrs mechanics, all at the same time.
