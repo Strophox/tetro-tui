@@ -636,6 +636,14 @@ mod tests {
     const COMBO_MAX: usize = 1_000_000;
 
     #[test]
+    fn benchmark_demo() {
+        let sample_count = 2_500;
+        let lookahead = 4;
+        let randomizer = (TetrominoSource::recency(), "recency");
+        run_analyses_on(sample_count, std::iter::once((lookahead, randomizer)));
+    }
+
+    #[test]
     fn benchmark_simple() {
         let sample_count = 1_000;
         let lookahead = 8;
@@ -645,9 +653,9 @@ mod tests {
 
     #[test]
     fn benchmark_lookaheads() {
-        let sample_count = 100_000;
-        let lookaheads = 1..6;
-        let randomizer = (TetrominoSource::recency(), "recency");
+        let sample_count = 10_000;
+        let lookaheads = 0..=9;
+        let randomizer = (TetrominoSource::bag(), "bag");
         run_analyses_on(sample_count, lookaheads.zip(std::iter::repeat(randomizer)));
     }
 
@@ -778,7 +786,7 @@ mod tests {
         let combo_max = frequencies.last().unwrap().0;
         let combo_average = sum / len;
         let frequency_max = *frequencies.iter().map(|(_k, v)| v).max().unwrap();
-        let summary = format!("samples = {len}, randomizer = '{randomizer_name}', lookahead = {lookahead}; combo_average = {combo_average}, combo_median = {combo_median}, combo_max = {combo_max}, frequency_max = {frequency_max}");
+        let summary = format!("samples = {len}, randomizer = '{randomizer_name}', lookahead = {lookahead}; combo_median = {combo_median}, combo_average = {combo_average}, combo_max = {combo_max}, frequency_max = {frequency_max}");
 
         let font_size = 15;
         let margin_x = 20 * font_size;

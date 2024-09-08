@@ -1,0 +1,2365 @@
+<svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="9675" height="1750"
+    viewBox="0 0 9675 1750"
+>
+
+<!-- Background. -->
+<rect width="100%" height="100%" fill="#3f3f3f" />
+<!-- Grid lines. -->
+<g stroke="#FFFFFF" stroke-opacity=".25" stroke-width="2" stroke-linecap="square">
+    <!-- Horizontal grid lines. -->
+    <g>
+        <line x1="300" y1="1450"  x2="9375" y2="1450" ></line>
+        <line x1="300" y1="1400"  x2="9375" y2="1400" ></line>
+        <line x1="300" y1="1350"  x2="9375" y2="1350" ></line>
+        <line x1="300" y1="1300"  x2="9375" y2="1300" ></line>
+        <line x1="300" y1="1250"  x2="9375" y2="1250" ></line>
+        <line x1="300" y1="1200"  x2="9375" y2="1200" ></line>
+        <line x1="300" y1="1150"  x2="9375" y2="1150" ></line>
+        <line x1="300" y1="1100"  x2="9375" y2="1100" ></line>
+        <line x1="300" y1="1050"  x2="9375" y2="1050" ></line>
+        <line x1="300" y1="1000"  x2="9375" y2="1000" ></line>
+        <line x1="300" y1="950"  x2="9375" y2="950" ></line>
+        <line x1="300" y1="900"  x2="9375" y2="900" ></line>
+        <line x1="300" y1="850"  x2="9375" y2="850" ></line>
+        <line x1="300" y1="800"  x2="9375" y2="800" ></line>
+        <line x1="300" y1="750"  x2="9375" y2="750" ></line>
+        <line x1="300" y1="700"  x2="9375" y2="700" ></line>
+        <line x1="300" y1="650"  x2="9375" y2="650" ></line>
+        <line x1="300" y1="600"  x2="9375" y2="600" ></line>
+        <line x1="300" y1="550"  x2="9375" y2="550" ></line>
+        <line x1="300" y1="500"  x2="9375" y2="500" ></line>
+        <line x1="300" y1="450"  x2="9375" y2="450" ></line>
+        <line x1="300" y1="400"  x2="9375" y2="400" ></line>
+        <line x1="300" y1="350"  x2="9375" y2="350" ></line>
+        <line x1="300" y1="300"  x2="9375" y2="300" ></line>
+    </g>
+    <!-- Vertical grid lines. -->
+    <g>
+        <line x1="300" y1="1450"  x2="300" y2="300" ></line>
+        <line x1="325" y1="1450"  x2="325" y2="300" ></line>
+        <line x1="350" y1="1450"  x2="350" y2="300" ></line>
+        <line x1="375" y1="1450"  x2="375" y2="300" ></line>
+        <line x1="400" y1="1450"  x2="400" y2="300" ></line>
+        <line x1="425" y1="1450"  x2="425" y2="300" ></line>
+        <line x1="450" y1="1450"  x2="450" y2="300" ></line>
+        <line x1="475" y1="1450"  x2="475" y2="300" ></line>
+        <line x1="500" y1="1450"  x2="500" y2="300" ></line>
+        <line x1="525" y1="1450"  x2="525" y2="300" ></line>
+        <line x1="550" y1="1450"  x2="550" y2="300" ></line>
+        <line x1="575" y1="1450"  x2="575" y2="300" ></line>
+        <line x1="600" y1="1450"  x2="600" y2="300" ></line>
+        <line x1="625" y1="1450"  x2="625" y2="300" ></line>
+        <line x1="650" y1="1450"  x2="650" y2="300" ></line>
+        <line x1="675" y1="1450"  x2="675" y2="300" ></line>
+        <line x1="700" y1="1450"  x2="700" y2="300" ></line>
+        <line x1="725" y1="1450"  x2="725" y2="300" ></line>
+        <line x1="750" y1="1450"  x2="750" y2="300" ></line>
+        <line x1="775" y1="1450"  x2="775" y2="300" ></line>
+        <line x1="800" y1="1450"  x2="800" y2="300" ></line>
+        <line x1="825" y1="1450"  x2="825" y2="300" ></line>
+        <line x1="850" y1="1450"  x2="850" y2="300" ></line>
+        <line x1="875" y1="1450"  x2="875" y2="300" ></line>
+        <line x1="900" y1="1450"  x2="900" y2="300" ></line>
+        <line x1="925" y1="1450"  x2="925" y2="300" ></line>
+        <line x1="950" y1="1450"  x2="950" y2="300" ></line>
+        <line x1="975" y1="1450"  x2="975" y2="300" ></line>
+        <line x1="1000" y1="1450"  x2="1000" y2="300" ></line>
+        <line x1="1025" y1="1450"  x2="1025" y2="300" ></line>
+        <line x1="1050" y1="1450"  x2="1050" y2="300" ></line>
+        <line x1="1075" y1="1450"  x2="1075" y2="300" ></line>
+        <line x1="1100" y1="1450"  x2="1100" y2="300" ></line>
+        <line x1="1125" y1="1450"  x2="1125" y2="300" ></line>
+        <line x1="1150" y1="1450"  x2="1150" y2="300" ></line>
+        <line x1="1175" y1="1450"  x2="1175" y2="300" ></line>
+        <line x1="1200" y1="1450"  x2="1200" y2="300" ></line>
+        <line x1="1225" y1="1450"  x2="1225" y2="300" ></line>
+        <line x1="1250" y1="1450"  x2="1250" y2="300" ></line>
+        <line x1="1275" y1="1450"  x2="1275" y2="300" ></line>
+        <line x1="1300" y1="1450"  x2="1300" y2="300" ></line>
+        <line x1="1325" y1="1450"  x2="1325" y2="300" ></line>
+        <line x1="1350" y1="1450"  x2="1350" y2="300" ></line>
+        <line x1="1375" y1="1450"  x2="1375" y2="300" ></line>
+        <line x1="1400" y1="1450"  x2="1400" y2="300" ></line>
+        <line x1="1425" y1="1450"  x2="1425" y2="300" ></line>
+        <line x1="1450" y1="1450"  x2="1450" y2="300" ></line>
+        <line x1="1475" y1="1450"  x2="1475" y2="300" ></line>
+        <line x1="1500" y1="1450"  x2="1500" y2="300" ></line>
+        <line x1="1525" y1="1450"  x2="1525" y2="300" ></line>
+        <line x1="1550" y1="1450"  x2="1550" y2="300" ></line>
+        <line x1="1575" y1="1450"  x2="1575" y2="300" ></line>
+        <line x1="1600" y1="1450"  x2="1600" y2="300" ></line>
+        <line x1="1625" y1="1450"  x2="1625" y2="300" ></line>
+        <line x1="1650" y1="1450"  x2="1650" y2="300" ></line>
+        <line x1="1675" y1="1450"  x2="1675" y2="300" ></line>
+        <line x1="1700" y1="1450"  x2="1700" y2="300" ></line>
+        <line x1="1725" y1="1450"  x2="1725" y2="300" ></line>
+        <line x1="1750" y1="1450"  x2="1750" y2="300" ></line>
+        <line x1="1775" y1="1450"  x2="1775" y2="300" ></line>
+        <line x1="1800" y1="1450"  x2="1800" y2="300" ></line>
+        <line x1="1825" y1="1450"  x2="1825" y2="300" ></line>
+        <line x1="1850" y1="1450"  x2="1850" y2="300" ></line>
+        <line x1="1875" y1="1450"  x2="1875" y2="300" ></line>
+        <line x1="1900" y1="1450"  x2="1900" y2="300" ></line>
+        <line x1="1925" y1="1450"  x2="1925" y2="300" ></line>
+        <line x1="1950" y1="1450"  x2="1950" y2="300" ></line>
+        <line x1="1975" y1="1450"  x2="1975" y2="300" ></line>
+        <line x1="2000" y1="1450"  x2="2000" y2="300" ></line>
+        <line x1="2025" y1="1450"  x2="2025" y2="300" ></line>
+        <line x1="2050" y1="1450"  x2="2050" y2="300" ></line>
+        <line x1="2075" y1="1450"  x2="2075" y2="300" ></line>
+        <line x1="2100" y1="1450"  x2="2100" y2="300" ></line>
+        <line x1="2125" y1="1450"  x2="2125" y2="300" ></line>
+        <line x1="2150" y1="1450"  x2="2150" y2="300" ></line>
+        <line x1="2175" y1="1450"  x2="2175" y2="300" ></line>
+        <line x1="2200" y1="1450"  x2="2200" y2="300" ></line>
+        <line x1="2225" y1="1450"  x2="2225" y2="300" ></line>
+        <line x1="2250" y1="1450"  x2="2250" y2="300" ></line>
+        <line x1="2275" y1="1450"  x2="2275" y2="300" ></line>
+        <line x1="2300" y1="1450"  x2="2300" y2="300" ></line>
+        <line x1="2325" y1="1450"  x2="2325" y2="300" ></line>
+        <line x1="2350" y1="1450"  x2="2350" y2="300" ></line>
+        <line x1="2375" y1="1450"  x2="2375" y2="300" ></line>
+        <line x1="2400" y1="1450"  x2="2400" y2="300" ></line>
+        <line x1="2425" y1="1450"  x2="2425" y2="300" ></line>
+        <line x1="2450" y1="1450"  x2="2450" y2="300" ></line>
+        <line x1="2475" y1="1450"  x2="2475" y2="300" ></line>
+        <line x1="2500" y1="1450"  x2="2500" y2="300" ></line>
+        <line x1="2525" y1="1450"  x2="2525" y2="300" ></line>
+        <line x1="2550" y1="1450"  x2="2550" y2="300" ></line>
+        <line x1="2575" y1="1450"  x2="2575" y2="300" ></line>
+        <line x1="2600" y1="1450"  x2="2600" y2="300" ></line>
+        <line x1="2625" y1="1450"  x2="2625" y2="300" ></line>
+        <line x1="2650" y1="1450"  x2="2650" y2="300" ></line>
+        <line x1="2675" y1="1450"  x2="2675" y2="300" ></line>
+        <line x1="2700" y1="1450"  x2="2700" y2="300" ></line>
+        <line x1="2725" y1="1450"  x2="2725" y2="300" ></line>
+        <line x1="2750" y1="1450"  x2="2750" y2="300" ></line>
+        <line x1="2775" y1="1450"  x2="2775" y2="300" ></line>
+        <line x1="2800" y1="1450"  x2="2800" y2="300" ></line>
+        <line x1="2825" y1="1450"  x2="2825" y2="300" ></line>
+        <line x1="2850" y1="1450"  x2="2850" y2="300" ></line>
+        <line x1="2875" y1="1450"  x2="2875" y2="300" ></line>
+        <line x1="2900" y1="1450"  x2="2900" y2="300" ></line>
+        <line x1="2925" y1="1450"  x2="2925" y2="300" ></line>
+        <line x1="2950" y1="1450"  x2="2950" y2="300" ></line>
+        <line x1="2975" y1="1450"  x2="2975" y2="300" ></line>
+        <line x1="3000" y1="1450"  x2="3000" y2="300" ></line>
+        <line x1="3025" y1="1450"  x2="3025" y2="300" ></line>
+        <line x1="3050" y1="1450"  x2="3050" y2="300" ></line>
+        <line x1="3075" y1="1450"  x2="3075" y2="300" ></line>
+        <line x1="3100" y1="1450"  x2="3100" y2="300" ></line>
+        <line x1="3125" y1="1450"  x2="3125" y2="300" ></line>
+        <line x1="3150" y1="1450"  x2="3150" y2="300" ></line>
+        <line x1="3175" y1="1450"  x2="3175" y2="300" ></line>
+        <line x1="3200" y1="1450"  x2="3200" y2="300" ></line>
+        <line x1="3225" y1="1450"  x2="3225" y2="300" ></line>
+        <line x1="3250" y1="1450"  x2="3250" y2="300" ></line>
+        <line x1="3275" y1="1450"  x2="3275" y2="300" ></line>
+        <line x1="3300" y1="1450"  x2="3300" y2="300" ></line>
+        <line x1="3325" y1="1450"  x2="3325" y2="300" ></line>
+        <line x1="3350" y1="1450"  x2="3350" y2="300" ></line>
+        <line x1="3375" y1="1450"  x2="3375" y2="300" ></line>
+        <line x1="3400" y1="1450"  x2="3400" y2="300" ></line>
+        <line x1="3425" y1="1450"  x2="3425" y2="300" ></line>
+        <line x1="3450" y1="1450"  x2="3450" y2="300" ></line>
+        <line x1="3475" y1="1450"  x2="3475" y2="300" ></line>
+        <line x1="3500" y1="1450"  x2="3500" y2="300" ></line>
+        <line x1="3525" y1="1450"  x2="3525" y2="300" ></line>
+        <line x1="3550" y1="1450"  x2="3550" y2="300" ></line>
+        <line x1="3575" y1="1450"  x2="3575" y2="300" ></line>
+        <line x1="3600" y1="1450"  x2="3600" y2="300" ></line>
+        <line x1="3625" y1="1450"  x2="3625" y2="300" ></line>
+        <line x1="3650" y1="1450"  x2="3650" y2="300" ></line>
+        <line x1="3675" y1="1450"  x2="3675" y2="300" ></line>
+        <line x1="3700" y1="1450"  x2="3700" y2="300" ></line>
+        <line x1="3725" y1="1450"  x2="3725" y2="300" ></line>
+        <line x1="3750" y1="1450"  x2="3750" y2="300" ></line>
+        <line x1="3775" y1="1450"  x2="3775" y2="300" ></line>
+        <line x1="3800" y1="1450"  x2="3800" y2="300" ></line>
+        <line x1="3825" y1="1450"  x2="3825" y2="300" ></line>
+        <line x1="3850" y1="1450"  x2="3850" y2="300" ></line>
+        <line x1="3875" y1="1450"  x2="3875" y2="300" ></line>
+        <line x1="3900" y1="1450"  x2="3900" y2="300" ></line>
+        <line x1="3925" y1="1450"  x2="3925" y2="300" ></line>
+        <line x1="3950" y1="1450"  x2="3950" y2="300" ></line>
+        <line x1="3975" y1="1450"  x2="3975" y2="300" ></line>
+        <line x1="4000" y1="1450"  x2="4000" y2="300" ></line>
+        <line x1="4025" y1="1450"  x2="4025" y2="300" ></line>
+        <line x1="4050" y1="1450"  x2="4050" y2="300" ></line>
+        <line x1="4075" y1="1450"  x2="4075" y2="300" ></line>
+        <line x1="4100" y1="1450"  x2="4100" y2="300" ></line>
+        <line x1="4125" y1="1450"  x2="4125" y2="300" ></line>
+        <line x1="4150" y1="1450"  x2="4150" y2="300" ></line>
+        <line x1="4175" y1="1450"  x2="4175" y2="300" ></line>
+        <line x1="4200" y1="1450"  x2="4200" y2="300" ></line>
+        <line x1="4225" y1="1450"  x2="4225" y2="300" ></line>
+        <line x1="4250" y1="1450"  x2="4250" y2="300" ></line>
+        <line x1="4275" y1="1450"  x2="4275" y2="300" ></line>
+        <line x1="4300" y1="1450"  x2="4300" y2="300" ></line>
+        <line x1="4325" y1="1450"  x2="4325" y2="300" ></line>
+        <line x1="4350" y1="1450"  x2="4350" y2="300" ></line>
+        <line x1="4375" y1="1450"  x2="4375" y2="300" ></line>
+        <line x1="4400" y1="1450"  x2="4400" y2="300" ></line>
+        <line x1="4425" y1="1450"  x2="4425" y2="300" ></line>
+        <line x1="4450" y1="1450"  x2="4450" y2="300" ></line>
+        <line x1="4475" y1="1450"  x2="4475" y2="300" ></line>
+        <line x1="4500" y1="1450"  x2="4500" y2="300" ></line>
+        <line x1="4525" y1="1450"  x2="4525" y2="300" ></line>
+        <line x1="4550" y1="1450"  x2="4550" y2="300" ></line>
+        <line x1="4575" y1="1450"  x2="4575" y2="300" ></line>
+        <line x1="4600" y1="1450"  x2="4600" y2="300" ></line>
+        <line x1="4625" y1="1450"  x2="4625" y2="300" ></line>
+        <line x1="4650" y1="1450"  x2="4650" y2="300" ></line>
+        <line x1="4675" y1="1450"  x2="4675" y2="300" ></line>
+        <line x1="4700" y1="1450"  x2="4700" y2="300" ></line>
+        <line x1="4725" y1="1450"  x2="4725" y2="300" ></line>
+        <line x1="4750" y1="1450"  x2="4750" y2="300" ></line>
+        <line x1="4775" y1="1450"  x2="4775" y2="300" ></line>
+        <line x1="4800" y1="1450"  x2="4800" y2="300" ></line>
+        <line x1="4825" y1="1450"  x2="4825" y2="300" ></line>
+        <line x1="4850" y1="1450"  x2="4850" y2="300" ></line>
+        <line x1="4875" y1="1450"  x2="4875" y2="300" ></line>
+        <line x1="4900" y1="1450"  x2="4900" y2="300" ></line>
+        <line x1="4925" y1="1450"  x2="4925" y2="300" ></line>
+        <line x1="4950" y1="1450"  x2="4950" y2="300" ></line>
+        <line x1="4975" y1="1450"  x2="4975" y2="300" ></line>
+        <line x1="5000" y1="1450"  x2="5000" y2="300" ></line>
+        <line x1="5025" y1="1450"  x2="5025" y2="300" ></line>
+        <line x1="5050" y1="1450"  x2="5050" y2="300" ></line>
+        <line x1="5075" y1="1450"  x2="5075" y2="300" ></line>
+        <line x1="5100" y1="1450"  x2="5100" y2="300" ></line>
+        <line x1="5125" y1="1450"  x2="5125" y2="300" ></line>
+        <line x1="5150" y1="1450"  x2="5150" y2="300" ></line>
+        <line x1="5175" y1="1450"  x2="5175" y2="300" ></line>
+        <line x1="5200" y1="1450"  x2="5200" y2="300" ></line>
+        <line x1="5225" y1="1450"  x2="5225" y2="300" ></line>
+        <line x1="5250" y1="1450"  x2="5250" y2="300" ></line>
+        <line x1="5275" y1="1450"  x2="5275" y2="300" ></line>
+        <line x1="5300" y1="1450"  x2="5300" y2="300" ></line>
+        <line x1="5325" y1="1450"  x2="5325" y2="300" ></line>
+        <line x1="5350" y1="1450"  x2="5350" y2="300" ></line>
+        <line x1="5375" y1="1450"  x2="5375" y2="300" ></line>
+        <line x1="5400" y1="1450"  x2="5400" y2="300" ></line>
+        <line x1="5425" y1="1450"  x2="5425" y2="300" ></line>
+        <line x1="5450" y1="1450"  x2="5450" y2="300" ></line>
+        <line x1="5475" y1="1450"  x2="5475" y2="300" ></line>
+        <line x1="5500" y1="1450"  x2="5500" y2="300" ></line>
+        <line x1="5525" y1="1450"  x2="5525" y2="300" ></line>
+        <line x1="5550" y1="1450"  x2="5550" y2="300" ></line>
+        <line x1="5575" y1="1450"  x2="5575" y2="300" ></line>
+        <line x1="5600" y1="1450"  x2="5600" y2="300" ></line>
+        <line x1="5625" y1="1450"  x2="5625" y2="300" ></line>
+        <line x1="5650" y1="1450"  x2="5650" y2="300" ></line>
+        <line x1="5675" y1="1450"  x2="5675" y2="300" ></line>
+        <line x1="5700" y1="1450"  x2="5700" y2="300" ></line>
+        <line x1="5725" y1="1450"  x2="5725" y2="300" ></line>
+        <line x1="5750" y1="1450"  x2="5750" y2="300" ></line>
+        <line x1="5775" y1="1450"  x2="5775" y2="300" ></line>
+        <line x1="5800" y1="1450"  x2="5800" y2="300" ></line>
+        <line x1="5825" y1="1450"  x2="5825" y2="300" ></line>
+        <line x1="5850" y1="1450"  x2="5850" y2="300" ></line>
+        <line x1="5875" y1="1450"  x2="5875" y2="300" ></line>
+        <line x1="5900" y1="1450"  x2="5900" y2="300" ></line>
+        <line x1="5925" y1="1450"  x2="5925" y2="300" ></line>
+        <line x1="5950" y1="1450"  x2="5950" y2="300" ></line>
+        <line x1="5975" y1="1450"  x2="5975" y2="300" ></line>
+        <line x1="6000" y1="1450"  x2="6000" y2="300" ></line>
+        <line x1="6025" y1="1450"  x2="6025" y2="300" ></line>
+        <line x1="6050" y1="1450"  x2="6050" y2="300" ></line>
+        <line x1="6075" y1="1450"  x2="6075" y2="300" ></line>
+        <line x1="6100" y1="1450"  x2="6100" y2="300" ></line>
+        <line x1="6125" y1="1450"  x2="6125" y2="300" ></line>
+        <line x1="6150" y1="1450"  x2="6150" y2="300" ></line>
+        <line x1="6175" y1="1450"  x2="6175" y2="300" ></line>
+        <line x1="6200" y1="1450"  x2="6200" y2="300" ></line>
+        <line x1="6225" y1="1450"  x2="6225" y2="300" ></line>
+        <line x1="6250" y1="1450"  x2="6250" y2="300" ></line>
+        <line x1="6275" y1="1450"  x2="6275" y2="300" ></line>
+        <line x1="6300" y1="1450"  x2="6300" y2="300" ></line>
+        <line x1="6325" y1="1450"  x2="6325" y2="300" ></line>
+        <line x1="6350" y1="1450"  x2="6350" y2="300" ></line>
+        <line x1="6375" y1="1450"  x2="6375" y2="300" ></line>
+        <line x1="6400" y1="1450"  x2="6400" y2="300" ></line>
+        <line x1="6425" y1="1450"  x2="6425" y2="300" ></line>
+        <line x1="6450" y1="1450"  x2="6450" y2="300" ></line>
+        <line x1="6475" y1="1450"  x2="6475" y2="300" ></line>
+        <line x1="6500" y1="1450"  x2="6500" y2="300" ></line>
+        <line x1="6525" y1="1450"  x2="6525" y2="300" ></line>
+        <line x1="6550" y1="1450"  x2="6550" y2="300" ></line>
+        <line x1="6575" y1="1450"  x2="6575" y2="300" ></line>
+        <line x1="6600" y1="1450"  x2="6600" y2="300" ></line>
+        <line x1="6625" y1="1450"  x2="6625" y2="300" ></line>
+        <line x1="6650" y1="1450"  x2="6650" y2="300" ></line>
+        <line x1="6675" y1="1450"  x2="6675" y2="300" ></line>
+        <line x1="6700" y1="1450"  x2="6700" y2="300" ></line>
+        <line x1="6725" y1="1450"  x2="6725" y2="300" ></line>
+        <line x1="6750" y1="1450"  x2="6750" y2="300" ></line>
+        <line x1="6775" y1="1450"  x2="6775" y2="300" ></line>
+        <line x1="6800" y1="1450"  x2="6800" y2="300" ></line>
+        <line x1="6825" y1="1450"  x2="6825" y2="300" ></line>
+        <line x1="6850" y1="1450"  x2="6850" y2="300" ></line>
+        <line x1="6875" y1="1450"  x2="6875" y2="300" ></line>
+        <line x1="6900" y1="1450"  x2="6900" y2="300" ></line>
+        <line x1="6925" y1="1450"  x2="6925" y2="300" ></line>
+        <line x1="6950" y1="1450"  x2="6950" y2="300" ></line>
+        <line x1="6975" y1="1450"  x2="6975" y2="300" ></line>
+        <line x1="7000" y1="1450"  x2="7000" y2="300" ></line>
+        <line x1="7025" y1="1450"  x2="7025" y2="300" ></line>
+        <line x1="7050" y1="1450"  x2="7050" y2="300" ></line>
+        <line x1="7075" y1="1450"  x2="7075" y2="300" ></line>
+        <line x1="7100" y1="1450"  x2="7100" y2="300" ></line>
+        <line x1="7125" y1="1450"  x2="7125" y2="300" ></line>
+        <line x1="7150" y1="1450"  x2="7150" y2="300" ></line>
+        <line x1="7175" y1="1450"  x2="7175" y2="300" ></line>
+        <line x1="7200" y1="1450"  x2="7200" y2="300" ></line>
+        <line x1="7225" y1="1450"  x2="7225" y2="300" ></line>
+        <line x1="7250" y1="1450"  x2="7250" y2="300" ></line>
+        <line x1="7275" y1="1450"  x2="7275" y2="300" ></line>
+        <line x1="7300" y1="1450"  x2="7300" y2="300" ></line>
+        <line x1="7325" y1="1450"  x2="7325" y2="300" ></line>
+        <line x1="7350" y1="1450"  x2="7350" y2="300" ></line>
+        <line x1="7375" y1="1450"  x2="7375" y2="300" ></line>
+        <line x1="7400" y1="1450"  x2="7400" y2="300" ></line>
+        <line x1="7425" y1="1450"  x2="7425" y2="300" ></line>
+        <line x1="7450" y1="1450"  x2="7450" y2="300" ></line>
+        <line x1="7475" y1="1450"  x2="7475" y2="300" ></line>
+        <line x1="7500" y1="1450"  x2="7500" y2="300" ></line>
+        <line x1="7525" y1="1450"  x2="7525" y2="300" ></line>
+        <line x1="7550" y1="1450"  x2="7550" y2="300" ></line>
+        <line x1="7575" y1="1450"  x2="7575" y2="300" ></line>
+        <line x1="7600" y1="1450"  x2="7600" y2="300" ></line>
+        <line x1="7625" y1="1450"  x2="7625" y2="300" ></line>
+        <line x1="7650" y1="1450"  x2="7650" y2="300" ></line>
+        <line x1="7675" y1="1450"  x2="7675" y2="300" ></line>
+        <line x1="7700" y1="1450"  x2="7700" y2="300" ></line>
+        <line x1="7725" y1="1450"  x2="7725" y2="300" ></line>
+        <line x1="7750" y1="1450"  x2="7750" y2="300" ></line>
+        <line x1="7775" y1="1450"  x2="7775" y2="300" ></line>
+        <line x1="7800" y1="1450"  x2="7800" y2="300" ></line>
+        <line x1="7825" y1="1450"  x2="7825" y2="300" ></line>
+        <line x1="7850" y1="1450"  x2="7850" y2="300" ></line>
+        <line x1="7875" y1="1450"  x2="7875" y2="300" ></line>
+        <line x1="7900" y1="1450"  x2="7900" y2="300" ></line>
+        <line x1="7925" y1="1450"  x2="7925" y2="300" ></line>
+        <line x1="7950" y1="1450"  x2="7950" y2="300" ></line>
+        <line x1="7975" y1="1450"  x2="7975" y2="300" ></line>
+        <line x1="8000" y1="1450"  x2="8000" y2="300" ></line>
+        <line x1="8025" y1="1450"  x2="8025" y2="300" ></line>
+        <line x1="8050" y1="1450"  x2="8050" y2="300" ></line>
+        <line x1="8075" y1="1450"  x2="8075" y2="300" ></line>
+        <line x1="8100" y1="1450"  x2="8100" y2="300" ></line>
+        <line x1="8125" y1="1450"  x2="8125" y2="300" ></line>
+        <line x1="8150" y1="1450"  x2="8150" y2="300" ></line>
+        <line x1="8175" y1="1450"  x2="8175" y2="300" ></line>
+        <line x1="8200" y1="1450"  x2="8200" y2="300" ></line>
+        <line x1="8225" y1="1450"  x2="8225" y2="300" ></line>
+        <line x1="8250" y1="1450"  x2="8250" y2="300" ></line>
+        <line x1="8275" y1="1450"  x2="8275" y2="300" ></line>
+        <line x1="8300" y1="1450"  x2="8300" y2="300" ></line>
+        <line x1="8325" y1="1450"  x2="8325" y2="300" ></line>
+        <line x1="8350" y1="1450"  x2="8350" y2="300" ></line>
+        <line x1="8375" y1="1450"  x2="8375" y2="300" ></line>
+        <line x1="8400" y1="1450"  x2="8400" y2="300" ></line>
+        <line x1="8425" y1="1450"  x2="8425" y2="300" ></line>
+        <line x1="8450" y1="1450"  x2="8450" y2="300" ></line>
+        <line x1="8475" y1="1450"  x2="8475" y2="300" ></line>
+        <line x1="8500" y1="1450"  x2="8500" y2="300" ></line>
+        <line x1="8525" y1="1450"  x2="8525" y2="300" ></line>
+        <line x1="8550" y1="1450"  x2="8550" y2="300" ></line>
+        <line x1="8575" y1="1450"  x2="8575" y2="300" ></line>
+        <line x1="8600" y1="1450"  x2="8600" y2="300" ></line>
+        <line x1="8625" y1="1450"  x2="8625" y2="300" ></line>
+        <line x1="8650" y1="1450"  x2="8650" y2="300" ></line>
+        <line x1="8675" y1="1450"  x2="8675" y2="300" ></line>
+        <line x1="8700" y1="1450"  x2="8700" y2="300" ></line>
+        <line x1="8725" y1="1450"  x2="8725" y2="300" ></line>
+        <line x1="8750" y1="1450"  x2="8750" y2="300" ></line>
+        <line x1="8775" y1="1450"  x2="8775" y2="300" ></line>
+        <line x1="8800" y1="1450"  x2="8800" y2="300" ></line>
+        <line x1="8825" y1="1450"  x2="8825" y2="300" ></line>
+        <line x1="8850" y1="1450"  x2="8850" y2="300" ></line>
+        <line x1="8875" y1="1450"  x2="8875" y2="300" ></line>
+        <line x1="8900" y1="1450"  x2="8900" y2="300" ></line>
+        <line x1="8925" y1="1450"  x2="8925" y2="300" ></line>
+        <line x1="8950" y1="1450"  x2="8950" y2="300" ></line>
+        <line x1="8975" y1="1450"  x2="8975" y2="300" ></line>
+        <line x1="9000" y1="1450"  x2="9000" y2="300" ></line>
+        <line x1="9025" y1="1450"  x2="9025" y2="300" ></line>
+        <line x1="9050" y1="1450"  x2="9050" y2="300" ></line>
+        <line x1="9075" y1="1450"  x2="9075" y2="300" ></line>
+        <line x1="9100" y1="1450"  x2="9100" y2="300" ></line>
+        <line x1="9125" y1="1450"  x2="9125" y2="300" ></line>
+        <line x1="9150" y1="1450"  x2="9150" y2="300" ></line>
+        <line x1="9175" y1="1450"  x2="9175" y2="300" ></line>
+        <line x1="9200" y1="1450"  x2="9200" y2="300" ></line>
+        <line x1="9225" y1="1450"  x2="9225" y2="300" ></line>
+        <line x1="9250" y1="1450"  x2="9250" y2="300" ></line>
+        <line x1="9275" y1="1450"  x2="9275" y2="300" ></line>
+        <line x1="9300" y1="1450"  x2="9300" y2="300" ></line>
+        <line x1="9325" y1="1450"  x2="9325" y2="300" ></line>
+        <line x1="9350" y1="1450"  x2="9350" y2="300" ></line>
+        <line x1="9375" y1="1450"  x2="9375" y2="300" ></line>
+        <line x1="1545" y1="1450"  x2="1545" y2="300" stroke="#00FFFF" ></line>
+        <line x1="1065" y1="1450"  x2="1065" y2="300" stroke="#FF7F00" ></line>
+    </g>
+</g>
+<!-- Labels. -->
+<g fill="#FFFFFF" font-size="15px" font-family="monospace">
+        <text x="300" y="1502" font-size="18px" font-weight="bold" text-anchor="start" fill="#00FFFF" >Tetrs Combo (4-wide 3-res.) - Bot run statistics.</text>
+        <text x="300" y="1525" text-anchor="start">samples = 2500, randomizer = 'recency', lookahead = 4; combo_median = 153, combo_average = 249, combo_max = 1813, frequency_max = 111.</text>
+    <!-- y-axis labels. -->
+    <g text-anchor="end">
+        <text x="293" y="1457">0</text>
+        <text x="293" y="1407">5</text>
+        <text x="293" y="1357">10</text>
+        <text x="293" y="1307">15</text>
+        <text x="293" y="1257">20</text>
+        <text x="293" y="1207">25</text>
+        <text x="293" y="1157">30</text>
+        <text x="293" y="1107">35</text>
+        <text x="293" y="1057">40</text>
+        <text x="293" y="1007">45</text>
+        <text x="293" y="957">50</text>
+        <text x="293" y="907">55</text>
+        <text x="293" y="857">60</text>
+        <text x="293" y="807">65</text>
+        <text x="293" y="757">70</text>
+        <text x="293" y="707">75</text>
+        <text x="293" y="657">80</text>
+        <text x="293" y="607">85</text>
+        <text x="293" y="557">90</text>
+        <text x="293" y="507">95</text>
+        <text x="293" y="457">100</text>
+        <text x="293" y="407">105</text>
+        <text x="293" y="357">110</text>
+        <text x="293" y="307">115</text>
+        <text x="300" y="285" text-anchor="middle">Frequency</text>
+        <text x="1545" y="285" fill="#00FFFF" text-anchor="middle">Average</text>
+        <text x="1065" y="285" fill="#FF7F00" text-anchor="middle">Median</text>
+    </g>
+    <!-- x-axis labels. -->
+    <g text-anchor="middle">
+        <text transform="translate(293,1472) rotate(45)">0</text>
+        <text transform="translate(318,1472) rotate(45)">5</text>
+        <text transform="translate(343,1472) rotate(45)">10</text>
+        <text transform="translate(368,1472) rotate(45)">15</text>
+        <text transform="translate(393,1472) rotate(45)">20</text>
+        <text transform="translate(418,1472) rotate(45)">25</text>
+        <text transform="translate(443,1472) rotate(45)">30</text>
+        <text transform="translate(468,1472) rotate(45)">35</text>
+        <text transform="translate(493,1472) rotate(45)">40</text>
+        <text transform="translate(518,1472) rotate(45)">45</text>
+        <text transform="translate(543,1472) rotate(45)">50</text>
+        <text transform="translate(568,1472) rotate(45)">55</text>
+        <text transform="translate(593,1472) rotate(45)">60</text>
+        <text transform="translate(618,1472) rotate(45)">65</text>
+        <text transform="translate(643,1472) rotate(45)">70</text>
+        <text transform="translate(668,1472) rotate(45)">75</text>
+        <text transform="translate(693,1472) rotate(45)">80</text>
+        <text transform="translate(718,1472) rotate(45)">85</text>
+        <text transform="translate(743,1472) rotate(45)">90</text>
+        <text transform="translate(768,1472) rotate(45)">95</text>
+        <text transform="translate(793,1472) rotate(45)">100</text>
+        <text transform="translate(818,1472) rotate(45)">105</text>
+        <text transform="translate(843,1472) rotate(45)">110</text>
+        <text transform="translate(868,1472) rotate(45)">115</text>
+        <text transform="translate(893,1472) rotate(45)">120</text>
+        <text transform="translate(918,1472) rotate(45)">125</text>
+        <text transform="translate(943,1472) rotate(45)">130</text>
+        <text transform="translate(968,1472) rotate(45)">135</text>
+        <text transform="translate(993,1472) rotate(45)">140</text>
+        <text transform="translate(1018,1472) rotate(45)">145</text>
+        <text transform="translate(1043,1472) rotate(45)">150</text>
+        <text transform="translate(1068,1472) rotate(45)">155</text>
+        <text transform="translate(1093,1472) rotate(45)">160</text>
+        <text transform="translate(1118,1472) rotate(45)">165</text>
+        <text transform="translate(1143,1472) rotate(45)">170</text>
+        <text transform="translate(1168,1472) rotate(45)">175</text>
+        <text transform="translate(1193,1472) rotate(45)">180</text>
+        <text transform="translate(1218,1472) rotate(45)">185</text>
+        <text transform="translate(1243,1472) rotate(45)">190</text>
+        <text transform="translate(1268,1472) rotate(45)">195</text>
+        <text transform="translate(1293,1472) rotate(45)">200</text>
+        <text transform="translate(1318,1472) rotate(45)">205</text>
+        <text transform="translate(1343,1472) rotate(45)">210</text>
+        <text transform="translate(1368,1472) rotate(45)">215</text>
+        <text transform="translate(1393,1472) rotate(45)">220</text>
+        <text transform="translate(1418,1472) rotate(45)">225</text>
+        <text transform="translate(1443,1472) rotate(45)">230</text>
+        <text transform="translate(1468,1472) rotate(45)">235</text>
+        <text transform="translate(1493,1472) rotate(45)">240</text>
+        <text transform="translate(1518,1472) rotate(45)">245</text>
+        <text transform="translate(1543,1472) rotate(45)">250</text>
+        <text transform="translate(1568,1472) rotate(45)">255</text>
+        <text transform="translate(1593,1472) rotate(45)">260</text>
+        <text transform="translate(1618,1472) rotate(45)">265</text>
+        <text transform="translate(1643,1472) rotate(45)">270</text>
+        <text transform="translate(1668,1472) rotate(45)">275</text>
+        <text transform="translate(1693,1472) rotate(45)">280</text>
+        <text transform="translate(1718,1472) rotate(45)">285</text>
+        <text transform="translate(1743,1472) rotate(45)">290</text>
+        <text transform="translate(1768,1472) rotate(45)">295</text>
+        <text transform="translate(1793,1472) rotate(45)">300</text>
+        <text transform="translate(1818,1472) rotate(45)">305</text>
+        <text transform="translate(1843,1472) rotate(45)">310</text>
+        <text transform="translate(1868,1472) rotate(45)">315</text>
+        <text transform="translate(1893,1472) rotate(45)">320</text>
+        <text transform="translate(1918,1472) rotate(45)">325</text>
+        <text transform="translate(1943,1472) rotate(45)">330</text>
+        <text transform="translate(1968,1472) rotate(45)">335</text>
+        <text transform="translate(1993,1472) rotate(45)">340</text>
+        <text transform="translate(2018,1472) rotate(45)">345</text>
+        <text transform="translate(2043,1472) rotate(45)">350</text>
+        <text transform="translate(2068,1472) rotate(45)">355</text>
+        <text transform="translate(2093,1472) rotate(45)">360</text>
+        <text transform="translate(2118,1472) rotate(45)">365</text>
+        <text transform="translate(2143,1472) rotate(45)">370</text>
+        <text transform="translate(2168,1472) rotate(45)">375</text>
+        <text transform="translate(2193,1472) rotate(45)">380</text>
+        <text transform="translate(2218,1472) rotate(45)">385</text>
+        <text transform="translate(2243,1472) rotate(45)">390</text>
+        <text transform="translate(2268,1472) rotate(45)">395</text>
+        <text transform="translate(2293,1472) rotate(45)">400</text>
+        <text transform="translate(2318,1472) rotate(45)">405</text>
+        <text transform="translate(2343,1472) rotate(45)">410</text>
+        <text transform="translate(2368,1472) rotate(45)">415</text>
+        <text transform="translate(2393,1472) rotate(45)">420</text>
+        <text transform="translate(2418,1472) rotate(45)">425</text>
+        <text transform="translate(2443,1472) rotate(45)">430</text>
+        <text transform="translate(2468,1472) rotate(45)">435</text>
+        <text transform="translate(2493,1472) rotate(45)">440</text>
+        <text transform="translate(2518,1472) rotate(45)">445</text>
+        <text transform="translate(2543,1472) rotate(45)">450</text>
+        <text transform="translate(2568,1472) rotate(45)">455</text>
+        <text transform="translate(2593,1472) rotate(45)">460</text>
+        <text transform="translate(2618,1472) rotate(45)">465</text>
+        <text transform="translate(2643,1472) rotate(45)">470</text>
+        <text transform="translate(2668,1472) rotate(45)">475</text>
+        <text transform="translate(2693,1472) rotate(45)">480</text>
+        <text transform="translate(2718,1472) rotate(45)">485</text>
+        <text transform="translate(2743,1472) rotate(45)">490</text>
+        <text transform="translate(2768,1472) rotate(45)">495</text>
+        <text transform="translate(2793,1472) rotate(45)">500</text>
+        <text transform="translate(2818,1472) rotate(45)">505</text>
+        <text transform="translate(2843,1472) rotate(45)">510</text>
+        <text transform="translate(2868,1472) rotate(45)">515</text>
+        <text transform="translate(2893,1472) rotate(45)">520</text>
+        <text transform="translate(2918,1472) rotate(45)">525</text>
+        <text transform="translate(2943,1472) rotate(45)">530</text>
+        <text transform="translate(2968,1472) rotate(45)">535</text>
+        <text transform="translate(2993,1472) rotate(45)">540</text>
+        <text transform="translate(3018,1472) rotate(45)">545</text>
+        <text transform="translate(3043,1472) rotate(45)">550</text>
+        <text transform="translate(3068,1472) rotate(45)">555</text>
+        <text transform="translate(3093,1472) rotate(45)">560</text>
+        <text transform="translate(3118,1472) rotate(45)">565</text>
+        <text transform="translate(3143,1472) rotate(45)">570</text>
+        <text transform="translate(3168,1472) rotate(45)">575</text>
+        <text transform="translate(3193,1472) rotate(45)">580</text>
+        <text transform="translate(3218,1472) rotate(45)">585</text>
+        <text transform="translate(3243,1472) rotate(45)">590</text>
+        <text transform="translate(3268,1472) rotate(45)">595</text>
+        <text transform="translate(3293,1472) rotate(45)">600</text>
+        <text transform="translate(3318,1472) rotate(45)">605</text>
+        <text transform="translate(3343,1472) rotate(45)">610</text>
+        <text transform="translate(3368,1472) rotate(45)">615</text>
+        <text transform="translate(3393,1472) rotate(45)">620</text>
+        <text transform="translate(3418,1472) rotate(45)">625</text>
+        <text transform="translate(3443,1472) rotate(45)">630</text>
+        <text transform="translate(3468,1472) rotate(45)">635</text>
+        <text transform="translate(3493,1472) rotate(45)">640</text>
+        <text transform="translate(3518,1472) rotate(45)">645</text>
+        <text transform="translate(3543,1472) rotate(45)">650</text>
+        <text transform="translate(3568,1472) rotate(45)">655</text>
+        <text transform="translate(3593,1472) rotate(45)">660</text>
+        <text transform="translate(3618,1472) rotate(45)">665</text>
+        <text transform="translate(3643,1472) rotate(45)">670</text>
+        <text transform="translate(3668,1472) rotate(45)">675</text>
+        <text transform="translate(3693,1472) rotate(45)">680</text>
+        <text transform="translate(3718,1472) rotate(45)">685</text>
+        <text transform="translate(3743,1472) rotate(45)">690</text>
+        <text transform="translate(3768,1472) rotate(45)">695</text>
+        <text transform="translate(3793,1472) rotate(45)">700</text>
+        <text transform="translate(3818,1472) rotate(45)">705</text>
+        <text transform="translate(3843,1472) rotate(45)">710</text>
+        <text transform="translate(3868,1472) rotate(45)">715</text>
+        <text transform="translate(3893,1472) rotate(45)">720</text>
+        <text transform="translate(3918,1472) rotate(45)">725</text>
+        <text transform="translate(3943,1472) rotate(45)">730</text>
+        <text transform="translate(3968,1472) rotate(45)">735</text>
+        <text transform="translate(3993,1472) rotate(45)">740</text>
+        <text transform="translate(4018,1472) rotate(45)">745</text>
+        <text transform="translate(4043,1472) rotate(45)">750</text>
+        <text transform="translate(4068,1472) rotate(45)">755</text>
+        <text transform="translate(4093,1472) rotate(45)">760</text>
+        <text transform="translate(4118,1472) rotate(45)">765</text>
+        <text transform="translate(4143,1472) rotate(45)">770</text>
+        <text transform="translate(4168,1472) rotate(45)">775</text>
+        <text transform="translate(4193,1472) rotate(45)">780</text>
+        <text transform="translate(4218,1472) rotate(45)">785</text>
+        <text transform="translate(4243,1472) rotate(45)">790</text>
+        <text transform="translate(4268,1472) rotate(45)">795</text>
+        <text transform="translate(4293,1472) rotate(45)">800</text>
+        <text transform="translate(4318,1472) rotate(45)">805</text>
+        <text transform="translate(4343,1472) rotate(45)">810</text>
+        <text transform="translate(4368,1472) rotate(45)">815</text>
+        <text transform="translate(4393,1472) rotate(45)">820</text>
+        <text transform="translate(4418,1472) rotate(45)">825</text>
+        <text transform="translate(4443,1472) rotate(45)">830</text>
+        <text transform="translate(4468,1472) rotate(45)">835</text>
+        <text transform="translate(4493,1472) rotate(45)">840</text>
+        <text transform="translate(4518,1472) rotate(45)">845</text>
+        <text transform="translate(4543,1472) rotate(45)">850</text>
+        <text transform="translate(4568,1472) rotate(45)">855</text>
+        <text transform="translate(4593,1472) rotate(45)">860</text>
+        <text transform="translate(4618,1472) rotate(45)">865</text>
+        <text transform="translate(4643,1472) rotate(45)">870</text>
+        <text transform="translate(4668,1472) rotate(45)">875</text>
+        <text transform="translate(4693,1472) rotate(45)">880</text>
+        <text transform="translate(4718,1472) rotate(45)">885</text>
+        <text transform="translate(4743,1472) rotate(45)">890</text>
+        <text transform="translate(4768,1472) rotate(45)">895</text>
+        <text transform="translate(4793,1472) rotate(45)">900</text>
+        <text transform="translate(4818,1472) rotate(45)">905</text>
+        <text transform="translate(4843,1472) rotate(45)">910</text>
+        <text transform="translate(4868,1472) rotate(45)">915</text>
+        <text transform="translate(4893,1472) rotate(45)">920</text>
+        <text transform="translate(4918,1472) rotate(45)">925</text>
+        <text transform="translate(4943,1472) rotate(45)">930</text>
+        <text transform="translate(4968,1472) rotate(45)">935</text>
+        <text transform="translate(4993,1472) rotate(45)">940</text>
+        <text transform="translate(5018,1472) rotate(45)">945</text>
+        <text transform="translate(5043,1472) rotate(45)">950</text>
+        <text transform="translate(5068,1472) rotate(45)">955</text>
+        <text transform="translate(5093,1472) rotate(45)">960</text>
+        <text transform="translate(5118,1472) rotate(45)">965</text>
+        <text transform="translate(5143,1472) rotate(45)">970</text>
+        <text transform="translate(5168,1472) rotate(45)">975</text>
+        <text transform="translate(5193,1472) rotate(45)">980</text>
+        <text transform="translate(5218,1472) rotate(45)">985</text>
+        <text transform="translate(5243,1472) rotate(45)">990</text>
+        <text transform="translate(5268,1472) rotate(45)">995</text>
+        <text transform="translate(5293,1472) rotate(45)">1000</text>
+        <text transform="translate(5318,1472) rotate(45)">1005</text>
+        <text transform="translate(5343,1472) rotate(45)">1010</text>
+        <text transform="translate(5368,1472) rotate(45)">1015</text>
+        <text transform="translate(5393,1472) rotate(45)">1020</text>
+        <text transform="translate(5418,1472) rotate(45)">1025</text>
+        <text transform="translate(5443,1472) rotate(45)">1030</text>
+        <text transform="translate(5468,1472) rotate(45)">1035</text>
+        <text transform="translate(5493,1472) rotate(45)">1040</text>
+        <text transform="translate(5518,1472) rotate(45)">1045</text>
+        <text transform="translate(5543,1472) rotate(45)">1050</text>
+        <text transform="translate(5568,1472) rotate(45)">1055</text>
+        <text transform="translate(5593,1472) rotate(45)">1060</text>
+        <text transform="translate(5618,1472) rotate(45)">1065</text>
+        <text transform="translate(5643,1472) rotate(45)">1070</text>
+        <text transform="translate(5668,1472) rotate(45)">1075</text>
+        <text transform="translate(5693,1472) rotate(45)">1080</text>
+        <text transform="translate(5718,1472) rotate(45)">1085</text>
+        <text transform="translate(5743,1472) rotate(45)">1090</text>
+        <text transform="translate(5768,1472) rotate(45)">1095</text>
+        <text transform="translate(5793,1472) rotate(45)">1100</text>
+        <text transform="translate(5818,1472) rotate(45)">1105</text>
+        <text transform="translate(5843,1472) rotate(45)">1110</text>
+        <text transform="translate(5868,1472) rotate(45)">1115</text>
+        <text transform="translate(5893,1472) rotate(45)">1120</text>
+        <text transform="translate(5918,1472) rotate(45)">1125</text>
+        <text transform="translate(5943,1472) rotate(45)">1130</text>
+        <text transform="translate(5968,1472) rotate(45)">1135</text>
+        <text transform="translate(5993,1472) rotate(45)">1140</text>
+        <text transform="translate(6018,1472) rotate(45)">1145</text>
+        <text transform="translate(6043,1472) rotate(45)">1150</text>
+        <text transform="translate(6068,1472) rotate(45)">1155</text>
+        <text transform="translate(6093,1472) rotate(45)">1160</text>
+        <text transform="translate(6118,1472) rotate(45)">1165</text>
+        <text transform="translate(6143,1472) rotate(45)">1170</text>
+        <text transform="translate(6168,1472) rotate(45)">1175</text>
+        <text transform="translate(6193,1472) rotate(45)">1180</text>
+        <text transform="translate(6218,1472) rotate(45)">1185</text>
+        <text transform="translate(6243,1472) rotate(45)">1190</text>
+        <text transform="translate(6268,1472) rotate(45)">1195</text>
+        <text transform="translate(6293,1472) rotate(45)">1200</text>
+        <text transform="translate(6318,1472) rotate(45)">1205</text>
+        <text transform="translate(6343,1472) rotate(45)">1210</text>
+        <text transform="translate(6368,1472) rotate(45)">1215</text>
+        <text transform="translate(6393,1472) rotate(45)">1220</text>
+        <text transform="translate(6418,1472) rotate(45)">1225</text>
+        <text transform="translate(6443,1472) rotate(45)">1230</text>
+        <text transform="translate(6468,1472) rotate(45)">1235</text>
+        <text transform="translate(6493,1472) rotate(45)">1240</text>
+        <text transform="translate(6518,1472) rotate(45)">1245</text>
+        <text transform="translate(6543,1472) rotate(45)">1250</text>
+        <text transform="translate(6568,1472) rotate(45)">1255</text>
+        <text transform="translate(6593,1472) rotate(45)">1260</text>
+        <text transform="translate(6618,1472) rotate(45)">1265</text>
+        <text transform="translate(6643,1472) rotate(45)">1270</text>
+        <text transform="translate(6668,1472) rotate(45)">1275</text>
+        <text transform="translate(6693,1472) rotate(45)">1280</text>
+        <text transform="translate(6718,1472) rotate(45)">1285</text>
+        <text transform="translate(6743,1472) rotate(45)">1290</text>
+        <text transform="translate(6768,1472) rotate(45)">1295</text>
+        <text transform="translate(6793,1472) rotate(45)">1300</text>
+        <text transform="translate(6818,1472) rotate(45)">1305</text>
+        <text transform="translate(6843,1472) rotate(45)">1310</text>
+        <text transform="translate(6868,1472) rotate(45)">1315</text>
+        <text transform="translate(6893,1472) rotate(45)">1320</text>
+        <text transform="translate(6918,1472) rotate(45)">1325</text>
+        <text transform="translate(6943,1472) rotate(45)">1330</text>
+        <text transform="translate(6968,1472) rotate(45)">1335</text>
+        <text transform="translate(6993,1472) rotate(45)">1340</text>
+        <text transform="translate(7018,1472) rotate(45)">1345</text>
+        <text transform="translate(7043,1472) rotate(45)">1350</text>
+        <text transform="translate(7068,1472) rotate(45)">1355</text>
+        <text transform="translate(7093,1472) rotate(45)">1360</text>
+        <text transform="translate(7118,1472) rotate(45)">1365</text>
+        <text transform="translate(7143,1472) rotate(45)">1370</text>
+        <text transform="translate(7168,1472) rotate(45)">1375</text>
+        <text transform="translate(7193,1472) rotate(45)">1380</text>
+        <text transform="translate(7218,1472) rotate(45)">1385</text>
+        <text transform="translate(7243,1472) rotate(45)">1390</text>
+        <text transform="translate(7268,1472) rotate(45)">1395</text>
+        <text transform="translate(7293,1472) rotate(45)">1400</text>
+        <text transform="translate(7318,1472) rotate(45)">1405</text>
+        <text transform="translate(7343,1472) rotate(45)">1410</text>
+        <text transform="translate(7368,1472) rotate(45)">1415</text>
+        <text transform="translate(7393,1472) rotate(45)">1420</text>
+        <text transform="translate(7418,1472) rotate(45)">1425</text>
+        <text transform="translate(7443,1472) rotate(45)">1430</text>
+        <text transform="translate(7468,1472) rotate(45)">1435</text>
+        <text transform="translate(7493,1472) rotate(45)">1440</text>
+        <text transform="translate(7518,1472) rotate(45)">1445</text>
+        <text transform="translate(7543,1472) rotate(45)">1450</text>
+        <text transform="translate(7568,1472) rotate(45)">1455</text>
+        <text transform="translate(7593,1472) rotate(45)">1460</text>
+        <text transform="translate(7618,1472) rotate(45)">1465</text>
+        <text transform="translate(7643,1472) rotate(45)">1470</text>
+        <text transform="translate(7668,1472) rotate(45)">1475</text>
+        <text transform="translate(7693,1472) rotate(45)">1480</text>
+        <text transform="translate(7718,1472) rotate(45)">1485</text>
+        <text transform="translate(7743,1472) rotate(45)">1490</text>
+        <text transform="translate(7768,1472) rotate(45)">1495</text>
+        <text transform="translate(7793,1472) rotate(45)">1500</text>
+        <text transform="translate(7818,1472) rotate(45)">1505</text>
+        <text transform="translate(7843,1472) rotate(45)">1510</text>
+        <text transform="translate(7868,1472) rotate(45)">1515</text>
+        <text transform="translate(7893,1472) rotate(45)">1520</text>
+        <text transform="translate(7918,1472) rotate(45)">1525</text>
+        <text transform="translate(7943,1472) rotate(45)">1530</text>
+        <text transform="translate(7968,1472) rotate(45)">1535</text>
+        <text transform="translate(7993,1472) rotate(45)">1540</text>
+        <text transform="translate(8018,1472) rotate(45)">1545</text>
+        <text transform="translate(8043,1472) rotate(45)">1550</text>
+        <text transform="translate(8068,1472) rotate(45)">1555</text>
+        <text transform="translate(8093,1472) rotate(45)">1560</text>
+        <text transform="translate(8118,1472) rotate(45)">1565</text>
+        <text transform="translate(8143,1472) rotate(45)">1570</text>
+        <text transform="translate(8168,1472) rotate(45)">1575</text>
+        <text transform="translate(8193,1472) rotate(45)">1580</text>
+        <text transform="translate(8218,1472) rotate(45)">1585</text>
+        <text transform="translate(8243,1472) rotate(45)">1590</text>
+        <text transform="translate(8268,1472) rotate(45)">1595</text>
+        <text transform="translate(8293,1472) rotate(45)">1600</text>
+        <text transform="translate(8318,1472) rotate(45)">1605</text>
+        <text transform="translate(8343,1472) rotate(45)">1610</text>
+        <text transform="translate(8368,1472) rotate(45)">1615</text>
+        <text transform="translate(8393,1472) rotate(45)">1620</text>
+        <text transform="translate(8418,1472) rotate(45)">1625</text>
+        <text transform="translate(8443,1472) rotate(45)">1630</text>
+        <text transform="translate(8468,1472) rotate(45)">1635</text>
+        <text transform="translate(8493,1472) rotate(45)">1640</text>
+        <text transform="translate(8518,1472) rotate(45)">1645</text>
+        <text transform="translate(8543,1472) rotate(45)">1650</text>
+        <text transform="translate(8568,1472) rotate(45)">1655</text>
+        <text transform="translate(8593,1472) rotate(45)">1660</text>
+        <text transform="translate(8618,1472) rotate(45)">1665</text>
+        <text transform="translate(8643,1472) rotate(45)">1670</text>
+        <text transform="translate(8668,1472) rotate(45)">1675</text>
+        <text transform="translate(8693,1472) rotate(45)">1680</text>
+        <text transform="translate(8718,1472) rotate(45)">1685</text>
+        <text transform="translate(8743,1472) rotate(45)">1690</text>
+        <text transform="translate(8768,1472) rotate(45)">1695</text>
+        <text transform="translate(8793,1472) rotate(45)">1700</text>
+        <text transform="translate(8818,1472) rotate(45)">1705</text>
+        <text transform="translate(8843,1472) rotate(45)">1710</text>
+        <text transform="translate(8868,1472) rotate(45)">1715</text>
+        <text transform="translate(8893,1472) rotate(45)">1720</text>
+        <text transform="translate(8918,1472) rotate(45)">1725</text>
+        <text transform="translate(8943,1472) rotate(45)">1730</text>
+        <text transform="translate(8968,1472) rotate(45)">1735</text>
+        <text transform="translate(8993,1472) rotate(45)">1740</text>
+        <text transform="translate(9018,1472) rotate(45)">1745</text>
+        <text transform="translate(9043,1472) rotate(45)">1750</text>
+        <text transform="translate(9068,1472) rotate(45)">1755</text>
+        <text transform="translate(9093,1472) rotate(45)">1760</text>
+        <text transform="translate(9118,1472) rotate(45)">1765</text>
+        <text transform="translate(9143,1472) rotate(45)">1770</text>
+        <text transform="translate(9168,1472) rotate(45)">1775</text>
+        <text transform="translate(9193,1472) rotate(45)">1780</text>
+        <text transform="translate(9218,1472) rotate(45)">1785</text>
+        <text transform="translate(9243,1472) rotate(45)">1790</text>
+        <text transform="translate(9268,1472) rotate(45)">1795</text>
+        <text transform="translate(9293,1472) rotate(45)">1800</text>
+        <text transform="translate(9318,1472) rotate(45)">1805</text>
+        <text transform="translate(9343,1472) rotate(45)">1810</text>
+        <text transform="translate(9368,1472) rotate(45)">1815</text>
+        <text x="9390" y="1457" text-anchor="start">Combo Length</text>
+    </g>
+</g>
+<!-- Surface graph path. -->
+<path
+    stroke="#FFFFFF"
+    stroke-width="1"
+    fill="#FFFFFF"
+    fill-opacity=".5"
+    d="
+        M 300,1450
+        L300,1140
+        L305,560
+        L310,340
+        L315,600
+        L320,910
+        L325,850
+        L330,1030
+        L335,1180
+        L340,1230
+        L345,1340
+        L350,1260
+        L355,1400
+        L360,1300
+        L365,1380
+        L370,1370
+        L375,1390
+        L380,1330
+        L385,1340
+        L390,1400
+        L395,1420
+        L400,1380
+        L405,1380
+        L410,1400
+        L415,1380
+        L420,1390
+        L425,1390
+        L430,1420
+        L435,1400
+        L440,1440
+        L445,1350
+        L450,1390
+        L455,1380
+        L460,1430
+        L465,1370
+        L470,1410
+        L475,1370
+        L480,1380
+        L485,1370
+        L490,1390
+        L495,1420
+        L500,1380
+        L505,1390
+        L510,1360
+        L515,1400
+        L520,1410
+        L525,1360
+        L530,1370
+        L535,1440
+        L540,1390
+        L545,1390
+        L550,1430
+        L555,1390
+        L560,1400
+        L565,1340
+        L570,1430
+        L575,1410
+        L580,1350
+        L585,1410
+        L590,1410
+        L595,1400
+        L600,1390
+        L605,1380
+        L610,1400
+        L615,1360
+        L620,1370
+        L625,1410
+        L630,1420
+        L635,1380
+        L640,1400
+        L645,1420
+        L650,1400
+        L655,1380
+        L660,1400
+        L665,1440
+        L670,1420
+        L675,1400
+        L680,1420
+        L685,1380
+        L690,1410
+        L695,1410
+        L700,1400
+        L705,1390
+        L710,1390
+        L715,1400
+        L720,1390
+        L725,1410
+        L730,1420
+        L735,1400
+        L740,1390
+        L745,1390
+        L750,1420
+        L755,1360
+        L760,1410
+        L765,1370
+        L770,1360
+        L775,1420
+        L780,1400
+        L785,1410
+        L790,1410
+        L795,1370
+        L800,1380
+        L805,1420
+        L810,1440
+        L815,1410
+        L820,1410
+        L825,1400
+        L830,1400
+        L835,1420
+        L840,1400
+        L845,1420
+        L850,1440
+        L855,1410
+        L860,1400
+        L865,1420
+        L870,1430
+        L875,1410
+        L880,1410
+        L885,1430
+        L890,1440
+        L895,1400
+        L900,1430
+        L905,1430
+        L910,1430
+        L915,1380
+        L920,1420
+        L925,1420
+        L930,1370
+        L935,1440
+        L940,1430
+        L945,1430
+        L950,1410
+        L955,1420
+        L960,1430
+        L965,1420
+        L970,1440
+        L975,1430
+        L980,1400
+        L985,1400
+        L990,1410
+        L995,1420
+        L1000,1420
+        L1005,1400
+        L1010,1400
+        L1015,1410
+        L1020,1440
+        L1025,1390
+        L1030,1420
+        L1035,1420
+        L1040,1400
+        L1045,1400
+        L1050,1380
+        L1055,1410
+        L1060,1420
+        L1065,1420
+        L1070,1400
+        L1075,1430
+        L1080,1410
+        L1085,1420
+        L1090,1420
+        L1095,1410
+        L1100,1380
+        L1105,1410
+        L1110,1410
+        L1115,1410
+        L1120,1410
+        L1125,1380
+        L1130,1390
+        L1135,1440
+        L1140,1440
+        L1145,1410
+        L1150,1410
+        L1155,1440
+        L1160,1410
+        L1165,1400
+        L1170,1440
+        L1180,1400
+        L1185,1420
+        L1190,1410
+        L1195,1410
+        L1200,1420
+        L1205,1430
+        L1210,1390
+        L1215,1360
+        L1220,1440
+        L1225,1410
+        L1230,1430
+        L1235,1430
+        L1240,1420
+        L1245,1420
+        L1250,1400
+        L1255,1420
+        L1260,1430
+        L1265,1390
+        L1270,1370
+        L1275,1370
+        L1280,1390
+        L1285,1400
+        L1290,1400
+        L1295,1430
+        L1300,1400
+        L1305,1410
+        L1310,1420
+        L1315,1380
+        L1320,1420
+        L1325,1420
+        L1330,1430
+        L1335,1420
+        L1340,1440
+        L1345,1440
+        L1350,1390
+        L1355,1420
+        L1360,1410
+        L1365,1430
+        L1370,1420
+        L1375,1410
+        L1380,1430
+        L1385,1400
+        L1390,1430
+        L1395,1410
+        L1400,1430
+        L1405,1410
+        L1410,1430
+        L1415,1440
+        L1420,1400
+        L1425,1430
+        L1430,1440
+        L1435,1420
+        L1445,1420
+        L1450,1430
+        L1455,1440
+        L1460,1440
+        L1465,1420
+        L1470,1420
+        L1475,1430
+        L1480,1400
+        L1485,1400
+        L1490,1420
+        L1495,1420
+        L1500,1420
+        L1505,1390
+        L1510,1430
+        L1515,1440
+        L1520,1420
+        L1525,1400
+        L1530,1410
+        L1535,1380
+        L1540,1420
+        L1545,1440
+        L1550,1410
+        L1555,1380
+        L1560,1420
+        L1565,1410
+        L1570,1410
+        L1575,1400
+        L1580,1420
+        L1585,1400
+        L1590,1430
+        L1595,1440
+        L1600,1430
+        L1605,1440
+        L1610,1400
+        L1615,1380
+        L1625,1420
+        L1630,1440
+        L1635,1420
+        L1640,1440
+        L1645,1430
+        L1650,1430
+        L1655,1420
+        L1660,1380
+        L1665,1420
+        L1670,1430
+        L1675,1440
+        L1680,1420
+        L1685,1420
+        L1690,1410
+        L1695,1430
+        L1700,1420
+        L1705,1440
+        L1710,1410
+        L1715,1390
+        L1720,1420
+        L1725,1430
+        L1730,1410
+        L1735,1400
+        L1740,1400
+        L1745,1440
+        L1750,1430
+        L1760,1430
+        L1765,1440
+        L1770,1440
+        L1775,1410
+        L1780,1420
+        L1785,1440
+        L1790,1440
+        L1795,1440
+        L1800,1430
+        L1805,1430
+        L1810,1420
+        L1815,1420
+        L1820,1400
+        L1825,1420
+        L1830,1440
+        L1835,1440
+        L1845,1430
+        L1850,1440
+        L1855,1400
+        L1860,1420
+        L1865,1440
+        L1870,1400
+        L1875,1430
+        L1880,1410
+        L1885,1420
+        L1890,1440
+        L1895,1440
+        L1900,1420
+        L1905,1440
+        L1910,1430
+        L1915,1430
+        L1920,1420
+        L1925,1430
+        L1930,1430
+        L1935,1440
+        L1940,1420
+        L1945,1400
+        L1950,1410
+        L1955,1440
+        L1960,1430
+        L1965,1420
+        L1970,1440
+        L1975,1440
+        L1980,1440
+        L1985,1440
+        L1990,1440
+        L1995,1440
+        L2000,1420
+        L2005,1400
+        L2010,1420
+        L2015,1440
+        L2020,1430
+        L2030,1440
+        L2035,1430
+        L2040,1440
+        L2050,1430
+        L2055,1440
+        L2060,1440
+        L2065,1430
+        L2075,1430
+        L2085,1440
+        L2090,1420
+        L2095,1420
+        L2100,1430
+        L2105,1430
+        L2110,1420
+        L2115,1430
+        L2120,1420
+        L2130,1410
+        L2135,1440
+        L2145,1420
+        L2150,1410
+        L2155,1390
+        L2160,1420
+        L2165,1420
+        L2170,1440
+        L2175,1420
+        L2180,1440
+        L2185,1430
+        L2190,1440
+        L2195,1420
+        L2200,1440
+        L2205,1410
+        L2210,1390
+        L2215,1420
+        L2225,1420
+        L2230,1430
+        L2235,1440
+        L2240,1440
+        L2245,1420
+        L2255,1440
+        L2265,1430
+        L2270,1410
+        L2280,1420
+        L2285,1410
+        L2290,1440
+        L2300,1440
+        L2305,1440
+        L2310,1440
+        L2320,1430
+        L2340,1440
+        L2345,1430
+        L2350,1430
+        L2355,1440
+        L2360,1420
+        L2365,1440
+        L2370,1440
+        L2375,1440
+        L2380,1440
+        L2385,1420
+        L2390,1440
+        L2395,1410
+        L2405,1440
+        L2410,1440
+        L2435,1430
+        L2440,1440
+        L2445,1440
+        L2450,1420
+        L2455,1440
+        L2460,1430
+        L2465,1430
+        L2475,1440
+        L2480,1390
+        L2485,1440
+        L2490,1430
+        L2495,1440
+        L2500,1420
+        L2505,1430
+        L2510,1440
+        L2515,1400
+        L2520,1430
+        L2530,1430
+        L2540,1440
+        L2545,1430
+        L2550,1440
+        L2555,1440
+        L2560,1440
+        L2565,1440
+        L2575,1440
+        L2580,1440
+        L2585,1440
+        L2590,1440
+        L2595,1440
+        L2605,1440
+        L2615,1440
+        L2620,1400
+        L2625,1430
+        L2630,1410
+        L2635,1440
+        L2640,1430
+        L2645,1430
+        L2650,1440
+        L2660,1440
+        L2665,1410
+        L2670,1440
+        L2675,1410
+        L2685,1430
+        L2695,1420
+        L2710,1420
+        L2720,1440
+        L2730,1420
+        L2735,1440
+        L2740,1430
+        L2745,1430
+        L2750,1410
+        L2755,1420
+        L2760,1440
+        L2765,1430
+        L2770,1420
+        L2775,1430
+        L2780,1440
+        L2785,1440
+        L2790,1440
+        L2800,1440
+        L2805,1430
+        L2810,1410
+        L2815,1430
+        L2820,1440
+        L2830,1430
+        L2835,1430
+        L2845,1440
+        L2850,1430
+        L2855,1430
+        L2860,1410
+        L2865,1440
+        L2870,1410
+        L2875,1430
+        L2880,1420
+        L2885,1430
+        L2895,1440
+        L2900,1430
+        L2905,1420
+        L2910,1440
+        L2915,1440
+        L2930,1440
+        L2935,1440
+        L2945,1440
+        L2950,1430
+        L2955,1410
+        L2960,1440
+        L2965,1430
+        L2970,1430
+        L2980,1430
+        L2995,1440
+        L3000,1430
+        L3005,1440
+        L3010,1430
+        L3015,1440
+        L3020,1440
+        L3025,1440
+        L3030,1440
+        L3035,1440
+        L3040,1440
+        L3045,1420
+        L3050,1430
+        L3055,1410
+        L3060,1440
+        L3065,1420
+        L3070,1440
+        L3080,1420
+        L3085,1430
+        L3095,1430
+        L3105,1440
+        L3110,1410
+        L3115,1440
+        L3125,1430
+        L3135,1440
+        L3145,1420
+        L3160,1430
+        L3165,1440
+        L3175,1430
+        L3185,1440
+        L3190,1440
+        L3195,1440
+        L3200,1430
+        L3210,1440
+        L3220,1430
+        L3235,1430
+        L3240,1440
+        L3260,1440
+        L3270,1440
+        L3275,1440
+        L3280,1430
+        L3285,1430
+        L3290,1410
+        L3300,1420
+        L3315,1440
+        L3325,1430
+        L3330,1430
+        L3345,1420
+        L3350,1440
+        L3355,1430
+        L3360,1430
+        L3365,1440
+        L3380,1430
+        L3385,1430
+        L3390,1440
+        L3400,1420
+        L3405,1430
+        L3410,1440
+        L3420,1440
+        L3425,1430
+        L3435,1420
+        L3440,1440
+        L3445,1440
+        L3455,1440
+        L3460,1440
+        L3465,1440
+        L3470,1440
+        L3475,1440
+        L3490,1440
+        L3495,1430
+        L3500,1440
+        L3505,1440
+        L3510,1430
+        L3515,1430
+        L3530,1440
+        L3535,1420
+        L3540,1440
+        L3545,1440
+        L3565,1440
+        L3575,1440
+        L3610,1440
+        L3635,1440
+        L3640,1440
+        L3655,1440
+        L3660,1440
+        L3675,1440
+        L3680,1440
+        L3715,1440
+        L3720,1430
+        L3730,1440
+        L3755,1440
+        L3760,1440
+        L3770,1440
+        L3785,1430
+        L3790,1440
+        L3800,1440
+        L3815,1440
+        L3825,1430
+        L3835,1420
+        L3840,1430
+        L3845,1440
+        L3850,1440
+        L3855,1430
+        L3865,1430
+        L3870,1440
+        L3885,1440
+        L3890,1430
+        L3900,1440
+        L3910,1440
+        L3915,1440
+        L3920,1440
+        L3940,1440
+        L3945,1440
+        L3950,1430
+        L3955,1430
+        L3960,1440
+        L3970,1440
+        L3980,1430
+        L3990,1440
+        L4000,1440
+        L4005,1440
+        L4010,1410
+        L4020,1440
+        L4025,1430
+        L4035,1440
+        L4045,1430
+        L4060,1440
+        L4065,1430
+        L4070,1440
+        L4085,1440
+        L4105,1440
+        L4120,1440
+        L4140,1440
+        L4145,1440
+        L4150,1430
+        L4155,1440
+        L4165,1440
+        L4175,1440
+        L4195,1440
+        L4205,1440
+        L4210,1440
+        L4215,1440
+        L4220,1440
+        L4230,1410
+        L4235,1440
+        L4270,1440
+        L4275,1440
+        L4285,1440
+        L4290,1440
+        L4305,1440
+        L4340,1440
+        L4355,1440
+        L4365,1430
+        L4385,1440
+        L4405,1440
+        L4410,1440
+        L4430,1440
+        L4435,1430
+        L4445,1430
+        L4455,1440
+        L4475,1440
+        L4495,1430
+        L4520,1440
+        L4525,1440
+        L4530,1440
+        L4535,1430
+        L4560,1440
+        L4595,1440
+        L4620,1440
+        L4625,1440
+        L4630,1440
+        L4640,1440
+        L4665,1440
+        L4670,1440
+        L4680,1440
+        L4690,1440
+        L4705,1440
+        L4725,1440
+        L4730,1440
+        L4735,1440
+        L4740,1440
+        L4755,1440
+        L4780,1440
+        L4820,1440
+        L4870,1440
+        L4890,1430
+        L4900,1440
+        L4905,1440
+        L4910,1440
+        L4915,1440
+        L4945,1440
+        L4950,1430
+        L4975,1440
+        L4985,1440
+        L4990,1440
+        L5000,1430
+        L5025,1440
+        L5030,1440
+        L5060,1440
+        L5080,1440
+        L5095,1440
+        L5120,1440
+        L5135,1440
+        L5225,1440
+        L5230,1440
+        L5245,1440
+        L5275,1440
+        L5280,1440
+        L5300,1430
+        L5340,1440
+        L5345,1430
+        L5355,1440
+        L5420,1440
+        L5425,1440
+        L5485,1440
+        L5495,1440
+        L5500,1440
+        L5520,1440
+        L5545,1440
+        L5605,1440
+        L5620,1440
+        L5670,1440
+        L5680,1440
+        L5695,1440
+        L5705,1440
+        L5725,1440
+        L5745,1440
+        L5830,1440
+        L5850,1440
+        L5855,1440
+        L5885,1440
+        L5905,1440
+        L5915,1440
+        L5970,1440
+        L6085,1440
+        L6240,1440
+        L6285,1440
+        L6295,1440
+        L6305,1440
+        L6310,1440
+        L6325,1440
+        L6360,1440
+        L6445,1440
+        L6480,1440
+        L6505,1440
+        L6525,1440
+        L6535,1440
+        L6765,1440
+        L6770,1440
+        L6805,1440
+        L6840,1440
+        L6855,1440
+        L6965,1440
+        L7215,1440
+        L7225,1440
+        L7230,1440
+        L7295,1440
+        L7425,1440
+        L7505,1440
+        L7545,1440
+        L7575,1440
+        L7640,1440
+        L7675,1440
+        L7685,1440
+        L7690,1440
+        L7810,1440
+        L7850,1440
+        L8150,1440
+        L8270,1440
+        L8275,1440
+        L8325,1440
+        L8330,1440
+        L8355,1440
+        L8465,1440
+        L8540,1440
+        L8630,1440
+        L8770,1440
+        L9320,1440
+        L9360,1440
+        L9365,1440
+        L9365,1450
+        M 300,1450
+    "
+/><!-- Graph data points. -->
+<g fill="#00FFFF">
+    <circle cx="300" cy="1140"  r="3" />
+    <circle cx="305" cy="560"  r="3" />
+    <circle cx="310" cy="340"  r="3" />
+    <circle cx="315" cy="600"  r="3" />
+    <circle cx="320" cy="910"  r="3" />
+    <circle cx="325" cy="850"  r="3" />
+    <circle cx="330" cy="1030"  r="3" />
+    <circle cx="335" cy="1180"  r="3" />
+    <circle cx="340" cy="1230"  r="3" />
+    <circle cx="345" cy="1340"  r="3" />
+    <circle cx="350" cy="1260"  r="3" />
+    <circle cx="355" cy="1400"  r="3" />
+    <circle cx="360" cy="1300"  r="3" />
+    <circle cx="365" cy="1380"  r="3" />
+    <circle cx="370" cy="1370"  r="3" />
+    <circle cx="375" cy="1390"  r="3" />
+    <circle cx="380" cy="1330"  r="3" />
+    <circle cx="385" cy="1340"  r="3" />
+    <circle cx="390" cy="1400"  r="3" />
+    <circle cx="395" cy="1420"  r="3" />
+    <circle cx="400" cy="1380"  r="3" />
+    <circle cx="405" cy="1380"  r="3" />
+    <circle cx="410" cy="1400"  r="3" />
+    <circle cx="415" cy="1380"  r="3" />
+    <circle cx="420" cy="1390"  r="3" />
+    <circle cx="425" cy="1390"  r="3" />
+    <circle cx="430" cy="1420"  r="3" />
+    <circle cx="435" cy="1400"  r="3" />
+    <circle cx="440" cy="1440"  r="3" />
+    <circle cx="445" cy="1350"  r="3" />
+    <circle cx="450" cy="1390"  r="3" />
+    <circle cx="455" cy="1380"  r="3" />
+    <circle cx="460" cy="1430"  r="3" />
+    <circle cx="465" cy="1370"  r="3" />
+    <circle cx="470" cy="1410"  r="3" />
+    <circle cx="475" cy="1370"  r="3" />
+    <circle cx="480" cy="1380"  r="3" />
+    <circle cx="485" cy="1370"  r="3" />
+    <circle cx="490" cy="1390"  r="3" />
+    <circle cx="495" cy="1420"  r="3" />
+    <circle cx="500" cy="1380"  r="3" />
+    <circle cx="505" cy="1390"  r="3" />
+    <circle cx="510" cy="1360"  r="3" />
+    <circle cx="515" cy="1400"  r="3" />
+    <circle cx="520" cy="1410"  r="3" />
+    <circle cx="525" cy="1360"  r="3" />
+    <circle cx="530" cy="1370"  r="3" />
+    <circle cx="535" cy="1440"  r="3" />
+    <circle cx="540" cy="1390"  r="3" />
+    <circle cx="545" cy="1390"  r="3" />
+    <circle cx="550" cy="1430"  r="3" />
+    <circle cx="555" cy="1390"  r="3" />
+    <circle cx="560" cy="1400"  r="3" />
+    <circle cx="565" cy="1340"  r="3" />
+    <circle cx="570" cy="1430"  r="3" />
+    <circle cx="575" cy="1410"  r="3" />
+    <circle cx="580" cy="1350"  r="3" />
+    <circle cx="585" cy="1410"  r="3" />
+    <circle cx="590" cy="1410"  r="3" />
+    <circle cx="595" cy="1400"  r="3" />
+    <circle cx="600" cy="1390"  r="3" />
+    <circle cx="605" cy="1380"  r="3" />
+    <circle cx="610" cy="1400"  r="3" />
+    <circle cx="615" cy="1360"  r="3" />
+    <circle cx="620" cy="1370"  r="3" />
+    <circle cx="625" cy="1410"  r="3" />
+    <circle cx="630" cy="1420"  r="3" />
+    <circle cx="635" cy="1380"  r="3" />
+    <circle cx="640" cy="1400"  r="3" />
+    <circle cx="645" cy="1420"  r="3" />
+    <circle cx="650" cy="1400"  r="3" />
+    <circle cx="655" cy="1380"  r="3" />
+    <circle cx="660" cy="1400"  r="3" />
+    <circle cx="665" cy="1440"  r="3" />
+    <circle cx="670" cy="1420"  r="3" />
+    <circle cx="675" cy="1400"  r="3" />
+    <circle cx="680" cy="1420"  r="3" />
+    <circle cx="685" cy="1380"  r="3" />
+    <circle cx="690" cy="1410"  r="3" />
+    <circle cx="695" cy="1410"  r="3" />
+    <circle cx="700" cy="1400"  r="3" />
+    <circle cx="705" cy="1390"  r="3" />
+    <circle cx="710" cy="1390"  r="3" />
+    <circle cx="715" cy="1400"  r="3" />
+    <circle cx="720" cy="1390"  r="3" />
+    <circle cx="725" cy="1410"  r="3" />
+    <circle cx="730" cy="1420"  r="3" />
+    <circle cx="735" cy="1400"  r="3" />
+    <circle cx="740" cy="1390"  r="3" />
+    <circle cx="745" cy="1390"  r="3" />
+    <circle cx="750" cy="1420"  r="3" />
+    <circle cx="755" cy="1360"  r="3" />
+    <circle cx="760" cy="1410"  r="3" />
+    <circle cx="765" cy="1370"  r="3" />
+    <circle cx="770" cy="1360"  r="3" />
+    <circle cx="775" cy="1420"  r="3" />
+    <circle cx="780" cy="1400"  r="3" />
+    <circle cx="785" cy="1410"  r="3" />
+    <circle cx="790" cy="1410"  r="3" />
+    <circle cx="795" cy="1370"  r="3" />
+    <circle cx="800" cy="1380"  r="3" />
+    <circle cx="805" cy="1420"  r="3" />
+    <circle cx="810" cy="1440"  r="3" />
+    <circle cx="815" cy="1410"  r="3" />
+    <circle cx="820" cy="1410"  r="3" />
+    <circle cx="825" cy="1400"  r="3" />
+    <circle cx="830" cy="1400"  r="3" />
+    <circle cx="835" cy="1420"  r="3" />
+    <circle cx="840" cy="1400"  r="3" />
+    <circle cx="845" cy="1420"  r="3" />
+    <circle cx="850" cy="1440"  r="3" />
+    <circle cx="855" cy="1410"  r="3" />
+    <circle cx="860" cy="1400"  r="3" />
+    <circle cx="865" cy="1420"  r="3" />
+    <circle cx="870" cy="1430"  r="3" />
+    <circle cx="875" cy="1410"  r="3" />
+    <circle cx="880" cy="1410"  r="3" />
+    <circle cx="885" cy="1430"  r="3" />
+    <circle cx="890" cy="1440"  r="3" />
+    <circle cx="895" cy="1400"  r="3" />
+    <circle cx="900" cy="1430"  r="3" />
+    <circle cx="905" cy="1430"  r="3" />
+    <circle cx="910" cy="1430"  r="3" />
+    <circle cx="915" cy="1380"  r="3" />
+    <circle cx="920" cy="1420"  r="3" />
+    <circle cx="925" cy="1420"  r="3" />
+    <circle cx="930" cy="1370"  r="3" />
+    <circle cx="935" cy="1440"  r="3" />
+    <circle cx="940" cy="1430"  r="3" />
+    <circle cx="945" cy="1430"  r="3" />
+    <circle cx="950" cy="1410"  r="3" />
+    <circle cx="955" cy="1420"  r="3" />
+    <circle cx="960" cy="1430"  r="3" />
+    <circle cx="965" cy="1420"  r="3" />
+    <circle cx="970" cy="1440"  r="3" />
+    <circle cx="975" cy="1430"  r="3" />
+    <circle cx="980" cy="1400"  r="3" />
+    <circle cx="985" cy="1400"  r="3" />
+    <circle cx="990" cy="1410"  r="3" />
+    <circle cx="995" cy="1420"  r="3" />
+    <circle cx="1000" cy="1420"  r="3" />
+    <circle cx="1005" cy="1400"  r="3" />
+    <circle cx="1010" cy="1400"  r="3" />
+    <circle cx="1015" cy="1410"  r="3" />
+    <circle cx="1020" cy="1440"  r="3" />
+    <circle cx="1025" cy="1390"  r="3" />
+    <circle cx="1030" cy="1420"  r="3" />
+    <circle cx="1035" cy="1420"  r="3" />
+    <circle cx="1040" cy="1400"  r="3" />
+    <circle cx="1045" cy="1400"  r="3" />
+    <circle cx="1050" cy="1380"  r="3" />
+    <circle cx="1055" cy="1410"  r="3" />
+    <circle cx="1060" cy="1420"  r="3" />
+    <circle cx="1065" cy="1420"  r="3" />
+    <circle cx="1070" cy="1400"  r="3" />
+    <circle cx="1075" cy="1430"  r="3" />
+    <circle cx="1080" cy="1410"  r="3" />
+    <circle cx="1085" cy="1420"  r="3" />
+    <circle cx="1090" cy="1420"  r="3" />
+    <circle cx="1095" cy="1410"  r="3" />
+    <circle cx="1100" cy="1380"  r="3" />
+    <circle cx="1105" cy="1410"  r="3" />
+    <circle cx="1110" cy="1410"  r="3" />
+    <circle cx="1115" cy="1410"  r="3" />
+    <circle cx="1120" cy="1410"  r="3" />
+    <circle cx="1125" cy="1380"  r="3" />
+    <circle cx="1130" cy="1390"  r="3" />
+    <circle cx="1135" cy="1440"  r="3" />
+    <circle cx="1140" cy="1440"  r="3" />
+    <circle cx="1145" cy="1410"  r="3" />
+    <circle cx="1150" cy="1410"  r="3" />
+    <circle cx="1155" cy="1440"  r="3" />
+    <circle cx="1160" cy="1410"  r="3" />
+    <circle cx="1165" cy="1400"  r="3" />
+    <circle cx="1170" cy="1440"  r="3" />
+    <circle cx="1180" cy="1400"  r="3" />
+    <circle cx="1185" cy="1420"  r="3" />
+    <circle cx="1190" cy="1410"  r="3" />
+    <circle cx="1195" cy="1410"  r="3" />
+    <circle cx="1200" cy="1420"  r="3" />
+    <circle cx="1205" cy="1430"  r="3" />
+    <circle cx="1210" cy="1390"  r="3" />
+    <circle cx="1215" cy="1360"  r="3" />
+    <circle cx="1220" cy="1440"  r="3" />
+    <circle cx="1225" cy="1410"  r="3" />
+    <circle cx="1230" cy="1430"  r="3" />
+    <circle cx="1235" cy="1430"  r="3" />
+    <circle cx="1240" cy="1420"  r="3" />
+    <circle cx="1245" cy="1420"  r="3" />
+    <circle cx="1250" cy="1400"  r="3" />
+    <circle cx="1255" cy="1420"  r="3" />
+    <circle cx="1260" cy="1430"  r="3" />
+    <circle cx="1265" cy="1390"  r="3" />
+    <circle cx="1270" cy="1370"  r="3" />
+    <circle cx="1275" cy="1370"  r="3" />
+    <circle cx="1280" cy="1390"  r="3" />
+    <circle cx="1285" cy="1400"  r="3" />
+    <circle cx="1290" cy="1400"  r="3" />
+    <circle cx="1295" cy="1430"  r="3" />
+    <circle cx="1300" cy="1400"  r="3" />
+    <circle cx="1305" cy="1410"  r="3" />
+    <circle cx="1310" cy="1420"  r="3" />
+    <circle cx="1315" cy="1380"  r="3" />
+    <circle cx="1320" cy="1420"  r="3" />
+    <circle cx="1325" cy="1420"  r="3" />
+    <circle cx="1330" cy="1430"  r="3" />
+    <circle cx="1335" cy="1420"  r="3" />
+    <circle cx="1340" cy="1440"  r="3" />
+    <circle cx="1345" cy="1440"  r="3" />
+    <circle cx="1350" cy="1390"  r="3" />
+    <circle cx="1355" cy="1420"  r="3" />
+    <circle cx="1360" cy="1410"  r="3" />
+    <circle cx="1365" cy="1430"  r="3" />
+    <circle cx="1370" cy="1420"  r="3" />
+    <circle cx="1375" cy="1410"  r="3" />
+    <circle cx="1380" cy="1430"  r="3" />
+    <circle cx="1385" cy="1400"  r="3" />
+    <circle cx="1390" cy="1430"  r="3" />
+    <circle cx="1395" cy="1410"  r="3" />
+    <circle cx="1400" cy="1430"  r="3" />
+    <circle cx="1405" cy="1410"  r="3" />
+    <circle cx="1410" cy="1430"  r="3" />
+    <circle cx="1415" cy="1440"  r="3" />
+    <circle cx="1420" cy="1400"  r="3" />
+    <circle cx="1425" cy="1430"  r="3" />
+    <circle cx="1430" cy="1440"  r="3" />
+    <circle cx="1435" cy="1420"  r="3" />
+    <circle cx="1445" cy="1420"  r="3" />
+    <circle cx="1450" cy="1430"  r="3" />
+    <circle cx="1455" cy="1440"  r="3" />
+    <circle cx="1460" cy="1440"  r="3" />
+    <circle cx="1465" cy="1420"  r="3" />
+    <circle cx="1470" cy="1420"  r="3" />
+    <circle cx="1475" cy="1430"  r="3" />
+    <circle cx="1480" cy="1400"  r="3" />
+    <circle cx="1485" cy="1400"  r="3" />
+    <circle cx="1490" cy="1420"  r="3" />
+    <circle cx="1495" cy="1420"  r="3" />
+    <circle cx="1500" cy="1420"  r="3" />
+    <circle cx="1505" cy="1390"  r="3" />
+    <circle cx="1510" cy="1430"  r="3" />
+    <circle cx="1515" cy="1440"  r="3" />
+    <circle cx="1520" cy="1420"  r="3" />
+    <circle cx="1525" cy="1400"  r="3" />
+    <circle cx="1530" cy="1410"  r="3" />
+    <circle cx="1535" cy="1380"  r="3" />
+    <circle cx="1540" cy="1420"  r="3" />
+    <circle cx="1545" cy="1440"  r="3" />
+    <circle cx="1550" cy="1410"  r="3" />
+    <circle cx="1555" cy="1380"  r="3" />
+    <circle cx="1560" cy="1420"  r="3" />
+    <circle cx="1565" cy="1410"  r="3" />
+    <circle cx="1570" cy="1410"  r="3" />
+    <circle cx="1575" cy="1400"  r="3" />
+    <circle cx="1580" cy="1420"  r="3" />
+    <circle cx="1585" cy="1400"  r="3" />
+    <circle cx="1590" cy="1430"  r="3" />
+    <circle cx="1595" cy="1440"  r="3" />
+    <circle cx="1600" cy="1430"  r="3" />
+    <circle cx="1605" cy="1440"  r="3" />
+    <circle cx="1610" cy="1400"  r="3" />
+    <circle cx="1615" cy="1380"  r="3" />
+    <circle cx="1625" cy="1420"  r="3" />
+    <circle cx="1630" cy="1440"  r="3" />
+    <circle cx="1635" cy="1420"  r="3" />
+    <circle cx="1640" cy="1440"  r="3" />
+    <circle cx="1645" cy="1430"  r="3" />
+    <circle cx="1650" cy="1430"  r="3" />
+    <circle cx="1655" cy="1420"  r="3" />
+    <circle cx="1660" cy="1380"  r="3" />
+    <circle cx="1665" cy="1420"  r="3" />
+    <circle cx="1670" cy="1430"  r="3" />
+    <circle cx="1675" cy="1440"  r="3" />
+    <circle cx="1680" cy="1420"  r="3" />
+    <circle cx="1685" cy="1420"  r="3" />
+    <circle cx="1690" cy="1410"  r="3" />
+    <circle cx="1695" cy="1430"  r="3" />
+    <circle cx="1700" cy="1420"  r="3" />
+    <circle cx="1705" cy="1440"  r="3" />
+    <circle cx="1710" cy="1410"  r="3" />
+    <circle cx="1715" cy="1390"  r="3" />
+    <circle cx="1720" cy="1420"  r="3" />
+    <circle cx="1725" cy="1430"  r="3" />
+    <circle cx="1730" cy="1410"  r="3" />
+    <circle cx="1735" cy="1400"  r="3" />
+    <circle cx="1740" cy="1400"  r="3" />
+    <circle cx="1745" cy="1440"  r="3" />
+    <circle cx="1750" cy="1430"  r="3" />
+    <circle cx="1760" cy="1430"  r="3" />
+    <circle cx="1765" cy="1440"  r="3" />
+    <circle cx="1770" cy="1440"  r="3" />
+    <circle cx="1775" cy="1410"  r="3" />
+    <circle cx="1780" cy="1420"  r="3" />
+    <circle cx="1785" cy="1440"  r="3" />
+    <circle cx="1790" cy="1440"  r="3" />
+    <circle cx="1795" cy="1440"  r="3" />
+    <circle cx="1800" cy="1430"  r="3" />
+    <circle cx="1805" cy="1430"  r="3" />
+    <circle cx="1810" cy="1420"  r="3" />
+    <circle cx="1815" cy="1420"  r="3" />
+    <circle cx="1820" cy="1400"  r="3" />
+    <circle cx="1825" cy="1420"  r="3" />
+    <circle cx="1830" cy="1440"  r="3" />
+    <circle cx="1835" cy="1440"  r="3" />
+    <circle cx="1845" cy="1430"  r="3" />
+    <circle cx="1850" cy="1440"  r="3" />
+    <circle cx="1855" cy="1400"  r="3" />
+    <circle cx="1860" cy="1420"  r="3" />
+    <circle cx="1865" cy="1440"  r="3" />
+    <circle cx="1870" cy="1400"  r="3" />
+    <circle cx="1875" cy="1430"  r="3" />
+    <circle cx="1880" cy="1410"  r="3" />
+    <circle cx="1885" cy="1420"  r="3" />
+    <circle cx="1890" cy="1440"  r="3" />
+    <circle cx="1895" cy="1440"  r="3" />
+    <circle cx="1900" cy="1420"  r="3" />
+    <circle cx="1905" cy="1440"  r="3" />
+    <circle cx="1910" cy="1430"  r="3" />
+    <circle cx="1915" cy="1430"  r="3" />
+    <circle cx="1920" cy="1420"  r="3" />
+    <circle cx="1925" cy="1430"  r="3" />
+    <circle cx="1930" cy="1430"  r="3" />
+    <circle cx="1935" cy="1440"  r="3" />
+    <circle cx="1940" cy="1420"  r="3" />
+    <circle cx="1945" cy="1400"  r="3" />
+    <circle cx="1950" cy="1410"  r="3" />
+    <circle cx="1955" cy="1440"  r="3" />
+    <circle cx="1960" cy="1430"  r="3" />
+    <circle cx="1965" cy="1420"  r="3" />
+    <circle cx="1970" cy="1440"  r="3" />
+    <circle cx="1975" cy="1440"  r="3" />
+    <circle cx="1980" cy="1440"  r="3" />
+    <circle cx="1985" cy="1440"  r="3" />
+    <circle cx="1990" cy="1440"  r="3" />
+    <circle cx="1995" cy="1440"  r="3" />
+    <circle cx="2000" cy="1420"  r="3" />
+    <circle cx="2005" cy="1400"  r="3" />
+    <circle cx="2010" cy="1420"  r="3" />
+    <circle cx="2015" cy="1440"  r="3" />
+    <circle cx="2020" cy="1430"  r="3" />
+    <circle cx="2030" cy="1440"  r="3" />
+    <circle cx="2035" cy="1430"  r="3" />
+    <circle cx="2040" cy="1440"  r="3" />
+    <circle cx="2050" cy="1430"  r="3" />
+    <circle cx="2055" cy="1440"  r="3" />
+    <circle cx="2060" cy="1440"  r="3" />
+    <circle cx="2065" cy="1430"  r="3" />
+    <circle cx="2075" cy="1430"  r="3" />
+    <circle cx="2085" cy="1440"  r="3" />
+    <circle cx="2090" cy="1420"  r="3" />
+    <circle cx="2095" cy="1420"  r="3" />
+    <circle cx="2100" cy="1430"  r="3" />
+    <circle cx="2105" cy="1430"  r="3" />
+    <circle cx="2110" cy="1420"  r="3" />
+    <circle cx="2115" cy="1430"  r="3" />
+    <circle cx="2120" cy="1420"  r="3" />
+    <circle cx="2130" cy="1410"  r="3" />
+    <circle cx="2135" cy="1440"  r="3" />
+    <circle cx="2145" cy="1420"  r="3" />
+    <circle cx="2150" cy="1410"  r="3" />
+    <circle cx="2155" cy="1390"  r="3" />
+    <circle cx="2160" cy="1420"  r="3" />
+    <circle cx="2165" cy="1420"  r="3" />
+    <circle cx="2170" cy="1440"  r="3" />
+    <circle cx="2175" cy="1420"  r="3" />
+    <circle cx="2180" cy="1440"  r="3" />
+    <circle cx="2185" cy="1430"  r="3" />
+    <circle cx="2190" cy="1440"  r="3" />
+    <circle cx="2195" cy="1420"  r="3" />
+    <circle cx="2200" cy="1440"  r="3" />
+    <circle cx="2205" cy="1410"  r="3" />
+    <circle cx="2210" cy="1390"  r="3" />
+    <circle cx="2215" cy="1420"  r="3" />
+    <circle cx="2225" cy="1420"  r="3" />
+    <circle cx="2230" cy="1430"  r="3" />
+    <circle cx="2235" cy="1440"  r="3" />
+    <circle cx="2240" cy="1440"  r="3" />
+    <circle cx="2245" cy="1420"  r="3" />
+    <circle cx="2255" cy="1440"  r="3" />
+    <circle cx="2265" cy="1430"  r="3" />
+    <circle cx="2270" cy="1410"  r="3" />
+    <circle cx="2280" cy="1420"  r="3" />
+    <circle cx="2285" cy="1410"  r="3" />
+    <circle cx="2290" cy="1440"  r="3" />
+    <circle cx="2300" cy="1440"  r="3" />
+    <circle cx="2305" cy="1440"  r="3" />
+    <circle cx="2310" cy="1440"  r="3" />
+    <circle cx="2320" cy="1430"  r="3" />
+    <circle cx="2340" cy="1440"  r="3" />
+    <circle cx="2345" cy="1430"  r="3" />
+    <circle cx="2350" cy="1430"  r="3" />
+    <circle cx="2355" cy="1440"  r="3" />
+    <circle cx="2360" cy="1420"  r="3" />
+    <circle cx="2365" cy="1440"  r="3" />
+    <circle cx="2370" cy="1440"  r="3" />
+    <circle cx="2375" cy="1440"  r="3" />
+    <circle cx="2380" cy="1440"  r="3" />
+    <circle cx="2385" cy="1420"  r="3" />
+    <circle cx="2390" cy="1440"  r="3" />
+    <circle cx="2395" cy="1410"  r="3" />
+    <circle cx="2405" cy="1440"  r="3" />
+    <circle cx="2410" cy="1440"  r="3" />
+    <circle cx="2435" cy="1430"  r="3" />
+    <circle cx="2440" cy="1440"  r="3" />
+    <circle cx="2445" cy="1440"  r="3" />
+    <circle cx="2450" cy="1420"  r="3" />
+    <circle cx="2455" cy="1440"  r="3" />
+    <circle cx="2460" cy="1430"  r="3" />
+    <circle cx="2465" cy="1430"  r="3" />
+    <circle cx="2475" cy="1440"  r="3" />
+    <circle cx="2480" cy="1390"  r="3" />
+    <circle cx="2485" cy="1440"  r="3" />
+    <circle cx="2490" cy="1430"  r="3" />
+    <circle cx="2495" cy="1440"  r="3" />
+    <circle cx="2500" cy="1420"  r="3" />
+    <circle cx="2505" cy="1430"  r="3" />
+    <circle cx="2510" cy="1440"  r="3" />
+    <circle cx="2515" cy="1400"  r="3" />
+    <circle cx="2520" cy="1430"  r="3" />
+    <circle cx="2530" cy="1430"  r="3" />
+    <circle cx="2540" cy="1440"  r="3" />
+    <circle cx="2545" cy="1430"  r="3" />
+    <circle cx="2550" cy="1440"  r="3" />
+    <circle cx="2555" cy="1440"  r="3" />
+    <circle cx="2560" cy="1440"  r="3" />
+    <circle cx="2565" cy="1440"  r="3" />
+    <circle cx="2575" cy="1440"  r="3" />
+    <circle cx="2580" cy="1440"  r="3" />
+    <circle cx="2585" cy="1440"  r="3" />
+    <circle cx="2590" cy="1440"  r="3" />
+    <circle cx="2595" cy="1440"  r="3" />
+    <circle cx="2605" cy="1440"  r="3" />
+    <circle cx="2615" cy="1440"  r="3" />
+    <circle cx="2620" cy="1400"  r="3" />
+    <circle cx="2625" cy="1430"  r="3" />
+    <circle cx="2630" cy="1410"  r="3" />
+    <circle cx="2635" cy="1440"  r="3" />
+    <circle cx="2640" cy="1430"  r="3" />
+    <circle cx="2645" cy="1430"  r="3" />
+    <circle cx="2650" cy="1440"  r="3" />
+    <circle cx="2660" cy="1440"  r="3" />
+    <circle cx="2665" cy="1410"  r="3" />
+    <circle cx="2670" cy="1440"  r="3" />
+    <circle cx="2675" cy="1410"  r="3" />
+    <circle cx="2685" cy="1430"  r="3" />
+    <circle cx="2695" cy="1420"  r="3" />
+    <circle cx="2710" cy="1420"  r="3" />
+    <circle cx="2720" cy="1440"  r="3" />
+    <circle cx="2730" cy="1420"  r="3" />
+    <circle cx="2735" cy="1440"  r="3" />
+    <circle cx="2740" cy="1430"  r="3" />
+    <circle cx="2745" cy="1430"  r="3" />
+    <circle cx="2750" cy="1410"  r="3" />
+    <circle cx="2755" cy="1420"  r="3" />
+    <circle cx="2760" cy="1440"  r="3" />
+    <circle cx="2765" cy="1430"  r="3" />
+    <circle cx="2770" cy="1420"  r="3" />
+    <circle cx="2775" cy="1430"  r="3" />
+    <circle cx="2780" cy="1440"  r="3" />
+    <circle cx="2785" cy="1440"  r="3" />
+    <circle cx="2790" cy="1440"  r="3" />
+    <circle cx="2800" cy="1440"  r="3" />
+    <circle cx="2805" cy="1430"  r="3" />
+    <circle cx="2810" cy="1410"  r="3" />
+    <circle cx="2815" cy="1430"  r="3" />
+    <circle cx="2820" cy="1440"  r="3" />
+    <circle cx="2830" cy="1430"  r="3" />
+    <circle cx="2835" cy="1430"  r="3" />
+    <circle cx="2845" cy="1440"  r="3" />
+    <circle cx="2850" cy="1430"  r="3" />
+    <circle cx="2855" cy="1430"  r="3" />
+    <circle cx="2860" cy="1410"  r="3" />
+    <circle cx="2865" cy="1440"  r="3" />
+    <circle cx="2870" cy="1410"  r="3" />
+    <circle cx="2875" cy="1430"  r="3" />
+    <circle cx="2880" cy="1420"  r="3" />
+    <circle cx="2885" cy="1430"  r="3" />
+    <circle cx="2895" cy="1440"  r="3" />
+    <circle cx="2900" cy="1430"  r="3" />
+    <circle cx="2905" cy="1420"  r="3" />
+    <circle cx="2910" cy="1440"  r="3" />
+    <circle cx="2915" cy="1440"  r="3" />
+    <circle cx="2930" cy="1440"  r="3" />
+    <circle cx="2935" cy="1440"  r="3" />
+    <circle cx="2945" cy="1440"  r="3" />
+    <circle cx="2950" cy="1430"  r="3" />
+    <circle cx="2955" cy="1410"  r="3" />
+    <circle cx="2960" cy="1440"  r="3" />
+    <circle cx="2965" cy="1430"  r="3" />
+    <circle cx="2970" cy="1430"  r="3" />
+    <circle cx="2980" cy="1430"  r="3" />
+    <circle cx="2995" cy="1440"  r="3" />
+    <circle cx="3000" cy="1430"  r="3" />
+    <circle cx="3005" cy="1440"  r="3" />
+    <circle cx="3010" cy="1430"  r="3" />
+    <circle cx="3015" cy="1440"  r="3" />
+    <circle cx="3020" cy="1440"  r="3" />
+    <circle cx="3025" cy="1440"  r="3" />
+    <circle cx="3030" cy="1440"  r="3" />
+    <circle cx="3035" cy="1440"  r="3" />
+    <circle cx="3040" cy="1440"  r="3" />
+    <circle cx="3045" cy="1420"  r="3" />
+    <circle cx="3050" cy="1430"  r="3" />
+    <circle cx="3055" cy="1410"  r="3" />
+    <circle cx="3060" cy="1440"  r="3" />
+    <circle cx="3065" cy="1420"  r="3" />
+    <circle cx="3070" cy="1440"  r="3" />
+    <circle cx="3080" cy="1420"  r="3" />
+    <circle cx="3085" cy="1430"  r="3" />
+    <circle cx="3095" cy="1430"  r="3" />
+    <circle cx="3105" cy="1440"  r="3" />
+    <circle cx="3110" cy="1410"  r="3" />
+    <circle cx="3115" cy="1440"  r="3" />
+    <circle cx="3125" cy="1430"  r="3" />
+    <circle cx="3135" cy="1440"  r="3" />
+    <circle cx="3145" cy="1420"  r="3" />
+    <circle cx="3160" cy="1430"  r="3" />
+    <circle cx="3165" cy="1440"  r="3" />
+    <circle cx="3175" cy="1430"  r="3" />
+    <circle cx="3185" cy="1440"  r="3" />
+    <circle cx="3190" cy="1440"  r="3" />
+    <circle cx="3195" cy="1440"  r="3" />
+    <circle cx="3200" cy="1430"  r="3" />
+    <circle cx="3210" cy="1440"  r="3" />
+    <circle cx="3220" cy="1430"  r="3" />
+    <circle cx="3235" cy="1430"  r="3" />
+    <circle cx="3240" cy="1440"  r="3" />
+    <circle cx="3260" cy="1440"  r="3" />
+    <circle cx="3270" cy="1440"  r="3" />
+    <circle cx="3275" cy="1440"  r="3" />
+    <circle cx="3280" cy="1430"  r="3" />
+    <circle cx="3285" cy="1430"  r="3" />
+    <circle cx="3290" cy="1410"  r="3" />
+    <circle cx="3300" cy="1420"  r="3" />
+    <circle cx="3315" cy="1440"  r="3" />
+    <circle cx="3325" cy="1430"  r="3" />
+    <circle cx="3330" cy="1430"  r="3" />
+    <circle cx="3345" cy="1420"  r="3" />
+    <circle cx="3350" cy="1440"  r="3" />
+    <circle cx="3355" cy="1430"  r="3" />
+    <circle cx="3360" cy="1430"  r="3" />
+    <circle cx="3365" cy="1440"  r="3" />
+    <circle cx="3380" cy="1430"  r="3" />
+    <circle cx="3385" cy="1430"  r="3" />
+    <circle cx="3390" cy="1440"  r="3" />
+    <circle cx="3400" cy="1420"  r="3" />
+    <circle cx="3405" cy="1430"  r="3" />
+    <circle cx="3410" cy="1440"  r="3" />
+    <circle cx="3420" cy="1440"  r="3" />
+    <circle cx="3425" cy="1430"  r="3" />
+    <circle cx="3435" cy="1420"  r="3" />
+    <circle cx="3440" cy="1440"  r="3" />
+    <circle cx="3445" cy="1440"  r="3" />
+    <circle cx="3455" cy="1440"  r="3" />
+    <circle cx="3460" cy="1440"  r="3" />
+    <circle cx="3465" cy="1440"  r="3" />
+    <circle cx="3470" cy="1440"  r="3" />
+    <circle cx="3475" cy="1440"  r="3" />
+    <circle cx="3490" cy="1440"  r="3" />
+    <circle cx="3495" cy="1430"  r="3" />
+    <circle cx="3500" cy="1440"  r="3" />
+    <circle cx="3505" cy="1440"  r="3" />
+    <circle cx="3510" cy="1430"  r="3" />
+    <circle cx="3515" cy="1430"  r="3" />
+    <circle cx="3530" cy="1440"  r="3" />
+    <circle cx="3535" cy="1420"  r="3" />
+    <circle cx="3540" cy="1440"  r="3" />
+    <circle cx="3545" cy="1440"  r="3" />
+    <circle cx="3565" cy="1440"  r="3" />
+    <circle cx="3575" cy="1440"  r="3" />
+    <circle cx="3610" cy="1440"  r="3" />
+    <circle cx="3635" cy="1440"  r="3" />
+    <circle cx="3640" cy="1440"  r="3" />
+    <circle cx="3655" cy="1440"  r="3" />
+    <circle cx="3660" cy="1440"  r="3" />
+    <circle cx="3675" cy="1440"  r="3" />
+    <circle cx="3680" cy="1440"  r="3" />
+    <circle cx="3715" cy="1440"  r="3" />
+    <circle cx="3720" cy="1430"  r="3" />
+    <circle cx="3730" cy="1440"  r="3" />
+    <circle cx="3755" cy="1440"  r="3" />
+    <circle cx="3760" cy="1440"  r="3" />
+    <circle cx="3770" cy="1440"  r="3" />
+    <circle cx="3785" cy="1430"  r="3" />
+    <circle cx="3790" cy="1440"  r="3" />
+    <circle cx="3800" cy="1440"  r="3" />
+    <circle cx="3815" cy="1440"  r="3" />
+    <circle cx="3825" cy="1430"  r="3" />
+    <circle cx="3835" cy="1420"  r="3" />
+    <circle cx="3840" cy="1430"  r="3" />
+    <circle cx="3845" cy="1440"  r="3" />
+    <circle cx="3850" cy="1440"  r="3" />
+    <circle cx="3855" cy="1430"  r="3" />
+    <circle cx="3865" cy="1430"  r="3" />
+    <circle cx="3870" cy="1440"  r="3" />
+    <circle cx="3885" cy="1440"  r="3" />
+    <circle cx="3890" cy="1430"  r="3" />
+    <circle cx="3900" cy="1440"  r="3" />
+    <circle cx="3910" cy="1440"  r="3" />
+    <circle cx="3915" cy="1440"  r="3" />
+    <circle cx="3920" cy="1440"  r="3" />
+    <circle cx="3940" cy="1440"  r="3" />
+    <circle cx="3945" cy="1440"  r="3" />
+    <circle cx="3950" cy="1430"  r="3" />
+    <circle cx="3955" cy="1430"  r="3" />
+    <circle cx="3960" cy="1440"  r="3" />
+    <circle cx="3970" cy="1440"  r="3" />
+    <circle cx="3980" cy="1430"  r="3" />
+    <circle cx="3990" cy="1440"  r="3" />
+    <circle cx="4000" cy="1440"  r="3" />
+    <circle cx="4005" cy="1440"  r="3" />
+    <circle cx="4010" cy="1410"  r="3" />
+    <circle cx="4020" cy="1440"  r="3" />
+    <circle cx="4025" cy="1430"  r="3" />
+    <circle cx="4035" cy="1440"  r="3" />
+    <circle cx="4045" cy="1430"  r="3" />
+    <circle cx="4060" cy="1440"  r="3" />
+    <circle cx="4065" cy="1430"  r="3" />
+    <circle cx="4070" cy="1440"  r="3" />
+    <circle cx="4085" cy="1440"  r="3" />
+    <circle cx="4105" cy="1440"  r="3" />
+    <circle cx="4120" cy="1440"  r="3" />
+    <circle cx="4140" cy="1440"  r="3" />
+    <circle cx="4145" cy="1440"  r="3" />
+    <circle cx="4150" cy="1430"  r="3" />
+    <circle cx="4155" cy="1440"  r="3" />
+    <circle cx="4165" cy="1440"  r="3" />
+    <circle cx="4175" cy="1440"  r="3" />
+    <circle cx="4195" cy="1440"  r="3" />
+    <circle cx="4205" cy="1440"  r="3" />
+    <circle cx="4210" cy="1440"  r="3" />
+    <circle cx="4215" cy="1440"  r="3" />
+    <circle cx="4220" cy="1440"  r="3" />
+    <circle cx="4230" cy="1410"  r="3" />
+    <circle cx="4235" cy="1440"  r="3" />
+    <circle cx="4270" cy="1440"  r="3" />
+    <circle cx="4275" cy="1440"  r="3" />
+    <circle cx="4285" cy="1440"  r="3" />
+    <circle cx="4290" cy="1440"  r="3" />
+    <circle cx="4305" cy="1440"  r="3" />
+    <circle cx="4340" cy="1440"  r="3" />
+    <circle cx="4355" cy="1440"  r="3" />
+    <circle cx="4365" cy="1430"  r="3" />
+    <circle cx="4385" cy="1440"  r="3" />
+    <circle cx="4405" cy="1440"  r="3" />
+    <circle cx="4410" cy="1440"  r="3" />
+    <circle cx="4430" cy="1440"  r="3" />
+    <circle cx="4435" cy="1430"  r="3" />
+    <circle cx="4445" cy="1430"  r="3" />
+    <circle cx="4455" cy="1440"  r="3" />
+    <circle cx="4475" cy="1440"  r="3" />
+    <circle cx="4495" cy="1430"  r="3" />
+    <circle cx="4520" cy="1440"  r="3" />
+    <circle cx="4525" cy="1440"  r="3" />
+    <circle cx="4530" cy="1440"  r="3" />
+    <circle cx="4535" cy="1430"  r="3" />
+    <circle cx="4560" cy="1440"  r="3" />
+    <circle cx="4595" cy="1440"  r="3" />
+    <circle cx="4620" cy="1440"  r="3" />
+    <circle cx="4625" cy="1440"  r="3" />
+    <circle cx="4630" cy="1440"  r="3" />
+    <circle cx="4640" cy="1440"  r="3" />
+    <circle cx="4665" cy="1440"  r="3" />
+    <circle cx="4670" cy="1440"  r="3" />
+    <circle cx="4680" cy="1440"  r="3" />
+    <circle cx="4690" cy="1440"  r="3" />
+    <circle cx="4705" cy="1440"  r="3" />
+    <circle cx="4725" cy="1440"  r="3" />
+    <circle cx="4730" cy="1440"  r="3" />
+    <circle cx="4735" cy="1440"  r="3" />
+    <circle cx="4740" cy="1440"  r="3" />
+    <circle cx="4755" cy="1440"  r="3" />
+    <circle cx="4780" cy="1440"  r="3" />
+    <circle cx="4820" cy="1440"  r="3" />
+    <circle cx="4870" cy="1440"  r="3" />
+    <circle cx="4890" cy="1430"  r="3" />
+    <circle cx="4900" cy="1440"  r="3" />
+    <circle cx="4905" cy="1440"  r="3" />
+    <circle cx="4910" cy="1440"  r="3" />
+    <circle cx="4915" cy="1440"  r="3" />
+    <circle cx="4945" cy="1440"  r="3" />
+    <circle cx="4950" cy="1430"  r="3" />
+    <circle cx="4975" cy="1440"  r="3" />
+    <circle cx="4985" cy="1440"  r="3" />
+    <circle cx="4990" cy="1440"  r="3" />
+    <circle cx="5000" cy="1430"  r="3" />
+    <circle cx="5025" cy="1440"  r="3" />
+    <circle cx="5030" cy="1440"  r="3" />
+    <circle cx="5060" cy="1440"  r="3" />
+    <circle cx="5080" cy="1440"  r="3" />
+    <circle cx="5095" cy="1440"  r="3" />
+    <circle cx="5120" cy="1440"  r="3" />
+    <circle cx="5135" cy="1440"  r="3" />
+    <circle cx="5225" cy="1440"  r="3" />
+    <circle cx="5230" cy="1440"  r="3" />
+    <circle cx="5245" cy="1440"  r="3" />
+    <circle cx="5275" cy="1440"  r="3" />
+    <circle cx="5280" cy="1440"  r="3" />
+    <circle cx="5300" cy="1430"  r="3" />
+    <circle cx="5340" cy="1440"  r="3" />
+    <circle cx="5345" cy="1430"  r="3" />
+    <circle cx="5355" cy="1440"  r="3" />
+    <circle cx="5420" cy="1440"  r="3" />
+    <circle cx="5425" cy="1440"  r="3" />
+    <circle cx="5485" cy="1440"  r="3" />
+    <circle cx="5495" cy="1440"  r="3" />
+    <circle cx="5500" cy="1440"  r="3" />
+    <circle cx="5520" cy="1440"  r="3" />
+    <circle cx="5545" cy="1440"  r="3" />
+    <circle cx="5605" cy="1440"  r="3" />
+    <circle cx="5620" cy="1440"  r="3" />
+    <circle cx="5670" cy="1440"  r="3" />
+    <circle cx="5680" cy="1440"  r="3" />
+    <circle cx="5695" cy="1440"  r="3" />
+    <circle cx="5705" cy="1440"  r="3" />
+    <circle cx="5725" cy="1440"  r="3" />
+    <circle cx="5745" cy="1440"  r="3" />
+    <circle cx="5830" cy="1440"  r="3" />
+    <circle cx="5850" cy="1440"  r="3" />
+    <circle cx="5855" cy="1440"  r="3" />
+    <circle cx="5885" cy="1440"  r="3" />
+    <circle cx="5905" cy="1440"  r="3" />
+    <circle cx="5915" cy="1440"  r="3" />
+    <circle cx="5970" cy="1440"  r="3" />
+    <circle cx="6085" cy="1440"  r="3" />
+    <circle cx="6240" cy="1440"  r="3" />
+    <circle cx="6285" cy="1440"  r="3" />
+    <circle cx="6295" cy="1440"  r="3" />
+    <circle cx="6305" cy="1440"  r="3" />
+    <circle cx="6310" cy="1440"  r="3" />
+    <circle cx="6325" cy="1440"  r="3" />
+    <circle cx="6360" cy="1440"  r="3" />
+    <circle cx="6445" cy="1440"  r="3" />
+    <circle cx="6480" cy="1440"  r="3" />
+    <circle cx="6505" cy="1440"  r="3" />
+    <circle cx="6525" cy="1440"  r="3" />
+    <circle cx="6535" cy="1440"  r="3" />
+    <circle cx="6765" cy="1440"  r="3" />
+    <circle cx="6770" cy="1440"  r="3" />
+    <circle cx="6805" cy="1440"  r="3" />
+    <circle cx="6840" cy="1440"  r="3" />
+    <circle cx="6855" cy="1440"  r="3" />
+    <circle cx="6965" cy="1440"  r="3" />
+    <circle cx="7215" cy="1440"  r="3" />
+    <circle cx="7225" cy="1440"  r="3" />
+    <circle cx="7230" cy="1440"  r="3" />
+    <circle cx="7295" cy="1440"  r="3" />
+    <circle cx="7425" cy="1440"  r="3" />
+    <circle cx="7505" cy="1440"  r="3" />
+    <circle cx="7545" cy="1440"  r="3" />
+    <circle cx="7575" cy="1440"  r="3" />
+    <circle cx="7640" cy="1440"  r="3" />
+    <circle cx="7675" cy="1440"  r="3" />
+    <circle cx="7685" cy="1440"  r="3" />
+    <circle cx="7690" cy="1440"  r="3" />
+    <circle cx="7810" cy="1440"  r="3" />
+    <circle cx="7850" cy="1440"  r="3" />
+    <circle cx="8150" cy="1440"  r="3" />
+    <circle cx="8270" cy="1440"  r="3" />
+    <circle cx="8275" cy="1440"  r="3" />
+    <circle cx="8325" cy="1440"  r="3" />
+    <circle cx="8330" cy="1440"  r="3" />
+    <circle cx="8355" cy="1440"  r="3" />
+    <circle cx="8465" cy="1440"  r="3" />
+    <circle cx="8540" cy="1440"  r="3" />
+    <circle cx="8630" cy="1440"  r="3" />
+    <circle cx="8770" cy="1440"  r="3" />
+    <circle cx="9320" cy="1440"  r="3" />
+    <circle cx="9360" cy="1440"  r="3" />
+    <circle cx="9365" cy="1440"  r="3" />
+</g>
+</svg>
