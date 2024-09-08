@@ -318,6 +318,36 @@ fn choose_branch(
                 val
             })
             .unwrap();
+        /*NOTE: Old, maybe one should benchmark this again, but seems worse.
+        #[rustfmt::skip]
+        let layout_heuristic = |(pat, flipped): &Layout| -> (u8, u32) {
+            let flip = *flipped;
+            use Pat::*;
+            match pat {
+                _200  => (if flip { 0b011_1111 } else { 0b101_1111 }, 8),
+                _137  => (if flip { 0b111_0111 } else { 0b111_1011 }, 8),
+                _140  => (if flip { 0b111_1011 } else { 0b111_0111 }, 7),
+                _14   => (if flip { 0b111_0110 } else { 0b111_1010 }, 6),
+                _2184 => (if flip { 0b111_0010 } else { 0b111_0010 }, 4),
+                _13   => (if flip { 0b101_1010 } else { 0b011_0110 }, 6),
+                _28   => (if flip { 0b111_1010 } else { 0b111_0110 }, 6),
+                _196  => (if flip { 0b001_1011 } else { 0b001_0111 }, 4),
+                _138  => (if flip { 0b110_0010 } else { 0b110_0010 }, 4),
+                _76   => (if flip { 0b100_0011 } else { 0b010_0011 }, 3),
+                _134  => (if flip { 0b110_0010 } else { 0b110_0010 }, 3),
+                _133  => (if flip { 0b011_0010 } else { 0b101_0010 }, 3),
+                _73   => (if flip { 0b000_0110 } else { 0b000_1010 }, 2),
+                _104  => (if flip { 0b010_0010 } else { 0b100_0010 }, 2),
+            }
+        };
+        let best = (0..num_states)
+            .max_by_key(|branch| {
+                let val = sets[*branch].iter().map(layout_heuristic).reduce(|(piecety0, cont0), (piecety1, cont1)| (piecety0 | piecety1, cont0 + cont1));
+                /*TBD: Remove debug: let s=format!("[ chbr branch = {branch}, val = {val}\n");let _=std::io::Write::write(&mut std::fs::OpenOptions::new().append(true).open("tetrs_tui_error_message_COMBO.txt").unwrap(), s.as_bytes());*/
+                val
+            })
+            .unwrap();
+        */
         /*TBD: Remove debug: let s=format!("[ chbr best = {best:?} ]\n");let _=std::io::Write::write(&mut std::fs::OpenOptions::new().append(true).open("tetrs_tui_error_message_COMBO.txt").unwrap(), s.as_bytes());*/
         Some(best)
     }
