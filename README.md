@@ -611,56 +611,116 @@ The menus form a graph (with menus as nodes and valid transitions as directed ed
 
 ## Combo Bot
 
-The goal of 'Combo Mode' is to keep a combo for as long as possible *(where a combo is increased by clearing lines with consecutively placed pieces)*.
+> [!NOTE]
+> The bot can be enabled to run in Combo Mode with a cmdline flag (`./tetrs_tui -e`).
+> 
+> To make it output the lookahead graphs, a feature is needed at compile time: `cargo run --release --features graphviz`.
+> 
+> To produce statistics, `cargo test <"simple"|"lookaheads"|"randomizers">` was used.
 
-The fact that this is even remotely playable as a gamemode by itself is due to "4-wide 3-residual" combos, where the board is filled up except for a 4-wide vertical tunnel, at the bottom of which there are always 3 additional pieces that set up the next line clear.
+### Background
 
-Due to the fact that a tetromino consists of 4 cells, clearing a line like this will again leave 3 cells in the otherwise perfectly vertical 4-wide tunnel.
+The goal of 'Combo Mode' is to keep a combo going for as many pieces/lines as possible, where combo is maintained by clearing lines with consecutive pieces.
 
-It turns out there are only a finite number of combo states that can lead to each other and continue a possibly infinite chain.
+The fact that this is playable as its own gamemode is due to a special strategy known as the *4 wide (3 residual) combo setup*.
+Here the board is completely filled except for a dedicated 4-wide vertical tunnel, at the bottom of which there are always 'residual' cells that help in clearing a line with the upcoming piece.
 
-<!-- TODO: Graph here. -->
+It turns out there are only a finite number of these configurations inside a 4-wide well are useful to keep a combo (graphic with modifications courtesy of [harddrop](https://harddrop.com/wiki/Combo_Setups#4-Wide_with_3_Residuals)):
 
-Therefore, given a finite piece preview, and armed with the knowledge of how these combo states transition into each other, playing Combo Mode is reduced to a graph problem - ideal for a computer to solve!
+![harddrop.com 4wide 3res combo continuations](/Gallery/harddrop.com_4-Wide-Combo-Setups.png)
 
-This is what the bot's brain looks like when it's thinking about what it might do given 4 pieces of preview:
+Notice how due to the fact that a tetromino consists of 4 cells, clearing a line like this will always leave another 3 cells in the otherwise perfectly vertical 4-wide tunnel.
 
-<!-- TODO: Graph here. -->
+### Problem Approach
 
-To "think", the bot gets the current state of the game and produces the entire graph of possible future moves.
-Among these, it must choose the next step to take. For this, it wants to play as far as possible. In the case that several branches max out the preview it uses the heuristic of choosing the branch with the most possible continuations of all distinct states at the bottom of the branch. In the above case, the bot would choose the middle branch because it has better states at the very bottom:
+Given finite piece preview and armed with the knowledge of how these combo states transition into each other, how do we find the best way to continue a combo?
 
-<!-- TODO: Graph here. -->
+It turns out we can model this as a [graph](https://en.wikipedia.org/wiki/Graph_(abstract_data_type)) where we can see what paths we can take from our current state:
 
-The size of this graph gets slightly out of hand for bigger previews:
+![4-lookahead state graph](/Gallery/combo_4-lookahead-graph.svg)
 
-<!-- TODO: Graph here. -->
+Different decisions can be made depending on whether we hold the current piece and use a different one, which can radically change the outcome.
 
-Luckily, empirically the length of combos increases exponentially for every additional preview (e.g. a 128k-combo with only 7 preview.)
+What the bot does with this is to look at the farthest states it finds, and chooses the branch that maximizes depth and possibilities to make different decisions later on (states with many continuations).
 
-In fact, I learned SVG just for the purpose of manually visualizing the distribution of runs given a certain preview:
+While humans can vaguely do this for certain previews and also get a feeling for it, one can program a computer to do this automatically even for larger preview sizes.
+Compare the following 12-piece-lookahead to the 4-lookahead from above:
 
-<!-- TODO: Graph here. -->
+![12-lookahead state graph](/Gallery/combo_12-lookahead-graph.svg)
 
-indeed, it seems as if this distribution, too, is exponential.
+The bot currently only supports lookahead up to 42 (number of bit triplets that fit into `u128`), although it already tends to get quite slow for values half of that.
+As we'll see, it still does pretty okay for reasonable preview sizes.
 
-Here are some text stats given various randomizers and lookahead values:
+### Results
 
-#### Tetrs Combo (4-wide 3-res.) - Bot Statistics Summary
+In short, the bot is pretty good and gets exponentially longer combos with larger preview, as can also be seen from the following chart.
 
-| Samples | Randomizer | Lookahead | Combo Average | Combo Median | Combo Maximum |
+#### Combo Bot Statistics - Diff. Lookaheads (bag)
+
+| Samples | Randomizer | Lookahead | Median combo | Average combo | Maximum combo |
 |-|-|-|-|-|-|
-| 1000 | 'bag' | 0 |   11 |    9 |   133 |
-| 1000 | 'bag' | 1 |   24 |   19 |   195 |
-| 1000 | 'bag' | 2 |   40 |   29 |   310 |
-| 1000 | 'bag' | 3 |   78 |   51 |   728 |
-| 1000 | 'bag' | 4 |  132 |   87 |  1123 |
-| 1000 | 'bag' | 5 |  239 |  149 |  2324 |
-| 1000 | 'bag' | 6 |  509 |  314 |  4356 |
-| 1000 | 'bag' | 7 | 1052 |  623 |  8779 |
-| 1000 | 'bag' | 8 | 2201 | 1289 | 15658 |
-| 1000 | 'bag' | 9 | 4211 | 2349 | 32391 |
+| 10000 | 'bag' | 0 |    8 |   11 |   114 |
+| 10000 | 'bag' | 1 |   17 |   22 |   232 |
+| 10000 | 'bag' | 2 |   29 |   40 |   426 |
+| 10000 | 'bag' | 3 |   50 |   76 |   695 |
+| 10000 | 'bag' | 4 |   82 |  129 |  1434 |
+| 10000 | 'bag' | 5 |  150 |  244 |  2435 |
+| 10000 | 'bag' | 6 |  300 |  502 |  5028 |
+| 10000 | 'bag' | 7 |  540 |  985 | 10663 |
+| 10000 | 'bag' | 8 | 1123 | 2126 | 24040 |
+| 10000 | 'bag' | 9 | 2255 | 4199 | 54664 |
 
+It is also interesting to note the differences depending on the [randomizer used to generate the next pieces](#tetromino-generation):
+
+| Samples | Randomizer | Lookahead | Median combo | Average combo | Maximum combo |
+|-|-|-|-|-|-|
+| 100000 | 'uniform'            | 3 |   15 |   23 |   287 |
+| 100000 | 'balance-relative'   | 3 |   23 |   33 |   470 |
+| 100000 | 'bag'                | 3 |   50 |   74 |   988 |
+| 100000 | 'bag-2'              | 3 |   25 |   37 |   555 |
+| 100000 | 'bag-3'              | 3 |   20 |   29 |   363 |
+| 100000 | 'bag-2_restock-on-7' | 3 |   21 |   28 |   328 |
+| 100000 | 'bag-3_restock-on-7' | 3 |   21 |   28 |   328 |
+| 100000 | 'recency-0.0'        | 3 |   15 |   23 |   303 |
+| 100000 | 'recency-0.5'        | 3 |   34 |   55 |   734 |
+| 100000 | 'recency-1.0'        | 3 |   46 |   73 |   918 |
+| 100000 | 'recency-1.5'        | 3 |   58 |   92 |  1238 |
+| 100000 | 'recency-2.0'        | 3 |   68 |  107 |  1477 |
+| 100000 | 'recency'            | 3 |   76 |  120 |  1592 |
+| 100000 | 'recency-3.0'        | 3 |   83 |  129 |  1837 |
+| 100000 | 'recency-7.0'        | 3 |  118 |  184 |  2715 |
+| 100000 | 'recency-16.0'       | 3 |  223 |  374 |  4961 |
+| 100000 | 'recency-32.0'       | 3 | 2583 | 4798 | 70998 |
+
+Additionally, these benchmarks also produce visualization of the actual distribution of combos:
+
+![combo distribution, recency, 0-lookahead, 1'000 samples](/Gallery/combot-2024-09-08_19-01-11_L0_recency.svg)
+
+It is interesting to note how these distributions can spread out quickly for higher lookaheads:
+
+![combo distribution, recency, 4-lookahead, 2'500 samples](/Gallery/combot-2024-09-08_19-02-47_L4_recency.svg)
+
+Running this for 1'000'000 samples for a uniform distribution yields a smoother curve:
+
+![combo distribution, uniform, 1-lookahead, 1'000'000 samples](/Gallery/combot-2024-09-07_18-09-31_L1_uniform.png)
+
+All other randomizer choices lead to very similar curves like this.
+
+According to some [programming someone else did on 4wide 3res](https://harddrop.com/forums/index.php?topic=7955), there are deadly sequences of 'bags' that will kill the combo (and needless to say, randomizers which allow truer forms of randomness can kill even more easily).
+
+One more thing - look at this curious chart with 1'000'000 on the bag randomizer, which *does not* seem to smooth out:
+
+![combo distribution, bag, 1-lookahead, 1'000'000 samples](/Gallery/combot-2024-09-07_18-09-31_L1_bag.png)
+
+What's happening with these obvious valleys and peaks?
+Upon further inspection, the peaks are at: 6, 13, 20, 27, 35, 41, ... can you spot the pattern?
+
+The answer is that the most of the runs die toward the end of a bag, because the bot optimizes the path expecting random pieces, but *the end of the bag is never random.*
+
+Clearly the bot is not perfectly making use of all the information available to make the best move. But it's still okay overall.
+
+One topic not touched upon is how 4wide 3res is not the only combo setup.
+This bot is more or less hardcoded in that respect. An interesting project would be to do something with 4wide 6res, which I heard is more resilient to combo killers :-)
 
 
 ## Miscellaneous Author Notes
