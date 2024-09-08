@@ -665,6 +665,8 @@ As we'll see, it still does pretty okay for reasonable preview sizes.
 
 ### Results and Evaluation
 
+[Screencast from 2024-09-08 22-21-45 combot-demo.webm](https://github.com/user-attachments/assets/a3d96655-7d96-4f87-80ff-b1c86840ced3)
+
 In short, the bot is pretty good and gets exponentially longer combos with larger preview, as can also be seen from the following chart.
 
 | Samples | Randomizer | Lookahead | Median combo | Average combo | Maximum combo |
