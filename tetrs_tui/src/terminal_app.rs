@@ -169,12 +169,12 @@ pub struct TerminalApp<T: Write> {
 
 impl<T: Write> Drop for TerminalApp<T> {
     fn drop(&mut self) {
-        // TODO: Handle errors?
+        // FIXME: Handle errors?
         let savefile_path = Self::savefile_path();
         // If the user wants their data stored, try to do so.
         if self.settings.save_data_on_exit {
             if let Err(_e) = self.store_local(savefile_path) {
-                // TODO: Make this debuggable.
+                // FIXME: Make this debuggable.
                 //eprintln!("Could not save settings this time: {e} ");
                 //std::thread::sleep(Duration::from_secs(4));
             }
@@ -209,14 +209,14 @@ impl<T: Write> TerminalApp<T> {
         combo_bot_enabled: bool,
     ) -> Self {
         // Console prologue: Initialization.
-        // TODO: Handle errors?
+        // FIXME: Handle errors?
         let _ = terminal.execute(terminal::EnterAlternateScreen);
         let _ = terminal.execute(terminal::SetTitle("tetrs - Terminal User Interface"));
         let _ = terminal.execute(cursor::Hide);
         let _ = terminal::enable_raw_mode();
         let kitty_enabled = terminal::supports_keyboard_enhancement().unwrap_or(false);
         if kitty_enabled {
-            // TODO: Kinda iffy. Do we need all flags? What undesirable effects might there be?
+            // FIXME: Kinda iffy. Do we need all flags? What undesirable effects might there be?
             let _ = terminal.execute(event::PushKeyboardEnhancementFlags(
                 event::KeyboardEnhancementFlags::all(),
             ));
@@ -247,7 +247,7 @@ impl<T: Write> TerminalApp<T> {
             combo_bot_enabled,
         };
         if let Err(_e) = app.load_local() {
-            // TODO: Make this debuggable.
+            // FIXME: Make this debuggable.
             //eprintln!("Could not loading settings: {e}");
             //std::thread::sleep(Duration::from_secs(5));
         }
@@ -314,7 +314,7 @@ impl<T: Write> TerminalApp<T> {
         );
         let save_str = serde_json::to_string(&save_state)?;
         let mut file = File::create(path)?;
-        // TODO: Handle error?
+        // FIXME: Handle error?
         let _ = file.write(save_str.as_bytes())?;
         Ok(())
     }
@@ -787,12 +787,6 @@ impl<T: Write> TerminalApp<T> {
                     };
                     // Set config.
                     game.config_mut().clone_from(&self.game_config);
-                    // TODO: Remove or rewrite.
-                    // unsafe {
-                    //     game.add_modifier(Box::new(
-                    //         crate::game_mods::utils::display_tetromino_likelihood,
-                    //     ))
-                    // };
                     let now = Instant::now();
                     break Ok(MenuUpdate::Push(Menu::Game {
                         game: Box::new(game),
@@ -992,7 +986,6 @@ impl<T: Write> TerminalApp<T> {
                     matches!(feedback, tetrs_engine::Feedback::PieceSpawned(_))
                 }) {
                     let combo_state = ComboBotHandler::encode(game).unwrap();
-                    /*TODO: Remove debug: let s=format!("[ 1 game.state().next_pieces = {:?}, combo_state = {} = {combo_state:?} ]\n", game.state().next_pieces, game_input_handlers::combo_bot::fmt_statenode(&(0, combo_state)));let _=std::io::Write::write(&mut std::fs::OpenOptions::new().append(true).open("tetrs_tui_error_message_COMBO.txt").unwrap(), s.as_bytes());*/
                     if state_sender.send(combo_state).is_err() {
                         combo_bot_handler = None;
                     }
@@ -1059,7 +1052,7 @@ impl<T: Write> TerminalApp<T> {
                         let game_time_userinput = instant.saturating_duration_since(*time_started)
                             - *total_duration_paused;
                         let game_now = std::cmp::max(game_time_userinput, game.state().time);
-                        // TODO: Handle/ensure no Err.
+                        // FIXME: Handle/ensure no Err.
                         if let Ok(evts) = game.update(Some(buttons_pressed), game_now) {
                             inform_combo_bot(game, &evts);
                             new_feedback_events.extend(evts);
@@ -1068,7 +1061,7 @@ impl<T: Write> TerminalApp<T> {
                     Err(mpsc::RecvTimeoutError::Timeout) => {
                         let game_time_now = Instant::now().saturating_duration_since(*time_started)
                             - *total_duration_paused;
-                        // TODO: Handle/ensure no Err.
+                        // FIXME: Handle/ensure no Err.
                         if let Ok(evts) = game.update(None, game_time_now) {
                             inform_combo_bot(game, &evts);
                             new_feedback_events.extend(evts);
@@ -2229,7 +2222,7 @@ impl<T: Write> TerminalApp<T> {
     }
 
     fn about_menu(&mut self) -> io::Result<MenuUpdate> {
-        /* TODO: About menu. */
+        /* FIXME: About menu. */
         self.generic_placeholder_widget(
             "About tetrs - Visit https://github.com/Strophox/tetrs",
             vec![],

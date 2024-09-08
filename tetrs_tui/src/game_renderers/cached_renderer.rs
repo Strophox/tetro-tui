@@ -770,7 +770,7 @@ impl Renderer for CachedRenderer {
                     if *lineclears <= 4 {
                         running_game_stats.0[usize::try_from(*lineclears).unwrap()] += 1;
                     } else {
-                        // TODO: Record higher lineclears, if even possible.
+                        // FIXME: Record higher lineclears, if even possible.
                     }
                     strs.push(clear_action);
                     if *combo > 1 {

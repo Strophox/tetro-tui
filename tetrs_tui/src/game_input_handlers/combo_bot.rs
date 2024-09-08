@@ -110,7 +110,6 @@ impl ComboBotHandler {
             200, 137, 140, 14, 2184, 13, 28, 196, 138, 76, 134, 133, 73, 104,
         ]
         .contains(&pattern_bits);
-        // TODO: Document only being able to look 128 // 3 == 42 ahead.
         const MAX_LOOKAHEAD: usize = 42;
         if game.state().next_pieces.len() > MAX_LOOKAHEAD {
             return Err(format!(
@@ -155,17 +154,17 @@ impl ComboBotHandler {
             'react_to_game: loop {
                 match state_receiver.recv() {
                     Ok(state_lvl0) => {
-                        /*TODO: Remove debug: let s=format!("[ main1 REVOYYY zeroth_state = {state_lvl0:?} ]\n");let _=std::io::Write::write(&mut std::fs::OpenOptions::new().append(true).open("tetrs_tui_error_message_COMBO.txt").unwrap(), s.as_bytes());*/
+                        /*TBD: Remove debug: let s=format!("[ main1 REVOYYY zeroth_state = {state_lvl0:?} ]\n");let _=std::io::Write::write(&mut std::fs::OpenOptions::new().append(true).open("tetrs_tui_error_message_COMBO.txt").unwrap(), s.as_bytes());*/
                         let (states_lvl1, states_lvl1_buttons): (
                             Vec<ComboState>,
                             Vec<ButtonInstructions>,
                         ) = neighbors(state_lvl0).into_iter().unzip();
-                        /*TODO: Remove debug: let s=format!("[ main2 states_lvl1 = {:?} = {states_lvl1:?} ]\n", states_lvl1.iter().map(|state| fmt_statenode(&(0, *state))).collect::<Vec<_>>());let _=std::io::Write::write(&mut std::fs::OpenOptions::new().append(true).open("tetrs_tui_error_message_COMBO.txt").unwrap(), s.as_bytes());*/
+                        /*TBD: Remove debug: let s=format!("[ main2 states_lvl1 = {:?} = {states_lvl1:?} ]\n", states_lvl1.iter().map(|state| fmt_statenode(&(0, *state))).collect::<Vec<_>>());let _=std::io::Write::write(&mut std::fs::OpenOptions::new().append(true).open("tetrs_tui_error_message_COMBO.txt").unwrap(), s.as_bytes());*/
                         // No more options to continue.
                         let Some(branch_choice) =
                             choose_branch(states_lvl1, GRAPHVIZ.then_some(state_lvl0))
                         else {
-                            /*TODO: Remove debug: let s=format!("[ main3 uhhhhhh ]\n");let _=std::io::Write::write(&mut std::fs::OpenOptions::new().append(true).open("tetrs_tui_error_message_COMBO.txt").unwrap(), s.as_bytes());*/
+                            /*TBD: Remove debug: let s=format!("[ main3 uhhhhhh ]\n");let _=std::io::Write::write(&mut std::fs::OpenOptions::new().append(true).open("tetrs_tui_error_message_COMBO.txt").unwrap(), s.as_bytes());*/
                             let _ = button_sender
                                 .send(Err(crate::game_input_handlers::Interrupt::Pause));
                             break 'react_to_game;
@@ -187,7 +186,7 @@ impl ComboBotHandler {
                             }
                             let _ = button_sender.send(Ok((Instant::now(), button, true)));
                             let _ = button_sender.send(Ok((Instant::now(), button, false)));
-                            /*TODO: Remove debug: let s=format!("[ main4 SENT button = {button:?} ]\n");let _=std::io::Write::write(&mut std::fs::OpenOptions::new().append(true).open("tetrs_tui_error_message_COMBO.txt").unwrap(), s.as_bytes());*/
+                            /*TBD: Remove debug: let s=format!("[ main4 SENT button = {button:?} ]\n");let _=std::io::Write::write(&mut std::fs::OpenOptions::new().append(true).open("tetrs_tui_error_message_COMBO.txt").unwrap(), s.as_bytes());*/
                             thread::sleep(idle_time);
                         }
                     }
@@ -203,17 +202,17 @@ fn choose_branch(
     states_lvl1: Vec<ComboState>,
     debug_state_lvl0: Option<ComboState>,
 ) -> Option<usize> {
-    /*TODO: Remove debug: let s=format!("[ chbr1 examine states = {states_lvl1:?} ]\n");let _=std::io::Write::write(&mut std::fs::OpenOptions::new().append(true).open("tetrs_tui_error_message_COMBO.txt").unwrap(), s.as_bytes());*/
+    /*TBD: Remove debug: let s=format!("[ chbr1 examine states = {states_lvl1:?} ]\n");let _=std::io::Write::write(&mut std::fs::OpenOptions::new().append(true).open("tetrs_tui_error_message_COMBO.txt").unwrap(), s.as_bytes());*/
     if states_lvl1.is_empty() {
-        /*TODO: Remove debug: let s=format!("[ chbr2 empty ]\n");let _=std::io::Write::write(&mut std::fs::OpenOptions::new().append(true).open("tetrs_tui_error_message_COMBO.txt").unwrap(), s.as_bytes());*/
+        /*TBD: Remove debug: let s=format!("[ chbr2 empty ]\n");let _=std::io::Write::write(&mut std::fs::OpenOptions::new().append(true).open("tetrs_tui_error_message_COMBO.txt").unwrap(), s.as_bytes());*/
         None
     // One option to continue, do not do further analysis.
     } else if states_lvl1.len() == 1 {
-        /*TODO: Remove debug: let s=format!("[ chbr single ]\n");let _=std::io::Write::write(&mut std::fs::OpenOptions::new().append(true).open("tetrs_tui_error_message_COMBO.txt").unwrap(), s.as_bytes());*/
+        /*TBD: Remove debug: let s=format!("[ chbr single ]\n");let _=std::io::Write::write(&mut std::fs::OpenOptions::new().append(true).open("tetrs_tui_error_message_COMBO.txt").unwrap(), s.as_bytes());*/
         Some(0)
     // Several options to evaluate, do graph algorithm.
     } else {
-        /*TODO: Remove debug: let s=format!("[ chbr multianalyze ]\n");let _=std::io::Write::write(&mut std::fs::OpenOptions::new().append(true).open("tetrs_tui_error_message_COMBO.txt").unwrap(), s.as_bytes());*/
+        /*TBD: Remove debug: let s=format!("[ chbr multianalyze ]\n");let _=std::io::Write::write(&mut std::fs::OpenOptions::new().append(true).open("tetrs_tui_error_message_COMBO.txt").unwrap(), s.as_bytes());*/
         let num_states = states_lvl1.len();
         let mut queue: VecDeque<(usize, ComboState)> =
             states_lvl1.into_iter().enumerate().collect();
@@ -235,7 +234,7 @@ fn choose_branch(
             .filter(|(_, state)| state.depth == depth_best)
             .copied()
             .collect::<Vec<_>>();
-        /*TODO: Remove debug: let s=format!("[ chbr before-while ]\n");let _=std::io::Write::write(&mut std::fs::OpenOptions::new().append(true).open("tetrs_tui_error_message_COMBO.txt").unwrap(), s.as_bytes());*/
+        /*TBD: Remove debug: let s=format!("[ chbr before-while ]\n");let _=std::io::Write::write(&mut std::fs::OpenOptions::new().append(true).open("tetrs_tui_error_message_COMBO.txt").unwrap(), s.as_bytes());*/
         while let Some(statenode @ (branch, state)) = queue.pop_front() {
             let neighbors: Vec<_> = neighbors(state)
                 .into_iter()
@@ -267,7 +266,7 @@ fn choose_branch(
             }
             queue.extend(neighbors);
         }
-        /*TODO: Remove debug: let s=format!("[ chbr depth_best = {depth_best} ]\n");let _=std::io::Write::write(&mut std::fs::OpenOptions::new().append(true).open("tetrs_tui_error_message_COMBO.txt").unwrap(), s.as_bytes());*/
+        /*TBD: Remove debug: let s=format!("[ chbr depth_best = {depth_best} ]\n");let _=std::io::Write::write(&mut std::fs::OpenOptions::new().append(true).open("tetrs_tui_error_message_COMBO.txt").unwrap(), s.as_bytes());*/
         if debug_state_lvl0.is_some() {
             graphviz_str.push_str("\n}");
 
@@ -278,7 +277,7 @@ fn choose_branch(
                 .unwrap()
                 .write(format!("graphviz: \"\"\"\n{graphviz_str}\n\"\"\"\n").as_bytes());
         }
-        /*TODO: Remove debug: let s=format!("[ chbr states_best = {states_best:?} ]\n");let _=std::io::Write::write(&mut std::fs::OpenOptions::new().append(true).open("tetrs_tui_error_message_COMBO.txt").unwrap(), s.as_bytes());*/
+        /*TBD: Remove debug: let s=format!("[ chbr states_best = {states_best:?} ]\n");let _=std::io::Write::write(&mut std::fs::OpenOptions::new().append(true).open("tetrs_tui_error_message_COMBO.txt").unwrap(), s.as_bytes());*/
         //states_lvlx.sort_by_key(|(_, ComboState { layout, .. })| layout.0);
         //let best = states_lvlx.first().unwrap().0;
         let mut sets = vec![HashSet::<Layout>::new(); num_states];
@@ -315,11 +314,11 @@ fn choose_branch(
         let best = (0..num_states)
             .max_by_key(|branch| {
                 let val = sets[*branch].iter().map(layout_heuristic).sum::<u32>();
-                /*TODO: Remove debug: let s=format!("[ chbr branch = {branch}, val = {val}\n");let _=std::io::Write::write(&mut std::fs::OpenOptions::new().append(true).open("tetrs_tui_error_message_COMBO.txt").unwrap(), s.as_bytes());*/
+                /*TBD: Remove debug: let s=format!("[ chbr branch = {branch}, val = {val}\n");let _=std::io::Write::write(&mut std::fs::OpenOptions::new().append(true).open("tetrs_tui_error_message_COMBO.txt").unwrap(), s.as_bytes());*/
                 val
             })
             .unwrap();
-        /*TODO: Remove debug: let s=format!("[ chbr best = {best:?} ]\n");let _=std::io::Write::write(&mut std::fs::OpenOptions::new().append(true).open("tetrs_tui_error_message_COMBO.txt").unwrap(), s.as_bytes());*/
+        /*TBD: Remove debug: let s=format!("[ chbr best = {best:?} ]\n");let _=std::io::Write::write(&mut std::fs::OpenOptions::new().append(true).open("tetrs_tui_error_message_COMBO.txt").unwrap(), s.as_bytes());*/
         Some(best)
     }
 }
@@ -333,10 +332,10 @@ fn neighbors(
         next_pieces,
     }: ComboState,
 ) -> Vec<(ComboState, ButtonInstructions)> {
-    /*TODO: Remove debug: let s=format!("[ nbrs1 entered ]\n");let _=std::io::Write::write(&mut std::fs::OpenOptions::new().append(true).open("tetrs_tui_error_message_COMBO.txt").unwrap(), s.as_bytes());*/
+    /*TBD: Remove debug: let s=format!("[ nbrs1 entered ]\n");let _=std::io::Write::write(&mut std::fs::OpenOptions::new().append(true).open("tetrs_tui_error_message_COMBO.txt").unwrap(), s.as_bytes());*/
     let mut neighbors = Vec::new();
     let Some(active) = active else {
-        /*TODO: Remove debug: let s=format!("[ nbrs2 early-ret ]\n");let _=std::io::Write::write(&mut std::fs::OpenOptions::new().append(true).open("tetrs_tui_error_message_COMBO.txt").unwrap(), s.as_bytes());*/
+        /*TBD: Remove debug: let s=format!("[ nbrs2 early-ret ]\n");let _=std::io::Write::write(&mut std::fs::OpenOptions::new().append(true).open("tetrs_tui_error_message_COMBO.txt").unwrap(), s.as_bytes());*/
         return neighbors;
     };
     let new_active = (next_pieces != 0)
@@ -608,9 +607,9 @@ mod tests {
 
     #[test]
     fn benchmark_simple() {
-        let sample_count = 10_000;
-        let lookahead = 7;
-        let randomizer = (TetrominoSource::recency(), "recency");
+        let sample_count = 1_000;
+        let lookahead = 8;
+        let randomizer = (TetrominoSource::bag(), "bag");
         run_analyses_on(sample_count, std::iter::once((lookahead, randomizer)));
     }
 
@@ -626,32 +625,21 @@ mod tests {
     fn benchmark_randomizers() {
         let sample_count = 100_000;
         let lookahead = 3;
+        #[rustfmt::skip]
         let randomizers = [
             (TetrominoSource::uniform(), "uniform"),
-            (TetrominoSource::balance_relative(), "balance_relative"),
+            (TetrominoSource::balance_relative(), "balance-relative"),
             (TetrominoSource::bag(), "bag"),
-            (
-                TetrominoSource::stock(NonZeroU32::MIN.saturating_add(1), 0).unwrap(),
-                "bag-2",
-            ),
-            (
-                TetrominoSource::stock(NonZeroU32::MIN.saturating_add(1), 0).unwrap(),
-                "bag-4",
-            ),
-            (
-                TetrominoSource::stock(NonZeroU32::MIN.saturating_add(1), 7).unwrap(),
-                "bag-2-re1",
-            ),
-            (
-                TetrominoSource::stock(NonZeroU32::MIN.saturating_add(1), 7).unwrap(),
-                "bag-4-re2",
-            ),
+            (TetrominoSource::stock(NonZeroU32::MIN.saturating_add(1), 0).unwrap(), "bag-2"),
+            (TetrominoSource::stock(NonZeroU32::MIN.saturating_add(2), 0).unwrap(), "bag-3"),
+            (TetrominoSource::stock(NonZeroU32::MIN.saturating_add(1), 7).unwrap(), "bag-2_restock-on-7"),
+            (TetrominoSource::stock(NonZeroU32::MIN.saturating_add(1), 7).unwrap(), "bag-3_restock-on-7"),
             (TetrominoSource::recency_with(0.0), "recency-0.0"),
             (TetrominoSource::recency_with(0.5), "recency-0.5"),
             (TetrominoSource::recency_with(1.0), "recency-1.0"),
             (TetrominoSource::recency_with(1.5), "recency-1.5"),
             (TetrominoSource::recency_with(2.0), "recency-2.0"),
-            (TetrominoSource::recency(), "recency-2.5"),
+            (TetrominoSource::recency(), "recency"),
             (TetrominoSource::recency_with(3.0), "recency-3.0"),
             (TetrominoSource::recency_with(8.0), "recency-7.0"),
             (TetrominoSource::recency_with(16.0), "recency-16.0"),
@@ -665,14 +653,14 @@ mod tests {
         configurations: impl IntoIterator<Item = (usize, (TetrominoSource, &'a str))>,
     ) {
         let timestamp = chrono::Utc::now().format("%Y-%m-%d_%H-%M-%S").to_string();
-        let summaries_filename = format!("combot-{timestamp}.md");
+        let summaries_filename = format!("combot-{timestamp}_SUMMARY.md");
         let mut file = File::options()
             .create(true)
             .append(true)
             .open(summaries_filename)
             .unwrap();
         file.write(
-            format!("# Tetrs Combo (4-wide 3-res.) - Bot statistics summary\n\n").as_bytes(),
+            format!("# Tetrs Combo (4-wide 3-res.) - Bot Statistics Summary\n\n").as_bytes(),
         )
         .unwrap();
         let mut rng = rand::thread_rng();
@@ -760,7 +748,7 @@ mod tests {
         let combo_max = frequencies.last().unwrap().0;
         let combo_average = sum / len;
         let frequency_max = *frequencies.iter().map(|(_k, v)| v).max().unwrap();
-        let summary = format!("randomizer = {randomizer_name}, lookahead = {lookahead}; combo_average = {combo_average}, combo_median = {combo_median}, combo_max = {combo_max}, frequency_max = {frequency_max}");
+        let summary = format!("samples = {len}, randomizer = '{randomizer_name}', lookahead = {lookahead}; combo_average = {combo_average}, combo_median = {combo_median}, combo_max = {combo_max}, frequency_max = {frequency_max}");
 
         let font_size = 15;
         let margin_x = 20 * font_size;
@@ -787,11 +775,9 @@ mod tests {
         file.write(format!(
 r##"<svg
     xmlns="http://www.w3.org/2000/svg"
-    width="100%" height="100%"
+    width="{w_svg}" height="{h_svg}"
     viewBox="0 0 {w_svg} {h_svg}"
 >
-
-<!--, {summary} -->
 
 "##).as_bytes()).unwrap();
 
@@ -860,8 +846,8 @@ r##"<!-- Labels. -->
 r##"        <text x="{}" y="{}" font-size="{}px" font-weight="bold" text-anchor="start" fill="#00FFFF" >Tetrs Combo (4-wide 3-res.) - Bot run statistics.</text>
 "##, x_0, y_0 + font_size * 3 + font_size / 2, font_size * 5 / 4).as_bytes()).unwrap();
 
-    file.write(format!(
-r##"        <text x="{}" y="{}" text-anchor="start">{len} samples with lookahead={lookahead}, randomizer={randomizer_name}.</text>
+file.write(format!(
+r##"        <text x="{}" y="{}" text-anchor="start">{summary}.</text>
 "##, x_0, y_0 + font_size * 5).as_bytes()).unwrap();
 
     file.write(format!(

@@ -32,9 +32,7 @@ let GameState { board, .. } = game.state();
 // (Render the board, etc..)
 ```
 
-TODO:
-- All features (including IRS, etc.)
-- Crate features (serde),
+TASK: Document all features (including IRS, etc. - cargo feature `serde`).
 */
 
 #![warn(missing_docs)]
@@ -293,7 +291,7 @@ pub enum GameOver {
     Forfeit,
 }
 
-// TODO: Invariants:
+// FIXME: Document all Invariants.
 // * Until the game has finished there will always be more events: `finished.is_some() || !next_events.is_empty()`.
 // * Unhandled events lie in the future: `for (event,event_time) in self.events { assert(self.time_updated < event_time); }`.
 /// Struct storing internal game state that changes over the course of play.
@@ -365,7 +363,6 @@ pub enum Feedback {
     /// The duration indicates the line clear delay the game was configured with at the time.
     LineClears(Vec<usize>, Duration),
     /// A piece was quickly dropped from its original position to a new one.
-    // TODO: Rename to `QuickDrop` and make the `InternalEvent::DropSonic` cause this too?
     HardDrop(ActivePiece, ActivePiece),
     /// The player cleared some lines with a number of other stats that might have increased their
     /// score bonus.
@@ -826,7 +823,7 @@ impl Game {
     ///
     /// # Safety
     ///
-    // TODO: Document Safety.
+    // FIXME: Document Safety.
     /// This directly allows raw, mutable access to the game's [`GameMode`] field.
     /// This should not cause undefined behaviour per se, but may lead to spurious `panic!`s or
     /// other unexpected gameplay behaviour due to violating internal invarints.
@@ -843,7 +840,7 @@ impl Game {
     ///
     /// # Safety
     ///
-    // TODO: Document Safety.
+    // FIXME: Document Safety.
     /// This directly allows raw, mutable access to the game's [`GameState`] field.
     /// This should not cause undefined behaviour per se, but may lead to spurious `panic!`s or
     /// other unexpected gameplay behaviour due to violating internal invarints.
@@ -855,7 +852,7 @@ impl Game {
     ///
     /// # Safety
     ///
-    // TODO: Document Safety.
+    // FIXME: Document Safety.
     /// This indirectly allows raw, mutable access to the game's [`GameMode`]
     /// and [`GameState`] fields.
     /// This should not cause undefined behaviour per se, but may lead to spurious `panic!`s or
@@ -1481,7 +1478,7 @@ impl Game {
         feedback_events
     }
 
-    // TODO: THIS is, by far, the ugliest part of this entire program. For the love of what's good, I hope this code can someday be surgically excised and drop-in replaced with elegant code.
+    // FIXME: THIS is, by far, the ugliest part of this entire program. For the love of what's good, I hope this code can someday be surgically excised and drop-in replaced with elegant code.
     /// Calculates the newest locking details for the main active piece.
     fn calculate_locking_data(
         &mut self,

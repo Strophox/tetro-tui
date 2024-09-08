@@ -161,7 +161,7 @@ pub fn new_game() -> Game {
             }
             // Remove ability to lock.
             state.events.remove(&InternalEvent::LockTimer);
-            // TODO: Remove jank.
+            // FIXME: Remove jank.
             active_piece.shape = descent_tetromino;
         },
     );

@@ -604,7 +604,7 @@ The menus form a graph (with menus as nodes and valid transitions as directed ed
 
 <summary>Tetrs Terminal Menu Graph (via Graphviz)</summary>
 
-![tetrs menu graph](Gallery/tetrs_menu-graph.png)
+![tetrs menu graph](Gallery/tetrs_menu-graph.svg)
 
 </details>
 
@@ -645,7 +645,9 @@ All in all, Rust (known for its safety and performance while still providing ADT
 
 Also, can we appreciate how nice the name *tetrs* fits for a Rust game that does not infringe on TTC's copyright? <sup>~~though there were like a million other [`tetrs`](https://github.com/search?q=%22tetrs%22&type=repositories)'s on GitHub before me oof~~</sup>.
 
-- For the menu navigation graph I used [graphviz](http://magjac.com/graphviz-visual-editor/).
+Other stuff:
+- For the menu navigation graph I learned DOT (and used [graphviz](http://magjac.com/graphviz-visual-editor/)).
+- For the combo bot graph I learned and generated[SVG](https://developer.mozilla.org/en-US/docs/Web/SVG/Tutorial) myself (yippie).
 - For the terminal GIF recordings I used [asciinema](https://asciinema.org/) + [agg](https://github.com/asciinema/agg):
   ```bash
   agg --font-family="DejaVu Sans Mono" --line-height=1.17 --renderer=resvg --font-size=20, --fps-cap=30 --last-frame-duration=0  my_rec.cast my_rec.gif
