@@ -103,9 +103,9 @@ For more technical details see [Features of the Tetrs Engine](#features-of-the-t
 ### Gamemodes
 - Normal modes:
   - **40-Lines**: Clear 40-Lines as quickly as possible.
-  - **Marathon**: Reach the highest speed level with the highest score possible.
+  - **Marathon**: Reach speed level 15 with the highest score possible.
   - **Time Trial**: Get the highest score possible within three minutes.
-  - **Master**: Clear 300 lines starting at the highest speed level *(\*inspired by TE:C)*.
+  - **Master**: Clear 100 lines starting at the highest speed level *(\*inspired by TE:C)*.
 - Special modes:
   - **Puzzle**: Advance through all 24 puzzle stages using perfect clears (and up to 5 attempts), enabled by piece acrobatics of the 'ocular' rotation system.
   - **Cheese**: Eat yourself through 32 lines with random holes, with as few pieces as possible *(\*inspired by Jstris)*.
@@ -216,7 +216,7 @@ tetrs_engine = { git = "https://github.com/Strophox/tetrs.git" }
 
 Currently, drop delay and lock delay\* *(\*But not total ground time)* are a function of the current level:
 - Drop delay (1000ms at lvl 1 to 0.833ms ("20G") at lvl 19, as per guideline)
-- 'Timer' variant of Extended Placement Lockdown (step reset); The piece tries to lock every 500ms at lvl 19 to every 150ms at lvl 30, and any given piece may only touch ground for 2250ms in total. See [Piece Locking](#piece-locking).
+- 'Timer' variant of Extended Placement Lockdown (step reset); The piece tries to lock every 500ms at lvl 19 to every 150ms at lvl 30, and any given piece may only touch ground for 3000ms in total. See [Piece Locking](#piece-locking).
 
 All default values loosely based on the [Guideline](https://tetris.wiki/Tetris_Guideline).
 

@@ -558,7 +558,7 @@ impl<T: Write> TerminalApp<T> {
             ),
             (
                 "Marathon",
-                "can you reach the highest speed level?".to_string(),
+                "can you reach speed level 15?".to_string(),
                 Box::new(|| Game::new(GameMode::marathon())),
             ),
             (
@@ -568,7 +568,7 @@ impl<T: Write> TerminalApp<T> {
             ),
             (
                 "Master",
-                "start at instant gravity.".to_string(),
+                "clear 100 lines starting at instant gravity.".to_string(),
                 Box::new(|| Game::new(GameMode::master())),
             ),
         ];

@@ -597,14 +597,14 @@ impl GameMode {
     /// - Name: "Marathon".
     /// - Start level: 1.
     /// - Level increment: Yes.
-    /// - Limits: Level 19.
+    /// - Limits: Level 15.
     pub fn marathon() -> Self {
         Self {
             name: String::from("Marathon"),
             start_level: NonZeroU32::MIN,
             increment_level: true,
             limits: Limits {
-                level: Some((true, Game::LEVEL_20G)),
+                level: Some((true, NonZeroU32::try_from(15).unwrap())),
                 ..Default::default()
             },
         }
@@ -654,14 +654,14 @@ impl GameMode {
     /// - Name: "Master".
     /// - Start level: 19.
     /// - Level increment: Yes.
-    /// - Limits: 300 Lines.
+    /// - Limits: 100 Lines.
     pub fn master() -> Self {
         Self {
             name: String::from("Master"),
             start_level: Game::LEVEL_20G.saturating_add(1),
             increment_level: true,
             limits: Limits {
-                lines: Some((true, 300)),
+                lines: Some((true, 100)),
                 ..Default::default()
             },
         }
@@ -728,7 +728,7 @@ impl Default for GameConfig {
             auto_repeat_rate: Duration::from_millis(33),
             soft_drop_factor: 15.0,
             hard_drop_delay: Duration::from_micros(100),
-            ground_time_max: Duration::from_millis(2250),
+            ground_time_max: Duration::from_millis(3000),
             line_clear_delay: Duration::from_millis(200),
             appearance_delay: Duration::from_millis(50),
             no_soft_drop_lock: false,
