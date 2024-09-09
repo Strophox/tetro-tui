@@ -444,7 +444,7 @@ impl Renderer for CachedRenderer {
                     t => unimplemented!("formatting unknown tile id {t}"),
                 })
             },
-            GraphicsColor::ColorRGB => {
+            GraphicsColor::Fullcolor => {
                 |tile: TileTypeID| Some(match tile.get() {
                         1 => Color::Rgb { r:254, g:203, b:  0 },
                         2 => Color::Rgb { r:  0, g:159, b:218 },
@@ -456,6 +456,21 @@ impl Renderer for CachedRenderer {
                     253 => Color::Rgb { r:  0, g:  0, b:  0 },
                     254 => Color::Rgb { r:127, g:127, b:127 },
                     255 => Color::Rgb { r:255, g:255, b:255 },
+                    t => unimplemented!("formatting unknown tile id {t}"),
+                })
+            }
+            GraphicsColor::Experimental => {
+                |tile: TileTypeID| Some(match tile.get() {
+                        1 => Color::Rgb { r: 14, g:198, b:244 },
+                        2 => Color::Rgb { r:242, g:192, b: 29 },
+                        3 => Color::Rgb { r: 70, g:201, b: 50 },
+                        4 => Color::Rgb { r:230, g: 53, b:197 },
+                        5 => Color::Rgb { r:147, g: 41, b:229 },
+                        6 => Color::Rgb { r: 36, g:118, b:242 },
+                        7 => Color::Rgb { r:244, g: 50, b: 48 },
+                      253 => Color::Rgb { r:  0, g:  0, b:  0 },
+                      254 => Color::Rgb { r:127, g:127, b:127 },
+                      255 => Color::Rgb { r:255, g:255, b:255 },
                     t => unimplemented!("formatting unknown tile id {t}"),
                 })
             },
@@ -625,7 +640,12 @@ impl Renderer for CachedRenderer {
                     };
                     let color_locking = match app.settings().graphics_color {
                         GraphicsColor::Monochrome => None,
-                        GraphicsColor::Color16 | GraphicsColor::ColorRGB => Some(Color::White),
+                        GraphicsColor::Color16 | GraphicsColor::Fullcolor => Some(Color::White),
+                        GraphicsColor::Experimental => Some(Color::Rgb {
+                            r: 207,
+                            g: 207,
+                            b: 207,
+                        }),
                     };
                     let Some(tile) = animation_locking.iter().find_map(|(ms, tile)| {
                         (elapsed < Duration::from_millis(*ms)).then_some(tile)
@@ -685,7 +705,9 @@ impl Renderer for CachedRenderer {
                     };
                     let color_lineclear = match app.settings().graphics_color {
                         GraphicsColor::Monochrome => None,
-                        GraphicsColor::Color16 | GraphicsColor::ColorRGB => Some(Color::White),
+                        GraphicsColor::Color16
+                        | GraphicsColor::Fullcolor
+                        | GraphicsColor::Experimental => Some(Color::White),
                     };
                     let percent = elapsed.as_secs_f64() / line_clear_delay.as_secs_f64();
                     // SAFETY: `0.0 <= percent && percent <= 1.0`.

@@ -115,7 +115,8 @@ pub enum GraphicsStyle {
 pub enum GraphicsColor {
     Monochrome,
     Color16,
-    ColorRGB,
+    Fullcolor,
+    Experimental,
 }
 
 #[serde_with::serde_as]
@@ -230,8 +231,8 @@ impl<T: Write> TerminalApp<T> {
                 game_fps: 30.0,
                 show_fps: false,
                 graphics_style: GraphicsStyle::Unicode,
-                graphics_color: GraphicsColor::ColorRGB,
-                graphics_color_board: GraphicsColor::ColorRGB,
+                graphics_color: GraphicsColor::Fullcolor,
+                graphics_color_board: GraphicsColor::Fullcolor,
                 save_data_on_exit: false,
             },
             game_config: GameConfig::default(),
@@ -1467,8 +1468,9 @@ impl<T: Write> TerminalApp<T> {
                     3 => {
                         self.settings.graphics_color = match self.settings.graphics_color {
                             GraphicsColor::Monochrome => GraphicsColor::Color16,
-                            GraphicsColor::Color16 => GraphicsColor::ColorRGB,
-                            GraphicsColor::ColorRGB => GraphicsColor::Monochrome,
+                            GraphicsColor::Color16 => GraphicsColor::Fullcolor,
+                            GraphicsColor::Fullcolor => GraphicsColor::Experimental,
+                            GraphicsColor::Experimental => GraphicsColor::Monochrome,
                         };
                         self.settings.graphics_color_board = self.settings.graphics_color;
                     }
@@ -1497,9 +1499,10 @@ impl<T: Write> TerminalApp<T> {
                     }
                     3 => {
                         self.settings.graphics_color = match self.settings.graphics_color {
-                            GraphicsColor::Monochrome => GraphicsColor::ColorRGB,
+                            GraphicsColor::Monochrome => GraphicsColor::Experimental,
                             GraphicsColor::Color16 => GraphicsColor::Monochrome,
-                            GraphicsColor::ColorRGB => GraphicsColor::Color16,
+                            GraphicsColor::Fullcolor => GraphicsColor::Color16,
+                            GraphicsColor::Experimental => GraphicsColor::Fullcolor,
                         };
                         self.settings.graphics_color_board = self.settings.graphics_color;
                     }
