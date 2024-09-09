@@ -425,45 +425,43 @@ impl Renderer for CachedRenderer {
         let pos_board = |(x, y)| (x_board + 2 * x, y_board + Game::SKYLINE - y);
         // Board: helpers.
         #[rustfmt::skip]
-        let tile_color = match app.settings().graphics_color {
+        let get_color = |mode: GraphicsColor| match mode {
             GraphicsColor::Monochrome => {
                 |_tile: TileTypeID| None
             },
             GraphicsColor::Color16 => {
-                |tile: TileTypeID| {
-                    Some(match tile.get() {
-                          1 => Color::Yellow,
-                          2 => Color::DarkCyan,
-                          3 => Color::Green,
-                          4 => Color::DarkRed,
-                          5 => Color::DarkMagenta,
-                          6 => Color::Red,
-                          7 => Color::Blue,
-                        253 => Color::Black,
-                        254 => Color::DarkGrey,
-                        255 => Color::White,
-                        t => unimplemented!("formatting unknown tile id {t}"),
-                    })
-                }
+                |tile: TileTypeID| Some(match tile.get() {
+                        1 => Color::Yellow,
+                        2 => Color::DarkCyan,
+                        3 => Color::Green,
+                        4 => Color::DarkRed,
+                        5 => Color::DarkMagenta,
+                        6 => Color::Red,
+                        7 => Color::Blue,
+                    253 => Color::Black,
+                    254 => Color::DarkGrey,
+                    255 => Color::White,
+                    t => unimplemented!("formatting unknown tile id {t}"),
+                })
             },
             GraphicsColor::ColorRGB => {
-                |tile: TileTypeID| {
-                    Some(match tile.get() {
-                          1 => Color::Rgb { r:254, g:203, b:  0 },
-                          2 => Color::Rgb { r:  0, g:159, b:218 },
-                          3 => Color::Rgb { r:105, g:190, b: 40 },
-                          4 => Color::Rgb { r:237, g: 41, b: 57 },
-                          5 => Color::Rgb { r:149, g: 45, b:152 },
-                          6 => Color::Rgb { r:255, g:121, b:  0 },
-                          7 => Color::Rgb { r:  0, g:101, b:189 },
-                        253 => Color::Rgb { r:  0, g:  0, b:  0 },
-                        254 => Color::Rgb { r:127, g:127, b:127 },
-                        255 => Color::Rgb { r:255, g:255, b:255 },
-                        t => unimplemented!("formatting unknown tile id {t}"),
-                    })
-                }
+                |tile: TileTypeID| Some(match tile.get() {
+                        1 => Color::Rgb { r:254, g:203, b:  0 },
+                        2 => Color::Rgb { r:  0, g:159, b:218 },
+                        3 => Color::Rgb { r:105, g:190, b: 40 },
+                        4 => Color::Rgb { r:237, g: 41, b: 57 },
+                        5 => Color::Rgb { r:149, g: 45, b:152 },
+                        6 => Color::Rgb { r:255, g:121, b:  0 },
+                        7 => Color::Rgb { r:  0, g:101, b:189 },
+                    253 => Color::Rgb { r:  0, g:  0, b:  0 },
+                    254 => Color::Rgb { r:127, g:127, b:127 },
+                    255 => Color::Rgb { r:255, g:255, b:255 },
+                    t => unimplemented!("formatting unknown tile id {t}"),
+                })
             },
         };
+        let color = get_color(app.settings().graphics_color);
+        let color_board = get_color(app.settings().graphics_color_board);
         // Board: draw hard drop trail.
         for (event_time, pos, h, tile_type_id, relevant) in self.hard_drop_tiles.iter_mut() {
             let elapsed = game_time.saturating_sub(*event_time);
@@ -484,7 +482,7 @@ impl Renderer for CachedRenderer {
                 continue;
             };
             self.screen
-                .buffer_str(tile, tile_color(*tile_type_id), pos_board(*pos));
+                .buffer_str(tile, color(*tile_type_id), pos_board(*pos));
         }
         self.hard_drop_tiles.retain(|elt| elt.4);
         // Board: draw fixed tiles.
@@ -499,7 +497,7 @@ impl Renderer for CachedRenderer {
                 if let Some(tile_type_id) = cell {
                     self.screen.buffer_str(
                         tile_ground,
-                        tile_color(*tile_type_id),
+                        color_board(*tile_type_id),
                         pos_board((x, y)),
                     );
                 }
@@ -510,27 +508,21 @@ impl Renderer for CachedRenderer {
             // Draw ghost piece.
             for (tile_pos, tile_type_id) in active_piece.well_piece(board).tiles() {
                 if tile_pos.1 <= Game::SKYLINE {
-                    self.screen.buffer_str(
-                        tile_ghost,
-                        tile_color(tile_type_id),
-                        pos_board(tile_pos),
-                    );
+                    self.screen
+                        .buffer_str(tile_ghost, color(tile_type_id), pos_board(tile_pos));
                 }
             }
             // Draw active piece.
             for (tile_pos, tile_type_id) in active_piece.tiles() {
                 if tile_pos.1 <= Game::SKYLINE {
-                    self.screen.buffer_str(
-                        tile_active,
-                        tile_color(tile_type_id),
-                        pos_board(tile_pos),
-                    );
+                    self.screen
+                        .buffer_str(tile_active, color(tile_type_id), pos_board(tile_pos));
                 }
             }
         }
         // Draw preview.
         if let Some(next_piece) = next_pieces.front() {
-            let color = tile_color(next_piece.tiletypeid());
+            let color = color(next_piece.tiletypeid());
             for (x, y) in next_piece.minos(Orientation::N) {
                 let pos = (x_preview + 2 * x, y_preview - y);
                 self.screen.buffer_str(tile_preview, color, pos);
@@ -551,7 +543,7 @@ impl Renderer for CachedRenderer {
             let str = preview_small(tet);
             self.screen.buffer_str(
                 str,
-                tile_color(tet.tiletypeid()),
+                color(tet.tiletypeid()),
                 (x_preview_small + x_offset_small, y_preview_small),
             );
             x_offset_small += str.chars().count() + 1;
@@ -572,7 +564,7 @@ impl Renderer for CachedRenderer {
             let str = preview_minuscule(tet);
             self.screen.buffer_str(
                 str,
-                tile_color(tet.tiletypeid()),
+                color(tet.tiletypeid()),
                 (
                     x_preview_minuscule + x_offset_minuscule,
                     y_preview_minuscule,
@@ -583,7 +575,7 @@ impl Renderer for CachedRenderer {
         // Draw held piece.
         if let Some((tet, swap_allowed)) = hold_piece {
             let str = preview_small(tet);
-            let color = tile_color(if *swap_allowed {
+            let color = color(if *swap_allowed {
                 tet.tiletypeid()
             } else {
                 NonZeroU8::try_from(254).unwrap()

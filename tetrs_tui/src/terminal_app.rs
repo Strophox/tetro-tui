@@ -127,6 +127,7 @@ pub struct Settings {
     pub show_fps: bool,
     pub graphics_style: GraphicsStyle,
     pub graphics_color: GraphicsColor,
+    pub graphics_color_board: GraphicsColor,
     pub save_data_on_exit: bool,
 }
 
@@ -230,6 +231,7 @@ impl<T: Write> TerminalApp<T> {
                 show_fps: false,
                 graphics_style: GraphicsStyle::Unicode,
                 graphics_color: GraphicsColor::ColorRGB,
+                graphics_color_board: GraphicsColor::ColorRGB,
                 save_data_on_exit: false,
             },
             game_config: GameConfig::default(),
@@ -1468,6 +1470,7 @@ impl<T: Write> TerminalApp<T> {
                             GraphicsColor::Color16 => GraphicsColor::ColorRGB,
                             GraphicsColor::ColorRGB => GraphicsColor::Monochrome,
                         };
+                        self.settings.graphics_color_board = self.settings.graphics_color;
                     }
                     4 => {
                         self.settings.game_fps += 1.0;
@@ -1498,6 +1501,7 @@ impl<T: Write> TerminalApp<T> {
                             GraphicsColor::Color16 => GraphicsColor::Monochrome,
                             GraphicsColor::ColorRGB => GraphicsColor::Color16,
                         };
+                        self.settings.graphics_color_board = self.settings.graphics_color;
                     }
                     4 => {
                         if self.settings.game_fps >= 1.0 {
