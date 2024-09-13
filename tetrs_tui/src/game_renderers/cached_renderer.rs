@@ -285,22 +285,24 @@ impl Renderer for CachedRenderer {
         let (focus_name, focus_value) = match game.mode().name.as_str() {
             "Marathon" => ("Score:", score.to_string()),
             "40-Lines" => ("Time taken:", fmt_duration(*game_time)),
-            "Time Trial" => ("Lines cleared:", lines_cleared.to_string()),
-            "Master" => ("Lines cleared:", lines_cleared.to_string()),
+            "Time Trial" => ("Score:", score.to_string()),
+            "Master" => ("", "".to_string()),
             "Puzzle" => ("", "".to_string()),
             _ => ("Lines cleared:", lines_cleared.to_string()),
         };
-        let key_icon_pause = fmt_key(KeyCode::Esc);
         let key_icons_moveleft = fmt_keybinds(Button::MoveLeft, &app.settings().keybinds);
         let key_icons_moveright = fmt_keybinds(Button::MoveRight, &app.settings().keybinds);
-        let mut key_icons_move = format!("{key_icons_moveleft} {key_icons_moveright}");
+        let mut key_icons_move = format!("{key_icons_moveleft}{key_icons_moveright}");
         let key_icons_rotateleft = fmt_keybinds(Button::RotateLeft, &app.settings().keybinds);
+        let key_icons_rotatearound = fmt_keybinds(Button::RotateAround, &app.settings().keybinds);
         let key_icons_rotateright = fmt_keybinds(Button::RotateRight, &app.settings().keybinds);
-        let mut key_icons_rotate = format!("{key_icons_rotateleft} {key_icons_rotateright}");
+        let mut key_icons_rotate = format!("{key_icons_rotateleft}{key_icons_rotatearound}{key_icons_rotateright}");
         let key_icons_dropsoft = fmt_keybinds(Button::DropSoft, &app.settings().keybinds);
+        let key_icons_dropsonic = fmt_keybinds(Button::DropSonic, &app.settings().keybinds);
         let key_icons_drophard = fmt_keybinds(Button::DropHard, &app.settings().keybinds);
-        let mut key_icons_drop = format!("{key_icons_dropsoft} {key_icons_drophard}");
-        // JESUS Christ https://users.rust-lang.org/t/truncating-a-string/77903/9 :
+        let mut key_icons_drop = format!("{key_icons_dropsoft}{key_icons_dropsonic}{key_icons_drophard}");
+        let key_icon_pause = fmt_key(KeyCode::Esc);
+        // FAIR enough https://users.rust-lang.org/t/truncating-a-string/77903/9 :
         let eleven = key_icons_move
             .char_indices()
             .map(|(i, _)| i)
@@ -319,26 +321,26 @@ impl Renderer for CachedRenderer {
             .nth(11)
             .unwrap_or(key_icons_drop.len());
         key_icons_drop.truncate(eleven);
-        let piececnts_o = format!("{}o", pieces_played[Tetromino::O]);
-        let piececnts_i_s_z = [
+        let piececnts_o_i_s_z = [
+            format!("{}o", pieces_played[Tetromino::O]),
             format!("{}i", pieces_played[Tetromino::I]),
             format!("{}s", pieces_played[Tetromino::S]),
             format!("{}z", pieces_played[Tetromino::Z]),
         ]
-        .join("  ");
+        .join(" ");
         let piececnts_t_l_j = [
             format!("{}t", pieces_played[Tetromino::T]),
             format!("{}l", pieces_played[Tetromino::L]),
             format!("{}j", pieces_played[Tetromino::J]),
         ]
-        .join("  ");
+        .join(" ");
         // Screen: draw.
         #[allow(clippy::useless_format)]
         #[rustfmt::skip]
         let base_screen = match app.settings().graphics_style {
             GraphicsStyle::Electronika60 => vec![
                 format!("                                                            ", ),
-                format!("                                              {: ^w$      } ", "mode", w=mode_name_space),
+                format!("                                              {: ^w$      } ", "mode:", w=mode_name_space),
                 format!("   ALL STATS          <! . . . . . . . . . .!>{: ^w$      } ", mode_name, w=mode_name_space),
                 format!("   ----------         <! . . . . . . . . . .!>{: ^w$      } ", "", w=mode_name_space),
                 format!("   Level: {:<12      }<! . . . . . . . . . .!>  {          }", level, goal_name),
@@ -348,18 +350,18 @@ impl Renderer for CachedRenderer {
                 format!("   Time elapsed       <! . . . . . . . . . .!>{:^14        }", focus_value),
                 format!("    {:<18            }<! . . . . . . . . . .!>              ", fmt_duration(*game_time)),
                 format!("                      <! . . . . . . . . . .!>              ", ),
-                format!("   TETROMINOS         <! . . . . . . . . . .!>              ", ),
-                format!("   -------            <! . . . . . . . . . .!>              ", ),
-                format!("   {:<19             }<! . . . . . . . . . .!>              ", piececnts_o),
-                format!("   {:<19             }<! . . . . . . . . . .!>              ", piececnts_i_s_z),
-                format!("   {:<19             }<! . . . . . . . . . .!>              ", piececnts_t_l_j),
+                format!("   Pieces played      <! . . . . . . . . . .!>              ", ),
+                format!("    {:<18            }<! . . . . . . . . . .!>              ", piececnts_o_i_s_z),
+                format!("    {:<18            }<! . . . . . . . . . .!>              ", piececnts_t_l_j),
+                format!("                      <! . . . . . . . . . .!>              ", ),
                 format!("                      <! . . . . . . . . . .!>              ", ),
                 format!("   CONTROLS           <! . . . . . . . . . .!>              ", ),
                 format!("   ---------          <! . . . . . . . . . .!>              ", ),
-                format!("   Move    {:<11     }<! . . . . . . . . . .!>              ", key_icons_move),
-                format!("   Rotate  {:<11     }<! . . . . . . . . . .!>              ", key_icons_rotate),
-                format!("   Drop    {:<11     }<! . . . . . . . . . .!>              ", key_icons_drop),
-                format!("   Pause   {:<11     }<!====================!>              ", key_icon_pause),
+                format!("   Move   {:<12      }<! . . . . . . . . . .!>              ", key_icons_move),
+                format!("   Rotate {:<12      }<! . . . . . . . . . .!>              ", key_icons_rotate),
+                format!("   Drop   {:<12      }<! . . . . . . . . . .!>              ", key_icons_drop),
+                format!("   Pause  {:<12      }<! . . . . . . . . . .!>              ", key_icon_pause),
+                format!("                      <!====================!>              ", ),
                format!(r"                        \/\/\/\/\/\/\/\/\/\/                ", ),
             ],
             GraphicsStyle::ASCII => vec![
@@ -374,18 +376,18 @@ impl Renderer for CachedRenderer {
                 format!("   Time elapsed        |                    |{:^15         }", focus_value),
                 format!("    {:<19             }|                    |               ", fmt_duration(*game_time)),
                 format!("                       |                    |{             }", if !next_pieces.is_empty() { "-----next-----+" } else {"               "}),
-                format!("   TETROMINOS          |                    |             {}", if !next_pieces.is_empty() { " |" } else {"  "}),
-                format!("   -------             |                    |             {}", if !next_pieces.is_empty() { " |" } else {"  "}),
-                format!("   {:<20              }|                    |{             }", piececnts_o, if !next_pieces.is_empty() { "--------------+" } else {"               "}),
-                format!("   {:<20              }|                    |               ", piececnts_i_s_z),
-                format!("   {:<20              }|                    |               ", piececnts_t_l_j),
+                format!("   Pieces played       |                    |             {}", if !next_pieces.is_empty() { " |" } else {"  "}),
+                format!("    {:<19             }|                    |             {}", piececnts_o_i_s_z, if !next_pieces.is_empty() { " |" } else {"  "}),
+                format!("    {:<19             }|                    |{             }", piececnts_t_l_j, if !next_pieces.is_empty() { "--------------+" } else {"               "}),
+                format!("                       |                    |               ", ),
                 format!("                       |                    |               ", ),
                 format!("   CONTROLS            |                    |               ", ),
                 format!("   ---------           |                    |               ", ),
                 format!("   Move    {:<12      }|                    |               ", key_icons_move),
                 format!("   Rotate  {:<12      }|                    |               ", key_icons_rotate),
                 format!("   Drop    {:<12      }|                    |               ", key_icons_drop),
-                format!("   Pause   {:<9    }  ~#====================#~              ", key_icon_pause),
+                format!("   Pause   {:<12      }|                    |               ", key_icon_pause),
+                format!("                      ~#====================#~              ", ),
                 format!("                                                            ", ),
             ],
         GraphicsStyle::Unicode => vec![
@@ -400,18 +402,18 @@ impl Renderer for CachedRenderer {
                 format!("   Time elapsed        ║                    ║{:^15         }", focus_value),
                 format!("    {:<19             }║                    ║               ", fmt_duration(*game_time)),
                 format!("                       ║                    ║{             }", if !next_pieces.is_empty() { "─────next─────┐" } else {"               "}),
-                format!("   TETROMINOS          ║                    ║             {}", if !next_pieces.is_empty() { " │" } else {"  "}),
-                format!("   ──────╴             ║                    ║             {}", if !next_pieces.is_empty() { " │" } else {"  "}),
-                format!("   {:<20              }║                    ║{             }", piececnts_o, if !next_pieces.is_empty() { "──────────────┘" } else {"               "}),
-                format!("   {:<20              }║                    ║               ", piececnts_i_s_z),
-                format!("   {:<20              }║                    ║               ", piececnts_t_l_j),
+                format!("   Pieces played       ║                    ║             {}", if !next_pieces.is_empty() { " │" } else {"  "}),
+                format!("    {:<19             }║                    ║             {}", piececnts_o_i_s_z, if !next_pieces.is_empty() { " │" } else {"  "}),
+                format!("    {:<19             }║                    ║{             }", piececnts_t_l_j, if !next_pieces.is_empty() { "──────────────┘" } else {"               "}),
+                format!("                       ║                    ║               ", ),
                 format!("                       ║                    ║               ", ),
                 format!("   CONTROLS            ║                    ║               ", ),
                 format!("   ────────╴           ║                    ║               ", ),
                 format!("   Move    {:<12      }║                    ║               ", key_icons_move),
                 format!("   Rotate  {:<12      }║                    ║               ", key_icons_rotate),
                 format!("   Drop    {:<12      }║                    ║               ", key_icons_drop),
-                format!("   Pause   {:<9    }░▒▓█▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀█▓▒░            ", key_icon_pause),
+                format!("   Pause   {:<12      }║                    ║               ", key_icon_pause),
+                format!("                    ░▒▓█▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀█▓▒░            ", ),
                 format!("                                                            ", ),
             ],
         };

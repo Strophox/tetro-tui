@@ -122,7 +122,7 @@ pub fn new_game() -> Game {
                                     .any(|(x_p, y_p)| x_p.abs_diff(x) + y_p.abs_diff(y) <= 1)
                                 {
                                     state.score += 1;
-                                    255
+                                    253
                                 } else {
                                     match i {
                                         4 => 6,
