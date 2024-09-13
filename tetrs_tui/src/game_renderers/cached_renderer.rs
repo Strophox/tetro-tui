@@ -296,11 +296,13 @@ impl Renderer for CachedRenderer {
         let key_icons_rotateleft = fmt_keybinds(Button::RotateLeft, &app.settings().keybinds);
         let key_icons_rotatearound = fmt_keybinds(Button::RotateAround, &app.settings().keybinds);
         let key_icons_rotateright = fmt_keybinds(Button::RotateRight, &app.settings().keybinds);
-        let mut key_icons_rotate = format!("{key_icons_rotateleft}{key_icons_rotatearound}{key_icons_rotateright}");
+        let mut key_icons_rotate =
+            format!("{key_icons_rotateleft}{key_icons_rotatearound}{key_icons_rotateright}");
         let key_icons_dropsoft = fmt_keybinds(Button::DropSoft, &app.settings().keybinds);
         let key_icons_dropsonic = fmt_keybinds(Button::DropSonic, &app.settings().keybinds);
         let key_icons_drophard = fmt_keybinds(Button::DropHard, &app.settings().keybinds);
-        let mut key_icons_drop = format!("{key_icons_dropsoft}{key_icons_dropsonic}{key_icons_drophard}");
+        let mut key_icons_drop =
+            format!("{key_icons_dropsoft}{key_icons_dropsonic}{key_icons_drophard}");
         let key_icon_pause = fmt_key(KeyCode::Esc);
         // FAIR enough https://users.rust-lang.org/t/truncating-a-string/77903/9 :
         let eleven = key_icons_move
@@ -357,10 +359,10 @@ impl Renderer for CachedRenderer {
                 format!("                      <! . . . . . . . . . .!>              ", ),
                 format!("   CONTROLS           <! . . . . . . . . . .!>              ", ),
                 format!("   ---------          <! . . . . . . . . . .!>              ", ),
-                format!("   Move   {:<12      }<! . . . . . . . . . .!>              ", key_icons_move),
-                format!("   Rotate {:<12      }<! . . . . . . . . . .!>              ", key_icons_rotate),
-                format!("   Drop   {:<12      }<! . . . . . . . . . .!>              ", key_icons_drop),
-                format!("   Pause  {:<12      }<! . . . . . . . . . .!>              ", key_icon_pause),
+                format!("   Move    {:<11     }<! . . . . . . . . . .!>              ", key_icons_move),
+                format!("   Rotate  {:<11     }<! . . . . . . . . . .!>              ", key_icons_rotate),
+                format!("   Drop    {:<11     }<! . . . . . . . . . .!>              ", key_icons_drop),
+                format!("   Pause   {:<11     }<! . . . . . . . . . .!>              ", key_icon_pause),
                 format!("                      <!====================!>              ", ),
                format!(r"                        \/\/\/\/\/\/\/\/\/\/                ", ),
             ],
