@@ -45,12 +45,12 @@
 
 **Classic game experience:**
 
-![Tetrs demo screenshot](Gallery/sample-unicode.png)
+![Unicode demo screenshot](Gallery/sample-unicode.png)
 
 
-**Efficient rendering in console, configurable controls, etc.:**
+**Efficient rendering in consoles, configurable controls, etc.:**
 
-![Tetrs demo GIF](Gallery/sample-unicode.gif)
+![Unicode demo GIF](Gallery/sample-unicode.gif)
 
 
 > [!TIP]
@@ -61,18 +61,18 @@
 
 <details>
 
-<summary>ASCII demo GIF</summary>
+<summary>ASCII demo (GIF)</summary>
 
-![Tetrs ASCII demo GIF](Gallery/sample-ascii.gif)
+![ASCII demo GIF](Gallery/sample-ascii.gif)
 
 </details>
 
 
 <details>
 
-<summary>Electronika 60 demo PNG</summary>
+<summary>Electronika 60 demo (PNG)</summary>
 
-![Electronika 60 demo PNG](Gallery/sample-electronika60.png)
+![Electronika60 demo PNG](Gallery/sample-electronika60.png)
 
 *\*For display just like in the screenshot set your terminal text color to green and font to a Unicode-compatible one (e.g. `DejaVu Sans Mono` works)*
 
@@ -727,11 +727,17 @@ It is interesting to note how these distributions can spread out quickly for hig
 
 </details>
 
-Running the bot on a uniform randomizer for 1'000'000 samples yields a much nicer, smooth curve:
+<details>
+
+<summary>
+Running the bot on a uniform randomizer for 1'000'000 samples yields a much nicer, smooth curve.
+</summary>
 
 ![combo distribution, uniform, 1-lookahead, 1'000'000 samples](/Gallery/combo/combot-2024-09-07_18-09-31_L1_uniform.png)
 
-Basically all common randomizers I implemented will have a curves smoothing out like this.
+</details>
+
+Basically all common randomizers I implemented will have a exponential-decay-looking curves smoothing out for many samples like this.
 
 According to some [programming Okey\_Dokey did on 4wide combos](https://harddrop.com/forums/index.php?topic=7955), there are deadly sequences of 'bags' that will kill the combo (and needless to say, randomizers which allow truer forms of randomness can kill even more easily).
 This somewhat explains that the curves are at least somewhat of exponential (decay) nature, as it gets more likely over time that the bot slips up and a random sequence appears that kills the combo.
