@@ -12,7 +12,6 @@ const MAX_STAGE_ATTEMPTS: usize = 5;
 const PUZZLE_SPEED_LEVEL: u32 = 1;
 
 pub fn new_game() -> Game {
-    #[rustfmt::skip]
     let puzzles = puzzle_list();
     let puzzles_len = puzzles.len();
     let load_puzzle = move |state: &mut GameState,
@@ -38,25 +37,22 @@ pub fn new_game() -> Game {
                 )
             }),
         ));
-        // Queue pieces and lines.
         state.next_pieces.clone_from(puzzle_pieces);
-        // Load in pieces.
-        for (puzzle_line, board_line) in puzzle_lines
+        for (load_line, board_line) in puzzle_lines
             .iter()
             .rev()
-            .map(|line| {
-                line.map(|b| {
-                    if b == b' ' {
-                        None
-                    } else {
-                        Some(unsafe { NonZeroU8::new_unchecked(254) })
-                    }
-                })
-            })
-            .chain(std::iter::repeat(Default::default()))
+            .chain(std::iter::repeat(&&[b' '; 10]))
             .zip(state.board.iter_mut())
         {
-            *board_line = puzzle_line;
+            let grey_tile = Some(NonZeroU8::try_from(254).unwrap());
+            *board_line = tetrs_engine::Line::default();
+            if load_line.iter().any(|c| c != &b' ') {
+                for (board_cell, puzzle_tile) in board_line.iter_mut().zip(load_line.iter().chain(std::iter::repeat(&b'O'))) {
+                    if puzzle_tile != &b' ' {
+                        *board_cell = grey_tile;
+                    }
+                }
+            }
         }
         puzzle_pieces.len()
     };

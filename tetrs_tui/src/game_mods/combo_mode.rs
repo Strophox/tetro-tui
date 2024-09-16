@@ -32,7 +32,7 @@ fn four_wide_lines() -> impl Iterator<Item = Line> {
     let indices_0 = (0..).map(|i| i % 7);
     let indices_1 = indices_0.clone().skip(1);
     indices_0.zip(indices_1).map(move |(i_0, i_1)| {
-        let mut line = [None; 10];
+        let mut line = [None; Game::WIDTH];
         line[0] = color_tiles[i_0];
         line[1] = color_tiles[i_1];
         line[2] = grey_tile;
@@ -44,6 +44,8 @@ fn four_wide_lines() -> impl Iterator<Item = Line> {
 }
 
 pub fn new_game(initial_layout: u16) -> Game {
+    // FIXME: Combo mode should be played on a 10-wide board.
+    assert_eq!(Game::WIDTH, 10);
     let mut line_source = four_wide_lines();
     let mut init = false;
     let combo_mode: FnGameMod = Box::new(

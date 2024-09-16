@@ -1376,7 +1376,7 @@ impl Game {
                     } else {
                         self.state.back_to_back_special_clears = 0;
                     }
-                    let score_bonus = 10
+                    let score_bonus = u32::try_from(Game::WIDTH).unwrap()
                         * (n_lines_cleared + self.state.consecutive_line_clears - 1).pow(2)
                         * self.state.back_to_back_special_clears.max(1)
                         * if spin { 4 } else { 1 }
