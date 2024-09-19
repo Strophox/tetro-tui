@@ -562,7 +562,7 @@ impl<T: Write> TerminalApp<T> {
             ),
             (
                 "Marathon",
-                "can you reach speed level 15?".to_string(),
+                "can you clear gravity level 15?".to_string(),
                 Box::new(|| Game::new(GameMode::marathon())),
             ),
             (
@@ -1223,7 +1223,10 @@ impl<T: Write> TerminalApp<T> {
                 .queue(MoveTo(x_main, y_main + y_selection + 4))?
                 .queue(Print(format!("{:^w_main$}", format!("Score: {score}"))))?
                 .queue(MoveTo(x_main, y_main + y_selection + 5))?
-                .queue(Print(format!("{:^w_main$}", format!("Level: {gravity}",))))?
+                .queue(Print(format!(
+                    "{:^w_main$}",
+                    format!("Gravity: {gravity}",)
+                )))?
                 .queue(MoveTo(x_main, y_main + y_selection + 6))?
                 .queue(Print(format!(
                     "{:^w_main$}",
@@ -1232,7 +1235,7 @@ impl<T: Write> TerminalApp<T> {
                 .queue(MoveTo(x_main, y_main + y_selection + 7))?
                 .queue(Print(format!(
                     "{:^w_main$}",
-                    format!("Tetrominos: {}", pieces_played.iter().sum::<u32>())
+                    format!("Pieces: {}", pieces_played.iter().sum::<u32>())
                 )))?
                 .queue(MoveTo(x_main, y_main + y_selection + 8))?
                 .queue(Print(format!(

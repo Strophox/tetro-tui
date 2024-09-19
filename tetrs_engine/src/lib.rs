@@ -204,9 +204,9 @@ pub struct Limits {
 pub struct GameMode {
     /// Conventional name that may be given to an instance of this struct.
     pub name: String,
-    /// The level at which a game should start.
+    /// The gravity at which a game should start.
     pub initial_gravity: u32,
-    /// Whether the level should be automatically incremented while the game plays.
+    /// Whether the gravity should be automatically incremented while the game plays.
     pub increase_gravity: bool,
     /// The limitations under which a game may end (un)successfully.
     pub limits: Limits,
@@ -597,14 +597,14 @@ impl GameMode {
     /// - Name: "Marathon".
     /// - Start level: 1.
     /// - Level increment: Yes.
-    /// - Limits: Level 15.
+    /// - Limits: Level 16.
     pub fn marathon() -> Self {
         Self {
             name: String::from("Marathon"),
             initial_gravity: 1,
             increase_gravity: true,
             limits: Limits {
-                gravity: Some((true, 15)),
+                gravity: Some((true, 16)),
                 ..Default::default()
             },
         }
@@ -754,8 +754,8 @@ impl Game {
     pub const WIDTH: usize = 10;
     /// The maximal height of the (conventionally visible) playing grid that can be played in.
     pub const SKYLINE: usize = 20;
-    // SAFETY: 19 > 0, and this is the level at which blocks start falling with 20G.
-    const GRAVITY_INSTANT: u32 = 19;
+    // This is the level at which blocks start falling with 20G / instantly hit the floor.
+    const GRAVITY_INSTANT: u32 = 20;
 
     /// Start a new game given some game mode.
     pub fn new(game_mode: GameMode) -> Self {
@@ -879,7 +879,7 @@ impl Game {
                 self.mode
                     .limits
                     .gravity
-                    .and_then(|(win, lvl)| (lvl < self.state.gravity).then_some(win)),
+                    .and_then(|(win, lvl)| (lvl <= self.state.gravity).then_some(win)),
                 self.mode
                     .limits
                     .score

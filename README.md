@@ -87,22 +87,22 @@
 - Next piece preview.
 - Ghost piece.
 - Animations: Hard drop, Line clears and Piece locking.
-- Game stats: Level, Score, Lines, Time, Pieces generated.
+- Game stats: Current gravity level, lines cleared, points scored, time elapsed, pieces placed.
 
 For more technical details see [Features of the Tetrs Engine](#features-of-the-tetrs-engine).
 
 ### Gamemodes
 - Standard modes:
   - **40-Lines**: Clear 40-Lines as quickly as possible.
-  - **Marathon**: Reach speed level 15 with the highest score possible.
+  - **Marathon**: Clear gravity levels 1-15 and achieve a highscore.
   - **Time Trial**: Get the highest score possible within three minutes.
-  - **Master**: Clear 100 lines starting at the highest speed level.
+  - **Master**: Clear 100 lines starting at the highest gravity.
 - Special modes:
   - **Puzzle**: Advance through all 24 puzzle stages using perfect clears (and up to 5 attempts), enabled by piece acrobatics of the 'ocular' rotation system.
   - **Cheese**: Eat yourself through lines with random holes, with as few pieces as possible (default: 20).
   - **Combo**: Keep a line clear combo for as long as possible inside an infinite 4-wide well.
   - (**Descent**: Gather 'gems' as you navigate down (or up) an endless grid using an L or J piece - unlocked by completing Puzzle Mode)
-- Custom mode: Change start level, toggle level increment, set a game limit *(Time, Score, Pieces, Lines, Level, or No limit)*.
+- Custom mode: Change start gravity, toggle automatic gravity increase, set a game limit *(Time, Score, Pieces, Lines, Gravity, or No limit)*.
   
 ### Settings
 - Look of the game:
@@ -229,7 +229,7 @@ Most default values inspired by [Guideline](https://tetris.wiki/Tetris_Guideline
 - Next Pieces: Are polled from the generator, kept in a queue and can be viewed.
 - Pieces played so far: A counter for each locked piece by type is stored.
 - Lines cleared: (Yes)<sup>2</sup>.
-- (Speed) Level: Increases every 10 line clears and influences only drop/lock delay.
+- Gravity Level: Increases every 10 line clears and influences only drop/lock delay.
 - Scoring: Line clears trigger a score bonus, which takes into account number of lines cleared, spins, combos, back-to-backs; See [Scoring](#scoring).
   
 </details>
@@ -415,7 +415,7 @@ Good criteria for a locking system I can think of would be:
 
 1. Keep players from stalling / force players to make a choice eventually.
 2. Give players enough flexibility to manipulate the piece even if it's on the ground.
-3. Force players to *react/input faster* on higher levels, as speed is supposed to increase.
+3. Force players to *react/input faster* on faster levels, as speed is supposed to increase.
 4. Implement all these limitations as naturally/simply as possible.
 
 So I started looking and deciding which locking system to implement;
@@ -424,7 +424,7 @@ So I started looking and deciding which locking system to implement;
 
 <summary> Creating a Locking System. </summary>
 
-*Classic lock down* is simple, but if one decreases the lock timer at higher levels (3.) then it might become exceedingly difficult for players to actually have enough time to do adjustments (2.).
+*Classic lock down* is simple, but if one decreases the lock timer on faster levels (3.) then it might become exceedingly difficult for players to actually have enough time to do adjustments (2.).
 
 <details>
 
@@ -478,7 +478,7 @@ It's pretty flexible (2.) yet forces a decision (1.), but the 'count to 15 moves
 
 > **Idea.**
 > 
-> What if we limit the *total amount of time a piece may touch a surface* (1.) instead of number of moves/rotates (4.), though but at higher levels the piece *attempts* to lock down faster (3.), re-attempting later upon move/rotate;
+> What if we limit the *total amount of time a piece may touch a surface* (1.) instead of number of moves/rotates (4.), but on faster levels the piece *attempts* to lock down faster (3.), re-attempting later upon move/rotate;
 > This still allows for plenty <sup>*\*technically arbitrarily many*</sup> piece manipulations (2.) while still fulfilling the other points :D
 
 <details>
