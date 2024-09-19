@@ -237,7 +237,7 @@ impl Renderer for CachedRenderer {
             next_pieces,
             pieces_played,
             lines_cleared,
-            level,
+            gravity,
             score,
             consecutive_line_clears: _,
             back_to_back_special_clears: _,
@@ -266,10 +266,10 @@ impl Renderer for CachedRenderer {
                     max_lns.saturating_sub(*lines_cleared).to_string(),
                 )
             }),
-            game.mode().limits.level.map(|(_, max_lvl)| {
+            game.mode().limits.gravity.map(|(_, max_lvl)| {
                 (
-                    "Levels left to advance:",
-                    max_lvl.get().saturating_sub(level.get()).to_string(),
+                    "Gravity levels to advance:",
+                    max_lvl.saturating_sub(*gravity).to_string(),
                 )
             }),
             game.mode().limits.score.map(|(_, max_pts)| {
@@ -330,10 +330,11 @@ impl Renderer for CachedRenderer {
             format!("{}z", pieces_played[Tetromino::Z]),
         ]
         .join(" ");
-        let piececnts_t_l_j = [
+        let piececnts_t_l_j_sum = [
             format!("{}t", pieces_played[Tetromino::T]),
             format!("{}l", pieces_played[Tetromino::L]),
             format!("{}j", pieces_played[Tetromino::J]),
+            format!("={}", pieces_played.iter().sum::<u32>()),
         ]
         .join(" ");
         // Screen: draw.
@@ -345,16 +346,16 @@ impl Renderer for CachedRenderer {
                 format!("                                              {: ^w$      } ", "mode:", w=mode_name_space),
                 format!("   ALL STATS          <! . . . . . . . . . .!>{: ^w$      } ", mode_name, w=mode_name_space),
                 format!("   ----------         <! . . . . . . . . . .!>{: ^w$      } ", "", w=mode_name_space),
-                format!("   Level: {:<12      }<! . . . . . . . . . .!>  {          }", level, goal_name),
-                format!("   Score: {:<12      }<! . . . . . . . . . .!>{:^14        }", score, goal_value),
-                format!("   Lines: {:<12      }<! . . . . . . . . . .!>              ", lines_cleared),
+                format!("   Gravity: {:<10    }<! . . . . . . . . . .!>  {          }", gravity, goal_name),
+                format!("   Lines: {:<12      }<! . . . . . . . . . .!>{:^14        }", lines_cleared, goal_value),
+                format!("   Score: {:<12      }<! . . . . . . . . . .!>              ", score),
                 format!("                      <! . . . . . . . . . .!>  {          }", focus_name),
                 format!("   Time elapsed       <! . . . . . . . . . .!>{:^14        }", focus_value),
                 format!("    {:<18            }<! . . . . . . . . . .!>              ", fmt_duration(*game_time)),
                 format!("                      <! . . . . . . . . . .!>              ", ),
                 format!("   Pieces played      <! . . . . . . . . . .!>              ", ),
                 format!("    {:<18            }<! . . . . . . . . . .!>              ", piececnts_o_i_s_z),
-                format!("    {:<18            }<! . . . . . . . . . .!>              ", piececnts_t_l_j),
+                format!("    {:<18            }<! . . . . . . . . . .!>              ", piececnts_t_l_j_sum),
                 format!("                      <! . . . . . . . . . .!>              ", ),
                 format!("                      <! . . . . . . . . . .!>              ", ),
                 format!("   CONTROLS           <! . . . . . . . . . .!>              ", ),
@@ -371,16 +372,16 @@ impl Renderer for CachedRenderer {
                 format!("                {     }|- - - - - - - - - - +{:-^w$       }+", if hold_piece.is_some() { "+-hold-" } else {"       "}, "mode", w=mode_name_space),
                 format!("   ALL STATS    {}     |                    |{: ^w$       }|", if hold_piece.is_some() { "| " } else {"  "}, mode_name, w=mode_name_space),
                 format!("   ----------   {     }|                    +{:-^w$       }+", if hold_piece.is_some() { "+------" } else {"       "}, "", w=mode_name_space),
-                format!("   Level: {:<13       }|                    |  {           }", level, goal_name),
-                format!("   Score: {:<13       }|                    |{:^15         }", score, goal_value),
-                format!("   Lines: {:<13       }|                    |               ", lines_cleared),
+                format!("   Gravity: {:<11     }|                    |  {           }", gravity, goal_name),
+                format!("   Lines: {:<13       }|                    |{:^15         }", lines_cleared, goal_value),
+                format!("   Score: {:<13       }|                    |               ", score),
                 format!("                       |                    |  {           }", focus_name),
                 format!("   Time elapsed        |                    |{:^15         }", focus_value),
                 format!("    {:<19             }|                    |               ", fmt_duration(*game_time)),
                 format!("                       |                    |{             }", if !next_pieces.is_empty() { "-----next-----+" } else {"               "}),
                 format!("   Pieces played       |                    |             {}", if !next_pieces.is_empty() { " |" } else {"  "}),
                 format!("    {:<19             }|                    |             {}", piececnts_o_i_s_z, if !next_pieces.is_empty() { " |" } else {"  "}),
-                format!("    {:<19             }|                    |{             }", piececnts_t_l_j, if !next_pieces.is_empty() { "--------------+" } else {"               "}),
+                format!("    {:<19             }|                    |{             }", piececnts_t_l_j_sum, if !next_pieces.is_empty() { "--------------+" } else {"               "}),
                 format!("                       |                    |               ", ),
                 format!("                       |                    |               ", ),
                 format!("   CONTROLS            |                    |               ", ),
@@ -397,16 +398,16 @@ impl Renderer for CachedRenderer {
                 format!("                {     }╓╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╥{:─^w$       }┐", if hold_piece.is_some() { "┌─hold─" } else {"       "}, "mode", w=mode_name_space),
                 format!("   ALL STATS    {}     ║                    ║{: ^w$       }│", if hold_piece.is_some() { "│ " } else {"  "}, mode_name, w=mode_name_space),
                 format!("   ─────────╴   {     }║                    ╟{:─^w$       }┘", if hold_piece.is_some() { "└──────" } else {"       "}, "", w=mode_name_space),
-                format!("   Level: {:<13       }║                    ║  {           }", level, goal_name),
-                format!("   Score: {:<13       }║                    ║{:^15         }", score, goal_value),
-                format!("   Lines: {:<13       }║                    ║               ", lines_cleared),
+                format!("   Gravity: {:<11     }║                    ║  {           }", gravity, goal_name),
+                format!("   Lines: {:<13       }║                    ║{:^15         }", lines_cleared, goal_value),
+                format!("   Score: {:<13       }║                    ║               ", score),
                 format!("                       ║                    ║  {           }", focus_name),
                 format!("   Time elapsed        ║                    ║{:^15         }", focus_value),
                 format!("    {:<19             }║                    ║               ", fmt_duration(*game_time)),
                 format!("                       ║                    ║{             }", if !next_pieces.is_empty() { "─────next─────┐" } else {"               "}),
                 format!("   Pieces played       ║                    ║             {}", if !next_pieces.is_empty() { " │" } else {"  "}),
                 format!("    {:<19             }║                    ║             {}", piececnts_o_i_s_z, if !next_pieces.is_empty() { " │" } else {"  "}),
-                format!("    {:<19             }║                    ║{             }", piececnts_t_l_j, if !next_pieces.is_empty() { "──────────────┘" } else {"               "}),
+                format!("    {:<19             }║                    ║{             }", piececnts_t_l_j_sum, if !next_pieces.is_empty() { "──────────────┘" } else {"               "}),
                 format!("                       ║                    ║               ", ),
                 format!("                       ║                    ║               ", ),
                 format!("   CONTROLS            ║                    ║               ", ),

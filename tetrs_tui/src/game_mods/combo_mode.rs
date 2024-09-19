@@ -1,4 +1,4 @@
-use std::num::{NonZeroU32, NonZeroU8};
+use std::num::NonZeroU8;
 
 use tetrs_engine::{
     Board, FeedbackEvents, FnGameMod, Game, GameConfig, GameMode, GameState, InternalEvent, Limits,
@@ -43,7 +43,7 @@ fn four_wide_lines() -> impl Iterator<Item = Line> {
     })
 }
 
-pub fn new_game(initial_layout: u16) -> Game {
+pub fn new_game(gravity: u32, initial_layout: u16) -> Game {
     // FIXME: Combo mode should be played on a 10-wide board.
     assert_eq!(Game::WIDTH, 10);
     let mut line_source = four_wide_lines();
@@ -81,8 +81,8 @@ pub fn new_game(initial_layout: u16) -> Game {
     );
     let mut game = Game::new(GameMode {
         name: "Combo".to_string(),
-        start_level: NonZeroU32::MIN,
-        increment_level: false,
+        initial_gravity: gravity,
+        increase_gravity: false,
         limits: Limits::default(),
     });
     unsafe { game.add_modifier(combo_mode) };

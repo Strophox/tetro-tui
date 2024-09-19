@@ -189,8 +189,8 @@ pub struct Limits {
     pub pieces: Option<(bool, u32)>,
     /// The total number of full lines that may be cleared.
     pub lines: Option<(bool, usize)>,
-    /// The number of levels to reach.
-    pub level: Option<(bool, NonZeroU32)>,
+    /// The gravity level to stop at.
+    pub gravity: Option<(bool, u32)>,
     /// The number of game points to earn.
     pub score: Option<(bool, u64)>,
 }
@@ -205,9 +205,9 @@ pub struct GameMode {
     /// Conventional name that may be given to an instance of this struct.
     pub name: String,
     /// The level at which a game should start.
-    pub start_level: NonZeroU32,
+    pub initial_gravity: u32,
     /// Whether the level should be automatically incremented while the game plays.
-    pub increment_level: bool,
+    pub increase_gravity: bool,
     /// The limitations under which a game may end (un)successfully.
     pub limits: Limits,
 }
@@ -320,8 +320,8 @@ pub struct GameState {
     pub pieces_played: [u32; 7],
     /// The total number of lines that have been cleared.
     pub lines_cleared: usize,
-    /// The current (speed) level the game is at.
-    pub level: NonZeroU32,
+    /// The current gravity/speed level the game is letting the pieces fall sat.
+    pub gravity: u32,
     /// The current total score the player has achieved in this round of play.
     pub score: u64,
     /// The number of consecutive pieces that have been played and caused a line clear.
@@ -601,10 +601,10 @@ impl GameMode {
     pub fn marathon() -> Self {
         Self {
             name: String::from("Marathon"),
-            start_level: NonZeroU32::MIN,
-            increment_level: true,
+            initial_gravity: 1,
+            increase_gravity: true,
             limits: Limits {
-                level: Some((true, NonZeroU32::try_from(15).unwrap())),
+                gravity: Some((true, 15)),
                 ..Default::default()
             },
         }
@@ -617,11 +617,11 @@ impl GameMode {
     /// - Start level: (variable).
     /// - Level increment: No.
     /// - Limits: 40 line clears.
-    pub fn sprint(start_level: NonZeroU32) -> Self {
+    pub fn sprint(initial_gravity: u32) -> Self {
         Self {
             name: String::from("40-Lines"),
-            start_level,
-            increment_level: false,
+            initial_gravity,
+            increase_gravity: false,
             limits: Limits {
                 lines: Some((true, 40)),
                 ..Default::default()
@@ -636,11 +636,11 @@ impl GameMode {
     /// - Start level: (variable).
     /// - Level increment: No.
     /// - Limits: 180 seconds.
-    pub fn ultra(start_level: NonZeroU32) -> Self {
+    pub fn ultra(initial_gravity: u32) -> Self {
         Self {
             name: String::from("Time Trial"),
-            start_level,
-            increment_level: false,
+            initial_gravity,
+            increase_gravity: false,
             limits: Limits {
                 time: Some((true, Duration::from_secs(3 * 60))),
                 ..Default::default()
@@ -658,8 +658,8 @@ impl GameMode {
     pub fn master() -> Self {
         Self {
             name: String::from("Master"),
-            start_level: Game::LEVEL_20G.saturating_add(1),
-            increment_level: true,
+            initial_gravity: Game::GRAVITY_INSTANT,
+            increase_gravity: true,
             limits: Limits {
                 lines: Some((true, 100)),
                 ..Default::default()
@@ -674,11 +674,11 @@ impl GameMode {
     /// - Start level: 1.
     /// - Level increment: No.
     /// - Limits: None.
-    pub fn zen() -> Self {
+    pub fn zen(gravity: u32) -> Self {
         Self {
             name: String::from("Endless"),
-            start_level: NonZeroU32::MIN,
-            increment_level: false,
+            initial_gravity: gravity,
+            increase_gravity: false,
             limits: Default::default(),
         }
     }
@@ -755,7 +755,7 @@ impl Game {
     /// The maximal height of the (conventionally visible) playing grid that can be played in.
     pub const SKYLINE: usize = 20;
     // SAFETY: 19 > 0, and this is the level at which blocks start falling with 20G.
-    const LEVEL_20G: NonZeroU32 = unsafe { NonZeroU32::new_unchecked(19) };
+    const GRAVITY_INSTANT: u32 = 19;
 
     /// Start a new game given some game mode.
     pub fn new(game_mode: GameMode) -> Self {
@@ -777,7 +777,7 @@ impl Game {
             next_pieces: VecDeque::new(),
             pieces_played: [0; 7],
             lines_cleared: 0,
-            level: game_mode.start_level,
+            gravity: game_mode.initial_gravity,
             score: 0,
             consecutive_line_clears: 0,
             back_to_back_special_clears: 0,
@@ -878,8 +878,8 @@ impl Game {
                     .and_then(|(win, lns)| (lns <= self.state.lines_cleared).then_some(win)),
                 self.mode
                     .limits
-                    .level
-                    .and_then(|(win, lvl)| (lvl < self.state.level).then_some(win)),
+                    .gravity
+                    .and_then(|(win, lvl)| (lvl < self.state.gravity).then_some(win)),
                 self.mode
                     .limits
                     .score
@@ -1104,10 +1104,12 @@ impl Game {
                 .insert(InternalEvent::SoftDrop, update_time);
         // Soft drop button released: Reset fall timer.
         } else if dS0 && !dS1 {
-            self.state.events.insert(
-                InternalEvent::Fall,
-                update_time + Self::drop_delay(self.state.level, None),
-            );
+            if let Ok(level) = NonZeroU32::try_from(self.state.gravity) {
+                self.state.events.insert(
+                    InternalEvent::Fall,
+                    update_time + Self::drop_delay(level, None),
+                );
+            }
         }
         // Hard drop button pressed.
         if !dH0 && dH1 {
@@ -1245,7 +1247,6 @@ impl Game {
             InternalEvent::MoveSlow | InternalEvent::MoveFast => {
                 // Handle move attempt and auto repeat move.
                 let prev_piece = prev_piece.expect("move event but no active piece");
-                #[rustfmt::skip]
                 let mut dx = 0;
                 if self.state.buttons_pressed[Button::MoveLeft] {
                     dx -= 1;
@@ -1255,15 +1256,16 @@ impl Game {
                 }
                 Some(
                     if let Some(next_piece) = prev_piece.fits_at(&self.state.board, (dx, 0)) {
-                        let move_delay = if event == InternalEvent::MoveSlow {
+                        let mut move_delay = if event == InternalEvent::MoveSlow {
                             self.config.delayed_auto_shift
                         } else {
                             self.config.auto_repeat_rate
+                        };
+                        if let Ok(level) = NonZeroU32::try_from(self.state.gravity) {
+                            move_delay = move_delay.min(
+                                Self::lock_delay(level).saturating_sub(Duration::from_millis(1)),
+                            );
                         }
-                        .min(
-                            Self::lock_delay(&self.state.level)
-                                .saturating_sub(Duration::from_millis(1)),
-                        );
                         self.state
                             .events
                             .insert(InternalEvent::MoveFast, event_time + move_delay);
@@ -1281,10 +1283,12 @@ impl Game {
                         // Drop delay is possibly faster due to soft drop button pressed.
                         let soft_drop = self.state.buttons_pressed[Button::DropSoft]
                             .then_some(self.config.soft_drop_factor);
-                        let drop_delay = Self::drop_delay(self.state.level, soft_drop);
-                        self.state
-                            .events
-                            .insert(InternalEvent::Fall, event_time + drop_delay);
+                        if let Ok(level) = NonZeroU32::try_from(self.state.gravity) {
+                            let drop_delay = Self::drop_delay(level, soft_drop);
+                            self.state
+                                .events
+                                .insert(InternalEvent::Fall, event_time + drop_delay);
+                        }
                         dropped_piece
                     } else {
                         // Otherwise piece could not move down.
@@ -1299,10 +1303,12 @@ impl Game {
                     if let Some(dropped_piece) = prev_piece.fits_at(&self.state.board, (0, -1)) {
                         let soft_drop = self.state.buttons_pressed[Button::DropSoft]
                             .then_some(self.config.soft_drop_factor);
-                        let drop_delay = Self::drop_delay(self.state.level, soft_drop);
-                        self.state
-                            .events
-                            .insert(InternalEvent::Fall, event_time + drop_delay);
+                        if let Ok(level) = NonZeroU32::try_from(self.state.gravity) {
+                            let drop_delay = Self::drop_delay(level, soft_drop);
+                            self.state
+                                .events
+                                .insert(InternalEvent::Fall, event_time + drop_delay);
+                        }
                         dropped_piece
                     } else {
                         // Otherwise ciece could not move down.
@@ -1425,8 +1431,8 @@ impl Game {
                         self.state.board.remove(y);
                         self.state.lines_cleared += 1;
                         // Increment level if 10 lines cleared.
-                        if self.mode.increment_level && self.state.lines_cleared % 10 == 0 {
-                            self.state.level = self.state.level.saturating_add(1);
+                        if self.mode.increase_gravity && self.state.lines_cleared % 10 == 0 {
+                            self.state.gravity = self.state.gravity.saturating_add(1);
                         }
                     }
                 }
@@ -1457,10 +1463,12 @@ impl Game {
             if !self.state.events.contains_key(&InternalEvent::Fall) {
                 let soft_drop = self.state.buttons_pressed[Button::DropSoft]
                     .then_some(self.config.soft_drop_factor);
-                let drop_delay = Self::drop_delay(self.state.level, soft_drop);
-                self.state
-                    .events
-                    .insert(InternalEvent::Fall, event_time + drop_delay);
+                if let Ok(level) = NonZeroU32::try_from(self.state.gravity) {
+                    let drop_delay = Self::drop_delay(level, soft_drop);
+                    self.state
+                        .events
+                        .insert(InternalEvent::Fall, event_time + drop_delay);
+                }
             }
         }
         self.state.active_piece_data = next_piece.map(|next_piece| {
@@ -1488,6 +1496,16 @@ impl Game {
         next_piece: ActivePiece,
         touches_ground: bool,
     ) -> LockingData {
+        let Ok(level) = NonZeroU32::try_from(self.state.gravity) else {
+            // FIXME: bruh, basically a placeholder.
+            return LockingData {
+                touches_ground,
+                last_touchdown: None,
+                last_liftoff: None,
+                ground_time_left: self.config.ground_time_max,
+                lowest_y: Game::HEIGHT,
+            };
+        };
         /*
         Table (touches_ground):
         | ∅t0 !t1  :  [1] init locking data
@@ -1543,7 +1561,7 @@ impl Game {
                                 Some(last_touchdown) => {
                                     let (last_touchdown, ground_time_left) = if event_time
                                         .saturating_sub(last_liftoff)
-                                        <= 2 * Self::drop_delay(self.state.level, None)
+                                        <= 2 * Self::drop_delay(level, None)
                                     {
                                         (
                                             prev_locking_data.last_touchdown,
@@ -1600,8 +1618,7 @@ impl Game {
                     let remaining_ground_time = next_locking_data
                         .ground_time_left
                         .saturating_sub(current_ground_time);
-                    let lock_timer =
-                        std::cmp::min(Self::lock_delay(&self.state.level), remaining_ground_time);
+                    let lock_timer = std::cmp::min(Self::lock_delay(level), remaining_ground_time);
                     self.state
                         .events
                         .insert(InternalEvent::LockTimer, event_time + lock_timer);
@@ -1649,7 +1666,7 @@ impl Game {
 
     /// The amount of time left for an common ground lock timer, purely dependent on level.
     #[rustfmt::skip]
-    const fn lock_delay(level: &NonZeroU32) -> Duration {
+    const fn lock_delay(level: NonZeroU32) -> Duration {
         Duration::from_millis(match level.get() {
             1..=19 => 500,
                 20 => 450,

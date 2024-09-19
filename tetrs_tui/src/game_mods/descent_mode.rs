@@ -1,7 +1,4 @@
-use std::{
-    num::{NonZeroU32, NonZeroU8},
-    time::Duration,
-};
+use std::{num::NonZeroU8, time::Duration};
 
 use rand::{self, Rng};
 
@@ -32,7 +29,7 @@ pub fn random_descent_lines() -> impl Iterator<Item = Line> {
     (0..).map(move |i| {
         let mut line = [None; Game::WIDTH];
         match i % 4 {
-            0 | 2 => {},
+            0 | 2 => {}
             1 | 3 => {
                 for (j, cell) in line.iter_mut().enumerate() {
                     if j % 2 == 1 || rng.gen_bool(0.5) {
@@ -41,7 +38,7 @@ pub fn random_descent_lines() -> impl Iterator<Item = Line> {
                 }
                 // Make hole if row became completely closed off through rng.
                 if line.iter().all(|c| c.is_some()) {
-                    let hole_idx = 2 * rng.gen_range(0..playing_width/2);
+                    let hole_idx = 2 * rng.gen_range(0..playing_width / 2);
                     line[hole_idx] = None;
                 }
                 let gem_idx = rng.gen_range(0..playing_width);
@@ -158,6 +155,7 @@ pub fn new_game() -> Game {
                 // state.level =
                 //     NonZeroU32::try_from(u32::try_from(current_puzzle_idx + 1).unwrap()).unwrap();
             }
+            // FIXME: Gravity 0 now exists, maybe we can simplify things with that (i.e. not manually keep the piece from locking)?
             // Remove ability to hold.
             if matches!(modifier_point, ModifierPoint::AfterButtonChange) {
                 state.events.remove(&InternalEvent::HoldPiece);
@@ -170,8 +168,8 @@ pub fn new_game() -> Game {
     );
     let mut game = Game::new(GameMode {
         name: "Descent".to_string(),
-        start_level: NonZeroU32::MIN,
-        increment_level: false,
+        initial_gravity: 0,
+        increase_gravity: false,
         limits: Limits {
             time: Some((true, Duration::from_secs(180))),
             ..Default::default()

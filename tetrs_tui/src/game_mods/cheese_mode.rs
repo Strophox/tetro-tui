@@ -1,4 +1,4 @@
-use std::num::{NonZeroU32, NonZeroU8, NonZeroUsize};
+use std::num::{NonZeroU8, NonZeroUsize};
 
 use rand::Rng;
 
@@ -26,7 +26,7 @@ fn is_cheese_line(line: &Line) -> bool {
         .any(|cell| *cell == Some(NonZeroU8::try_from(254).unwrap()))
 }
 
-pub fn new_game(cheese_limit: Option<NonZeroUsize>, gap_size: usize) -> Game {
+pub fn new_game(cheese_limit: Option<NonZeroUsize>, gap_size: usize, gravity: u32) -> Game {
     let mut line_source =
         random_gap_lines(gap_size).take(cheese_limit.unwrap_or(NonZeroUsize::MAX).get());
     let mut temp_cheese_tally = 0;
@@ -39,7 +39,7 @@ pub fn new_game(cheese_limit: Option<NonZeroUsize>, gap_size: usize) -> Game {
               _feedback_events: &mut FeedbackEvents,
               modifier_point: &ModifierPoint| {
             if !init {
-                for (line, cheese) in state.board.iter_mut().take(8).rev().zip(&mut line_source) {
+                for (line, cheese) in state.board.iter_mut().take(10).rev().zip(&mut line_source) {
                     *line = cheese;
                 }
                 init = true;
@@ -72,8 +72,8 @@ pub fn new_game(cheese_limit: Option<NonZeroUsize>, gap_size: usize) -> Game {
     );
     let mut game = Game::new(GameMode {
         name: "Cheese".to_string(),
-        start_level: NonZeroU32::MIN,
-        increment_level: false,
+        initial_gravity: gravity,
+        increase_gravity: false,
         limits: Limits {
             lines: cheese_limit.map(|line_count| (true, line_count.get())),
             ..Default::default()

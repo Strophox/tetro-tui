@@ -1,7 +1,4 @@
-use std::{
-    collections::VecDeque,
-    num::{NonZeroU32, NonZeroU8},
-};
+use std::{collections::VecDeque, num::NonZeroU8};
 
 use tetrs_engine::{
     Feedback, FeedbackEvents, FnGameMod, Game, GameConfig, GameMode, GameOver, GameState,
@@ -9,7 +6,7 @@ use tetrs_engine::{
 };
 
 const MAX_STAGE_ATTEMPTS: usize = 5;
-const PUZZLE_SPEED_LEVEL: u32 = 1;
+const PUZZLE_GRAVITY: u32 = 1;
 
 pub fn new_game() -> Game {
     let puzzles = puzzle_list();
@@ -47,7 +44,10 @@ pub fn new_game() -> Game {
             let grey_tile = Some(NonZeroU8::try_from(254).unwrap());
             *board_line = tetrs_engine::Line::default();
             if load_line.iter().any(|c| c != &b' ') {
-                for (board_cell, puzzle_tile) in board_line.iter_mut().zip(load_line.iter().chain(std::iter::repeat(&b'O'))) {
+                for (board_cell, puzzle_tile) in board_line
+                    .iter_mut()
+                    .zip(load_line.iter().chain(std::iter::repeat(&b'O')))
+                {
                     if puzzle_tile != &b' ' {
                         *board_cell = grey_tile;
                     }
@@ -110,17 +110,17 @@ pub fn new_game() -> Game {
                     }
                 }
             }
+            // FIXME: handle displaying the level to the user better.
             // Keep custom game state that's also visible to player, but hide it from the game engine that handles gameplay.
             if matches!(
                 modifier_point,
                 ModifierPoint::BeforeEvent(_) | ModifierPoint::BeforeButtonChange(_, _)
             ) {
                 config.preview_count = 0;
-                state.level = NonZeroU32::try_from(PUZZLE_SPEED_LEVEL).unwrap();
+                state.gravity = PUZZLE_GRAVITY;
             } else {
                 config.preview_count = state.next_pieces.len();
-                state.level =
-                    NonZeroU32::try_from(u32::try_from(current_puzzle_idx + 1).unwrap()).unwrap();
+                state.gravity = u32::try_from(current_puzzle_idx + 1).unwrap();
                 // Delete accolades.
                 feedback_events.retain(|evt| !matches!(evt, (_, Feedback::Accolade { .. })));
             }
@@ -140,13 +140,10 @@ pub fn new_game() -> Game {
     );
     let mut game = Game::new(GameMode {
         name: "Puzzle".to_string(),
-        start_level: NonZeroU32::MIN.saturating_add(1),
-        increment_level: false,
+        initial_gravity: 2,
+        increase_gravity: false,
         limits: Limits {
-            level: Some((
-                true,
-                NonZeroU32::try_from(u32::try_from(puzzles_len).unwrap()).unwrap(),
-            )),
+            gravity: Some((true, u32::try_from(puzzles_len).unwrap())),
             ..Default::default()
         },
     });

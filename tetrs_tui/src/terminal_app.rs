@@ -4,7 +4,7 @@ use std::{
     fmt::Debug,
     fs::File,
     io::{self, Read, Write},
-    num::{NonZeroU32, NonZeroUsize},
+    num::NonZeroUsize,
     path::PathBuf,
     sync::mpsc,
     time::{Duration, Instant},
@@ -140,7 +140,7 @@ pub enum Stat {
     Time(Duration),
     Pieces(u32),
     Lines(usize),
-    Level(NonZeroU32),
+    Gravity(u32),
     Score(u64),
 }
 
@@ -149,11 +149,12 @@ pub enum Stat {
 )]
 pub struct GameModeStore {
     name: String,
-    start_level: NonZeroU32,
-    increment_level: bool,
+    start_gravity: u32,
+    increase_gravity: bool,
     custom_mode_limit: Option<Stat>,
     cheese_mode_limit: Option<NonZeroUsize>,
     cheese_mode_gap_size: usize,
+    cheese_mode_gravity: bool,
     combo_starting_layout: u16,
     descent_mode: bool,
 }
@@ -239,11 +240,12 @@ impl<T: Write> TerminalApp<T> {
             game_config: GameConfig::default(),
             game_mode_store: GameModeStore {
                 name: "Custom Mode".to_string(),
-                start_level: NonZeroU32::MIN,
-                increment_level: false,
+                start_gravity: 1,
+                increase_gravity: false,
                 custom_mode_limit: None,
                 cheese_mode_limit: Some(NonZeroUsize::try_from(20).unwrap()),
                 cheese_mode_gap_size: 1,
+                cheese_mode_gravity: true,
                 combo_starting_layout: game_mods::combo_mode::LAYOUTS[0],
                 descent_mode: false,
             },
@@ -556,7 +558,7 @@ impl<T: Write> TerminalApp<T> {
             (
                 "40-Lines",
                 "how fast can you clear?".to_string(),
-                Box::new(|| Game::new(GameMode::sprint(NonZeroU32::try_from(3).unwrap()))),
+                Box::new(|| Game::new(GameMode::sprint(3))),
             ),
             (
                 "Marathon",
@@ -566,7 +568,7 @@ impl<T: Write> TerminalApp<T> {
             (
                 "Time Trial",
                 "get a highscore in 3 minutes!".to_string(),
-                Box::new(|| Game::new(GameMode::ultra(NonZeroU32::MIN))),
+                Box::new(|| Game::new(GameMode::ultra(1))),
             ),
             (
                 "Master",
@@ -576,7 +578,8 @@ impl<T: Write> TerminalApp<T> {
         ];
         let mut selected = 0usize;
         let mut customization_selected = 0usize;
-        let (d_time, d_score, d_pieces, d_lines, d_level) = (Duration::from_secs(5), 200, 10, 5, 1);
+        let (d_time, d_score, d_pieces, d_lines, d_gravity) =
+            (Duration::from_secs(5), 200, 10, 5, 1);
         loop {
             // First part: rendering the menu.
             let w_main = Self::W_MAIN.into();
@@ -584,6 +587,11 @@ impl<T: Write> TerminalApp<T> {
             let y_selection = Self::H_MAIN / 5;
             let cheese_mode_limit = self.game_mode_store.cheese_mode_limit;
             let cheese_mode_gap_size = self.game_mode_store.cheese_mode_gap_size;
+            let cheese_mode_gravity = if self.game_mode_store.cheese_mode_gravity {
+                1
+            } else {
+                0
+            };
             let combo_starting_layout = self.game_mode_store.combo_starting_layout;
             let mut special_gamemodes: Vec<(_, _, Box<dyn Fn() -> Game>)> = vec![
                 (
@@ -598,7 +606,11 @@ impl<T: Write> TerminalApp<T> {
                         self.game_mode_store.cheese_mode_limit
                     ),
                     Box::new(|| {
-                        game_mods::cheese_mode::new_game(cheese_mode_limit, cheese_mode_gap_size)
+                        game_mods::cheese_mode::new_game(
+                            cheese_mode_limit,
+                            cheese_mode_gap_size,
+                            cheese_mode_gravity,
+                        )
                     }),
                 ),
                 (
@@ -608,7 +620,8 @@ impl<T: Write> TerminalApp<T> {
                         self.game_mode_store.combo_starting_layout
                     ),
                     Box::new(|| {
-                        let mut combo_game = game_mods::combo_mode::new_game(combo_starting_layout);
+                        let mut combo_game =
+                            game_mods::combo_mode::new_game(1, combo_starting_layout);
                         if self.combo_bot_enabled {
                             // SAFETY: We only add the information that this will be botted.
                             unsafe {
@@ -692,10 +705,10 @@ impl<T: Write> TerminalApp<T> {
             // Render custom mode stuff.
             if selected == selection_size - 1 {
                 let stats_strs = [
-                    format!("| level start: {}", self.game_mode_store.start_level),
+                    format!("| start gravity: {}", self.game_mode_store.start_gravity),
                     format!(
-                        "| level increment: {}",
-                        self.game_mode_store.increment_level
+                        "| gravity increase: {}",
+                        self.game_mode_store.increase_gravity
                     ),
                     format!("| limit: {:?}", self.game_mode_store.custom_mode_limit),
                 ];
@@ -748,11 +761,12 @@ impl<T: Write> TerminalApp<T> {
                     } else {
                         let GameModeStore {
                             name,
-                            start_level,
-                            increment_level,
+                            start_gravity,
+                            increase_gravity,
                             custom_mode_limit,
                             cheese_mode_limit: _,
                             cheese_mode_gap_size: _,
+                            cheese_mode_gravity: _,
                             combo_starting_layout: _,
                             descent_mode: _,
                         } = self.game_mode_store.clone();
@@ -769,8 +783,8 @@ impl<T: Write> TerminalApp<T> {
                                 lines: Some((true, max_lns)),
                                 ..Default::default()
                             },
-                            Some(Stat::Level(max_lvl)) => Limits {
-                                level: Some((true, max_lvl)),
+                            Some(Stat::Gravity(max_lvl)) => Limits {
+                                gravity: Some((true, max_lvl)),
                                 ..Default::default()
                             },
                             Some(Stat::Score(max_pts)) => Limits {
@@ -781,8 +795,8 @@ impl<T: Write> TerminalApp<T> {
                         };
                         let mut custom_game = Game::new(GameMode {
                             name,
-                            start_level,
-                            increment_level,
+                            initial_gravity: start_gravity,
+                            increase_gravity,
                             limits,
                         });
                         if let Some(layout_bits) = self.custom_starting_board {
@@ -815,12 +829,12 @@ impl<T: Write> TerminalApp<T> {
                     if customization_selected > 0 {
                         match customization_selected {
                             1 => {
-                                self.game_mode_store.start_level =
-                                    self.game_mode_store.start_level.saturating_add(d_level);
+                                self.game_mode_store.start_gravity =
+                                    self.game_mode_store.start_gravity.saturating_add(d_gravity);
                             }
                             2 => {
-                                self.game_mode_store.increment_level =
-                                    !self.game_mode_store.increment_level;
+                                self.game_mode_store.increase_gravity =
+                                    !self.game_mode_store.increase_gravity;
                             }
                             3 => {
                                 match self.game_mode_store.custom_mode_limit {
@@ -836,8 +850,8 @@ impl<T: Write> TerminalApp<T> {
                                     Some(Stat::Lines(ref mut lns)) => {
                                         *lns += d_lines;
                                     }
-                                    Some(Stat::Level(ref mut lvl)) => {
-                                        *lvl = lvl.saturating_add(d_level);
+                                    Some(Stat::Gravity(ref mut lvl)) => {
+                                        *lvl = lvl.saturating_add(d_gravity);
                                     }
                                     None => {}
                                 };
@@ -858,14 +872,12 @@ impl<T: Write> TerminalApp<T> {
                     if customization_selected > 0 {
                         match customization_selected {
                             1 => {
-                                self.game_mode_store.start_level = NonZeroU32::try_from(
-                                    self.game_mode_store.start_level.get() - d_level,
-                                )
-                                .unwrap_or(NonZeroU32::MIN);
+                                self.game_mode_store.start_gravity =
+                                    self.game_mode_store.start_gravity.saturating_sub(d_gravity);
                             }
                             2 => {
-                                self.game_mode_store.increment_level =
-                                    !self.game_mode_store.increment_level;
+                                self.game_mode_store.increase_gravity =
+                                    !self.game_mode_store.increase_gravity;
                             }
                             3 => {
                                 match self.game_mode_store.custom_mode_limit {
@@ -881,9 +893,8 @@ impl<T: Write> TerminalApp<T> {
                                     Some(Stat::Lines(ref mut lns)) => {
                                         *lns = lns.saturating_sub(d_lines);
                                     }
-                                    Some(Stat::Level(ref mut lvl)) => {
-                                        *lvl = NonZeroU32::try_from(lvl.get() - d_level)
-                                            .unwrap_or(NonZeroU32::MIN);
+                                    Some(Stat::Gravity(ref mut lvl)) => {
+                                        *lvl = lvl.saturating_sub(d_gravity);
                                     }
                                     None => {}
                                 };
@@ -937,10 +948,8 @@ impl<T: Write> TerminalApp<T> {
                                     Some(Stat::Time(_)) => Some(Stat::Score(9000)),
                                     Some(Stat::Score(_)) => Some(Stat::Pieces(100)),
                                     Some(Stat::Pieces(_)) => Some(Stat::Lines(40)),
-                                    Some(Stat::Lines(_)) => {
-                                        Some(Stat::Level(NonZeroU32::try_from(25).unwrap()))
-                                    }
-                                    Some(Stat::Level(_)) => None,
+                                    Some(Stat::Lines(_)) => Some(Stat::Gravity(20)),
+                                    Some(Stat::Gravity(_)) => None,
                                     None => Some(Stat::Time(Duration::from_secs(180))),
                                 };
                         } else {
@@ -1148,7 +1157,7 @@ impl<T: Write> TerminalApp<T> {
             next_pieces: _,
             pieces_played,
             lines_cleared,
-            level,
+            gravity,
             score,
             consecutive_line_clears: _,
             back_to_back_special_clears: _,
@@ -1214,7 +1223,7 @@ impl<T: Write> TerminalApp<T> {
                 .queue(MoveTo(x_main, y_main + y_selection + 4))?
                 .queue(Print(format!("{:^w_main$}", format!("Score: {score}"))))?
                 .queue(MoveTo(x_main, y_main + y_selection + 5))?
-                .queue(Print(format!("{:^w_main$}", format!("Level: {level}",))))?
+                .queue(Print(format!("{:^w_main$}", format!("Level: {gravity}",))))?
                 .queue(MoveTo(x_main, y_main + y_selection + 6))?
                 .queue(Print(format!(
                     "{:^w_main$}",
@@ -2023,13 +2032,13 @@ impl<T: Write> TerminalApp<T> {
                                         "".to_string()
                                     } else {
                                         let Limits {
-                                            level: Some((_, max_lvl)),
+                                            gravity: Some((_, max_lvl)),
                                             ..
                                         } = gamemode.limits
                                         else {
                                             panic!()
                                         };
-                                        format!(" ({}/{} lvl)", last_state.level, max_lvl)
+                                        format!(" ({}/{} lvl)", last_state.gravity, max_lvl)
                                     },
                                 )
                             }
@@ -2094,13 +2103,13 @@ impl<T: Write> TerminalApp<T> {
                                         "".to_string()
                                     } else {
                                         let Limits {
-                                            level: Some((_, max_lvl)),
+                                            gravity: Some((_, max_lvl)),
                                             ..
                                         } = gamemode.limits
                                         else {
                                             panic!()
                                         };
-                                        format!(" ({}/{} lvl)", last_state.level, max_lvl)
+                                        format!(" ({}/{} lvl)", last_state.gravity, max_lvl)
                                     },
                                 )
                             }
@@ -2152,9 +2161,9 @@ impl<T: Write> TerminalApp<T> {
                                             " ({}/{} lns)",
                                             last_state.lines_cleared, max_lns
                                         )),
-                                        gamemode.limits.level.map(|(_, max_lvl)| format!(
+                                        gamemode.limits.gravity.map(|(_, max_lvl)| format!(
                                             " ({}/{} lvl)",
-                                            last_state.level, max_lvl
+                                            last_state.gravity, max_lvl
                                         )),
                                         gamemode.limits.score.map(|(_, max_pts)| format!(
                                             " ({}/{} pts)",
@@ -2267,7 +2276,7 @@ impl<T: Write> TerminalApp<T> {
                         match stats1.gamemode.name.as_str() {
                             "Marathon" => {
                                 // Sort desc by level.
-                                stats1.last_state.level.cmp(&stats2.last_state.level).reverse().then_with(||
+                                stats1.last_state.gravity.cmp(&stats2.last_state.gravity).reverse().then_with(||
                                     // Sort desc by score.
 
                                     stats1.last_state.score.cmp(&stats2.last_state.score).reverse()
@@ -2293,7 +2302,7 @@ impl<T: Write> TerminalApp<T> {
                             },
                             "Puzzle" => {
                                 // Sort desc by level.
-                                stats1.last_state.level.cmp(&stats2.last_state.level).reverse().then_with(||
+                                stats1.last_state.gravity.cmp(&stats2.last_state.gravity).reverse().then_with(||
                                     // Sort asc by time.
                                     stats1.last_state.time.cmp(&stats2.last_state.time)
                                 )
