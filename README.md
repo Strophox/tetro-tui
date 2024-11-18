@@ -354,7 +354,7 @@ With SRS one starts to spot some rotational symmetries (you can always rotate ba
 </details>
 
 In the end I'm happy with how the custom rotation system turned out.
-It vaguely follows the mantra "if the rotation looks like it could reasonably work visually, it should" (+ some added kicks for flexibility and fun :-), hence it's name, *Ocular* rotation system[.](https://ocularnebula.newgrounds.com/)
+It vaguely follows the mantra "if the rotation looks like it could reasonably work visually, it should" (+ some added kicks for flexibility and fun :-), hence its name, *Ocular* rotation system.
 
 <details>
 
@@ -813,6 +813,9 @@ Other stuff:
   ```bash
   agg --font-family="DejaVu Sans Mono" --line-height=1.17 --renderer=resvg --font-size=20, --fps-cap=30 --last-frame-duration=0  my_rec.cast my_rec.gif
   ```
+
+
+\- If you find any typos in this readme you're more than welcome to keep them! ;D  *(\*actually you can open a PR if you really want to)*
 
 
 *„Piecement Places!“* - [CTWC 2016](https://www.youtube.com/watch?v=RlnlDKznIaw&t=121).
