@@ -4,22 +4,23 @@ use tetrs_engine::{
 };
 
 #[allow(dead_code)]
-pub fn custom_starting_board(mut layout_bits: u128) -> FnGameMod {
+pub fn custom_start_board(board_str: &String) -> FnGameMod {
     let grey_tile = Some(std::num::NonZeroU8::try_from(254).unwrap());
     let mut init = false;
+    let board_str = board_str.clone();
     Box::new(move |_, _, state, _, _| {
         if !init {
+            let mut chars = board_str.chars().rev();
             'init: for row in state.board.iter_mut() {
                 for cell in row.iter_mut().rev() {
-                    if layout_bits == 0 {
+                    let Some(char) = chars.next() else {
                         break 'init;
-                    }
-                    *cell = if layout_bits & 1 != 0 {
+                    };
+                    *cell = if char != ' ' {
                         grey_tile
                     } else {
                         None
                     };
-                    layout_bits >>= 1;
                 }
             }
             init = true;

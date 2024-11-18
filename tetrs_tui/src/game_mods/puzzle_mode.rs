@@ -142,13 +142,10 @@ pub fn new_game() -> Game {
         name: "Puzzle".to_string(),
         initial_gravity: 2,
         increase_gravity: false,
-        limits: Limits {
-            gravity: Some((true, u32::try_from(puzzles_len).unwrap())),
-            ..Default::default()
-        },
+        limits: Limits::default(),
     });
     game.config_mut().preview_count = 0;
-    unsafe { game.add_modifier(puzzle_mode) };
+    game.add_modifier(puzzle_mode);
     game
 }
 

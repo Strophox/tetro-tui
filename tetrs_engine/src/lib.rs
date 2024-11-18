@@ -604,7 +604,7 @@ impl GameMode {
             initial_gravity: 1,
             increase_gravity: true,
             limits: Limits {
-                gravity: Some((true, 16)),
+                gravity: Some((true, 15)),
                 ..Default::default()
             },
         }
@@ -850,14 +850,11 @@ impl Game {
 
     /// Adds a 'game mod' that will get executed regularly before and after each [`InternalEvent`].
     ///
-    /// # Safety
-    ///
-    // FIXME: Document Safety.
     /// This indirectly allows raw, mutable access to the game's [`GameMode`]
     /// and [`GameState`] fields.
     /// This should not cause undefined behaviour per se, but may lead to spurious `panic!`s or
     /// other unexpected gameplay behaviour due to violating internal invarints.
-    pub unsafe fn add_modifier(&mut self, game_mod: FnGameMod) {
+    pub fn add_modifier(&mut self, game_mod: FnGameMod) {
         self.modifiers.push(game_mod)
     }
 
@@ -1156,6 +1153,29 @@ impl Game {
         }
     }
 
+    /// Try holding a tetromino in the game state and report success.
+    fn attempt_hold(&mut self, tetromino: Tetromino, event_time: GameTime) -> bool {
+        match self.state.hold_piece {
+            None | Some((_, true)) => {
+                if let Some((held_piece, _)) = self.state.hold_piece {
+                    self.state.next_pieces.push_front(held_piece);
+                } else {
+                    self.state.next_pieces.extend(
+                        self.config
+                            .tetromino_generator
+                            .with_rng(&mut self.rng)
+                            .take(1),
+                    );
+                }
+                self.state.hold_piece = Some((tetromino, false));
+                self.state.events.clear();
+                self.state.events.insert(InternalEvent::Spawn, event_time);
+                true
+            }
+            _ => false,
+        }
+    }
+
     /// Given an event, update the internal game state, possibly adding new future events.
     ///
     /// This function is likely the most important part of a game update as it handles the logic of
@@ -1190,51 +1210,42 @@ impl Game {
                                 .saturating_sub(self.state.next_pieces.len()),
                         ),
                 );
-                let next_piece = Self::position_tetromino(tetromino);
-                feedback_events.push((event_time, Feedback::PieceSpawned(next_piece)));
-                // Newly spawned piece conflicts with board - Game over.
-                if !next_piece.fits(&self.state.board) {
-                    self.state.end = Some(Err(GameOver::BlockOut));
-                    return feedback_events;
+                // Initial Hold System.
+                if self.state.buttons_pressed[Button::Hold] && self.attempt_hold(tetromino, event_time) {
+                    None
+                } else {
+                    let raw_piece = Self::position_tetromino(tetromino);
+                    let mut turns = 0;
+                    if self.state.buttons_pressed[Button::RotateRight] {
+                        turns += 1;
+                    }
+                    if self.state.buttons_pressed[Button::RotateAround] {
+                        turns += 2;
+                    }
+                    if self.state.buttons_pressed[Button::RotateLeft] {
+                        turns -= 1;
+                    }
+                    // Initial Rotation system.
+                    let next_piece = self.config
+                        .rotation_system
+                        .rotate(&raw_piece, &self.state.board, turns)
+                        .unwrap_or(raw_piece);
+                    feedback_events.push((event_time, Feedback::PieceSpawned(next_piece)));
+                    // Newly spawned piece conflicts with board - Game over.
+                    if !next_piece.fits(&self.state.board) {
+                        self.state.end = Some(Err(GameOver::BlockOut));
+                        return feedback_events;
+                    }
+                    self.state.events.insert(InternalEvent::Fall, event_time);
+                    Some(next_piece)
                 }
-                let mut turns = 0;
-                if self.state.buttons_pressed[Button::RotateRight] {
-                    turns += 1;
-                }
-                if self.state.buttons_pressed[Button::RotateAround] {
-                    turns += 2;
-                }
-                if self.state.buttons_pressed[Button::RotateLeft] {
-                    turns -= 1;
-                }
-                if turns != 0 {
-                    self.state
-                        .events
-                        .insert(InternalEvent::Rotate(turns), event_time);
-                }
-                self.state.events.insert(InternalEvent::Fall, event_time);
-                Some(next_piece)
             }
             InternalEvent::HoldPiece => {
                 let prev_piece = prev_piece.expect("hold piece event but no active piece");
-                match self.state.hold_piece {
-                    None | Some((_, true)) => {
-                        if let Some((held_piece, _)) = self.state.hold_piece {
-                            self.state.next_pieces.push_front(held_piece);
-                        } else {
-                            self.state.next_pieces.extend(
-                                self.config
-                                    .tetromino_generator
-                                    .with_rng(&mut self.rng)
-                                    .take(1),
-                            );
-                        }
-                        self.state.hold_piece = Some((prev_piece.shape, false));
-                        self.state.events.clear();
-                        self.state.events.insert(InternalEvent::Spawn, event_time);
-                        None
-                    }
-                    _ => Some(prev_piece),
+                if self.attempt_hold(prev_piece.shape, event_time) {
+                    None
+                } else {
+                    Some(prev_piece)
                 }
             }
             InternalEvent::Rotate(turns) => {

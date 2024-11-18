@@ -10,17 +10,19 @@ use clap::Parser;
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
-    /// A custom starting layout for Combo mode, encoded in binary, by 4-wide rows.
-    /// Example: "▀▄▄▀" => 0b_1001_0110 = 150
-    ///          => `./tetrs_tui -c 150`.
-    #[arg(short, long)]
-    combo_layout: Option<u16>,
-    /// A custom starting board for **Custom** mode, encoded in binary, by 10-wide rows.
-    /// Example: "█▀ ▄██▀ ▀█" => 0b_1100111011_1001110001 = 982815
-    ///          => `./tetrs_tui --custom_start=982815`.
+    /// Custom starting board when playing Custom mode (10-wide rows), encoded as string.
+    /// Spaces indicate empty cells, anything else is a filled cell.
+    /// The string just represents the row information, starting with the topmost row.
+    /// Example: '█▀ ▄██▀ ▀█' => "XX  XXX XXO  OOO   O"
+    ///          => `./tetrs_tui --custom_start="XX  XXX XXO  OOO   O"`.
     #[arg(long)]
-    custom_start: Option<u128>,
-    /// Whether to enable the combo bot in combo mode.
+    custom_start: Option<String>,
+    /// Custom starting layout when playing Combo mode (4-wide rows), encoded as binary.
+    /// Example: '▀▄▄▀' => 0b_1001_0110 = 150
+    ///          => `./tetrs_tui -combo_start=150` or `./tetrs_tui -c 150`.
+    #[arg(short, long)]
+    combo_start: Option<u16>,
+    /// Whether to enable the combo bot in Combo mode: `./tetrs_tui -e`
     #[arg(short, long)]
     enable_combo_bot: bool,
 }
@@ -30,7 +32,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let stdout = io::BufWriter::new(io::stdout());
     let mut app = terminal_app::TerminalApp::new(
         stdout,
-        args.combo_layout,
+        args.combo_start,
         args.custom_start,
         args.enable_combo_bot,
     );

@@ -30,9 +30,9 @@ pub fn random_descent_lines() -> impl Iterator<Item = Line> {
         let mut line = [None; Game::WIDTH];
         match i % 4 {
             0 | 2 => {}
-            1 | 3 => {
+            r => {
                 for (j, cell) in line.iter_mut().enumerate() {
-                    if j % 2 == 1 || rng.gen_bool(0.5) {
+                    if j % 2 == 1 || (r == 1 && rng.gen_bool(0.5)) {
                         *cell = grey_tile;
                     }
                 }
@@ -46,7 +46,6 @@ pub fn random_descent_lines() -> impl Iterator<Item = Line> {
                     line[gem_idx] = Some(NonZeroU8::try_from(rng.gen_range(1..=7)).unwrap());
                 }
             }
-            _ => unreachable!(),
         };
         if playing_width < line.len() {
             line[playing_width] = color_tiles[(i / 10) % 7];
@@ -176,6 +175,6 @@ pub fn new_game() -> Game {
         },
     });
     game.config_mut().preview_count = 0;
-    unsafe { game.add_modifier(descent_mode) };
+    game.add_modifier(descent_mode);
     game
 }

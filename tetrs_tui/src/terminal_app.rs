@@ -167,7 +167,7 @@ pub struct TerminalApp<T: Write> {
     game_config: GameConfig,
     game_mode_store: GameModeStore,
     past_games: Vec<FinishedGameStats>,
-    custom_starting_board: Option<u128>,
+    custom_start_board: Option<String>,
     combo_bot_enabled: bool,
 }
 
@@ -209,7 +209,7 @@ impl<T: Write> TerminalApp<T> {
     pub fn new(
         mut terminal: T,
         initial_combo_layout: Option<u16>,
-        experimental_custom_layout: Option<u128>,
+        custom_start_board: Option<String>,
         combo_bot_enabled: bool,
     ) -> Self {
         // Console prologue: Initialization.
@@ -250,7 +250,7 @@ impl<T: Write> TerminalApp<T> {
                 descent_mode: false,
             },
             past_games: vec![],
-            custom_starting_board: experimental_custom_layout,
+            custom_start_board,
             combo_bot_enabled,
         };
         if let Err(_e) = app.load_local() {
@@ -799,12 +799,10 @@ impl<T: Write> TerminalApp<T> {
                             increase_gravity,
                             limits,
                         });
-                        if let Some(layout_bits) = self.custom_starting_board {
-                            unsafe {
-                                custom_game.add_modifier(game_mods::utils::custom_starting_board(
-                                    layout_bits,
-                                ));
-                            }
+                        if let Some(custom_start_board_str) = &self.custom_start_board {
+                            custom_game.add_modifier(game_mods::utils::custom_start_board(
+                                custom_start_board_str
+                            ));
                         }
                         custom_game
                     };
@@ -1142,7 +1140,7 @@ impl<T: Write> TerminalApp<T> {
         let FinishedGameStats {
             timestamp: _,
             actions,
-            score_bonuses,
+            score_bonuses: _,
             gamemode,
             last_state,
         } = finished_game_stats;
@@ -1244,16 +1242,7 @@ impl<T: Write> TerminalApp<T> {
                 )))?
                 .queue(MoveTo(x_main, y_main + y_selection + 10))?
                 .queue(Print(format!("{:^w_main$}", actions_str)))?
-                .queue(MoveTo(x_main, y_main + y_selection + 11))?
-                .queue(Print(format!(
-                    "{:^w_main$}",
-                    format!(
-                        "Average score bonus: {:.1}",
-                        score_bonuses.iter().copied().map(u64::from).sum::<u64>() as f64
-                            / (score_bonuses.len() as f64/*I give up*/)
-                    )
-                )))?
-                .queue(MoveTo(x_main, y_main + y_selection + 13))?
+                .queue(MoveTo(x_main, y_main + y_selection + 12))?
                 .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
             let names = selection
                 .iter()
@@ -1263,7 +1252,7 @@ impl<T: Write> TerminalApp<T> {
                 self.term
                     .queue(MoveTo(
                         x_main,
-                        y_main + y_selection + 14 + u16::try_from(i).unwrap(),
+                        y_main + y_selection + 13 + u16::try_from(i).unwrap(),
                     ))?
                     .queue(Print(format!(
                         "{:^w_main$}",

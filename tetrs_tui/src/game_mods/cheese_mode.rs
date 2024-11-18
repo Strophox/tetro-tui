@@ -79,6 +79,6 @@ pub fn new_game(cheese_limit: Option<NonZeroUsize>, gap_size: usize, gravity: u3
             ..Default::default()
         },
     });
-    unsafe { game.add_modifier(cheese_mode) };
+    game.add_modifier(cheese_mode);
     game
 }

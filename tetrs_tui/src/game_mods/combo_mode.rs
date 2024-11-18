@@ -85,7 +85,7 @@ pub fn new_game(gravity: u32, initial_layout: u16) -> Game {
         increase_gravity: false,
         limits: Limits::default(),
     });
-    unsafe { game.add_modifier(combo_mode) };
+    game.add_modifier(combo_mode);
     game
 }
 
