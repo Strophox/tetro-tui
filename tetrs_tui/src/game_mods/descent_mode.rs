@@ -154,13 +154,10 @@ pub fn new_game() -> Game {
                 // state.level =
                 //     NonZeroU32::try_from(u32::try_from(current_puzzle_idx + 1).unwrap()).unwrap();
             }
-            // FIXME: Gravity 0 now exists, maybe we can simplify things with that (i.e. not manually keep the piece from locking)?
             // Remove ability to hold.
             if matches!(modifier_point, ModifierPoint::AfterButtonChange) {
                 state.events.remove(&GameEvent::Hold);
             }
-            // Remove ability to lock.
-            state.events.remove(&GameEvent::LockTimer);
             // FIXME: Remove jank.
             active_piece.shape = descent_tetromino;
         },

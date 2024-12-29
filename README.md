@@ -150,7 +150,7 @@ For more technical details see [Features of the Tetrs Engine](#features-of-the-t
 - **Keep Save File**: By default this program __won't store anything__ but just let you play the game. If you do want `tetrs_tui` to restore your settings and take record of past games upon startup then make sure this is set to **ON**!
   
 
-### Scoreboard
+### Local Scoreboard
 
 - History of games played in the current session (or in the past, if "keep save file" is toggled on).
 - *(\*Games where 0 lines have been cleared are auto-deleted on exit.)*
@@ -226,7 +226,7 @@ Most default values inspired by [Guideline](https://tetris.wiki/Tetris_Guideline
 
 <details>
 
-<summary> Game State Aspects </summary>
+<summary> Game State </summary>
 
 - Time: Game time is held abstract as "time elapsed since game started" and is not directly tied to real-world timestamps.
 - Game finish: The game knows if it finished, and if session was won or lost. Normal Game Over scenarios are:
@@ -248,7 +248,7 @@ Most default values inspired by [Guideline](https://tetris.wiki/Tetris_Guideline
 
 <details>
 
-<summary> Game Feedback Aspects </summary>
+<summary> Game Feedback </summary>
 
 The game provides some useful feedback events upon every `update`, usually used to correctly implement visual frontend effects:
 - *Piece locked down*, *Lines cleared*, *Hard drop*, *Accolade* (score bonus info), *Message* (generic message, currently unused for base gamemodes)
@@ -267,12 +267,13 @@ The game provides some useful feedback events upon every `update`, usually used 
 
 - Comprehensiveness of project README.
   - Many small details of the `tetrs_engine` are not properly explained (e.g. the initial rotation mechanic, which allows spawning a piece immediately rotated if a rotation button was held).
-- Improvements to the tetrs engine.
+- FIXMEs in the code base.
+- General improvements to the tetrs engine.
   - Better API documentation (`cargo doc --open`).
   - Better internal (implementation) documentation.
   - Refactor of complicated systems (e.g. locking).
   - *(Ideally)* Prove panic-freedom of `Game::update`.
-- Improvements to the terminal application.
+- General improvements to the terminal application.
   - Make menu code less ad-hoc (code duplication, hidden panics).
   - Better internal documentation.
 

@@ -241,7 +241,7 @@ impl<T: Write> TerminalApp<T> {
             combo_bot_enabled: false,
             past_games: vec![],
         };
-        if let Err(_) = app.load_savefile() {
+        if app.load_savefile().is_err() {
             // FIXME: Make this debuggable.
             //eprintln!("Could not loading settings: {e}");
             //std::thread::sleep(Duration::from_secs(5));
@@ -614,10 +614,7 @@ impl<T: Write> TerminalApp<T> {
                             let mut combo_game =
                                 game_mods::combo_mode::new_game(1, combo_start_layout);
                             if combo_bot_enabled {
-                                // SAFETY: We only add the information that this will be botted.
-                                unsafe {
-                                    combo_game.mode_mut().name.push_str(" (Bot)");
-                                }
+                                combo_game.mode_mut().name.push_str(" (Bot)");
                             }
                             combo_game
                         }
@@ -2093,15 +2090,15 @@ impl<T: Write> TerminalApp<T> {
                             }
                             "Master" => {
                                 let Limits {
-                                    lines: Some((_, max_lns)),
+                                    gravity: Some((_, max_lvl)),
                                     ..
                                 } = gamemode.limits
                                 else {
                                     panic!()
                                 };
                                 format!(
-                                    "{timestamp} ~ Master: {}/{} lns",
-                                    last_state.lines_cleared, max_lns
+                                    "{timestamp} ~ Master: gravity lvl {}/{}",
+                                    last_state.gravity, max_lvl
                                 )
                             }
                             "Puzzle" => {

@@ -837,13 +837,10 @@ impl Game {
 
     /// Mutable accessor for the current game mode.
     ///
-    /// # Safety
-    ///
-    // FIXME: Document Safety.
     /// This directly allows raw, mutable access to the game's [`GameMode`] field.
     /// This should not cause undefined behaviour per se, but may lead to spurious `panic!`s or
     /// other unexpected gameplay behaviour due to violating internal invarints.
-    pub unsafe fn mode_mut(&mut self) -> &mut GameMode {
+    pub fn mode_mut(&mut self) -> &mut GameMode {
         &mut self.mode
     }
 
@@ -854,13 +851,11 @@ impl Game {
 
     /// Mutable accessor for the current game mode.
     ///
-    /// # Safety
-    ///
     // FIXME: Document Safety.
     /// This directly allows raw, mutable access to the game's [`GameState`] field.
     /// This should not cause undefined behaviour per se, but may lead to spurious `panic!`s or
     /// other unexpected gameplay behaviour due to violating internal invarints.
-    pub unsafe fn state_mut(&mut self) -> &mut GameState {
+    pub fn state_mut(&mut self) -> &mut GameState {
         &mut self.state
     }
 
@@ -1027,6 +1022,7 @@ impl Game {
 
     /// Computes and adds to the internal event queue any relevant [`GameEvent`]s caused by the
     /// player in form of a change of button states.
+    #[allow(clippy::bool_comparison, clippy::comparison_chain)]
     fn input_update(&mut self, next_buttons_pressed: ButtonsPressed, update_time: GameTime) {
         let prev_buttons_pressed = self.state.buttons_pressed.map(|x| x.is_some());
         if self.state.active_piece_data.is_some() {
@@ -1040,8 +1036,8 @@ impl Game {
             |           !mR1  mR1  mR1 !mR1
             | !mL0 !mL1   -    r    -    0
             | !mL0  mL1   l    -    l    l
-            |  mL0  mL1   -    r    -    ?
-            |  mL0 !mL1   0    r    ?    0
+            |  mL0  mL1   -    r    -    l?
+            |  mL0 !mL1   0    r    r?   0
             */
             let one_m_pressed = (ml0 < ml1) != (mr0 < mr1);
             let revert_m_left = (ml0 && ml1)
@@ -1101,6 +1097,7 @@ impl Game {
             }
         }
         // Update internal button state.
+        #[allow(clippy::bool_comparison)]
         for ((button, prev), next) in Button::VARIANTS
             .iter()
             .zip(prev_buttons_pressed)
@@ -1687,7 +1684,7 @@ impl Game {
                 41 => 260,
                 42 => 240,
                 43 => 220,
-                __ => 200,
+                _  => 200,
         })
     }
 }

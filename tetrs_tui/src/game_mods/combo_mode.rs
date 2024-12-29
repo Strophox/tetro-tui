@@ -44,8 +44,6 @@ fn four_wide_lines() -> impl Iterator<Item = Line> {
 }
 
 pub fn new_game(gravity: u32, initial_layout: u16) -> Game {
-    // FIXME: Combo mode should be played on a 10-wide board.
-    assert_eq!(Game::WIDTH, 10);
     let mut line_source = four_wide_lines();
     let mut init = false;
     let combo_mode: FnGameMod = Box::new(

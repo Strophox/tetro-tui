@@ -4,10 +4,10 @@ use tetrs_engine::{
 };
 
 #[allow(dead_code)]
-pub fn custom_start_board(board_str: &String) -> FnGameMod {
+pub fn custom_start_board(board_str: &str) -> FnGameMod {
     let grey_tile = Some(std::num::NonZeroU8::try_from(254).unwrap());
     let mut init = false;
-    let board_str = board_str.clone();
+    let board_str = board_str.to_owned();
     Box::new(move |_, _, state, _, _| {
         if !init {
             let mut chars = board_str.chars().rev();
