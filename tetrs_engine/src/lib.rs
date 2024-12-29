@@ -742,7 +742,7 @@ impl Default for GameConfig {
             preview_count: 4,
             delayed_auto_shift: Duration::from_millis(167),
             auto_repeat_rate: Duration::from_millis(33),
-            soft_drop_factor: 15.0,
+            soft_drop_factor: 10.0,
             hard_drop_delay: Duration::from_micros(100),
             ground_time_max: Duration::from_millis(2000),
             line_clear_delay: Duration::from_millis(200),
