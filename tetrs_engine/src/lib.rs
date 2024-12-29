@@ -52,8 +52,6 @@ pub use piece_generation::TetrominoSource;
 pub use piece_rotation::RotationSystem;
 use rand::rngs::ThreadRng;
 
-/// A mapping for which buttons are pressed, usable through `impl Index<Button> for [T; 8]`.
-pub type ButtonsPressed = [bool; 9];
 /// Abstract identifier for which type of tile occupies a cell in the grid.
 pub type TileTypeID = NonZeroU8;
 /// The type of horizontal lines of the playing grid.
@@ -67,13 +65,17 @@ pub type Coord = (usize, usize);
 pub type Offset = (isize, isize);
 /// The type used to identify points in time in a game's internal timeline.
 pub type GameTime = Duration;
+/// A mapping for buttons, usable through `impl Index<Button>`.
+type ButtonMap<T> = [T; 9];
+/// A mapping for which buttons were pressed.
+pub type ButtonsPressed = ButtonMap<bool>;
 /// Convenient type alias to denote a collection of [`Feedback`]s associated with some [`GameTime`].
 pub type FeedbackEvents = Vec<(GameTime, Feedback)>;
 /// Type of functions that can be used to modify a game, c.f. [`Game::add_modifier`].
 pub type FnGameMod = Box<
     dyn FnMut(&mut GameConfig, &mut GameMode, &mut GameState, &mut FeedbackEvents, &ModifierPoint),
 >;
-type EventMap = HashMap<InternalEvent, GameTime>;
+type EventMap = HashMap<GameEvent, GameTime>;
 
 /// Represents an abstract game input.
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
@@ -103,7 +105,7 @@ pub enum Button {
     /// with respect to locking.
     DropSonic,
     /// Holding and swapping in a held piece.
-    Hold,
+    HoldPiece,
 }
 
 /// Represents the orientation an active piece can be in.
@@ -246,7 +248,7 @@ pub struct GameConfig {
 /// An event that is scheduled by the game engine to execute some action.
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum InternalEvent {
+pub enum GameEvent {
     /// Event of a line being cleared from the board.
     LineClear,
     /// Event of a new [`ActivePiece`] coming into play.
@@ -255,8 +257,8 @@ pub enum InternalEvent {
     /// to its state.
     Lock,
     /// Event of trying to hold / swap out the current piece.
-    HoldPiece,
-    /// Event of the active piece being dropped down and a fast [`InternalEvent::LockTimer`] being initiated.
+    Hold,
+    /// Event of the active piece being dropped down and a fast [`GameEvent::LockTimer`] being initiated.
     HardDrop,
     /// Event of the active piece being dropped down (without any further action or locking).
     SonicDrop,
@@ -264,12 +266,13 @@ pub enum InternalEvent {
     SoftDrop,
     /// Event of the active piece moving down due to ordinary game gravity.
     Fall,
-    /// Event of the active piece moving sideways (any direction), conventionally waiting for one
-    /// period of 'DAS', until 'ARR' begins.
-    MoveSlow,
-    /// Event of the active piece moving sideways (any direction), at 'ARR' speed.
-    MoveFast,
-    /// Event of the active piece rotating some number of right turns.
+    /// Event of the active piece moving sideways.
+    ///
+    /// Stores whether it was the initial move input in that direction.
+    Move(bool),
+    /// Event of the active piece rotating.
+    ///
+    /// Stores some number of right turns.
     Rotate(i32),
     /// Event of attempted piece lock down.
     LockTimer,
@@ -305,7 +308,7 @@ pub struct GameState {
     /// Upcoming game events.
     pub events: EventMap,
     /// The current state of buttons being pressed in the game.
-    pub buttons_pressed: ButtonsPressed,
+    pub buttons_pressed: ButtonMap<Option<GameTime>>,
     /// The main playing grid storing empty (`None`) and filled, fixed tiles (`Some(nz_u32)`).
     pub board: Board,
     /// All relevant data of the current piece in play.
@@ -393,14 +396,12 @@ pub enum Feedback {
 pub enum ModifierPoint {
     /// Passed at the beginning of any call to [`Game::update`].
     UpdateStart,
-    /// Passed when the modifier is called immediately before an [`InternalEvent`] is handled.
-    BeforeEvent(InternalEvent),
-    /// Passed when the modifier is called immediately after an [`InternalEvent`] has been handled.
-    AfterEvent(InternalEvent),
+    /// Passed when the modifier is called immediately before an [`GameEvent`] is handled.
+    BeforeEvent(GameEvent),
+    /// Passed when the modifier is called immediately after an [`GameEvent`] has been handled.
+    AfterEvent(GameEvent),
     /// Passed when the modifier is called immediately before new user input is handled.
-    ///
-    /// The expressions inside the tuple denote the buttons pressed previously, and the new input.
-    BeforeButtonChange(ButtonsPressed, ButtonsPressed),
+    BeforeButtonChange,
     /// Passed when the modifier is called immediately after new user input has been handled.
     AfterButtonChange,
 }
@@ -658,10 +659,10 @@ impl GameMode {
     pub fn master() -> Self {
         Self {
             name: String::from("Master"),
-            initial_gravity: Game::GRAVITY_INSTANT,
+            initial_gravity: Game::INSTANT_GRAVITY,
             increase_gravity: true,
             limits: Limits {
-                lines: Some((true, 100)),
+                gravity: Some((true, 35)),
                 ..Default::default()
             },
         }
@@ -684,6 +685,21 @@ impl GameMode {
     }
 }
 
+impl Button {
+    // FIXME: Needs to be MANUALLY updated in sync with `Button`...
+    const VARIANTS: [Self; 9] = [
+        Self::MoveLeft,
+        Self::MoveRight,
+        Self::RotateLeft,
+        Self::RotateRight,
+        Self::RotateAround,
+        Self::DropSoft,
+        Self::DropHard,
+        Self::DropSonic,
+        Self::HoldPiece,
+    ];
+}
+
 impl<T> ops::Index<Button> for [T; 9] {
     type Output = T;
 
@@ -697,7 +713,7 @@ impl<T> ops::Index<Button> for [T; 9] {
             Button::DropSoft => &self[5],
             Button::DropHard => &self[6],
             Button::DropSonic => &self[7],
-            Button::Hold => &self[8],
+            Button::HoldPiece => &self[8],
         }
     }
 }
@@ -713,7 +729,7 @@ impl<T> ops::IndexMut<Button> for [T; 9] {
             Button::DropSoft => &mut self[5],
             Button::DropHard => &mut self[6],
             Button::DropSonic => &mut self[7],
-            Button::Hold => &mut self[8],
+            Button::HoldPiece => &mut self[8],
         }
     }
 }
@@ -755,7 +771,7 @@ impl Game {
     /// The maximal height of the (conventionally visible) playing grid that can be played in.
     pub const SKYLINE: usize = 20;
     // This is the level at which blocks start falling with 20G / instantly hit the floor.
-    const GRAVITY_INSTANT: u32 = 20;
+    const INSTANT_GRAVITY: u32 = 20;
 
     /// Start a new game given some game mode.
     pub fn new(game_mode: GameMode) -> Self {
@@ -767,7 +783,7 @@ impl Game {
         let state = GameState {
             time: Duration::ZERO,
             end: None,
-            events: HashMap::from([(InternalEvent::Spawn, Duration::ZERO)]),
+            events: HashMap::from([(GameEvent::Spawn, Duration::ZERO)]),
             buttons_pressed: Default::default(),
             board: std::iter::repeat(Line::default())
                 .take(Self::HEIGHT)
@@ -848,7 +864,7 @@ impl Game {
         &mut self.state
     }
 
-    /// Adds a 'game mod' that will get executed regularly before and after each [`InternalEvent`].
+    /// Adds a 'game mod' that will get executed regularly before and after each [`GameEvent`].
     ///
     /// This indirectly allows raw, mutable access to the game's [`GameMode`]
     /// and [`GameState`] fields.
@@ -914,7 +930,7 @@ impl Game {
 
     /// The main function used to advance the game state.
     ///
-    /// This will cause an internal update of all [`InternalEvent`]s up to and including the given
+    /// This will cause an internal update of all [`GameEvent`]s up to and including the given
     /// `update_time` requested.
     /// If `new_button_state.is_some()` then the same thing happens, except that the very last
     /// 'event' will be the change of [`ButtonsPressed`] at `update_time` (which might cause some
@@ -990,21 +1006,15 @@ impl Game {
                     self.state.time = update_time;
                     // Update button inputs.
                     if let Some(buttons_pressed) = new_button_state.take() {
-                        if self.state.active_piece_data.is_some() {
-                            self.apply_modifiers(
-                                &mut feedback_events,
-                                &ModifierPoint::BeforeButtonChange(
-                                    self.state.buttons_pressed,
-                                    buttons_pressed,
-                                ),
-                            );
-                            self.add_input_events(buttons_pressed, update_time);
-                            self.apply_modifiers(
-                                &mut feedback_events,
-                                &ModifierPoint::AfterButtonChange,
-                            );
-                        }
-                        self.state.buttons_pressed = buttons_pressed;
+                        self.apply_modifiers(
+                            &mut feedback_events,
+                            &ModifierPoint::BeforeButtonChange,
+                        );
+                        self.input_update(buttons_pressed, update_time);
+                        self.apply_modifiers(
+                            &mut feedback_events,
+                            &ModifierPoint::AfterButtonChange,
+                        );
                     } else {
                         self.update_game_end();
                         break 'event_simulation;
@@ -1015,122 +1025,98 @@ impl Game {
         Ok(feedback_events)
     }
 
-    /// Computes and adds to the internal event queue any relevant [`InternalEvent`]s caused by the
+    /// Computes and adds to the internal event queue any relevant [`GameEvent`]s caused by the
     /// player in form of a change of button states.
-    fn add_input_events(&mut self, next_buttons_pressed: ButtonsPressed, update_time: GameTime) {
-        #[allow(non_snake_case)]
-        let [mL0, mR0, rL0, rR0, rA0, dS0, dH0, dC0, h0] = self.state.buttons_pressed;
-        #[allow(non_snake_case)]
-        let [mL1, mR1, rL1, rR1, rA1, dS1, dH1, dC1, h1] = next_buttons_pressed;
-        /*
-        Table:                                 Karnaugh map:
-        | mL0 mR0 mL1 mR1                      |           !mL1 !mL1  mL1  mL1
-        |  0   0   0   0  :  -                 |           !mR1  mR1  mR1 !mR1
-        |  0   0   0   1  :  move, move (DAS)  | !mL0 !mR0   -   DAS   -   DAS
-        |  0   0   1   0  :  move, move (DAS)  | !mL0  mR0  rem   -   rem  ARR
-        |  0   0   1   1  :  -                 |  mL0  mR0   -   ARR   -   ARR
-        |  0   1   0   0  :  remove            |  mL0 !mR0  rem  ARR  rem   -
-        |  0   1   0   1  :  -
-        |  0   1   1   0  :  move, move (ARR)
-        |  0   1   1   1  :  remove
-        |  1   0   0   0  :  remove
-        |  1   0   0   1  :  move, move (ARR)
-        |  1   0   1   0  :  -
-        |  1   0   1   1  :  remove
-        |  1   1   0   0  :  -
-        |  1   1   0   1  :  move, move (ARR)
-        |  1   1   1   0  :  move, move (ARR)
-        |  1   1   1   1  :  -
-        */
-        // No buttons pressed -> one button pressed, add initial move.
-        if (!mL0 && !mR0) && (mL1 != mR1) {
-            self.state
-                .events
-                .insert(InternalEvent::MoveSlow, update_time);
-        // One/Two buttons pressed -> different/one button pressed, (re-)add fast repeat move.
-        } else if (mL0 && (!mL1 && mR1)) || (mR0 && (mL1 && !mR1)) {
-            self.state
-                .events
-                .insert(InternalEvent::MoveFast, update_time);
-        // Single button pressed -> both (un)pressed, remove future moves.
-        } else if (mL0 != mR0) && (mL1 == mR1) {
-            self.state.events.remove(&InternalEvent::MoveFast);
-        }
-        /*
-        Table:                       Karnaugh map:
-        | rL0 rR0 rL1 rR1            |           !rR1  rR1  rR1 !rR1
-        |  0   0   0   0  :  -       |           !rL1 !rL1  rL1  rL1
-        |  0   0   0   1  :  rotate  | !rL0 !rR0   -   rot   -   rot
-        |  0   0   1   0  :  rotate  | !rL0  rR0   -    -   rot  rot
-        |  0   0   1   1  :  -       |  rL0  rR0   -    -    -    -
-        |  0   1   0   0  :  -       |  rL0 !rR0   -   rot  rot   -
-        |  0   1   0   1  :  -
-        |  0   1   1   0  :  rotate
-        |  0   1   1   1  :  rotate
-        |  1   0   0   0  :  -
-        |  1   0   0   1  :  rotate
-        |  1   0   1   0  :  -
-        |  1   0   1   1  :  rotate
-        |  1   1   0   0  :  -
-        |  1   1   0   1  :  -
-        |  1   1   1   0  :  -
-        |  1   1   1   1  :  -
-        We rotate around (rA) if (!rA0 && rA1).
-        This always causes a rotation event (with no cancellation possible with rL,rR).
-        */
-        // Either a 180 rotation, or a single L/R rotation button was pressed.
-        let mut turns = 0;
-        if !rR0 && rR1 {
-            turns += 1;
-        }
-        if !rA0 && rA1 {
-            turns += 2;
-        }
-        if !rL0 && rL1 {
-            turns -= 1;
-        }
-        if turns != 0 {
-            self.state
-                .events
-                .insert(InternalEvent::Rotate(turns), update_time);
-        }
-        // Soft drop button pressed.
-        if !dS0 && dS1 {
-            self.state
-                .events
-                .insert(InternalEvent::SoftDrop, update_time);
-        // Soft drop button released: Reset fall timer.
-        } else if dS0 && !dS1 {
-            if let Ok(level) = NonZeroU32::try_from(self.state.gravity) {
-                self.state.events.insert(
-                    InternalEvent::Fall,
-                    update_time + Self::drop_delay(level, None),
-                );
+    fn input_update(&mut self, next_buttons_pressed: ButtonsPressed, update_time: GameTime) {
+        let prev_buttons_pressed = self.state.buttons_pressed.map(|x| x.is_some());
+        if self.state.active_piece_data.is_some() {
+            let [ml0, mr0, rl0, rr0, ra0, ds0, dh0, dc0, h0] = prev_buttons_pressed;
+            let [ml1, mr1, rl1, rr1, ra1, ds1, dh1, dc1, h1] = next_buttons_pressed;
+
+            // Single new button has been pressed, remove repeat moves and add initial move.
+            /*
+            Karnaugh map:
+            |           !mR0 !mR0  mR0  mR0
+            |           !mR1  mR1  mR1 !mR1
+            | !mL0 !mL1   -    r    -    0
+            | !mL0  mL1   l    -    l    l
+            |  mL0  mL1   -    r    -    ?
+            |  mL0 !mL1   0    r    ?    0
+            */
+            let one_m_pressed = (ml0 < ml1) != (mr0 < mr1);
+            let revert_m_left = (ml0 && ml1)
+                && (mr0 > mr1)
+                && self.state.buttons_pressed[Button::MoveLeft]
+                    < self.state.buttons_pressed[Button::MoveRight];
+            let revert_m_right = (mr0 && mr1)
+                && (ml0 > ml1)
+                && self.state.buttons_pressed[Button::MoveRight]
+                    < self.state.buttons_pressed[Button::MoveLeft];
+            let any_m_unpressed = (ml0 || mr0) && (!ml1 && !mr1);
+            if one_m_pressed || revert_m_left || revert_m_right {
+                self.state.events.remove(&GameEvent::Move(false));
+                self.state.events.insert(GameEvent::Move(true), update_time);
+            // Both move buttons unpressed, remove repeat moves.
+            } else if any_m_unpressed {
+                self.state.events.remove(&GameEvent::Move(false));
+            }
+            // Count number of turns using newly pressed rotation buttons.
+            let mut turns = 0;
+            if rl0 < rl1 {
+                turns -= 1;
+            }
+            if rr0 < rr1 {
+                turns += 1;
+            }
+            if ra0 < ra1 {
+                turns += 2;
+            }
+            if turns != 0 {
+                self.state
+                    .events
+                    .insert(GameEvent::Rotate(turns), update_time);
+            }
+            // Soft drop button pressed, add event.
+            if ds0 < ds1 {
+                self.state.events.insert(GameEvent::SoftDrop, update_time);
+            // Soft drop button released: Reset fall timer.
+            } else if ds0 > ds1 {
+                if let Ok(level) = NonZeroU32::try_from(self.state.gravity) {
+                    self.state
+                        .events
+                        .insert(GameEvent::Fall, update_time + Self::drop_delay(level, None));
+                }
+            }
+            // Hard drop button pressed.
+            if dh0 < dh1 {
+                self.state.events.insert(GameEvent::HardDrop, update_time);
+            }
+            // Sonic drop button pressed
+            if dc0 < dc1 {
+                self.state.events.insert(GameEvent::SonicDrop, update_time);
+            }
+            // Hold button pressed
+            if h0 < h1 {
+                self.state.events.insert(GameEvent::Hold, update_time);
             }
         }
-        // Hard drop button pressed.
-        if !dH0 && dH1 {
-            self.state
-                .events
-                .insert(InternalEvent::HardDrop, update_time);
-        }
-        // Sonic drop button pressed
-        if !dC0 && dC1 {
-            self.state
-                .events
-                .insert(InternalEvent::SonicDrop, update_time);
-        }
-        // Hold button pressed
-        if !h0 && h1 {
-            self.state
-                .events
-                .insert(InternalEvent::HoldPiece, update_time);
+        // Update internal button state.
+        for ((button, prev), next) in Button::VARIANTS
+            .iter()
+            .zip(prev_buttons_pressed)
+            .zip(next_buttons_pressed)
+        {
+            if prev < next {
+                self.state.buttons_pressed[*button] = Some(update_time);
+            } else if prev > next {
+                self.state.buttons_pressed[*button] = None;
+            }
         }
     }
 
     /// Given a tetromino variant to be spawned onto the board, returns the correct initial state of
     /// [`ActivePiece`].
-    fn position_tetromino(shape: Tetromino) -> ActivePiece {
+    fn spawn_piece(shape: Tetromino) -> ActivePiece {
         let pos = match shape {
             Tetromino::O => (4, 20),
             _ => (3, 20),
@@ -1169,7 +1155,7 @@ impl Game {
                 }
                 self.state.hold_piece = Some((tetromino, false));
                 self.state.events.clear();
-                self.state.events.insert(InternalEvent::Spawn, event_time);
+                self.state.events.insert(GameEvent::Spawn, event_time);
                 true
             }
             _ => false,
@@ -1181,14 +1167,14 @@ impl Game {
     /// This function is likely the most important part of a game update as it handles the logic of
     /// spawning, dropping, moving, locking the active piece, etc.
     /// It also returns some feedback events caused by clearing lines, locking the piece, etc.
-    fn handle_event(&mut self, event: InternalEvent, event_time: GameTime) -> FeedbackEvents {
+    fn handle_event(&mut self, event: GameEvent, event_time: GameTime) -> FeedbackEvents {
         // Active piece touches the ground before update (or doesn't exist, counts as not touching).
         let mut feedback_events = Vec::new();
         let prev_piece_data = self.state.active_piece_data;
         let prev_piece = prev_piece_data.unzip().0;
         let next_piece = match event {
             // We generate a new piece above the skyline, and immediately queue a fall event for it.
-            InternalEvent::Spawn => {
+            GameEvent::Spawn => {
                 debug_assert!(
                     prev_piece.is_none(),
                     "spawning event but an active piece is still in play"
@@ -1211,22 +1197,25 @@ impl Game {
                         ),
                 );
                 // Initial Hold System.
-                if self.state.buttons_pressed[Button::Hold] && self.attempt_hold(tetromino, event_time) {
+                if self.state.buttons_pressed[Button::HoldPiece].is_some()
+                    && self.attempt_hold(tetromino, event_time)
+                {
                     None
                 } else {
-                    let raw_piece = Self::position_tetromino(tetromino);
+                    let raw_piece = Self::spawn_piece(tetromino);
                     let mut turns = 0;
-                    if self.state.buttons_pressed[Button::RotateRight] {
+                    if self.state.buttons_pressed[Button::RotateRight].is_some() {
                         turns += 1;
                     }
-                    if self.state.buttons_pressed[Button::RotateAround] {
+                    if self.state.buttons_pressed[Button::RotateAround].is_some() {
                         turns += 2;
                     }
-                    if self.state.buttons_pressed[Button::RotateLeft] {
+                    if self.state.buttons_pressed[Button::RotateLeft].is_some() {
                         turns -= 1;
                     }
                     // Initial Rotation system.
-                    let next_piece = self.config
+                    let next_piece = self
+                        .config
                         .rotation_system
                         .rotate(&raw_piece, &self.state.board, turns)
                         .unwrap_or(raw_piece);
@@ -1236,11 +1225,11 @@ impl Game {
                         self.state.end = Some(Err(GameOver::BlockOut));
                         return feedback_events;
                     }
-                    self.state.events.insert(InternalEvent::Fall, event_time);
+                    self.state.events.insert(GameEvent::Fall, event_time);
                     Some(next_piece)
                 }
             }
-            InternalEvent::HoldPiece => {
+            GameEvent::Hold => {
                 let prev_piece = prev_piece.expect("hold piece event but no active piece");
                 if self.attempt_hold(prev_piece.shape, event_time) {
                     None
@@ -1248,26 +1237,38 @@ impl Game {
                     Some(prev_piece)
                 }
             }
-            InternalEvent::Rotate(turns) => {
+            GameEvent::Rotate(turns) => {
                 let prev_piece = prev_piece.expect("rotate event but no active piece");
                 self.config
                     .rotation_system
                     .rotate(&prev_piece, &self.state.board, turns)
                     .or(Some(prev_piece))
             }
-            InternalEvent::MoveSlow | InternalEvent::MoveFast => {
+            GameEvent::Move(is_initial) => {
                 // Handle move attempt and auto repeat move.
                 let prev_piece = prev_piece.expect("move event but no active piece");
-                let mut dx = 0;
-                if self.state.buttons_pressed[Button::MoveLeft] {
-                    dx -= 1;
-                }
-                if self.state.buttons_pressed[Button::MoveRight] {
-                    dx += 1;
-                }
+                let dx = match (
+                    self.state.buttons_pressed[Button::MoveLeft],
+                    self.state.buttons_pressed[Button::MoveRight],
+                ) {
+                    (Some(t_left), Some(t_right)) => {
+                        if t_left < t_right {
+                            1
+                        } else {
+                            -1
+                        }
+                    }
+                    (left, right) => {
+                        if left < right {
+                            1
+                        } else {
+                            -1
+                        }
+                    }
+                };
                 Some(
                     if let Some(next_piece) = prev_piece.fits_at(&self.state.board, (dx, 0)) {
-                        let mut move_delay = if event == InternalEvent::MoveSlow {
+                        let mut move_delay = if is_initial {
                             self.config.delayed_auto_shift
                         } else {
                             self.config.auto_repeat_rate
@@ -1279,26 +1280,26 @@ impl Game {
                         }
                         self.state
                             .events
-                            .insert(InternalEvent::MoveFast, event_time + move_delay);
+                            .insert(GameEvent::Move(false), event_time + move_delay);
                         next_piece
                     } else {
                         prev_piece
                     },
                 )
             }
-            InternalEvent::Fall => {
+            GameEvent::Fall => {
                 let prev_piece = prev_piece.expect("falling event but no active piece");
                 // Try to drop active piece down by one, and queue next fall event.
                 Some(
                     if let Some(dropped_piece) = prev_piece.fits_at(&self.state.board, (0, -1)) {
                         // Drop delay is possibly faster due to soft drop button pressed.
                         let soft_drop = self.state.buttons_pressed[Button::DropSoft]
-                            .then_some(self.config.soft_drop_factor);
+                            .map(|_| self.config.soft_drop_factor);
                         if let Ok(level) = NonZeroU32::try_from(self.state.gravity) {
                             let drop_delay = Self::drop_delay(level, soft_drop);
                             self.state
                                 .events
-                                .insert(InternalEvent::Fall, event_time + drop_delay);
+                                .insert(GameEvent::Fall, event_time + drop_delay);
                         }
                         dropped_piece
                     } else {
@@ -1307,53 +1308,51 @@ impl Game {
                     },
                 )
             }
-            InternalEvent::SoftDrop => {
+            GameEvent::SoftDrop => {
                 let prev_piece = prev_piece.expect("softdrop event but no active piece");
                 // Try to drop active piece down by one, and queue next fall event.
                 Some(
                     if let Some(dropped_piece) = prev_piece.fits_at(&self.state.board, (0, -1)) {
                         let soft_drop = self.state.buttons_pressed[Button::DropSoft]
-                            .then_some(self.config.soft_drop_factor);
+                            .map(|_| self.config.soft_drop_factor);
                         if let Ok(level) = NonZeroU32::try_from(self.state.gravity) {
                             let drop_delay = Self::drop_delay(level, soft_drop);
                             self.state
                                 .events
-                                .insert(InternalEvent::Fall, event_time + drop_delay);
+                                .insert(GameEvent::Fall, event_time + drop_delay);
                         }
                         dropped_piece
                     } else {
                         // Otherwise ciece could not move down.
                         // Immediately queue lock (unless option for it is disabled).
                         if !self.config.no_soft_drop_lock {
-                            self.state
-                                .events
-                                .insert(InternalEvent::LockTimer, event_time);
+                            self.state.events.insert(GameEvent::LockTimer, event_time);
                         }
                         prev_piece
                     },
                 )
             }
-            InternalEvent::SonicDrop => {
+            GameEvent::SonicDrop => {
                 let prev_piece = prev_piece.expect("sonicdrop event but no active piece");
                 // Move piece all the way down and nothing more.
                 Some(prev_piece.well_piece(&self.state.board))
             }
-            InternalEvent::HardDrop => {
+            GameEvent::HardDrop => {
                 let prev_piece = prev_piece.expect("harddrop event but no active piece");
                 // Move piece all the way down.
                 let dropped_piece = prev_piece.well_piece(&self.state.board);
                 feedback_events.push((event_time, Feedback::HardDrop(prev_piece, dropped_piece)));
                 self.state.events.insert(
-                    InternalEvent::LockTimer,
+                    GameEvent::LockTimer,
                     event_time + self.config.hard_drop_delay,
                 );
                 Some(dropped_piece)
             }
-            InternalEvent::LockTimer => {
-                self.state.events.insert(InternalEvent::Lock, event_time);
+            GameEvent::LockTimer => {
+                self.state.events.insert(GameEvent::Lock, event_time);
                 prev_piece
             }
-            InternalEvent::Lock => {
+            GameEvent::Lock => {
                 let prev_piece = prev_piece.expect("lock event but no active piece");
                 feedback_events.push((event_time, Feedback::PieceLocked(prev_piece)));
                 // Attempt to lock active piece fully above skyline - Game over.
@@ -1420,14 +1419,13 @@ impl Game {
                 self.state.events.clear();
                 if n_lines_cleared > 0 {
                     self.state.events.insert(
-                        InternalEvent::LineClear,
+                        GameEvent::LineClear,
                         event_time + self.config.line_clear_delay,
                     );
                 } else {
-                    self.state.events.insert(
-                        InternalEvent::Spawn,
-                        event_time + self.config.appearance_delay,
-                    );
+                    self.state
+                        .events
+                        .insert(GameEvent::Spawn, event_time + self.config.appearance_delay);
                 }
                 self.state.hold_piece = self
                     .state
@@ -1435,7 +1433,7 @@ impl Game {
                     .map(|(held_piece, _swap_allowed)| (held_piece, true));
                 None
             }
-            InternalEvent::LineClear => {
+            GameEvent::LineClear => {
                 for y in (0..Self::HEIGHT).rev() {
                     // Full line: move it to the cleared lines storage and push an empty line to the board.
                     if self.state.board[y].iter().all(|mino| mino.is_some()) {
@@ -1450,35 +1448,31 @@ impl Game {
                 while self.state.board.len() < Self::HEIGHT {
                     self.state.board.push(Default::default());
                 }
-                self.state.events.insert(
-                    InternalEvent::Spawn,
-                    event_time + self.config.appearance_delay,
-                );
+                self.state
+                    .events
+                    .insert(GameEvent::Spawn, event_time + self.config.appearance_delay);
                 None
             }
         };
-        // Piece changed.
+        // Piece is different to before.
         if next_piece.is_some() && prev_piece != next_piece {
-            // No move event scheduled but user wants to move to one side, add a move event.
-            if !(self.state.events.contains_key(&InternalEvent::MoveSlow)
-                || self.state.events.contains_key(&InternalEvent::MoveFast))
-                && (self.state.buttons_pressed[Button::MoveLeft]
-                    != self.state.buttons_pressed[Button::MoveRight])
+            // User wants to move in a direction but no move event scheduled; add a move event.
+            if (self.state.buttons_pressed[Button::MoveLeft]
+                != self.state.buttons_pressed[Button::MoveRight])
+                && !self.state.events.contains_key(&GameEvent::Move(false))
             {
-                self.state
-                    .events
-                    .insert(InternalEvent::MoveFast, event_time);
+                self.state.events.insert(GameEvent::Move(false), event_time);
             }
-            // No fall event scheduled but piece might be able to, schedule fall event.
+            // No fall event scheduled but piece might be able to; add fall event.
             #[allow(clippy::map_entry)]
-            if !self.state.events.contains_key(&InternalEvent::Fall) {
+            if !self.state.events.contains_key(&GameEvent::Fall) {
                 let soft_drop = self.state.buttons_pressed[Button::DropSoft]
-                    .then_some(self.config.soft_drop_factor);
+                    .map(|_| self.config.soft_drop_factor);
                 if let Ok(level) = NonZeroU32::try_from(self.state.gravity) {
                     let drop_delay = Self::drop_delay(level, soft_drop);
                     self.state
                         .events
-                        .insert(InternalEvent::Fall, event_time + drop_delay);
+                        .insert(GameEvent::Fall, event_time + drop_delay);
                 }
             }
         }
@@ -1501,7 +1495,7 @@ impl Game {
     /// Calculates the newest locking details for the main active piece.
     fn calculate_locking_data(
         &mut self,
-        event: InternalEvent,
+        event: GameEvent,
         event_time: GameTime,
         prev_piece_data: Option<(ActivePiece, LockingData)>,
         next_piece: ActivePiece,
@@ -1537,7 +1531,7 @@ impl Game {
             },
             // [2] Active piece lifted off the ground.
             (Some((_prev_piece, prev_locking_data)), false) if prev_locking_data.touches_ground => {
-                self.state.events.remove(&InternalEvent::LockTimer);
+                self.state.events.remove(&GameEvent::LockTimer);
                 LockingData {
                     touches_ground: false,
                     last_liftoff: Some(event_time),
@@ -1619,9 +1613,9 @@ impl Game {
                     .map(|(prev_piece, _)| prev_piece != next_piece)
                     .unwrap_or(false);
                 #[rustfmt::skip]
-                let move_rotate = matches!(event, InternalEvent::Rotate(_) | InternalEvent::MoveSlow | InternalEvent::MoveFast);
-                if !self.state.events.contains_key(&InternalEvent::LockTimer)
-                    || (repositioned && move_rotate)
+                let move_or_rotate = matches!(event, GameEvent::Rotate(_) | GameEvent::Move(_));
+                if !self.state.events.contains_key(&GameEvent::LockTimer)
+                    || (repositioned && move_or_rotate)
                 {
                     // SAFETY: We know this must be `Some` in this case.
                     let current_ground_time =
@@ -1632,7 +1626,7 @@ impl Game {
                     let lock_timer = std::cmp::min(Self::lock_delay(level), remaining_ground_time);
                     self.state
                         .events
-                        .insert(InternalEvent::LockTimer, event_time + lock_timer);
+                        .insert(GameEvent::LockTimer, event_time + lock_timer);
                 }
                 next_locking_data
             }
@@ -1646,6 +1640,7 @@ impl Game {
     #[rustfmt::skip]
     fn drop_delay(level: NonZeroU32, soft_drop: Option<f64>) -> Duration {
         let mut drop_delay = Duration::from_nanos(match level.get() {
+             0 => unreachable!(),
              1 => 1_000_000_000,
              2 =>   793_000_000,
              3 =>   617_796_000,
@@ -1664,13 +1659,11 @@ impl Game {
             16 =>     4_263_557,
             17 =>     2_520_084,
             18 =>     1_457_139,
-            19 =>       823_907, // NOTE: 20G is at `833_333`, but falling speeds at that level are handled especially by the engine.
-             _ =>             0,
+            19 =>       823_907, // NOTE: Close to 833'333ns = 1/120 s.
+            20.. =>           0, // NOTE: We cap the formula here and call it INSTANT_GRAVITY.
         });
         if let Some(soft_drop_factor) = soft_drop {
-            drop_delay = Duration::from_secs_f64(
-                drop_delay.as_secs_f64() / soft_drop_factor.max(0.00001),
-            );
+            drop_delay = drop_delay.div_f64(0.00001f64.max(soft_drop_factor));
         }
         drop_delay
     }
@@ -1679,18 +1672,22 @@ impl Game {
     #[rustfmt::skip]
     const fn lock_delay(level: NonZeroU32) -> Duration {
         Duration::from_millis(match level.get() {
-            1..=19 => 500,
-                20 => 450,
-                21 => 400,
-                22 => 350,
-                23 => 300,
-                24 => 250,
-                25 => 200,
-                26 => 195,
-                27 => 184,
-                28 => 167,
-                29 => 151,
-                 _ => 150,
+            1..=29 => 500,
+                30 => 480,
+                31 => 460,
+                32 => 440,
+                33 => 420,
+                34 => 400,
+                35 => 380,
+                36 => 360,
+                37 => 340,
+                38 => 320,
+                39 => 300,
+                40 => 280,
+                41 => 260,
+                42 => 240,
+                43 => 220,
+                __ => 200,
         })
     }
 }

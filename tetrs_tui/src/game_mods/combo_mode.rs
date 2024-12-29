@@ -1,7 +1,7 @@
 use std::num::NonZeroU8;
 
 use tetrs_engine::{
-    Board, FeedbackEvents, FnGameMod, Game, GameConfig, GameMode, GameState, InternalEvent, Limits,
+    Board, FeedbackEvents, FnGameMod, Game, GameConfig, GameEvent, GameMode, GameState, Limits,
     Line, ModifierPoint, Tetromino,
 };
 
@@ -65,12 +65,9 @@ pub fn new_game(gravity: u32, initial_layout: u16) -> Game {
                 }
                 init_board(&mut state.board, initial_layout);
                 init = true;
-            } else if matches!(
-                modifier_point,
-                ModifierPoint::AfterEvent(InternalEvent::Lock)
-            ) {
+            } else if matches!(modifier_point, ModifierPoint::AfterEvent(GameEvent::Lock)) {
                 // No lineclear, game over.
-                if !state.events.contains_key(&InternalEvent::LineClear) {
+                if !state.events.contains_key(&GameEvent::LineClear) {
                     state.end = Some(Err(tetrs_engine::GameOver::ModeLimit));
                 // Combo continues, prepare new line.
                 } else {

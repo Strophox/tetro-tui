@@ -13,16 +13,16 @@ struct Args {
     /// Custom starting board when playing Custom mode (10-wide rows), encoded as string.
     /// Spaces indicate empty cells, anything else is a filled cell.
     /// The string just represents the row information, starting with the topmost row.
-    /// Example: '█▀ ▄██▀ ▀█' => "XX  XXX XXO  OOO   O"
-    ///          => `./tetrs_tui --custom_start="XX  XXX XXO  OOO   O"`.
+    /// Example: '█▀ ▄██▀ ▀█'
+    ///          => `./tetrs_tui --custom-start="XX  XXX XXO  OOO   O"`.
     #[arg(long)]
     custom_start: Option<String>,
     /// Custom starting layout when playing Combo mode (4-wide rows), encoded as binary.
     /// Example: '▀▄▄▀' => 0b_1001_0110 = 150
-    ///          => `./tetrs_tui -combo_start=150` or `./tetrs_tui -c 150`.
-    #[arg(short, long)]
+    ///          => `./tetrs_tui --combo-start=150`.
+    #[arg(long)]
     combo_start: Option<u16>,
-    /// Whether to enable the combo bot in Combo mode: `./tetrs_tui -e`
+    /// Whether to enable the combo bot in Combo mode: `./tetrs_tui --enable-combo-bot` or `./tetrs_tui -e`
     #[arg(short, long)]
     enable_combo_bot: bool,
 }

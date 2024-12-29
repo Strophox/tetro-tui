@@ -9,14 +9,17 @@
 - `tetrs_engine`, a tetromino game engine implementing an API capable of handling some modern mechanics, and
 - `tetrs_tui`, a simple but moderately polished Terminal User Interface for a typical cross-platform game experience.
 
+<!--
 ---
 
 **(Author's Note : Due to irl circumstances I cannot continue development right now - issues may be worked on at a later time)**
 
 ---
+-->
 
 
 ## How to run
+
 - [Download a release](https://github.com/Strophox/tetrs/releases) for your platform if available.
 - Run the application in your favourite terminal
 
@@ -41,7 +44,7 @@
 > > </details>
 
 
-## Gallery
+## Demo Gallery
 
 **Classic game experience:**
 
@@ -79,9 +82,11 @@
 </details>
 
 
-# Features of the Application
+# Features of the Terminal Application
+
 
 ### Gameplay
+
 - Familiar stacker experience of moving, rotating, soft-/hard-dropping and holding Tetrominos and clearing completed rows.
 - Colorful pieces.
 - Next piece preview.
@@ -91,7 +96,9 @@
 
 For more technical details see [Features of the Tetrs Engine](#features-of-the-tetrs-engine).
 
+
 ### Gamemodes
+
 - Standard modes:
   - **40-Lines**: Clear 40-Lines as quickly as possible.
   - **Marathon**: Clear gravity levels 1-15 and achieve a highscore.
@@ -104,7 +111,9 @@ For more technical details see [Features of the Tetrs Engine](#features-of-the-t
   - (**Descent**: Gather 'gems' as you navigate down (or up) an endless grid using an L or J piece - unlocked by completing Puzzle Mode)
 - Custom mode: Change start gravity, toggle automatic gravity increase, set a game limit *(Time, Score, Pieces, Lines, Gravity, or No limit)*.
   
+
 ### Settings
+
 - Look of the game:
   - Graphics (Unicode, ASCII, 'Electronika 60').
   - Colors (RGB Colors; 16 Colors (should work on all consoles), Monochrome).
@@ -140,7 +149,9 @@ For more technical details see [Features of the Tetrs Engine](#features-of-the-t
   - *Advanced*, No soft drop lock (Enables soft drop not instantly locking pieces on ground even if keyboard enhancements are off, for better experience on typical consoles (soft drops for piece spins)).
 - **Keep Save File**: By default this program __won't store anything__ but just let you play the game. If you do want `tetrs_tui` to restore your settings and take record of past games upon startup then make sure this is set to **ON**!
   
+
 ### Scoreboard
+
 - History of games played in the current session (or in the past, if "keep save file" is toggled on).
 - *(\*Games where 0 lines have been cleared are auto-deleted on exit.)*
 
@@ -247,21 +258,23 @@ The game provides some useful feedback events upon every `update`, usually used 
 
 # State of the Project
 
-As much love and care went into building this project, it is of course not without its flaws;
+## Known Issues
 
-- The README is not comprehensive:
+- Buttons pressed in-game, held, and unpressed in the Pause menu do not register as unpressed in-game.
+
+
+## Future Work
+
+- Comprehensiveness of project README.
   - Many small details of the `tetrs_engine` are not properly explained (e.g. the initial rotation mechanic, which allows spawning a piece immediately rotated if a rotation button was held).
-- The engine itself might contain niche bugs as of this time. Concrete improvements include:
+- Improvements to the tetrs engine.
   - Better API documentation (`cargo doc --open`).
-  - Simplification of code.
-  - Proper commenting of implementation.
+  - Better internal (implementation) documentation.
   - Refactor of complicated systems (e.g. locking).
-  - Ideally: ensuring that `Game::update` is safe / actually panic-free.
-- With regards to the terminal game experience, I'd like to argue the frontend is polished enough (much dedication went into making it nice for a 'proof-of-concept'). Regardless of whether this is actually the case, it is very lacking in aspects of code style, defects include:
-  - The code for the menus is ad-hoc,
-  - code duplication runs rampant,
-  - no (or even worse, *wrong*) comments, and
-  - possible panics may still be hiding around the corner.
+  - *(Ideally)* Prove panic-freedom of `Game::update`.
+- Improvements to the terminal application.
+  - Make menu code less ad-hoc (code duplication, hidden panics).
+  - Better internal documentation.
 
 A personal goal would be to (at least partially) amend these problems, step-by-step.
 
@@ -604,6 +617,7 @@ The menus form a graph (with menus as nodes and valid transitions as directed ed
 
 [Screencast from 2024-09-08 22-21-45 combot-demo.webm](https://github.com/user-attachments/assets/a3d96655-7d96-4f87-80ff-b1c86840ced3)
 
+
 ### Background
 
 The goal of 'Combo Mode' is to keep a combo going for as many pieces/lines as possible, where combo is maintained by clearing lines with consecutive pieces.
@@ -628,6 +642,7 @@ It turns out there are only a finite number of these configurations inside a 4-w
 Graphic with modifications courtesy of [harddrop](https://harddrop.com/wiki/Combo_Setups#4-Wide_with_3_Residuals).
 
 </details>
+
 
 ### Problem Approach
 
@@ -655,6 +670,7 @@ While humans can vaguely do this for certain previews and also get a feeling for
 
 The bot currently only supports lookahead up to 42 (number of bit triplets that fit into `u128`), although it already tends to get quite slow for values half of that.
 As we'll see, it still does pretty okay for reasonable preview sizes.
+
 
 ### Results and Evaluation
 

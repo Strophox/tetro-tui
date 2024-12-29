@@ -66,8 +66,8 @@ enum Menu {
     GameComplete(Box<FinishedGameStats>),
     Pause,
     Settings,
-    ChangeControls,
-    ConfigureGame,
+    ChangeKeybinds,
+    ConfigureGameplay,
     Scores,
     About,
     Quit(String),
@@ -83,8 +83,8 @@ impl std::fmt::Display for Menu {
             Menu::GameComplete(_) => "Game Completed",
             Menu::Pause => "Pause",
             Menu::Settings => "Settings",
-            Menu::ChangeControls => "Change Controls",
-            Menu::ConfigureGame => "Configure Game",
+            Menu::ChangeKeybinds => "Change Keybinds",
+            Menu::ConfigureGameplay => "Configure Gameplay",
             Menu::Scores => "Scoreboard",
             Menu::About => "About",
             Menu::Quit(_) => "Quit",
@@ -144,31 +144,29 @@ pub enum Stat {
     Score(u64),
 }
 
-#[derive(
-    Eq, PartialEq, Ord, PartialOrd, Clone, Hash, Debug, serde::Serialize, serde::Deserialize,
-)]
-pub struct GameModeStore {
-    name: String,
-    start_gravity: u32,
+#[derive(Eq, PartialEq, Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct NewGameSettings {
+    initial_gravity: u32,
     increase_gravity: bool,
     custom_mode_limit: Option<Stat>,
     cheese_mode_limit: Option<NonZeroUsize>,
     cheese_mode_gap_size: usize,
-    cheese_mode_gravity: bool,
-    combo_starting_layout: u16,
+    cheese_mode_gravity: u32,
+    combo_start_layout: u16,
     descent_mode: bool,
+    custom_start_board: Option<String>,
 }
 
 #[derive(Clone, Debug)]
 pub struct TerminalApp<T: Write> {
     pub term: T,
-    kitty_enabled: bool,
+    kitty_detected: bool,
+    kitty_assumed: bool,
     settings: Settings,
     game_config: GameConfig,
-    game_mode_store: GameModeStore,
-    past_games: Vec<FinishedGameStats>,
-    custom_start_board: Option<String>,
+    new_game_settings: NewGameSettings,
     combo_bot_enabled: bool,
+    past_games: Vec<FinishedGameStats>,
 }
 
 impl<T: Write> Drop for TerminalApp<T> {
@@ -177,7 +175,7 @@ impl<T: Write> Drop for TerminalApp<T> {
         let savefile_path = Self::savefile_path();
         // If the user wants their data stored, try to do so.
         if self.settings.save_data_on_exit {
-            if let Err(_e) = self.store_local(savefile_path) {
+            if let Err(_e) = self.store_savefile(savefile_path) {
                 // FIXME: Make this debuggable.
                 //eprintln!("Could not save settings this time: {e} ");
                 //std::thread::sleep(Duration::from_secs(4));
@@ -188,10 +186,6 @@ impl<T: Write> Drop for TerminalApp<T> {
             if exists {
                 let _ = std::fs::remove_file(savefile_path);
             }
-        }
-        // Console epilogue: De-initialization.
-        if self.kitty_enabled {
-            let _ = self.term.execute(event::PopKeyboardEnhancementFlags);
         }
         let _ = terminal::disable_raw_mode();
         let _ = self.term.execute(style::ResetColor);
@@ -208,7 +202,7 @@ impl<T: Write> TerminalApp<T> {
 
     pub fn new(
         mut terminal: T,
-        initial_combo_layout: Option<u16>,
+        combo_start_layout: Option<u16>,
         custom_start_board: Option<String>,
         combo_bot_enabled: bool,
     ) -> Self {
@@ -218,16 +212,11 @@ impl<T: Write> TerminalApp<T> {
         let _ = terminal.execute(terminal::SetTitle("tetrs - Terminal User Interface"));
         let _ = terminal.execute(cursor::Hide);
         let _ = terminal::enable_raw_mode();
-        let kitty_enabled = terminal::supports_keyboard_enhancement().unwrap_or(false);
-        if kitty_enabled {
-            // FIXME: Kinda iffy. Do we need all flags? What undesirable effects might there be?
-            let _ = terminal.execute(event::PushKeyboardEnhancementFlags(
-                event::KeyboardEnhancementFlags::all(),
-            ));
-        }
+        let kitty_detected = terminal::supports_keyboard_enhancement().unwrap_or(false);
         let mut app = Self {
             term: terminal,
-            kitty_enabled,
+            kitty_detected,
+            kitty_assumed: kitty_detected,
             settings: Settings {
                 keybinds: CrosstermHandler::default_keybinds(),
                 game_fps: 30.0,
@@ -238,30 +227,33 @@ impl<T: Write> TerminalApp<T> {
                 save_data_on_exit: false,
             },
             game_config: GameConfig::default(),
-            game_mode_store: GameModeStore {
-                name: "Custom Mode".to_string(),
-                start_gravity: 1,
+            new_game_settings: NewGameSettings {
+                initial_gravity: 1,
                 increase_gravity: false,
                 custom_mode_limit: None,
                 cheese_mode_limit: Some(NonZeroUsize::try_from(20).unwrap()),
                 cheese_mode_gap_size: 1,
-                cheese_mode_gravity: true,
-                combo_starting_layout: game_mods::combo_mode::LAYOUTS[0],
+                cheese_mode_gravity: 1,
+                combo_start_layout: game_mods::combo_mode::LAYOUTS[0],
                 descent_mode: false,
+                custom_start_board: None,
             },
+            combo_bot_enabled: false,
             past_games: vec![],
-            custom_start_board,
-            combo_bot_enabled,
         };
-        if let Err(_e) = app.load_local() {
+        if let Err(_) = app.load_savefile() {
             // FIXME: Make this debuggable.
             //eprintln!("Could not loading settings: {e}");
             //std::thread::sleep(Duration::from_secs(5));
         }
-        if let Some(initial_combo_layout) = initial_combo_layout {
-            app.game_mode_store.combo_starting_layout = initial_combo_layout;
+        if let Some(combo_start_layout) = combo_start_layout {
+            app.new_game_settings.combo_start_layout = combo_start_layout;
         }
-        app.game_config.no_soft_drop_lock = !kitty_enabled;
+        if custom_start_board.is_some() {
+            app.new_game_settings.custom_start_board = custom_start_board;
+        }
+        app.combo_bot_enabled = combo_bot_enabled;
+        app.game_config.no_soft_drop_lock = !kitty_detected;
         app
     }
 
@@ -296,7 +288,7 @@ impl<T: Write> TerminalApp<T> {
         .join(Self::SAVEFILE_NAME)
     }
 
-    fn store_local(&mut self, path: PathBuf) -> io::Result<()> {
+    fn store_savefile(&mut self, path: PathBuf) -> io::Result<()> {
         self.past_games = self
             .past_games
             .iter()
@@ -315,7 +307,7 @@ impl<T: Write> TerminalApp<T> {
             .collect::<Vec<_>>();
         let save_state = (
             &self.settings,
-            &self.game_mode_store,
+            &self.new_game_settings,
             &self.game_config,
             &self.past_games,
         );
@@ -326,16 +318,17 @@ impl<T: Write> TerminalApp<T> {
         Ok(())
     }
 
-    fn load_local(&mut self) -> io::Result<()> {
+    fn load_savefile(&mut self) -> io::Result<()> {
         let mut file = File::open(Self::savefile_path())?;
         let mut save_str = String::new();
         file.read_to_string(&mut save_str)?;
+        let save_state = serde_json::from_str(&save_str)?;
         (
             self.settings,
-            self.game_mode_store,
+            self.new_game_settings,
             self.game_config,
             self.past_games,
-        ) = serde_json::from_str(&save_str)?;
+        ) = save_state;
         Ok(())
     }
 
@@ -353,8 +346,8 @@ impl<T: Write> TerminalApp<T> {
             };
             // Open new menu screen, then store what it returns.
             let menu_update = match screen {
-                Menu::Title => self.title(),
-                Menu::NewGame => self.newgame(),
+                Menu::Title => self.title_menu(),
+                Menu::NewGame => self.new_game_menu(),
                 Menu::Game {
                     game,
                     time_started,
@@ -362,7 +355,7 @@ impl<T: Write> TerminalApp<T> {
                     last_paused,
                     running_game_stats,
                     game_renderer,
-                } => self.game(
+                } => self.game_menu(
                     game,
                     time_started,
                     last_paused,
@@ -376,8 +369,8 @@ impl<T: Write> TerminalApp<T> {
                 Menu::Scores => self.scores_menu(),
                 Menu::About => self.about_menu(),
                 Menu::Settings => self.settings_menu(),
-                Menu::ChangeControls => self.change_controls_menu(),
-                Menu::ConfigureGame => self.configure_game_menu(),
+                Menu::ChangeKeybinds => self.change_keybinds_menu(),
+                Menu::ConfigureGameplay => self.configure_gameplay_menu(),
                 Menu::Quit(string) => break string.clone(),
             }?;
             // Change screen session depending on what response screen gave.
@@ -409,7 +402,7 @@ impl<T: Write> TerminalApp<T> {
         )
     }
 
-    fn generic_placeholder_widget(
+    fn generic_placeholder_menu(
         &mut self,
         current_menu_name: &str,
         selection: Vec<Menu>,
@@ -542,7 +535,7 @@ impl<T: Write> TerminalApp<T> {
         }
     }
 
-    fn title(&mut self) -> io::Result<MenuUpdate> {
+    fn title_menu(&mut self) -> io::Result<MenuUpdate> {
         let selection = vec![
             Menu::NewGame,
             Menu::Settings,
@@ -550,10 +543,10 @@ impl<T: Write> TerminalApp<T> {
             Menu::About,
             Menu::Quit("quit from title menu. Have a nice day!".to_string()),
         ];
-        self.generic_placeholder_widget("", selection)
+        self.generic_placeholder_menu("", selection)
     }
 
-    fn newgame(&mut self) -> io::Result<MenuUpdate> {
+    fn new_game_menu(&mut self) -> io::Result<MenuUpdate> {
         let normal_gamemodes: [(_, _, Box<dyn Fn() -> Game>); 4] = [
             (
                 "40-Lines",
@@ -585,14 +578,7 @@ impl<T: Write> TerminalApp<T> {
             let w_main = Self::W_MAIN.into();
             let (x_main, y_main) = Self::fetch_main_xy();
             let y_selection = Self::H_MAIN / 5;
-            let cheese_mode_limit = self.game_mode_store.cheese_mode_limit;
-            let cheese_mode_gap_size = self.game_mode_store.cheese_mode_gap_size;
-            let cheese_mode_gravity = if self.game_mode_store.cheese_mode_gravity {
-                1
-            } else {
-                0
-            };
-            let combo_starting_layout = self.game_mode_store.combo_starting_layout;
+            let ng = &mut self.new_game_settings;
             let mut special_gamemodes: Vec<(_, _, Box<dyn Fn() -> Game>)> = vec![
                 (
                     "Puzzle",
@@ -601,38 +587,44 @@ impl<T: Write> TerminalApp<T> {
                 ),
                 (
                     "Cheese",
-                    format!(
-                        "eat your way through! (limit: {:?})",
-                        self.game_mode_store.cheese_mode_limit
-                    ),
-                    Box::new(|| {
-                        game_mods::cheese_mode::new_game(
-                            cheese_mode_limit,
-                            cheese_mode_gap_size,
-                            cheese_mode_gravity,
-                        )
+                    format!("eat your way through! (limit: {:?})", ng.cheese_mode_limit),
+                    Box::new({
+                        let cheese_mode_limit = ng.cheese_mode_limit;
+                        let cheese_mode_gap_size = ng.cheese_mode_gap_size;
+                        let cheese_mode_gravity = ng.cheese_mode_gravity;
+                        move || {
+                            game_mods::cheese_mode::new_game(
+                                cheese_mode_limit,
+                                cheese_mode_gap_size,
+                                cheese_mode_gravity,
+                            )
+                        }
                     }),
                 ),
                 (
                     "Combo",
                     format!(
                         "how long can you chain? (start: {:b})",
-                        self.game_mode_store.combo_starting_layout
+                        ng.combo_start_layout
                     ),
-                    Box::new(|| {
-                        let mut combo_game =
-                            game_mods::combo_mode::new_game(1, combo_starting_layout);
-                        if self.combo_bot_enabled {
-                            // SAFETY: We only add the information that this will be botted.
-                            unsafe {
-                                combo_game.mode_mut().name.push_str(" (Bot)");
+                    Box::new({
+                        let combo_start_layout = ng.combo_start_layout;
+                        let combo_bot_enabled = self.combo_bot_enabled;
+                        move || {
+                            let mut combo_game =
+                                game_mods::combo_mode::new_game(1, combo_start_layout);
+                            if combo_bot_enabled {
+                                // SAFETY: We only add the information that this will be botted.
+                                unsafe {
+                                    combo_game.mode_mut().name.push_str(" (Bot)");
+                                }
                             }
+                            combo_game
                         }
-                        combo_game
                     }),
                 ),
             ];
-            if self.game_mode_store.descent_mode {
+            if ng.descent_mode {
                 special_gamemodes.insert(
                     1,
                     (
@@ -693,10 +685,12 @@ impl<T: Write> TerminalApp<T> {
                 .queue(Print(format!(
                     "{:^w_main$}",
                     if selected == selection_size - 1 {
-                        if customization_selected == 0 {
-                            ">>> Custom (press right repeatedly to toggle \"limit\"):"
+                        if customization_selected > 0 {
+                            "  | Custom: (repeat [→] to toggle 'limit')"
+                        } else if ng.custom_start_board.is_some() {
+                            ">>> Custom: (press [del] to clear start)  "
                         } else {
-                            "  | Custom (press right repeatedly to toggle \"limit\"):"
+                            ">>> Custom:                               "
                         }
                     } else {
                         "| Custom"
@@ -705,17 +699,14 @@ impl<T: Write> TerminalApp<T> {
             // Render custom mode stuff.
             if selected == selection_size - 1 {
                 let stats_strs = [
-                    format!("| start gravity: {}", self.game_mode_store.start_gravity),
-                    format!(
-                        "| gravity increase: {}",
-                        self.game_mode_store.increase_gravity
-                    ),
-                    format!("| limit: {:?}", self.game_mode_store.custom_mode_limit),
+                    format!("| start gravity: {}", ng.initial_gravity),
+                    format!("| gravity increase: {}", ng.increase_gravity),
+                    format!("| limit: {:?}", ng.custom_mode_limit),
                 ];
                 for (j, stat_str) in stats_strs.into_iter().enumerate() {
                     self.term
                         .queue(MoveTo(
-                            x_main + 19 + 4 * u16::try_from(j).unwrap(),
+                            x_main + 25 + 4 * u16::try_from(j).unwrap(),
                             y_main
                                 + y_selection
                                 + 4
@@ -759,18 +750,7 @@ impl<T: Write> TerminalApp<T> {
                     } else if selected < normal_gamemodes.len() + special_gamemodes.len() {
                         special_gamemodes[selected - normal_gamemodes.len()].2()
                     } else {
-                        let GameModeStore {
-                            name,
-                            start_gravity,
-                            increase_gravity,
-                            custom_mode_limit,
-                            cheese_mode_limit: _,
-                            cheese_mode_gap_size: _,
-                            cheese_mode_gravity: _,
-                            combo_starting_layout: _,
-                            descent_mode: _,
-                        } = self.game_mode_store.clone();
-                        let limits = match custom_mode_limit {
+                        let limits = match ng.custom_mode_limit {
                             Some(Stat::Time(max_dur)) => Limits {
                                 time: Some((true, max_dur)),
                                 ..Default::default()
@@ -794,14 +774,14 @@ impl<T: Write> TerminalApp<T> {
                             None => Limits::default(),
                         };
                         let mut custom_game = Game::new(GameMode {
-                            name,
-                            initial_gravity: start_gravity,
-                            increase_gravity,
+                            name: "Custom Mode".to_string(),
+                            initial_gravity: ng.initial_gravity,
+                            increase_gravity: ng.increase_gravity,
                             limits,
                         });
-                        if let Some(custom_start_board_str) = &self.custom_start_board {
+                        if let Some(ref custom_start_board_str) = ng.custom_start_board {
                             custom_game.add_modifier(game_mods::utils::custom_start_board(
-                                custom_start_board_str
+                                custom_start_board_str,
                             ));
                         }
                         custom_game
@@ -827,15 +807,13 @@ impl<T: Write> TerminalApp<T> {
                     if customization_selected > 0 {
                         match customization_selected {
                             1 => {
-                                self.game_mode_store.start_gravity =
-                                    self.game_mode_store.start_gravity.saturating_add(d_gravity);
+                                ng.initial_gravity = ng.initial_gravity.saturating_add(d_gravity);
                             }
                             2 => {
-                                self.game_mode_store.increase_gravity =
-                                    !self.game_mode_store.increase_gravity;
+                                ng.increase_gravity = !ng.increase_gravity;
                             }
                             3 => {
-                                match self.game_mode_store.custom_mode_limit {
+                                match ng.custom_mode_limit {
                                     Some(Stat::Time(ref mut dur)) => {
                                         *dur += d_time;
                                     }
@@ -870,15 +848,13 @@ impl<T: Write> TerminalApp<T> {
                     if customization_selected > 0 {
                         match customization_selected {
                             1 => {
-                                self.game_mode_store.start_gravity =
-                                    self.game_mode_store.start_gravity.saturating_sub(d_gravity);
+                                ng.initial_gravity = ng.initial_gravity.saturating_sub(d_gravity);
                             }
                             2 => {
-                                self.game_mode_store.increase_gravity =
-                                    !self.game_mode_store.increase_gravity;
+                                ng.increase_gravity = !ng.increase_gravity;
                             }
                             3 => {
-                                match self.game_mode_store.custom_mode_limit {
+                                match ng.custom_mode_limit {
                                     Some(Stat::Time(ref mut dur)) => {
                                         *dur = dur.saturating_sub(d_time);
                                     }
@@ -915,19 +891,17 @@ impl<T: Write> TerminalApp<T> {
                     } else if selected == selection_size - 2 {
                         let new_layout_idx = if let Some(i) = game_mods::combo_mode::LAYOUTS
                             .iter()
-                            .position(|lay| *lay == self.game_mode_store.combo_starting_layout)
+                            .position(|lay| *lay == ng.combo_start_layout)
                         {
                             let layout_cnt = game_mods::combo_mode::LAYOUTS.len();
                             (i + layout_cnt - 1) % layout_cnt
                         } else {
                             0
                         };
-                        self.game_mode_store.combo_starting_layout =
-                            game_mods::combo_mode::LAYOUTS[new_layout_idx];
+                        ng.combo_start_layout = game_mods::combo_mode::LAYOUTS[new_layout_idx];
                     } else if selected == selection_size - 3 {
-                        if let Some(limit) = self.game_mode_store.cheese_mode_limit {
-                            self.game_mode_store.cheese_mode_limit =
-                                NonZeroUsize::try_from(limit.get() - 1).ok();
+                        if let Some(limit) = ng.cheese_mode_limit {
+                            ng.cheese_mode_limit = NonZeroUsize::try_from(limit.get() - 1).ok();
                         }
                     }
                 }
@@ -941,37 +915,46 @@ impl<T: Write> TerminalApp<T> {
                     if selected == selection_size - 1 {
                         // If reached last stat, cycle through stats for limit.
                         if customization_selected == customization_selection_size - 1 {
-                            self.game_mode_store.custom_mode_limit =
-                                match self.game_mode_store.custom_mode_limit {
-                                    Some(Stat::Time(_)) => Some(Stat::Score(9000)),
-                                    Some(Stat::Score(_)) => Some(Stat::Pieces(100)),
-                                    Some(Stat::Pieces(_)) => Some(Stat::Lines(40)),
-                                    Some(Stat::Lines(_)) => Some(Stat::Gravity(20)),
-                                    Some(Stat::Gravity(_)) => None,
-                                    None => Some(Stat::Time(Duration::from_secs(180))),
-                                };
+                            ng.custom_mode_limit = match ng.custom_mode_limit {
+                                Some(Stat::Time(_)) => Some(Stat::Score(9000)),
+                                Some(Stat::Score(_)) => Some(Stat::Pieces(100)),
+                                Some(Stat::Pieces(_)) => Some(Stat::Lines(40)),
+                                Some(Stat::Lines(_)) => Some(Stat::Gravity(20)),
+                                Some(Stat::Gravity(_)) => None,
+                                None => Some(Stat::Time(Duration::from_secs(180))),
+                            };
                         } else {
                             customization_selected += 1
                         }
                     } else if selected == selection_size - 2 {
                         let new_layout_idx = if let Some(i) = crate::game_mods::combo_mode::LAYOUTS
                             .iter()
-                            .position(|lay| *lay == self.game_mode_store.combo_starting_layout)
+                            .position(|lay| *lay == ng.combo_start_layout)
                         {
                             let layout_cnt = crate::game_mods::combo_mode::LAYOUTS.len();
                             (i + 1) % layout_cnt
                         } else {
                             0
                         };
-                        self.game_mode_store.combo_starting_layout =
+                        ng.combo_start_layout =
                             crate::game_mods::combo_mode::LAYOUTS[new_layout_idx];
                     } else if selected == selection_size - 3 {
-                        self.game_mode_store.cheese_mode_limit =
-                            if let Some(limit) = self.game_mode_store.cheese_mode_limit {
-                                limit.checked_add(1)
-                            } else {
-                                Some(NonZeroUsize::MIN)
-                            };
+                        ng.cheese_mode_limit = if let Some(limit) = ng.cheese_mode_limit {
+                            limit.checked_add(1)
+                        } else {
+                            Some(NonZeroUsize::MIN)
+                        };
+                    }
+                }
+                // Move selector right (select stat).
+                Event::Key(KeyEvent {
+                    code: KeyCode::Delete,
+                    kind: Press | Repeat,
+                    ..
+                }) => {
+                    // If custom gamemode selected, allow deleting custom start board.
+                    if selected == selection_size - 1 {
+                        ng.custom_start_board = None;
                     }
                 }
                 // Other event: don't care.
@@ -980,7 +963,7 @@ impl<T: Write> TerminalApp<T> {
         }
     }
 
-    fn game(
+    fn game_menu(
         &mut self,
         game: &mut Game,
         time_started: &mut Instant,
@@ -989,11 +972,18 @@ impl<T: Write> TerminalApp<T> {
         running_game_stats: &mut RunningGameStats,
         game_renderer: &mut impl Renderer,
     ) -> io::Result<MenuUpdate> {
+        if self.kitty_assumed {
+            // FIXME: Kinda iffy. Do we need all flags? What undesirable effects might there be?
+            let _ = self.term.execute(event::PushKeyboardEnhancementFlags(
+                event::KeyboardEnhancementFlags::all(),
+                // event::KeyboardEnhancementFlags::REPORT_EVENT_TYPES,
+            ));
+        }
         // Prepare channel with which to communicate `Button` inputs / game interrupt.
         let mut buttons_pressed = ButtonsPressed::default();
         let (button_sender, button_receiver) = mpsc::channel();
         let _input_handler =
-            CrosstermHandler::new(&button_sender, &self.settings.keybinds, self.kitty_enabled);
+            CrosstermHandler::new(&button_sender, &self.settings.keybinds, self.kitty_assumed);
         let mut combo_bot_handler = (game.mode().name == "Combo (Bot)")
             .then(|| ComboBotHandler::new(&button_sender, Duration::from_millis(100)));
         let mut inform_combo_bot = |game: &Game, evts: &FeedbackEvents| {
@@ -1110,6 +1100,10 @@ impl<T: Write> TerminalApp<T> {
                 }
             }
         };
+        // Console epilogue: De-initialization.
+        if self.kitty_assumed {
+            let _ = self.term.execute(event::PopKeyboardEnhancementFlags);
+        }
         if let Some(finished_state) = game.state().end {
             let h_console = terminal::size()?.1;
             if finished_state.is_ok() {
@@ -1131,7 +1125,7 @@ impl<T: Write> TerminalApp<T> {
         Ok(menu_update)
     }
 
-    fn generic_game_ended(
+    fn game_ended_menu(
         &mut self,
         selection: Vec<Menu>,
         success: bool,
@@ -1161,7 +1155,7 @@ impl<T: Write> TerminalApp<T> {
             back_to_back_special_clears: _,
         } = last_state;
         if gamemode.name == "Puzzle" && success {
-            self.game_mode_store.descent_mode = true;
+            self.new_game_settings.descent_mode = true;
         }
         let actions_str = [
             format!(
@@ -1332,7 +1326,7 @@ impl<T: Write> TerminalApp<T> {
             Menu::Scores,
             Menu::Quit("quit after game over".to_string()),
         ];
-        self.generic_game_ended(selection, false, finished_game_stats)
+        self.game_ended_menu(selection, false, finished_game_stats)
     }
 
     fn game_complete_menu(
@@ -1345,7 +1339,7 @@ impl<T: Write> TerminalApp<T> {
             Menu::Scores,
             Menu::Quit("quit after game complete".to_string()),
         ];
-        self.generic_game_ended(selection, true, finished_game_stats)
+        self.game_ended_menu(selection, true, finished_game_stats)
     }
 
     fn pause_menu(&mut self) -> io::Result<MenuUpdate> {
@@ -1356,11 +1350,11 @@ impl<T: Write> TerminalApp<T> {
             Menu::About,
             Menu::Quit("quit from pause".to_string()),
         ];
-        self.generic_placeholder_widget("GAME PAUSED", selection)
+        self.generic_placeholder_menu("GAME PAUSED", selection)
     }
 
     fn settings_menu(&mut self) -> io::Result<MenuUpdate> {
-        let selection_len = 7;
+        let selection_len = 7 + 1; // `+1` for hacky empty line.
         let mut selected = 0usize;
         loop {
             let w_main = Self::W_MAIN.into();
@@ -1373,19 +1367,19 @@ impl<T: Write> TerminalApp<T> {
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
                 .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
             let labels = [
-                "Change Controls ...".to_string(),
-                "Configure Game ...".to_string(),
+                "Change Keybinds ...".to_string(),
+                "Configure Gameplay ...".to_string(),
                 format!("graphics : '{:?}'", self.settings.graphics_style),
                 format!("colors : '{:?}'", self.settings.graphics_color),
                 format!("framerate : {}", self.settings.game_fps),
                 format!("show fps : {}", self.settings.show_fps),
+                "".to_string(),
                 if self.settings.save_data_on_exit {
                     "keep save file for tetrs : ON"
                 } else {
                     "keep save file for tetrs : OFF*"
                 }
                 .to_string(),
-                "".to_string(),
                 if self.settings.save_data_on_exit {
                     format!("(save file: {:?})", Self::savefile_path())
                 } else {
@@ -1440,8 +1434,8 @@ impl<T: Write> TerminalApp<T> {
                     kind: Press,
                     ..
                 }) => match selected {
-                    0 => break Ok(MenuUpdate::Push(Menu::ChangeControls)),
-                    1 => break Ok(MenuUpdate::Push(Menu::ConfigureGame)),
+                    0 => break Ok(MenuUpdate::Push(Menu::ChangeKeybinds)),
+                    1 => break Ok(MenuUpdate::Push(Menu::ConfigureGameplay)),
                     _ => {}
                 },
                 // Move selector up.
@@ -1450,7 +1444,12 @@ impl<T: Write> TerminalApp<T> {
                     kind: Press | Repeat,
                     ..
                 }) => {
-                    selected += selection_len - 1;
+                    if selected == 7 {
+                        // Skip hacky empty line.
+                        selected += selection_len - 2;
+                    } else {
+                        selected += selection_len - 1;
+                    }
                 }
                 // Move selector down.
                 Event::Key(KeyEvent {
@@ -1458,7 +1457,12 @@ impl<T: Write> TerminalApp<T> {
                     kind: Press | Repeat,
                     ..
                 }) => {
-                    selected += 1;
+                    if selected == 5 {
+                        // Skip hacky empty line.
+                        selected += 2;
+                    } else {
+                        selected += 1;
+                    }
                 }
                 Event::Key(KeyEvent {
                     code: KeyCode::Right,
@@ -1487,7 +1491,8 @@ impl<T: Write> TerminalApp<T> {
                     5 => {
                         self.settings.show_fps = !self.settings.show_fps;
                     }
-                    6 => {
+                    6 => {} // Hacky empty line.
+                    7 => {
                         self.settings.save_data_on_exit = !self.settings.save_data_on_exit;
                     }
                     _ => {}
@@ -1521,19 +1526,20 @@ impl<T: Write> TerminalApp<T> {
                     5 => {
                         self.settings.show_fps = !self.settings.show_fps;
                     }
-                    6 => {
+                    6 => {} // Hacky empty line.
+                    7 => {
                         self.settings.save_data_on_exit = !self.settings.save_data_on_exit;
                     }
                     _ => {}
                 },
-                // Other event: don't care.
+                // Other event: Just ignore.
                 _ => {}
             }
             selected = selected.rem_euclid(selection_len);
         }
     }
 
-    fn change_controls_menu(&mut self) -> io::Result<MenuUpdate> {
+    fn change_keybinds_menu(&mut self) -> io::Result<MenuUpdate> {
         let button_selection = [
             Button::MoveLeft,
             Button::MoveRight,
@@ -1543,7 +1549,7 @@ impl<T: Write> TerminalApp<T> {
             Button::DropSoft,
             Button::DropHard,
             Button::DropSonic,
-            Button::Hold,
+            Button::HoldPiece,
         ];
         let selection_len = button_selection.len() + 1;
         let mut selected = 0usize;
@@ -1554,7 +1560,7 @@ impl<T: Write> TerminalApp<T> {
             self.term
                 .queue(Clear(ClearType::All))?
                 .queue(MoveTo(x_main, y_main + y_selection))?
-                .queue(Print(format!("{:^w_main$}", "| Change Controls |")))?
+                .queue(Print(format!("{:^w_main$}", "| Change Keybinds |")))?
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
                 .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
             let button_names = button_selection
@@ -1704,8 +1710,8 @@ impl<T: Write> TerminalApp<T> {
         }
     }
 
-    fn configure_game_menu(&mut self) -> io::Result<MenuUpdate> {
-        let selection_len = 12;
+    fn configure_gameplay_menu(&mut self) -> io::Result<MenuUpdate> {
+        let selection_len = 13;
         let mut selected = 0usize;
         loop {
             let w_main = Self::W_MAIN.into();
@@ -1716,7 +1722,7 @@ impl<T: Write> TerminalApp<T> {
                 .queue(MoveTo(x_main, y_main + y_selection))?
                 .queue(Print(format!(
                     "{:^w_main$}",
-                    "= Configure Game (->applied on new game) ="
+                    "= Configure Gameplay (requires New Game) ="
                 )))?
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
                 .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
@@ -1751,6 +1757,10 @@ impl<T: Write> TerminalApp<T> {
                 format!(
                     "**no soft drop lock : {}",
                     self.game_config.no_soft_drop_lock
+                ),
+                format!(
+                    "*assume enhanced key events (current game) : {}",
+                    self.kitty_assumed
                 ),
             ];
             for (i, label) in labels.into_iter().enumerate() {
@@ -1788,10 +1798,10 @@ impl<T: Write> TerminalApp<T> {
                 ))?
                 .queue(Print(format!(
                     "{:^w_main$}",
-                    if self.kitty_enabled {
-                        "(*working correctly, as keyboard enhancements are available)"
+                    if self.kitty_detected {
+                        "(*should work - enhanced key events seemed available)"
                     } else {
-                        "(*NO effect, as keyboard enhancements are UNavailable)"
+                        "(*might NOT work - enhanced key events seemed unavailable)"
                     },
                 )))?;
             self.term
@@ -1801,11 +1811,11 @@ impl<T: Write> TerminalApp<T> {
                 ))?
                 .queue(Print(format!(
                     "{:^w_main$}",
-                    format!(
-                        "(**toggled to {} because keyboard enhancements were {}available)",
-                        !self.kitty_enabled,
-                        if self.kitty_enabled { "" } else { "UN" }
-                    )
+                    if !self.kitty_detected {
+                        "(**were set to 'false' because enhanced key events seemed unavailable)"
+                    } else {
+                        "(**were set to 'true' because enhanced key events seemed available)"
+                    }
                 )))?;
             self.term.flush()?;
             // Wait for new input.
@@ -1834,7 +1844,8 @@ impl<T: Write> TerminalApp<T> {
                 }) => {
                     if selected == selection_len - 1 {
                         self.game_config = GameConfig::default();
-                        self.game_config.no_soft_drop_lock = !self.kitty_enabled;
+                        self.game_config.no_soft_drop_lock = !self.kitty_detected;
+                        self.kitty_assumed = self.kitty_detected;
                     }
                 }
                 // Move selector up.
@@ -1903,6 +1914,9 @@ impl<T: Write> TerminalApp<T> {
                     }
                     10 => {
                         self.game_config.no_soft_drop_lock = !self.game_config.no_soft_drop_lock;
+                    }
+                    11 => {
+                        self.kitty_assumed = !self.kitty_assumed;
                     }
                     _ => {}
                 },
@@ -1979,6 +1993,9 @@ impl<T: Write> TerminalApp<T> {
                     }
                     10 => {
                         self.game_config.no_soft_drop_lock = !self.game_config.no_soft_drop_lock;
+                    }
+                    11 => {
+                        self.kitty_assumed = !self.kitty_assumed;
                     }
                     _ => {}
                 },
@@ -2237,7 +2254,7 @@ impl<T: Write> TerminalApp<T> {
 
     fn about_menu(&mut self) -> io::Result<MenuUpdate> {
         /* FIXME: About menu. */
-        self.generic_placeholder_widget(
+        self.generic_placeholder_menu(
             "About tetrs - Visit https://github.com/Strophox/tetrs",
             vec![],
         )

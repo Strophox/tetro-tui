@@ -55,7 +55,7 @@ impl CrosstermHandler {
             (KeyCode::Down, Button::DropSoft),
             (KeyCode::Up, Button::DropHard),
             //(KeyCode::Char('w'), Button::DropSonic),
-            (KeyCode::Char(' '), Button::Hold),
+            (KeyCode::Char(' '), Button::HoldPiece),
         ])
     }
 
@@ -75,6 +75,7 @@ impl CrosstermHandler {
                     Ok(Event::Key(KeyEvent {
                         code: KeyCode::Char('c'),
                         modifiers: KeyModifiers::CONTROL,
+                        kind: KeyEventKind::Press | KeyEventKind::Repeat,
                         ..
                     })) => {
                         let _ = button_sender.send(Err(Interrupt::ExitProgram));
@@ -83,6 +84,7 @@ impl CrosstermHandler {
                     Ok(Event::Key(KeyEvent {
                         code: KeyCode::Char('d'),
                         modifiers: KeyModifiers::CONTROL,
+                        kind: KeyEventKind::Press,
                         ..
                     })) => {
                         let _ = button_sender.send(Err(Interrupt::ForfeitGame));
@@ -103,7 +105,7 @@ impl CrosstermHandler {
                     // Candidate key pressed.
                     Ok(Event::Key(KeyEvent {
                         code: key,
-                        kind: KeyEventKind::Press,
+                        kind: KeyEventKind::Press | KeyEventKind::Repeat,
                         ..
                     })) => {
                         if let Some(&button) = keybinds.get(&key) {
@@ -141,6 +143,7 @@ impl CrosstermHandler {
                     Ok(Event::Key(KeyEvent {
                         code: KeyCode::Char('c'),
                         modifiers: KeyModifiers::CONTROL,
+                        kind: KeyEventKind::Press | KeyEventKind::Repeat,
                         ..
                     })) => {
                         let _ = button_sender.send(Err(Interrupt::ExitProgram));
@@ -149,6 +152,7 @@ impl CrosstermHandler {
                     Ok(Event::Key(KeyEvent {
                         code: KeyCode::Char('d'),
                         modifiers: KeyModifiers::CONTROL,
+                        kind: KeyEventKind::Press,
                         ..
                     })) => {
                         let _ = button_sender.send(Err(Interrupt::ForfeitGame));

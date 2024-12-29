@@ -181,7 +181,7 @@ impl ComboBotHandler {
                                     | Button::DropSoft
                                     | Button::DropHard
                                     | Button::DropSonic
-                                    | Button::Hold => button,
+                                    | Button::HoldPiece => button,
                                 };
                             }
                             let _ = button_sender.send(Ok((Instant::now(), button, true)));
@@ -382,7 +382,7 @@ fn neighbors(
                     next_pieces,
                     depth,
                 },
-                &[Button::Hold][..],
+                &[Button::HoldPiece][..],
             ));
         }
     } else {
@@ -394,7 +394,7 @@ fn neighbors(
                 next_pieces,
                 depth,
             },
-            &[Button::Hold][..],
+            &[Button::HoldPiece][..],
         ));
     }
     neighbors.extend(
@@ -735,7 +735,7 @@ mod tests {
             ) else {
                 break;
             };
-            let did_hold = states_lvl1[branch].1.contains(&Button::Hold);
+            let did_hold = states_lvl1[branch].1.contains(&Button::HoldPiece);
             let mut new_state = states_lvl1[branch].0;
             if new_state.active.is_none() {
                 new_state.active = Some(iter.next().unwrap());

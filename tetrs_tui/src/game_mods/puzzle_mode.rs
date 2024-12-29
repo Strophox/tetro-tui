@@ -1,8 +1,8 @@
 use std::{collections::VecDeque, num::NonZeroU8};
 
 use tetrs_engine::{
-    Feedback, FeedbackEvents, FnGameMod, Game, GameConfig, GameMode, GameOver, GameState,
-    InternalEvent, Limits, ModifierPoint, Tetromino,
+    Feedback, FeedbackEvents, FnGameMod, Game, GameConfig, GameEvent, GameMode, GameOver,
+    GameState, Limits, ModifierPoint, Tetromino,
 };
 
 const MAX_STAGE_ATTEMPTS: usize = 5;
@@ -76,10 +76,8 @@ pub fn new_game() -> Game {
                 );
                 current_puzzle_piececnt_limit = game_piececnt + piececnt;
                 init = true;
-            } else if matches!(
-                modifier_point,
-                ModifierPoint::BeforeEvent(InternalEvent::Spawn)
-            ) && game_piececnt == current_puzzle_piececnt_limit
+            } else if matches!(modifier_point, ModifierPoint::BeforeEvent(GameEvent::Spawn))
+                && game_piececnt == current_puzzle_piececnt_limit
             {
                 let puzzle_done = state
                     .board
@@ -114,7 +112,7 @@ pub fn new_game() -> Game {
             // Keep custom game state that's also visible to player, but hide it from the game engine that handles gameplay.
             if matches!(
                 modifier_point,
-                ModifierPoint::BeforeEvent(_) | ModifierPoint::BeforeButtonChange(_, _)
+                ModifierPoint::BeforeEvent(_) | ModifierPoint::BeforeButtonChange
             ) {
                 config.preview_count = 0;
                 state.gravity = PUZZLE_GRAVITY;
@@ -125,16 +123,14 @@ pub fn new_game() -> Game {
                 feedback_events.retain(|evt| !matches!(evt, (_, Feedback::Accolade { .. })));
             }
             // Remove spurious spawn.
-            if matches!(
-                modifier_point,
-                ModifierPoint::AfterEvent(InternalEvent::Spawn)
-            ) && state.end.is_some()
+            if matches!(modifier_point, ModifierPoint::AfterEvent(GameEvent::Spawn))
+                && state.end.is_some()
             {
                 state.active_piece_data = None;
             }
             // Remove ability to hold.
             if matches!(modifier_point, ModifierPoint::AfterButtonChange) {
-                state.events.remove(&InternalEvent::HoldPiece);
+                state.events.remove(&GameEvent::Hold);
             }
         },
     );

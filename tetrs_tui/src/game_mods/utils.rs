@@ -1,6 +1,6 @@
 use tetrs_engine::{
-    piece_generation::TetrominoSource, Feedback, FeedbackEvents, FnGameMod, GameConfig, GameMode,
-    GameState, InternalEvent, ModifierPoint, Tetromino,
+    piece_generation::TetrominoSource, Feedback, FeedbackEvents, FnGameMod, GameConfig, GameEvent,
+    GameMode, GameState, ModifierPoint, Tetromino,
 };
 
 #[allow(dead_code)]
@@ -16,11 +16,7 @@ pub fn custom_start_board(board_str: &String) -> FnGameMod {
                     let Some(char) = chars.next() else {
                         break 'init;
                     };
-                    *cell = if char != ' ' {
-                        grey_tile
-                    } else {
-                        None
-                    };
+                    *cell = if char != ' ' { grey_tile } else { None };
                 }
             }
             init = true;
@@ -36,10 +32,7 @@ pub fn display_tetromino_likelihood() -> FnGameMod {
          state: &mut GameState,
          feedback_events: &mut FeedbackEvents,
          modifier_point: &ModifierPoint| {
-            if !matches!(
-                modifier_point,
-                ModifierPoint::AfterEvent(InternalEvent::Spawn)
-            ) {
+            if !matches!(modifier_point, ModifierPoint::AfterEvent(GameEvent::Spawn)) {
                 return;
             }
             let TetrominoSource::Recency {

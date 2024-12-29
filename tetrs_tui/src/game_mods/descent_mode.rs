@@ -3,8 +3,8 @@ use std::{num::NonZeroU8, time::Duration};
 use rand::{self, Rng};
 
 use tetrs_engine::{
-    FeedbackEvents, FnGameMod, Game, GameConfig, GameMode, GameState, GameTime, InternalEvent,
-    Limits, Line, ModifierPoint, Tetromino,
+    FeedbackEvents, FnGameMod, Game, GameConfig, GameEvent, GameMode, GameState, GameTime, Limits,
+    Line, ModifierPoint, Tetromino,
 };
 
 pub fn random_descent_lines() -> impl Iterator<Item = Line> {
@@ -108,7 +108,7 @@ pub fn new_game() -> Game {
             }
             if matches!(
                 modifier_point,
-                ModifierPoint::AfterEvent(InternalEvent::Rotate(_))
+                ModifierPoint::AfterEvent(GameEvent::Rotate(_))
             ) {
                 let piece_tiles_coords = active_piece.tiles().map(|(coord, _)| coord);
                 for (y, line) in state.board.iter_mut().enumerate() {
@@ -143,7 +143,7 @@ pub fn new_game() -> Game {
             // Keep custom game state that's also visible to player, but hide it from the game engine that handles gameplay.
             if matches!(
                 modifier_point,
-                ModifierPoint::BeforeEvent(_) | ModifierPoint::BeforeButtonChange(_, _)
+                ModifierPoint::BeforeEvent(_) | ModifierPoint::BeforeButtonChange
             ) {
                 state.lines_cleared = 0;
                 state.next_pieces.clear();
@@ -157,10 +157,10 @@ pub fn new_game() -> Game {
             // FIXME: Gravity 0 now exists, maybe we can simplify things with that (i.e. not manually keep the piece from locking)?
             // Remove ability to hold.
             if matches!(modifier_point, ModifierPoint::AfterButtonChange) {
-                state.events.remove(&InternalEvent::HoldPiece);
+                state.events.remove(&GameEvent::Hold);
             }
             // Remove ability to lock.
-            state.events.remove(&InternalEvent::LockTimer);
+            state.events.remove(&GameEvent::LockTimer);
             // FIXME: Remove jank.
             active_piece.shape = descent_tetromino;
         },

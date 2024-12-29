@@ -3,7 +3,7 @@ use std::num::{NonZeroU8, NonZeroUsize};
 use rand::Rng;
 
 use tetrs_engine::{
-    FeedbackEvents, FnGameMod, Game, GameConfig, GameMode, GameState, InternalEvent, Limits, Line,
+    FeedbackEvents, FnGameMod, Game, GameConfig, GameEvent, GameMode, GameState, Limits, Line,
     ModifierPoint,
 };
 
@@ -45,7 +45,7 @@ pub fn new_game(cheese_limit: Option<NonZeroUsize>, gap_size: usize, gravity: u3
                 init = true;
             } else if matches!(
                 modifier_point,
-                ModifierPoint::BeforeEvent(InternalEvent::LineClear)
+                ModifierPoint::BeforeEvent(GameEvent::LineClear)
             ) {
                 for line in state.board.iter() {
                     if line.iter().all(|mino| mino.is_some()) {
@@ -59,7 +59,7 @@ pub fn new_game(cheese_limit: Option<NonZeroUsize>, gap_size: usize, gravity: u3
             }
             if matches!(
                 modifier_point,
-                ModifierPoint::AfterEvent(InternalEvent::LineClear)
+                ModifierPoint::AfterEvent(GameEvent::LineClear)
             ) {
                 state.lines_cleared -= temp_normal_tally;
                 for cheese in line_source.by_ref().take(temp_cheese_tally) {
