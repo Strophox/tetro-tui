@@ -783,7 +783,7 @@ impl Renderer for CachedRenderer {
                         19 => "Novemdecuple",
                         20 => "Vigintuple",
                         21 => "Kirbtris",
-                        _ => "unreachable",
+                        _ => "Unreachable",
                     }
                     .to_string();
                     if *lineclears <= 4 {

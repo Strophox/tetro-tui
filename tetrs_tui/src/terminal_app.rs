@@ -550,12 +550,12 @@ impl<T: Write> TerminalApp<T> {
         let normal_gamemodes: [(_, _, Box<dyn Fn() -> Game>); 4] = [
             (
                 "40-Lines",
-                "how fast can you clear?".to_string(),
+                "how fast can you clear forty lines?".to_string(),
                 Box::new(|| Game::new(GameMode::sprint(3))),
             ),
             (
                 "Marathon",
-                "can you clear gravity level 15?".to_string(),
+                "can you make it to gravity level 15?".to_string(),
                 Box::new(|| Game::new(GameMode::marathon())),
             ),
             (
@@ -565,7 +565,7 @@ impl<T: Write> TerminalApp<T> {
             ),
             (
                 "Master",
-                "clear 100 lines starting at instant gravity.".to_string(),
+                "clear 30 levels starting at instant gravity.".to_string(),
                 Box::new(|| Game::new(GameMode::master())),
             ),
         ];

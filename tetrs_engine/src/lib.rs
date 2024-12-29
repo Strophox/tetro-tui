@@ -744,7 +744,7 @@ impl Default for GameConfig {
             auto_repeat_rate: Duration::from_millis(33),
             soft_drop_factor: 15.0,
             hard_drop_delay: Duration::from_micros(100),
-            ground_time_max: Duration::from_millis(3000),
+            ground_time_max: Duration::from_millis(2000),
             line_clear_delay: Duration::from_millis(200),
             appearance_delay: Duration::from_millis(50),
             no_soft_drop_lock: false,
@@ -837,6 +837,7 @@ impl Game {
 
     /// Mutable accessor for the current game mode.
     ///
+    // FIXME: Document Safety.
     /// This directly allows raw, mutable access to the game's [`GameMode`] field.
     /// This should not cause undefined behaviour per se, but may lead to spurious `panic!`s or
     /// other unexpected gameplay behaviour due to violating internal invarints.
