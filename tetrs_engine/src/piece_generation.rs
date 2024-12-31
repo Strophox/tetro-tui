@@ -8,7 +8,6 @@ use rand::{
     self,
     distributions::{Distribution, WeightedIndex},
     //prelude::SliceRandom, // vec.shuffle(rng)...
-    rngs::ThreadRng,
     Rng,
 };
 
@@ -124,7 +123,7 @@ impl TetrominoSource {
     }
 
     /// Method that allows `TetrominoSource` to be used as [`Iterator`].
-    pub fn with_rng<'a, 'b>(&'a mut self, rng: &'b mut ThreadRng) -> TetrominoIterator<'a, 'b> {
+    pub fn with_rng<'a, 'b, R: Rng>(&'a mut self, rng: &'b mut R) -> TetrominoIterator<'a, 'b, R> {
         TetrominoIterator {
             tetromino_generator: self,
             rng,
@@ -152,14 +151,14 @@ impl Clone for TetrominoSource {
 }
 
 /// Struct produced from [`TetrominoSource::with_rng`] which implements [`Iterator`].
-pub struct TetrominoIterator<'a, 'b> {
+pub struct TetrominoIterator<'a, 'b, R: Rng> {
     /// Selected tetromino generator to use as information source.
     pub tetromino_generator: &'a mut TetrominoSource,
     /// Thread random number generator for raw soure of randomness.
-    pub rng: &'b mut ThreadRng,
+    pub rng: &'b mut R,
 }
 
-impl<'a, 'b> Iterator for TetrominoIterator<'a, 'b> {
+impl<'a, 'b, R: Rng> Iterator for TetrominoIterator<'a, 'b, R> {
     type Item = Tetromino;
 
     fn next(&mut self) -> Option<Self::Item> {

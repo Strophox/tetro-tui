@@ -631,7 +631,7 @@ mod tests {
     use std::{collections::HashMap, num::NonZeroU32};
 
     use super::*;
-    use tetrs_engine::piece_generation::{TetrominoIterator, TetrominoSource};
+    use tetrs_engine::piece_generation::TetrominoSource;
 
     const COMBO_MAX: usize = 1_000_000;
 
@@ -713,7 +713,7 @@ mod tests {
         }
     }
 
-    fn run_bot(lookahead: usize, iter: &mut TetrominoIterator) -> usize {
+    fn run_bot(lookahead: usize, iter: &mut impl Iterator<Item = Tetromino>) -> usize {
         let mut next_pieces: VecDeque<_> = iter.take(lookahead).collect();
         let mut state = ComboState {
             layout: (Pat::_200, false),

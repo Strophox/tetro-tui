@@ -155,6 +155,7 @@ pub struct NewGameSettings {
     combo_start_layout: u16,
     descent_mode: bool,
     custom_start_board: Option<String>,
+    custom_start_seed: Option<u64>,
 }
 
 #[derive(Clone, Debug)]
@@ -202,8 +203,9 @@ impl<T: Write> TerminalApp<T> {
 
     pub fn new(
         mut terminal: T,
-        combo_start_layout: Option<u16>,
+        custom_start_seed: Option<u64>,
         custom_start_board: Option<String>,
+        combo_start_layout: Option<u16>,
         combo_bot_enabled: bool,
     ) -> Self {
         // Console prologue: Initialization.
@@ -237,6 +239,7 @@ impl<T: Write> TerminalApp<T> {
                 combo_start_layout: game_mods::combo_mode::LAYOUTS[0],
                 descent_mode: false,
                 custom_start_board: None,
+                custom_start_seed: None,
             },
             combo_bot_enabled: false,
             past_games: vec![],
@@ -251,6 +254,9 @@ impl<T: Write> TerminalApp<T> {
         }
         if custom_start_board.is_some() {
             app.new_game_settings.custom_start_board = custom_start_board;
+        }
+        if custom_start_seed.is_some() {
+            app.new_game_settings.custom_start_seed = custom_start_seed;
         }
         app.combo_bot_enabled = combo_bot_enabled;
         app.game_config.no_soft_drop_lock = !kitty_detected;
@@ -683,11 +689,12 @@ impl<T: Write> TerminalApp<T> {
                     "{:^w_main$}",
                     if selected == selection_size - 1 {
                         if customization_selected > 0 {
-                            "  | Custom: (repeat [→] to toggle 'limit')"
-                        } else if ng.custom_start_board.is_some() {
-                            ">>> Custom: (press [del] to clear start)  "
+                            "  | Custom: (toggle 'limit' with [→])    "
+                        } else if ng.custom_start_seed.is_some() || ng.custom_start_board.is_some()
+                        {
+                            ">>> Custom: (clear board/seed with [del])"
                         } else {
-                            ">>> Custom:                               "
+                            ">>> Custom:                              "
                         }
                     } else {
                         "| Custom"
@@ -770,12 +777,16 @@ impl<T: Write> TerminalApp<T> {
                             },
                             None => Limits::default(),
                         };
-                        let mut custom_game = Game::new(GameMode {
-                            name: "Custom Mode".to_string(),
-                            initial_gravity: ng.initial_gravity,
-                            increase_gravity: ng.increase_gravity,
-                            limits,
-                        });
+                        let mut custom_game = Game::with_config(
+                            GameMode {
+                                name: "Custom Mode".to_string(),
+                                initial_gravity: ng.initial_gravity,
+                                increase_gravity: ng.increase_gravity,
+                                limits,
+                            },
+                            GameConfig::default(),
+                            ng.custom_start_seed,
+                        );
                         if let Some(ref custom_start_board_str) = ng.custom_start_board {
                             custom_game.add_modifier(game_mods::utils::custom_start_board(
                                 custom_start_board_str,
@@ -949,8 +960,9 @@ impl<T: Write> TerminalApp<T> {
                     kind: Press | Repeat,
                     ..
                 }) => {
-                    // If custom gamemode selected, allow deleting custom start board.
+                    // If custom gamemode selected, allow deleting custom start board and seed.
                     if selected == selection_size - 1 {
+                        ng.custom_start_seed = None;
                         ng.custom_start_board = None;
                     }
                 }

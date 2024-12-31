@@ -50,7 +50,7 @@ use std::{
 
 pub use piece_generation::TetrominoSource;
 pub use piece_rotation::RotationSystem;
-use rand::rngs::ThreadRng;
+use rand::{rngs::StdRng, RngCore, SeedableRng};
 
 /// Abstract identifier for which type of tile occupies a cell in the grid.
 pub type TileTypeID = NonZeroU8;
@@ -347,7 +347,7 @@ pub struct Game {
     config: GameConfig,
     mode: GameMode,
     state: GameState,
-    rng: ThreadRng,
+    rng: StdRng,
     modifiers: Vec<FnGameMod>,
 }
 
@@ -757,7 +757,7 @@ impl fmt::Debug for Game {
         fmt.debug_struct("Game")
             .field("config", &self.config)
             .field("state", &self.state)
-            .field("rng", &std::any::type_name_of_val(&self.rng))
+            .field("rng", &self.rng)
             .field("modifiers", &std::any::type_name_of_val(&self.modifiers))
             .finish()
     }
@@ -773,20 +773,20 @@ impl Game {
     // This is the level at which blocks start falling with 20G / instantly hit the floor.
     const INSTANT_GRAVITY: u32 = 20;
 
-    /// Start a new game given some game mode.
+    /// Start a new, default-configuration game given some game mode.
     pub fn new(game_mode: GameMode) -> Self {
-        Self::with_config(game_mode, GameConfig::default())
+        Self::with_config(game_mode, GameConfig::default(), None)
     }
 
     /// Start a new game given a gamemode and some advanced configuration options.
-    pub fn with_config(game_mode: GameMode, config: GameConfig) -> Self {
+    pub fn with_config(game_mode: GameMode, config: GameConfig, rng_seed: Option<u64>) -> Self {
         let state = GameState {
             time: Duration::ZERO,
             end: None,
             events: HashMap::from([(GameEvent::Spawn, Duration::ZERO)]),
             buttons_pressed: Default::default(),
             board: std::iter::repeat(Line::default())
-                .take(Self::HEIGHT)
+                .take(Game::HEIGHT)
                 .collect(),
             active_piece_data: None,
             hold_piece: None,
@@ -798,11 +798,12 @@ impl Game {
             consecutive_line_clears: 0,
             back_to_back_special_clears: 0,
         };
+        let rng = StdRng::seed_from_u64(rng_seed.unwrap_or_else(|| rand::thread_rng().next_u64()));
         Game {
             config,
             mode: game_mode,
             state,
-            rng: rand::thread_rng(),
+            rng,
             modifiers: Vec::new(),
         }
     }
@@ -1357,7 +1358,7 @@ impl Game {
                 if prev_piece
                     .tiles()
                     .iter()
-                    .all(|((_, y), _)| *y >= Self::SKYLINE)
+                    .all(|((_, y), _)| *y >= Game::SKYLINE)
                 {
                     self.state.end = Some(Err(GameOver::LockOut));
                     return feedback_events;
@@ -1371,7 +1372,7 @@ impl Game {
                 }
                 // Handle line clear counting for score (only do actual clearing in LineClear).
                 let mut lines_cleared = Vec::<usize>::with_capacity(4);
-                for y in (0..Self::HEIGHT).rev() {
+                for y in (0..Game::HEIGHT).rev() {
                     if self.state.board[y].iter().all(|mino| mino.is_some()) {
                         lines_cleared.push(y);
                     }
@@ -1432,7 +1433,7 @@ impl Game {
                 None
             }
             GameEvent::LineClear => {
-                for y in (0..Self::HEIGHT).rev() {
+                for y in (0..Game::HEIGHT).rev() {
                     // Full line: move it to the cleared lines storage and push an empty line to the board.
                     if self.state.board[y].iter().all(|mino| mino.is_some()) {
                         self.state.board.remove(y);
@@ -1443,7 +1444,7 @@ impl Game {
                         }
                     }
                 }
-                while self.state.board.len() < Self::HEIGHT {
+                while self.state.board.len() < Game::HEIGHT {
                     self.state.board.push(Default::default());
                 }
                 self.state

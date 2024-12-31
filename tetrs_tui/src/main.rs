@@ -10,6 +10,12 @@ use clap::Parser;
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
+    /// Custom starting seed when playing Custom mode, given as a 64-bit integer.
+    /// This influences the sequence of pieces used and makes it possible to replay
+    /// a run with the same pieces if the same seed is entered.
+    /// Example: `./tetrs_tui --custom-seed=42` or `./tetrs_tui -c 42`.
+    #[arg(short, long)]
+    custom_seed: Option<u64>,
     /// Custom starting board when playing Custom mode (10-wide rows), encoded as string.
     /// Spaces indicate empty cells, anything else is a filled cell.
     /// The string just represents the row information, starting with the topmost row.
@@ -32,8 +38,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let stdout = io::BufWriter::new(io::stdout());
     let mut app = terminal_app::TerminalApp::new(
         stdout,
-        args.combo_start,
+        args.custom_seed,
         args.custom_start,
+        args.combo_start,
         args.enable_combo_bot,
     );
     std::panic::set_hook(Box::new(|panic_info| {
