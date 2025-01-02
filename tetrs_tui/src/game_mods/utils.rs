@@ -1,6 +1,5 @@
 use tetrs_engine::{
-    piece_generation::TetrominoSource, Feedback, FeedbackEvents, FnGameMod, GameConfig, GameEvent,
-    GameMode, GameState, ModifierPoint, Tetromino,
+    piece_generation::TetrominoSource, Feedback, FnGameMod, GameEvent, ModifierPoint, Tetromino,
 };
 
 #[allow(dead_code)]
@@ -8,30 +7,50 @@ pub fn custom_start_board(board_str: &str) -> FnGameMod {
     let grey_tile = Some(std::num::NonZeroU8::try_from(254).unwrap());
     let mut init = false;
     let board_str = board_str.to_owned();
-    Box::new(move |_, _, state, _, _| {
-        if !init {
-            let mut chars = board_str.chars().rev();
-            'init: for row in state.board.iter_mut() {
-                for cell in row.iter_mut().rev() {
-                    let Some(char) = chars.next() else {
-                        break 'init;
-                    };
-                    *cell = if char != ' ' { grey_tile } else { None };
+    Box::new(
+        move |_config, _mode, state, _rng, _feedback_events, _modifier_point| {
+            if !init {
+                let mut chars = board_str.chars().rev();
+                'init: for row in state.board.iter_mut() {
+                    for cell in row.iter_mut().rev() {
+                        let Some(char) = chars.next() else {
+                            break 'init;
+                        };
+                        *cell = if char != ' ' { grey_tile } else { None };
+                    }
                 }
+                init = true;
             }
-            init = true;
-        }
-    })
+        },
+    )
+}
+
+#[allow(dead_code)]
+pub fn custom_start_offset(offset: u32) -> FnGameMod {
+    let mut init = false;
+    Box::new(
+        move |config, _mode, state, rng, _feedback_events, _modifier_point| {
+            if !init {
+                // feedback_events.push((state.time, Feedback::Message(format!("tet gen.: {:?}", config.tetromino_generator))));
+                for tet in config.tetromino_generator.with_rng(rng).take(
+                    usize::try_from(offset)
+                        .unwrap(),
+                ) {
+                    state.pieces_played[tet] += 1;
+                }
+                if state.hold_piece.is_some() {
+                    let _tet = config.tetromino_generator.with_rng(rng).next();
+                }
+                init = true;
+            }
+        },
+    )
 }
 
 #[allow(dead_code)]
 pub fn display_tetromino_likelihood() -> FnGameMod {
     Box::new(
-        |config: &mut GameConfig,
-         _mode: &mut GameMode,
-         state: &mut GameState,
-         feedback_events: &mut FeedbackEvents,
-         modifier_point: &ModifierPoint| {
+        |config, _mode, state, _rng, feedback_events, modifier_point| {
             if !matches!(modifier_point, ModifierPoint::AfterEvent(GameEvent::Spawn)) {
                 return;
             }

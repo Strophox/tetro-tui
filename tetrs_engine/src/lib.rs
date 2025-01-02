@@ -65,6 +65,8 @@ pub type Coord = (usize, usize);
 pub type Offset = (isize, isize);
 /// The type used to identify points in time in a game's internal timeline.
 pub type GameTime = Duration;
+/// The internal RNG used by a game.
+pub type GameRng = StdRng;
 /// A mapping for buttons, usable through `impl Index<Button>`.
 type ButtonMap<T> = [T; 9];
 /// A mapping for which buttons were pressed.
@@ -73,7 +75,14 @@ pub type ButtonsPressed = ButtonMap<bool>;
 pub type FeedbackEvents = Vec<(GameTime, Feedback)>;
 /// Type of functions that can be used to modify a game, c.f. [`Game::add_modifier`].
 pub type FnGameMod = Box<
-    dyn FnMut(&mut GameConfig, &mut GameMode, &mut GameState, &mut FeedbackEvents, &ModifierPoint),
+    dyn FnMut(
+        &mut GameConfig,
+        &mut GameMode,
+        &mut GameState,
+        &mut GameRng,
+        &mut FeedbackEvents,
+        &ModifierPoint,
+    ),
 >;
 type EventMap = HashMap<GameEvent, GameTime>;
 
@@ -301,10 +310,12 @@ pub enum GameOver {
 #[derive(Eq, PartialEq, Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct GameState {
-    /// Current in-game time.
-    pub time: GameTime,
+    /// The seed used to initialize the internal RNG.
+    pub seed: u64,
     /// Whether the game has ended and how.
     pub end: Option<Result<(), GameOver>>,
+    /// Current in-game time.
+    pub time: GameTime,
     /// Upcoming game events.
     pub events: EventMap,
     /// The current state of buttons being pressed in the game.
@@ -347,7 +358,7 @@ pub struct Game {
     config: GameConfig,
     mode: GameMode,
     state: GameState,
-    rng: StdRng,
+    rng: GameRng,
     modifiers: Vec<FnGameMod>,
 }
 
@@ -781,8 +792,9 @@ impl Game {
     /// Start a new game given a gamemode and some advanced configuration options.
     pub fn with_config(game_mode: GameMode, config: GameConfig, rng_seed: Option<u64>) -> Self {
         let state = GameState {
-            time: Duration::ZERO,
+            seed: rng_seed.unwrap_or_else(|| rand::thread_rng().next_u64()),
             end: None,
+            time: Duration::ZERO,
             events: HashMap::from([(GameEvent::Spawn, Duration::ZERO)]),
             buttons_pressed: Default::default(),
             board: std::iter::repeat(Line::default())
@@ -798,7 +810,7 @@ impl Game {
             consecutive_line_clears: 0,
             back_to_back_special_clears: 0,
         };
-        let rng = StdRng::seed_from_u64(rng_seed.unwrap_or_else(|| rand::thread_rng().next_u64()));
+        let rng = GameRng::seed_from_u64(state.seed);
         Game {
             config,
             mode: game_mode,
@@ -821,9 +833,19 @@ impl Game {
         self.state.end.is_some()
     }
 
-    /// Immutable accessor for the current game configurations.
+    /// Read accessor for the current game configurations.
     pub fn config(&self) -> &GameConfig {
         &self.config
+    }
+
+    /// Read accessor for the current game mode.
+    pub fn mode(&self) -> &GameMode {
+        &self.mode
+    }
+
+    /// Read accessor for the current game state.
+    pub fn state(&self) -> &GameState {
+        &self.state
     }
 
     /// Mutable accessor for the current game configurations.
@@ -831,32 +853,20 @@ impl Game {
         &mut self.config
     }
 
-    /// Immutable accessor for the current game mode.
-    pub fn mode(&self) -> &GameMode {
-        &self.mode
-    }
-
     /// Mutable accessor for the current game mode.
     ///
     // FIXME: Document Safety.
     /// This directly allows raw, mutable access to the game's [`GameMode`] field.
-    /// This should not cause undefined behaviour per se, but may lead to spurious `panic!`s or
-    /// other unexpected gameplay behaviour due to violating internal invarints.
+    /// This may lead to spurious `panic!`s or other unexpected gameplay behaviour due to violating internal invariants.
     pub fn mode_mut(&mut self) -> &mut GameMode {
         &mut self.mode
-    }
-
-    /// Immutable accessor for the current game state.
-    pub fn state(&self) -> &GameState {
-        &self.state
     }
 
     /// Mutable accessor for the current game mode.
     ///
     // FIXME: Document Safety.
     /// This directly allows raw, mutable access to the game's [`GameState`] field.
-    /// This should not cause undefined behaviour per se, but may lead to spurious `panic!`s or
-    /// other unexpected gameplay behaviour due to violating internal invarints.
+    /// This may lead to spurious `panic!`s or other unexpected gameplay behaviour due to violating internal invariants.
     pub fn state_mut(&mut self) -> &mut GameState {
         &mut self.state
     }
@@ -865,8 +875,7 @@ impl Game {
     ///
     /// This indirectly allows raw, mutable access to the game's [`GameMode`]
     /// and [`GameState`] fields.
-    /// This should not cause undefined behaviour per se, but may lead to spurious `panic!`s or
-    /// other unexpected gameplay behaviour due to violating internal invarints.
+    /// This may lead to spurious `panic!`s or other unexpected gameplay behaviour due to violating internal invariants.
     pub fn add_modifier(&mut self, game_mod: FnGameMod) {
         self.modifiers.push(game_mod)
     }
@@ -919,6 +928,7 @@ impl Game {
                 &mut self.config,
                 &mut self.mode,
                 &mut self.state,
+                &mut self.rng,
                 feedback_events,
                 modifier_point,
             );

@@ -21,13 +21,14 @@ use crossterm::{
     terminal::{self, Clear, ClearType},
     ExecutableCommand, QueueableCommand,
 };
+
 use tetrs_engine::{
     piece_generation::TetrominoSource, piece_rotation::RotationSystem, Button, ButtonsPressed,
     FeedbackEvents, Game, GameConfig, GameMode, GameState, Limits,
 };
 
 use crate::{
-    game_input_handlers::{combo_bot::ComboBotHandler, crossterm::CrosstermHandler, Interrupt},
+    game_input_handlers::{combo_bot::ComboBotHandler, crossterm::CrosstermHandler, InputSignal},
     game_mods,
     game_renderers::{cached_renderer::CachedRenderer, Renderer},
 };
@@ -155,7 +156,9 @@ pub struct NewGameSettings {
     combo_start_layout: u16,
     descent_mode: bool,
     custom_start_board: Option<String>,
-    custom_start_seed: Option<u64>,
+    // The reason this looks so horrible is because it is, in fact, a horrible hack.
+    custom_start_seed_and_offset_and_hold_piece:
+        Option<(u64, (u32, Option<(tetrs_engine::Tetromino, bool)>))>,
 }
 
 #[derive(Clone, Debug)]
@@ -235,11 +238,11 @@ impl<T: Write> TerminalApp<T> {
                 custom_mode_limit: None,
                 cheese_mode_limit: Some(NonZeroUsize::try_from(20).unwrap()),
                 cheese_mode_gap_size: 1,
-                cheese_mode_gravity: 1,
+                cheese_mode_gravity: 0,
                 combo_start_layout: game_mods::combo_mode::LAYOUTS[0],
                 descent_mode: false,
                 custom_start_board: None,
-                custom_start_seed: None,
+                custom_start_seed_and_offset_and_hold_piece: None,
             },
             combo_bot_enabled: false,
             past_games: vec![],
@@ -255,8 +258,9 @@ impl<T: Write> TerminalApp<T> {
         if custom_start_board.is_some() {
             app.new_game_settings.custom_start_board = custom_start_board;
         }
-        if custom_start_seed.is_some() {
-            app.new_game_settings.custom_start_seed = custom_start_seed;
+        if let Some(custom_start_seed) = custom_start_seed {
+            app.new_game_settings
+                .custom_start_seed_and_offset_and_hold_piece = Some((custom_start_seed, (0, None)));
         }
         app.combo_bot_enabled = combo_bot_enabled;
         app.game_config.no_soft_drop_lock = !kitty_detected;
@@ -690,7 +694,8 @@ impl<T: Write> TerminalApp<T> {
                     if selected == selection_size - 1 {
                         if customization_selected > 0 {
                             "  | Custom: (toggle 'limit' with [→])    "
-                        } else if ng.custom_start_seed.is_some() || ng.custom_start_board.is_some()
+                        } else if ng.custom_start_seed_and_offset_and_hold_piece.is_some()
+                            || ng.custom_start_board.is_some()
                         {
                             ">>> Custom: (clear board/seed with [del])"
                         } else {
@@ -777,6 +782,8 @@ impl<T: Write> TerminalApp<T> {
                             },
                             None => Limits::default(),
                         };
+                        let (rng_seed, offset_and_hold_piece) =
+                            ng.custom_start_seed_and_offset_and_hold_piece.unzip();
                         let mut custom_game = Game::with_config(
                             GameMode {
                                 name: "Custom Mode".to_string(),
@@ -785,8 +792,12 @@ impl<T: Write> TerminalApp<T> {
                                 limits,
                             },
                             GameConfig::default(),
-                            ng.custom_start_seed,
+                            rng_seed,
                         );
+                        if let Some((offset, hold_piece)) = offset_and_hold_piece {
+                            custom_game.add_modifier(game_mods::utils::custom_start_offset(offset));
+                            custom_game.state_mut().hold_piece = hold_piece;
+                        }
                         if let Some(ref custom_start_board_str) = ng.custom_start_board {
                             custom_game.add_modifier(game_mods::utils::custom_start_board(
                                 custom_start_board_str,
@@ -962,7 +973,7 @@ impl<T: Write> TerminalApp<T> {
                 }) => {
                     // If custom gamemode selected, allow deleting custom start board and seed.
                     if selected == selection_size - 1 {
-                        ng.custom_start_seed = None;
+                        ng.custom_start_seed_and_offset_and_hold_piece = None;
                         ng.custom_start_board = None;
                     }
                 }
@@ -1041,28 +1052,49 @@ impl<T: Write> TerminalApp<T> {
             'frame_idle: loop {
                 let frame_idle_remaining = next_frame_at - Instant::now();
                 match button_receiver.recv_timeout(frame_idle_remaining) {
-                    Ok(Err(Interrupt::ExitProgram)) => {
+                    Ok(InputSignal::AbortProgram) => {
                         self.store_game(game, running_game_stats);
                         break 'render MenuUpdate::Push(Menu::Quit(
                             "exited with ctrl-c".to_string(),
                         ));
                     }
-                    Ok(Err(Interrupt::ForfeitGame)) => {
+                    Ok(InputSignal::ForfeitGame) => {
                         game.forfeit();
                         let finished_game_stats = self.store_game(game, running_game_stats);
                         break 'render MenuUpdate::Push(Menu::GameOver(Box::new(
                             finished_game_stats,
                         )));
                     }
-                    Ok(Err(Interrupt::Pause)) => {
+                    Ok(InputSignal::Pause) => {
                         *last_paused = Instant::now();
                         break 'render MenuUpdate::Push(Menu::Pause);
                     }
-                    Ok(Err(Interrupt::WindowResize)) => {
+                    Ok(InputSignal::WindowResize) => {
                         clean_screen = true;
                         continue 'frame_idle;
                     }
-                    Ok(Ok((instant, button, button_state))) => {
+                    Ok(InputSignal::TakeSnapshot) => {
+                        self.new_game_settings.custom_start_board = Some(String::from_iter(
+                            game.state().board.iter().rev().flat_map(|line| {
+                                line.iter()
+                                    .map(|cell| if cell.is_some() { 'X' } else { ' ' })
+                            }),
+                        ));
+                        self.new_game_settings
+                            .custom_start_seed_and_offset_and_hold_piece = Some((
+                            game.state().seed,
+                            (
+                                game.state().pieces_played.iter().sum::<u32>(),
+                                // FIXME: This should NOT change the hold_piece that is stored if it is the FIRST ever piece to be held.
+                                game.state().hold_piece.map(|(tet, swap)| (if swap { tet } else { game.state().active_piece_data.unwrap().0.shape }, true)),
+                            ),
+                        ));
+                        new_feedback_events.push((
+                            game.state().time,
+                            tetrs_engine::Feedback::Message("(Snapshot taken!)".to_string()),
+                        ));
+                    }
+                    Ok(InputSignal::ButtonInput(button, button_state, instant)) => {
                         buttons_pressed[button] = button_state;
                         let game_time_userinput = instant.saturating_duration_since(*time_started)
                             - *total_duration_paused;
@@ -1148,8 +1180,9 @@ impl<T: Write> TerminalApp<T> {
             last_state,
         } = finished_game_stats;
         let GameState {
-            time: game_time,
+            seed: _,
             end: _,
+            time: game_time,
             events: _,
             buttons_pressed: _,
             board: _,

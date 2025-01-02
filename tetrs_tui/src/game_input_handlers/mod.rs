@@ -1,11 +1,11 @@
 pub mod combo_bot;
 pub mod crossterm;
 
-pub type InputOrInterrupt = Result<(std::time::Instant, tetrs_engine::Button, bool), Interrupt>;
-
-pub enum Interrupt {
-    WindowResize,
-    Pause,
+pub enum InputSignal {
+    AbortProgram,
     ForfeitGame,
-    ExitProgram,
+    Pause,
+    WindowResize,
+    TakeSnapshot,
+    ButtonInput(tetrs_engine::Button, bool, std::time::Instant),
 }

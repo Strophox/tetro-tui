@@ -130,13 +130,20 @@ For more technical details see [Features of the Tetrs Engine](#features-of-the-t
   | `→` | Move right |
   | `A` | Rotate left |
   | `D` | Rotate right |
-  | (not set) | Rotate around (180°) |
+  | *(no def.)* | Rotate around (180°) |
   | `↓` | Soft drop |
   | `↑` | Hard drop |
-  | (not set) | Sonic drop |
+  | *(no def.)* | Sonic drop |
   | `Esc` | Pause game |
+  
+  Special controls:
+
+  | Key | Action |
+  | `Ctrl`+`S` | *(experimental)* Take snapshot\* |
   | `Ctrl`+`D` | Forfeit game |
   | `Ctrl`+`C` | Exit program |
+
+  \*This will remember the board and pieces so that configuration can be replayed in 'custom game'.
   
   </details>
   
@@ -265,6 +272,7 @@ The game provides some useful feedback events upon every `update`, usually used 
 
 ## Future Work
 
+- The game snapshot functionality is limited to restoring the board and the pieces that are yet to be played - with notable exception of when taking a snapshot after pressing hold for the first time until a piece is locked. This bug should be fixed, or ideally, the functionality generalized to be able to take a snapshot of any game mode.
 - Comprehensiveness of project README.
   - Many small details of the `tetrs_engine` are not properly explained (e.g. the initial rotation mechanic, which allows spawning a piece immediately rotated if a rotation button was held).
 - FIXMEs in the code base.

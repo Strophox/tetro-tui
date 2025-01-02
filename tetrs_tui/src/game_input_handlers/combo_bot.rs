@@ -13,7 +13,7 @@ use std::{
 
 use tetrs_engine::{Button, Game, Tetromino};
 
-use crate::game_input_handlers::InputOrInterrupt;
+use super::InputSignal;
 
 type ButtonInstructions = &'static [Button];
 type Layout = (Pat, bool);
@@ -69,7 +69,7 @@ pub struct ComboBotHandler {
 
 impl ComboBotHandler {
     pub fn new(
-        button_sender: &Sender<InputOrInterrupt>,
+        button_sender: &Sender<InputSignal>,
         action_idle_time: Duration,
     ) -> (Self, Sender<ComboState>) {
         let (state_sender, state_receiver) = mpsc::channel();
@@ -147,7 +147,7 @@ impl ComboBotHandler {
 
     fn spawn(
         state_receiver: Receiver<ComboState>,
-        button_sender: Sender<InputOrInterrupt>,
+        button_sender: Sender<InputSignal>,
         idle_time: Duration,
     ) -> JoinHandle<()> {
         thread::spawn(move || {
@@ -165,8 +165,7 @@ impl ComboBotHandler {
                             choose_branch(states_lvl1, GRAPHVIZ.then_some(state_lvl0))
                         else {
                             /*TBD: Remove debug: let s=format!("[ main3 uhhhhhh ]\n");let _=std::io::Write::write(&mut std::fs::OpenOptions::new().append(true).open("tetrs_tui_error_message_COMBO.txt").unwrap(), s.as_bytes());*/
-                            let _ = button_sender
-                                .send(Err(crate::game_input_handlers::Interrupt::Pause));
+                            let _ = button_sender.send(InputSignal::Pause);
                             break 'react_to_game;
                         };
                         for mut button in states_lvl1_buttons[branch_choice].iter().copied() {
@@ -184,8 +183,10 @@ impl ComboBotHandler {
                                     | Button::HoldPiece => button,
                                 };
                             }
-                            let _ = button_sender.send(Ok((Instant::now(), button, true)));
-                            let _ = button_sender.send(Ok((Instant::now(), button, false)));
+                            let now = Instant::now();
+                            let _ = button_sender.send(InputSignal::ButtonInput(button, true, now));
+                            let _ =
+                                button_sender.send(InputSignal::ButtonInput(button, false, now));
                             /*TBD: Remove debug: let s=format!("[ main4 SENT button = {button:?} ]\n");let _=std::io::Write::write(&mut std::fs::OpenOptions::new().append(true).open("tetrs_tui_error_message_COMBO.txt").unwrap(), s.as_bytes());*/
                             thread::sleep(idle_time);
                         }

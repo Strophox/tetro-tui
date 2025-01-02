@@ -1,8 +1,7 @@
 use std::num::NonZeroU8;
 
 use tetrs_engine::{
-    Board, FeedbackEvents, FnGameMod, Game, GameConfig, GameEvent, GameMode, GameState, Limits,
-    Line, ModifierPoint, Tetromino,
+    Board, FnGameMod, Game, GameEvent, GameMode, Limits, Line, ModifierPoint, Tetromino,
 };
 
 pub const LAYOUTS: [u16; 5] = [
@@ -47,11 +46,7 @@ pub fn new_game(gravity: u32, initial_layout: u16) -> Game {
     let mut line_source = four_wide_lines();
     let mut init = false;
     let combo_mode: FnGameMod = Box::new(
-        move |_config: &mut GameConfig,
-              _mode: &mut GameMode,
-              state: &mut GameState,
-              _feedback_events: &mut FeedbackEvents,
-              modifier_point: &ModifierPoint| {
+        move |_config, _mode, state, _rng, _feedback_events, modifier_point| {
             if !init {
                 for (line, four_well) in state
                     .board

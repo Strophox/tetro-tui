@@ -227,8 +227,9 @@ impl Renderer for CachedRenderer {
                 .buffer_reset((usize::from(x_main), usize::from(y_main)));
         }
         let GameState {
-            time: game_time,
+            seed: _,
             end: _,
+            time: game_time,
             events: _,
             buttons_pressed: _,
             board,

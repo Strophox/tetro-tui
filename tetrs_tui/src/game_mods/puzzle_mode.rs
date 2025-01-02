@@ -1,8 +1,8 @@
 use std::{collections::VecDeque, num::NonZeroU8};
 
 use tetrs_engine::{
-    Feedback, FeedbackEvents, FnGameMod, Game, GameConfig, GameEvent, GameMode, GameOver,
-    GameState, Limits, ModifierPoint, Tetromino,
+    Feedback, FeedbackEvents, FnGameMod, Game, GameEvent, GameMode, GameOver, GameState, Limits,
+    ModifierPoint, Tetromino,
 };
 
 const MAX_STAGE_ATTEMPTS: usize = 5;
@@ -61,11 +61,7 @@ pub fn new_game() -> Game {
     let mut current_puzzle_attempt = 1;
     let mut current_puzzle_piececnt_limit = 0;
     let puzzle_mode: FnGameMod = Box::new(
-        move |config: &mut GameConfig,
-              _mode: &mut GameMode,
-              state: &mut GameState,
-              feedback_events: &mut FeedbackEvents,
-              modifier_point: &ModifierPoint| {
+        move |config, _mode, state, _rng, feedback_events, modifier_point| {
             let game_piececnt = usize::try_from(state.pieces_played.iter().sum::<u32>()).unwrap();
             if !init {
                 let piececnt = load_puzzle(

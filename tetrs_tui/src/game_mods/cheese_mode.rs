@@ -2,10 +2,7 @@ use std::num::{NonZeroU8, NonZeroUsize};
 
 use rand::Rng;
 
-use tetrs_engine::{
-    FeedbackEvents, FnGameMod, Game, GameConfig, GameEvent, GameMode, GameState, Limits, Line,
-    ModifierPoint,
-};
+use tetrs_engine::{FnGameMod, Game, GameEvent, GameMode, Limits, Line, ModifierPoint};
 
 fn random_gap_lines(gap_size: usize) -> impl Iterator<Item = Line> {
     let gap_size = gap_size.min(Game::WIDTH);
@@ -33,11 +30,7 @@ pub fn new_game(cheese_limit: Option<NonZeroUsize>, gap_size: usize, gravity: u3
     let mut temp_normal_tally = 0;
     let mut init = false;
     let cheese_mode: FnGameMod = Box::new(
-        move |_config: &mut GameConfig,
-              _mode: &mut GameMode,
-              state: &mut GameState,
-              _feedback_events: &mut FeedbackEvents,
-              modifier_point: &ModifierPoint| {
+        move |_config, _mode, state, _rng, _feedback_events, modifier_point| {
             if !init {
                 for (line, cheese) in state.board.iter_mut().take(10).rev().zip(&mut line_source) {
                     *line = cheese;

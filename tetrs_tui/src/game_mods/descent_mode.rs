@@ -3,8 +3,7 @@ use std::{num::NonZeroU8, time::Duration};
 use rand::{self, Rng};
 
 use tetrs_engine::{
-    FeedbackEvents, FnGameMod, Game, GameConfig, GameEvent, GameMode, GameState, GameTime, Limits,
-    Line, ModifierPoint, Tetromino,
+    FnGameMod, Game, GameEvent, GameMode, GameTime, Limits, Line, ModifierPoint, Tetromino,
 };
 
 pub fn random_descent_lines() -> impl Iterator<Item = Line> {
@@ -68,11 +67,7 @@ pub fn new_game() -> Game {
     let mut depth = 1u32;
     let mut init = false;
     let descent_mode: FnGameMod = Box::new(
-        move |config: &mut GameConfig,
-              _mode: &mut GameMode,
-              state: &mut GameState,
-              _feedback_events: &mut FeedbackEvents,
-              modifier_point: &ModifierPoint| {
+        move |config, _mode, state, _rng, _feedback_events, modifier_point| {
             if !init {
                 for (line, worm_line) in state
                     .board
