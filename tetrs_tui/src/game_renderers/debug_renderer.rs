@@ -12,7 +12,7 @@ use tetrs_engine::{Feedback, FeedbackEvents, Game, GameState, GameTime};
 
 use crate::{
     game_renderers::Renderer,
-    terminal_app::{RunningGameStats, TerminalApp},
+    terminal_user_interface::{Application, RunningGameStats},
 };
 
 #[derive(Clone, Default, Debug)]
@@ -23,7 +23,7 @@ pub struct DebugRenderer {
 impl Renderer for DebugRenderer {
     fn render<T>(
         &mut self,
-        app: &mut TerminalApp<T>,
+        app: &mut Application<T>,
         _running_game_stats: &mut RunningGameStats,
         game: &Game,
         new_feedback_events: FeedbackEvents,

@@ -163,7 +163,7 @@ pub struct NewGameSettings {
 }
 
 #[derive(Clone, Debug)]
-pub struct TerminalApp<T: Write> {
+pub struct Application<T: Write> {
     pub term: T,
     kitty_detected: bool,
     kitty_assumed: bool,
@@ -174,7 +174,7 @@ pub struct TerminalApp<T: Write> {
     past_games: Vec<FinishedGameStats>,
 }
 
-impl<T: Write> Drop for TerminalApp<T> {
+impl<T: Write> Drop for Application<T> {
     fn drop(&mut self) {
         // FIXME: Handle errors?
         let savefile_path = Self::savefile_path();
@@ -199,7 +199,7 @@ impl<T: Write> Drop for TerminalApp<T> {
     }
 }
 
-impl<T: Write> TerminalApp<T> {
+impl<T: Write> Application<T> {
     pub const W_MAIN: u16 = 80;
     pub const H_MAIN: u16 = 24;
 

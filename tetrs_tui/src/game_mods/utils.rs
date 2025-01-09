@@ -2,7 +2,6 @@ use tetrs_engine::{
     piece_generation::TetrominoSource, Feedback, FnGameMod, GameEvent, ModifierPoint, Tetromino,
 };
 
-#[allow(dead_code)]
 pub fn custom_start_board(board_str: &str) -> FnGameMod {
     let grey_tile = Some(std::num::NonZeroU8::try_from(254).unwrap());
     let mut init = false;
@@ -25,7 +24,6 @@ pub fn custom_start_board(board_str: &str) -> FnGameMod {
     )
 }
 
-#[allow(dead_code)]
 pub fn custom_start_offset(offset: u32) -> FnGameMod {
     let mut init = false;
     Box::new(

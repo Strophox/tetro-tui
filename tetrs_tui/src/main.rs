@@ -1,7 +1,7 @@
 mod game_input_handlers;
 mod game_mods;
 mod game_renderers;
-mod terminal_app;
+mod terminal_user_interface;
 
 use std::io::{self, Write};
 
@@ -36,7 +36,7 @@ struct Args {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
     let stdout = io::BufWriter::new(io::stdout());
-    let mut app = terminal_app::TerminalApp::new(
+    let mut app = terminal_user_interface::Application::new(
         stdout,
         args.custom_seed,
         args.custom_start,
@@ -44,7 +44,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         args.enable_combo_bot,
     );
     std::panic::set_hook(Box::new(|panic_info| {
-        if let Ok(mut file) = std::fs::File::create("tetrs_tui_error_message.txt") {
+        if let Ok(mut file) = std::fs::File::create("tetrs_tui_crash_message.txt") {
             let _ = file.write(panic_info.to_string().as_bytes());
             // let _ = file.write(std::backtrace::Backtrace::force_capture().to_string().as_bytes());
         }

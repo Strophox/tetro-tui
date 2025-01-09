@@ -19,9 +19,9 @@ use tetrs_engine::{
 
 use crate::{
     game_renderers::Renderer,
-    terminal_app::{
-        fmt_duration, fmt_key, fmt_keybinds, GraphicsColor, GraphicsStyle, RunningGameStats,
-        TerminalApp,
+    terminal_user_interface::{
+        fmt_duration, fmt_key, fmt_keybinds, Application, GraphicsColor, GraphicsStyle,
+        RunningGameStats,
     },
 };
 
@@ -214,7 +214,7 @@ impl Renderer for CachedRenderer {
     // NOTE self: what is the concept of having an ADT but some functions are only defined on some variants (that may contain record data)?
     fn render<T>(
         &mut self,
-        app: &mut TerminalApp<T>,
+        app: &mut Application<T>,
         running_game_stats: &mut RunningGameStats,
         game: &Game,
         new_feedback_events: FeedbackEvents,
@@ -224,7 +224,7 @@ impl Renderer for CachedRenderer {
         T: Write,
     {
         if screen_resized {
-            let (x_main, y_main) = TerminalApp::<T>::fetch_main_xy();
+            let (x_main, y_main) = Application::<T>::fetch_main_xy();
             self.screen
                 .buffer_reset((usize::from(x_main), usize::from(y_main)));
         }
