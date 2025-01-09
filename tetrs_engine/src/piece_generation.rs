@@ -163,7 +163,7 @@ impl<'a, 'b, R: Rng> Iterator for TetrominoIterator<'a, 'b, R> {
 
     fn next(&mut self) -> Option<Self::Item> {
         match &mut self.tetromino_generator {
-            TetrominoSource::Uniform => Some(Tetromino::SHAPES[self.rng.gen_range(0..=6)]),
+            TetrominoSource::Uniform => Some(Tetromino::VARIANTS[self.rng.gen_range(0..=6)]),
             TetrominoSource::Stock {
                 pieces_left,
                 multiplicity,
@@ -180,7 +180,7 @@ impl<'a, 'b, R: Rng> Iterator for TetrominoIterator<'a, 'b, R> {
                     }
                 }
                 // SAFETY: 0 <= idx <= 6.
-                Some(Tetromino::SHAPES[idx])
+                Some(Tetromino::VARIANTS[idx])
             }
             TetrominoSource::BalanceRelative { relative_counts } => {
                 let weighing = |&x| 1.0 / f64::from(x).exp(); // Alternative weighing function: `1.0 / (f64::from(x) + 1.0);`
@@ -197,7 +197,7 @@ impl<'a, 'b, R: Rng> Iterator for TetrominoIterator<'a, 'b, R> {
                     }
                 }
                 // SAFETY: 0 <= idx <= 6.
-                Some(Tetromino::SHAPES[idx])
+                Some(Tetromino::VARIANTS[idx])
             }
             TetrominoSource::Recency {
                 last_generated,
@@ -213,7 +213,7 @@ impl<'a, 'b, R: Rng> Iterator for TetrominoIterator<'a, 'b, R> {
                 }
                 last_generated[idx] = 0;
                 // SAFETY: 0 <= idx <= 6.
-                Some(Tetromino::SHAPES[idx])
+                Some(Tetromino::VARIANTS[idx])
             }
             TetrominoSource::Cycle { pattern, index } => {
                 let tetromino = pattern[*index];

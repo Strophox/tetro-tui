@@ -32,10 +32,11 @@ pub fn custom_start_offset(offset: u32) -> FnGameMod {
         move |config, _mode, state, rng, _feedback_events, _modifier_point| {
             if !init {
                 // feedback_events.push((state.time, Feedback::Message(format!("tet gen.: {:?}", config.tetromino_generator))));
-                for tet in config.tetromino_generator.with_rng(rng).take(
-                    usize::try_from(offset)
-                        .unwrap(),
-                ) {
+                for tet in config
+                    .tetromino_generator
+                    .with_rng(rng)
+                    .take(usize::try_from(offset).unwrap())
+                {
                     state.pieces_played[tet] += 1;
                 }
                 if state.hold_piece.is_some() {

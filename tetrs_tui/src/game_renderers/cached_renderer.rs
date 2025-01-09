@@ -25,6 +25,8 @@ use crate::{
     },
 };
 
+use super::{tet_str_minuscule, tet_str_small, tile_to_color};
+
 #[derive(Clone, Default, Debug)]
 struct ScreenBuf {
     prev: Vec<Vec<(char, Option<Color>)>>,
@@ -430,59 +432,8 @@ impl Renderer for CachedRenderer {
         let (x_messages, y_messages) = (47, 18);
         let pos_board = |(x, y)| (x_board + 2 * x, y_board + Game::SKYLINE - y);
         // Board: helpers.
-        #[rustfmt::skip]
-        let get_color = |mode: GraphicsColor| match mode {
-            GraphicsColor::Monochrome => {
-                |_tile: TileTypeID| None
-            },
-            GraphicsColor::Color16 => {
-                |tile: TileTypeID| Some(match tile.get() {
-                        1 => Color::Yellow,
-                        2 => Color::DarkCyan,
-                        3 => Color::Green,
-                        4 => Color::DarkRed,
-                        5 => Color::DarkMagenta,
-                        6 => Color::Red,
-                        7 => Color::Blue,
-                    253 => Color::Black,
-                    254 => Color::DarkGrey,
-                    255 => Color::White,
-                    t => unimplemented!("formatting unknown tile id {t}"),
-                })
-            },
-            GraphicsColor::Fullcolor => {
-                |tile: TileTypeID| Some(match tile.get() {
-                        1 => Color::Rgb { r:254, g:203, b:  0 },
-                        2 => Color::Rgb { r:  0, g:159, b:218 },
-                        3 => Color::Rgb { r:105, g:190, b: 40 },
-                        4 => Color::Rgb { r:237, g: 41, b: 57 },
-                        5 => Color::Rgb { r:149, g: 45, b:152 },
-                        6 => Color::Rgb { r:255, g:121, b:  0 },
-                        7 => Color::Rgb { r:  0, g:101, b:189 },
-                    253 => Color::Rgb { r:  0, g:  0, b:  0 },
-                    254 => Color::Rgb { r:127, g:127, b:127 },
-                    255 => Color::Rgb { r:255, g:255, b:255 },
-                    t => unimplemented!("formatting unknown tile id {t}"),
-                })
-            }
-            GraphicsColor::Experimental => {
-                |tile: TileTypeID| Some(match tile.get() {
-                        1 => Color::Rgb { r: 14, g:198, b:244 },
-                        2 => Color::Rgb { r:242, g:192, b: 29 },
-                        3 => Color::Rgb { r: 70, g:201, b: 50 },
-                        4 => Color::Rgb { r:230, g: 53, b:197 },
-                        5 => Color::Rgb { r:147, g: 41, b:229 },
-                        6 => Color::Rgb { r: 36, g:118, b:242 },
-                        7 => Color::Rgb { r:244, g: 50, b: 48 },
-                      253 => Color::Rgb { r:  0, g:  0, b:  0 },
-                      254 => Color::Rgb { r:127, g:127, b:127 },
-                      255 => Color::Rgb { r:255, g:255, b:255 },
-                    t => unimplemented!("formatting unknown tile id {t}"),
-                })
-            },
-        };
-        let color = get_color(app.settings().graphics_color);
-        let color_board = get_color(app.settings().graphics_color_board);
+        let color = tile_to_color(app.settings().graphics_color);
+        let color_locked = tile_to_color(app.settings().graphics_color_locked);
         // Board: draw hard drop trail.
         for (event_time, pos, h, tile_type_id, relevant) in self.hard_drop_tiles.iter_mut() {
             let elapsed = game_time.saturating_sub(*event_time);
@@ -518,7 +469,7 @@ impl Renderer for CachedRenderer {
                 if let Some(tile_type_id) = cell {
                     self.screen.buffer_str(
                         tile_ground,
-                        color_board(*tile_type_id),
+                        color_locked(*tile_type_id),
                         pos_board((x, y)),
                     );
                 }
@@ -549,19 +500,10 @@ impl Renderer for CachedRenderer {
                 self.screen.buffer_str(tile_preview, color, pos);
             }
         }
-        let preview_small = |t: &Tetromino| match t {
-            Tetromino::O => "██",
-            Tetromino::I => "▄▄▄▄",
-            Tetromino::S => "▄█▀",
-            Tetromino::Z => "▀█▄",
-            Tetromino::T => "▄█▄",
-            Tetromino::L => "▄▄█",
-            Tetromino::J => "█▄▄",
-        };
         // Draw small preview pieces 2,3,4.
         let mut x_offset_small = 0;
         for tet in next_pieces.iter().skip(1).take(3) {
-            let str = preview_small(tet);
+            let str = tet_str_small(tet);
             self.screen.buffer_str(
                 str,
                 color(tet.tiletypeid()),
@@ -569,20 +511,11 @@ impl Renderer for CachedRenderer {
             );
             x_offset_small += str.chars().count() + 1;
         }
-        // Draw minuscule preview pieces 5,6,7,8.
-        let preview_minuscule = |t: &Tetromino| match t {
-            Tetromino::O => "⠶", //"⠶",
-            Tetromino::I => "⡇", //"⠤⠤",
-            Tetromino::S => "⠳", //"⠴⠂",
-            Tetromino::Z => "⠞", //"⠲⠄",
-            Tetromino::T => "⠗", //"⠴⠄",
-            Tetromino::L => "⠧", //"⠤⠆",
-            Tetromino::J => "⠼", //"⠦⠄",
-        };
+        // Draw minuscule preview pieces 5,6,7,8...
         let mut x_offset_minuscule = 0;
         for tet in next_pieces.iter().skip(4) {
             //.take(5) {
-            let str = preview_minuscule(tet);
+            let str = tet_str_minuscule(tet);
             self.screen.buffer_str(
                 str,
                 color(tet.tiletypeid()),
@@ -595,7 +528,7 @@ impl Renderer for CachedRenderer {
         }
         // Draw held piece.
         if let Some((tet, swap_allowed)) = hold_piece {
-            let str = preview_small(tet);
+            let str = tet_str_small(tet);
             let color = color(if *swap_allowed {
                 tet.tiletypeid()
             } else {

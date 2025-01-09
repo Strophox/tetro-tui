@@ -64,6 +64,8 @@ impl Renderer for DebugRenderer {
                             5 => "TT",
                             6 => "LL",
                             7 => "JJ",
+                            253 => "WW",
+                            254 => "WW",
                             255 => "WW",
                             t => unimplemented!("formatting unknown tile id {t}"),
                         })

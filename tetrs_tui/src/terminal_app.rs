@@ -24,13 +24,13 @@ use crossterm::{
 
 use tetrs_engine::{
     piece_generation::TetrominoSource, piece_rotation::RotationSystem, Button, ButtonsPressed,
-    FeedbackEvents, Game, GameConfig, GameMode, GameState, Limits,
+    FeedbackEvents, Game, GameConfig, GameMode, GameState, Limits, Tetromino,
 };
 
 use crate::{
     game_input_handlers::{combo_bot::ComboBotHandler, crossterm::CrosstermHandler, InputSignal},
     game_mods,
-    game_renderers::{cached_renderer::CachedRenderer, Renderer},
+    game_renderers::{self, cached_renderer::CachedRenderer, tet_str_small, Renderer},
 };
 
 // NOTE: This could be more general and less ad-hoc. Count number of I-Spins, J-Spins, etc..
@@ -129,7 +129,7 @@ pub struct Settings {
     pub show_fps: bool,
     pub graphics_style: GraphicsStyle,
     pub graphics_color: GraphicsColor,
-    pub graphics_color_board: GraphicsColor,
+    pub graphics_color_locked: GraphicsColor,
     pub save_data_on_exit: bool,
 }
 
@@ -156,7 +156,8 @@ pub struct NewGameSettings {
     combo_start_layout: u16,
     descent_mode: bool,
     custom_start_board: Option<String>,
-    // The reason this looks so horrible is because it is, in fact, a horrible hack.
+    // FIXME: The reason this looks so horrible is because it is, in fact, a horrible hack that should be removed.
+    #[allow(clippy::type_complexity)]
     custom_start_seed_and_offset_and_hold_piece:
         Option<(u64, (u32, Option<(tetrs_engine::Tetromino, bool)>))>,
 }
@@ -228,7 +229,7 @@ impl<T: Write> TerminalApp<T> {
                 show_fps: false,
                 graphics_style: GraphicsStyle::Unicode,
                 graphics_color: GraphicsColor::Fullcolor,
-                graphics_color_board: GraphicsColor::Fullcolor,
+                graphics_color_locked: GraphicsColor::Fullcolor,
                 save_data_on_exit: false,
             },
             game_config: GameConfig::default(),
@@ -1086,7 +1087,16 @@ impl<T: Write> TerminalApp<T> {
                             (
                                 game.state().pieces_played.iter().sum::<u32>(),
                                 // FIXME: This should NOT change the hold_piece that is stored if it is the FIRST ever piece to be held.
-                                game.state().hold_piece.map(|(tet, swap)| (if swap { tet } else { game.state().active_piece_data.unwrap().0.shape }, true)),
+                                game.state().hold_piece.map(|(tet, swap)| {
+                                    (
+                                        if swap {
+                                            tet
+                                        } else {
+                                            game.state().active_piece_data.unwrap().0.shape
+                                        },
+                                        true,
+                                    )
+                                }),
                             ),
                         ));
                         new_feedback_events.push((
@@ -1451,6 +1461,21 @@ impl<T: Write> TerminalApp<T> {
                 .queue(PrintStyledContent(
                     format!("{:^w_main$}", "Use [←] [→] [↑] [↓] [Esc] [Enter].",).italic(),
                 ))?;
+            self.term.queue(MoveTo(
+                x_main + u16::try_from((w_main - 27) / 2).unwrap(),
+                y_main + y_selection + 4 + u16::try_from(selection_len + 1).unwrap() + 4,
+            ))?;
+            for tet in Tetromino::VARIANTS {
+                self.term.queue(PrintStyledContent(
+                    tet_str_small(&tet).with(
+                        game_renderers::tile_to_color(self.settings.graphics_color)(
+                            tet.tiletypeid(),
+                        )
+                        .unwrap_or(style::Color::Reset),
+                    ),
+                ))?;
+                self.term.queue(Print(' '))?;
+            }
             self.term.flush()?;
             // Wait for new input.
             match event::read()? {
@@ -1525,7 +1550,7 @@ impl<T: Write> TerminalApp<T> {
                             GraphicsColor::Fullcolor => GraphicsColor::Experimental,
                             GraphicsColor::Experimental => GraphicsColor::Monochrome,
                         };
-                        self.settings.graphics_color_board = self.settings.graphics_color;
+                        self.settings.graphics_color_locked = self.settings.graphics_color;
                     }
                     4 => {
                         self.settings.game_fps += 1.0;
@@ -1558,7 +1583,7 @@ impl<T: Write> TerminalApp<T> {
                             GraphicsColor::Fullcolor => GraphicsColor::Color16,
                             GraphicsColor::Experimental => GraphicsColor::Fullcolor,
                         };
-                        self.settings.graphics_color_board = self.settings.graphics_color;
+                        self.settings.graphics_color_locked = self.settings.graphics_color;
                     }
                     4 => {
                         if self.settings.game_fps >= 1.0 {

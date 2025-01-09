@@ -370,7 +370,7 @@ fn neighbors(
         return neighbors;
     };
     let new_active = (next_pieces != 0)
-        .then(|| Tetromino::SHAPES[usize::try_from(next_pieces & 0b111).unwrap() - 1]);
+        .then(|| Tetromino::VARIANTS[usize::try_from(next_pieces & 0b111).unwrap() - 1]);
     let new_next_pieces = next_pieces >> 3;
     // Add neighbors reachable with just holding / swapping with the active piece.
     if let Some((held, swap_allowed)) = hold {
@@ -610,7 +610,7 @@ pub fn fmt_statenode(
     while next_pieces != 0 {
         next_pieces_str.push_str(&format!(
             "{:?}",
-            Tetromino::SHAPES[usize::try_from(next_pieces & 0b111).unwrap() - 1]
+            Tetromino::VARIANTS[usize::try_from(next_pieces & 0b111).unwrap() - 1]
         ));
         next_pieces >>= 3;
     }

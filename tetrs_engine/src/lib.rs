@@ -441,7 +441,7 @@ impl Orientation {
 
 impl Tetromino {
     /// The Tetromino variants.
-    pub const SHAPES: [Self; 7] = {
+    pub const VARIANTS: [Self; 7] = {
         use Tetromino::*;
         [O, I, S, Z, T, L, J]
     };
