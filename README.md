@@ -330,7 +330,7 @@ Unlike bag it possibly provides a more continuous "gut feeling" of what piece(s)
 
 — *said no one ever, not even [the creator of Tetris himself](https://youtu.be/6YhkkyXydNI?si=jbVwfNtfl5yFh9Gk&t=674).*
 
-Considering the sheer size of the franchise and range of players coming from all sorts of niches and previous game version the official *Super Rotation System* ['gets its job done'](https://www.youtube.com/watch?v=dgt1kWq2_7c)™ - nevertheless it was *the* mechanic I wanted to redo even before starting this project.
+That's a bit harsh of course, considering the sheer size of the franchise and range of players coming from all sorts of niches and previous game versions, which the official *Super Rotation System* somehow [gets its job done](https://www.youtube.com/watch?v=dgt1kWq2_7c)™ - nevertheless it was *the* mechanic I wanted to redo even before starting this project.
 
 <details>
 
@@ -340,7 +340,7 @@ My personal gripes with SRS are:
 
 - The system is not symmetric.
   - Symmetric pieces can look exactly the same in different rotation states, **[but have different behaviour](https://blog.battlefy.com/how-accidental-complexity-harms-the-tetris-community-93311461b2af)**.
-  - Doing rotation, then Mirroring board and piece **≠** Mirroring board and piece, then Doing mirrored rotation.
+  - For symmetrical pieces, rotation is different depending on whether it's right or left (even though it should be symmetric too).
 - It's an [advanced system](https://harddrop.com/wiki/SRS) with things like different rotation points for different purposes, yet it re-uses the *exact same kicks* for 5 out of the 7 pieces, even though they have completely different symmetries.
 - <sup>Not a hot take, but some rotations are just *weird* (to be chosen over other possibilities).</sup>
 - Piece elevators.
