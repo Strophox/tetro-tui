@@ -7,6 +7,7 @@ edition = "2021"
 chrono = "0.4.38"
 clap = { version = "4.5.9", features = ["derive"] }
 crossterm = { version = "0.27.0", features = ["serde"] }
+dirs = "6.0.0"
 rand = "0.8.5"
 serde = { version = "1.0.204", features = ["derive"] }
 serde_json = "1.0.120"

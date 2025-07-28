@@ -1,6 +1,5 @@
 use std::{
     collections::HashMap,
-    env,
     fmt::Debug,
     fs::File,
     io::{self, Read, Write},
@@ -269,34 +268,9 @@ impl<T: Write> Application<T> {
     }
 
     fn savefile_path() -> PathBuf {
-        let home_var = env::var("HOME");
-        #[allow(clippy::collapsible_else_if)]
-        if cfg!(target_os = "windows") {
-            if let Ok(appdata_path) = env::var("APPDATA") {
-                PathBuf::from(appdata_path)
-            } else {
-                PathBuf::from(".")
-            }
-        } else if cfg!(target_os = "linux") {
-            if let Ok(home_path) = home_var {
-                PathBuf::from(home_path).join(".config")
-            } else {
-                PathBuf::from(".")
-            }
-        } else if cfg!(target_os = "macos") {
-            if let Ok(home_path) = home_var {
-                PathBuf::from(home_path).join("Library/Application Support")
-            } else {
-                PathBuf::from(".")
-            }
-        } else {
-            if let Ok(home_path) = home_var {
-                PathBuf::from(home_path)
-            } else {
-                PathBuf::from(".")
-            }
-        }
-        .join(Self::SAVEFILE_NAME)
+        dirs::config_dir()
+            .unwrap_or_else(|| PathBuf::from("."))
+            .join(Self::SAVEFILE_NAME)
     }
 
     fn store_savefile(&mut self, path: PathBuf) -> io::Result<()> {
