@@ -163,13 +163,7 @@ For more technical details see [Features of the Tetrs Engine](#features-of-the-t
 - *(\*Games where 0 lines have been cleared are auto-deleted on exit.)*
 
 > [!NOTE]
-> If "keep save file for tetrs" is toggled **ON** then your settings and games will be stored in `.tetrs_tui_savefile.json` under a directory that tries to follow OS conventions [[1](https://softwareengineering.stackexchange.com/questions/3956/best-way-to-save-application-settings), [2](https://softwareengineering.stackexchange.com/questions/299869/where-is-the-appropriate-place-to-put-application-configuration-files-for-each-p)]:
-> | | Windows | Linux | macOS | other |
-> | -: | - | - | - | - |
-> | location | `%APPDATA%` | `~/.config/` | `~/Library/Application Support/` | (home directory) |
-> 
-> (If this fails it tries to store it locally, `./`.)
-
+> If "keep save file for tetrs" is toggled **ON** then your settings and games will be stored in a file called `.tetrs_tui_savefile.json` in the 'config' directory (as given by the [`dirs` crate](<https://docs.rs/dirs/latest/dirs/fn.config_dir.html>), dependent on your OS (and if all else fails then saves it locally, i.e. `./`)).
 
 # Features of the Tetrs Engine
 
