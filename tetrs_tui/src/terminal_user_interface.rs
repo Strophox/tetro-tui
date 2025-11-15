@@ -179,7 +179,7 @@ impl<T: Write> Drop for Application<T> {
         let savefile_path = Self::savefile_path();
         // If the user wants their data stored, try to do so.
         if self.settings.save_data_on_exit {
-            if let Err(_e) = self.store_savefile(savefile_path) {
+            if let Err(_e) = self.store_save(savefile_path) {
                 // FIXME: Make this debuggable.
                 //eprintln!("Could not save settings this time: {e} ");
                 //std::thread::sleep(Duration::from_secs(4));
@@ -247,7 +247,7 @@ impl<T: Write> Application<T> {
             combo_bot_enabled: false,
             past_games: vec![],
         };
-        if app.load_savefile().is_err() {
+        if app.load_save(Self::savefile_path()).is_err() {
             // FIXME: Make this debuggable.
             //eprintln!("Could not loading settings: {e}");
             //std::thread::sleep(Duration::from_secs(5));
@@ -273,7 +273,7 @@ impl<T: Write> Application<T> {
             .join(Self::SAVEFILE_NAME)
     }
 
-    fn store_savefile(&mut self, path: PathBuf) -> io::Result<()> {
+    fn store_save(&mut self, path: PathBuf) -> io::Result<()> {
         self.past_games = self
             .past_games
             .iter()
@@ -303,8 +303,8 @@ impl<T: Write> Application<T> {
         Ok(())
     }
 
-    fn load_savefile(&mut self) -> io::Result<()> {
-        let mut file = File::open(Self::savefile_path())?;
+    fn load_save(&mut self, path: PathBuf) -> io::Result<()> {
+        let mut file = File::open(path)?;
         let mut save_str = String::new();
         file.read_to_string(&mut save_str)?;
         let save_state = serde_json::from_str(&save_str)?;
