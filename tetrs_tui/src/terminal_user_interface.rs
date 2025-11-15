@@ -119,6 +119,15 @@ pub enum GraphicsColor {
     Experimental,
 }
 
+#[derive(
+    Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug, serde::Serialize, serde::Deserialize,
+)]
+pub enum SavefileGranularity {
+    Nothing,
+    Settings,
+    SettingsAndGames,
+}
+
 #[serde_with::serde_as]
 #[derive(PartialEq, Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Settings {
@@ -129,7 +138,7 @@ pub struct Settings {
     pub graphics_style: GraphicsStyle,
     pub graphics_color: GraphicsColor,
     pub graphics_color_locked: GraphicsColor,
-    pub save_data_on_exit: bool,
+    pub save_on_exit: SavefileGranularity,
 }
 
 // For the "New Game" menu.
@@ -178,7 +187,7 @@ impl<T: Write> Drop for Application<T> {
         // FIXME: Handle errors?
         let savefile_path = Self::savefile_path();
         // If the user wants their data stored, try to do so.
-        if self.settings.save_data_on_exit {
+        if self.settings.save_on_exit != SavefileGranularity::Nothing {
             if let Err(_e) = self.store_save(savefile_path) {
                 // FIXME: Make this debuggable.
                 //eprintln!("Could not save settings this time: {e} ");
@@ -229,7 +238,7 @@ impl<T: Write> Application<T> {
                 graphics_style: GraphicsStyle::Unicode,
                 graphics_color: GraphicsColor::Fullcolor,
                 graphics_color_locked: GraphicsColor::Fullcolor,
-                save_data_on_exit: false,
+                save_on_exit: SavefileGranularity::Nothing,
             },
             game_config: GameConfig::default(),
             new_game_settings: NewGameSettings {
@@ -274,22 +283,27 @@ impl<T: Write> Application<T> {
     }
 
     fn store_save(&mut self, path: PathBuf) -> io::Result<()> {
-        self.past_games = self
-            .past_games
-            .iter()
-            .filter(|finished_game_stats| {
-                finished_game_stats.was_successful()
-                    || finished_game_stats.last_state.lines_cleared
-                        > if finished_game_stats.gamemode.name == "Combo"
-                            || finished_game_stats.gamemode.name == "Combo (Bot)"
-                        {
-                            9
-                        } else {
-                            0
-                        }
-            })
-            .cloned()
-            .collect::<Vec<_>>();
+        // Only save past games if needed.
+        self.past_games = if self.settings.save_on_exit == SavefileGranularity::SettingsAndGames {
+            self
+                .past_games
+                .iter()
+                .filter(|finished_game_stats| {
+                    finished_game_stats.was_successful()
+                        || finished_game_stats.last_state.lines_cleared
+                            > if finished_game_stats.gamemode.name == "Combo"
+                                || finished_game_stats.gamemode.name == "Combo (Bot)"
+                            {
+                                9
+                            } else {
+                                0
+                            }
+                })
+                .cloned()
+                .collect::<Vec<_>>()
+        } else {
+            Vec::new()
+        };
         let save_state = (
             &self.settings,
             &self.new_game_settings,
@@ -1400,16 +1414,15 @@ impl<T: Write> Application<T> {
                 format!("framerate : {}", self.settings.game_fps),
                 format!("show fps : {}", self.settings.show_fps),
                 "".to_string(),
-                if self.settings.save_data_on_exit {
-                    "keep save file for tetrs : ON"
-                } else {
-                    "keep save file for tetrs : OFF*"
-                }
-                .to_string(),
-                if self.settings.save_data_on_exit {
-                    format!("(save file: {:?})", Self::savefile_path())
-                } else {
+                format!("keep save file for tetrs : {}", match self.settings.save_on_exit {
+                    SavefileGranularity::Nothing => "OFF*",
+                    SavefileGranularity::Settings => "ON (only settings)",
+                    SavefileGranularity::SettingsAndGames => "ON",
+                }),
+                if self.settings.save_on_exit == SavefileGranularity::Nothing {
                     "(*WARNING - data will be lost on exit.)".to_string()
+                } else {
+                    format!("(save file at {:?})", Self::savefile_path())
                 },
             ];
             for (i, label) in labels.into_iter().enumerate() {
@@ -1534,7 +1547,11 @@ impl<T: Write> Application<T> {
                     }
                     6 => {} // Hacky empty line.
                     7 => {
-                        self.settings.save_data_on_exit = !self.settings.save_data_on_exit;
+                        self.settings.save_on_exit = match self.settings.save_on_exit {
+                            SavefileGranularity::Nothing => SavefileGranularity::SettingsAndGames,
+                            SavefileGranularity::Settings => SavefileGranularity::Nothing,
+                            SavefileGranularity::SettingsAndGames => SavefileGranularity::Settings,
+                        };
                     }
                     _ => {}
                 },
@@ -1569,7 +1586,11 @@ impl<T: Write> Application<T> {
                     }
                     6 => {} // Hacky empty line.
                     7 => {
-                        self.settings.save_data_on_exit = !self.settings.save_data_on_exit;
+                        self.settings.save_on_exit = match self.settings.save_on_exit {
+                            SavefileGranularity::Nothing => SavefileGranularity::Settings,
+                            SavefileGranularity::Settings => SavefileGranularity::SettingsAndGames,
+                            SavefileGranularity::SettingsAndGames => SavefileGranularity::Nothing,
+                        };
                     }
                     _ => {}
                 },
