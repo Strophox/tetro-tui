@@ -2418,6 +2418,7 @@ pub fn fmt_key(key: KeyCode) -> String {
             KeyCode::Tab => "Tab".to_string(),
             KeyCode::Delete => "Del".to_string(),
             KeyCode::F(n) => format!("F{n}"),
+            KeyCode::Char(' ') => "Space".to_string(),
             KeyCode::Char(c) => c.to_uppercase().to_string(),
             KeyCode::Esc => "Esc".to_string(),
             k => format!("{:?}", k),

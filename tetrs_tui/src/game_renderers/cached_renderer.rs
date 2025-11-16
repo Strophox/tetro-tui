@@ -8,7 +8,6 @@ use std::{
 
 use crossterm::{
     cursor,
-    event::KeyCode,
     style::{self, Color, Print, PrintStyledContent, Stylize},
     terminal, QueueableCommand,
 };
@@ -20,8 +19,7 @@ use tetrs_engine::{
 use crate::{
     game_renderers::Renderer,
     terminal_user_interface::{
-        fmt_duration, fmt_key, fmt_keybinds, Application, GraphicsColor, GraphicsStyle,
-        RunningGameStats,
+        fmt_duration, fmt_keybinds, Application, GraphicsColor, GraphicsStyle, RunningGameStats,
     },
 };
 
@@ -293,39 +291,44 @@ impl Renderer for CachedRenderer {
             "Puzzle" => ("", "".to_string()),
             _ => ("Lines cleared:", lines_cleared.to_string()),
         };
-        let key_icons_moveleft = fmt_keybinds(Button::MoveLeft, &app.settings().keybinds);
-        let key_icons_moveright = fmt_keybinds(Button::MoveRight, &app.settings().keybinds);
-        let mut key_icons_move = format!("{key_icons_moveleft}{key_icons_moveright}");
-        let key_icons_rotateleft = fmt_keybinds(Button::RotateLeft, &app.settings().keybinds);
-        let key_icons_rotatearound = fmt_keybinds(Button::RotateAround, &app.settings().keybinds);
-        let key_icons_rotateright = fmt_keybinds(Button::RotateRight, &app.settings().keybinds);
-        let mut key_icons_rotate =
-            format!("{key_icons_rotateleft}{key_icons_rotatearound}{key_icons_rotateright}");
-        let key_icons_dropsoft = fmt_keybinds(Button::DropSoft, &app.settings().keybinds);
-        let key_icons_dropsonic = fmt_keybinds(Button::DropSonic, &app.settings().keybinds);
-        let key_icons_drophard = fmt_keybinds(Button::DropHard, &app.settings().keybinds);
-        let mut key_icons_drop =
-            format!("{key_icons_dropsoft}{key_icons_dropsonic}{key_icons_drophard}");
-        let key_icon_pause = fmt_key(KeyCode::Esc);
+        let keybinds = &app.settings().keybinds;
+        let icons_moveleft = fmt_keybinds(Button::MoveLeft, keybinds);
+        let icons_moveright = fmt_keybinds(Button::MoveRight, keybinds);
+        let mut icons_move = format!("{icons_moveleft}{icons_moveright}");
+        let icons_rotateleft = fmt_keybinds(Button::RotateLeft, keybinds);
+        let icons_rotatearound = fmt_keybinds(Button::RotateAround, keybinds);
+        let icons_rotateright = fmt_keybinds(Button::RotateRight, keybinds);
+        let mut icons_rotate = format!("{icons_rotateleft}{icons_rotatearound}{icons_rotateright}");
+        let icons_dropsoft = fmt_keybinds(Button::DropSoft, keybinds);
+        let icons_dropsonic = fmt_keybinds(Button::DropSonic, keybinds);
+        let icons_drophard = fmt_keybinds(Button::DropHard, keybinds);
+        let mut icons_drop = format!("{icons_dropsoft}{icons_dropsonic}{icons_drophard}");
+        let mut icons_hold = fmt_keybinds(Button::HoldPiece, keybinds);
         // FAIR enough https://users.rust-lang.org/t/truncating-a-string/77903/9 :
-        let eleven = key_icons_move
+        let eleven = icons_move
             .char_indices()
             .map(|(i, _)| i)
             .nth(11)
-            .unwrap_or(key_icons_move.len());
-        key_icons_move.truncate(eleven);
-        let eleven = key_icons_rotate
+            .unwrap_or(icons_move.len());
+        icons_move.truncate(eleven);
+        let eleven = icons_rotate
             .char_indices()
             .map(|(i, _)| i)
             .nth(11)
-            .unwrap_or(key_icons_rotate.len());
-        key_icons_rotate.truncate(eleven);
-        let eleven = key_icons_drop
+            .unwrap_or(icons_rotate.len());
+        icons_rotate.truncate(eleven);
+        let eleven = icons_drop
             .char_indices()
             .map(|(i, _)| i)
             .nth(11)
-            .unwrap_or(key_icons_drop.len());
-        key_icons_drop.truncate(eleven);
+            .unwrap_or(icons_drop.len());
+        icons_drop.truncate(eleven);
+        let eleven = icons_hold
+            .char_indices()
+            .map(|(i, _)| i)
+            .nth(11)
+            .unwrap_or(icons_hold.len());
+        icons_hold.truncate(eleven);
         let piececnts_o_i_s_z = [
             format!("{}o", pieces_played[Tetromino::O]),
             format!("{}i", pieces_played[Tetromino::I]),
@@ -363,10 +366,10 @@ impl Renderer for CachedRenderer {
                 format!("                      <! . . . . . . . . . .!>              ", ),
                 format!("   CONTROLS           <! . . . . . . . . . .!>              ", ),
                 format!("   ---------          <! . . . . . . . . . .!>              ", ),
-                format!("   Move    {:<11     }<! . . . . . . . . . .!>              ", key_icons_move),
-                format!("   Rotate  {:<11     }<! . . . . . . . . . .!>              ", key_icons_rotate),
-                format!("   Drop    {:<11     }<! . . . . . . . . . .!>              ", key_icons_drop),
-                format!("   Pause   {:<11     }<! . . . . . . . . . .!>              ", key_icon_pause),
+                format!("   Move    {:<11     }<! . . . . . . . . . .!>              ", icons_move),
+                format!("   Rotate  {:<11     }<! . . . . . . . . . .!>              ", icons_rotate),
+                format!("   Drop    {:<11     }<! . . . . . . . . . .!>              ", icons_drop),
+                format!("   Hold    {:<11     }<! . . . . . . . . . .!>              ", icons_hold),
                 format!("                      <!====================!>              ", ),
                format!(r"                        \/\/\/\/\/\/\/\/\/\/                ", ),
             ],
@@ -389,10 +392,10 @@ impl Renderer for CachedRenderer {
                 format!("                       |                    |               ", ),
                 format!("   CONTROLS            |                    |               ", ),
                 format!("   ---------           |                    |               ", ),
-                format!("   Move    {:<12      }|                    |               ", key_icons_move),
-                format!("   Rotate  {:<12      }|                    |               ", key_icons_rotate),
-                format!("   Drop    {:<12      }|                    |               ", key_icons_drop),
-                format!("   Pause   {:<12      }|                    |               ", key_icon_pause),
+                format!("   Move    {:<12      }|                    |               ", icons_move),
+                format!("   Rotate  {:<12      }|                    |               ", icons_rotate),
+                format!("   Drop    {:<12      }|                    |               ", icons_drop),
+                format!("   Hold    {:<12      }|                    |               ", icons_hold),
                 format!("                      ~#====================#~              ", ),
                 format!("                                                            ", ),
             ],
@@ -415,10 +418,10 @@ impl Renderer for CachedRenderer {
                 format!("                       ║                    ║               ", ),
                 format!("   CONTROLS            ║                    ║               ", ),
                 format!("   ────────╴           ║                    ║               ", ),
-                format!("   Move    {:<12      }║                    ║               ", key_icons_move),
-                format!("   Rotate  {:<12      }║                    ║               ", key_icons_rotate),
-                format!("   Drop    {:<12      }║                    ║               ", key_icons_drop),
-                format!("   Pause   {:<12      }║                    ║               ", key_icon_pause),
+                format!("   Move    {:<12      }║                    ║               ", icons_move),
+                format!("   Rotate  {:<12      }║                    ║               ", icons_rotate),
+                format!("   Drop    {:<12      }║                    ║               ", icons_drop),
+                format!("   Hold    {:<12      }║                    ║               ", icons_hold),
                 format!("                    ░▒▓█▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀█▓▒░            ", ),
                 format!("                                                            ", ),
             ],
