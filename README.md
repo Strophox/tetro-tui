@@ -51,7 +51,7 @@
 ![Unicode demo screenshot](Gallery/sample-unicode.png)
 
 
-**Efficient rendering in consoles, configurable controls, etc.:**
+**[Efficient](#performance-consideration) rendering in consoles, configurable controls, etc.:**
 
 ![Unicode demo GIF](Gallery/sample-unicode.gif)
 
@@ -280,6 +280,19 @@ The game provides some useful feedback events upon every `update`, usually used 
   - Better internal documentation.
 
 A personal goal would be to (at least partially) amend these problems, step-by-step.
+
+
+## Performance Considerations
+
+This part is fairly informal.
+Nonetheless we list some considerations regarding perfomance of both the tetrs engine and TUI:
+* Being written in Rust, there is already an certain assumption that overall program performance is likely not going to be an issue for most use cases, given the generally small scope of the underlying game.
+* Informally, the implementation of the game engine was developed with a principle of "not adding more than what is really needed to make the game and some basic frontend features work."
+  * E.g. the game is updated by looking up one of a bounded number of available immediately upcoming events, and handling the next event.
+  * `for`-loops should generally run in a constant time of iterations, probably in the order of `10^2`.
+  * Given a client of the tetrs engine, the 'modding' features `Game::add_modifier` may be used to degrade performance. `Game::add_modifier` allows a client to add arbitrary modifiers in the form of closures, which may inspect and modify game state at various points (e.g. before and after handling of an internal game event). It is therefore up to the modder to ensure the modifier does not incur an unmanageable performance cost.
+* Informally, the frontend seems to be bottlenecked by I/O operations. This is taken care of as best as possible;
+  * The current implementation of a 'cached renderer' computes a new 'frame' to draw (into the terminal). It then proceeds to diff the new frame with the preceding, old frame and figures out the actual cells which need to be redraw to achieve the required result.
 
 
 # Project Highlights
