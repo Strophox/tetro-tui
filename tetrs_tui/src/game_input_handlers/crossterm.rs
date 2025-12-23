@@ -63,6 +63,18 @@ impl CrosstermHandler {
         ])
     }
 
+    pub fn vim_keybinds() -> HashMap<KeyCode, Button> {
+        HashMap::from([
+            (KeyCode::Char('h'), Button::DropSoft),
+            (KeyCode::Char('j'), Button::MoveLeft),
+            (KeyCode::Char('k'), Button::RotateRight),
+            (KeyCode::Char('l'), Button::MoveRight),
+            (KeyCode::Char(' '), Button::DropHard),
+            (KeyCode::Char('c'), Button::HoldPiece),
+            (KeyCode::Char('z'), Button::RotateLeft),
+        ])
+    }
+
     fn spawn_standard(
         run_thread_flag: Arc<AtomicBool>,
         input_sender: Sender<InputSignal>,

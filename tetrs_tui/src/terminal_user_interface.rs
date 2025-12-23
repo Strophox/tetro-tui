@@ -285,8 +285,7 @@ impl<T: Write> Application<T> {
     fn store_save(&mut self, path: PathBuf) -> io::Result<()> {
         // Only save past games if needed.
         self.past_games = if self.settings.save_on_exit == SavefileGranularity::SettingsAndGames {
-            self
-                .past_games
+            self.past_games
                 .iter()
                 .filter(|finished_game_stats| {
                     finished_game_stats.was_successful()
@@ -1414,11 +1413,14 @@ impl<T: Write> Application<T> {
                 format!("framerate : {}", self.settings.game_fps),
                 format!("show fps : {}", self.settings.show_fps),
                 "".to_string(),
-                format!("keep save file for tetrs : {}", match self.settings.save_on_exit {
-                    SavefileGranularity::Nothing => "OFF*",
-                    SavefileGranularity::Settings => "ON (only settings)",
-                    SavefileGranularity::SettingsAndGames => "ON",
-                }),
+                format!(
+                    "keep save file for tetrs : {}",
+                    match self.settings.save_on_exit {
+                        SavefileGranularity::Nothing => "OFF*",
+                        SavefileGranularity::Settings => "ON (only settings)",
+                        SavefileGranularity::SettingsAndGames => "ON",
+                    }
+                ),
                 if self.settings.save_on_exit == SavefileGranularity::Nothing {
                     "(*WARNING - data will be lost on exit.)".to_string()
                 } else {
@@ -1613,7 +1615,8 @@ impl<T: Write> Application<T> {
             Button::DropSonic,
             Button::HoldPiece,
         ];
-        let selection_len = button_selection.len() + 1;
+        // INCREASED selection_len by 1 to accommodate the new button (total +2 from base list)
+        let selection_len = button_selection.len() + 2;
         let mut selected = 0usize;
         loop {
             let w_main = Self::W_MAIN.into();
@@ -1649,7 +1652,22 @@ impl<T: Write> Application<T> {
                         }
                     )))?;
             }
+
+            // Render "Restore Defaults"
             self.term
+                .queue(MoveTo(
+                    x_main,
+                    y_main + y_selection + 4 + u16::try_from(selection_len - 2).unwrap() + 1,
+                ))?
+                .queue(Print(format!(
+                    "{:^w_main$}",
+                    if selected == selection_len - 2 {
+                        ">>> Restore Defaults <<<"
+                    } else {
+                        "Restore Defaults"
+                    }
+                )))?
+                // Render "Use Vim Defaults"
                 .queue(MoveTo(
                     x_main,
                     y_main + y_selection + 4 + u16::try_from(selection_len - 1).unwrap() + 1,
@@ -1657,9 +1675,9 @@ impl<T: Write> Application<T> {
                 .queue(Print(format!(
                     "{:^w_main$}",
                     if selected == selection_len - 1 {
-                        ">>> Restore Defaults <<<"
+                        ">>> Use Vim Defaults <<<"
                     } else {
-                        "Restore Defaults"
+                        "Use Vim Defaults"
                     }
                 )))?
                 .queue(MoveTo(
@@ -1701,8 +1719,10 @@ impl<T: Write> Application<T> {
                     kind: Press,
                     ..
                 }) => {
-                    if selected == selection_len - 1 {
+                    if selected == selection_len - 2 {
                         self.settings.keybinds = CrosstermHandler::default_keybinds();
+                    } else if selected == selection_len - 1 {
+                        self.settings.keybinds = CrosstermHandler::vim_keybinds();
                     } else {
                         let current_button = button_selection[selected];
                         self.term
@@ -1740,7 +1760,7 @@ impl<T: Write> Application<T> {
                     kind: Press,
                     ..
                 }) => {
-                    if selected == selection_len - 1 {
+                    if selected == selection_len - 2 || selected == selection_len - 1 {
                         self.settings.keybinds.clear();
                     } else {
                         let current_button = button_selection[selected];
