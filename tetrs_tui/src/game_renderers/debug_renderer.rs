@@ -15,6 +15,7 @@ use crate::{
     terminal_user_interface::{Application, RunningGameStats},
 };
 
+#[allow(dead_code)]
 #[derive(Clone, Default, Debug)]
 pub struct DebugRenderer {
     feedback_event_buffer: VecDeque<(GameTime, Feedback)>,
