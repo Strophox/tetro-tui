@@ -17,7 +17,7 @@ use crate::Tetromino;
 ///
 /// To actually generate [`Tetromino`]s, the [`TetrominoSource::with_rng`] method needs to be used to yield a
 /// [`TetrominoIterator`] that implements [`Iterator`].
-#[derive(Debug)]
+#[derive(PartialEq, PartialOrd, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum TetrominoSource {
     /// Uniformly random piece generator.

@@ -224,7 +224,7 @@ pub struct GameMode {
 }
 
 /// User-focused configuration options that mainly influence time-sensitive or cosmetic mechanics.
-#[derive(Clone, Debug)]
+#[derive(PartialEq, PartialOrd, Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct GameConfig {
     /// The method of tetromino rotation used.

@@ -6,7 +6,7 @@ use std::io::{self, Write};
 use crossterm::style::Color;
 use tetrs_engine::{FeedbackEvents, Game, Tetromino, TileTypeID};
 
-use crate::terminal_user_interface::{Application, GraphicsColor, RunningGameStats};
+use crate::terminal_user_interface::{Application, GraphicsColoring, RunningGameStats};
 
 pub trait Renderer {
     fn render<T>(
@@ -45,10 +45,10 @@ pub fn tet_str_minuscule(t: &Tetromino) -> &'static str {
     }
 }
 
-pub fn tile_to_color(mode: GraphicsColor) -> fn(TileTypeID) -> Option<Color> {
+pub fn tile_to_color(mode: GraphicsColoring) -> fn(TileTypeID) -> Option<Color> {
     match mode {
-        GraphicsColor::Monochrome => |_tile: TileTypeID| None,
-        GraphicsColor::Color16 => |tile: TileTypeID| {
+        GraphicsColoring::Monochrome => |_tile: TileTypeID| None,
+        GraphicsColoring::Color16 => |tile: TileTypeID| {
             Some(match tile.get() {
                 1 => Color::Yellow,
                 2 => Color::DarkCyan,
@@ -63,7 +63,7 @@ pub fn tile_to_color(mode: GraphicsColor) -> fn(TileTypeID) -> Option<Color> {
                 t => unimplemented!("formatting unknown tile id {t}"),
             })
         },
-        GraphicsColor::Fullcolor => |tile: TileTypeID| {
+        GraphicsColoring::Fullcolor => |tile: TileTypeID| {
             Some(match tile.get() {
                 1 => Color::Rgb {
                     r: 254,
@@ -114,7 +114,7 @@ pub fn tile_to_color(mode: GraphicsColor) -> fn(TileTypeID) -> Option<Color> {
                 t => unimplemented!("formatting unknown tile id {t}"),
             })
         },
-        GraphicsColor::Experimental => |tile: TileTypeID| {
+        GraphicsColoring::Experimental => |tile: TileTypeID| {
             Some(match tile.get() {
                 1 => Color::Rgb {
                     r: 14,
