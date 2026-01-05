@@ -66,8 +66,9 @@ enum Menu {
     GameComplete(Box<FinishedGameStats>),
     Pause,
     Settings,
-    ChangeKeybinds,
+    ConfigureKeybinds,
     ConfigureGameplay,
+    ConfigureGraphics,
     Scores,
     About,
     Quit(String),
@@ -83,8 +84,9 @@ impl std::fmt::Display for Menu {
             Menu::GameComplete(_) => "Game Completed",
             Menu::Pause => "Pause",
             Menu::Settings => "Settings",
-            Menu::ChangeKeybinds => "Change Keybinds",
+            Menu::ConfigureKeybinds => "Configure Keybinds",
             Menu::ConfigureGameplay => "Configure Gameplay",
+            Menu::ConfigureGraphics => "Configure Graphics",
             Menu::Scores => "Scoreboard",
             Menu::About => "About",
             Menu::Quit(_) => "Quit",
@@ -300,7 +302,7 @@ impl<T: Write> Application<T> {
                             }
                 })
                 .cloned()
-                .collect::<Vec<_>>()
+                .collect::<Vec<_>>() // TODO: Remove auto-filtering of scoreboard but enable deleting of entries manually in scoreboard menu.
         } else {
             Vec::new()
         };
@@ -364,8 +366,9 @@ impl<T: Write> Application<T> {
                 Menu::Scores => self.scores_menu(),
                 Menu::About => self.about_menu(),
                 Menu::Settings => self.settings_menu(),
-                Menu::ChangeKeybinds => self.change_keybinds_menu(),
+                Menu::ConfigureKeybinds => self.configure_keybinds_menu(),
                 Menu::ConfigureGameplay => self.configure_gameplay_menu(),
+                Menu::ConfigureGraphics => self.configure_graphics_menu(),
                 Menu::Quit(string) => break string.clone(),
             }?;
             // Change screen session depending on what response screen gave.
@@ -421,7 +424,7 @@ impl<T: Write> Application<T> {
                     .queue(MoveTo(x_main, y_main + y_selection))?
                     .queue(Print(format!(
                         "{:^w_main$}",
-                        format!("[ {} ]", current_menu_name)
+                        format!("- {} -", current_menu_name)
                     )))?
                     .queue(MoveTo(x_main, y_main + y_selection + 2))?
                     .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
@@ -448,7 +451,7 @@ impl<T: Write> Application<T> {
                         .queue(Print(format!(
                             "{:^w_main$}",
                             if i == selected {
-                                format!(">>> {name} <<<")
+                                format!(">> {name} <<")
                             } else {
                                 name
                             }
@@ -460,7 +463,7 @@ impl<T: Write> Application<T> {
                         y_main + y_selection + 4 + u16::try_from(n_names).unwrap() + 2,
                     ))?
                     .queue(PrintStyledContent(
-                        format!("{:^w_main$}", "Use [←] [→] [↑] [↓] [Esc] [Enter].",).italic(),
+                        format!("{:^w_main$}", "(menu controls: [↓][↑][←][→] [Enter] [Esc] [Delete], vim)",).italic(),
                     ))?;
             }
             if easteregg.abs() == 42 {
@@ -501,7 +504,7 @@ impl<T: Write> Application<T> {
                 }
                 // Move selector up.
                 Event::Key(KeyEvent {
-                    code: KeyCode::Up,
+                    code: KeyCode::Up | KeyCode::Char('k'),
                     kind: Press | Repeat,
                     ..
                 }) => {
@@ -512,7 +515,7 @@ impl<T: Write> Application<T> {
                 }
                 // Move selector down.
                 Event::Key(KeyEvent {
-                    code: KeyCode::Down,
+                    code: KeyCode::Down | KeyCode::Char('j'),
                     kind: Press | Repeat,
                     ..
                 }) => {
@@ -536,7 +539,7 @@ impl<T: Write> Application<T> {
             Menu::Settings,
             Menu::Scores,
             Menu::About,
-            Menu::Quit("quit from title menu. Have a nice day!".to_string()),
+            Menu::Quit("quit from title menu".to_string()),
         ];
         self.generic_placeholder_menu("", selection)
     }
@@ -545,29 +548,29 @@ impl<T: Write> Application<T> {
         let normal_gamemodes: [(_, _, Box<dyn Fn() -> Game>); 4] = [
             (
                 "40-Lines",
-                "how fast can you clear forty lines?".to_string(),
+                "How fast can you clear forty lines?".to_string(),
                 Box::new(|| Game::new(GameMode::sprint(3))),
             ),
             (
                 "Marathon",
-                "can you make it to gravity level 15?".to_string(),
+                "Can you make it to level 15?".to_string(),
                 Box::new(|| Game::new(GameMode::marathon())),
             ),
             (
                 "Time Trial",
-                "get a highscore in 3 minutes!".to_string(),
+                "What highscore can you get in 3 minutes?".to_string(),
                 Box::new(|| Game::new(GameMode::ultra(1))),
             ),
             (
                 "Master",
-                "clear 30 levels starting at instant gravity.".to_string(),
+                "Can you clear 30 levels at instant gravity?".to_string(),
                 Box::new(|| Game::new(GameMode::master())),
             ),
         ];
         let mut selected = 0usize;
         let mut customization_selected = 0usize;
         let (d_time, d_score, d_pieces, d_lines, d_gravity) =
-            (Duration::from_secs(5), 200, 10, 5, 1);
+            (Duration::from_secs(5), 100, 1, 1, 1);
         loop {
             // First part: rendering the menu.
             let w_main = Self::W_MAIN.into();
@@ -577,12 +580,12 @@ impl<T: Write> Application<T> {
             let mut special_gamemodes: Vec<(_, _, Box<dyn Fn() -> Game>)> = vec![
                 (
                     "Puzzle",
-                    "24 stages of perfect clears!".to_string(),
+                    "Can you get perfect clears in all 24 puzzle levels?".to_string(),
                     Box::new(game_mods::puzzle_mode::new_game),
                 ),
                 (
                     "Cheese",
-                    format!("eat your way through! (limit: {:?})", ng.cheese_mode_limit),
+                    format!("How well can you eat through lines like Swiss cheese? [lines: {:?}]", ng.cheese_mode_limit),
                     Box::new({
                         let cheese_mode_limit = ng.cheese_mode_limit;
                         let cheese_mode_gap_size = ng.cheese_mode_gap_size;
@@ -599,7 +602,7 @@ impl<T: Write> Application<T> {
                 (
                     "Combo",
                     format!(
-                        "how long can you chain? (start: {:b})",
+                        "How long can you go on? [start pattern: {:b}]",
                         ng.combo_start_layout
                     ),
                     Box::new({
@@ -620,8 +623,8 @@ impl<T: Write> Application<T> {
                 special_gamemodes.insert(
                     1,
                     (
-                        "Descent",
-                        "spin the piece and collect gems by touching them.".to_string(),
+                        "Descent (experimental)",
+                        "Spin the piece and collect 'gems' by touching them.".to_string(),
                         Box::new(game_mods::descent_mode::new_game),
                     ),
                 )
@@ -637,7 +640,7 @@ impl<T: Write> Application<T> {
             self.term
                 .queue(Clear(ClearType::All))?
                 .queue(MoveTo(x_main, y_main + y_selection))?
-                .queue(Print(format!("{:^w_main$}", "* Start New Game *")))?
+                .queue(Print(format!("{:^w_main$}", "+ Start New Game +")))?
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
                 .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
             // Render normal and special gamemodes.
@@ -658,7 +661,7 @@ impl<T: Write> Application<T> {
                     .queue(Print(format!(
                         "{:^w_main$}",
                         if i == selected {
-                            format!(">>> {name}: {details} <<<")
+                            format!(">> {name}: {details} <<")
                         } else {
                             name.to_string()
                         }
@@ -678,24 +681,24 @@ impl<T: Write> Application<T> {
                     "{:^w_main$}",
                     if selected == selection_size - 1 {
                         if customization_selected > 0 {
-                            "  | Custom: (toggle 'limit' with [→])    "
+                            " | Custom:                             "
                         } else if ng.custom_start_seed_and_offset_and_hold_piece.is_some()
                             || ng.custom_start_board.is_some()
                         {
-                            ">>> Custom: (clear board/seed with [del])"
+                            ">> Custom: (clear board/seed with [Del])"
                         } else {
-                            ">>> Custom:                              "
+                            ">> Custom: [→]                          "
                         }
                     } else {
-                        "| Custom"
+                        "Custom"
                     }
                 )))?;
             // Render custom mode stuff.
             if selected == selection_size - 1 {
                 let stats_strs = [
-                    format!("| start gravity: {}", ng.initial_gravity),
-                    format!("| gravity increase: {}", ng.increase_gravity),
-                    format!("| limit: {:?}", ng.custom_mode_limit),
+                    format!("| Initial gravity: {}", ng.initial_gravity),
+                    format!("| Auto-increase gravity: {}", ng.increase_gravity),
+                    format!("| Limit: {:?} [→]", ng.custom_mode_limit),
                 ];
                 for (j, stat_str) in stats_strs.into_iter().enumerate() {
                     self.term
@@ -724,7 +727,7 @@ impl<T: Write> Application<T> {
                     state: _,
                 }) => {
                     break Ok(MenuUpdate::Push(Menu::Quit(
-                        "app exited with ctrl-c".to_string(),
+                        "exited with ctrl-c".to_string(),
                     )))
                 }
                 // Exit menu.
@@ -804,7 +807,7 @@ impl<T: Write> Application<T> {
                 }
                 // Move selector up or increase stat.
                 Event::Key(KeyEvent {
-                    code: KeyCode::Up,
+                    code: KeyCode::Up | KeyCode::Char('k'),
                     kind: Press | Repeat,
                     ..
                 }) => {
@@ -844,7 +847,7 @@ impl<T: Write> Application<T> {
                 }
                 // Move selector down or decrease stat.
                 Event::Key(KeyEvent {
-                    code: KeyCode::Down,
+                    code: KeyCode::Down | KeyCode::Char('j'),
                     kind: Press | Repeat,
                     ..
                 }) => {
@@ -886,7 +889,7 @@ impl<T: Write> Application<T> {
                 }
                 // Move selector left (select stat).
                 Event::Key(KeyEvent {
-                    code: KeyCode::Left,
+                    code: KeyCode::Left | KeyCode::Char('h'),
                     kind: Press | Repeat,
                     ..
                 }) => {
@@ -911,7 +914,7 @@ impl<T: Write> Application<T> {
                 }
                 // Move selector right (select stat).
                 Event::Key(KeyEvent {
-                    code: KeyCode::Right,
+                    code: KeyCode::Right | KeyCode::Char('l'),
                     kind: Press | Repeat,
                     ..
                 }) => {
@@ -1233,14 +1236,14 @@ impl<T: Write> Application<T> {
                     "{:^w_main$}",
                     if success {
                         format!(
-                            "+ Game Completed! [{}] +",
-                            gamemode.name.to_ascii_uppercase()
+                            "++ Game Completed ({}) ++",
+                            gamemode.name
                         )
                     } else {
                         format!(
-                            "- Game Over ({:?}). [{}] -",
-                            last_state.end.unwrap().unwrap_err(),
-                            gamemode.name
+                            "-- Game Over ({}) by: {:?} --",
+                            gamemode.name,
+                            last_state.end.unwrap().unwrap_err()
                         )
                     }
                 )))?
@@ -1287,7 +1290,7 @@ impl<T: Write> Application<T> {
                     .queue(Print(format!(
                         "{:^w_main$}",
                         if i == selected {
-                            format!(">>> {name} <<<")
+                            format!(">> {name} <<")
                         } else {
                             name
                         }
@@ -1325,7 +1328,7 @@ impl<T: Write> Application<T> {
                 }
                 // Move selector up.
                 Event::Key(KeyEvent {
-                    code: KeyCode::Up,
+                    code: KeyCode::Up | KeyCode::Char('k'),
                     kind: Press | Repeat,
                     ..
                 }) => {
@@ -1335,7 +1338,7 @@ impl<T: Write> Application<T> {
                 }
                 // Move selector down.
                 Event::Key(KeyEvent {
-                    code: KeyCode::Down,
+                    code: KeyCode::Down | KeyCode::Char('j'),
                     kind: Press | Repeat,
                     ..
                 }) => {
@@ -1386,11 +1389,11 @@ impl<T: Write> Application<T> {
             Menu::About,
             Menu::Quit("quit from pause".to_string()),
         ];
-        self.generic_placeholder_menu("GAME PAUSED", selection)
+        self.generic_placeholder_menu("Game Paused", selection)
     }
 
     fn settings_menu(&mut self) -> io::Result<MenuUpdate> {
-        let selection_len = 7 + 1; // `+1` for hacky empty line.
+        let selection_len = 4 + 1; // `+1` for hacky empty line.
         let mut selected = 0usize;
         loop {
             let w_main = Self::W_MAIN.into();
@@ -1403,22 +1406,19 @@ impl<T: Write> Application<T> {
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
                 .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
             let labels = [
-                "Configure Keybinds ...".to_string(),
-                "Configure Gameplay ...".to_string(),
-                format!("glyphset : '{:?}'", self.settings.graphics_glyphset),
-                format!("coloring : '{:?}'", self.settings.graphics_coloring),
-                format!("framerate : {}", self.settings.game_fps),
-                format!("show fps : {}", self.settings.show_fps),
+                "Configure Graphics...".to_string(),
+                "Configure Keybinds...".to_string(),
+                "Configure Gameplay...".to_string(),
                 "".to_string(),
-                format!("keep save file for tetrs : {}", match self.settings.save_on_exit {
+                format!("Keep save file: {}", match self.settings.save_on_exit {
                     SavefileGranularity::Nothing => "OFF*",
-                    SavefileGranularity::Settings => "ON (only settings)",
+                    SavefileGranularity::Settings => "ON [without games; only settings]",
                     SavefileGranularity::SettingsAndGames => "ON",
                 }),
                 if self.settings.save_on_exit == SavefileGranularity::Nothing {
-                    "(*WARNING - data will be lost on exit.)".to_string()
+                    "(*WARNING: current data will be lost on exit)".to_string()
                 } else {
-                    format!("(save file at {:?})", Self::savefile_path())
+                    format!("(Save file at {:?})", Self::savefile_path())
                 },
             ];
             for (i, label) in labels.into_iter().enumerate() {
@@ -1430,34 +1430,11 @@ impl<T: Write> Application<T> {
                     .queue(Print(format!(
                         "{:^w_main$}",
                         if i == selected {
-                            format!(">>> {label} <<<")
+                            format!(">> {label} <<")
                         } else {
                             label
                         }
                     )))?;
-            }
-            self.term
-                .queue(MoveTo(
-                    x_main,
-                    y_main + y_selection + 4 + u16::try_from(selection_len + 1).unwrap() + 3,
-                ))?
-                .queue(PrintStyledContent(
-                    format!("{:^w_main$}", "Use [←] [→] [↑] [↓] [Esc] [Enter].",).italic(),
-                ))?;
-            self.term.queue(MoveTo(
-                x_main + u16::try_from((w_main - 27) / 2).unwrap(),
-                y_main + y_selection + 4 + u16::try_from(selection_len + 1).unwrap() + 4,
-            ))?;
-            for tet in Tetromino::VARIANTS {
-                self.term.queue(PrintStyledContent(
-                    tet_str_small(&tet).with(
-                        game_renderers::tile_to_color(self.settings.graphics_coloring)(
-                            tet.tiletypeid(),
-                        )
-                        .unwrap_or(style::Color::Reset),
-                    ),
-                ))?;
-                self.term.queue(Print(' '))?;
             }
             self.term.flush()?;
             // Wait for new input.
@@ -1484,17 +1461,18 @@ impl<T: Write> Application<T> {
                     kind: Press,
                     ..
                 }) => match selected {
-                    0 => break Ok(MenuUpdate::Push(Menu::ChangeKeybinds)),
-                    1 => break Ok(MenuUpdate::Push(Menu::ConfigureGameplay)),
+                    0 => break Ok(MenuUpdate::Push(Menu::ConfigureGraphics)),
+                    1 => break Ok(MenuUpdate::Push(Menu::ConfigureKeybinds)),
+                    2 => break Ok(MenuUpdate::Push(Menu::ConfigureGameplay)),
                     _ => {}
                 },
                 // Move selector up.
                 Event::Key(KeyEvent {
-                    code: KeyCode::Up,
+                    code: KeyCode::Up | KeyCode::Char('k'),
                     kind: Press | Repeat,
                     ..
                 }) => {
-                    if selected == 7 {
+                    if selected == 4 {
                         // Skip hacky empty line.
                         selected += selection_len - 2;
                     } else {
@@ -1503,11 +1481,11 @@ impl<T: Write> Application<T> {
                 }
                 // Move selector down.
                 Event::Key(KeyEvent {
-                    code: KeyCode::Down,
+                    code: KeyCode::Down | KeyCode::Char('j'),
                     kind: Press | Repeat,
                     ..
                 }) => {
-                    if selected == 5 {
+                    if selected == 2 {
                         // Skip hacky empty line.
                         selected += 2;
                     } else {
@@ -1515,34 +1493,11 @@ impl<T: Write> Application<T> {
                     }
                 }
                 Event::Key(KeyEvent {
-                    code: KeyCode::Right,
+                    code: KeyCode::Right | KeyCode::Char('l'),
                     kind: Press | Repeat,
                     ..
                 }) => match selected {
-                    2 => {
-                        self.settings.graphics_glyphset = match self.settings.graphics_glyphset {
-                            GraphicsGlyphset::Electronika60 => GraphicsGlyphset::ASCII,
-                            GraphicsGlyphset::ASCII => GraphicsGlyphset::Unicode,
-                            GraphicsGlyphset::Unicode => GraphicsGlyphset::Electronika60,
-                        };
-                    }
-                    3 => {
-                        self.settings.graphics_coloring = match self.settings.graphics_coloring {
-                            GraphicsColoring::Monochrome => GraphicsColoring::Color16,
-                            GraphicsColoring::Color16 => GraphicsColoring::Fullcolor,
-                            GraphicsColoring::Fullcolor => GraphicsColoring::Experimental,
-                            GraphicsColoring::Experimental => GraphicsColoring::Monochrome,
-                        };
-                        self.settings.graphics_coloring_locked = self.settings.graphics_coloring;
-                    }
                     4 => {
-                        self.settings.game_fps += 1.0;
-                    }
-                    5 => {
-                        self.settings.show_fps = !self.settings.show_fps;
-                    }
-                    6 => {} // Hacky empty line.
-                    7 => {
                         self.settings.save_on_exit = match self.settings.save_on_exit {
                             SavefileGranularity::Nothing => SavefileGranularity::SettingsAndGames,
                             SavefileGranularity::Settings => SavefileGranularity::Nothing,
@@ -1552,36 +1507,11 @@ impl<T: Write> Application<T> {
                     _ => {}
                 },
                 Event::Key(KeyEvent {
-                    code: KeyCode::Left,
+                    code: KeyCode::Left | KeyCode::Char('h'),
                     kind: Press | Repeat,
                     ..
                 }) => match selected {
-                    2 => {
-                        self.settings.graphics_glyphset = match self.settings.graphics_glyphset {
-                            GraphicsGlyphset::Electronika60 => GraphicsGlyphset::Unicode,
-                            GraphicsGlyphset::ASCII => GraphicsGlyphset::Electronika60,
-                            GraphicsGlyphset::Unicode => GraphicsGlyphset::ASCII,
-                        };
-                    }
-                    3 => {
-                        self.settings.graphics_coloring = match self.settings.graphics_coloring {
-                            GraphicsColoring::Monochrome => GraphicsColoring::Experimental,
-                            GraphicsColoring::Color16 => GraphicsColoring::Monochrome,
-                            GraphicsColoring::Fullcolor => GraphicsColoring::Color16,
-                            GraphicsColoring::Experimental => GraphicsColoring::Fullcolor,
-                        };
-                        self.settings.graphics_coloring_locked = self.settings.graphics_coloring;
-                    }
                     4 => {
-                        if self.settings.game_fps >= 1.0 {
-                            self.settings.game_fps -= 1.0;
-                        }
-                    }
-                    5 => {
-                        self.settings.show_fps = !self.settings.show_fps;
-                    }
-                    6 => {} // Hacky empty line.
-                    7 => {
                         self.settings.save_on_exit = match self.settings.save_on_exit {
                             SavefileGranularity::Nothing => SavefileGranularity::Settings,
                             SavefileGranularity::Settings => SavefileGranularity::SettingsAndGames,
@@ -1597,18 +1527,8 @@ impl<T: Write> Application<T> {
         }
     }
 
-    fn change_keybinds_menu(&mut self) -> io::Result<MenuUpdate> {
-        let button_selection = [
-            Button::MoveLeft,
-            Button::MoveRight,
-            Button::RotateLeft,
-            Button::RotateRight,
-            Button::RotateAround,
-            Button::DropSoft,
-            Button::DropHard,
-            Button::DropSonic,
-            Button::HoldPiece,
-        ];
+    fn configure_keybinds_menu(&mut self) -> io::Result<MenuUpdate> {
+        let button_selection = Button::VARIANTS;
         let selection_len = button_selection.len() + 1;
         let mut selected = 0usize;
         loop {
@@ -1618,14 +1538,14 @@ impl<T: Write> Application<T> {
             self.term
                 .queue(Clear(ClearType::All))?
                 .queue(MoveTo(x_main, y_main + y_selection))?
-                .queue(Print(format!("{:^w_main$}", "| Change Keybinds |")))?
+                .queue(Print(format!("{:^w_main$}", "# Configure Keybinds #")))?
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
                 .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
             let button_names = button_selection
                 .iter()
                 .map(|&button| {
                     format!(
-                        "{button:?} : {}",
+                        "{button:?}: {}",
                         fmt_keybinds(button, &self.settings.keybinds)
                     )
                 })
@@ -1639,7 +1559,7 @@ impl<T: Write> Application<T> {
                     .queue(Print(format!(
                         "{:^w_main$}",
                         if i == selected {
-                            format!(">>> {name} <<<")
+                            format!(">> {name} <<")
                         } else {
                             name
                         }
@@ -1653,9 +1573,9 @@ impl<T: Write> Application<T> {
                 .queue(Print(format!(
                     "{:^w_main$}",
                     if selected == selection_len - 1 {
-                        ">>> Restore Defaults <<<"
+                        ">> Restore defaults <<"
                     } else {
-                        "Restore Defaults"
+                        "Restore defaults"
                     }
                 )))?
                 .queue(MoveTo(
@@ -1663,15 +1583,8 @@ impl<T: Write> Application<T> {
                     y_main + y_selection + 4 + u16::try_from(selection_len).unwrap() + 3,
                 ))?
                 .queue(PrintStyledContent(
-                    format!("{:^w_main$}", "Press [Enter] to add keybinds.",).italic(),
-                ))?
-                .queue(MoveTo(
-                    x_main,
-                    y_main + y_selection + 4 + u16::try_from(selection_len).unwrap() + 4,
-                ))?
-                .queue(PrintStyledContent(
-                    format!("{:^w_main$}", "Press [Delete] to remove keybinds.",).italic(),
-                ))?;
+                    format!("{:^w_main$}", "(Menu controls: [Enter] to add, [Del] to remove keybinds)",).italic(),
+                ))?;    
             self.term.flush()?;
             // Wait for new input.
             match event::read()? {
@@ -1747,7 +1660,7 @@ impl<T: Write> Application<T> {
                 }
                 // Move selector up.
                 Event::Key(KeyEvent {
-                    code: KeyCode::Up,
+                    code: KeyCode::Up | KeyCode::Char('k'),
                     kind: Press | Repeat,
                     ..
                 }) => {
@@ -1755,7 +1668,7 @@ impl<T: Write> Application<T> {
                 }
                 // Move selector down.
                 Event::Key(KeyEvent {
-                    code: KeyCode::Down,
+                    code: KeyCode::Down | KeyCode::Char('j'),
                     kind: Press | Repeat,
                     ..
                 }) => {
@@ -1780,14 +1693,14 @@ impl<T: Write> Application<T> {
                 .queue(MoveTo(x_main, y_main + y_selection))?
                 .queue(Print(format!(
                     "{:^w_main$}",
-                    "= Configure Gameplay (requires New Game) ="
+                    "@ Configure Gameplay (requires New Game) @"
                 )))?
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
                 .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
             let labels = [
-                format!("rotation system : {:?}", self.settings.game_config.rotation_system),
+                format!("Rotation system: {:?}", self.settings.game_config.rotation_system),
                 format!(
-                    "piece generator : {}",
+                    "Piece generator: {}",
                     match &self.settings.game_config.tetromino_generator {
                         TetrominoSource::Uniform => "Uniform".to_string(),
                         TetrominoSource::Stock { .. } => "Bag (Stock)".to_string(),
@@ -1798,26 +1711,26 @@ impl<T: Write> Application<T> {
                             format!("Cycle Pattern {pattern:?}"),
                     }
                 ),
-                format!("preview count : {}", self.settings.game_config.preview_count),
+                format!("Preview size: {}", self.settings.game_config.preview_count),
                 format!(
-                    "*delayed auto shift : {:?}",
+                    "*Delayed auto shift: {:?}",
                     self.settings.game_config.delayed_auto_shift
                 ),
                 format!(
-                    "*auto repeat rate : {:?}",
+                    "*Auto repeat rate: {:?}",
                     self.settings.game_config.auto_repeat_rate
                 ),
-                format!("*soft drop factor : {}", self.settings.game_config.soft_drop_factor),
-                format!("hard drop delay : {:?}", self.settings.game_config.hard_drop_delay),
-                format!("ground time max : {:?}", self.settings.game_config.ground_time_max),
-                format!("line clear delay : {:?}", self.settings.game_config.line_clear_delay),
-                format!("appearance delay : {:?}", self.settings.game_config.appearance_delay),
+                format!("*Soft drop factor: {}", self.settings.game_config.soft_drop_factor),
+                format!("Hard drop delay: {:?}", self.settings.game_config.hard_drop_delay),
+                format!("Ground time max: {:?}", self.settings.game_config.ground_time_max),
+                format!("Line clear delay: {:?}", self.settings.game_config.line_clear_delay),
+                format!("Appearance delay: {:?}", self.settings.game_config.appearance_delay),
                 format!(
-                    "**no soft drop lock : {}",
+                    "**No soft drop lock: {}",
                     self.settings.game_config.no_soft_drop_lock
                 ),
                 format!(
-                    "*assume enhanced key events (current game) : {}",
+                    "*Assume enhanced key events (in current game): {}",
                     self.kitty_assumed
                 ),
             ];
@@ -1830,7 +1743,7 @@ impl<T: Write> Application<T> {
                     .queue(Print(format!(
                         "{:^w_main$}",
                         if i == selected {
-                            format!(">>> {label} <<<")
+                            format!(">> {label} <<")
                         } else {
                             label
                         }
@@ -1844,7 +1757,7 @@ impl<T: Write> Application<T> {
                 .queue(Print(format!(
                     "{:^w_main$}",
                     if selected == selection_len - 1 {
-                        ">>> Restore Defaults <<<"
+                        ">> Restore Defaults <<"
                     } else {
                         "Restore Defaults"
                     }
@@ -1857,9 +1770,9 @@ impl<T: Write> Application<T> {
                 .queue(Print(format!(
                     "{:^w_main$}",
                     if self.kitty_detected {
-                        "(*should work - enhanced key events seemed available)"
+                        "(*Should work - enhanced key events seemed available)"
                     } else {
-                        "(*might NOT work - enhanced key events seemed unavailable)"
+                        "(*Might NOT work - enhanced key events seemed unavailable)"
                     },
                 )))?;
             self.term
@@ -1870,9 +1783,9 @@ impl<T: Write> Application<T> {
                 .queue(Print(format!(
                     "{:^w_main$}",
                     if !self.kitty_detected {
-                        "(**were set to 'false' because enhanced key events seemed unavailable)"
+                        "(**Were set to 'false' because enhanced key events seemed unavailable)"
                     } else {
-                        "(**were set to 'true' because enhanced key events seemed available)"
+                        "(**Were set to 'true' because enhanced key events seemed available)"
                     }
                 )))?;
             self.term.flush()?;
@@ -1908,7 +1821,7 @@ impl<T: Write> Application<T> {
                 }
                 // Move selector up.
                 Event::Key(KeyEvent {
-                    code: KeyCode::Up,
+                    code: KeyCode::Up | KeyCode::Char('k'),
                     kind: Press | Repeat,
                     ..
                 }) => {
@@ -1916,14 +1829,14 @@ impl<T: Write> Application<T> {
                 }
                 // Move selector down.
                 Event::Key(KeyEvent {
-                    code: KeyCode::Down,
+                    code: KeyCode::Down | KeyCode::Char('j'),
                     kind: Press | Repeat,
                     ..
                 }) => {
                     selected += 1;
                 }
                 Event::Key(KeyEvent {
-                    code: KeyCode::Right,
+                    code: KeyCode::Right | KeyCode::Char('l'),
                     kind: Press | Repeat,
                     ..
                 }) => match selected {
@@ -1979,15 +1892,15 @@ impl<T: Write> Application<T> {
                     _ => {}
                 },
                 Event::Key(KeyEvent {
-                    code: KeyCode::Left,
+                    code: KeyCode::Left | KeyCode::Char('h'),
                     kind: Press | Repeat,
                     ..
                 }) => match selected {
                     0 => {
                         self.settings.game_config.rotation_system = match self.settings.game_config.rotation_system {
-                            RotationSystem::Ocular => RotationSystem::Classic,
-                            RotationSystem::Classic => RotationSystem::Super,
-                            RotationSystem::Super => RotationSystem::Ocular,
+                            RotationSystem::Ocular => RotationSystem::Super,
+                            RotationSystem::Super => RotationSystem::Classic,
+                            RotationSystem::Classic => RotationSystem::Ocular,
                         };
                     }
                     1 => {
@@ -2064,6 +1977,157 @@ impl<T: Write> Application<T> {
         }
     }
 
+    fn configure_graphics_menu(&mut self) -> io::Result<MenuUpdate> {
+        let selection_len = 4;
+        let mut selected = 0usize;
+        loop {
+            let w_main = Self::W_MAIN.into();
+            let (x_main, y_main) = Self::fetch_main_xy();
+            let y_selection = Self::H_MAIN / 5;
+            self.term
+                .queue(Clear(ClearType::All))?
+                .queue(MoveTo(x_main, y_main + y_selection))?
+                .queue(Print(format!("{:^w_main$}", "* Configure Graphics *")))?
+                .queue(MoveTo(x_main, y_main+y_selection+2))?
+                .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
+            let labels = [
+                format!("Glyphset: {:?}", self.settings.graphics_glyphset),
+                format!("Coloring: {:?}", self.settings.graphics_coloring),
+                format!("Framerate: {}", self.settings.game_fps),
+                format!("Show fps: {}", self.settings.show_fps),
+            ];
+            for (i, label) in labels.into_iter().enumerate() {
+                self.term
+                    .queue(MoveTo(
+                        x_main,
+                        y_main+y_selection+2+2+u16::try_from(i).unwrap(),
+                    ))?
+                    .queue(Print(format!(
+                        "{:^w_main$}",
+                        if i == selected {
+                            format!(">> {label} <<")
+                        } else {
+                            label
+                        }
+                    )))?;
+            }
+            self.term.queue(MoveTo(
+                x_main + u16::try_from((w_main - 27) / 2).unwrap(),
+                y_main + y_selection + 4 + u16::try_from(selection_len).unwrap() + 2,
+            ))?;
+            for tet in Tetromino::VARIANTS {
+                self.term.queue(PrintStyledContent(
+                    tet_str_small(&tet).with(
+                        game_renderers::tile_to_color(self.settings.graphics_coloring)(
+                            tet.tiletypeid(),
+                        )
+                        .unwrap_or(style::Color::Reset),
+                    ),
+                ))?;
+                self.term.queue(Print(' '))?;
+            }
+            self.term.flush()?;
+            // Wait for new input.
+            match event::read()? {
+                // Quit menu.
+                Event::Key(KeyEvent {
+                    code: KeyCode::Char('c'),
+                    modifiers: KeyModifiers::CONTROL,
+                    kind: Press | Repeat,
+                    state: _,
+                }) => {
+                    break Ok(MenuUpdate::Push(Menu::Quit(
+                        "exited with ctrl-c".to_string(),
+                    )))
+                }
+                Event::Key(KeyEvent {
+                    code: KeyCode::Esc,
+                    kind: Press,
+                    ..
+                }) => break Ok(MenuUpdate::Pop),
+                // Move selector up.
+                Event::Key(KeyEvent {
+                    code: KeyCode::Up | KeyCode::Char('k'),
+                    kind: Press | Repeat,
+                    ..
+                }) => {
+                    selected += selection_len - 1;
+                }
+                // Move selector down.
+                Event::Key(KeyEvent {
+                    code: KeyCode::Down | KeyCode::Char('j'),
+                    kind: Press | Repeat,
+                    ..
+                }) => {
+                    selected += 1;
+                }
+                Event::Key(KeyEvent {
+                    code: KeyCode::Right | KeyCode::Char('l'),
+                    kind: Press | Repeat,
+                    ..
+                }) => match selected {
+                    0 => {
+                        self.settings.graphics_glyphset = match self.settings.graphics_glyphset {
+                            GraphicsGlyphset::Electronika60 => GraphicsGlyphset::ASCII,
+                            GraphicsGlyphset::ASCII => GraphicsGlyphset::Unicode,
+                            GraphicsGlyphset::Unicode => GraphicsGlyphset::Electronika60,
+                        };
+                    }
+                    1 => {
+                        self.settings.graphics_coloring = match self.settings.graphics_coloring {
+                            GraphicsColoring::Monochrome => GraphicsColoring::Color16,
+                            GraphicsColoring::Color16 => GraphicsColoring::Fullcolor,
+                            GraphicsColoring::Fullcolor => GraphicsColoring::Experimental,
+                            GraphicsColoring::Experimental => GraphicsColoring::Monochrome,
+                        };
+                        self.settings.graphics_coloring_locked = self.settings.graphics_coloring;
+                    }
+                    2 => {
+                        self.settings.game_fps += 1.0;
+                    }
+                    3 => {
+                        self.settings.show_fps = !self.settings.show_fps;
+                    }
+                    _ => {}
+                },
+                Event::Key(KeyEvent {
+                    code: KeyCode::Left | KeyCode::Char('h'),
+                    kind: Press | Repeat,
+                    ..
+                }) => match selected {
+                    0 => {
+                        self.settings.graphics_glyphset = match self.settings.graphics_glyphset {
+                            GraphicsGlyphset::Electronika60 => GraphicsGlyphset::Unicode,
+                            GraphicsGlyphset::ASCII => GraphicsGlyphset::Electronika60,
+                            GraphicsGlyphset::Unicode => GraphicsGlyphset::ASCII,
+                        };
+                    }
+                    1 => {
+                        self.settings.graphics_coloring = match self.settings.graphics_coloring {
+                            GraphicsColoring::Monochrome => GraphicsColoring::Experimental,
+                            GraphicsColoring::Color16 => GraphicsColoring::Monochrome,
+                            GraphicsColoring::Fullcolor => GraphicsColoring::Color16,
+                            GraphicsColoring::Experimental => GraphicsColoring::Fullcolor,
+                        };
+                        self.settings.graphics_coloring_locked = self.settings.graphics_coloring;
+                    }
+                    2 => {
+                        if self.settings.game_fps >= 1.0 {
+                            self.settings.game_fps -= 1.0;
+                        }
+                    }
+                    3 => {
+                        self.settings.show_fps = !self.settings.show_fps;
+                    }
+                    _ => {}
+                },
+                // Other event: Just ignore.
+                _ => {}
+            }
+            selected = selected.rem_euclid(selection_len);
+        }
+    }
+
     fn scores_menu(&mut self) -> io::Result<MenuUpdate> {
         let max_entries = 14;
         let mut scroll = 0usize;
@@ -2074,7 +2138,7 @@ impl<T: Write> Application<T> {
             self.term
                 .queue(Clear(ClearType::All))?
                 .queue(MoveTo(x_main, y_main + y_selection))?
-                .queue(Print(format!("{:^w_main$}", "# Scoreboard #")))?
+                .queue(Print(format!("{:^w_main$}", "= Scoreboard =")))?
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
                 .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
             let entries = self
@@ -2288,7 +2352,7 @@ impl<T: Write> Application<T> {
                 }) => break Ok(MenuUpdate::Pop),
                 // Move selector up.
                 Event::Key(KeyEvent {
-                    code: KeyCode::Up,
+                    code: KeyCode::Up | KeyCode::Char('k'),
                     kind: Press | Repeat,
                     ..
                 }) => {
@@ -2296,7 +2360,7 @@ impl<T: Write> Application<T> {
                 }
                 // Move selector down.
                 Event::Key(KeyEvent {
-                    code: KeyCode::Down,
+                    code: KeyCode::Down | KeyCode::Char('j'),
                     kind: Press | Repeat,
                     ..
                 }) => {

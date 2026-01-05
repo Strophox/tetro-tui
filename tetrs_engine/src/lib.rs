@@ -697,8 +697,9 @@ impl GameMode {
 }
 
 impl Button {
+    /// All button variants.
     // FIXME: Needs to be MANUALLY updated in sync with `Button`...
-    const VARIANTS: [Self; 9] = [
+    pub const VARIANTS: [Self; 9] = [
         Self::MoveLeft,
         Self::MoveRight,
         Self::RotateLeft,
