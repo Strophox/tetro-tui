@@ -201,12 +201,21 @@ impl ScreenBuf {
     }
 }
 
+// FIXME: go through- and derive more generally for all tetrs_tui structs?
+#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
+struct HardDropTile {
+    creation_time: GameTime,
+    pos: Coord,
+    y_offset: usize,
+    tile_type_id: TileTypeID,
+}
+
 #[derive(Clone, Default, Debug)]
 pub struct CachedRenderer {
     screen: ScreenBuf,
     active_feedback: Vec<(GameTime, Feedback, bool)>,
     messages: Vec<(GameTime, String)>,
-    hard_drop_tiles: Vec<(GameTime, Coord, usize, TileTypeID, bool)>,
+    hard_drop_tiles: Vec<(HardDropTile, bool)>,
 }
 
 impl Renderer for CachedRenderer {
@@ -449,8 +458,17 @@ impl Renderer for CachedRenderer {
         let color = tile_to_color(app.settings().graphics_coloring);
         let color_locked = tile_to_color(app.settings().graphics_coloring_locked);
         // Board: draw hard drop trail.
-        for (event_time, pos, h, tile_type_id, relevant) in self.hard_drop_tiles.iter_mut() {
-            let elapsed = game_time.saturating_sub(*event_time);
+        for (
+            HardDropTile {
+                creation_time,
+                pos,
+                y_offset,
+                tile_type_id,
+            },
+            active,
+        ) in self.hard_drop_tiles.iter_mut()
+        {
+            let elapsed = game_time.saturating_sub(*creation_time);
             let luminance_map = match app.settings().graphics_glyphset {
                 GraphicsGlyphset::Electronika60 => [" .", " .", " .", " .", " .", " .", " .", " ."],
                 GraphicsGlyphset::ASCII | GraphicsGlyphset::Unicode => {
@@ -462,15 +480,15 @@ impl Renderer for CachedRenderer {
                 .iter()
                 .enumerate()
                 .find_map(|(idx, ms)| (elapsed < Duration::from_millis(*ms)).then_some(idx))
-                .and_then(|dt| luminance_map.get(*h * 4 / 7 + dt))
+                .and_then(|dt| luminance_map.get(*y_offset * 4 / 7 + dt))
             else {
-                *relevant = false;
+                *active = false;
                 continue;
             };
             self.screen
                 .buffer_str(tile, color(*tile_type_id), pos_board(*pos));
         }
-        self.hard_drop_tiles.retain(|elt| elt.4);
+        self.hard_drop_tiles.retain(|elt| elt.1);
         // Board: draw fixed tiles.
         let (tile_ground, tile_ghost, tile_active, tile_preview) =
             match app.settings().graphics_glyphset {
@@ -682,10 +700,12 @@ impl Renderer for CachedRenderer {
                     for ((x_tile, y_tile), tile_type_id) in bottom_piece.tiles() {
                         for y in y_tile..Game::SKYLINE {
                             self.hard_drop_tiles.push((
-                                *feedback_time,
-                                (x_tile, y),
-                                y - y_tile,
-                                tile_type_id,
+                                HardDropTile {
+                                    creation_time: *feedback_time,
+                                    pos: (x_tile, y),
+                                    y_offset: y - y_tile,
+                                    tile_type_id,
+                                },
                                 true,
                             ));
                         }

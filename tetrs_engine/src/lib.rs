@@ -856,7 +856,7 @@ impl GameBuilder {
     }
 
     /// Creates a [`Game`] with the information specified by `self` and some one-time `modifiers`.
-    pub fn build_modified(&self, modifiers: impl IntoIterator<Item=FnGameMod>) -> Game {
+    pub fn build_modified(&self, modifiers: impl IntoIterator<Item = FnGameMod>) -> Game {
         let seed = self.seed.unwrap_or_else(|| rand::thread_rng().next_u64());
         let gravity = self.mode.initial_gravity;
         Game {
@@ -1103,9 +1103,7 @@ impl Game {
                     self.state.time = event_time;
                     if self.config.feedback_verbosity != FeedbackVerbosity::Quiet {
                         feedback_msgs.extend(event_feedback_msgs);
-//TODO: debug FeedbackVerbosity::Debug  feedback_msgs.push((event_time, Feedback::Text(format!("verby={:?}",self.config.feedback_verbosity))));
                         if self.config.feedback_verbosity == FeedbackVerbosity::Debug {
-//feedback_msgs.push((event_time, Feedback::Text(format!("sending evt feedback:{:?}",event))));
                             feedback_msgs.push((event_time, Feedback::EngineEvent(event)));
                         }
                     }
