@@ -231,8 +231,8 @@ impl<T: Write> Application<T> {
             term: terminal,
             settings: Settings {
                 new_game: NewGameSettings {
-                    initial_gravity: 1,
-                    increase_gravity: false,
+                    initial_gravity: 0,
+                    increase_gravity: true,
                     custom_mode_limit: None,
                     cheese_mode_limit: Some(NonZeroUsize::try_from(20).unwrap()),
                     cheese_mode_gap_size: 1,
@@ -454,7 +454,7 @@ impl<T: Write> Application<T> {
                         y_main + y_selection + 4 + u16::try_from(n_names).unwrap() + 2,
                     ))?
                     .queue(PrintStyledContent(
-                        format!("{:^w_main$}", "(menu controls: [↓][↑][←][→] [Enter] [Esc] [Delete], vim)",).italic(),
+                        format!("{:^w_main$}", "(Controls: [←][↓][↑][→] [Esc][Enter][Del] / hjklqed)",).italic(),
                     ))?;
             }
             if easteregg.abs() == 42 {
@@ -484,7 +484,7 @@ impl<T: Write> Application<T> {
                 }) => break Ok(MenuUpdate::Pop),
                 // Select next menu.
                 Event::Key(KeyEvent {
-                    code: KeyCode::Enter,
+                    code: KeyCode::Enter | KeyCode::Char('e'),
                     kind: Press,
                     ..
                 }) => {
@@ -723,7 +723,7 @@ impl<T: Write> Application<T> {
                 }) => break Ok(MenuUpdate::Pop),
                 // Try select mode.
                 Event::Key(KeyEvent {
-                    code: KeyCode::Enter,
+                    code: KeyCode::Enter | KeyCode::Char('e'),
                     kind: Press,
                     ..
                 }) => {
@@ -935,7 +935,7 @@ impl<T: Write> Application<T> {
                 }
                 // Move selector right (select stat).
                 Event::Key(KeyEvent {
-                    code: KeyCode::Delete,
+                    code: KeyCode::Delete | KeyCode::Char('d'),
                     kind: Press | Repeat,
                     ..
                 }) => {
@@ -1281,7 +1281,7 @@ impl<T: Write> Application<T> {
                 }) => break Ok(MenuUpdate::Pop),
                 // Select next menu.
                 Event::Key(KeyEvent {
-                    code: KeyCode::Enter,
+                    code: KeyCode::Enter | KeyCode::Char('e'),
                     kind: Press,
                     ..
                 }) => {
@@ -1357,7 +1357,7 @@ impl<T: Write> Application<T> {
     }
 
     fn settings_menu(&mut self) -> io::Result<MenuUpdate> {
-        let selection_len = 4 + 1; // `+1` for hacky empty line.
+        let selection_len = 4;
         let mut selected = 0usize;
         loop {
             let w_main = Self::W_MAIN.into();
@@ -1373,12 +1373,12 @@ impl<T: Write> Application<T> {
                 "Configure Graphics...".to_string(),
                 "Configure Keybinds...".to_string(),
                 "Configure Gameplay...".to_string(),
-                "".to_string(),
                 format!("Keep save file: {}", match self.settings.save_on_exit {
                     SavefileGranularity::Nothing => "OFF*",
                     SavefileGranularity::Settings => "ON [without games; only settings]",
                     SavefileGranularity::SettingsAndGames => "ON",
                 }),
+                "".to_string(),
                 if self.settings.save_on_exit == SavefileGranularity::Nothing {
                     "(*WARNING: current data will be lost on exit)".to_string()
                 } else {
@@ -1421,7 +1421,7 @@ impl<T: Write> Application<T> {
                 }) => break Ok(MenuUpdate::Pop),
                 // Select next menu.
                 Event::Key(KeyEvent {
-                    code: KeyCode::Enter,
+                    code: KeyCode::Enter | KeyCode::Char('e'),
                     kind: Press,
                     ..
                 }) => match selected {
@@ -1436,12 +1436,7 @@ impl<T: Write> Application<T> {
                     kind: Press | Repeat,
                     ..
                 }) => {
-                    if selected == 4 {
-                        // Skip hacky empty line.
-                        selected += selection_len - 2;
-                    } else {
-                        selected += selection_len - 1;
-                    }
+                    selected += selection_len - 1;
                 }
                 // Move selector down.
                 Event::Key(KeyEvent {
@@ -1449,19 +1444,14 @@ impl<T: Write> Application<T> {
                     kind: Press | Repeat,
                     ..
                 }) => {
-                    if selected == 2 {
-                        // Skip hacky empty line.
-                        selected += 2;
-                    } else {
-                        selected += 1;
-                    }
+                    selected += 1;
                 }
                 Event::Key(KeyEvent {
                     code: KeyCode::Right | KeyCode::Char('l'),
                     kind: Press | Repeat,
                     ..
                 }) => match selected { // TODO add more cases to switch slots for keybinds/gameplayconfigs/graphicsconfigs...
-                    4 => {
+                    3 => {
                         self.settings.save_on_exit = match self.settings.save_on_exit {
                             SavefileGranularity::Nothing => SavefileGranularity::SettingsAndGames,
                             SavefileGranularity::Settings => SavefileGranularity::Nothing,
@@ -1475,7 +1465,7 @@ impl<T: Write> Application<T> {
                     kind: Press | Repeat,
                     ..
                 }) => match selected {
-                    4 => {
+                    3 => {
                         self.settings.save_on_exit = match self.settings.save_on_exit {
                             SavefileGranularity::Nothing => SavefileGranularity::Settings,
                             SavefileGranularity::Settings => SavefileGranularity::SettingsAndGames,
@@ -1502,7 +1492,7 @@ impl<T: Write> Application<T> {
             self.term
                 .queue(Clear(ClearType::All))?
                 .queue(MoveTo(x_main, y_main + y_selection))?
-                .queue(Print(format!("{:^w_main$}", "# Configure Keybinds #")))?
+                .queue(Print(format!("{:^w_main$}", "@ Configure Keybinds @")))?
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
                 .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
             let button_names = button_selection
@@ -1547,7 +1537,7 @@ impl<T: Write> Application<T> {
                     y_main + y_selection + 4 + u16::try_from(selection_len).unwrap() + 3,
                 ))?
                 .queue(PrintStyledContent(
-                    format!("{:^w_main$}", "(Menu controls: [Enter] to add, [Del] to remove keybinds)",).italic(),
+                    format!("{:^w_main$}", "(Controls: [Enter]=add [Esc]=cancel [Del]=remove)",).italic(),
                 ))?;    
             self.term.flush()?;
             // Wait for new input.
@@ -1570,7 +1560,7 @@ impl<T: Write> Application<T> {
                 }) => break Ok(MenuUpdate::Pop),
                 // Select button to modify.
                 Event::Key(KeyEvent {
-                    code: KeyCode::Enter,
+                    code: KeyCode::Enter | KeyCode::Char('e'),
                     kind: Press,
                     ..
                 }) => {
@@ -1601,7 +1591,9 @@ impl<T: Write> Application<T> {
                                 code, kind: Press, ..
                             }) = event::read()?
                             {
-                                self.settings.keybinds.insert(code, current_button);
+                                if code != KeyCode::Esc {
+                                    self.settings.keybinds.insert(code, current_button);
+                                }
                                 break;
                             }
                         }
@@ -1609,7 +1601,7 @@ impl<T: Write> Application<T> {
                 }
                 // Select button to delete.
                 Event::Key(KeyEvent {
-                    code: KeyCode::Delete,
+                    code: KeyCode::Delete | KeyCode::Char('d'),
                     kind: Press,
                     ..
                 }) => {
@@ -1657,7 +1649,7 @@ impl<T: Write> Application<T> {
                 .queue(MoveTo(x_main, y_main + y_selection))?
                 .queue(Print(format!(
                     "{:^w_main$}",
-                    "@ Configure Gameplay (requires New Game) @"
+                    "* Configure Gameplay (apply on New Game) *"
                 )))?
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
                 .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
@@ -1773,7 +1765,7 @@ impl<T: Write> Application<T> {
                 }) => break Ok(MenuUpdate::Pop),
                 // Select.
                 Event::Key(KeyEvent {
-                    code: KeyCode::Enter,
+                    code: KeyCode::Enter | KeyCode::Char('e'),
                     kind: Press,
                     ..
                 }) => {
@@ -1951,7 +1943,7 @@ impl<T: Write> Application<T> {
             self.term
                 .queue(Clear(ClearType::All))?
                 .queue(MoveTo(x_main, y_main + y_selection))?
-                .queue(Print(format!("{:^w_main$}", "* Configure Graphics *")))?
+                .queue(Print(format!("{:^w_main$}", "# Configure Graphics #")))?
                 .queue(MoveTo(x_main, y_main+y_selection+2))?
                 .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
             let labels = [
@@ -2492,5 +2484,5 @@ pub fn fmt_keybinds(button: Button, keybinds: &HashMap<KeyCode, Button>) -> Stri
         .iter()
         .filter_map(|(&k, &b)| (b == button).then_some(fmt_key(k)))
         .collect::<Vec<String>>()
-        .join(" ")
+        .join("")
 }

@@ -96,7 +96,7 @@ impl CrosstermHandler {
                     Ok(Event::Key(KeyEvent {
                         code: KeyCode::Char('s'),
                         modifiers: KeyModifiers::CONTROL,
-                        kind: KeyEventKind::Press,
+                        kind: KeyEventKind::Press | KeyEventKind::Repeat,
                         ..
                     })) => {
                         let _ = input_sender.send(InputSignal::TakeSnapshot);
@@ -172,7 +172,7 @@ impl CrosstermHandler {
                     Ok(Event::Key(KeyEvent {
                         code: KeyCode::Char('s'),
                         modifiers: KeyModifiers::CONTROL,
-                        kind: KeyEventKind::Press,
+                        kind: KeyEventKind::Press | KeyEventKind::Repeat,
                         ..
                     })) => {
                         let _ = input_sender.send(InputSignal::TakeSnapshot);
