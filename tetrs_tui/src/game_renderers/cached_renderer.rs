@@ -17,9 +17,9 @@ use tetrs_engine::{
 };
 
 use crate::{
-    game_renderers::Renderer,
+    game_renderers::{Renderer, button_str},
     terminal_user_interface::{
-        fmt_duration, fmt_keybinds, Application, GraphicsColoring, GraphicsGlyphset, RunningGameStats,
+        Application, GraphicsColoring, GraphicsGlyphset, RunningGameStats, fmt_duration, fmt_keybinds
     },
 };
 
@@ -203,7 +203,7 @@ impl ScreenBuf {
 #[derive(Clone, Default, Debug)]
 pub struct CachedRenderer {
     screen: ScreenBuf,
-    visual_events: Vec<(GameTime, Feedback, bool)>,
+    active_feedback: Vec<(GameTime, Feedback, bool)>,
     messages: Vec<(GameTime, String)>,
     hard_drop_tiles: Vec<(GameTime, Coord, usize, TileTypeID, bool)>,
 }
@@ -539,17 +539,17 @@ impl Renderer for CachedRenderer {
             self.screen.buffer_str(str, color, (x_hold, y_hold));
         }
         // Update stored events.
-        self.visual_events.extend(
+        self.active_feedback.extend(
             new_feedback_events
                 .into_iter()
                 .map(|(time, event)| (time, event, true)),
         );
-        // Draw events.
-        for (event_time, event, relevant) in self.visual_events.iter_mut() {
-            let elapsed = game_time.saturating_sub(*event_time);
-            match event {
+        // Handle feedback.
+        for (feedback_time, feedback, active) in self.active_feedback.iter_mut() {
+            let elapsed = game_time.saturating_sub(*feedback_time);
+            match feedback {
                 Feedback::PieceSpawned(_piece) => {
-                    *relevant = false;
+                    *active = false;
                 }
                 Feedback::PieceLocked(piece) => {
                     #[rustfmt::skip]
@@ -591,7 +591,7 @@ impl Renderer for CachedRenderer {
                     let Some(tile) = animation_locking.iter().find_map(|(ms, tile)| {
                         (elapsed < Duration::from_millis(*ms)).then_some(tile)
                     }) else {
-                        *relevant = false;
+                        *active = false;
                         continue;
                     };
                     for (tile_pos, _tile_type_id) in piece.tiles() {
@@ -603,7 +603,7 @@ impl Renderer for CachedRenderer {
                 }
                 Feedback::LineClears(lines_cleared, line_clear_delay) => {
                     if line_clear_delay.is_zero() {
-                        *relevant = false;
+                        *active = false;
                         continue;
                     }
                     let animation_lineclear = match app.settings().graphics_glyphset {
@@ -655,7 +655,7 @@ impl Renderer for CachedRenderer {
                     let idx = if percent < 1.0 {
                         unsafe { (10.0 * percent).to_int_unchecked::<usize>() }
                     } else {
-                        *relevant = false;
+                        *active = false;
                         continue;
                     };
                     for y_line in lines_cleared {
@@ -668,7 +668,7 @@ impl Renderer for CachedRenderer {
                     for ((x_tile, y_tile), tile_type_id) in bottom_piece.tiles() {
                         for y in y_tile..Game::SKYLINE {
                             self.hard_drop_tiles.push((
-                                *event_time,
+                                *feedback_time,
                                 (x_tile, y),
                                 y - y_tile,
                                 tile_type_id,
@@ -676,7 +676,7 @@ impl Renderer for CachedRenderer {
                             ));
                         }
                     }
-                    *relevant = false;
+                    *active = false;
                 }
                 Feedback::Accolade {
                     score_bonus,
@@ -688,13 +688,13 @@ impl Renderer for CachedRenderer {
                     back_to_back,
                 } => {
                     running_game_stats.1.push(*score_bonus);
-                    let mut strs = Vec::new();
-                    strs.push(format!("+{score_bonus}"));
+                    let mut msg = Vec::new();
+                    msg.push(format!("+{score_bonus}"));
                     if *perfect_clear {
-                        strs.push("Perfect".to_string());
+                        msg.push("Perfect".to_string());
                     }
                     if *spin {
-                        strs.push(format!("{shape:?}-Spin"));
+                        msg.push(format!("{shape:?}-Spin"));
                         running_game_stats.0[0] += 1;
                     }
                     let clear_action = match lineclears {
@@ -722,32 +722,38 @@ impl Renderer for CachedRenderer {
                         _ => "Unreachable",
                     }
                     .to_string();
+                    // TODO FIXME(Strophox): Need we accumulate running_game_stats in a renderer?
                     if *lineclears <= 4 {
                         running_game_stats.0[usize::try_from(*lineclears).unwrap()] += 1;
                     } else {
                         // FIXME: Record higher lineclears, if even possible.
                     }
-                    strs.push(clear_action);
+                    msg.push(clear_action);
                     if *combo > 1 {
-                        strs.push(format!("({combo}.combo)"));
+                        msg.push(format!("[{combo}.combo]"));
                     }
                     if *back_to_back > 1 {
-                        strs.push(format!("({back_to_back}.B2B)"));
+                        msg.push(format!("({back_to_back}.B2B)"));
                     }
-                    self.messages.push((*event_time, strs.join(" ")));
-                    *relevant = false;
+                    self.messages.push((*feedback_time, msg.join(" ")));
+                    *active = false;
                 }
-                Feedback::Message(msg) => {
-                    self.messages.push((*event_time, msg.clone()));
-                    *relevant = false;
+                Feedback::Text(msg) => {
+                    self.messages.push((*feedback_time, msg.clone()));
+                    *active = false;
                 }
                 Feedback::EngineEvent(game_event) => {
-                    self.messages.push((*event_time, format!("{game_event:?}")));
-                    *relevant = false;
+                    self.messages.push((*feedback_time, format!("{game_event:?}")));
+                    *active = false;
+                }
+                Feedback::EngineInput(_pressed_old, pressed_new) => {
+                    let buttons_str = pressed_new.iter().zip(Button::VARIANTS).filter_map(|(p,b)| p.then(|| button_str(&b).to_string())).collect::<Vec<_>>().join(" ");
+                    self.messages.push((*feedback_time, format!("[{buttons_str}]")));
+                    *active = false;
                 }
             }
         }
-        self.visual_events.retain(|elt| elt.2);
+        self.active_feedback.retain(|elt| elt.2);
         // Draw messages.
         for (y, (_event_time, message)) in self.messages.iter().rev().enumerate() {
             let pos = (x_messages, y_messages + y);

@@ -22,7 +22,7 @@ use crossterm::{
 };
 
 use tetrs_engine::{
-    piece_generation::TetrominoSource, piece_rotation::RotationSystem, Button, ButtonsPressed,
+    piece_generation::TetrominoSource, piece_rotation::RotationSystem, Button, PressedButtons,
     FeedbackMessages, Game, GameConfig, GameMode, GameState, Limits, Tetromino,
 };
 
@@ -968,7 +968,7 @@ impl<T: Write> Application<T> {
             ));
         }
         // Prepare channel with which to communicate `Button` inputs / game interrupt.
-        let mut buttons_pressed = ButtonsPressed::default();
+        let mut buttons_pressed = PressedButtons::default();
         let (button_sender, button_receiver) = mpsc::channel();
         let _input_handler =
             CrosstermHandler::new(&button_sender, &self.settings.keybinds, self.kitty_assumed);
@@ -1052,7 +1052,7 @@ impl<T: Write> Application<T> {
                             .custom_start_seed = Some(game.seed());
                         new_feedback_events.push((
                             game.state().time,
-                            tetrs_engine::Feedback::Message("(Snapshot taken!)".to_string()),
+                            tetrs_engine::Feedback::Text("(Snapshot taken!)".to_string()),
                         ));
                     }
                     Ok(InputSignal::ButtonInput(button, button_state, instant)) => {

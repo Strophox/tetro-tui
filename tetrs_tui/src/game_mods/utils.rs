@@ -73,7 +73,7 @@ pub fn display_tetromino_likelihood() -> FnGameMod {
             pieces_played_strs.sort_by_key(|&t| last_generated[t]);
             feedback_events.push((
                 state.time,
-                Feedback::Message(
+                Feedback::Text(
                     pieces_played_strs
                         .map(|tet| {
                             format!(

@@ -40,7 +40,7 @@ impl RotationSystem {
         &self,
         piece: &ActivePiece,
         board: &Board,
-        right_turns: i32,
+        right_turns: i8,
     ) -> Option<ActivePiece> {
         match self {
             RotationSystem::Ocular => ocular_rotate(piece, board, right_turns),
@@ -51,7 +51,7 @@ impl RotationSystem {
 }
 
 #[rustfmt::skip]
-fn ocular_rotate(piece: &ActivePiece, board: &Board, right_turns: i32) -> Option<ActivePiece> {
+fn ocular_rotate(piece: &ActivePiece, board: &Board, right_turns: i8) -> Option<ActivePiece> {
     /*
     Symmetry notation : "OISZTLJ NESW ↺↻", and "-" means "mirror".
     [O N    ↺ ] is given:
@@ -205,7 +205,7 @@ fn ocular_rotate(piece: &ActivePiece, board: &Board, right_turns: i32) -> Option
     }
 }
 
-fn super_rotate(piece: &ActivePiece, board: &Board, right_turns: i32) -> Option<ActivePiece> {
+fn super_rotate(piece: &ActivePiece, board: &Board, right_turns: i8) -> Option<ActivePiece> {
     let left = match right_turns.rem_euclid(4) {
         // No rotation occurred.
         0 => return Some(*piece),
@@ -257,7 +257,7 @@ fn super_rotate(piece: &ActivePiece, board: &Board, right_turns: i32) -> Option<
     piece.first_fit(board, kick_table.iter().copied(), right_turns)
 }
 
-fn classic_rotate(piece: &ActivePiece, board: &Board, right_turns: i32) -> Option<ActivePiece> {
+fn classic_rotate(piece: &ActivePiece, board: &Board, right_turns: i8) -> Option<ActivePiece> {
     let left_rotation = match right_turns.rem_euclid(4) {
         // No rotation occurred.
         0 => return Some(*piece),

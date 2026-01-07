@@ -20,7 +20,7 @@ pub fn new_game() -> Game {
         // Game message.
         feedback_events.push((
             state.time,
-            Feedback::Message(if attempt == 1 {
+            Feedback::Text(if attempt == 1 {
                 format!(
                     "Stage {}: {}",
                     current_puzzle_idx + 1,
@@ -108,7 +108,7 @@ pub fn new_game() -> Game {
             // Keep custom game state that's also visible to player, but hide it from the game engine that handles gameplay.
             if matches!(
                 modifier_point,
-                ModifierPoint::BeforeEvent(_) | ModifierPoint::BeforeButtonChange
+                ModifierPoint::BeforeEvent(_) | ModifierPoint::BeforeInput
             ) {
                 config.preview_count = 0;
                 state.gravity = PUZZLE_GRAVITY;
@@ -125,7 +125,7 @@ pub fn new_game() -> Game {
                 state.active_piece_data = None;
             }
             // Remove ability to hold.
-            if matches!(modifier_point, ModifierPoint::AfterButtonChange) {
+            if matches!(modifier_point, ModifierPoint::AfterInput) {
                 state.events.remove(&GameEvent::Hold);
             }
         },

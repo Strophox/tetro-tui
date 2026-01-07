@@ -8,10 +8,10 @@ use crossterm::{
     style::{self, Print},
     terminal, QueueableCommand,
 };
-use tetrs_engine::{Feedback, FeedbackMessages, Game, GameState, GameTime};
+use tetrs_engine::{Button, Feedback, FeedbackMessages, Game, GameState, GameTime};
 
 use crate::{
-    game_renderers::Renderer,
+    game_renderers::{Renderer, button_str},
     terminal_user_interface::{Application, RunningGameStats},
 };
 
@@ -98,37 +98,59 @@ impl Renderer for DebugRenderer {
                     combo,
                     back_to_back,
                 } => {
-                    let mut strs = Vec::new();
+                    let mut msg = Vec::new();
+                    msg.push(format!("+{score_bonus}"));
+                    if *perfect_clear {
+                        msg.push("Perfect".to_string());
+                    }
                     if *spin {
-                        strs.push(format!("{shape:?}-Spin"));
+                        msg.push(format!("{shape:?}-Spin"));
                     }
                     let clear_action = match lineclears {
                         1 => "Single",
                         2 => "Double",
                         3 => "Triple",
                         4 => "Quadruple",
-                        x => unreachable!("unexpected line clear count {x}"),
+                        5 => "Quintuple",
+                        6 => "Sextuple",
+                        7 => "Septuple",
+                        8 => "Octuple",
+                        9 => "Nonuple",
+                        10 => "Decuple",
+                        11 => "Undecuple",
+                        12 => "Duodecuple",
+                        13 => "Tredecuple",
+                        14 => "Quattuordecuple",
+                        15 => "Quindecuple",
+                        16 => "Sexdecuple",
+                        17 => "Septendecuple",
+                        18 => "Octodecuple",
+                        19 => "Novemdecuple",
+                        20 => "Vigintuple",
+                        21 => "Kirbtris",
+                        _ => "Unreachable",
                     }
                     .to_string();
-                    if *back_to_back > 1 {
-                        strs.push(format!("{back_to_back}-B2B"));
-                    }
-                    strs.push(clear_action);
+                    msg.push(clear_action);
                     if *combo > 1 {
-                        strs.push(format!("[{combo}.combo]"));
+                        msg.push(format!("[{combo}.combo]"));
                     }
-                    if *perfect_clear {
-                        strs.push("PERFECT!".to_string());
+                    if *back_to_back > 1 {
+                        msg.push(format!("({back_to_back}.B2B)"));
                     }
-                    strs.push(format!("+{score_bonus}"));
-                    strs.join(" ")
+                    msg.join(" ")
                 }
                 Feedback::PieceSpawned(_) => continue,
                 Feedback::PieceLocked(_) => continue,
                 Feedback::LineClears(..) => continue,
                 Feedback::HardDrop(_, _) => continue,
                 Feedback::EngineEvent(game_event) => format!("{game_event:?}"),
-                Feedback::Message(s) => s.clone(),
+                Feedback::EngineInput(pressed_old, pressed_new) => {
+                    let buttons_old_str = pressed_old.iter().zip(Button::VARIANTS).filter_map(|(p,b)| p.then(|| button_str(&b).to_string())).collect::<Vec<_>>().join("");
+                    let buttons_new_str = pressed_new.iter().zip(Button::VARIANTS).filter_map(|(p,b)| p.then(|| button_str(&b).to_string())).collect::<Vec<_>>().join("");
+                    format!("[{buttons_old_str}]~>[{buttons_new_str}]")
+                }
+                Feedback::Text(s) => s.clone(),
             });
         }
         for str in feed_evt_msgs.iter().take(16) {

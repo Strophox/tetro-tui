@@ -68,9 +68,9 @@ pub type GameTime = Duration;
 /// The internal RNG used by a game.
 pub type GameRng = StdRng;
 /// A mapping for buttons, usable through `impl Index<Button>`.
-type ButtonMap<T> = [T; 9];
+type ButtonsArray<T> = [T; Button::VARIANTS.len()];
 /// A mapping for which buttons were pressed.
-pub type ButtonsPressed = ButtonMap<bool>;
+pub type PressedButtons = ButtonsArray<bool>;
 /// Convenient type alias to denote a collection of [`Feedback`]s associated with some [`GameTime`].
 pub type FeedbackMessages = Vec<(GameTime, Feedback)>;
 /// Type of functions that can be used to modify a game, c.f. [`Game::add_modifier`].
@@ -237,7 +237,7 @@ pub enum FeedbackVerbosity { // TODO: Implement this.
     /// Note that game modifiers called may choose to generate feedback messages
     /// themselves, which will not again be discarded once received by
     /// the base game engine.
-    None,
+    Quiet,
     /// Base level of feedback about in-game events.
     #[default]
     Default,
@@ -307,7 +307,7 @@ pub enum GameEvent {
     /// Event of the active piece rotating.
     ///
     /// Stores some number of right turns.
-    Rotate(i32),
+    Rotate(i8),
     /// Event of attempted piece lock down.
     LockTimer,
 }
@@ -342,7 +342,7 @@ pub struct GameState {
     /// Upcoming game events.
     pub events: EventMap,
     /// The current state of buttons being pressed in the game.
-    pub buttons_pressed: ButtonMap<Option<GameTime>>,
+    pub buttons_pressed: ButtonsArray<Option<GameTime>>,
     /// The main playing grid storing empty (`None`) and filled, fixed tiles (`Some(nz_u32)`).
     pub board: Board,
     /// All relevant data of the current piece in play.
@@ -365,15 +365,6 @@ pub struct GameState {
     pub consecutive_line_clears: u32,
     /// The number of line clears that were either a quadruple, spin or perfect clear.
     pub back_to_back_special_clears: u32,
-}
-
-/// An error that can be thrown by [`Game::update`].
-pub enum GameUpdateError {
-    /// Error variant caused by an attempt to update the game with a requested `update_time` that lies in
-    /// the game's past (` < game.state().time`).
-    DurationPassed,
-    /// Error variant caused by an attempt to update a game that has ended (`game.ended() == true`).
-    GameEnded,
 }
 
 /// This builder exposes the ability to configure a new [`Game`] beyond just [`GameMode`].
@@ -429,6 +420,16 @@ pub struct Game {
     modifiers: Vec<FnGameMod>,
 }
 
+/// An error that can be thrown by [`Game::update`].
+#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
+pub enum UpdateGameError {
+    /// Error variant caused by an attempt to update the game with a requested `update_time` that lies in
+    /// the game's past (` < game.state().time`).
+    DurationPassed,
+    /// Error variant caused by an attempt to update a game that has ended (`game.ended() == true`).
+    GameEnded,
+}
+
 /// A number of feedback events that can be returned by the game.
 ///
 /// These can be used to more easily render visual feedback to the player.
@@ -463,12 +464,14 @@ pub enum Feedback {
         /// The number of consecutive lineclears where a spin, quadruple or perfect clear occurred.
         back_to_back: u32,
     },
-    /// A message containing an exact in-game GameEvent that was processed.
+    /// A message containing an exact in-engine [`GameEvent`] that was processed.
     EngineEvent(GameEvent),
+    /// A message containing an exact in-engine [`PressedButtons`] (user input) that was processed.
+    EngineInput(PressedButtons, PressedButtons),
     /// Generic text feedback message.
     ///
     /// This is currently unused in base game modes.
-    Message(String),
+    Text(String),
 }
 
 /// The points at which a [`FnGameMod`] will be applied.
@@ -481,16 +484,16 @@ pub enum ModifierPoint {
     /// Passed when the modifier is called immediately after an [`GameEvent`] has been handled.
     AfterEvent(GameEvent),
     /// Passed when the modifier is called immediately before new user input is handled.
-    BeforeButtonChange,
+    BeforeInput,
     /// Passed when the modifier is called immediately after new user input has been handled.
-    AfterButtonChange,
+    AfterInput,
 }
 
 impl Orientation {
     /// Find a new direction by turning right some number of times.
     ///
     /// This accepts `i32` to allow for left rotation.
-    pub fn rotate_right(&self, right_turns: i32) -> Self {
+    pub fn rotate_right(&self, right_turns: i8) -> Self {
         use Orientation::*;
         let base = match self {
             N => 0,
@@ -634,7 +637,7 @@ impl ActivePiece {
         &self,
         board: &Board,
         offset: Offset,
-        right_turns: i32,
+        right_turns: i8,
     ) -> Option<ActivePiece> {
         let mut new_piece = *self;
         new_piece.orientation = new_piece.orientation.rotate_right(right_turns);
@@ -648,7 +651,7 @@ impl ActivePiece {
         &self,
         board: &Board,
         offsets: impl IntoIterator<Item = Offset>,
-        right_turns: i32,
+        right_turns: i8,
     ) -> Option<ActivePiece> {
         let mut new_piece = *self;
         new_piece.orientation = new_piece.orientation.rotate_right(right_turns);
@@ -829,7 +832,7 @@ impl Default for GameConfig {
             line_clear_delay: Duration::from_millis(200),
             appearance_delay: Duration::from_millis(50),
             no_soft_drop_lock: false,
-            feedback_verbosity: FeedbackVerbosity::Default,
+            feedback_verbosity: FeedbackVerbosity::default(),
         }
     }
 }
@@ -970,7 +973,7 @@ impl Game {
     }
 
     /// Updates the internal `self.state.end` state, checking whether any [`Limits`] have been reached.
-    fn update_game_end(&mut self) {
+    fn run_game_end_update(&mut self) {
         self.state.end = self.state.end.or_else(|| {
             [
                 self.mode
@@ -1009,7 +1012,7 @@ impl Game {
     /// Goes through all internal 'game mods' and applies them sequentially at the given [`ModifierPoint`].
     fn apply_modifiers(
         &mut self,
-        feedback_events: &mut Vec<(GameTime, Feedback)>,
+        feedback_msgs: &mut FeedbackMessages,
         modifier_point: &ModifierPoint,
     ) {
         for modify in &mut self.modifiers {
@@ -1018,7 +1021,7 @@ impl Game {
                 &mut self.mode,
                 &mut self.state,
                 &mut self.rng,
-                feedback_events,
+                feedback_msgs,
                 modifier_point,
             );
         }
@@ -1044,9 +1047,9 @@ impl Game {
     ///   the requested update lies in the past.
     pub fn update(
         &mut self,
-        mut new_button_state: Option<ButtonsPressed>,
+        mut new_button_state: Option<PressedButtons>,
         update_time: GameTime,
-    ) -> Result<FeedbackMessages, GameUpdateError> {
+    ) -> Result<FeedbackMessages, UpdateGameError> {
         /*
         Order:
         - if game already ended, return immediately
@@ -1063,14 +1066,14 @@ impl Game {
          */
         // Invalid call: return immediately.
         if update_time < self.state.time {
-            return Err(GameUpdateError::DurationPassed);
+            return Err(UpdateGameError::DurationPassed);
         }
         if self.ended() {
-            return Err(GameUpdateError::GameEnded);
+            return Err(UpdateGameError::GameEnded);
         };
         // NOTE: Returning an empty Vec is efficient because it won't even allocate (as by Rust API).
-        let mut feedback_events = Vec::new();
-        self.apply_modifiers(&mut feedback_events, &ModifierPoint::UpdateStart);
+        let mut feedback_msgs = Vec::new();
+        self.apply_modifiers(&mut feedback_msgs, &ModifierPoint::UpdateStart);
         // We linearly process all events until we reach the update time.
         'event_simulation: loop {
             // Peek the next closest event.
@@ -1083,52 +1086,62 @@ impl Game {
             match next_event {
                 // Next event within requested update time, handle event first.
                 Some((&event, &event_time)) if event_time <= update_time => {
-                    self.apply_modifiers(&mut feedback_events, &ModifierPoint::BeforeEvent(event));
+                    self.apply_modifiers(&mut feedback_msgs, &ModifierPoint::BeforeEvent(event));
                     // Remove next event and handle it.
                     self.state.events.remove_entry(&event);
-                    let new_feedback_events = self.handle_event(event, event_time);
+                    let event_feedback_msgs = self.handle_event(event, event_time);
                     self.state.time = event_time;
-                    feedback_events.extend(new_feedback_events);
-                    self.apply_modifiers(&mut feedback_events, &ModifierPoint::AfterEvent(event));
+                    if self.config.feedback_verbosity != FeedbackVerbosity::Quiet {
+                        feedback_msgs.extend(event_feedback_msgs);
+                        if self.config.feedback_verbosity == FeedbackVerbosity::Debug {
+                            feedback_msgs.push((event_time, Feedback::EngineEvent(event)));
+                        }
+                    }
+                    self.apply_modifiers(&mut feedback_msgs, &ModifierPoint::AfterEvent(event));
                     // Stop simulation early if event or modifier ended game.
-                    self.update_game_end();
+                    self.run_game_end_update();
                     if self.ended() {
                         break 'event_simulation;
                     }
                 }
+                // FIXME: Are we not 'unintentionally' catching the `None` case too?
                 _ => {
                     // Possibly process user input events now or break out.
                     // NOTE: We should be able to update the time here because `self.process_input(...)` does not access it.
                     self.state.time = update_time;
+                    // FIXME(Strophox): Why are we `take`ing the state?
                     // Update button inputs.
-                    if let Some(buttons_pressed) = new_button_state.take() {
+                    if let Some(pressed_buttons) = new_button_state.take() {
                         self.apply_modifiers(
-                            &mut feedback_events,
-                            &ModifierPoint::BeforeButtonChange,
+                            &mut feedback_msgs,
+                            &ModifierPoint::BeforeInput,
                         );
-                        self.input_update(buttons_pressed, update_time);
+                        if self.config.feedback_verbosity == FeedbackVerbosity::Debug {
+                            feedback_msgs.push((update_time, Feedback::EngineInput(self.state.buttons_pressed.map(|x| x.is_some()), pressed_buttons)));
+                        }
+                        self.run_input_update(pressed_buttons, update_time);
                         self.apply_modifiers(
-                            &mut feedback_events,
-                            &ModifierPoint::AfterButtonChange,
+                            &mut feedback_msgs,
+                            &ModifierPoint::AfterInput,
                         );
                     } else {
-                        self.update_game_end();
+                        self.run_game_end_update();
                         break 'event_simulation;
                     }
                 }
             };
         }
-        Ok(feedback_events)
+        Ok(feedback_msgs)
     }
 
     /// Computes and adds to the internal event queue any relevant [`GameEvent`]s caused by the
     /// player in form of a change of button states.
     #[allow(clippy::bool_comparison, clippy::comparison_chain)]
-    fn input_update(&mut self, next_buttons_pressed: ButtonsPressed, update_time: GameTime) {
-        let prev_buttons_pressed = self.state.buttons_pressed.map(|x| x.is_some());
+    fn run_input_update(&mut self, pressed_new: PressedButtons, update_time: GameTime) {
+        let pressed_old = self.state.buttons_pressed.map(|x| x.is_some());
         if self.state.active_piece_data.is_some() {
-            let [ml0, mr0, rl0, rr0, ra0, ds0, dh0, dc0, h0] = prev_buttons_pressed;
-            let [ml1, mr1, rl1, rr1, ra1, ds1, dh1, dc1, h1] = next_buttons_pressed;
+            let [ml0, mr0, rl0, rr0, ra0, ds0, dh0, dc0, h0] = pressed_old;
+            let [ml1, mr1, rl1, rr1, ra1, ds1, dh1, dc1, h1] = pressed_new;
 
             // Single new button has been pressed, remove repeat moves and add initial move.
             /*
@@ -1199,14 +1212,14 @@ impl Game {
         }
         // Update internal button state.
         #[allow(clippy::bool_comparison)]
-        for ((button, prev), next) in Button::VARIANTS
+        for ((button, old), new) in Button::VARIANTS
             .iter()
-            .zip(prev_buttons_pressed)
-            .zip(next_buttons_pressed)
+            .zip(pressed_old)
+            .zip(pressed_new)
         {
-            if prev < next {
+            if old < new {
                 self.state.buttons_pressed[*button] = Some(update_time);
-            } else if prev > next {
+            } else if old > new {
                 self.state.buttons_pressed[*button] = None;
             }
         }
@@ -1789,6 +1802,18 @@ impl Game {
         })
     }
 }
+
+impl std::fmt::Display for UpdateGameError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
+            UpdateGameError::DurationPassed => "attempt to update game to timestamp it already passed",
+            UpdateGameError::GameEnded => "attempt to update game after it ended",
+        };
+        write!(f, "{s}")
+    }
+}
+
+impl std::error::Error for UpdateGameError {}
 
 /// Adds an offset to a board coordinate, failing if the result is out of bounds
 /// (negative or positive overflow in either direction).

@@ -4,7 +4,7 @@ pub mod debug_renderer;
 use std::io::{self, Write};
 
 use crossterm::style::Color;
-use tetrs_engine::{FeedbackMessages, Game, Tetromino, TileTypeID};
+use tetrs_engine::{Button, FeedbackMessages, Game, Tetromino, TileTypeID};
 
 use crate::terminal_user_interface::{Application, GraphicsColoring, RunningGameStats};
 
@@ -42,6 +42,20 @@ pub fn tet_str_minuscule(t: &Tetromino) -> &'static str {
         Tetromino::T => "⠗", //"⠴⠄",
         Tetromino::L => "⠧", //"⠤⠆",
         Tetromino::J => "⠼", //"⠦⠄",
+    }
+}
+
+pub fn button_str(b: &Button) -> &'static str {
+    match b {
+        Button::MoveLeft => "←",
+        Button::MoveRight => "→",
+        Button::RotateLeft => "↺",
+        Button::RotateRight => "↻",
+        Button::RotateAround => "↔",
+        Button::DropSoft => "↓",
+        Button::DropHard => "↑",
+        Button::DropSonic => "↥",
+        Button::HoldPiece => "h",
     }
 }
 

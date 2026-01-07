@@ -138,7 +138,7 @@ pub fn new_game() -> Game {
             // Keep custom game state that's also visible to player, but hide it from the game engine that handles gameplay.
             if matches!(
                 modifier_point,
-                ModifierPoint::BeforeEvent(_) | ModifierPoint::BeforeButtonChange
+                ModifierPoint::BeforeEvent(_) | ModifierPoint::BeforeInput
             ) {
                 state.lines_cleared = 0;
                 state.next_pieces.clear();
@@ -150,7 +150,7 @@ pub fn new_game() -> Game {
                 //     NonZeroU32::try_from(u32::try_from(current_puzzle_idx + 1).unwrap()).unwrap();
             }
             // Remove ability to hold.
-            if matches!(modifier_point, ModifierPoint::AfterButtonChange) {
+            if matches!(modifier_point, ModifierPoint::AfterInput) {
                 state.events.remove(&GameEvent::Hold);
             }
             // FIXME: Remove jank.
