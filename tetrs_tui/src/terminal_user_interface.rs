@@ -22,8 +22,8 @@ use crossterm::{
 };
 
 use tetrs_engine::{
-    piece_generation::TetrominoSource, piece_rotation::RotationSystem, Button, PressedButtons,
-    FeedbackMessages, Game, GameConfig, GameMode, GameState, Limits, Tetromino,
+    piece_generation::TetrominoSource, piece_rotation::RotationSystem, Button, FeedbackMessages,
+    Game, GameConfig, GameMode, GameState, Limits, PressedButtons, Tetromino,
 };
 
 use crate::{
@@ -268,8 +268,7 @@ impl<T: Write> Application<T> {
             app.settings.new_game.custom_start_board = custom_start_board;
         }
         if let Some(custom_start_seed) = custom_start_seed {
-            app.settings.new_game
-                .custom_start_seed = Some(custom_start_seed);
+            app.settings.new_game.custom_start_seed = Some(custom_start_seed);
         }
         app.combo_bot_enabled = combo_bot_enabled;
         app.settings.game_config.no_soft_drop_lock = !kitty_detected;
@@ -285,8 +284,7 @@ impl<T: Write> Application<T> {
     fn store_save(&mut self, path: PathBuf) -> io::Result<()> {
         // Only save past games if needed.
         self.past_games = if self.settings.save_on_exit == SavefileGranularity::SettingsAndGames {
-            self
-                .past_games
+            self.past_games
                 .iter()
                 .filter(|finished_game_stats| {
                     finished_game_stats.was_successful()
@@ -297,10 +295,7 @@ impl<T: Write> Application<T> {
         } else {
             Vec::new()
         };
-        let save_state = (
-            &self.settings,
-            &self.past_games,
-        );
+        let save_state = (&self.settings, &self.past_games);
         let save_str = serde_json::to_string(&save_state)?;
         let mut file = File::create(path)?;
         // FIXME: Handle error?
@@ -313,10 +308,7 @@ impl<T: Write> Application<T> {
         let mut save_str = String::new();
         file.read_to_string(&mut save_str)?;
         let save_state = serde_json::from_str(&save_str)?;
-        (
-            self.settings,
-            self.past_games,
-        ) = save_state;
+        (self.settings, self.past_games) = save_state;
         Ok(())
     }
 
@@ -454,7 +446,11 @@ impl<T: Write> Application<T> {
                         y_main + y_selection + 4 + u16::try_from(n_names).unwrap() + 2,
                     ))?
                     .queue(PrintStyledContent(
-                        format!("{:^w_main$}", "(Controls: [←][↓][↑][→] [Esc][Enter][Del] / hjklqed)",).italic(),
+                        format!(
+                            "{:^w_main$}",
+                            "(Controls: [←][↓][↑][→] [Esc][Enter][Del] / hjklqed)",
+                        )
+                        .italic(),
                     ))?;
             }
             if easteregg.abs() == 42 {
@@ -576,7 +572,10 @@ impl<T: Write> Application<T> {
                 ),
                 (
                     "Cheese",
-                    format!("How well can you eat through lines like Swiss cheese? [lines: {:?}]", ng.cheese_mode_limit),
+                    format!(
+                        "How well can you eat through lines like Swiss cheese? [lines: {:?}]",
+                        ng.cheese_mode_limit
+                    ),
                     Box::new({
                         let cheese_mode_limit = ng.cheese_mode_limit;
                         let cheese_mode_gap_size = ng.cheese_mode_gap_size;
@@ -598,9 +597,7 @@ impl<T: Write> Application<T> {
                     ),
                     Box::new({
                         let combo_start_layout = ng.combo_start_layout;
-                        move || {
-                            game_mods::combo_mode::new_game(1, combo_start_layout)
-                        }
+                        move || game_mods::combo_mode::new_game(1, combo_start_layout)
                     }),
                 ),
             ];
@@ -667,8 +664,7 @@ impl<T: Write> Application<T> {
                     if selected == selection_size - 1 {
                         if customization_selected > 0 {
                             " | Custom:                             "
-                        } else if ng.custom_start_seed.is_some()
-                            || ng.custom_start_board.is_some()
+                        } else if ng.custom_start_seed.is_some() || ng.custom_start_board.is_some()
                         {
                             ">> Custom: (clear board/seed with [Del])"
                         } else {
@@ -735,23 +731,23 @@ impl<T: Write> Application<T> {
                         let limits = match ng.custom_mode_limit {
                             Some(Stat::Time(max_dur)) => Limits {
                                 time: Some((true, max_dur)),
-                                ..Default::default()
+                                ..Limits::default()
                             },
                             Some(Stat::Pieces(max_pcs)) => Limits {
                                 pieces: Some((true, max_pcs)),
-                                ..Default::default()
+                                ..Limits::default()
                             },
                             Some(Stat::Lines(max_lns)) => Limits {
                                 lines: Some((true, max_lns)),
-                                ..Default::default()
+                                ..Limits::default()
                             },
                             Some(Stat::Gravity(max_lvl)) => Limits {
                                 gravity: Some((true, max_lvl)),
-                                ..Default::default()
+                                ..Limits::default()
                             },
                             Some(Stat::Score(max_pts)) => Limits {
                                 score: Some((true, max_pts)),
-                                ..Default::default()
+                                ..Limits::default()
                             },
                             None => Limits::default(),
                         };
@@ -766,9 +762,9 @@ impl<T: Write> Application<T> {
                             custom_game_builder.seed(seed);
                         }
                         if let Some(ref custom_start_board_str) = ng.custom_start_board {
-                            custom_game_builder.build_modified(vec![game_mods::utils::custom_start_board(
-                                custom_start_board_str,
-                            )])
+                            custom_game_builder.build_modified([
+                                game_mods::utils::custom_start_board(custom_start_board_str),
+                            ])
                         } else {
                             custom_game_builder.build()
                         }
@@ -782,7 +778,7 @@ impl<T: Write> Application<T> {
                         last_paused: now,
                         total_duration_paused: Duration::ZERO,
                         running_game_stats: RunningGameStats::default(),
-                        game_renderer: Default::default(),
+                        game_renderer: Box::new(CachedRenderer::default()),
                     }));
                 }
                 // Move selector up or increase stat.
@@ -972,8 +968,9 @@ impl<T: Write> Application<T> {
         let (button_sender, button_receiver) = mpsc::channel();
         let _input_handler =
             CrosstermHandler::new(&button_sender, &self.settings.keybinds, self.kitty_assumed);
-        let mut combo_bot_handler = (self.combo_bot_enabled && game.mode().name.as_ref().is_some_and(|n| n == "Combo"))
-            .then(|| ComboBotHandler::new(&button_sender, Duration::from_millis(100)));
+        let mut combo_bot_handler = (self.combo_bot_enabled
+            && game.mode().name.as_ref().is_some_and(|n| n == "Combo"))
+        .then(|| ComboBotHandler::new(&button_sender, Duration::from_millis(100)));
         let mut inform_combo_bot = |game: &Game, evts: &FeedbackMessages| {
             if let Some((_, state_sender)) = &mut combo_bot_handler {
                 if evts.iter().any(|(_, feedback)| {
@@ -1048,8 +1045,7 @@ impl<T: Write> Application<T> {
                                     .map(|cell| if cell.is_some() { 'X' } else { ' ' })
                             }),
                         ));
-                        self.settings.new_game
-                            .custom_start_seed = Some(game.seed());
+                        self.settings.new_game.custom_start_seed = Some(game.seed());
                         new_feedback_events.push((
                             game.state().time,
                             tetrs_engine::Feedback::Text("(Snapshot taken!)".to_string()),
@@ -1201,12 +1197,18 @@ impl<T: Write> Application<T> {
                     if success {
                         format!(
                             "++ Game Completed{} ++",
-                            gamemode.name.as_ref().map_or("".to_string(), |name| format!(" ({name})"))
+                            gamemode
+                                .name
+                                .as_ref()
+                                .map_or("".to_string(), |name| format!(" ({name})"))
                         )
                     } else {
                         format!(
                             "-- Game Over{} by: {:?} --",
-                            gamemode.name.as_ref().map_or("".to_string(), |name| format!(" ({name})")),
+                            gamemode
+                                .name
+                                .as_ref()
+                                .map_or("".to_string(), |name| format!(" ({name})")),
                             last_state.end.unwrap().unwrap_err()
                         )
                     }
@@ -1373,11 +1375,14 @@ impl<T: Write> Application<T> {
                 "Configure Graphics...".to_string(),
                 "Configure Keybinds...".to_string(),
                 "Configure Gameplay...".to_string(),
-                format!("Keep save file: {}", match self.settings.save_on_exit {
-                    SavefileGranularity::Nothing => "OFF*",
-                    SavefileGranularity::Settings => "ON [without games; only settings]",
-                    SavefileGranularity::SettingsAndGames => "ON",
-                }),
+                format!(
+                    "Keep save file: {}",
+                    match self.settings.save_on_exit {
+                        SavefileGranularity::Nothing => "OFF*",
+                        SavefileGranularity::Settings => "ON [without games; only settings]",
+                        SavefileGranularity::SettingsAndGames => "ON",
+                    }
+                ),
                 "".to_string(),
                 if self.settings.save_on_exit == SavefileGranularity::Nothing {
                     "(*WARNING: current data will be lost on exit)".to_string()
@@ -1450,7 +1455,8 @@ impl<T: Write> Application<T> {
                     code: KeyCode::Right | KeyCode::Char('l'),
                     kind: Press | Repeat,
                     ..
-                }) => match selected { // TODO add more cases to switch slots for keybinds/gameplayconfigs/graphicsconfigs...
+                }) => match selected {
+                    // TODO add more cases to switch slots for keybinds/gameplayconfigs/graphicsconfigs...
                     3 => {
                         self.settings.save_on_exit = match self.settings.save_on_exit {
                             SavefileGranularity::Nothing => SavefileGranularity::SettingsAndGames,
@@ -1537,8 +1543,12 @@ impl<T: Write> Application<T> {
                     y_main + y_selection + 4 + u16::try_from(selection_len).unwrap() + 3,
                 ))?
                 .queue(PrintStyledContent(
-                    format!("{:^w_main$}", "(Controls: [Enter]=add [Esc]=cancel [Del]=remove)",).italic(),
-                ))?;    
+                    format!(
+                        "{:^w_main$}",
+                        "(Controls: [Enter]=add [Esc]=cancel [Del]=remove)",
+                    )
+                    .italic(),
+                ))?;
             self.term.flush()?;
             // Wait for new input.
             match event::read()? {
@@ -1654,7 +1664,10 @@ impl<T: Write> Application<T> {
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
                 .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
             let labels = [
-                format!("Rotation system: {:?}", self.settings.game_config.rotation_system),
+                format!(
+                    "Rotation system: {:?}",
+                    self.settings.game_config.rotation_system
+                ),
                 format!(
                     "Piece generator: {}",
                     match &self.settings.game_config.tetromino_generator {
@@ -1676,11 +1689,26 @@ impl<T: Write> Application<T> {
                     "*Auto repeat rate: {:?}",
                     self.settings.game_config.auto_repeat_rate
                 ),
-                format!("*Soft drop factor: {}", self.settings.game_config.soft_drop_factor),
-                format!("Hard drop delay: {:?}", self.settings.game_config.hard_drop_delay),
-                format!("Ground time max: {:?}", self.settings.game_config.ground_time_max),
-                format!("Line clear delay: {:?}", self.settings.game_config.line_clear_delay),
-                format!("Appearance delay: {:?}", self.settings.game_config.appearance_delay),
+                format!(
+                    "*Soft drop factor: {}",
+                    self.settings.game_config.soft_drop_factor
+                ),
+                format!(
+                    "Hard drop delay: {:?}",
+                    self.settings.game_config.hard_drop_delay
+                ),
+                format!(
+                    "Ground time max: {:?}",
+                    self.settings.game_config.ground_time_max
+                ),
+                format!(
+                    "Line clear delay: {:?}",
+                    self.settings.game_config.line_clear_delay
+                ),
+                format!(
+                    "Appearance delay: {:?}",
+                    self.settings.game_config.appearance_delay
+                ),
                 format!(
                     "**No soft drop lock: {}",
                     self.settings.game_config.no_soft_drop_lock
@@ -1797,15 +1825,17 @@ impl<T: Write> Application<T> {
                     ..
                 }) => match selected {
                     0 => {
-                        self.settings.game_config.rotation_system = match self.settings.game_config.rotation_system {
-                            RotationSystem::Ocular => RotationSystem::Classic,
-                            RotationSystem::Classic => RotationSystem::Super,
-                            RotationSystem::Super => RotationSystem::Ocular,
-                        };
+                        self.settings.game_config.rotation_system =
+                            match self.settings.game_config.rotation_system {
+                                RotationSystem::Ocular => RotationSystem::Classic,
+                                RotationSystem::Classic => RotationSystem::Super,
+                                RotationSystem::Super => RotationSystem::Ocular,
+                            };
                     }
                     1 => {
                         self.settings.game_config.tetromino_generator = match self
-                            .settings.game_config
+                            .settings
+                            .game_config
                             .tetromino_generator
                         {
                             TetrominoSource::Uniform => TetrominoSource::bag(),
@@ -1840,7 +1870,8 @@ impl<T: Write> Application<T> {
                         self.settings.game_config.appearance_delay += Duration::from_millis(10);
                     }
                     10 => {
-                        self.settings.game_config.no_soft_drop_lock = !self.settings.game_config.no_soft_drop_lock;
+                        self.settings.game_config.no_soft_drop_lock =
+                            !self.settings.game_config.no_soft_drop_lock;
                     }
                     11 => {
                         self.kitty_assumed = !self.kitty_assumed;
@@ -1853,23 +1884,24 @@ impl<T: Write> Application<T> {
                     ..
                 }) => match selected {
                     0 => {
-                        self.settings.game_config.rotation_system = match self.settings.game_config.rotation_system {
-                            RotationSystem::Ocular => RotationSystem::Super,
-                            RotationSystem::Super => RotationSystem::Classic,
-                            RotationSystem::Classic => RotationSystem::Ocular,
-                        };
+                        self.settings.game_config.rotation_system =
+                            match self.settings.game_config.rotation_system {
+                                RotationSystem::Ocular => RotationSystem::Super,
+                                RotationSystem::Super => RotationSystem::Classic,
+                                RotationSystem::Classic => RotationSystem::Ocular,
+                            };
                     }
                     1 => {
-                        self.settings.game_config.tetromino_generator = match self
-                            .settings.game_config
-                            .tetromino_generator
-                        {
-                            TetrominoSource::Uniform => TetrominoSource::balance_relative(),
-                            TetrominoSource::Stock { .. } => TetrominoSource::uniform(),
-                            TetrominoSource::Recency { .. } => TetrominoSource::bag(),
-                            TetrominoSource::BalanceRelative { .. } => TetrominoSource::recency(),
-                            TetrominoSource::Cycle { .. } => TetrominoSource::uniform(),
-                        };
+                        self.settings.game_config.tetromino_generator =
+                            match self.settings.game_config.tetromino_generator {
+                                TetrominoSource::Uniform => TetrominoSource::balance_relative(),
+                                TetrominoSource::Stock { .. } => TetrominoSource::uniform(),
+                                TetrominoSource::Recency { .. } => TetrominoSource::bag(),
+                                TetrominoSource::BalanceRelative { .. } => {
+                                    TetrominoSource::recency()
+                                }
+                                TetrominoSource::Cycle { .. } => TetrominoSource::uniform(),
+                            };
                     }
                     2 => {
                         self.settings.game_config.preview_count =
@@ -1877,13 +1909,15 @@ impl<T: Write> Application<T> {
                     }
                     3 => {
                         self.settings.game_config.delayed_auto_shift = self
-                            .settings.game_config
+                            .settings
+                            .game_config
                             .delayed_auto_shift
                             .saturating_sub(Duration::from_millis(1));
                     }
                     4 => {
                         self.settings.game_config.auto_repeat_rate = self
-                            .settings.game_config
+                            .settings
+                            .game_config
                             .auto_repeat_rate
                             .saturating_sub(Duration::from_millis(1));
                     }
@@ -1895,31 +1929,36 @@ impl<T: Write> Application<T> {
                     6 => {
                         if self.settings.game_config.hard_drop_delay >= Duration::from_millis(1) {
                             self.settings.game_config.hard_drop_delay = self
-                                .settings.game_config
+                                .settings
+                                .game_config
                                 .hard_drop_delay
                                 .saturating_sub(Duration::from_millis(1));
                         }
                     }
                     7 => {
                         self.settings.game_config.ground_time_max = self
-                            .settings.game_config
+                            .settings
+                            .game_config
                             .ground_time_max
                             .saturating_sub(Duration::from_millis(250));
                     }
                     8 => {
                         self.settings.game_config.line_clear_delay = self
-                            .settings.game_config
+                            .settings
+                            .game_config
                             .line_clear_delay
                             .saturating_sub(Duration::from_millis(10));
                     }
                     9 => {
                         self.settings.game_config.appearance_delay = self
-                            .settings.game_config
+                            .settings
+                            .game_config
                             .appearance_delay
                             .saturating_sub(Duration::from_millis(10));
                     }
                     10 => {
-                        self.settings.game_config.no_soft_drop_lock = !self.settings.game_config.no_soft_drop_lock;
+                        self.settings.game_config.no_soft_drop_lock =
+                            !self.settings.game_config.no_soft_drop_lock;
                     }
                     11 => {
                         self.kitty_assumed = !self.kitty_assumed;
@@ -1944,7 +1983,7 @@ impl<T: Write> Application<T> {
                 .queue(Clear(ClearType::All))?
                 .queue(MoveTo(x_main, y_main + y_selection))?
                 .queue(Print(format!("{:^w_main$}", "# Configure Graphics #")))?
-                .queue(MoveTo(x_main, y_main+y_selection+2))?
+                .queue(MoveTo(x_main, y_main + y_selection + 2))?
                 .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
             let labels = [
                 format!("Glyphset: {:?}", self.settings.graphics_glyphset),
@@ -1956,7 +1995,7 @@ impl<T: Write> Application<T> {
                 self.term
                     .queue(MoveTo(
                         x_main,
-                        y_main+y_selection+2+2+u16::try_from(i).unwrap(),
+                        y_main + y_selection + 2 + 2 + u16::try_from(i).unwrap(),
                     ))?
                     .queue(Print(format!(
                         "{:^w_main$}",
@@ -2126,7 +2165,7 @@ impl<T: Write> Application<T> {
                         // 'not'/'no' but the origins of "hilum" are vague:
                         // It is suspected to be a variant of "filum" - i.e. 'thread'; 'string'.
                         // Behold: "nil" literally means "not even a String".
-                        // 
+                        //
                         // Also, "nihilum" is the origin for the English word 'nihilism', which
                         // aptly describes how I feel having to write this sort of code to satisfy
                         // the borrow checker. Probably a skill issue.

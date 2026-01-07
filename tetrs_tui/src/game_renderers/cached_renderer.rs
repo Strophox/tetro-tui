@@ -17,9 +17,10 @@ use tetrs_engine::{
 };
 
 use crate::{
-    game_renderers::{Renderer, button_str},
+    game_renderers::{button_str, Renderer},
     terminal_user_interface::{
-        Application, GraphicsColoring, GraphicsGlyphset, RunningGameStats, fmt_duration, fmt_keybinds
+        fmt_duration, fmt_keybinds, Application, GraphicsColoring, GraphicsGlyphset,
+        RunningGameStats,
     },
 };
 
@@ -243,7 +244,12 @@ impl Renderer for CachedRenderer {
             back_to_back_special_clears: _,
         } = game.state();
         // Screen: some titles.
-        let mode_name = game.mode().name.as_ref().unwrap_or(&"".to_string()).to_ascii_uppercase();
+        let mode_name = game
+            .mode()
+            .name
+            .as_ref()
+            .unwrap_or(&"".to_string())
+            .to_ascii_uppercase();
         let mode_name_space = mode_name.len().max(14);
         let (goal_name, goal_value) = [
             game.mode().limits.time.map(|(_, max_dur)| {
@@ -282,7 +288,13 @@ impl Renderer for CachedRenderer {
         .into_iter()
         .find_map(|limit_text| limit_text)
         .unwrap_or_default();
-        let (focus_name, focus_value) = match game.mode().name.as_ref().unwrap_or(&"".to_string()).as_str() {
+        let (focus_name, focus_value) = match game
+            .mode()
+            .name
+            .as_ref()
+            .unwrap_or(&"".to_string())
+            .as_str()
+        {
             "Marathon" => ("Score:", score.to_string()),
             "40-Lines" => ("Time taken:", fmt_duration(*game_time)),
             "Time Trial" => ("Score:", score.to_string()),
@@ -581,7 +593,9 @@ impl Renderer for CachedRenderer {
                     };
                     let color_locking = match app.settings().graphics_coloring {
                         GraphicsColoring::Monochrome => None,
-                        GraphicsColoring::Color16 | GraphicsColoring::Fullcolor => Some(Color::White),
+                        GraphicsColoring::Color16 | GraphicsColoring::Fullcolor => {
+                            Some(Color::White)
+                        }
                         GraphicsColoring::Experimental => Some(Color::Rgb {
                             r: 207,
                             g: 207,
@@ -743,12 +757,19 @@ impl Renderer for CachedRenderer {
                     *active = false;
                 }
                 Feedback::EngineEvent(game_event) => {
-                    self.messages.push((*feedback_time, format!("{game_event:?}")));
+                    self.messages
+                        .push((*feedback_time, format!("{game_event:?}")));
                     *active = false;
                 }
                 Feedback::EngineInput(_pressed_old, pressed_new) => {
-                    let buttons_str = pressed_new.iter().zip(Button::VARIANTS).filter_map(|(p,b)| p.then(|| button_str(&b).to_string())).collect::<Vec<_>>().join(" ");
-                    self.messages.push((*feedback_time, format!("[{buttons_str}]")));
+                    let buttons_str = pressed_new
+                        .iter()
+                        .zip(Button::VARIANTS)
+                        .filter_map(|(p, b)| p.then(|| button_str(&b).to_string()))
+                        .collect::<Vec<_>>()
+                        .join(" ");
+                    self.messages
+                        .push((*feedback_time, format!("[{buttons_str}]")));
                     *active = false;
                 }
             }

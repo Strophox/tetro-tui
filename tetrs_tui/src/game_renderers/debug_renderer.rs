@@ -11,7 +11,7 @@ use crossterm::{
 use tetrs_engine::{Button, Feedback, FeedbackMessages, Game, GameState, GameTime};
 
 use crate::{
-    game_renderers::{Renderer, button_str},
+    game_renderers::{button_str, Renderer},
     terminal_user_interface::{Application, RunningGameStats},
 };
 
@@ -146,8 +146,18 @@ impl Renderer for DebugRenderer {
                 Feedback::HardDrop(_, _) => continue,
                 Feedback::EngineEvent(game_event) => format!("{game_event:?}"),
                 Feedback::EngineInput(pressed_old, pressed_new) => {
-                    let buttons_old_str = pressed_old.iter().zip(Button::VARIANTS).filter_map(|(p,b)| p.then(|| button_str(&b).to_string())).collect::<Vec<_>>().join("");
-                    let buttons_new_str = pressed_new.iter().zip(Button::VARIANTS).filter_map(|(p,b)| p.then(|| button_str(&b).to_string())).collect::<Vec<_>>().join("");
+                    let buttons_old_str = pressed_old
+                        .iter()
+                        .zip(Button::VARIANTS)
+                        .filter_map(|(p, b)| p.then(|| button_str(&b).to_string()))
+                        .collect::<Vec<_>>()
+                        .join("");
+                    let buttons_new_str = pressed_new
+                        .iter()
+                        .zip(Button::VARIANTS)
+                        .filter_map(|(p, b)| p.then(|| button_str(&b).to_string()))
+                        .collect::<Vec<_>>()
+                        .join("");
                     format!("[{buttons_old_str}]~>[{buttons_new_str}]")
                 }
                 Feedback::Text(s) => s.clone(),

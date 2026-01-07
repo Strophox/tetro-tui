@@ -45,7 +45,7 @@ impl CrosstermHandler {
                 input_sender.clone(),
                 keybinds.clone(),
             ),
-            running_thread_flag
+            running_thread_flag,
         }
     }
 

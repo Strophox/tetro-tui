@@ -85,7 +85,7 @@ impl TetrominoSource {
     }
 
     /// Initialize a custom instance of the [`TetrominoSource::Stock`] variant.
-    /// 
+    ///
     /// This function returns `None` when `refill_threshold < multiplicity * 7`.
     pub const fn stock(multiplicity: NonZeroU32, refill_threshold: u32) -> Option<Self> {
         if refill_threshold < multiplicity.get() * 7 {
@@ -106,7 +106,7 @@ impl TetrominoSource {
     }
 
     /// Initialize a custom instance of the [`TetrominoSource::Recency`] variant.
-    /// 
+    ///
     /// This function returns `None` when `snap` is NaN (see [`f64::is_nan`]).
     pub const fn recency_with(snap: f64) -> Option<Self> {
         if !snap.is_nan() {

@@ -163,7 +163,8 @@ pub fn new_game() -> Game {
         increase_gravity: false,
         limits: Limits {
             time: Some((true, Duration::from_secs(180))),
-            ..Default::default()
+            ..Limits::default()
         },
-    }).build_modified(vec![descent_mode])
+    })
+    .build_modified([descent_mode])
 }

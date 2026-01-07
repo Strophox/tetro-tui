@@ -130,14 +130,13 @@ pub fn new_game() -> Game {
             }
         },
     );
-    let game = Game::builder(GameMode {
+    Game::builder(GameMode {
         name: Some("Puzzle".to_string()),
         initial_gravity: 2,
         increase_gravity: false,
         limits: Limits::default(),
-    }).build_modified(vec![puzzle_mode]);
-    // TODO: Is preview size ensured to be 0 when game starts??
-    game
+    })
+    .build_modified([puzzle_mode])
 }
 
 #[allow(clippy::type_complexity)]

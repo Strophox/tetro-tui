@@ -69,7 +69,8 @@ pub fn new_game(cheese_limit: Option<NonZeroUsize>, gap_size: usize, gravity: u3
         increase_gravity: false,
         limits: Limits {
             lines: cheese_limit.map(|line_count| (true, line_count.get())),
-            ..Default::default()
+            ..Limits::default()
         },
-    }).build_modified(vec![cheese_mode])
+    })
+    .build_modified([cheese_mode])
 }

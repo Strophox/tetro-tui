@@ -74,7 +74,8 @@ pub fn new_game(gravity: u32, initial_layout: u16) -> Game {
         initial_gravity: gravity,
         increase_gravity: false,
         limits: Limits::default(),
-    }).build_modified(vec![combo_mode])
+    })
+    .build_modified([combo_mode])
 }
 
 fn init_board(board: &mut Board, mut init_layout: u16) {
