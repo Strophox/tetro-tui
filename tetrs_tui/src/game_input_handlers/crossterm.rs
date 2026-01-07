@@ -17,14 +17,13 @@ use super::InputSignal;
 
 #[derive(Debug)]
 pub struct CrosstermHandler {
-    handle: Option<(Arc<AtomicBool>, JoinHandle<()>)>,
+    _thread_handle: JoinHandle<()>,
+    running_thread_flag: Arc<AtomicBool>,
 }
 
 impl Drop for CrosstermHandler {
     fn drop(&mut self) {
-        if let Some((run_thread_flag, _)) = self.handle.take() {
-            run_thread_flag.store(false, Ordering::Release);
-        }
+        self.running_thread_flag.store(false, Ordering::Release);
     }
 }
 
@@ -34,18 +33,19 @@ impl CrosstermHandler {
         keybinds: &HashMap<KeyCode, Button>,
         kitty_enabled: bool,
     ) -> Self {
-        let run_thread_flag = Arc::new(AtomicBool::new(true));
-        let join_handle = if kitty_enabled {
+        let running_thread_flag = Arc::new(AtomicBool::new(true));
+        let spawn = if kitty_enabled {
             Self::spawn_kitty
         } else {
             Self::spawn_standard
-        }(
-            run_thread_flag.clone(),
-            input_sender.clone(),
-            keybinds.clone(),
-        );
+        };
         CrosstermHandler {
-            handle: Some((run_thread_flag, join_handle)),
+            _thread_handle: spawn(
+                running_thread_flag.clone(),
+                input_sender.clone(),
+                keybinds.clone(),
+            ),
+            running_thread_flag
         }
     }
 
@@ -55,10 +55,10 @@ impl CrosstermHandler {
             (KeyCode::Right, Button::MoveRight),
             (KeyCode::Char('a'), Button::RotateLeft),
             (KeyCode::Char('d'), Button::RotateRight),
-            //(KeyCode::Char('s'), Button::RotateAround),
+            (KeyCode::Char('s'), Button::RotateAround),
             (KeyCode::Down, Button::DropSoft),
             (KeyCode::Up, Button::DropHard),
-            //(KeyCode::Char('w'), Button::DropSonic),
+            (KeyCode::Char('w'), Button::DropSonic),
             (KeyCode::Char(' '), Button::HoldPiece),
         ])
     }
@@ -71,8 +71,7 @@ impl CrosstermHandler {
         thread::spawn(move || {
             'react_to_event: loop {
                 // Maybe stop thread.
-                let run_thread = run_thread_flag.load(Ordering::Acquire);
-                if !run_thread {
+                let true = run_thread_flag.load(Ordering::Acquire) else {
                     break 'react_to_event;
                 };
                 match event::read() {
@@ -142,14 +141,14 @@ impl CrosstermHandler {
         thread::spawn(move || {
             'react_to_event: loop {
                 // Maybe stop thread.
-                let run_thread = run_thread_flag.load(Ordering::Acquire);
-                if !run_thread {
+                let true = run_thread_flag.load(Ordering::Acquire) else {
                     break 'react_to_event;
                 };
-                match event::poll(std::time::Duration::from_secs(1)) {
-                    Ok(true) => {}
-                    Ok(false) | Err(_) => continue 'react_to_event,
-                }
+                // FIXME(Strophox): I think this code is obsolete. But reminds me of the issue where Kitty's "release" event is not captured by the game if one pauses during a press.
+                // match event::poll(std::time::Duration::from_secs(1)) {
+                //     Ok(true) => {}
+                //     Ok(false) | Err(_) => continue 'react_to_event,
+                // }
                 match event::read() {
                     // Direct interrupt.
                     Ok(Event::Key(KeyEvent {
@@ -201,6 +200,7 @@ impl CrosstermHandler {
                         None => {}
                         // Binding found: send button un-/press.
                         Some(&button) => {
+                            // FIXME: This module could be refactored by handling all the `let _ = input_sender.send(..)` lines and automatically stopping the thread, possibly removing the need for a synchronized run_thread flag in the first place.
                             let _ = input_sender.send(InputSignal::ButtonInput(
                                 button,
                                 kind == KeyEventKind::Press,

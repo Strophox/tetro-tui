@@ -24,27 +24,28 @@ pub fn custom_start_board(board_str: &str) -> FnGameMod {
     )
 }
 
-pub fn custom_start_offset(offset: u32) -> FnGameMod {
-    let mut init = false;
-    Box::new(
-        move |config, _mode, state, rng, _feedback_events, _modifier_point| {
-            if !init {
-                // feedback_events.push((state.time, Feedback::Message(format!("tet gen.: {:?}", config.tetromino_generator))));
-                for tet in config
-                    .tetromino_generator
-                    .with_rng(rng)
-                    .take(usize::try_from(offset).unwrap())
-                {
-                    state.pieces_played[tet] += 1;
-                }
-                if state.hold_piece.is_some() {
-                    let _tet = config.tetromino_generator.with_rng(rng).next();
-                }
-                init = true;
-            }
-        },
-    )
-}
+// FIXME: Remove this and implement a proper Game replay.
+// pub fn custom_start_offset(offset: u32) -> FnGameMod {
+//     let mut init = false;
+//     Box::new(
+//         move |config, _mode, state, rng, _feedback_events, _modifier_point| {
+//             if !init {
+//                 // feedback_events.push((state.time, Feedback::Message(format!("tet gen.: {:?}", config.tetromino_generator))));
+//                 for tet in config
+//                     .tetromino_generator
+//                     .with_rng(rng)
+//                     .take(usize::try_from(offset).unwrap())
+//                 {
+//                     state.pieces_played[tet] += 1;
+//                 }
+//                 if state.hold_piece.is_some() {
+//                     let _tet = config.tetromino_generator.with_rng(rng).next();
+//                 }
+//                 init = true;
+//             }
+//         },
+//     )
+// }
 
 #[allow(dead_code)]
 pub fn display_tetromino_likelihood() -> FnGameMod {

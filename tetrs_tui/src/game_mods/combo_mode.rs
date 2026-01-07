@@ -69,14 +69,12 @@ pub fn new_game(gravity: u32, initial_layout: u16) -> Game {
             }
         },
     );
-    let mut game = Game::new(GameMode {
-        name: "Combo".to_string(),
+    Game::builder(GameMode {
+        name: Some("Combo".to_string()),
         initial_gravity: gravity,
         increase_gravity: false,
         limits: Limits::default(),
-    });
-    game.add_modifier(combo_mode);
-    game
+    }).build_modified(vec![combo_mode])
 }
 
 fn init_board(board: &mut Board, mut init_layout: u16) {

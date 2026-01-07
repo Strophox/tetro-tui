@@ -23,7 +23,7 @@ use crossterm::{
 
 use tetrs_engine::{
     piece_generation::TetrominoSource, piece_rotation::RotationSystem, Button, ButtonsPressed,
-    FeedbackEvents, Game, GameConfig, GameMode, GameState, Limits, Tetromino,
+    FeedbackMessages, Game, GameConfig, GameMode, GameState, Limits, Tetromino,
 };
 
 use crate::{
@@ -79,7 +79,7 @@ impl std::fmt::Display for Menu {
         let name = match self {
             Menu::Title => "Title Screen",
             Menu::NewGame => "New Game",
-            Menu::Game { game, .. } => &format!("Game: {}", game.mode().name),
+            Menu::Game { .. } => "Game", //&format!("Game {}", game.mode().name.as_ref().map_or("".to_string(), |ref name| format!("({name})"))),
             Menu::GameOver(_) => "Game Over",
             Menu::GameComplete(_) => "Game Completed",
             Menu::Pause => "Pause",
@@ -124,10 +124,8 @@ pub struct NewGameSettings {
     combo_start_layout: u16,
     descent_mode: bool,
     custom_start_board: Option<String>,
-    // FIXME: The reason this looks so horrible is because it is, in fact, a horrible hack that should be removed.
-    #[allow(clippy::type_complexity)]
-    custom_start_seed_and_offset_and_hold_piece:
-        Option<(u64, (u32, Option<(tetrs_engine::Tetromino, bool)>))>,
+    // TODO: Placeholder for proper snapshot functionality.
+    custom_start_seed: Option<u64>,
 }
 
 #[derive(
@@ -242,7 +240,7 @@ impl<T: Write> Application<T> {
                     combo_start_layout: game_mods::combo_mode::LAYOUTS[0],
                     descent_mode: false,
                     custom_start_board: None,
-                    custom_start_seed_and_offset_and_hold_piece: None,
+                    custom_start_seed: None,
                 },
                 game_config: GameConfig::default(),
                 keybinds: CrosstermHandler::default_keybinds(),
@@ -271,7 +269,7 @@ impl<T: Write> Application<T> {
         }
         if let Some(custom_start_seed) = custom_start_seed {
             app.settings.new_game
-                .custom_start_seed_and_offset_and_hold_piece = Some((custom_start_seed, (0, None)));
+                .custom_start_seed = Some(custom_start_seed);
         }
         app.combo_bot_enabled = combo_bot_enabled;
         app.settings.game_config.no_soft_drop_lock = !kitty_detected;
@@ -292,17 +290,10 @@ impl<T: Write> Application<T> {
                 .iter()
                 .filter(|finished_game_stats| {
                     finished_game_stats.was_successful()
-                        || finished_game_stats.last_state.lines_cleared
-                            > if finished_game_stats.gamemode.name == "Combo"
-                                || finished_game_stats.gamemode.name == "Combo (Bot)"
-                            {
-                                9
-                            } else {
-                                0
-                            }
+                        || finished_game_stats.last_state.lines_cleared > 0
                 })
                 .cloned()
-                .collect::<Vec<_>>() // TODO: Remove auto-filtering of scoreboard but enable deleting of entries manually in scoreboard menu.
+                .collect::<Vec<_>>()
         } else {
             Vec::new()
         };
@@ -487,7 +478,7 @@ impl<T: Write> Application<T> {
                     )))
                 }
                 Event::Key(KeyEvent {
-                    code: KeyCode::Esc,
+                    code: KeyCode::Esc | KeyCode::Char('q'),
                     kind: Press,
                     ..
                 }) => break Ok(MenuUpdate::Pop),
@@ -607,14 +598,8 @@ impl<T: Write> Application<T> {
                     ),
                     Box::new({
                         let combo_start_layout = ng.combo_start_layout;
-                        let combo_bot_enabled = self.combo_bot_enabled;
                         move || {
-                            let mut combo_game =
-                                game_mods::combo_mode::new_game(1, combo_start_layout);
-                            if combo_bot_enabled {
-                                combo_game.mode_mut().name.push_str(" (Bot)");
-                            }
-                            combo_game
+                            game_mods::combo_mode::new_game(1, combo_start_layout)
                         }
                     }),
                 ),
@@ -682,7 +667,7 @@ impl<T: Write> Application<T> {
                     if selected == selection_size - 1 {
                         if customization_selected > 0 {
                             " | Custom:                             "
-                        } else if ng.custom_start_seed_and_offset_and_hold_piece.is_some()
+                        } else if ng.custom_start_seed.is_some()
                             || ng.custom_start_board.is_some()
                         {
                             ">> Custom: (clear board/seed with [Del])"
@@ -732,7 +717,7 @@ impl<T: Write> Application<T> {
                 }
                 // Exit menu.
                 Event::Key(KeyEvent {
-                    code: KeyCode::Esc,
+                    code: KeyCode::Esc | KeyCode::Char('q'),
                     kind: Press,
                     ..
                 }) => break Ok(MenuUpdate::Pop),
@@ -770,28 +755,23 @@ impl<T: Write> Application<T> {
                             },
                             None => Limits::default(),
                         };
-                        let (rng_seed, offset_and_hold_piece) =
-                            ng.custom_start_seed_and_offset_and_hold_piece.unzip();
-                        let mut custom_game = Game::with_config(
-                            GameMode {
-                                name: "Custom Mode".to_string(),
-                                initial_gravity: ng.initial_gravity,
-                                increase_gravity: ng.increase_gravity,
-                                limits,
-                            },
-                            GameConfig::default(),
-                            rng_seed,
-                        );
-                        if let Some((offset, hold_piece)) = offset_and_hold_piece {
-                            custom_game.add_modifier(game_mods::utils::custom_start_offset(offset));
-                            custom_game.state_mut().hold_piece = hold_piece;
+                        let custom_mode = GameMode {
+                            name: Some("Custom Mode".to_string()),
+                            initial_gravity: ng.initial_gravity,
+                            increase_gravity: ng.increase_gravity,
+                            limits,
+                        };
+                        let mut custom_game_builder = Game::builder(custom_mode);
+                        if let Some(seed) = ng.custom_start_seed {
+                            custom_game_builder.seed(seed);
                         }
                         if let Some(ref custom_start_board_str) = ng.custom_start_board {
-                            custom_game.add_modifier(game_mods::utils::custom_start_board(
+                            custom_game_builder.build_modified(vec![game_mods::utils::custom_start_board(
                                 custom_start_board_str,
-                            ));
+                            )])
+                        } else {
+                            custom_game_builder.build()
                         }
-                        custom_game
                     };
                     // Set config.
                     game.config_mut().clone_from(&self.settings.game_config);
@@ -961,7 +941,7 @@ impl<T: Write> Application<T> {
                 }) => {
                     // If custom gamemode selected, allow deleting custom start board and seed.
                     if selected == selection_size - 1 {
-                        ng.custom_start_seed_and_offset_and_hold_piece = None;
+                        ng.custom_start_seed = None;
                         ng.custom_start_board = None;
                     }
                 }
@@ -992,9 +972,9 @@ impl<T: Write> Application<T> {
         let (button_sender, button_receiver) = mpsc::channel();
         let _input_handler =
             CrosstermHandler::new(&button_sender, &self.settings.keybinds, self.kitty_assumed);
-        let mut combo_bot_handler = (game.mode().name == "Combo (Bot)")
+        let mut combo_bot_handler = (self.combo_bot_enabled && game.mode().name.as_ref().is_some_and(|n| n == "Combo"))
             .then(|| ComboBotHandler::new(&button_sender, Duration::from_millis(100)));
-        let mut inform_combo_bot = |game: &Game, evts: &FeedbackEvents| {
+        let mut inform_combo_bot = |game: &Game, evts: &FeedbackMessages| {
             if let Some((_, state_sender)) = &mut combo_bot_handler {
                 if evts.iter().any(|(_, feedback)| {
                     matches!(feedback, tetrs_engine::Feedback::PieceSpawned(_))
@@ -1069,23 +1049,7 @@ impl<T: Write> Application<T> {
                             }),
                         ));
                         self.settings.new_game
-                            .custom_start_seed_and_offset_and_hold_piece = Some((
-                            game.state().seed,
-                            (
-                                game.state().pieces_played.iter().sum::<u32>(),
-                                // FIXME: This should NOT change the hold_piece that is stored if it is the FIRST ever piece to be held.
-                                game.state().hold_piece.map(|(tet, swap)| {
-                                    (
-                                        if swap {
-                                            tet
-                                        } else {
-                                            game.state().active_piece_data.unwrap().0.shape
-                                        },
-                                        true,
-                                    )
-                                }),
-                            ),
-                        ));
+                            .custom_start_seed = Some(game.seed());
                         new_feedback_events.push((
                             game.state().time,
                             tetrs_engine::Feedback::Message("(Snapshot taken!)".to_string()),
@@ -1177,7 +1141,6 @@ impl<T: Write> Application<T> {
             last_state,
         } = finished_game_stats;
         let GameState {
-            seed: _,
             end: _,
             time: game_time,
             events: _,
@@ -1193,7 +1156,8 @@ impl<T: Write> Application<T> {
             consecutive_line_clears: _,
             back_to_back_special_clears: _,
         } = last_state;
-        if gamemode.name == "Puzzle" && success {
+        // if gamemode.name.as_ref().map(String::as_str) == Some("Puzzle")
+        if gamemode.name.as_ref().is_some_and(|n| n == "Puzzle") && success {
             self.settings.new_game.descent_mode = true;
         }
         let actions_str = [
@@ -1236,13 +1200,13 @@ impl<T: Write> Application<T> {
                     "{:^w_main$}",
                     if success {
                         format!(
-                            "++ Game Completed ({}) ++",
-                            gamemode.name
+                            "++ Game Completed{} ++",
+                            gamemode.name.as_ref().map_or("".to_string(), |name| format!(" ({name})"))
                         )
                     } else {
                         format!(
-                            "-- Game Over ({}) by: {:?} --",
-                            gamemode.name,
+                            "-- Game Over{} by: {:?} --",
+                            gamemode.name.as_ref().map_or("".to_string(), |name| format!(" ({name})")),
                             last_state.end.unwrap().unwrap_err()
                         )
                     }
@@ -1311,7 +1275,7 @@ impl<T: Write> Application<T> {
                     )))
                 }
                 Event::Key(KeyEvent {
-                    code: KeyCode::Esc,
+                    code: KeyCode::Esc | KeyCode::Char('q'),
                     kind: Press,
                     ..
                 }) => break Ok(MenuUpdate::Pop),
@@ -1451,7 +1415,7 @@ impl<T: Write> Application<T> {
                     )))
                 }
                 Event::Key(KeyEvent {
-                    code: KeyCode::Esc,
+                    code: KeyCode::Esc | KeyCode::Char('q'),
                     kind: Press,
                     ..
                 }) => break Ok(MenuUpdate::Pop),
@@ -1496,7 +1460,7 @@ impl<T: Write> Application<T> {
                     code: KeyCode::Right | KeyCode::Char('l'),
                     kind: Press | Repeat,
                     ..
-                }) => match selected {
+                }) => match selected { // TODO add more cases to switch slots for keybinds/gameplayconfigs/graphicsconfigs...
                     4 => {
                         self.settings.save_on_exit = match self.settings.save_on_exit {
                             SavefileGranularity::Nothing => SavefileGranularity::SettingsAndGames,
@@ -1600,7 +1564,7 @@ impl<T: Write> Application<T> {
                     )))
                 }
                 Event::Key(KeyEvent {
-                    code: KeyCode::Esc,
+                    code: KeyCode::Esc | KeyCode::Char('q'),
                     kind: Press,
                     ..
                 }) => break Ok(MenuUpdate::Pop),
@@ -1803,7 +1767,7 @@ impl<T: Write> Application<T> {
                     )))
                 }
                 Event::Key(KeyEvent {
-                    code: KeyCode::Esc,
+                    code: KeyCode::Esc | KeyCode::Char('q'),
                     kind: Press,
                     ..
                 }) => break Ok(MenuUpdate::Pop),
@@ -2041,7 +2005,7 @@ impl<T: Write> Application<T> {
                     )))
                 }
                 Event::Key(KeyEvent {
-                    code: KeyCode::Esc,
+                    code: KeyCode::Esc | KeyCode::Char('q'),
                     kind: Press,
                     ..
                 }) => break Ok(MenuUpdate::Pop),
@@ -2128,6 +2092,7 @@ impl<T: Write> Application<T> {
         }
     }
 
+    // TODO: Enable deleting of entries manually in scoreboard menu.
     fn scores_menu(&mut self) -> io::Result<MenuUpdate> {
         let max_entries = 14;
         let mut scroll = 0usize;
@@ -2154,7 +2119,28 @@ impl<T: Write> Application<T> {
                          gamemode,
                          last_state,
                      }| {
-                        match gamemode.name.as_str() {
+                        // Here I would like to point out the slight poetic quality of this variable
+                        // name. We are declaring a variable with an empty string in it to
+                        // explicitly borrow it once, merely to satisfy the Rust borrow checker
+                        // which would otherwise complain about an empty string not living long
+                        // enough (despite our basic intention of using it as an arbitrary,
+                        // unimportant and immutable placeholder.)
+                        // The variable name `empty` may come to mind first, with other choices such
+                        // as `empty_string`, `none`, `nothing`, `null` or just `nil`.
+                        // Notice: "nil" is the Latin word for "nothing". This is actually a
+                        // 'syncopated' (contracted) version of "nihil", which itself stems from
+                        // "nihilum", all meaning 'nothing'. The etymology of "nihilum" suggests a
+                        // 'univerbation' (combination) of "ne" + "hilum". Here, "ne" means
+                        // 'not'/'no' but the origins of "hilum" are vague:
+                        // It is suspected to be a variant of "filum" - i.e. 'thread'; 'string'.
+                        // Behold: "nil" literally means "not even a String".
+                        // 
+                        // Also, "nihilum" is the origin for the English word 'nihilism', which
+                        // aptly describes how I feel having to write this sort of code to satisfy
+                        // the borrow checker. Probably a skill issue.
+                        let nil = &String::new();
+                        let name = gamemode.name.as_ref().unwrap_or(nil).as_str();
+                        match name {
                             "Marathon" => {
                                 format!(
                                     "{timestamp} ~ Marathon: {} pts{}",
@@ -2265,12 +2251,6 @@ impl<T: Write> Application<T> {
                             "Combo" => {
                                 format!("{timestamp} ~ Combo: {} lns", last_state.lines_cleared)
                             }
-                            "Combo (Bot)" => {
-                                format!(
-                                    "{timestamp} ~ Combo (Bot): {} lns",
-                                    last_state.lines_cleared
-                                )
-                            }
                             _ => {
                                 format!(
                                     "{timestamp} ~ Custom Mode: {} lns, {} pts, {}{}",
@@ -2346,7 +2326,7 @@ impl<T: Write> Application<T> {
                     )))
                 }
                 Event::Key(KeyEvent {
-                    code: KeyCode::Esc,
+                    code: KeyCode::Esc | KeyCode::Char('q'),
                     kind: Press,
                     ..
                 }) => break Ok(MenuUpdate::Pop),
@@ -2404,7 +2384,7 @@ impl<T: Write> Application<T> {
                     let end2 = stats2.last_state.end.is_some_and(|end| end.is_ok());
                     end1.cmp(&end2).reverse().then_with(|| {
                         // Depending on gamemode, sort differently.
-                        match stats1.gamemode.name.as_str() {
+                        match stats1.gamemode.name.as_ref().unwrap_or(&"".to_string()).as_str() {
                             "Marathon" => {
                                 // Sort desc by level.
                                 stats1.last_state.gravity.cmp(&stats2.last_state.gravity).reverse().then_with(||

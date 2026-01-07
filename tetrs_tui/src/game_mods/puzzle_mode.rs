@@ -1,7 +1,7 @@
 use std::{collections::VecDeque, num::NonZeroU8};
 
 use tetrs_engine::{
-    Feedback, FeedbackEvents, FnGameMod, Game, GameEvent, GameMode, GameOver, GameState, Limits,
+    Feedback, FeedbackMessages, FnGameMod, Game, GameEvent, GameMode, GameOver, GameState, Limits,
     ModifierPoint, Tetromino,
 };
 
@@ -14,7 +14,7 @@ pub fn new_game() -> Game {
     let load_puzzle = move |state: &mut GameState,
                             attempt: usize,
                             current_puzzle_idx: usize,
-                            feedback_events: &mut FeedbackEvents|
+                            feedback_events: &mut FeedbackMessages|
           -> usize {
         let (puzzle_name, puzzle_lines, puzzle_pieces) = &puzzles[current_puzzle_idx];
         // Game message.
@@ -130,14 +130,13 @@ pub fn new_game() -> Game {
             }
         },
     );
-    let mut game = Game::new(GameMode {
-        name: "Puzzle".to_string(),
+    let game = Game::builder(GameMode {
+        name: Some("Puzzle".to_string()),
         initial_gravity: 2,
         increase_gravity: false,
         limits: Limits::default(),
-    });
-    game.config_mut().preview_count = 0;
-    game.add_modifier(puzzle_mode);
+    }).build_modified(vec![puzzle_mode]);
+    // TODO: Is preview size ensured to be 0 when game starts??
     game
 }
 

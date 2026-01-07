@@ -8,7 +8,7 @@ use crossterm::{
     style::{self, Print},
     terminal, QueueableCommand,
 };
-use tetrs_engine::{Feedback, FeedbackEvents, Game, GameState, GameTime};
+use tetrs_engine::{Feedback, FeedbackMessages, Game, GameState, GameTime};
 
 use crate::{
     game_renderers::Renderer,
@@ -27,7 +27,7 @@ impl Renderer for DebugRenderer {
         app: &mut Application<T>,
         _running_game_stats: &mut RunningGameStats,
         game: &Game,
-        new_feedback_events: FeedbackEvents,
+        new_feedback_events: FeedbackMessages,
         _screen_resized: bool,
     ) -> io::Result<()>
     where
@@ -127,6 +127,7 @@ impl Renderer for DebugRenderer {
                 Feedback::PieceLocked(_) => continue,
                 Feedback::LineClears(..) => continue,
                 Feedback::HardDrop(_, _) => continue,
+                Feedback::EngineEvent(game_event) => format!("{game_event:?}"),
                 Feedback::Message(s) => s.clone(),
             });
         }

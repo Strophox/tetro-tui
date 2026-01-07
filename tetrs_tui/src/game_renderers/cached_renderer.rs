@@ -12,7 +12,7 @@ use crossterm::{
     terminal, QueueableCommand,
 };
 use tetrs_engine::{
-    Button, Coord, Feedback, FeedbackEvents, Game, GameState, GameTime, Orientation, Tetromino,
+    Button, Coord, Feedback, FeedbackMessages, Game, GameState, GameTime, Orientation, Tetromino,
     TileTypeID,
 };
 
@@ -215,7 +215,7 @@ impl Renderer for CachedRenderer {
         app: &mut Application<T>,
         running_game_stats: &mut RunningGameStats,
         game: &Game,
-        new_feedback_events: FeedbackEvents,
+        new_feedback_events: FeedbackMessages,
         screen_resized: bool,
     ) -> io::Result<()>
     where
@@ -227,7 +227,6 @@ impl Renderer for CachedRenderer {
                 .buffer_reset((usize::from(x_main), usize::from(y_main)));
         }
         let GameState {
-            seed: _,
             end: _,
             time: game_time,
             events: _,
@@ -244,7 +243,7 @@ impl Renderer for CachedRenderer {
             back_to_back_special_clears: _,
         } = game.state();
         // Screen: some titles.
-        let mode_name = game.mode().name.to_ascii_uppercase();
+        let mode_name = game.mode().name.as_ref().unwrap_or(&"".to_string()).to_ascii_uppercase();
         let mode_name_space = mode_name.len().max(14);
         let (goal_name, goal_value) = [
             game.mode().limits.time.map(|(_, max_dur)| {
@@ -283,7 +282,7 @@ impl Renderer for CachedRenderer {
         .into_iter()
         .find_map(|limit_text| limit_text)
         .unwrap_or_default();
-        let (focus_name, focus_value) = match game.mode().name.as_str() {
+        let (focus_name, focus_value) = match game.mode().name.as_ref().unwrap_or(&"".to_string()).as_str() {
             "Marathon" => ("Score:", score.to_string()),
             "40-Lines" => ("Time taken:", fmt_duration(*game_time)),
             "Time Trial" => ("Score:", score.to_string()),
@@ -740,6 +739,10 @@ impl Renderer for CachedRenderer {
                 }
                 Feedback::Message(msg) => {
                     self.messages.push((*event_time, msg.clone()));
+                    *relevant = false;
+                }
+                Feedback::EngineEvent(game_event) => {
+                    self.messages.push((*event_time, format!("{game_event:?}")));
                     *relevant = false;
                 }
             }

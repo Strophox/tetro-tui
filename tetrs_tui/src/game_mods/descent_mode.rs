@@ -157,16 +157,13 @@ pub fn new_game() -> Game {
             active_piece.shape = descent_tetromino;
         },
     );
-    let mut game = Game::new(GameMode {
-        name: "Descent".to_string(),
+    Game::builder(GameMode {
+        name: Some("Descent".to_string()),
         initial_gravity: 0,
         increase_gravity: false,
         limits: Limits {
             time: Some((true, Duration::from_secs(180))),
             ..Default::default()
         },
-    });
-    game.config_mut().preview_count = 0;
-    game.add_modifier(descent_mode);
-    game
+    }).build_modified(vec![descent_mode])
 }

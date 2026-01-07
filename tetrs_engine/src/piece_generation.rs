@@ -17,7 +17,7 @@ use crate::Tetromino;
 ///
 /// To actually generate [`Tetromino`]s, the [`TetrominoSource::with_rng`] method needs to be used to yield a
 /// [`TetrominoIterator`] that implements [`Iterator`].
-#[derive(PartialEq, PartialOrd, Debug)]
+#[derive(PartialEq, PartialOrd, Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum TetrominoSource {
     /// Uniformly random piece generator.
@@ -85,6 +85,8 @@ impl TetrominoSource {
     }
 
     /// Initialize a custom instance of the [`TetrominoSource::Stock`] variant.
+    /// 
+    /// This function returns `None` when `refill_threshold < multiplicity * 7`.
     pub const fn stock(multiplicity: NonZeroU32, refill_threshold: u32) -> Option<Self> {
         if refill_threshold < multiplicity.get() * 7 {
             Some(Self::Stock {
@@ -99,14 +101,21 @@ impl TetrominoSource {
 
     /// Initialize a default instance of the [`TetrominoSource::Recency`] variant.
     pub const fn recency() -> Self {
-        Self::recency_with(2.5)
+        // SAFETY: 2.5 is not NaN.
+        unsafe { Self::recency_with(2.5).unwrap_unchecked() }
     }
 
     /// Initialize a custom instance of the [`TetrominoSource::Recency`] variant.
-    pub const fn recency_with(snap: f64) -> Self {
-        Self::Recency {
-            last_generated: [1; 7],
-            snap,
+    /// 
+    /// This function returns `None` when `snap` is NaN (see [`f64::is_nan`]).
+    pub const fn recency_with(snap: f64) -> Option<Self> {
+        if !snap.is_nan() {
+            Some(Self::Recency {
+                last_generated: [1; 7],
+                snap,
+            })
+        } else {
+            None
         }
     }
 
@@ -127,25 +136,6 @@ impl TetrominoSource {
         TetrominoIterator {
             tetromino_generator: self,
             rng,
-        }
-    }
-}
-
-impl Clone for TetrominoSource {
-    fn clone(&self) -> Self {
-        match self {
-            Self::Uniform => Self::uniform(),
-            Self::Stock {
-                pieces_left: _,
-                multiplicity,
-                restock_threshold,
-            } => Self::stock(*multiplicity, *restock_threshold).unwrap(),
-            Self::Recency {
-                last_generated: _,
-                snap,
-            } => Self::recency_with(*snap),
-            Self::BalanceRelative { relative_counts: _ } => Self::balance_relative(),
-            Self::Cycle { pattern, index: _ } => Self::cycle(pattern.clone()),
         }
     }
 }

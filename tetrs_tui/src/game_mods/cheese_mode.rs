@@ -63,15 +63,13 @@ pub fn new_game(cheese_limit: Option<NonZeroUsize>, gap_size: usize, gravity: u3
             }
         },
     );
-    let mut game = Game::new(GameMode {
-        name: "Cheese".to_string(),
+    Game::builder(GameMode {
+        name: Some("Cheese".to_string()),
         initial_gravity: gravity,
         increase_gravity: false,
         limits: Limits {
             lines: cheese_limit.map(|line_count| (true, line_count.get())),
             ..Default::default()
         },
-    });
-    game.add_modifier(cheese_mode);
-    game
+    }).build_modified(vec![cheese_mode])
 }
