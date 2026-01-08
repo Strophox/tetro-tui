@@ -620,6 +620,7 @@ impl Renderer for CachedRenderer {
                             b: 207,
                         }),
                     };
+                    // TODO: Replace all these 'find tile' implementations with configurable system akin to animation lineclear (interpolated time).
                     let Some(tile) = animation_locking.iter().find_map(|(ms, tile)| {
                         (elapsed < Duration::from_millis(*ms)).then_some(tile)
                     }) else {
@@ -683,9 +684,10 @@ impl Renderer for CachedRenderer {
                         | GraphicsColoring::Experimental => Some(Color::White),
                     };
                     let percent = elapsed.as_secs_f64() / line_clear_delay.as_secs_f64();
+                    let max_idx = f64::from(i32::try_from(animation_lineclear.len() - 1).unwrap());
                     // SAFETY: `0.0 <= percent && percent <= 1.0`.
-                    let idx = if percent < 1.0 {
-                        unsafe { (10.0 * percent).to_int_unchecked::<usize>() }
+                    let idx = if 0.0 <= percent && percent <= 1.0 {
+                        unsafe { (percent * max_idx).round().to_int_unchecked::<usize>() }
                     } else {
                         *active = false;
                         continue;
