@@ -32,7 +32,7 @@ use crate::{
     game_renderers::{self, cached_renderer::CachedRenderer, tet_str_small, Renderer},
 };
 
-// NOTE: This could be more general and less ad-hoc. Count number of I-Spins, J-Spins, etc..
+// NOTE: This could be more general and less ad-hoc. Only records [Spins,1-Lineclears,2-LCs,3-LCS,4-LCS] but could count number of I-Spins, J-Spins, etc..
 pub type RunningGameStats = ([u32; 5], Vec<u32>);
 
 #[derive(Eq, PartialEq, Clone, Debug, serde::Serialize, serde::Deserialize)]
@@ -131,7 +131,7 @@ pub struct NewGameSettings {
 #[derive(
     Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug, serde::Serialize, serde::Deserialize,
 )]
-pub enum GraphicsGlyphset {
+pub enum Glyphset {
     Electronika60,
     #[allow(clippy::upper_case_acronyms)]
     ASCII,
@@ -141,17 +141,26 @@ pub enum GraphicsGlyphset {
 #[derive(
     Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug, serde::Serialize, serde::Deserialize,
 )]
-pub enum GraphicsColoring {
+pub enum Coloring {
     Monochrome,
     Color16,
     Fullcolor,
     Experimental,
 }
 
+#[derive(PartialEq, PartialOrd, Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
+pub struct GraphicsSettings {
+    pub game_fps: f64,
+    pub show_fps: bool,
+    pub glyphset: Glyphset,
+    pub coloring: Coloring,
+    pub coloring_lockedtiles: Coloring,
+}
+
 #[derive(
     Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug, serde::Serialize, serde::Deserialize,
 )]
-pub enum SavefileGranularity {
+pub enum SaveGranularity {
     Nothing,
     Settings,
     SettingsAndGames,
@@ -160,23 +169,48 @@ pub enum SavefileGranularity {
 #[serde_with::serde_as]
 #[derive(PartialEq, Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Settings {
-    pub new_game: NewGameSettings,
-    pub game_config: GameConfig,
+    pub graphics: GraphicsSettings,
     #[serde_as(as = "HashMap<serde_with::json::JsonString, _>")]
     pub keybinds: HashMap<KeyCode, Button>,
-    pub game_fps: f64,
-    pub show_fps: bool,
-    pub graphics_glyphset: GraphicsGlyphset,
-    pub graphics_coloring: GraphicsColoring,
-    pub graphics_coloring_locked: GraphicsColoring,
-    pub save_on_exit: SavefileGranularity,
+    pub game_config: GameConfig,
+    pub new_game: NewGameSettings,
+    pub save_on_exit: SaveGranularity,
+}
+
+impl Default for Settings {
+    fn default() -> Self {
+        Self {
+            graphics: GraphicsSettings {
+                glyphset: Glyphset::Unicode,
+                coloring: Coloring::Fullcolor,
+                coloring_lockedtiles: Coloring::Fullcolor,
+                game_fps: 30.0,
+                show_fps: false,
+            },
+            keybinds: CrosstermHandler::default_keybinds(),
+            game_config: GameConfig::default(),
+            new_game: NewGameSettings {
+                initial_gravity: 0,
+                increase_gravity: true,
+                custom_mode_limit: None,
+                cheese_mode_limit: Some(NonZeroUsize::try_from(20).unwrap()),
+                cheese_mode_gap_size: 1,
+                cheese_mode_gravity: 0,
+                combo_start_layout: game_mods::combo_mode::LAYOUTS[0],
+                descent_mode: false,
+                custom_start_board: None,
+                custom_start_seed: None,
+            },
+            save_on_exit: SaveGranularity::Nothing,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
 pub struct Application<T: Write> {
     pub term: T,
-    settings: Settings,
     past_games: Vec<FinishedGameStats>,
+    settings: Settings,
     kitty_detected: bool,
     kitty_assumed: bool,
     combo_bot_enabled: bool,
@@ -187,7 +221,7 @@ impl<T: Write> Drop for Application<T> {
         // FIXME: Handle errors?
         let savefile_path = Self::savefile_path();
         // If the user wants their data stored, try to do so.
-        if self.settings.save_on_exit != SavefileGranularity::Nothing {
+        if self.settings.save_on_exit != SaveGranularity::Nothing {
             if let Err(_e) = self.store_save(savefile_path) {
                 // FIXME: Make this debuggable.
                 //eprintln!("Could not save settings this time: {e} ");
@@ -226,41 +260,23 @@ impl<T: Write> Application<T> {
         let _ = terminal.execute(terminal::SetTitle("tetrs - Terminal User Interface"));
         let _ = terminal.execute(cursor::Hide);
         let _ = terminal::enable_raw_mode();
-        let kitty_detected = terminal::supports_keyboard_enhancement().unwrap_or(false);
         let mut app = Self {
             term: terminal,
-            settings: Settings {
-                new_game: NewGameSettings {
-                    initial_gravity: 0,
-                    increase_gravity: true,
-                    custom_mode_limit: None,
-                    cheese_mode_limit: Some(NonZeroUsize::try_from(20).unwrap()),
-                    cheese_mode_gap_size: 1,
-                    cheese_mode_gravity: 0,
-                    combo_start_layout: game_mods::combo_mode::LAYOUTS[0],
-                    descent_mode: false,
-                    custom_start_board: None,
-                    custom_start_seed: None,
-                },
-                game_config: GameConfig::default(),
-                keybinds: CrosstermHandler::default_keybinds(),
-                game_fps: 30.0,
-                show_fps: false,
-                graphics_glyphset: GraphicsGlyphset::Unicode,
-                graphics_coloring: GraphicsColoring::Fullcolor,
-                graphics_coloring_locked: GraphicsColoring::Fullcolor,
-                save_on_exit: SavefileGranularity::Nothing,
-            },
-            past_games: vec![],
-            kitty_detected,
-            kitty_assumed: kitty_detected,
+            settings: Settings::default(),
+            past_games: Vec::default(),
+            kitty_detected: false,
+            kitty_assumed: false,
             combo_bot_enabled: false,
         };
+
+        // Actually load in settings.
         if app.load_save(Self::savefile_path()).is_err() {
             // FIXME: Make this debuggable.
             //eprintln!("Could not loading settings: {e}");
             //std::thread::sleep(Duration::from_secs(5));
         }
+
+        // Now that the settings are loaded, we handle custom flags set for this session.
         if let Some(combo_start_layout) = combo_start_layout {
             app.settings.new_game.combo_start_layout = combo_start_layout;
         }
@@ -271,7 +287,9 @@ impl<T: Write> Application<T> {
             app.settings.new_game.custom_start_seed = Some(custom_start_seed);
         }
         app.combo_bot_enabled = combo_bot_enabled;
-        app.settings.game_config.no_soft_drop_lock = !kitty_detected;
+        app.kitty_detected = terminal::supports_keyboard_enhancement().unwrap_or(false);
+        app.kitty_assumed = app.kitty_detected;
+        app.settings.game_config.no_soft_drop_lock = !app.kitty_detected;
         app
     }
 
@@ -283,7 +301,7 @@ impl<T: Write> Application<T> {
 
     fn store_save(&mut self, path: PathBuf) -> io::Result<()> {
         // Only save past games if needed.
-        self.past_games = if self.settings.save_on_exit == SavefileGranularity::SettingsAndGames {
+        self.past_games = if self.settings.save_on_exit == SaveGranularity::SettingsAndGames {
             self.past_games
                 .iter()
                 .filter(|finished_game_stats| {
@@ -1006,7 +1024,7 @@ impl<T: Write> Application<T> {
             fps_counter += 1;
             let next_frame_at = loop {
                 let frame_at = session_resumed
-                    + Duration::from_secs_f64(f64::from(f) / self.settings.game_fps);
+                    + Duration::from_secs_f64(f64::from(f) / self.settings.graphics.game_fps);
                 if frame_at < Instant::now() {
                     f += 1;
                 } else {
@@ -1087,7 +1105,7 @@ impl<T: Write> Application<T> {
             )?;
             clean_screen = false;
             // FPS counter.
-            if self.settings.show_fps {
+            if self.settings.graphics.show_fps {
                 let now = Instant::now();
                 if now.saturating_duration_since(fps_counter_started) >= Duration::from_secs(1) {
                     self.term
@@ -1378,13 +1396,13 @@ impl<T: Write> Application<T> {
                 format!(
                     "Keep save file: {}",
                     match self.settings.save_on_exit {
-                        SavefileGranularity::Nothing => "OFF*",
-                        SavefileGranularity::Settings => "ON [without games; only settings]",
-                        SavefileGranularity::SettingsAndGames => "ON",
+                        SaveGranularity::Nothing => "OFF*",
+                        SaveGranularity::Settings => "ON [without games; only settings]",
+                        SaveGranularity::SettingsAndGames => "ON",
                     }
                 ),
                 "".to_string(),
-                if self.settings.save_on_exit == SavefileGranularity::Nothing {
+                if self.settings.save_on_exit == SaveGranularity::Nothing {
                     "(*WARNING: current data will be lost on exit)".to_string()
                 } else {
                     format!("(Save file at {:?})", Self::savefile_path())
@@ -1459,9 +1477,9 @@ impl<T: Write> Application<T> {
                     // TODO add more cases to switch slots for keybinds/gameplayconfigs/graphicsconfigs...
                     3 => {
                         self.settings.save_on_exit = match self.settings.save_on_exit {
-                            SavefileGranularity::Nothing => SavefileGranularity::SettingsAndGames,
-                            SavefileGranularity::Settings => SavefileGranularity::Nothing,
-                            SavefileGranularity::SettingsAndGames => SavefileGranularity::Settings,
+                            SaveGranularity::Nothing => SaveGranularity::SettingsAndGames,
+                            SaveGranularity::Settings => SaveGranularity::Nothing,
+                            SaveGranularity::SettingsAndGames => SaveGranularity::Settings,
                         };
                     }
                     _ => {}
@@ -1473,9 +1491,9 @@ impl<T: Write> Application<T> {
                 }) => match selected {
                     3 => {
                         self.settings.save_on_exit = match self.settings.save_on_exit {
-                            SavefileGranularity::Nothing => SavefileGranularity::Settings,
-                            SavefileGranularity::Settings => SavefileGranularity::SettingsAndGames,
-                            SavefileGranularity::SettingsAndGames => SavefileGranularity::Nothing,
+                            SaveGranularity::Nothing => SaveGranularity::Settings,
+                            SaveGranularity::Settings => SaveGranularity::SettingsAndGames,
+                            SaveGranularity::SettingsAndGames => SaveGranularity::Nothing,
                         };
                     }
                     _ => {}
@@ -1986,10 +2004,10 @@ impl<T: Write> Application<T> {
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
                 .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
             let labels = [
-                format!("Glyphset: {:?}", self.settings.graphics_glyphset),
-                format!("Coloring: {:?}", self.settings.graphics_coloring),
-                format!("Framerate: {}", self.settings.game_fps),
-                format!("Show fps: {}", self.settings.show_fps),
+                format!("Glyphset: {:?}", self.settings.graphics.glyphset),
+                format!("Coloring: {:?}", self.settings.graphics.coloring),
+                format!("Framerate: {}", self.settings.graphics.game_fps),
+                format!("Show fps: {}", self.settings.graphics.show_fps),
             ];
             for (i, label) in labels.into_iter().enumerate() {
                 self.term
@@ -2013,7 +2031,7 @@ impl<T: Write> Application<T> {
             for tet in Tetromino::VARIANTS {
                 self.term.queue(PrintStyledContent(
                     tet_str_small(&tet).with(
-                        game_renderers::tile_to_color(self.settings.graphics_coloring)(
+                        game_renderers::tile_to_color(self.settings.graphics.coloring)(
                             tet.tiletypeid(),
                         )
                         .unwrap_or(style::Color::Reset),
@@ -2062,26 +2080,26 @@ impl<T: Write> Application<T> {
                     ..
                 }) => match selected {
                     0 => {
-                        self.settings.graphics_glyphset = match self.settings.graphics_glyphset {
-                            GraphicsGlyphset::Electronika60 => GraphicsGlyphset::ASCII,
-                            GraphicsGlyphset::ASCII => GraphicsGlyphset::Unicode,
-                            GraphicsGlyphset::Unicode => GraphicsGlyphset::Electronika60,
+                        self.settings.graphics.glyphset = match self.settings.graphics.glyphset {
+                            Glyphset::Electronika60 => Glyphset::ASCII,
+                            Glyphset::ASCII => Glyphset::Unicode,
+                            Glyphset::Unicode => Glyphset::Electronika60,
                         };
                     }
                     1 => {
-                        self.settings.graphics_coloring = match self.settings.graphics_coloring {
-                            GraphicsColoring::Monochrome => GraphicsColoring::Color16,
-                            GraphicsColoring::Color16 => GraphicsColoring::Fullcolor,
-                            GraphicsColoring::Fullcolor => GraphicsColoring::Experimental,
-                            GraphicsColoring::Experimental => GraphicsColoring::Monochrome,
+                        self.settings.graphics.coloring = match self.settings.graphics.coloring {
+                            Coloring::Monochrome => Coloring::Color16,
+                            Coloring::Color16 => Coloring::Fullcolor,
+                            Coloring::Fullcolor => Coloring::Experimental,
+                            Coloring::Experimental => Coloring::Monochrome,
                         };
-                        self.settings.graphics_coloring_locked = self.settings.graphics_coloring;
+                        self.settings.graphics.coloring_lockedtiles = self.settings.graphics.coloring;
                     }
                     2 => {
-                        self.settings.game_fps += 1.0;
+                        self.settings.graphics.game_fps += 1.0;
                     }
                     3 => {
-                        self.settings.show_fps = !self.settings.show_fps;
+                        self.settings.graphics.show_fps = !self.settings.graphics.show_fps;
                     }
                     _ => {}
                 },
@@ -2091,28 +2109,28 @@ impl<T: Write> Application<T> {
                     ..
                 }) => match selected {
                     0 => {
-                        self.settings.graphics_glyphset = match self.settings.graphics_glyphset {
-                            GraphicsGlyphset::Electronika60 => GraphicsGlyphset::Unicode,
-                            GraphicsGlyphset::ASCII => GraphicsGlyphset::Electronika60,
-                            GraphicsGlyphset::Unicode => GraphicsGlyphset::ASCII,
+                        self.settings.graphics.glyphset = match self.settings.graphics.glyphset {
+                            Glyphset::Electronika60 => Glyphset::Unicode,
+                            Glyphset::ASCII => Glyphset::Electronika60,
+                            Glyphset::Unicode => Glyphset::ASCII,
                         };
                     }
                     1 => {
-                        self.settings.graphics_coloring = match self.settings.graphics_coloring {
-                            GraphicsColoring::Monochrome => GraphicsColoring::Experimental,
-                            GraphicsColoring::Color16 => GraphicsColoring::Monochrome,
-                            GraphicsColoring::Fullcolor => GraphicsColoring::Color16,
-                            GraphicsColoring::Experimental => GraphicsColoring::Fullcolor,
+                        self.settings.graphics.coloring = match self.settings.graphics.coloring {
+                            Coloring::Monochrome => Coloring::Experimental,
+                            Coloring::Color16 => Coloring::Monochrome,
+                            Coloring::Fullcolor => Coloring::Color16,
+                            Coloring::Experimental => Coloring::Fullcolor,
                         };
-                        self.settings.graphics_coloring_locked = self.settings.graphics_coloring;
+                        self.settings.graphics.coloring_lockedtiles = self.settings.graphics.coloring;
                     }
                     2 => {
-                        if self.settings.game_fps >= 1.0 {
-                            self.settings.game_fps -= 1.0;
+                        if self.settings.graphics.game_fps >= 1.0 {
+                            self.settings.graphics.game_fps -= 1.0;
                         }
                     }
                     3 => {
-                        self.settings.show_fps = !self.settings.show_fps;
+                        self.settings.graphics.show_fps = !self.settings.graphics.show_fps;
                     }
                     _ => {}
                 },

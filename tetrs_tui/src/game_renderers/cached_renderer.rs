@@ -19,7 +19,7 @@ use tetrs_engine::{
 use crate::{
     game_renderers::{button_str, Renderer},
     terminal_user_interface::{
-        fmt_duration, fmt_keybinds, Application, GraphicsColoring, GraphicsGlyphset,
+        fmt_duration, fmt_keybinds, Application, Coloring, Glyphset,
         RunningGameStats,
     },
 };
@@ -366,8 +366,8 @@ impl Renderer for CachedRenderer {
         // Screen: draw.
         #[allow(clippy::useless_format)]
         #[rustfmt::skip]
-        let base_screen = match app.settings().graphics_glyphset {
-            GraphicsGlyphset::Electronika60 => vec![
+        let base_screen = match app.settings().graphics.glyphset {
+            Glyphset::Electronika60 => vec![
                 format!("                                                            ", ),
                 format!("                                              {: ^w$      } ", "mode:", w=mode_name_space),
                 format!("   ALL STATS          <! . . . . . . . . . .!>{: ^w$      } ", mode_name, w=mode_name_space),
@@ -393,7 +393,7 @@ impl Renderer for CachedRenderer {
                 format!("                      <!====================!>              ", ),
                format!(r"                        \/\/\/\/\/\/\/\/\/\/                ", ),
             ],
-            GraphicsGlyphset::ASCII => vec![
+            Glyphset::ASCII => vec![
                 format!("                                                            ", ),
                 format!("                {     }|- - - - - - - - - - +{:-^w$       }+", if hold_piece.is_some() { "+-hold-" } else {"       "}, "mode", w=mode_name_space),
                 format!("   ALL STATS    {}     |                    |{: ^w$       }|", if hold_piece.is_some() { "| " } else {"  "}, mode_name, w=mode_name_space),
@@ -419,7 +419,7 @@ impl Renderer for CachedRenderer {
                 format!("                      ~#====================#~              ", ),
                 format!("                                                            ", ),
             ],
-        GraphicsGlyphset::Unicode => vec![
+        Glyphset::Unicode => vec![
                 format!("                                                            ", ),
                 format!("                {     }╓╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╥{:─^w$       }┐", if hold_piece.is_some() { "┌─hold─" } else {"       "}, "mode", w=mode_name_space),
                 format!("   ALL STATS    {}     ║                    ║{: ^w$       }│", if hold_piece.is_some() { "│ " } else {"  "}, mode_name, w=mode_name_space),
@@ -455,8 +455,8 @@ impl Renderer for CachedRenderer {
         let (x_messages, y_messages) = (47, 18);
         let pos_board = |(x, y)| (x_board + 2 * x, y_board + Game::SKYLINE - y);
         // Board: helpers.
-        let color = tile_to_color(app.settings().graphics_coloring);
-        let color_locked = tile_to_color(app.settings().graphics_coloring_locked);
+        let color = tile_to_color(app.settings().graphics.coloring);
+        let color_locked = tile_to_color(app.settings().graphics.coloring_lockedtiles);
         // Board: draw hard drop trail.
         for (
             HardDropTile {
@@ -469,9 +469,9 @@ impl Renderer for CachedRenderer {
         ) in self.hard_drop_tiles.iter_mut()
         {
             let elapsed = game_time.saturating_sub(*creation_time);
-            let luminance_map = match app.settings().graphics_glyphset {
-                GraphicsGlyphset::Electronika60 => [" .", " .", " .", " .", " .", " .", " .", " ."],
-                GraphicsGlyphset::ASCII | GraphicsGlyphset::Unicode => {
+            let luminance_map = match app.settings().graphics.glyphset {
+                Glyphset::Electronika60 => [" .", " .", " .", " .", " .", " .", " .", " ."],
+                Glyphset::ASCII | Glyphset::Unicode => {
                     ["@@", "$$", "##", "%%", "**", "++", "~~", ".."]
                 }
             };
@@ -491,10 +491,10 @@ impl Renderer for CachedRenderer {
         self.hard_drop_tiles.retain(|elt| elt.1);
         // Board: draw fixed tiles.
         let (tile_ground, tile_ghost, tile_active, tile_preview) =
-            match app.settings().graphics_glyphset {
-                GraphicsGlyphset::Electronika60 => ("▮▮", " .", "▮▮", "▮▮"),
-                GraphicsGlyphset::ASCII => ("##", "::", "[]", "[]"),
-                GraphicsGlyphset::Unicode => ("██", "░░", "▓▓", "▒▒"),
+            match app.settings().graphics.glyphset {
+                Glyphset::Electronika60 => ("▮▮", " .", "▮▮", "▮▮"),
+                Glyphset::ASCII => ("##", "::", "[]", "[]"),
+                Glyphset::Unicode => ("██", "░░", "▓▓", "▒▒"),
             };
         for (y, line) in board.iter().enumerate().take(21).rev() {
             for (x, cell) in line.iter().enumerate() {
@@ -583,8 +583,8 @@ impl Renderer for CachedRenderer {
                 }
                 Feedback::PieceLocked(piece) => {
                     #[rustfmt::skip]
-                    let animation_locking = match app.settings().graphics_glyphset {
-                        GraphicsGlyphset::Electronika60 => [
+                    let animation_locking = match app.settings().graphics.glyphset {
+                        Glyphset::Electronika60 => [
                             ( 50, "▮▮"),
                             ( 75, "▮▮"),
                             (100, "▮▮"),
@@ -592,7 +592,7 @@ impl Renderer for CachedRenderer {
                             (150, "▮▮"),
                             (175, "▮▮"),
                         ],
-                        GraphicsGlyphset::ASCII => [
+                        Glyphset::ASCII => [
                             ( 50, "()"),
                             ( 75, "()"),
                             (100, "{}"),
@@ -600,7 +600,7 @@ impl Renderer for CachedRenderer {
                             (150, "<>"),
                             (175, "<>"),
                         ],
-                        GraphicsGlyphset::Unicode => [
+                        Glyphset::Unicode => [
                             ( 50, "██"),
                             ( 75, "▓▓"),
                             (100, "▒▒"),
@@ -609,12 +609,12 @@ impl Renderer for CachedRenderer {
                             (175, "▓▓"),
                         ],
                     };
-                    let color_locking = match app.settings().graphics_coloring {
-                        GraphicsColoring::Monochrome => None,
-                        GraphicsColoring::Color16 | GraphicsColoring::Fullcolor => {
+                    let color_locking = match app.settings().graphics.coloring {
+                        Coloring::Monochrome => None,
+                        Coloring::Color16 | Coloring::Fullcolor => {
                             Some(Color::White)
                         }
-                        GraphicsColoring::Experimental => Some(Color::Rgb {
+                        Coloring::Experimental => Some(Color::Rgb {
                             r: 207,
                             g: 207,
                             b: 207,
@@ -639,8 +639,8 @@ impl Renderer for CachedRenderer {
                         *active = false;
                         continue;
                     }
-                    let animation_lineclear = match app.settings().graphics_glyphset {
-                        GraphicsGlyphset::Electronika60 => [
+                    let animation_lineclear = match app.settings().graphics.glyphset {
+                        Glyphset::Electronika60 => [
                             "▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮",
                             "  ▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮",
                             "    ▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮",
@@ -652,7 +652,7 @@ impl Renderer for CachedRenderer {
                             "                ▮▮▮▮",
                             "                  ▮▮",
                         ],
-                        GraphicsGlyphset::ASCII => [
+                        Glyphset::ASCII => [
                             "$$$$$$$$$$$$$$$$$$$$",
                             "$$$$$$$$$$$$$$$$$$$$",
                             "                    ",
@@ -664,7 +664,7 @@ impl Renderer for CachedRenderer {
                             "$$$$$$$$$$$$$$$$$$$$",
                             "$$$$$$$$$$$$$$$$$$$$",
                         ],
-                        GraphicsGlyphset::Unicode => [
+                        Glyphset::Unicode => [
                             "████████████████████",
                             " ██████████████████ ",
                             "  ████████████████  ",
@@ -677,11 +677,11 @@ impl Renderer for CachedRenderer {
                             "         ██         ",
                         ],
                     };
-                    let color_lineclear = match app.settings().graphics_coloring {
-                        GraphicsColoring::Monochrome => None,
-                        GraphicsColoring::Color16
-                        | GraphicsColoring::Fullcolor
-                        | GraphicsColoring::Experimental => Some(Color::White),
+                    let color_lineclear = match app.settings().graphics.coloring {
+                        Coloring::Monochrome => None,
+                        Coloring::Color16
+                        | Coloring::Fullcolor
+                        | Coloring::Experimental => Some(Color::White),
                     };
                     let percent = elapsed.as_secs_f64() / line_clear_delay.as_secs_f64();
                     let max_idx = f64::from(i32::try_from(animation_lineclear.len() - 1).unwrap());
