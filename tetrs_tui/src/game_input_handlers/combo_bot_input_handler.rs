@@ -63,18 +63,18 @@ pub struct ComboState {
 }
 
 #[derive(Debug)]
-pub struct ComboBotHandler {
+pub struct ComboBotInputHandler {
     _handle: JoinHandle<()>,
 }
 
-impl ComboBotHandler {
+impl ComboBotInputHandler {
     pub fn new(
         button_sender: &Sender<InputSignal>,
         action_idle_time: Duration,
     ) -> (Self, Sender<ComboState>) {
         let (state_sender, state_receiver) = mpsc::channel();
         let join_handle = Self::spawn(state_receiver, button_sender.clone(), action_idle_time);
-        let combo_bot_handler = ComboBotHandler {
+        let combo_bot_handler = ComboBotInputHandler {
             _handle: join_handle,
         };
         (combo_bot_handler, state_sender)
@@ -720,7 +720,7 @@ mod tests {
             layout: (Pat::_200, false),
             active: Some(iter.next().unwrap()),
             hold: None,
-            next_pieces: ComboBotHandler::encode_next_queue(next_pieces.iter()),
+            next_pieces: ComboBotInputHandler::encode_next_queue(next_pieces.iter()),
             depth: 0,
         };
         let mut it: usize = 0;
@@ -744,7 +744,7 @@ mod tests {
                 next_pieces.push_back(iter.next().unwrap());
                 next_pieces.pop_front();
             }
-            new_state.next_pieces = ComboBotHandler::encode_next_queue(next_pieces.iter());
+            new_state.next_pieces = ComboBotInputHandler::encode_next_queue(next_pieces.iter());
             state = new_state;
             // Only count if piece was not dropped i.e. used.
             if !did_hold {

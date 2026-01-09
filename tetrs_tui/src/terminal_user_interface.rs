@@ -27,10 +27,12 @@ use tetrs_engine::{
 };
 
 use crate::{
-    game_input_handlers::{combo_bot::ComboBotHandler, crossterm::CrosstermHandler, InputSignal},
-    game_mods,
+    game_input_handlers::{combo_bot_input_handler::ComboBotInputHandler, terminal_input_handler::{Keybinds, TerminalInputHandler}, InputSignal},
+    game_modifiers,
     game_renderers::{self, cached_renderer::CachedRenderer, tet_str_small, Renderer},
 };
+
+// TODO: pub type Slots<T> = Vec<(String, T)>; 
 
 // NOTE: This could be more general and less ad-hoc. Only records [Spins,1-Lineclears,2-LCs,3-LCS,4-LCS] but could count number of I-Spins, J-Spins, etc..
 pub type RunningGameStats = ([u32; 5], Vec<u32>);
@@ -171,7 +173,7 @@ pub enum SaveGranularity {
 pub struct Settings {
     pub graphics: GraphicsSettings,
     #[serde_as(as = "HashMap<serde_with::json::JsonString, _>")]
-    pub keybinds: HashMap<KeyCode, Button>,
+    pub keybinds: Keybinds,
     pub game_config: GameConfig,
     pub new_game: NewGameSettings,
     pub save_on_exit: SaveGranularity,
@@ -187,7 +189,7 @@ impl Default for Settings {
                 game_fps: 30.0,
                 show_fps: false,
             },
-            keybinds: CrosstermHandler::default_keybinds(),
+            keybinds: TerminalInputHandler::default_keybinds(),
             game_config: GameConfig::default(),
             new_game: NewGameSettings {
                 initial_gravity: 0,
@@ -196,7 +198,7 @@ impl Default for Settings {
                 cheese_mode_limit: Some(NonZeroUsize::try_from(20).unwrap()),
                 cheese_mode_gap_size: 1,
                 cheese_mode_gravity: 0,
-                combo_start_layout: game_mods::combo_mode::LAYOUTS[0],
+                combo_start_layout: game_modifiers::combo_mode::LAYOUTS[0],
                 descent_mode: false,
                 custom_start_board: None,
                 custom_start_seed: None,
@@ -586,7 +588,7 @@ impl<T: Write> Application<T> {
                 (
                     "Puzzle",
                     "Can you get perfect clears in all 24 puzzle levels?".to_string(),
-                    Box::new(game_mods::puzzle_mode::new_game),
+                    Box::new(game_modifiers::puzzle_mode::new_game),
                 ),
                 (
                     "Cheese",
@@ -599,7 +601,7 @@ impl<T: Write> Application<T> {
                         let cheese_mode_gap_size = ng.cheese_mode_gap_size;
                         let cheese_mode_gravity = ng.cheese_mode_gravity;
                         move || {
-                            game_mods::cheese_mode::new_game(
+                            game_modifiers::cheese_mode::new_game(
                                 cheese_mode_limit,
                                 cheese_mode_gap_size,
                                 cheese_mode_gravity,
@@ -615,7 +617,7 @@ impl<T: Write> Application<T> {
                     ),
                     Box::new({
                         let combo_start_layout = ng.combo_start_layout;
-                        move || game_mods::combo_mode::new_game(1, combo_start_layout)
+                        move || game_modifiers::combo_mode::new_game(1, combo_start_layout)
                     }),
                 ),
             ];
@@ -625,7 +627,7 @@ impl<T: Write> Application<T> {
                     (
                         "Descent (experimental)",
                         "Spin the piece and collect 'gems' by touching them.".to_string(),
-                        Box::new(game_mods::descent_mode::new_game),
+                        Box::new(game_modifiers::descent_mode::new_game),
                     ),
                 )
             }
@@ -781,7 +783,7 @@ impl<T: Write> Application<T> {
                         }
                         if let Some(ref custom_start_board_str) = ng.custom_start_board {
                             custom_game_builder.build_modified([
-                                game_mods::utils::custom_start_board(custom_start_board_str),
+                                game_modifiers::utils::custom_start_board(custom_start_board_str),
                             ])
                         } else {
                             custom_game_builder.build()
@@ -890,16 +892,16 @@ impl<T: Write> Application<T> {
                     if selected == selection_size - 1 && customization_selected > 0 {
                         customization_selected += customization_selection_size - 1
                     } else if selected == selection_size - 2 {
-                        let new_layout_idx = if let Some(i) = game_mods::combo_mode::LAYOUTS
+                        let new_layout_idx = if let Some(i) = game_modifiers::combo_mode::LAYOUTS
                             .iter()
                             .position(|lay| *lay == ng.combo_start_layout)
                         {
-                            let layout_cnt = game_mods::combo_mode::LAYOUTS.len();
+                            let layout_cnt = game_modifiers::combo_mode::LAYOUTS.len();
                             (i + layout_cnt - 1) % layout_cnt
                         } else {
                             0
                         };
-                        ng.combo_start_layout = game_mods::combo_mode::LAYOUTS[new_layout_idx];
+                        ng.combo_start_layout = game_modifiers::combo_mode::LAYOUTS[new_layout_idx];
                     } else if selected == selection_size - 3 {
                         if let Some(limit) = ng.cheese_mode_limit {
                             ng.cheese_mode_limit = NonZeroUsize::try_from(limit.get() - 1).ok();
@@ -928,17 +930,17 @@ impl<T: Write> Application<T> {
                             customization_selected += 1
                         }
                     } else if selected == selection_size - 2 {
-                        let new_layout_idx = if let Some(i) = crate::game_mods::combo_mode::LAYOUTS
+                        let new_layout_idx = if let Some(i) = crate::game_modifiers::combo_mode::LAYOUTS
                             .iter()
                             .position(|lay| *lay == ng.combo_start_layout)
                         {
-                            let layout_cnt = crate::game_mods::combo_mode::LAYOUTS.len();
+                            let layout_cnt = crate::game_modifiers::combo_mode::LAYOUTS.len();
                             (i + 1) % layout_cnt
                         } else {
                             0
                         };
                         ng.combo_start_layout =
-                            crate::game_mods::combo_mode::LAYOUTS[new_layout_idx];
+                            crate::game_modifiers::combo_mode::LAYOUTS[new_layout_idx];
                     } else if selected == selection_size - 3 {
                         ng.cheese_mode_limit = if let Some(limit) = ng.cheese_mode_limit {
                             limit.checked_add(1)
@@ -985,16 +987,16 @@ impl<T: Write> Application<T> {
         let mut buttons_pressed = PressedButtons::default();
         let (button_sender, button_receiver) = mpsc::channel();
         let _input_handler =
-            CrosstermHandler::new(&button_sender, &self.settings.keybinds, self.kitty_assumed);
+            TerminalInputHandler::new(&button_sender, &self.settings.keybinds, self.kitty_assumed);
         let mut combo_bot_handler = (self.combo_bot_enabled
             && game.mode().name.as_ref().is_some_and(|n| n == "Combo"))
-        .then(|| ComboBotHandler::new(&button_sender, Duration::from_millis(100)));
+        .then(|| ComboBotInputHandler::new(&button_sender, Duration::from_millis(100)));
         let mut inform_combo_bot = |game: &Game, evts: &FeedbackMessages| {
             if let Some((_, state_sender)) = &mut combo_bot_handler {
                 if evts.iter().any(|(_, feedback)| {
                     matches!(feedback, tetrs_engine::Feedback::PieceSpawned(_))
                 }) {
-                    let combo_state = ComboBotHandler::encode(game).unwrap();
+                    let combo_state = ComboBotInputHandler::encode(game).unwrap();
                     if state_sender.send(combo_state).is_err() {
                         combo_bot_handler = None;
                     }
@@ -1593,7 +1595,7 @@ impl<T: Write> Application<T> {
                     ..
                 }) => {
                     if selected == selection_len - 1 {
-                        self.settings.keybinds = CrosstermHandler::default_keybinds();
+                        self.settings.keybinds = TerminalInputHandler::default_keybinds();
                     } else {
                         let current_button = button_selection[selected];
                         self.term
@@ -2536,7 +2538,7 @@ pub fn fmt_key(key: KeyCode) -> String {
     )
 }
 
-pub fn fmt_keybinds(button: Button, keybinds: &HashMap<KeyCode, Button>) -> String {
+pub fn fmt_keybinds(button: Button, keybinds: &Keybinds) -> String {
     keybinds
         .iter()
         .filter_map(|(&k, &b)| (b == button).then_some(fmt_key(k)))

@@ -15,22 +15,24 @@ use tetrs_engine::Button;
 
 use super::InputSignal;
 
+pub type Keybinds = std::collections::HashMap<crossterm::event::KeyCode, tetrs_engine::Button>;
+
 #[derive(Debug)]
-pub struct CrosstermHandler {
+pub struct TerminalInputHandler {
     _thread_handle: JoinHandle<()>,
     running_thread_flag: Arc<AtomicBool>,
 }
 
-impl Drop for CrosstermHandler {
+impl Drop for TerminalInputHandler {
     fn drop(&mut self) {
         self.running_thread_flag.store(false, Ordering::Release);
     }
 }
 
-impl CrosstermHandler {
+impl TerminalInputHandler {
     pub fn new(
         input_sender: &Sender<InputSignal>,
-        keybinds: &HashMap<KeyCode, Button>,
+        keybinds: &Keybinds,
         kitty_enabled: bool,
     ) -> Self {
         let running_thread_flag = Arc::new(AtomicBool::new(true));
@@ -39,7 +41,7 @@ impl CrosstermHandler {
         } else {
             Self::spawn_standard
         };
-        CrosstermHandler {
+        TerminalInputHandler {
             _thread_handle: spawn(
                 running_thread_flag.clone(),
                 input_sender.clone(),
@@ -49,7 +51,7 @@ impl CrosstermHandler {
         }
     }
 
-    pub fn default_keybinds() -> HashMap<KeyCode, Button> {
+    pub fn default_keybinds() -> Keybinds {
         HashMap::from([
             (KeyCode::Left, Button::MoveLeft),
             (KeyCode::Right, Button::MoveRight),
@@ -66,7 +68,7 @@ impl CrosstermHandler {
     fn spawn_standard(
         run_thread_flag: Arc<AtomicBool>,
         input_sender: Sender<InputSignal>,
-        keybinds: HashMap<KeyCode, Button>,
+        keybinds: Keybinds,
     ) -> JoinHandle<()> {
         thread::spawn(move || {
             'react_to_event: loop {
@@ -136,7 +138,7 @@ impl CrosstermHandler {
     fn spawn_kitty(
         run_thread_flag: Arc<AtomicBool>,
         input_sender: Sender<InputSignal>,
-        keybinds: HashMap<KeyCode, Button>,
+        keybinds: Keybinds,
     ) -> JoinHandle<()> {
         thread::spawn(move || {
             'react_to_event: loop {

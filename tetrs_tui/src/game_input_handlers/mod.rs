@@ -1,5 +1,5 @@
-pub mod combo_bot;
-pub mod crossterm;
+pub mod combo_bot_input_handler;
+pub mod terminal_input_handler;
 
 pub enum InputSignal {
     AbortProgram,
@@ -9,3 +9,4 @@ pub enum InputSignal {
     TakeSnapshot,
     ButtonInput(tetrs_engine::Button, bool, std::time::Instant),
 }
+
