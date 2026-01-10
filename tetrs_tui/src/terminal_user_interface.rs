@@ -342,7 +342,6 @@ impl<T: Write> Application<T> {
         app.combo_bot_enabled = combo_bot_enabled;
         app.kitty_detected = terminal::supports_keyboard_enhancement().unwrap_or(false);
         app.kitty_assumed = app.kitty_detected;
-        app.settings.config_mut().no_soft_drop_lock = !app.kitty_detected;
         app
     }
 
@@ -1820,7 +1819,7 @@ impl<T: Write> Application<T> {
     }
 
     fn menu_adjust_gameplay(&mut self) -> io::Result<MenuUpdate> {
-        let selection_len = 12;
+        let selection_len = 10;
         let mut selected = 0usize;
         loop {
             let w_main = Self::W_MAIN.into();
@@ -1866,20 +1865,12 @@ impl<T: Write> Application<T> {
                     self.settings.config().soft_drop_factor
                 ),
                 format!(
-                    "Ground time max: {:?}",
-                    self.settings.config().ground_time_max
-                ),
-                format!(
                     "Line clear delay: {:?}",
                     self.settings.config().line_clear_delay
                 ),
                 format!(
                     "Appearance delay: {:?}",
                     self.settings.config().appearance_delay
-                ),
-                format!(
-                    "No soft drop lock: {} **",
-                    self.settings.config().no_soft_drop_lock
                 ),
                 format!(
                     "/!\\ Override: assume enhanced-key-events work: {} *",
@@ -1922,23 +1913,10 @@ impl<T: Write> Application<T> {
                 .queue(Print(format!(
                     "{:^w_main$}",
                     if self.kitty_detected {
-                        "(* Should work, since enhanced-key-events seem available)"
+                        "(*Should apply, since enhanced-key-events seem available.)"
                     } else {
-                        "(* Might NOT work since enhanced-key-events seem UNavailable)"
+                        "(*Might NOT apply since enhanced-key-events seem UNavailable.)"
                     },
-                )))?;
-            self.term
-                .queue(MoveTo(
-                    x_main,
-                    y_main + y_selection + 4 + u16::try_from(selection_len - 1).unwrap() + 5,
-                ))?
-                .queue(Print(format!(
-                    "{:^w_main$}",
-                    if !self.kitty_detected {
-                        "(** Set to 'true' because of (*))"
-                    } else {
-                        "(** Set to 'false' because of (*))"
-                    }
                 )))?;
             self.term.flush()?;
             // Wait for new input.
@@ -1967,7 +1945,6 @@ impl<T: Write> Application<T> {
                 }) => {
                     if selected == selection_len - 1 {
                         *self.settings.config_mut() = GameConfig::default();
-                        self.settings.config_mut().no_soft_drop_lock = !self.kitty_detected;
                         self.kitty_assumed = self.kitty_detected;
                     }
                 }
@@ -2026,19 +2003,12 @@ impl<T: Write> Application<T> {
                         self.settings.config_mut().soft_drop_factor += 0.5;
                     }
                     6 => {
-                        self.settings.config_mut().ground_time_max += Duration::from_millis(250);
-                    }
-                    7 => {
                         self.settings.config_mut().line_clear_delay += Duration::from_millis(10);
                     }
-                    8 => {
+                    7 => {
                         self.settings.config_mut().appearance_delay += Duration::from_millis(10);
                     }
-                    9 => {
-                        self.settings.config_mut().no_soft_drop_lock =
-                            !self.settings.config().no_soft_drop_lock;
-                    }
-                    10 => {
+                    8 => {
                         self.kitty_assumed = !self.kitty_assumed;
                     }
                     _ => {}
@@ -2092,31 +2062,20 @@ impl<T: Write> Application<T> {
                         }
                     }
                     6 => {
-                        self.settings.config_mut().ground_time_max = self
-                            .settings
-                            .config()
-                            .ground_time_max
-                            .saturating_sub(Duration::from_millis(250));
-                    }
-                    7 => {
                         self.settings.config_mut().line_clear_delay = self
                             .settings
                             .config()
                             .line_clear_delay
                             .saturating_sub(Duration::from_millis(10));
                     }
-                    8 => {
+                    7 => {
                         self.settings.config_mut().appearance_delay = self
                             .settings
                             .config()
                             .appearance_delay
                             .saturating_sub(Duration::from_millis(10));
                     }
-                    9 => {
-                        self.settings.config_mut().no_soft_drop_lock =
-                            !self.settings.config().no_soft_drop_lock;
-                    }
-                    10 => {
+                    8 => {
                         self.kitty_assumed = !self.kitty_assumed;
                     }
                     _ => {}
@@ -2124,7 +2083,7 @@ impl<T: Write> Application<T> {
                 // Other event: don't care.
                 _ => {}
             }
-            selected = selected.rem_euclid(selection_len);
+            selected %= selection_len;
         }
     }
 

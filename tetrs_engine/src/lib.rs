@@ -274,8 +274,6 @@ pub struct GameConfig {
     pub line_clear_delay: Duration,
     /// How long the game should wait *additionally* before spawning a new piece.
     pub appearance_delay: Duration,
-    /// Whether to disable a 'soft drop' button press explicitly and immediately locking down a piece.
-    pub no_soft_drop_lock: bool,
     /// The amount of feedback information that is to be generated.
     pub feedback_verbosity: FeedbackVerbosity,
 }
@@ -832,7 +830,6 @@ impl Default for GameConfig {
             ground_time_max: Duration::from_millis(2000),
             line_clear_delay: Duration::from_millis(200),
             appearance_delay: Duration::from_millis(50),
-            no_soft_drop_lock: false,
             feedback_verbosity: FeedbackVerbosity::default(),
         }
     }
@@ -1441,11 +1438,9 @@ impl Game {
                         }
                         dropped_piece
                     } else {
-                        // Otherwise ciece could not move down.
-                        // Immediately queue lock (unless option for it is disabled).
-                        if !self.config.no_soft_drop_lock {
-                            self.state.events.insert(GameEvent::LockTimer, event_time);
-                        }
+                        // Otherwise piece was not able to move down.
+                        // Immediately queue lock.
+                        self.state.events.insert(GameEvent::LockTimer, event_time);
                         prev_piece
                     },
                 )
