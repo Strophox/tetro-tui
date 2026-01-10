@@ -128,6 +128,8 @@ pub struct NewGameSettings {
     cheese_mode_gravity: u32,
     combo_start_tiles: u16,
     descent_mode_unlocked: bool,
+    /// Custom starting layout when playing Combo mode (4-wide rows), encoded as binary.
+    /// Example: '▀▄▄▀' => 0b_1001_0110 = 150
     custom_start_board: Option<String>,
     // TODO: Placeholder for proper snapshot functionality.
     custom_start_seed: Option<u64>,
@@ -306,7 +308,6 @@ impl<T: Write> Application<T> {
         mut term: T,
         custom_start_seed: Option<u64>,
         custom_start_board: Option<String>,
-        combo_start_layout: Option<u16>,
         combo_bot_enabled: bool,
     ) -> Self {
         // Console prologue: Initialization.
@@ -332,14 +333,11 @@ impl<T: Write> Application<T> {
         }
 
         // Now that the settings are loaded, we handle custom flags set for this session.
-        if let Some(combo_start_layout) = combo_start_layout {
-            app.settings.new_game.combo_start_tiles = combo_start_layout;
-        }
         if custom_start_board.is_some() {
             app.settings.new_game.custom_start_board = custom_start_board;
         }
-        if let Some(custom_start_seed) = custom_start_seed {
-            app.settings.new_game.custom_start_seed = Some(custom_start_seed);
+        if custom_start_seed.is_some() {
+            app.settings.new_game.custom_start_seed = custom_start_seed;
         }
         app.combo_bot_enabled = combo_bot_enabled;
         app.kitty_detected = terminal::supports_keyboard_enhancement().unwrap_or(false);
@@ -1455,7 +1453,7 @@ impl<T: Write> Application<T> {
                     "Keep save file: {}",
                     match self.settings.save_on_exit {
                         SaveGranularity::Nothing => "OFF*",
-                        SaveGranularity::Settings => "ON [no games; only settings]",
+                        SaveGranularity::Settings => "ON but only settings (no scores)",
                         SaveGranularity::SettingsAndGames => "ON",
                     }
                 ),
@@ -2300,8 +2298,10 @@ impl<T: Write> Application<T> {
                     code: KeyCode::Delete | KeyCode::Char('d'),
                     kind: Press | Repeat,
                     ..
-                }) => if selected == 2 {
-                    self.settings.graphics_mut().game_fps = 30.0;
+                }) => {
+                    if selected == 2 {
+                        self.settings.graphics_mut().game_fps = 30.0;
+                    }
                 }
                 // Other event: Just ignore.
                 _ => {}

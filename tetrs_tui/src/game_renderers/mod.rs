@@ -82,37 +82,37 @@ pub fn tile_to_color(col: Coloring) -> fn(TileTypeID) -> Option<Color> {
                 1 => Color::Rgb {
                     r: 254,
                     g: 203,
-                    b: 0,
+                    b: 1,
                 },
                 2 => Color::Rgb {
                     r: 0,
                     g: 159,
-                    b: 218,
+                    b: 219,
                 },
                 3 => Color::Rgb {
                     r: 105,
                     g: 190,
-                    b: 40,
+                    b: 41,
                 },
                 4 => Color::Rgb {
                     r: 237,
                     g: 41,
-                    b: 57,
+                    b: 58,
                 },
                 5 => Color::Rgb {
                     r: 149,
                     g: 45,
-                    b: 152,
+                    b: 153,
                 },
                 6 => Color::Rgb {
                     r: 255,
                     g: 121,
-                    b: 0,
+                    b: 1,
                 },
                 7 => Color::Rgb {
                     r: 0,
                     g: 101,
-                    b: 189,
+                    b: 190,
                 },
                 253 => Color::Rgb { r: 0, g: 0, b: 0 },
                 254 => Color::Rgb {

@@ -13,21 +13,16 @@ struct Args {
     /// Custom starting seed when playing Custom mode, given as a 64-bit integer.
     /// This influences the sequence of pieces used and makes it possible to replay
     /// a run with the same pieces if the same seed is entered.
-    /// Example: `./tetrs_tui --custom-seed=42` or `./tetrs_tui -c 42`.
+    /// Example: `./tetrs_tui --seed=42` or `./tetrs_tui -s 42`.
     #[arg(short, long)]
-    custom_seed: Option<u64>,
+    seed: Option<u64>,
     /// Custom starting board when playing Custom mode (10-wide rows), encoded as string.
     /// Spaces indicate empty cells, anything else is a filled cell.
     /// The string just represents the row information, starting with the topmost row.
     /// Example: '█▀ ▄██▀ ▀█'
-    ///          => `./tetrs_tui --custom-start="XX  XXX XXO  OOO   O"`.
-    #[arg(long)]
-    custom_start: Option<String>,
-    /// Custom starting layout when playing Combo mode (4-wide rows), encoded as binary.
-    /// Example: '▀▄▄▀' => 0b_1001_0110 = 150
-    ///          => `./tetrs_tui --combo-start=150`.
-    #[arg(long)]
-    combo_start: Option<u16>,
+    ///          => `./tetrs_tui --board="XX  XXX XXO  OOO   O"` or `./tetrs_tui -b "XX  XXX XXO  OOO   O"`.
+    #[arg(short, long)]
+    board: Option<String>,
     /// Whether to enable the combo bot in Combo mode: `./tetrs_tui --enable-combo-bot` or `./tetrs_tui -e`
     #[arg(short, long)]
     enable_combo_bot: bool,
@@ -38,9 +33,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let stdout = io::BufWriter::new(io::stdout());
     let mut app = terminal_user_interface::Application::new(
         stdout,
-        args.custom_seed,
-        args.custom_start,
-        args.combo_start,
+        args.seed,
+        args.board,
         args.enable_combo_bot,
     );
     std::panic::set_hook(Box::new(|panic_info| {
