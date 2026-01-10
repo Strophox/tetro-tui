@@ -18,9 +18,7 @@ use tetrs_engine::{
 
 use crate::{
     game_renderers::{button_str, Renderer},
-    terminal_user_interface::{
-        fmt_duration, fmt_keybinds, Application, Coloring, Glyphset, RunningGameStats,
-    },
+    terminal_user_interface::{fmt_duration, fmt_keybinds, Application, Coloring, Glyphset},
 };
 
 use super::{tet_str_minuscule, tet_str_small, tile_to_color};
@@ -222,7 +220,6 @@ impl Renderer for CachedRenderer {
     fn render<T>(
         &mut self,
         app: &mut Application<T>,
-        running_game_stats: &mut RunningGameStats,
         game: &Game,
         new_feedback_events: FeedbackMessages,
         screen_resized: bool,
@@ -720,7 +717,6 @@ impl Renderer for CachedRenderer {
                     combo,
                     back_to_back,
                 } => {
-                    running_game_stats.1.push(*score_bonus);
                     let mut msg = Vec::new();
                     msg.push(format!("+{score_bonus}"));
                     if *perfect_clear {
@@ -728,7 +724,6 @@ impl Renderer for CachedRenderer {
                     }
                     if *spin {
                         msg.push(format!("{shape:?}-Spin"));
-                        running_game_stats.0[0] += 1;
                     }
                     let clear_action = match lineclears {
                         1 => "Single",
@@ -755,12 +750,6 @@ impl Renderer for CachedRenderer {
                         _ => "Unreachable",
                     }
                     .to_string();
-                    // FIXME: Maybe accumulating running_game_stats shouldn't be done in the renderer.
-                    if *lineclears <= 4 {
-                        running_game_stats.0[usize::try_from(*lineclears).unwrap()] += 1;
-                    } else {
-                        // FIXME: Record higher lineclears, if even possible.
-                    }
                     msg.push(clear_action);
                     if *combo > 1 {
                         msg.push(format!("[{combo}.combo]"));

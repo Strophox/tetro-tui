@@ -12,7 +12,7 @@ use tetrs_engine::{Button, Feedback, FeedbackMessages, Game, GameState, GameTime
 
 use crate::{
     game_renderers::{button_str, Renderer},
-    terminal_user_interface::{Application, RunningGameStats},
+    terminal_user_interface::Application,
 };
 
 #[allow(dead_code)]
@@ -25,7 +25,6 @@ impl Renderer for DebugRenderer {
     fn render<T>(
         &mut self,
         app: &mut Application<T>,
-        _running_game_stats: &mut RunningGameStats,
         game: &Game,
         new_feedback_events: FeedbackMessages,
         _screen_resized: bool,

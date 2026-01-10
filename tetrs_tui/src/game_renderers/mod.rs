@@ -6,13 +6,12 @@ use std::io::{self, Write};
 use crossterm::style::Color;
 use tetrs_engine::{Button, FeedbackMessages, Game, Tetromino, TileTypeID};
 
-use crate::terminal_user_interface::{Application, Coloring, RunningGameStats};
+use crate::terminal_user_interface::{Application, Coloring};
 
 pub trait Renderer {
     fn render<T>(
         &mut self,
         app: &mut Application<T>,
-        running_game_stats: &mut RunningGameStats,
         game: &Game,
         new_feedback_events: FeedbackMessages,
         screen_resized: bool,

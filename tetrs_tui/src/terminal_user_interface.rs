@@ -37,14 +37,9 @@ use crate::{
 
 pub type Slots<T> = Vec<(String, T)>;
 
-// NOTE: This could be more general and less ad-hoc. Only records [Spins,1-Lineclears,2-LCs,3-LCS,4-LCS] but could count number of I-Spins, J-Spins, etc..
-pub type RunningGameStats = ([u32; 5], Vec<u32>);
-
 #[derive(Eq, PartialEq, Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct FinishedGameStats {
     timestamp: String,
-    actions: [u32; 5],
-    score_bonuses: Vec<u32>,
     gamemode: GameMode,
     last_state: GameState,
 }
@@ -64,7 +59,6 @@ enum Menu {
         time_started: Instant,
         last_paused: Instant,
         total_duration_paused: Duration,
-        running_game_stats: RunningGameStats,
         game_renderer: Box<CachedRenderer>,
     },
     GameOver(Box<FinishedGameStats>),
@@ -403,14 +397,12 @@ impl<T: Write> Application<T> {
                     time_started,
                     total_duration_paused,
                     last_paused,
-                    running_game_stats,
                     game_renderer,
                 } => self.menu_game(
                     game,
                     time_started,
                     last_paused,
                     total_duration_paused,
-                    running_game_stats,
                     game_renderer.as_mut(),
                 ),
                 Menu::Pause => self.menu_pause(),
@@ -847,7 +839,6 @@ impl<T: Write> Application<T> {
                         time_started: now,
                         last_paused: now,
                         total_duration_paused: Duration::ZERO,
-                        running_game_stats: RunningGameStats::default(),
                         game_renderer: Box::new(CachedRenderer::default()),
                     }));
                 }
@@ -1026,7 +1017,6 @@ impl<T: Write> Application<T> {
         time_started: &mut Instant,
         last_paused: &mut Instant,
         total_duration_paused: &mut Duration,
-        running_game_stats: &mut RunningGameStats,
         game_renderer: &mut impl Renderer,
     ) -> io::Result<MenuUpdate> {
         if self.kitty_assumed {
@@ -1066,7 +1056,7 @@ impl<T: Write> Application<T> {
         let menu_update = 'render: loop {
             // Exit if game ended
             if game.ended() {
-                let finished_game_stats = self.store_game(game, running_game_stats);
+                let finished_game_stats = self.store_game(game);
                 let menu = if finished_game_stats.was_successful() {
                     Menu::GameComplete
                 } else {
@@ -1091,14 +1081,14 @@ impl<T: Write> Application<T> {
                 let frame_idle_remaining = next_frame_at - Instant::now();
                 match button_receiver.recv_timeout(frame_idle_remaining) {
                     Ok(InputSignal::AbortProgram) => {
-                        self.store_game(game, running_game_stats);
+                        self.store_game(game);
                         break 'render MenuUpdate::Push(Menu::Quit(
                             "exited with ctrl-c".to_string(),
                         ));
                     }
                     Ok(InputSignal::ForfeitGame) => {
                         game.forfeit();
-                        let finished_game_stats = self.store_game(game, running_game_stats);
+                        let finished_game_stats = self.store_game(game);
                         break 'render MenuUpdate::Push(Menu::GameOver(Box::new(
                             finished_game_stats,
                         )));
@@ -1151,13 +1141,7 @@ impl<T: Write> Application<T> {
                     }
                 };
             }
-            game_renderer.render(
-                self,
-                running_game_stats,
-                game,
-                new_feedback_events,
-                clean_screen,
-            )?;
+            game_renderer.render(self, game, new_feedback_events, clean_screen)?;
             clean_screen = false;
             // FPS counter.
             if self.settings.graphics().show_fps {
@@ -1204,8 +1188,6 @@ impl<T: Write> Application<T> {
     ) -> io::Result<MenuUpdate> {
         let FinishedGameStats {
             timestamp: _,
-            actions,
-            score_bonuses: _,
             gamemode,
             last_state,
         } = finished_game_stats;
@@ -1229,34 +1211,6 @@ impl<T: Write> Application<T> {
         if gamemode.name.as_ref().is_some_and(|n| n == "Puzzle") && success {
             self.settings.new_game.descent_mode_unlocked = true;
         }
-        let actions_str = [
-            format!(
-                "{} Single{}",
-                actions[1],
-                if actions[1] != 1 { "s" } else { "" }
-            ),
-            format!(
-                "{} Double{}",
-                actions[2],
-                if actions[2] != 1 { "s" } else { "" }
-            ),
-            format!(
-                "{} Triple{}",
-                actions[3],
-                if actions[3] != 1 { "s" } else { "" }
-            ),
-            format!(
-                "{} Quadruple{}",
-                actions[4],
-                if actions[4] != 1 { "s" } else { "" }
-            ),
-            format!(
-                "{} Spin{}",
-                actions[0],
-                if actions[0] != 1 { "s" } else { "" }
-            ),
-        ]
-        .join(", ");
         let mut selected = 0usize;
         loop {
             let w_main = Self::W_MAIN.into();
@@ -1290,31 +1244,29 @@ impl<T: Write> Application<T> {
                 .queue(Print(Self::produce_header()?))?*/
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
                 .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?
-                .queue(MoveTo(x_main, y_main + y_selection + 4))?
+                .queue(MoveTo(x_main, y_main + y_selection + 3))?
                 .queue(Print(format!("{:^w_main$}", format!("Score: {score}"))))?
-                .queue(MoveTo(x_main, y_main + y_selection + 5))?
+                .queue(MoveTo(x_main, y_main + y_selection + 4))?
                 .queue(Print(format!(
                     "{:^w_main$}",
                     format!("Gravity: {gravity}",)
                 )))?
-                .queue(MoveTo(x_main, y_main + y_selection + 6))?
+                .queue(MoveTo(x_main, y_main + y_selection + 5))?
                 .queue(Print(format!(
                     "{:^w_main$}",
                     format!("Lines: {}", lines_cleared)
                 )))?
-                .queue(MoveTo(x_main, y_main + y_selection + 7))?
+                .queue(MoveTo(x_main, y_main + y_selection + 6))?
                 .queue(Print(format!(
                     "{:^w_main$}",
                     format!("Pieces: {}", pieces_played.iter().sum::<u32>())
                 )))?
-                .queue(MoveTo(x_main, y_main + y_selection + 8))?
+                .queue(MoveTo(x_main, y_main + y_selection + 7))?
                 .queue(Print(format!(
                     "{:^w_main$}",
                     format!("Time: {}", fmt_duration(*game_time))
                 )))?
-                .queue(MoveTo(x_main, y_main + y_selection + 10))?
-                .queue(Print(format!("{:^w_main$}", actions_str)))?
-                .queue(MoveTo(x_main, y_main + y_selection + 12))?
+                .queue(MoveTo(x_main, y_main + y_selection + 8))?
                 .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
             let names = selection
                 .iter()
@@ -1324,7 +1276,7 @@ impl<T: Write> Application<T> {
                 self.term
                     .queue(MoveTo(
                         x_main,
-                        y_main + y_selection + 13 + u16::try_from(i).unwrap(),
+                        y_main + y_selection + 10 + u16::try_from(i).unwrap(),
                     ))?
                     .queue(Print(format!(
                         "{:^w_main$}",
@@ -1873,7 +1825,7 @@ impl<T: Write> Application<T> {
                     self.settings.config().appearance_delay
                 ),
                 format!(
-                    "/!\\ Override: assume enhanced-key-events work: {} *",
+                    "/!\\ Override - assume enhanced-key-events work: {} *",
                     self.kitty_assumed
                 ),
             ];
@@ -2088,7 +2040,7 @@ impl<T: Write> Application<T> {
     }
 
     fn menu_adjust_graphics(&mut self) -> io::Result<MenuUpdate> {
-        let selection_len = 4;
+        let selection_len = 5;
         let mut selected = 0usize;
         loop {
             let w_main = Self::W_MAIN.into();
@@ -2105,6 +2057,11 @@ impl<T: Write> Application<T> {
                 format!("Coloring: {:?}", self.settings.graphics().coloring),
                 format!("Framerate: {}", self.settings.graphics().game_fps),
                 format!("Show fps: {}", self.settings.graphics().show_fps),
+                format!(
+                    "Effects (apply on New Game): {}",
+                    self.settings.config().feedback_verbosity
+                        != tetrs_engine::FeedbackVerbosity::Quiet
+                ),
             ];
             for (i, label) in labels.into_iter().enumerate() {
                 self.term
@@ -2201,6 +2158,20 @@ impl<T: Write> Application<T> {
                     3 => {
                         self.settings.graphics_mut().show_fps = !self.settings.graphics().show_fps;
                     }
+                    4 => {
+                        self.settings.config_mut().feedback_verbosity =
+                            match self.settings.config().feedback_verbosity {
+                                tetrs_engine::FeedbackVerbosity::Quiet => {
+                                    tetrs_engine::FeedbackVerbosity::Default
+                                }
+                                tetrs_engine::FeedbackVerbosity::Default => {
+                                    tetrs_engine::FeedbackVerbosity::Quiet
+                                }
+                                tetrs_engine::FeedbackVerbosity::Debug => {
+                                    tetrs_engine::FeedbackVerbosity::Quiet
+                                }
+                            };
+                    }
                     _ => {}
                 },
                 Event::Key(KeyEvent {
@@ -2234,6 +2205,20 @@ impl<T: Write> Application<T> {
                     }
                     3 => {
                         self.settings.graphics_mut().show_fps = !self.settings.graphics().show_fps;
+                    }
+                    4 => {
+                        self.settings.config_mut().feedback_verbosity =
+                            match self.settings.config().feedback_verbosity {
+                                tetrs_engine::FeedbackVerbosity::Quiet => {
+                                    tetrs_engine::FeedbackVerbosity::Default
+                                }
+                                tetrs_engine::FeedbackVerbosity::Default => {
+                                    tetrs_engine::FeedbackVerbosity::Quiet
+                                }
+                                tetrs_engine::FeedbackVerbosity::Debug => {
+                                    tetrs_engine::FeedbackVerbosity::Default
+                                }
+                            };
                     }
                     _ => {}
                 },
@@ -2274,8 +2259,6 @@ impl<T: Write> Application<T> {
                 .map(
                     |FinishedGameStats {
                          timestamp,
-                         actions: _,
-                         score_bonuses: _,
                          gamemode,
                          last_state,
                      }| {
@@ -2522,15 +2505,9 @@ impl<T: Write> Application<T> {
         )
     }
 
-    fn store_game(
-        &mut self,
-        game: &Game,
-        running_game_stats: &mut RunningGameStats,
-    ) -> FinishedGameStats {
+    fn store_game(&mut self, game: &Game) -> FinishedGameStats {
         let finished_game_stats = FinishedGameStats {
             timestamp: chrono::Utc::now().format("%Y-%m-%d %H:%M").to_string(),
-            actions: running_game_stats.0,
-            score_bonuses: running_game_stats.1.clone(),
             gamemode: game.mode().clone(),
             last_state: game.state().clone(),
         };
@@ -2615,7 +2592,7 @@ const DAVIS: &str = " ▀█▀ \"I am like Solomon because I built God's temple
 
 pub fn fmt_duration(dur: Duration) -> String {
     format!(
-        "{}min {}.{:02}sec",
+        "{}min {}.{:02}s",
         dur.as_secs() / 60,
         dur.as_secs() % 60,
         dur.as_millis() % 1000 / 10
