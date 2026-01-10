@@ -1820,7 +1820,7 @@ impl<T: Write> Application<T> {
     }
 
     fn menu_adjust_gameplay(&mut self) -> io::Result<MenuUpdate> {
-        let selection_len = 13;
+        let selection_len = 12;
         let mut selected = 0usize;
         loop {
             let w_main = Self::W_MAIN.into();
@@ -1854,20 +1854,16 @@ impl<T: Write> Application<T> {
                 ),
                 format!("Preview size: {}", self.settings.config().preview_count),
                 format!(
-                    "* Delayed auto shift: {:?}",
+                    "Delayed auto shift: {:?} *",
                     self.settings.config().delayed_auto_shift
                 ),
                 format!(
-                    "* Auto repeat rate: {:?}",
+                    "Auto repeat rate: {:?} *",
                     self.settings.config().auto_repeat_rate
                 ),
                 format!(
-                    "* Soft drop factor: {}",
+                    "Soft drop factor: {} *",
                     self.settings.config().soft_drop_factor
-                ),
-                format!(
-                    "Hard drop delay: {:?}",
-                    self.settings.config().hard_drop_delay
                 ),
                 format!(
                     "Ground time max: {:?}",
@@ -1882,11 +1878,11 @@ impl<T: Write> Application<T> {
                     self.settings.config().appearance_delay
                 ),
                 format!(
-                    "** No soft drop lock: {}",
+                    "No soft drop lock: {} **",
                     self.settings.config().no_soft_drop_lock
                 ),
                 format!(
-                    "* Assume enhanced key events (in current game): {}",
+                    "/!\\ Override: assume enhanced-key-events work: {} *",
                     self.kitty_assumed
                 ),
             ];
@@ -1926,9 +1922,9 @@ impl<T: Write> Application<T> {
                 .queue(Print(format!(
                     "{:^w_main$}",
                     if self.kitty_detected {
-                        "(*Should work - enhanced key events seemed available)"
+                        "(* Should work, since enhanced-key-events seem available)"
                     } else {
-                        "(*Might NOT work - enhanced key events seemed unavailable)"
+                        "(* Might NOT work since enhanced-key-events seem UNavailable)"
                     },
                 )))?;
             self.term
@@ -1939,9 +1935,9 @@ impl<T: Write> Application<T> {
                 .queue(Print(format!(
                     "{:^w_main$}",
                     if !self.kitty_detected {
-                        "(**Were set to 'false' because enhanced key events seemed unavailable)"
+                        "(** Set to 'true' because of (*))"
                     } else {
-                        "(**Were set to 'true' because enhanced key events seemed available)"
+                        "(** Set to 'false' because of (*))"
                     }
                 )))?;
             self.term.flush()?;
@@ -2030,22 +2026,19 @@ impl<T: Write> Application<T> {
                         self.settings.config_mut().soft_drop_factor += 0.5;
                     }
                     6 => {
-                        self.settings.config_mut().hard_drop_delay += Duration::from_millis(1);
-                    }
-                    7 => {
                         self.settings.config_mut().ground_time_max += Duration::from_millis(250);
                     }
-                    8 => {
+                    7 => {
                         self.settings.config_mut().line_clear_delay += Duration::from_millis(10);
                     }
-                    9 => {
+                    8 => {
                         self.settings.config_mut().appearance_delay += Duration::from_millis(10);
                     }
-                    10 => {
+                    9 => {
                         self.settings.config_mut().no_soft_drop_lock =
                             !self.settings.config().no_soft_drop_lock;
                     }
-                    11 => {
+                    10 => {
                         self.kitty_assumed = !self.kitty_assumed;
                     }
                     _ => {}
@@ -2099,40 +2092,31 @@ impl<T: Write> Application<T> {
                         }
                     }
                     6 => {
-                        if self.settings.config().hard_drop_delay >= Duration::from_millis(1) {
-                            self.settings.config_mut().hard_drop_delay = self
-                                .settings
-                                .config()
-                                .hard_drop_delay
-                                .saturating_sub(Duration::from_millis(1));
-                        }
-                    }
-                    7 => {
                         self.settings.config_mut().ground_time_max = self
                             .settings
                             .config()
                             .ground_time_max
                             .saturating_sub(Duration::from_millis(250));
                     }
-                    8 => {
+                    7 => {
                         self.settings.config_mut().line_clear_delay = self
                             .settings
                             .config()
                             .line_clear_delay
                             .saturating_sub(Duration::from_millis(10));
                     }
-                    9 => {
+                    8 => {
                         self.settings.config_mut().appearance_delay = self
                             .settings
                             .config()
                             .appearance_delay
                             .saturating_sub(Duration::from_millis(10));
                     }
-                    10 => {
+                    9 => {
                         self.settings.config_mut().no_soft_drop_lock =
                             !self.settings.config().no_soft_drop_lock;
                     }
-                    11 => {
+                    10 => {
                         self.kitty_assumed = !self.kitty_assumed;
                     }
                     _ => {}
