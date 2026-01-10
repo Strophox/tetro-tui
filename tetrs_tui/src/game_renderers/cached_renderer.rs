@@ -617,7 +617,7 @@ impl Renderer for CachedRenderer {
                             b: 207,
                         }),
                     };
-                    // TODO: Replace all these 'find tile' implementations with configurable system akin to animation lineclear (interpolated time).
+                    // FIXME: Replace all these 'find tile' implementations with configurable system akin to animation lineclear (interpolated time).
                     let Some(tile) = animation_locking.iter().find_map(|(ms, tile)| {
                         (elapsed < Duration::from_millis(*ms)).then_some(tile)
                     }) else {
@@ -755,7 +755,7 @@ impl Renderer for CachedRenderer {
                         _ => "Unreachable",
                     }
                     .to_string();
-                    // TODO FIXME(Strophox): Need we accumulate running_game_stats in a renderer?
+                    // FIXME: Maybe accumulating running_game_stats shouldn't be done in the renderer.
                     if *lineclears <= 4 {
                         running_game_stats.0[usize::try_from(*lineclears).unwrap()] += 1;
                     } else {

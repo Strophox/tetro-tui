@@ -240,7 +240,6 @@ impl Default for Settings {
     }
 }
 
-//TODO: WIP for graphics and game_config slots
 impl Settings {
     pub fn graphics(&self) -> &GraphicsSettings {
         &self.graphics_slots[self.graphics_slot_active].1
@@ -2297,6 +2296,13 @@ impl<T: Write> Application<T> {
                     }
                     _ => {}
                 },
+                Event::Key(KeyEvent {
+                    code: KeyCode::Delete | KeyCode::Char('d'),
+                    kind: Press | Repeat,
+                    ..
+                }) => if selected == 2 {
+                    self.settings.graphics_mut().game_fps = 30.0;
+                }
                 // Other event: Just ignore.
                 _ => {}
             }
@@ -2304,7 +2310,6 @@ impl<T: Write> Application<T> {
         }
     }
 
-    // TODO: Enable deleting of entries manually in scoreboard menu.
     fn menu_scoreboard(&mut self) -> io::Result<MenuUpdate> {
         let max_entries = 14;
         let mut scroll = 0usize;
