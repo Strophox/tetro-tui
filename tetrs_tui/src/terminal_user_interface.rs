@@ -844,7 +844,7 @@ impl<T: Write> Application<T> {
                         }
                     };
                     // Set config.
-                    game.config_mut().clone_from(&self.settings.config());
+                    game.config_mut().clone_from(self.settings.config());
                     let now = Instant::now();
                     break Ok(MenuUpdate::Push(Menu::Game {
                         game: Box::new(game),
@@ -1043,11 +1043,8 @@ impl<T: Write> Application<T> {
         // Prepare channel with which to communicate `Button` inputs / game interrupt.
         let mut buttons_pressed = PressedButtons::default();
         let (button_sender, button_receiver) = mpsc::channel();
-        let _input_handler = TerminalInputHandler::new(
-            &button_sender,
-            &self.settings.keybinds(),
-            self.kitty_assumed,
-        );
+        let _input_handler =
+            TerminalInputHandler::new(&button_sender, self.settings.keybinds(), self.kitty_assumed);
         let mut combo_bot_handler = (self.combo_bot_enabled
             && game.mode().name.as_ref().is_some_and(|n| n == "Combo"))
         .then(|| ComboBotInputHandler::new(&button_sender, Duration::from_millis(100)));
@@ -1535,31 +1532,28 @@ impl<T: Write> Application<T> {
                     code: KeyCode::Right | KeyCode::Char('l'),
                     kind: Press | Repeat,
                     ..
-                }) => match selected {
-                    // TODO add more cases to switch slots for keybinds/gameplayconfigs/graphicsconfigs...
-                    3 => {
+                }) => {
+                    if selected == 3 {
                         self.settings.save_on_exit = match self.settings.save_on_exit {
                             SaveGranularity::Nothing => SaveGranularity::SettingsAndGames,
                             SaveGranularity::Settings => SaveGranularity::Nothing,
                             SaveGranularity::SettingsAndGames => SaveGranularity::Settings,
                         };
                     }
-                    _ => {}
-                },
+                }
                 Event::Key(KeyEvent {
                     code: KeyCode::Left | KeyCode::Char('h'),
                     kind: Press | Repeat,
                     ..
-                }) => match selected {
-                    3 => {
+                }) => {
+                    if selected == 3 {
                         self.settings.save_on_exit = match self.settings.save_on_exit {
                             SaveGranularity::Nothing => SaveGranularity::Settings,
                             SaveGranularity::Settings => SaveGranularity::SettingsAndGames,
                             SaveGranularity::SettingsAndGames => SaveGranularity::Nothing,
                         };
                     }
-                    _ => {}
-                },
+                }
                 // Other event: Just ignore.
                 _ => {}
             }
@@ -1668,7 +1662,7 @@ impl<T: Write> Application<T> {
                 .queue(PrintStyledContent(
                     format!(
                         "{:^w_main$}",
-                        "(Controls: [Enter]=add [Esc]=cancel [Del]=remove)",
+                        "(Controls: [Enter]=add [Esc]=cancel [Del]=clear)",
                     )
                     .italic(),
                 ))?;
@@ -1759,8 +1753,8 @@ impl<T: Write> Application<T> {
                 }) => {
                     if selected == 0 {
                         // If a custom slot, then remove it (and return to the 'default' 0th slot).
-                        if !(self.settings.keybinds_slot_active
-                            < self.settings.keybinds_slots_considered_immutable)
+                        if self.settings.keybinds_slot_active
+                            >= self.settings.keybinds_slots_considered_immutable
                         {
                             self.settings
                                 .keybinds_slots

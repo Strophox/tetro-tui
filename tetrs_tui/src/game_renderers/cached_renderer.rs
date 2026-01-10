@@ -683,7 +683,7 @@ impl Renderer for CachedRenderer {
                     let percent = elapsed.as_secs_f64() / line_clear_delay.as_secs_f64();
                     let max_idx = f64::from(i32::try_from(animation_lineclear.len() - 1).unwrap());
                     // SAFETY: `0.0 <= percent && percent <= 1.0`.
-                    let idx = if 0.0 <= percent && percent <= 1.0 {
+                    let idx = if (0.0..=1.0).contains(&percent) {
                         unsafe { (percent * max_idx).round().to_int_unchecked::<usize>() }
                     } else {
                         *active = false;
@@ -784,7 +784,8 @@ impl Renderer for CachedRenderer {
                     let buttons_str = pressed_new
                         .iter()
                         .zip(Button::VARIANTS)
-                        .filter_map(|(p, b)| p.then(|| button_str(&b).to_string()))
+                        .filter(|(p, _)| **p)
+                        .map(|(_, b)| button_str(&b))
                         .collect::<Vec<_>>()
                         .join(" ");
                     self.messages

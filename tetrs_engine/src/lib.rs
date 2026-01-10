@@ -87,7 +87,7 @@ pub type FnGameMod = Box<
 type EventMap = HashMap<GameEvent, GameTime>;
 
 /// Represents an abstract game input.
-// TODO: refactor Button -> Action?
+// NOTE: We could consider calling this `Action` judging from its variants, however the Game stores a mapping of whether a given `Button` is active over a period of time. `Intents` could work but `Button` is less abstract and often corresponds directly to IRL player inputs.
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Button {

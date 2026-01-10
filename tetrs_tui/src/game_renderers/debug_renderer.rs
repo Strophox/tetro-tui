@@ -146,6 +146,7 @@ impl Renderer for DebugRenderer {
                 Feedback::HardDrop(_, _) => continue,
                 Feedback::EngineEvent(game_event) => format!("{game_event:?}"),
                 Feedback::EngineInput(pressed_old, pressed_new) => {
+                    #[allow(clippy::filter_map_bool_then)]
                     let buttons_old_str = pressed_old
                         .iter()
                         .zip(Button::VARIANTS)
@@ -155,9 +156,10 @@ impl Renderer for DebugRenderer {
                     let buttons_new_str = pressed_new
                         .iter()
                         .zip(Button::VARIANTS)
-                        .filter_map(|(p, b)| p.then(|| button_str(&b).to_string()))
+                        .filter(|(p, _)| **p)
+                        .map(|(_, b)| button_str(&b))
                         .collect::<Vec<_>>()
-                        .join("");
+                        .join(" ");
                     format!("[{buttons_old_str}]~>[{buttons_new_str}]")
                 }
                 Feedback::Text(s) => s.clone(),
