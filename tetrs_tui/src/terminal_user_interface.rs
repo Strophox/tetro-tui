@@ -1,5 +1,4 @@
 use std::{
-    collections::HashMap,
     fmt::Debug,
     fs::File,
     io::{self, Read, Write},
@@ -32,7 +31,7 @@ use crate::{
     game_renderers::{self, cached_renderer::CachedRenderer, tet_str_small, Renderer},
 };
 
-// TODO: pub type Slots<T> = Vec<(String, T)>; 
+pub type Slots<T> = Vec<(String, T)>;
 
 // NOTE: This could be more general and less ad-hoc. Only records [Spins,1-Lineclears,2-LCs,3-LCS,4-LCS] but could count number of I-Spins, J-Spins, etc..
 pub type RunningGameStats = ([u32; 5], Vec<u32>);
@@ -159,6 +158,18 @@ pub struct GraphicsSettings {
     pub coloring_lockedtiles: Coloring,
 }
 
+impl Default for GraphicsSettings {
+    fn default() -> Self {
+        Self {
+            glyphset: Glyphset::Unicode,
+            coloring: Coloring::Fullcolor,
+            coloring_lockedtiles: Coloring::Fullcolor,
+            game_fps: 30.0,
+            show_fps: false,
+        }
+    }
+}
+
 #[derive(
     Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug, serde::Serialize, serde::Deserialize,
 )]
@@ -172,8 +183,11 @@ pub enum SaveGranularity {
 #[derive(PartialEq, Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Settings {
     pub graphics: GraphicsSettings,
-    #[serde_as(as = "HashMap<serde_with::json::JsonString, _>")]
-    pub keybinds: Keybinds,
+    // NOTE: Reconsider #[serde_as(as = "Vec<(_, std::collections::HashMap<serde_with::json::JsonString, _>)>")]
+    #[serde_as(as = "Vec<(_, Vec<(_, _)>)>")]
+    keybinds_slots: Slots<Keybinds>,
+    num_keybinds_slots_considered_default: usize,
+    keybinds_slot_active: usize,
     pub game_config: GameConfig,
     pub new_game: NewGameSettings,
     pub save_on_exit: SaveGranularity,
@@ -182,14 +196,14 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Self {
-            graphics: GraphicsSettings {
-                glyphset: Glyphset::Unicode,
-                coloring: Coloring::Fullcolor,
-                coloring_lockedtiles: Coloring::Fullcolor,
-                game_fps: 30.0,
-                show_fps: false,
-            },
-            keybinds: TerminalInputHandler::default_keybinds(),
+            graphics: GraphicsSettings::default(),//TODO: vec![("slot 1".to_string(), GraphicsSettings::default())],
+            num_keybinds_slots_considered_default: 3,
+            keybinds_slots: vec![
+                ("tetrs default".to_string(), TerminalInputHandler::tetrs_default_keybinds()),
+                ("Guideline".to_string(), TerminalInputHandler::guideline_keybinds()),
+                ("Vim".to_string(), TerminalInputHandler::vim_keybinds()),
+            ],
+            keybinds_slot_active: 0,
             game_config: GameConfig::default(),
             new_game: NewGameSettings {
                 initial_gravity: 0,
@@ -206,6 +220,11 @@ impl Default for Settings {
             save_on_exit: SaveGranularity::Nothing,
         }
     }
+}
+
+//TODO: WIP for graphics and game_config slots
+impl Settings {
+    pub fn keybinds(&self) -> &Keybinds { &self.keybinds_slots[self.keybinds_slot_active].1 }
 }
 
 #[derive(Clone, Debug)]
@@ -250,7 +269,7 @@ impl<T: Write> Application<T> {
     pub const SAVEFILE_NAME: &'static str = ".tetrs_tui_savefile.json";
 
     pub fn new(
-        mut terminal: T,
+        mut term: T,
         custom_start_seed: Option<u64>,
         custom_start_board: Option<String>,
         combo_start_layout: Option<u16>,
@@ -258,12 +277,12 @@ impl<T: Write> Application<T> {
     ) -> Self {
         // Console prologue: Initialization.
         // FIXME: Handle errors?
-        let _ = terminal.execute(terminal::EnterAlternateScreen);
-        let _ = terminal.execute(terminal::SetTitle("tetrs - Terminal User Interface"));
-        let _ = terminal.execute(cursor::Hide);
+        let _ = term.execute(terminal::EnterAlternateScreen);
+        let _ = term.execute(terminal::SetTitle("tetrs - Terminal User Interface"));
+        let _ = term.execute(cursor::Hide);
         let _ = terminal::enable_raw_mode();
         let mut app = Self {
-            term: terminal,
+            term,
             settings: Settings::default(),
             past_games: Vec::default(),
             kitty_detected: false,
@@ -987,7 +1006,7 @@ impl<T: Write> Application<T> {
         let mut buttons_pressed = PressedButtons::default();
         let (button_sender, button_receiver) = mpsc::channel();
         let _input_handler =
-            TerminalInputHandler::new(&button_sender, &self.settings.keybinds, self.kitty_assumed);
+            TerminalInputHandler::new(&button_sender, &self.settings.keybinds(), self.kitty_assumed);
         let mut combo_bot_handler = (self.combo_bot_enabled
             && game.mode().name.as_ref().is_some_and(|n| n == "Combo"))
         .then(|| ComboBotInputHandler::new(&button_sender, Duration::from_millis(100)));
@@ -1399,7 +1418,7 @@ impl<T: Write> Application<T> {
                     "Keep save file: {}",
                     match self.settings.save_on_exit {
                         SaveGranularity::Nothing => "OFF*",
-                        SaveGranularity::Settings => "ON [without games; only settings]",
+                        SaveGranularity::Settings => "ON [no games; only settings]",
                         SaveGranularity::SettingsAndGames => "ON",
                     }
                 ),
@@ -1508,59 +1527,93 @@ impl<T: Write> Application<T> {
     }
 
     fn configure_keybinds_menu(&mut self) -> io::Result<MenuUpdate> {
-        let button_selection = Button::VARIANTS;
-        let selection_len = button_selection.len() + 1;
-        let mut selected = 0usize;
+        let if_slot_is_default_then_copy_and_switch = |settings: &mut Settings| {
+            if settings.keybinds_slot_active < settings.num_keybinds_slots_considered_default {
+                let mut n = 1;
+                let new_custom_slot_name = loop {
+                    let name = format!("custom_{n}");
+                    if settings.keybinds_slots.iter().any(|s| s.0 == name) {
+                        n += 1;
+                    } else {
+                        break name;
+                    }
+                };
+                let new_slot = (new_custom_slot_name, settings.keybinds().clone());
+                settings.keybinds_slots.push(new_slot);
+                settings.keybinds_slot_active = settings.keybinds_slots.len() - 1;
+            }
+        };
+        let buttons_available = Button::VARIANTS;
+        // +1 for available slot selection.
+        let selection_len = 1 + buttons_available.len();
+        // Go to actual keybind selection on menu entry.
+        let mut selected = 1usize;
         loop {
             let w_main = Self::W_MAIN.into();
             let (x_main, y_main) = Self::fetch_main_xy();
             let y_selection = Self::H_MAIN / 5;
+            // Draw menu title.
             self.term
                 .queue(Clear(ClearType::All))?
                 .queue(MoveTo(x_main, y_main + y_selection))?
                 .queue(Print(format!("{:^w_main$}", "@ Configure Keybinds @")))?
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
                 .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
-            let button_names = button_selection
+
+            // Draw slot label.
+            let slot_label = format!(
+                "Slot ({}/{}): \"{}\"{}",
+                self.settings.keybinds_slot_active+1,
+                self.settings.keybinds_slots.len(),
+                self.settings.keybinds_slots[self.settings.keybinds_slot_active].0,
+                if self.settings.keybinds_slots.len() < 2 { "".to_string() } else {
+                    format!(" [←|{}→] ",
+                        if self.settings.keybinds_slot_active < self.settings.num_keybinds_slots_considered_default { "" } else { "Del|" }
+                    )
+                }
+            );
+            self.term
+                .queue(MoveTo(x_main, y_main + y_selection + 3))?
+                .queue(Print(format!("{:^w_main$}", 
+                        if selected == 0 {
+                            format!(">> {slot_label} <<")
+                        } else {
+                            slot_label
+                        })))?
+                .queue(MoveTo(x_main, y_main + y_selection + 4))?
+                .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
+
+            // Draw keybinds selection.
+            let button_names = buttons_available
                 .iter()
                 .map(|&button| {
                     format!(
                         "{button:?}: {}",
-                        fmt_keybinds(button, &self.settings.keybinds)
+                        fmt_keybinds(button, self.settings.keybinds()) 
                     )
-                })
-                .collect::<Vec<_>>();
-            for (i, name) in button_names.into_iter().enumerate() {
+                });
+            for (i, name) in button_names.enumerate() {
                 self.term
                     .queue(MoveTo(
                         x_main,
-                        y_main + y_selection + 4 + u16::try_from(i).unwrap(),
+                        y_main + y_selection + 6 + u16::try_from(i).unwrap(),
                     ))?
                     .queue(Print(format!(
                         "{:^w_main$}",
-                        if i == selected {
+                        // +1 because the first button is Slot selection.
+                        if i+1 == selected {
                             format!(">> {name} <<")
                         } else {
                             name
                         }
                     )))?;
             }
+
+            // Draw footer legend.
             self.term
                 .queue(MoveTo(
                     x_main,
-                    y_main + y_selection + 4 + u16::try_from(selection_len - 1).unwrap() + 1,
-                ))?
-                .queue(Print(format!(
-                    "{:^w_main$}",
-                    if selected == selection_len - 1 {
-                        ">> Restore defaults <<"
-                    } else {
-                        "Restore defaults"
-                    }
-                )))?
-                .queue(MoveTo(
-                    x_main,
-                    y_main + y_selection + 4 + u16::try_from(selection_len).unwrap() + 3,
+                    y_main + y_selection + 6 + u16::try_from(buttons_available.len()).unwrap() + 1,
                 ))?
                 .queue(PrintStyledContent(
                     format!(
@@ -1570,9 +1623,10 @@ impl<T: Write> Application<T> {
                     .italic(),
                 ))?;
             self.term.flush()?;
+
             // Wait for new input.
             match event::read()? {
-                // Quit menu.
+                // Abort program.
                 Event::Key(KeyEvent {
                     code: KeyCode::Char('c'),
                     modifiers: KeyModifiers::CONTROL,
@@ -1583,21 +1637,23 @@ impl<T: Write> Application<T> {
                         "exited with ctrl-c".to_string(),
                     )))
                 }
+
+                // Quit menu.
                 Event::Key(KeyEvent {
                     code: KeyCode::Esc | KeyCode::Char('q'),
                     kind: Press,
                     ..
                 }) => break Ok(MenuUpdate::Pop),
-                // Select button to modify.
+
+                // Modify keybind.
                 Event::Key(KeyEvent {
                     code: KeyCode::Enter | KeyCode::Char('e'),
                     kind: Press,
                     ..
                 }) => {
-                    if selected == selection_len - 1 {
-                        self.settings.keybinds = TerminalInputHandler::default_keybinds();
-                    } else {
-                        let current_button = button_selection[selected];
+                    // `> 0` because 0 is slot selection.
+                    if selected > 0 {
+                        let current_button = buttons_available[selected-1];
                         self.term
                             .execute(MoveTo(
                                 x_main,
@@ -1616,34 +1672,58 @@ impl<T: Write> Application<T> {
                             ))?
                             .execute(cursor::MoveToNextLine(1))?
                             .execute(Clear(ClearType::CurrentLine))?;
+                        // Wait until appropriate keypress detected.
+                        if self.kitty_assumed {
+                            // FIXME: Kinda iffy. Do we need all flags? What undesirable effects might there be?
+                            let _ = self.term.execute(event::PushKeyboardEnhancementFlags(
+                                event::KeyboardEnhancementFlags::all(),
+                                // event::KeyboardEnhancementFlags::REPORT_EVENT_TYPES,
+                            ));
+                        }
                         loop {
                             if let Event::Key(KeyEvent {
                                 code, kind: Press, ..
                             }) = event::read()?
                             {
+                                // Add key pressed unless it's `Esc`.
                                 if code != KeyCode::Esc {
-                                    self.settings.keybinds.insert(code, current_button);
+                                    // Trying to modify a default slot: create copy of slot to allow safely modifying that.
+                                    if_slot_is_default_then_copy_and_switch(&mut self.settings);
+                                    self.settings.keybinds_slots[self.settings.keybinds_slot_active].1.insert(code, current_button);
                                 }
                                 break;
                             }
                         }
+                        // Console epilogue: De-initialization.
+                        if self.kitty_assumed {
+                            let _ = self.term.execute(event::PopKeyboardEnhancementFlags);
+                        }
                     }
                 }
-                // Select button to delete.
+
+                // Delete keybind, or entire slot.
                 Event::Key(KeyEvent {
                     code: KeyCode::Delete | KeyCode::Char('d'),
                     kind: Press,
                     ..
                 }) => {
-                    if selected == selection_len - 1 {
-                        self.settings.keybinds.clear();
+                    if selected == 0 {
+                        // If a custom slot, then remove it (and return to the 'default' 0th slot).
+                        if !(self.settings.keybinds_slot_active < self.settings.num_keybinds_slots_considered_default) {
+                            self.settings.keybinds_slots.remove(self.settings.keybinds_slot_active);
+                            self.settings.keybinds_slot_active = 0;
+                        }
                     } else {
-                        let current_button = button_selection[selected];
+                        // Trying to modify a default slot: create copy of slot to allow safely modifying that.
+                        if_slot_is_default_then_copy_and_switch(&mut self.settings);
+                        // Remove all keys bound to the selected action button.
+                        let button_selected = buttons_available[selected-1];
                         self.settings
-                            .keybinds
-                            .retain(|_code, button| *button != current_button);
+                            .keybinds_slots[self.settings.keybinds_slot_active].1
+                            .retain(|_code, button| *button != button_selected);
                     }
                 }
+
                 // Move selector up.
                 Event::Key(KeyEvent {
                     code: KeyCode::Up | KeyCode::Char('k'),
@@ -1652,6 +1732,7 @@ impl<T: Write> Application<T> {
                 }) => {
                     selected += selection_len - 1;
                 }
+
                 // Move selector down.
                 Event::Key(KeyEvent {
                     code: KeyCode::Down | KeyCode::Char('j'),
@@ -1660,10 +1741,35 @@ impl<T: Write> Application<T> {
                 }) => {
                     selected += 1;
                 }
-                // Other event: don't care.
+
+                // Cycle slot to right.
+                Event::Key(KeyEvent {
+                    code: KeyCode::Right | KeyCode::Char('l'),
+                    kind: Press | Repeat,
+                    ..
+                }) => {
+                    if selected == 0 {
+                        self.settings.keybinds_slot_active += 1;
+                        self.settings.keybinds_slot_active %= self.settings.keybinds_slots.len();
+                    }
+                }
+
+                // Cycle slot to right.
+                Event::Key(KeyEvent {
+                    code: KeyCode::Left | KeyCode::Char('h'),
+                    kind: Press | Repeat,
+                    ..
+                }) => {
+                    if selected == 0 {
+                        self.settings.keybinds_slot_active += self.settings.keybinds_slots.len() - 1;
+                        self.settings.keybinds_slot_active %= self.settings.keybinds_slots.len();
+                    }
+                }
+
+                // Other IO event: no action.
                 _ => {}
             }
-            selected = selected.rem_euclid(selection_len);
+            selected %= selection_len;
         }
     }
 
@@ -1679,7 +1785,7 @@ impl<T: Write> Application<T> {
                 .queue(MoveTo(x_main, y_main + y_selection))?
                 .queue(Print(format!(
                     "{:^w_main$}",
-                    "* Configure Gameplay (apply on New Game) *"
+                    "= Configure Gameplay (apply on New Game) ="
                 )))?
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
                 .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
@@ -1702,15 +1808,15 @@ impl<T: Write> Application<T> {
                 ),
                 format!("Preview size: {}", self.settings.game_config.preview_count),
                 format!(
-                    "*Delayed auto shift: {:?}",
+                    "* Delayed auto shift: {:?}",
                     self.settings.game_config.delayed_auto_shift
                 ),
                 format!(
-                    "*Auto repeat rate: {:?}",
+                    "* Auto repeat rate: {:?}",
                     self.settings.game_config.auto_repeat_rate
                 ),
                 format!(
-                    "*Soft drop factor: {}",
+                    "* Soft drop factor: {}",
                     self.settings.game_config.soft_drop_factor
                 ),
                 format!(
@@ -1730,11 +1836,11 @@ impl<T: Write> Application<T> {
                     self.settings.game_config.appearance_delay
                 ),
                 format!(
-                    "**No soft drop lock: {}",
+                    "** No soft drop lock: {}",
                     self.settings.game_config.no_soft_drop_lock
                 ),
                 format!(
-                    "*Assume enhanced key events (in current game): {}",
+                    "* Assume enhanced key events (in current game): {}",
                     self.kitty_assumed
                 ),
             ];
@@ -2154,7 +2260,7 @@ impl<T: Write> Application<T> {
             self.term
                 .queue(Clear(ClearType::All))?
                 .queue(MoveTo(x_main, y_main + y_selection))?
-                .queue(Print(format!("{:^w_main$}", "= Scoreboard =")))?
+                .queue(Print(format!("{:^w_main$}", "* Scoreboard *")))?
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
                 .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
             let entries = self
@@ -2514,26 +2620,42 @@ pub fn fmt_duration(dur: Duration) -> String {
 }
 
 pub fn fmt_key(key: KeyCode) -> String {
+    use KeyCode as K;
+    use crossterm::event::ModifierKeyCode as M;
     format!(
         "[{}]",
-        match key {
-            KeyCode::Backspace => "Back".to_string(),
-            KeyCode::Enter => "Enter".to_string(),
-            KeyCode::Left => "←".to_string(),
-            KeyCode::Right => "→".to_string(),
-            KeyCode::Up => "↑".to_string(),
-            KeyCode::Down => "↓".to_string(),
-            KeyCode::Home => "Home".to_string(),
-            KeyCode::End => "End".to_string(),
-            KeyCode::PageUp => "PgUp".to_string(),
-            KeyCode::PageDown => "PgDn".to_string(),
-            KeyCode::Tab => "Tab".to_string(),
-            KeyCode::Delete => "Del".to_string(),
-            KeyCode::F(n) => format!("F{n}"),
-            KeyCode::Char(' ') => "Space".to_string(),
-            KeyCode::Char(c) => c.to_uppercase().to_string(),
-            KeyCode::Esc => "Esc".to_string(),
-            k => format!("{:?}", k),
+        'String_not_str: {
+            match key {
+                K::Backspace => "Back",
+                //K::Enter => "Enter",
+                K::Left => "←",
+                K::Right => "→",
+                K::Up => "↑",
+                K::Down => "↓",
+                //K::Home => "Home",
+                //K::End => "End",
+                //K::Insert => "Insert",
+                K::Delete => "Del",
+                //K::Menu => "Menu",
+                K::PageUp => "PgUp",
+                K::PageDown => "PgDn",
+                //K::Tab => "Tab",
+                //K::CapsLock => "CapsLock",
+                K::F(k) => break 'String_not_str format!("F{k}"),
+                K::Char(' ') => "Space",
+                K::Char(c) => break 'String_not_str c.to_uppercase().to_string(),
+                //K::Esc => "Esc",
+                K::Modifier(M::LeftShift) => "LShift",
+                K::Modifier(M::RightShift) => "RShift",
+                K::Modifier(M::LeftControl) => "LCtrl",
+                K::Modifier(M::RightControl) => "RCtrl",
+                K::Modifier(M::LeftSuper) => "LSuper",
+                K::Modifier(M::RightSuper) => "RSuper",
+                K::Modifier(M::LeftAlt) => "LAlt",
+                K::Modifier(M::RightAlt) => "RAlt",
+                K::Modifier(M::IsoLevel3Shift) => "AltGr",
+                k => break 'String_not_str format!("{:?}", k),
+            }.to_string()
         }
     )
 }

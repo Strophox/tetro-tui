@@ -311,7 +311,7 @@ impl Renderer for CachedRenderer {
             "Puzzle" => ("", "".to_string()),
             _ => ("Lines cleared:", lines_cleared.to_string()),
         };
-        let keybinds = &app.settings().keybinds;
+        let keybinds = &app.settings().keybinds();
         let icons_moveleft = fmt_keybinds(Button::MoveLeft, keybinds);
         let icons_moveright = fmt_keybinds(Button::MoveRight, keybinds);
         let mut icons_move = format!("{icons_moveleft}{icons_moveright}");

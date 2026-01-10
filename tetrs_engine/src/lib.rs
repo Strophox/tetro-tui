@@ -87,6 +87,7 @@ pub type FnGameMod = Box<
 type EventMap = HashMap<GameEvent, GameTime>;
 
 /// Represents an abstract game input.
+// TODO: refactor Button -> Action?
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Button {

@@ -51,7 +51,7 @@ impl TerminalInputHandler {
         }
     }
 
-    pub fn default_keybinds() -> Keybinds {
+    pub fn tetrs_default_keybinds() -> Keybinds {
         HashMap::from([
             (KeyCode::Left, Button::MoveLeft),
             (KeyCode::Right, Button::MoveRight),
@@ -60,8 +60,40 @@ impl TerminalInputHandler {
             (KeyCode::Char('s'), Button::RotateAround),
             (KeyCode::Down, Button::DropSoft),
             (KeyCode::Up, Button::DropHard),
-            (KeyCode::Char('w'), Button::DropSonic),
+            //(KeyCode::Char('w'), Button::DropSonic),
             (KeyCode::Char(' '), Button::HoldPiece),
+        ])
+    }
+
+    pub fn vim_keybinds() -> Keybinds {
+        HashMap::from([
+            (KeyCode::Char('h'), Button::MoveLeft),
+            (KeyCode::Char('l'), Button::MoveRight),
+            (KeyCode::Char('a'), Button::RotateLeft),
+            (KeyCode::Char('d'), Button::RotateRight),
+            //(KeyCode::Char('s'), Button::RotateAround),
+            (KeyCode::Char('j'), Button::DropSoft),
+            (KeyCode::Char('k'), Button::DropHard),
+            //(KeyCode::Char('w'), Button::DropSonic),
+            (KeyCode::Char(' '), Button::HoldPiece),
+        ])
+    }
+
+    pub fn guideline_keybinds() -> Keybinds {
+        use crossterm::event::ModifierKeyCode as M;
+        HashMap::from([
+            (KeyCode::Left, Button::MoveLeft),
+            (KeyCode::Right, Button::MoveRight),
+            (KeyCode::Char('z'), Button::RotateLeft),
+            (KeyCode::Char('y'), Button::RotateLeft), // 'Branch-predicting' European keyboards.
+            (KeyCode::Modifier(M::LeftControl), Button::RotateLeft),
+            (KeyCode::Modifier(M::RightControl), Button::RotateLeft),
+            (KeyCode::Char('x'), Button::RotateRight),
+            (KeyCode::Up, Button::RotateRight),
+            (KeyCode::Down, Button::DropSoft),
+            (KeyCode::Char('c'), Button::HoldPiece),
+            (KeyCode::Modifier(M::LeftShift), Button::HoldPiece),
+            (KeyCode::Modifier(M::RightShift), Button::HoldPiece),
         ])
     }
 

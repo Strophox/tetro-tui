@@ -53,8 +53,8 @@ pub fn button_str(b: &Button) -> &'static str {
         Button::RotateRight => "↻",
         Button::RotateAround => "↔",
         Button::DropSoft => "↓",
-        Button::DropHard => "↑",
-        Button::DropSonic => "↥",
+        Button::DropHard => "⤓",
+        Button::DropSonic => "⇓",
         Button::HoldPiece => "h",
     }
 }
