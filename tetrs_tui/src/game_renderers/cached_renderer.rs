@@ -366,7 +366,7 @@ impl Renderer for CachedRenderer {
         // Screen: draw.
         #[allow(clippy::useless_format)]
         #[rustfmt::skip]
-        let base_screen = match app.settings().graphics.glyphset {
+        let base_screen = match app.settings().graphics().glyphset {
             Glyphset::Electronika60 => vec![
                 format!("                                                            ", ),
                 format!("                                              {: ^w$      } ", "mode:", w=mode_name_space),
@@ -455,8 +455,8 @@ impl Renderer for CachedRenderer {
         let (x_messages, y_messages) = (47, 18);
         let pos_board = |(x, y)| (x_board + 2 * x, y_board + Game::SKYLINE - y);
         // Board: helpers.
-        let color = tile_to_color(app.settings().graphics.coloring);
-        let color_locked = tile_to_color(app.settings().graphics.coloring_lockedtiles);
+        let color = tile_to_color(app.settings().graphics().coloring);
+        let color_locked = tile_to_color(app.settings().graphics().coloring_lockedtiles);
         // Board: draw hard drop trail.
         for (
             HardDropTile {
@@ -469,7 +469,7 @@ impl Renderer for CachedRenderer {
         ) in self.hard_drop_tiles.iter_mut()
         {
             let elapsed = game_time.saturating_sub(*creation_time);
-            let luminance_map = match app.settings().graphics.glyphset {
+            let luminance_map = match app.settings().graphics().glyphset {
                 Glyphset::Electronika60 => [" .", " .", " .", " .", " .", " .", " .", " ."],
                 Glyphset::ASCII | Glyphset::Unicode => {
                     ["@@", "$$", "##", "%%", "**", "++", "~~", ".."]
@@ -491,7 +491,7 @@ impl Renderer for CachedRenderer {
         self.hard_drop_tiles.retain(|elt| elt.1);
         // Board: draw fixed tiles.
         let (tile_ground, tile_ghost, tile_active, tile_preview) =
-            match app.settings().graphics.glyphset {
+            match app.settings().graphics().glyphset {
                 Glyphset::Electronika60 => ("▮▮", " .", "▮▮", "▮▮"),
                 Glyphset::ASCII => ("##", "::", "[]", "[]"),
                 Glyphset::Unicode => ("██", "░░", "▓▓", "▒▒"),
@@ -583,7 +583,7 @@ impl Renderer for CachedRenderer {
                 }
                 Feedback::PieceLocked(piece) => {
                     #[rustfmt::skip]
-                    let animation_locking = match app.settings().graphics.glyphset {
+                    let animation_locking = match app.settings().graphics().glyphset {
                         Glyphset::Electronika60 => [
                             ( 50, "▮▮"),
                             ( 75, "▮▮"),
@@ -609,7 +609,7 @@ impl Renderer for CachedRenderer {
                             (175, "▓▓"),
                         ],
                     };
-                    let color_locking = match app.settings().graphics.coloring {
+                    let color_locking = match app.settings().graphics().coloring {
                         Coloring::Monochrome => None,
                         Coloring::Color16 | Coloring::Fullcolor => {
                             Some(Color::White)
@@ -639,7 +639,7 @@ impl Renderer for CachedRenderer {
                         *active = false;
                         continue;
                     }
-                    let animation_lineclear = match app.settings().graphics.glyphset {
+                    let animation_lineclear = match app.settings().graphics().glyphset {
                         Glyphset::Electronika60 => [
                             "▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮",
                             "  ▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮",
@@ -677,7 +677,7 @@ impl Renderer for CachedRenderer {
                             "         ██         ",
                         ],
                     };
-                    let color_lineclear = match app.settings().graphics.coloring {
+                    let color_lineclear = match app.settings().graphics().coloring {
                         Coloring::Monochrome => None,
                         Coloring::Color16
                         | Coloring::Fullcolor
