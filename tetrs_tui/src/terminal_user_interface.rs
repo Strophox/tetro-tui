@@ -1792,15 +1792,15 @@ impl<T: Write> Application<T> {
                     self.settings.config().rotation_system
                 ),
                 format!(
-                    "Piece generator: {}",
+                    "Piece generation: {}",
                     match &self.settings.config().tetromino_generator {
-                        TetrominoSource::Uniform => "Uniform".to_string(),
-                        TetrominoSource::Stock { .. } => "Bag (Stock)".to_string(),
-                        TetrominoSource::Recency { .. } => "Recency-based".to_string(),
+                        TetrominoSource::Uniform => "Uniformly random".to_string(),
+                        TetrominoSource::Stock { .. } => "Bag".to_string(),
+                        TetrominoSource::Recency { .. } => "Recency".to_string(),
                         TetrominoSource::BalanceRelative { .. } =>
-                            "Balance Relative Counts".to_string(),
+                            "Balance relative counts".to_string(),
                         TetrominoSource::Cycle { pattern, index: _ } =>
-                            format!("Cycle Pattern {pattern:?}"),
+                            format!("Cycling pattern {pattern:?}"),
                     }
                 ),
                 format!("Preview size: {}", self.settings.config().preview_count),

@@ -5,9 +5,9 @@
 <h1>Tetromino Game Engine + Terminal Application</h1>
 </div>
 
-*This repo hosts*
-- `tetrs_engine`, a tetromino game engine implementing an API capable of handling some modern mechanics, and
-- `tetrs_tui`, a simple but moderately polished Terminal User Interface for a typical cross-platform game experience.
+This repo contains:
+- `tetrs_engine`, a tetromino game engine capable of handling many 'modern tetromino stacker' mechanics, and
+- `tetrs_tui`, a basic cross-platform Terminal User Interface, enabling a sufficiently polished, typical game experience.
 
 <!--
 ---
@@ -20,31 +20,29 @@
 
 ## How to run
 
-- [Download a release](https://github.com/Strophox/tetrs/releases) for your platform if available.
-- Run the application in your favourite terminal
+1. [Download a release](https://github.com/Strophox/tetrs/releases) for your platform if available.
+2. Open your favourite terminal and run the TUI app (i.e. `.tetrs_tui` or `tetrs_tui.exe`)
 
 > Or compile it yourself:
-> - Have [Rust](https://www.rust-lang.org/) (1.80.0+) installed.
-> - Download / `git clone` this repository.
-> - Navigate to `tetrs_tui/` and `cargo run`.
+> 1. Have [Rust](https://www.rust-lang.org/) (≥1.83.0) installed.
+> 2. `git clone` / download this repository.
+> 3. Navigate to `tetrs_tui/` and `cargo run`.
 
 > [!IMPORTANT]
 > Use a terminal like [kitty](<https://sw.kovidgoyal.net/kitty/>) (or any terminal with [support for progressive keyboard enhancement](https://docs.rs/crossterm/latest/crossterm/event/struct.PushKeyboardEnhancementFlags.html)) for smoother gameplay experience.
-> **Note that otherwise DAS/ARR/Soft drop speed will be determined by Keyboard/OS/terminal emulator settings.** 
+> Also note that **otherwise DAS / ARR / Soft drop speed will be determined by keyboard / OS / terminal emulator settings** (and not by tetrs).
 > 
 > > <details>
 > > 
 > > <summary> Explanation. </summary>
 > > 
-> > Terminals do not usually send "key released" signals, which is a problem for mechanics such as "press left to move left repeatedly **until key is released**".
-> > [Crossterm](https://docs.rs/crossterm/latest/crossterm/) automatically detects ['kitty-protocol'-compatible terminals]([https://docs.rs/crossterm/latest/crossterm/event/struct.PushKeyboardEnhancementFlags.html](https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement)) where this issue is solved, allowing for smooth, configurable gameplay controls.
-> >
-> > (\*This also affects holding Soft Drop locking pieces on ground instantly, as opposed to only upon press down -- for ergonomics this is explicitly mitigated by the 'No soft drop lock' configuration.)*
+> > Terminals usually only send "key pressed once" signals, and no "key was released now". This becomes a problem for mechanics such as "press left to move left repeatedly *until key is released again*".
+> > To solve this, [Crossterm](https://docs.rs/crossterm/latest/crossterm/) tries to detect when a terminal is ['kitty-protocol'/'enhanced key events'](https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement)-compatible, which means the terminal has modern support for "key released" etc. signals. This is why special terminals like Kitty provide a smoother, more configurable tetrs experience.
 > > 
 > > </details>
 
 
-## Demo Gallery
+## tetrs TUI Gallery
 
 **Classic game experience:**
 
@@ -82,97 +80,118 @@
 </details>
 
 
-# Features of the Terminal Application
+# Features of the Tetrs TUI
 
 
-### Gameplay
+### Main Gameplay
 
-- Familiar stacker experience of moving, rotating, soft-/hard-dropping and holding Tetrominos and clearing completed rows.
-- Colorful pieces.
-- Next piece preview.
-- Ghost piece.
-- Animations: Hard drop, Line clears and Piece locking.
+<details>
+
+<summary> List of basic gameplay experiences. </summary>
+
+- Familiar tetromino stacker experience: Move, rotate, soft-drop, hard-drop and hold tetrominos and successfully clear horizontally completed rows.
+- Tetrominos colored by type.
+- Preview of upcoming tetromino(s).
+- 'Ghost' tetromino (preview of where it will land).
+- Animations for: Hard drop, line clear, tetromino locking on ground.
 - Game stats: Current gravity level, lines cleared, points scored, time elapsed, pieces placed.
+- etc.
 
-For more technical details see [Features of the Tetrs Engine](#features-of-the-tetrs-engine).
+For more technical gameplay discussion see [Features of the Tetrs Engine](#features-of-the-tetrs-engine).
+
+</details>
 
 
 ### Gamemodes
 
-- Standard modes:
-  - **40-Lines**: Clear 40-Lines as quickly as possible.
-  - **Marathon**: Clear gravity levels 1-15 and achieve a highscore.
-  - **Time Trial**: Get the highest score possible within three minutes.
-  - **Master**: Clear 100 lines starting at the highest gravity.
-- Special modes:
-  - **Puzzle**: Advance through all 24 puzzle stages using perfect clears (and up to 5 attempts), enabled by piece acrobatics of the 'ocular' rotation system.
-  - **Cheese**: Eat yourself through lines with random holes, with as few pieces as possible (default: 20).
-  - **Combo**: Keep a line clear combo for as long as possible inside an infinite 4-wide well.
-  - (**Descent**: Gather 'gems' as you navigate down (or up) an endless grid using an L or J piece - unlocked by completing Puzzle Mode)
-- Custom mode: Change start gravity, toggle automatic gravity increase, set a game limit *(Time, Score, Pieces, Lines, Gravity, or No limit)*.
+<details>
+
+<summary> List of gamemodes available through the TUI. </summary>
+
+- Standard tetrs engine modes:
+  - **40-Lines**: "How fast can you clear forty lines?"
+  - **Marathon**: "Can you make it to level 15?"
+  - **Time Trial**: "What highscore can you get in 3 minutes?"
+  - **Master**: "Can you clear 30 levels at instant gravity?"
+- Modes created using the engine's 'modding' system:
+  - **Puzzle**: "Get perfect clears in all 24 puzzle levels." *Note:* This mode is intended to be played (and in fact demonstrates) the [Ocular Rotation System](#ocular-rotation-system).
+  - **Cheese**: "Eat through lines like Swiss cheese."
+  - **Combo**: "Get consecutive line clears."
+  - **Descent (experimental)**: ???
+- Custom mode: Customizable initial gravity, auto-increase gravity, game limit (Time, Score, Pieces, Lines, Gravity, or no limit).
+
+</details>
   
 
 ### Settings
 
+<details>
+
+<summary> List of settings customizable in the TUI. </summary>
+
+- Graphics options:
+   - Glyphset: 'Unicode', 'ASCII', 'Electronika 60'
+   - Coloring: 'Fullcolor' (RGB palette), 'Color 16' (compatibility with consoles), 'Monochrome'
+   - FPS & show FPS counter toggle
+   - Enable/disable effects
 - Look of the game:
   - Graphics (Unicode, ASCII, 'Electronika 60').
   - Colors (RGB Colors; 16 Colors (should work on all consoles), Monochrome).
   - Adjustable render rate and toggleable FPS counter.
-- Play of the game:
-  - Change controls.
+- Adjustable keybinds:
+  - Slot system with three defaults: 'tetrs defaults', 'Vim', 'Guideline'.
+
   <details>
   
-  <summary> Default In-Game Controls </summary>
+  <summary> default tetrs controls </summary>
   
   | Key | Action |
   | -: | :-: |
   | `←` | Move left |
   | `→` | Move right |
-  | `A` | Rotate left |
-  | `D` | Rotate right |
-  | *(no def.)* | Rotate around (180°) |
+  | `A` | Rotate left (CCW) |
+  | `D` | Rotate right (CW) |
+  | `S` | Rotate around (180°) |
   | `↓` | Soft drop |
   | `↑` | Hard drop |
   | *(no def.)* | Sonic drop |
-  | `Esc` | Pause game |
   
   Special controls:
 
   | Key | Action |
-  | `Ctrl`+`S` | *(experimental)* Take snapshot\* |
-  | `Ctrl`+`D` | Forfeit game |
-  | `Ctrl`+`C` | Exit program |
-
-  \*This will remember the board and pieces so that configuration can be replayed in 'custom game'.
+  | `Esc` | Pause game |
+  | `Ctrl`+`D` | Forfeit current game |
+  | `Ctrl`+`C` | Abort program |
+  | `Ctrl`+`S` | *(experimental)* Save game seed |
   
   </details>
   
-  - Configure game.
-    - Rotation system (Ocular, Classic, Super),
-    - Piece generator (History, Uniform, Bag, Balance-Relative),
-    - Preview count (0 - \<terminal width limit>),
-    - DAS, ARR, hard drop delay, line clear delay, appearance delay,
-    - soft drop factor, ground time max,
-  - *Advanced*, No soft drop lock (Enables soft drop not instantly locking pieces on ground even if keyboard enhancements are off, for better experience on typical consoles (soft drops for piece spins)).
-- **Keep Save File**: By default this program __won't store anything__ but just let you play the game. If you do want `tetrs_tui` to restore your settings and take record of past games upon startup then make sure this is set to **ON**!
+- Configurable gameplay:
+  - Rotation systems: 'Ocular', 'Classic', 'Super'
+  - Piece generation: 'Recency', 'Balance relative counts', 'Uniformly random', 'Bag'
+  - Preview count: default=4, possible values: 0 – "how wide is your terminal"
+  - Various timings: 'Delayed auto shift' (DAS), 'Auto repeat rate' (ARR), 'Soft drop factor' (SDF), 'Line clear delay', 'Appearance delay'
+- 'Keep Save File': By default the TUI __will not store any additional data__ where you run it. To save your settings (keybinds, past games etc.) you can **explicitly toggle this on**. You can also toggle it so only settings but no past games/scores are saved.
+
+</details>
   
 
-### Local Scoreboard
+### Scoreboard
 
-- History of games played in the current session (or in the past, if "keep save file" is toggled on).
-- *(\*Games where 0 lines have been cleared are auto-deleted on exit.)*
+There is currently a minimalistic singleplayer scoreboard implementation which displays past stats of all recorded games played, roughly sorted by score.
 
-> [!NOTE]
-> If "keep save file for tetrs" is toggled **ON** then your settings and games will be stored in a file called `.tetrs_tui_savefile.json` in the 'config' directory (as given by the [`dirs` crate](<https://docs.rs/dirs/latest/dirs/fn.config_dir.html>), dependent on your OS (and if all else fails then saves it locally, i.e. `./`)).
+> Games with 0 cleared lines are auto-deleted on filesave.
+
 
 # Features of the Tetrs Engine
 
-The frontend application is proof-of-concept;
-Ultimately the tetrs engine tries to be modular and shifts the responsibility of detecting player input and chosen time of updates to the client.
-Basic interaction with the engine could look like the following:
+> For accurate and detailed information about the engine refer to documentation / the code itself.*
+
+The point of the tetrs engine is that it is frontend-agnostic (the tui mostly serves as an elaborate proof-of-concept).
+Very basic interaction with the engine is decoupled from actual user input or passing of time, the engine is merely a 'simulator' for the underlying tetromino game and keeps its own notion of a simulated timeline. Consider the following example:
 
 ```rust
-// Starting a game.
+// Starting a round of the game.
 let game = tetrs_engine::Game::new(Gamemode::marathon());
 
 // Application loop.
@@ -180,79 +199,59 @@ loop {
   // Updating the game with a new button state at a point in time.
   game.update(Some(new_button_state), update_time);
   // ...
-  // Updating the game with *no* change in button state (since previous).
+  // Updating the game with *no* change in button state.
   game.update(None, update_time_2);
 
-  // View game state
+  // Read most recent game state:
   let GameState { board, .. } = game.state();
-  // (Render the board, etc..)
+  // (Do rendering, etc...)
 }
 ```
+Notice that `game` does not advance its internal state until the caller of `game.update(...)` specifies the next `update_time`-point (which might or might not involve changes in user interaction).
+
+> `tetrs_engine` can be used as a [dependency from git](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html) by adding the following line to `Cargo.toml`:
+> 
+> ```toml
+> [dependencies]
+> tetrs_engine = { git = "https://github.com/Strophox/tetrs.git" }
+> ```
 
 <details>
 
-<summary> Using the engine in a Rust project </summary>
+<summary> Overview of tetrs engine internals </summary>
 
-Adding `tetrs_engine` as a [dependency from git](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html) to a project:
+tetrs makes liberal use of Rust's type system to encode its many, but meaningful data structures.
 
-```toml
-[dependencies]
-tetrs_engine = { git = "https://github.com/Strophox/tetrs.git" }
+The `Game` struct central to the entire engine, together with an `update` function, is defined as follows:
+```rust
+pub struct Game {
+    config: GameConfig,
+    mode: GameMode,
+    state: GameState,
+    rng: GameRng,
+    seed: u64,
+    modifiers: Vec<FnGameMod>,
+}
+
+impl Game {
+  fn update(
+      &mut self,
+      mut new_button_state: Option<PressedButtons>,
+      update_time: GameTime,
+  ) -> Result<FeedbackMessages, UpdateGameError>
+}
 ```
+And everything else should follow from there.
 
-</details>
+Roughly:
+- `GameConfig` holds game configuration which is almost 'cosmetic' - it can be changed while the game is running without big issues.
+- `GameMode` holds certain rules concerning progression, such as difficulty increase and win/loss conditions.
+- `GameState` holds internal game state.
+- `GameRng` is the game-own PRNG.
+- `seed: u64` is the starting seed.
+- `Vec<FnGameMod>` are custom modifiers which are the current mechanism to 'mod' the engine/a game.
 
-<details>
-
-<summary> Game Configuration Aspects </summary>
-
-- 'Standard' Gamemodes: Are encoded as a combination of *starting level* and *whether to increment level* and (one/several positive/negative) *limits*.
-- Rotation Systems: *Ocular Rotation System*, *Classic Rotation System*, *Super Rotation System*. See [Ocular Rotation System](#ocular-rotation-system).
-- Tetromino Generators: *Recency-based*, *Bag*, *Uniformly random*. Default is recency. See [Tetromino Generation](#tetromino-generation).
-- Piece Preview (default 1)
-- Delayed Auto Shift (default DAS = 167ms) *(\*Note: at very high levels [DAS and ARR equal lock delay - 1ms](https://www.reddit.com/r/Tetris/comments/cjkosd/tetris_effect_master_mode/).)*
-- Auto Repeat Rate (default ARR = 33ms)
-- Soft Drop Factor (default SDF = 15.0)
-- Hard drop delay (default 0.1ms)
-- Line clear delay (default 200ms)
-- Appearance Delay (default ARE = 50ms)
-
-Currently, drop delay and lock delay\* *(\*But not total ground time)* are a function of the current level:
-- Drop delay (1000ms at lvl 1 to 0.833ms ("20G") at lvl 19, as per guideline)
-- 'Timer' variant of Extended Placement Lockdown (step reset); The piece tries to lock every 500ms at lvl 19 to every 150ms at lvl 30, and any given piece may only touch ground for 3000ms in total. See [Piece Locking](#piece-locking).
-
-Most default values inspired by [Guideline](https://tetris.wiki/Tetris_Guideline).
-
-</details>
-
-<details>
-
-<summary> Game State </summary>
-
-- Time: Game time is held abstract as "time elapsed since game started" and is not directly tied to real-world timestamps.
-- Game finish: The game knows if it finished, and if session was won or lost. Normal Game Over scenarios are:
-  - Block out: new piece spawn location is occupied.
-  - Lock out: a piece was completely locked above the skyline (row 21 and above).
-  - Forfeit: player stopped the current.
-- Event queue: All game events are kept in an internal queue that is simulated through (up to the provided timestamp in the `Game::update` call).
-- Buttons pressed state: The game keeps an abstract state of which buttons are currently pressed.
-- Board state: (Yes).
-- Active piece: The active piece is stored as a (tetromino, orientation, position) tuple plus some locking data.
-- Next Pieces: Are polled from the generator, kept in a queue and can be viewed.
-- Pieces played so far: A counter for each locked piece by type is stored.
-- Lines cleared: (Yes)<sup>2</sup>.
-- Gravity Level: Increases every 10 line clears and influences only drop/lock delay.
-- Scoring: Line clears trigger a score bonus, which takes into account number of lines cleared, spins, combos, back-to-backs; See [Scoring](#scoring).
-  
-</details>
-
-
-<details>
-
-<summary> Game Feedback </summary>
-
-The game provides some useful feedback events upon every `update`, usually used to correctly implement visual frontend effects:
-- *Piece locked down*, *Lines cleared*, *Hard drop*, *Accolade* (score bonus info), *Message* (generic message, currently unused for base gamemodes)
+> For accurate and detailed information about the engine refer to documentation / the code itself.
 
 </details>
 
@@ -261,83 +260,94 @@ The game provides some useful feedback events upon every `update`, usually used 
 
 ## Known Issues
 
-- Buttons pressed in-game, held, and unpressed in the Pause menu do not register as unpressed in-game.
-
-
-## Future Work
-
-- The game snapshot functionality is limited to restoring the board and the pieces that are yet to be played - with notable exception of when taking a snapshot after pressing hold for the first time until a piece is locked. This bug should be fixed, or ideally, the functionality generalized to be able to take a snapshot of any game mode.
-- Comprehensiveness of project README.
-  - Many small details of the `tetrs_engine` are not properly explained (e.g. the initial rotation mechanic, which allows spawning a piece immediately rotated if a rotation button was held).
-- FIXMEs in the code base.
-- General improvements to the tetrs engine.
-  - Better API documentation (`cargo doc --open`).
-  - Better internal (implementation) documentation.
-  - Refactor of complicated systems (e.g. locking).
-  - *(Ideally)* Prove panic-freedom of `Game::update`.
-- General improvements to the terminal application.
-  - Make menu code less ad-hoc (code duplication, hidden panics).
-  - Better internal documentation.
-
-A personal goal would be to (at least partially) amend these problems, step-by-step.
+- The README is too big. Well... rather the documentation of `tetrs_engine` is disproportionately too small.
+- [bug] Buttons pressed in-game, held, and unpressed in the Pause menu do not register as unpressed in-game.
 
 
 ## Performance Considerations
 
-This part is fairly informal.
-Nonetheless we list some considerations regarding perfomance of both the tetrs engine and TUI:
-* Being written in Rust, there is already an certain assumption that overall program performance is likely not going to be an issue for most use cases, given the generally small scope of the underlying game.
-* Informally, the implementation of the game engine was developed with a principle of "not adding more than what is really needed to make the game and some basic frontend features work."
-  * E.g. the game is updated by looking up one of a bounded number of available immediately upcoming events, and handling the next event.
-  * `for`-loops should generally run in a constant time of iterations, probably in the order of `10^2`.
-  * Given a client of the tetrs engine, the 'modding' features `Game::add_modifier` may be used to degrade performance. `Game::add_modifier` allows a client to add arbitrary modifiers in the form of closures, which may inspect and modify game state at various points (e.g. before and after handling of an internal game event). It is therefore up to the modder to ensure the modifier does not incur an unmanageable performance cost.
-* Informally, the frontend seems to be bottlenecked by I/O operations. This is taken care of as best as possible;
-  * The current implementation of a 'cached renderer' computes a new 'frame' to draw (into the terminal). It then proceeds to diff the new frame with the preceding, old frame and figures out the actual cells which need to be redraw to achieve the required result.
+> [!IMPORTANT]
+> This part is fairly informal. Benchmarking is yet to be done.
+
+We list considerations regarding perfomance of both the tetrs engine and TUI:
+* Being written in Rust, there is already a certain assumption that overall program performance should suffice for modern use cases, especially/specifically given the small scope of the game.
+* The underlying engine was developed with a mental model of: "make the underlying game logic work with the minimum X needed."
+  * Certain frontend features, out of vast convenience, do demand 'unnecessary' additions, such as the `Feedback` mechanism to effectively render hard drop-, line clear- and piece locking effects.
+  * Given a client of the tetrs engine, its 'modding' features may be (ab)used to arbitrarily degrade performance.
+* The TUI frontend seems to generally have been bottlenecked by I/O operations.
+  * The current implementation therefore employs a 'cached renderer' which computes the diff between two frames to be rendered and only redraws characters in the terminal which change.
+
+
+## Provenance
+
+100% human-grown spaghetti code
+
+
+## Future Work
+
+- FIXMEs in the code base.
+- General improvements to the tetrs engine:
+  - Better API documentation (`cargo doc --open`).
+  - Better implementation/code comments.
+  - Refactor of complicated systems (e.g. locking).
+  - *(In an ideal world.)* Certainty of panic-freedom of `Game::update` (without use of mods).
+- Better code comments for TUI in case it ever does get improved / refactored.
+- List of `tetrs_engine` features?...
+  - Small but attractive details of the `tetrs_engine` are not properly explained, e.g., an available *initial rotation system* which allows a piece to spawn already rotated if a rotation button was being held.
+
+
+## Contributions
+
+Issues are especially welcome to help round off any sharp edges on this project! 
+Though it should be noted that the TUI itself - in principle - is a 'proof-of-concept' and not initially intended to be greatly expanded upon with continually complex features at this point (but there's no harm in opening an issue anyway!)
 
 
 # Project Highlights
 
-While the [2009 Tetris Guideline](https://tetris.wiki/Tetris_Guideline) serves as good inspiration, I ended up doing a lot of amateur research into a variety of game details present in modern games online (thank you [Tetris Wiki](https://tetris.wiki/) and [HardDrop](https://harddrop.com/wiki)!) and also by getting some help from asking people.
-I'd particularly like to thank the following people:
-- **GrBtAce**, **KonSola5** and **bennxt** for helping me with my questions early in development :-)
-- **Dunspixel** for the O-spin inspiration,
-- and **madkiwi** for advice regarding 4wide 6res layouts.
+I wanted to get things right, in a way that felt right to me even if I knew all of the game's context/history.
 
-In the following I detail various interesting concepts I tackled on my way to bringing this project to life - I was essentially new to the Tetris Community and couldn't remember playing it for more than a couple minutes (in the last decade), so I had to figure all this out from scratch!
+A [2009 Tetris Guideline](https://tetris.wiki/Tetris_Guideline) served as basic inspiration but wasn't very enlightening on many mechanics.
+The bulk of information came from amateur online research into as many of the game's details 'vanilla' mechanics as possible. (Thank you, [Tetris Wiki](https://tetris.wiki/) and [HardDrop](https://harddrop.com/wiki)!) 
+I also got some help from people;
+I'd like to thank in particular:
+- **GrBtAce**, **KonSola5** and **bennxt** for helping me with my questions early in development :-)
+- **Dunspixel** for the O-spin inspiration
+- **madkiwi** for advice regarding 4wide 6res layouts
+
+The following sections detail various aspects I found to be the most interesting to tackle while working on this projec!
 
 
 ## Tetromino Generation
 
-[Tetromino generators are interesting](https://simon.lc/the-history-of-tetris-randomizers), and a core part of the game.
+[The random generation of Tetrominos](https://simon.lc/the-history-of-tetris-randomizers) is interesting (and a beginner-friendly place to re-invent the wheel).
 
-A trivial generator chooses tetrominos *uniformly at random*.
-This already works decent for a playable game.
+The canonical way to generate a random sequence of tetrominos is to do so *uniformly at random*.
+This makes for a playable game, although there are several 'issues'.
+- One could get the same piece many times in a row.
+- One could *not* get a given piece, for quite a while. (This is an issue even for better-balanced randomizers, where players may feel like they're surviving a 'drought' for a certain piece.)
 
-However, typically players tend to get very frustrated when they don't get "the pieces they need" for a while.
-*(\*There's even a term for not getting an `I`-piece for an extended period of time: Drought.)*
+In modern games, the *bag* randomizer is ubiquitous;
+This system takes all 7 pieces once (the 'bag'), then hands those out in random order, rinse and repeat.
+- Even in the worst case it is guaranteed that an `I` piece will come after 12 pieces. With this system one can relatively easily keep track of where one 'bag' starts and ends.
+- Subjectively and arguably, this system over-determines the pieces a player will receive in their game: They will always receive the exact same number of each tetromino variant.
 
-In modern games, the *bag-based generation system* is ubiquitous;
-The system simply takes all 7 pieces once, hands them out in random order, repeat.
-
-It's quite nice knowing an `I` piece will come after 12 pieces, every time. One may even start strategizing and counting where one bag ends and the next starts.
-
-It also takes a bit of the "fun" out of the randomness.
-
-An alternative that seems to work well is *recency-based generation*:
-Remember the last time each piece was generated and when choosing the next one randomly, do so weighted by when each one was last seen so it is more likely to choose a piece not played in a while.
-
-This preserves "possibly complete randomness" in the sense that *any* piece may be generated at any time, while still mitigating droughts.
-
-Unlike bag it possibly provides a more continuous "gut feeling" of what piece(s) might come next, where in bag the order upon refill really *is* completely random.
+An alternative that seems to work well is a *recency-based* randomizer;
+Remember the last time each tetromino type was generated as a number - when choosing the next piece randomly, do so weighted by this number to increase the likelihood of choosing one that was long ago.
+- This preserves "possibly complete randomness" in the sense that *any* piece may be generated at any time - it's just much less likely.
+- This system is strongly biased to mitigate droughts and same pieces in sequence without setting a fixed number of each tetromino type to be generated.
 
 
 ## Ocular Rotation System
 
 > "[tetris has a great rotation system and is not flawed at all](https://www.youtube.com/watch?v=_qaEknA81Iw)"
 
-— *said no one ever, not even [the creator of Tetris himself](https://youtu.be/6YhkkyXydNI?si=jbVwfNtfl5yFh9Gk&t=674).*
+— *said no one ever, after seeing the Super Rotation System, not even [the creator of Tetris himself](https://youtu.be/6YhkkyXydNI?si=jbVwfNtfl5yFh9Gk&t=674).*
 
-That's a bit harsh of course, considering the sheer size of the franchise and range of players coming from all sorts of niches and previous game versions, which the official *Super Rotation System* somehow [gets its job done](https://www.youtube.com/watch?v=dgt1kWq2_7c)™ - nevertheless it was *the* mechanic I wanted to redo even before starting this project.
+Despite its notorious quirks, the official and standardize *Super Rotation System* somehow [gets its job done](https://www.youtube.com/watch?v=dgt1kWq2_7c).
+The responsibility it bears is immensive given the size of the franchise and variety of players.
+
+But quirks it *does* have, so many that I did think a remake was overdue.
+
 
 <details>
 
@@ -346,54 +356,55 @@ That's a bit harsh of course, considering the sheer size of the franchise and ra
 My personal gripes with SRS are:
 
 - The system is not symmetric.
-  - Symmetric pieces can look exactly the same in different rotation states, **[but have different behaviour](https://blog.battlefy.com/how-accidental-complexity-harms-the-tetris-community-93311461b2af)**.
+  - Symmetric pieces can look exactly the same in invisibly different rotation states, [but have different behaviour](https://blog.battlefy.com/how-accidental-complexity-harms-the-tetris-community-93311461b2af).
   - For symmetrical pieces, rotation is different depending on whether it's right or left (even though it should be symmetric too).
-- It's an [advanced system](https://harddrop.com/wiki/SRS) with things like different rotation points for different purposes, yet it re-uses the *exact same kicks* for 5 out of the 7 pieces, even though they have completely different symmetries.
-- <sup>Not a hot take, but some rotations are just *weird* (to be chosen over other possibilities).</sup>
-- Piece elevators.
+- It aims to be an [advanced system](https://harddrop.com/wiki/SRS) demonstrated by aspects like different rotation points for different purposes. Yet it in fact re-uses the exact same kicks for 5 out of the 7 pieces, even though those arguably should have completely different symmetries.
+- <sup>(Not a hot take, but some rotations are just *weird* to have been chosen over other possibilities.)</sup>
+- Unintuitive piece elevators.
 
-Good general criteria for a rotation system I can think of would be:
+General criteria for a good rotation system (that I can think of) would be:
 
-1. Rotation must behave visually **symmetrically**;
-    - equal-looking rotation states must behave the same,
-    - and mirroring the board/pieces mirrors the rotation behaviour perfectly.
-2. The kicks should be **intuitive**
-    - the way pieces rotate should look 'feasible' to any given person;
-    - e.g. the new position cannot be completely disjoint from previously.
-3. Rotation should be fun! :D
-    - but also any rotations should 'feel good' to a player.
-    - (but don't overdo it - no teleporting pieces.)
+1. Rotation must behave visually **symmetrically**:
+    - Equal-looking rotation states must behave the same;
+    - And mirroring the board/pieces mirrors the rotation behavior perfectly.
+2. The kicks should be **intuitive**:
+    - The way pieces rotate should look 'feasible' to any given person (e.g., the new position should not be completely disjoint from previously.)
+3. Rotation should be **fun**! :D
+    - Ideally, rotations should 'feel good' to the player.
 
-The result of this was the *'Ocular' Rotation System*, which was made by... *looking* at each piece and orientation and drawing the 'best' position(s) for it to land in after rotating (following above points and gut feeling).
+An attempt to achieve these goals was the *Ocular Rotation System*.
+It was primarily created by *looking* at a given piece + orientation, and drawing the 'best' position(s) for it to land in after a rotation.
 
-I present to you - the Ocular Rotation System Heatmap:
+I present to you, a heatmap overview of the Ocular Rotation System:
 
 ![Ocular Rotation System Heatmap](Gallery/rotation/ocular-rotation-system_16px.png)
 
-*How to read it*:
-This heatmap is created by considering each combination of (piece, orientation, rotate left or right).
-By overlapping all the _new_ possible positions for a piece after rotation, one gets a compact visualization of where the piece will most likely land, going from brightest color (yellow, first position attempt) to darkest (purple, last attempt):
+**How to read it**:
+Such a heatmap is created by considering each combination of (piece, orientation, rotate left or right).
+By overlapping all the _new_ possible positions for a piece after rotation, one gets a compact visualization of where the piece will most likely land, going from brightest color (yellow, first attempt to position the piece) to darkest (purple, last attempt to position the piece):
 
-Here's a comparison with SRS - the Super Rotation System Heatmap:
+Here is a comparison with the Super Rotation System's heatmap:
 
 ![Super Rotation System Heatmap](Gallery/rotation/super-rotation-system_16px.png)
 
-With SRS one starts to spot some rotational symmetries (you can always rotate back-and-forth between two positions), but I think it's overshadowed by all the asymmetrical kicks and very lenient (downwards *and upwards*) vertical kicks that contribute to SRS' unintuitiveness.
+With the SRS heatmap one starts to spot some rotational symmetries (i.e., you can always rotate *back-and-forth between two positions*).
+This is arguably overshadowed by all the asymmetrical kicks, and very lenient vertical (downwards and upwards) kicks which contribute to an unintuitiveness to SRS' kicks.
 
 </details>
 
-In the end I'm happy with how the custom rotation system turned out.
-It vaguely follows the mantra "if the rotation looks like it could reasonably work visually, it should" (+ some added kicks for flexibility and fun :-), hence its name, *Ocular* rotation system.
+I'm happy with how this new rotation system turned out.
+It mostly follows the mantra "if the rotation looks like it could *visually* reasonably work, it should" (+ some added kicks for flexibility and fun).
+Hence its name, *Ocular* rotation system.
 
 <details>
 
-<summary> Ocular Rotation System - Comments </summary>
+<summary> Ocular Rotation System - Detailed Comments </summary>
 
-The general rationale behind most kicks is, "these first kicks feel most natural, any additional kicks after that serve flexibility, cool tricks and skill ceiling". However, more concrete heuristics can be stated:
-- A general trend with kicks is to *prevent needless upwarping* of pieces. This simply means we first prefer rotations into a position *further down* before trying further up (foregoing nonsensical upward kicks in the first place).
-- New positions must look 'visually close' to the original position. One thing observed in this system is that there are no disjoint rotation states, i.e. the old and new position always overlap in at least one tile. This heuristic also influenced the **L**/**J** rotations, always incorporating all rotations where *two* of the new pieces overlap with the old.
-- The **I**, **S** and **Z** pieces are more rotationally symmetric than **T**, **L** and **J**, yielding the same visual shape whether rotated left or right.
-  However, they do not have a natural 'center' in a way that would allow them to be rotated precisely in this sense, forcing us to choose their new position to be more left or right. We use this to our advantage and allow the player to have direct control over this by inputting one of the two rotation directions. This may arguably aid both directional intuition as well as allow for better finesse. It should not hurt rotational intuition ("piece stays in place if rotated 360°") as a player in a sense would never need to rotate such symmetrical pieces (especially mid-air) more than once anyway. :P
+The general rationale behind most kicks is, "these first kicks feel most natural, any additional kicks after that serve flexibility, cool tricks and skill ceiling". But additional heuristics can be stated:
+- A general trend of its kicks is to *disallow needless upwarping* of the piece. This means we first prefer rotations into a position *further down* before trying further up (and completely foregoing nonsensical upward kicks in the first place).
+- New positions must look 'visually close' to the original position. There are no completely disjoint rotation states, i.e., the old and new position always overlap in at least one tile. This heuristic also influenced the **L**/**J** rotations, where it instead inpires the incorporation of all possible rotations where two tiles of the state overlap with the old state.
+- The **I**, **S** and **Z** pieces are more rotationally symmetric than **T**, **L** and **J**, because from a given state they yield the same shape whether rotated left or right.
+  However, they do not have a natural 'center' in a way that would allow them to be rotated symmetrically in the grid, *specifically:* we are forced to choose their new position to be more left or right, arbitrarily. We use this to our advantage and allow the player to have direct control over this using either of the two rotation directions. This arguably aids both directional intuition as well as finesse skill ceiling. It should not hurt rotational intuition ("piece stays in place if rotated 360°") as a player in principle should never need to rotate such symmetrical pieces (especially mid-air) more than once anyway.
 
 
 *\*Notation*: `nTlr 0-3` describes kick positions `0` to `3` when rotating a `n`orth-facing `T`-piece to the `l`eft _or_ `r`ight.
@@ -435,7 +446,7 @@ The general rationale behind most kicks is, "these first kicks feel most natural
 
 </details>
 
-
+<!--TODO: go through text below-->
 ## Piece Locking
 
 The mechanics of locking down a piece on the grid can be more complicated than it might sound at first glance.

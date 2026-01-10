@@ -9,27 +9,25 @@ mechanics.
 ```
 use tetrs_engine::*;
 
-// Starting a game.
+// Starting a game - note that in-game time starts at 0.0s.
 let mut game = Game::new(GameMode::marathon());
 
-let mut button_state_1 = ButtonsPressed::default();
-button_state_1[Button::MoveLeft] = true;
-
+// Receive the information from I/O that 'left' was pressed.
+let mut buttons_state_1 = PressedButtons::default();
+buttons_state_1[Button::MoveLeft] = true;
+// Updating the game with the info that 'left' should be pressed at in-game second 3.0:
 let update_time_1 = std::time::Duration::from_secs(3);
-
-// Updating the game with 'left' pressed at second 3.
-game.update(Some(button_state_1), update_time_1);
+game.update(Some(buttons_state_1), update_time_1);
 
 // ...
 
+// Updating the game with the info that no input has changed up to in-game second 4.0:
 let update_time_2 = std::time::Duration::from_secs(4);
-
-// Updating the game with *no* change in (left pressed) button state (since second 3).
 game.update(None, update_time_2);
 
-// View game state
+// Read most recent game state:
 let GameState { board, .. } = game.state();
-// (Render the board, etc..)
+// (Do rendering, etc...)
 ```
 
 TASK: Document all features (including IRS, etc. - cargo feature `serde`).
