@@ -9,4 +9,3 @@ pub enum InputSignal {
     TakeSnapshot,
     ButtonInput(tetrs_engine::Button, bool, std::time::Instant),
 }
-

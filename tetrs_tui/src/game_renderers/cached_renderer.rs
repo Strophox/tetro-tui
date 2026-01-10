@@ -19,8 +19,7 @@ use tetrs_engine::{
 use crate::{
     game_renderers::{button_str, Renderer},
     terminal_user_interface::{
-        fmt_duration, fmt_keybinds, Application, Coloring, Glyphset,
-        RunningGameStats,
+        fmt_duration, fmt_keybinds, Application, Coloring, Glyphset, RunningGameStats,
     },
 };
 
@@ -611,9 +610,7 @@ impl Renderer for CachedRenderer {
                     };
                     let color_locking = match app.settings().graphics().coloring {
                         Coloring::Monochrome => None,
-                        Coloring::Color16 | Coloring::Fullcolor => {
-                            Some(Color::White)
-                        }
+                        Coloring::Color16 | Coloring::Fullcolor => Some(Color::White),
                         Coloring::Experimental => Some(Color::Rgb {
                             r: 207,
                             g: 207,
@@ -679,9 +676,9 @@ impl Renderer for CachedRenderer {
                     };
                     let color_lineclear = match app.settings().graphics().coloring {
                         Coloring::Monochrome => None,
-                        Coloring::Color16
-                        | Coloring::Fullcolor
-                        | Coloring::Experimental => Some(Color::White),
+                        Coloring::Color16 | Coloring::Fullcolor | Coloring::Experimental => {
+                            Some(Color::White)
+                        }
                     };
                     let percent = elapsed.as_secs_f64() / line_clear_delay.as_secs_f64();
                     let max_idx = f64::from(i32::try_from(animation_lineclear.len() - 1).unwrap());
