@@ -484,7 +484,7 @@ impl<T: Write> Application<T> {
                     .queue(MoveTo(x_main, y_main + y_selection + 5))?
                     .queue(Print(format!(
                         "{:^w_main$}",
-                        "There isn't anything interesting implemented here... (yet)",
+                        "(There isn't anything interesting implemented here yet... )",
                     )))?;
             } else {
                 for (i, name) in names.into_iter().enumerate() {
@@ -1653,7 +1653,7 @@ impl<T: Write> Application<T> {
                                     + y_selection
                                     + 4
                                     + u16::try_from(selection_len).unwrap()
-                                    + 3,
+                                    + 2,
                             ))?
                             .execute(PrintStyledContent(
                                 format!(

@@ -42,7 +42,7 @@ This repo contains:
 > > </details>
 
 
-## tetrs TUI Gallery
+## Tetrs TUI Gallery
 
 **Classic game experience:**
 
@@ -52,10 +52,6 @@ This repo contains:
 **[Efficient](#performance-consideration) rendering in consoles, configurable controls, etc.:**
 
 ![Unicode demo GIF](Gallery/sample-unicode.gif)
-
-
-> [!TIP]
-> Play **Puzzle Mode** with its 24 stages to test the custom [Ocular Rotation System](#ocular-rotation-system) (+ unlock the experimental **Descent Mode**).
 
 
 **Various tileset + coloring combinations possible:**
@@ -87,7 +83,7 @@ This repo contains:
 
 <details>
 
-<summary> List of basic gameplay experiences. </summary>
+<summary> List of basic gameplay aspects. </summary>
 
 - Familiar tetromino stacker experience: Move, rotate, soft-drop, hard-drop and hold tetrominos and successfully clear horizontally completed rows.
 - Tetrominos colored by type.
@@ -129,21 +125,17 @@ For more technical gameplay discussion see [Features of the Tetrs Engine](#featu
 
 <summary> List of settings customizable in the TUI. </summary>
 
-- Graphics options:
+- **Graphics options**:
    - Glyphset: 'Unicode', 'ASCII', 'Electronika 60'
    - Coloring: 'Fullcolor' (RGB palette), 'Color 16' (compatibility with consoles), 'Monochrome'
    - FPS & show FPS counter toggle
    - Enable/disable effects
-- Look of the game:
-  - Graphics (Unicode, ASCII, 'Electronika 60').
-  - Colors (RGB Colors; 16 Colors (should work on all consoles), Monochrome).
-  - Adjustable render rate and toggleable FPS counter.
-- Adjustable keybinds:
+- **Adjustable keybinds**:
   - Slot system with three defaults: 'tetrs defaults', 'Vim', 'Guideline'.
 
   <details>
   
-  <summary> default tetrs controls </summary>
+  <summary> Default tetrs controls. </summary>
   
   | Key | Action |
   | -: | :-: |
@@ -166,21 +158,27 @@ For more technical gameplay discussion see [Features of the Tetrs Engine](#featu
   
   </details>
   
-- Configurable gameplay:
+- **Configurable gameplay**:
   - Rotation systems: 'Ocular', 'Classic', 'Super'
   - Piece generation: 'Recency', 'Balance relative counts', 'Uniformly random', 'Bag'
   - Preview count: default=4, possible values: 0 – "how wide is your terminal"
   - Various timings: 'Delayed auto shift' (DAS), 'Auto repeat rate' (ARR), 'Soft drop factor' (SDF), 'Line clear delay', 'Appearance delay'
-- 'Keep Save File': By default the TUI __will not store any additional data__ where you run it. To save your settings (keybinds, past games etc.) you can **explicitly toggle this on**. You can also toggle it so only settings but no past games/scores are saved.
+- **Keep Save File**: The TUI **will not store any additional data by default** where you run it. To save your settings (keybinds, past games etc.) you can **explicitly toggle this on**. You can also toggle it so only settings but no past games/scores are saved.
 
 </details>
   
 
 ### Scoreboard
 
+<details>
+
+<summary> List of settings customizable in the TUI. </summary>
+
 There is currently a minimalistic singleplayer scoreboard implementation which displays past stats of all recorded games played, roughly sorted by score.
 
-> Games with 0 cleared lines are auto-deleted on filesave.
+> Note: games with 0 cleared lines are auto-deleted on save
+
+</details>
 
 
 # Features of the Tetrs Engine
@@ -209,7 +207,7 @@ loop {
 ```
 Notice that `game` does not advance its internal state until the caller of `game.update(...)` specifies the next `update_time`-point (which might or might not involve changes in user interaction).
 
-> `tetrs_engine` can be used as a [dependency from git](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html) by adding the following line to `Cargo.toml`:
+> `tetrs_engine` can be used as a [dependency from git](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#specifying-dependencies-from-git-repositories) by adding the following line to `Cargo.toml`:
 > 
 > ```toml
 > [dependencies]
@@ -278,11 +276,6 @@ We list considerations regarding perfomance of both the tetrs engine and TUI:
   * The current implementation therefore employs a 'cached renderer' which computes the diff between two frames to be rendered and only redraws characters in the terminal which change.
 
 
-## Provenance
-
-100% human-grown spaghetti code
-
-
 ## Future Work
 
 - FIXMEs in the code base.
@@ -296,10 +289,21 @@ We list considerations regarding perfomance of both the tetrs engine and TUI:
   - Small but attractive details of the `tetrs_engine` are not properly explained, e.g., an available *initial rotation system* which allows a piece to spawn already rotated if a rotation button was being held.
 
 
-## Contributions
+## Contribution Guidelines
 
-Issues are especially welcome to help round off any sharp edges on this project! 
-Though it should be noted that the TUI itself - in principle - is a 'proof-of-concept' and not initially intended to be greatly expanded upon with continually complex features at this point (but there's no harm in opening an issue anyway!)
+Issues are especially welcome to help round off any sharp edges on this project;
+
+At best, it could be noted that the TUI itself was - in principle - a 'proof-of-concept' and not originally intended to be greatly expanded upon (as seen by its direct usage of Crossterm, instead of Ratatui or similar). But discussions in issues are welcome regardless!
+
+
+## Provenance
+
+100% human-grown spaghetti code
+
+
+## License
+
+The code in this repository is licensed under MIT, see `LICENSE`.
 
 
 # Project Highlights
@@ -395,6 +399,9 @@ This is arguably overshadowed by all the asymmetrical kicks, and very lenient ve
 I'm happy with how this new rotation system turned out.
 It mostly follows the mantra "if the rotation looks like it could *visually* reasonably work, it should" (+ some added kicks for flexibility and fun).
 Hence its name, *Ocular* rotation system.
+
+> [!TIP]
+> Play **Puzzle Mode** with its 24 stages to test the custom [Ocular Rotation System](#ocular-rotation-system).
 
 <details>
 
