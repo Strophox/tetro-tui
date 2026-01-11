@@ -1510,6 +1510,7 @@ impl<T: Write> Application<T> {
     }
 
     fn menu_adjust_keybinds(&mut self) -> io::Result<MenuUpdate> {
+        // "Trying to modify a default slot: create copy of slot to allow safely modifying that."
         let if_slot_is_default_then_copy_and_switch = |settings: &mut Settings| {
             if settings.keybinds_slot_active < settings.keybinds_slots_considered_immutable {
                 let mut n = 1;
@@ -1679,7 +1680,6 @@ impl<T: Write> Application<T> {
                             {
                                 // Add key pressed unless it's `Esc`.
                                 if code != KeyCode::Esc {
-                                    // Trying to modify a default slot: create copy of slot to allow safely modifying that.
                                     if_slot_is_default_then_copy_and_switch(&mut self.settings);
                                     self.settings.keybinds_mut().insert(code, current_button);
                                 }
@@ -1771,12 +1771,30 @@ impl<T: Write> Application<T> {
     }
 
     fn menu_adjust_gameplay(&mut self) -> io::Result<MenuUpdate> {
+        let if_slot_is_default_then_copy_and_switch = |settings: &mut Settings| {
+            if settings.config_slot_active < settings.config_slots_considered_immutable {
+                let mut n = 1;
+                let new_custom_slot_name = loop {
+                    let name = format!("custom_{n}");
+                    if settings.config_slots.iter().any(|s| s.0 == name) {
+                        n += 1;
+                    } else {
+                        break name;
+                    }
+                };
+                let new_slot = (new_custom_slot_name, settings.config().clone());
+                settings.config_slots.push(new_slot);
+                settings.config_slot_active = settings.config_slots.len() - 1;
+            }
+        };
         let selection_len = 10;
-        let mut selected = 0usize;
+        let mut selected = 1usize;
         loop {
             let w_main = Self::W_MAIN.into();
             let (x_main, y_main) = Self::fetch_main_xy();
             let y_selection = Self::H_MAIN / 5;
+            
+            // Draw menu title.
             self.term
                 .queue(Clear(ClearType::All))?
                 .queue(MoveTo(x_main, y_main + y_selection))?
@@ -1786,6 +1804,42 @@ impl<T: Write> Application<T> {
                 )))?
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
                 .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
+
+            // Draw slot label.
+            let slot_label = format!(
+                "Slot ({}/{}): \"{}\"{}",
+                self.settings.config_slot_active + 1,
+                self.settings.config_slots.len(),
+                self.settings.config_slots[self.settings.config_slot_active].0,
+                if self.settings.config_slots.len() < 2 {
+                    "".to_string()
+                } else {
+                    format!(
+                        " [←|{}→] ",
+                        if self.settings.config_slot_active
+                            < self.settings.config_slots_considered_immutable
+                        {
+                            ""
+                        } else {
+                            "Del|"
+                        }
+                    )
+                }
+            );
+            self.term
+                .queue(MoveTo(x_main, y_main + y_selection + 3))?
+                .queue(Print(format!(
+                    "{:^w_main$}",
+                    if selected == 0 {
+                        format!(">> {slot_label} <<")
+                    } else {
+                        slot_label
+                    }
+                )))?
+                .queue(MoveTo(x_main, y_main + y_selection + 4))?
+                .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
+
+            // Draw config selection.
             let labels = [
                 format!(
                     "Rotation system: {:?}",
@@ -1833,11 +1887,11 @@ impl<T: Write> Application<T> {
                 self.term
                     .queue(MoveTo(
                         x_main,
-                        y_main + y_selection + 4 + u16::try_from(i).unwrap(),
+                        y_main + y_selection + 6 + u16::try_from(i).unwrap(),
                     ))?
                     .queue(Print(format!(
                         "{:^w_main$}",
-                        if i == selected {
+                        if i+1 == selected {
                             format!(">> {label} <<")
                         } else {
                             label
@@ -1847,29 +1901,17 @@ impl<T: Write> Application<T> {
             self.term
                 .queue(MoveTo(
                     x_main,
-                    y_main + y_selection + 4 + u16::try_from(selection_len - 1).unwrap() + 1,
+                    y_main + y_selection + 6 + u16::try_from(selection_len).unwrap(),
                 ))?
-                .queue(Print(format!(
-                    "{:^w_main$}",
-                    if selected == selection_len - 1 {
-                        ">> Restore Defaults <<"
-                    } else {
-                        "Restore Defaults"
-                    }
-                )))?;
-            self.term
-                .queue(MoveTo(
-                    x_main,
-                    y_main + y_selection + 4 + u16::try_from(selection_len - 1).unwrap() + 4,
-                ))?
-                .queue(Print(format!(
+                .queue(PrintStyledContent(format!(
                     "{:^w_main$}",
                     if self.kitty_detected {
                         "(*Should apply, since enhanced-key-events seem available.)"
                     } else {
                         "(*Might NOT apply since enhanced-key-events seem UNavailable.)"
                     },
-                )))?;
+                ).italic()))?;
+
             self.term.flush()?;
             // Wait for new input.
             match event::read()? {
@@ -1890,16 +1932,36 @@ impl<T: Write> Application<T> {
                     ..
                 }) => break Ok(MenuUpdate::Pop),
                 // Select.
+                // Event::Key(KeyEvent {
+                //     code: KeyCode::Enter | KeyCode::Char('e'),
+                //     kind: Press,
+                //     ..
+                // }) => {
+                //     if selected == selection_len - 1 {
+                //         *self.settings.config_mut() = GameConfig::default();
+                //         self.kitty_assumed = self.kitty_detected;
+                //     }
+                // }
+
+                // Reset config, or delete entire slot.
                 Event::Key(KeyEvent {
-                    code: KeyCode::Enter | KeyCode::Char('e'),
+                    code: KeyCode::Delete | KeyCode::Char('d'),
                     kind: Press,
                     ..
                 }) => {
-                    if selected == selection_len - 1 {
-                        *self.settings.config_mut() = GameConfig::default();
-                        self.kitty_assumed = self.kitty_detected;
+                    if selected == 0 {
+                        // If a custom slot, then remove it (and return to the 'default' 0th slot).
+                        if self.settings.config_slot_active
+                            >= self.settings.config_slots_considered_immutable
+                        {
+                            self.settings
+                                .config_slots
+                                .remove(self.settings.config_slot_active);
+                            self.settings.config_slot_active = 0;
+                        }
                     }
                 }
+
                 // Move selector up.
                 Event::Key(KeyEvent {
                     code: KeyCode::Up | KeyCode::Char('k'),
@@ -1922,6 +1984,11 @@ impl<T: Write> Application<T> {
                     ..
                 }) => match selected {
                     0 => {
+                        self.settings.config_slot_active += 1;
+                        self.settings.config_slot_active %= self.settings.config_slots.len();
+                    }
+                    1 => {
+                        if_slot_is_default_then_copy_and_switch(&mut self.settings);
                         self.settings.config_mut().rotation_system =
                             match self.settings.config().rotation_system {
                                 RotationSystem::Ocular => RotationSystem::Classic,
@@ -1929,7 +1996,8 @@ impl<T: Write> Application<T> {
                                 RotationSystem::Super => RotationSystem::Ocular,
                             };
                     }
-                    1 => {
+                    2 => {
+                        if_slot_is_default_then_copy_and_switch(&mut self.settings);
                         self.settings.config_mut().tetromino_generator = match self
                             .settings
                             .config()
@@ -1942,25 +2010,32 @@ impl<T: Write> Application<T> {
                             TetrominoSource::Cycle { .. } => TetrominoSource::uniform(),
                         };
                     }
-                    2 => {
+                    3 => {
+                        if_slot_is_default_then_copy_and_switch(&mut self.settings);
                         self.settings.config_mut().preview_count += 1;
                     }
-                    3 => {
+                    4 => {
+                        if_slot_is_default_then_copy_and_switch(&mut self.settings);
                         self.settings.config_mut().delayed_auto_shift += Duration::from_millis(1);
                     }
-                    4 => {
+                    5 => {
+                        if_slot_is_default_then_copy_and_switch(&mut self.settings);
                         self.settings.config_mut().auto_repeat_rate += Duration::from_millis(1);
                     }
-                    5 => {
+                    6 => {
+                        if_slot_is_default_then_copy_and_switch(&mut self.settings);
                         self.settings.config_mut().soft_drop_factor += 0.5;
                     }
-                    6 => {
+                    7 => {
+                        if_slot_is_default_then_copy_and_switch(&mut self.settings);
                         self.settings.config_mut().line_clear_delay += Duration::from_millis(10);
                     }
-                    7 => {
+                    8 => {
+                        if_slot_is_default_then_copy_and_switch(&mut self.settings);
                         self.settings.config_mut().appearance_delay += Duration::from_millis(10);
                     }
-                    8 => {
+                    9 => {
+                        if_slot_is_default_then_copy_and_switch(&mut self.settings);
                         self.kitty_assumed = !self.kitty_assumed;
                     }
                     _ => {}
@@ -1971,6 +2046,12 @@ impl<T: Write> Application<T> {
                     ..
                 }) => match selected {
                     0 => {
+                        self.settings.config_slot_active +=
+                            self.settings.config_slots.len() - 1;
+                        self.settings.config_slot_active %= self.settings.config_slots.len();
+                    }
+                    1 => {
+                        if_slot_is_default_then_copy_and_switch(&mut self.settings);
                         self.settings.config_mut().rotation_system =
                             match self.settings.config().rotation_system {
                                 RotationSystem::Ocular => RotationSystem::Super,
@@ -1978,7 +2059,8 @@ impl<T: Write> Application<T> {
                                 RotationSystem::Classic => RotationSystem::Ocular,
                             };
                     }
-                    1 => {
+                    2 => {
+                        if_slot_is_default_then_copy_and_switch(&mut self.settings);
                         self.settings.config_mut().tetromino_generator =
                             match self.settings.config().tetromino_generator {
                                 TetrominoSource::Uniform => TetrominoSource::balance_relative(),
@@ -1990,44 +2072,51 @@ impl<T: Write> Application<T> {
                                 TetrominoSource::Cycle { .. } => TetrominoSource::uniform(),
                             };
                     }
-                    2 => {
+                    3 => {
+                        if_slot_is_default_then_copy_and_switch(&mut self.settings);
                         self.settings.config_mut().preview_count =
                             self.settings.config().preview_count.saturating_sub(1);
                     }
-                    3 => {
+                    4 => {
+                        if_slot_is_default_then_copy_and_switch(&mut self.settings);
                         self.settings.config_mut().delayed_auto_shift = self
                             .settings
                             .config()
                             .delayed_auto_shift
                             .saturating_sub(Duration::from_millis(1));
                     }
-                    4 => {
+                    5 => {
+                        if_slot_is_default_then_copy_and_switch(&mut self.settings);
                         self.settings.config_mut().auto_repeat_rate = self
                             .settings
                             .config()
                             .auto_repeat_rate
                             .saturating_sub(Duration::from_millis(1));
                     }
-                    5 => {
+                    6 => {
+                        if_slot_is_default_then_copy_and_switch(&mut self.settings);
                         if self.settings.config().soft_drop_factor > 0.0 {
                             self.settings.config_mut().soft_drop_factor -= 0.5;
                         }
                     }
-                    6 => {
+                    7 => {
+                        if_slot_is_default_then_copy_and_switch(&mut self.settings);
                         self.settings.config_mut().line_clear_delay = self
                             .settings
                             .config()
                             .line_clear_delay
                             .saturating_sub(Duration::from_millis(10));
                     }
-                    7 => {
+                    8 => {
+                        if_slot_is_default_then_copy_and_switch(&mut self.settings);
                         self.settings.config_mut().appearance_delay = self
                             .settings
                             .config()
                             .appearance_delay
                             .saturating_sub(Duration::from_millis(10));
                     }
-                    8 => {
+                    9 => {
+                        if_slot_is_default_then_copy_and_switch(&mut self.settings);
                         self.kitty_assumed = !self.kitty_assumed;
                     }
                     _ => {}
@@ -2234,7 +2323,7 @@ impl<T: Write> Application<T> {
                 // Other event: Just ignore.
                 _ => {}
             }
-            selected = selected.rem_euclid(selection_len);
+            selected %= selection_len;
         }
     }
 
