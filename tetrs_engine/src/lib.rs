@@ -1448,7 +1448,8 @@ impl Game {
                 // Move piece all the way down.
                 let dropped_piece = prev_piece.well_piece(&self.state.board);
                 if self.config.feedback_verbosity != FeedbackVerbosity::Quiet {
-                    feedback_events.push((event_time, Feedback::HardDrop(prev_piece, dropped_piece)));
+                    feedback_events
+                        .push((event_time, Feedback::HardDrop(prev_piece, dropped_piece)));
                 }
                 self.state.events.insert(
                     GameEvent::LockTimer,
