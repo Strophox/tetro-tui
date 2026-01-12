@@ -95,7 +95,6 @@ impl Renderer for DebugRenderer {
                     lineclears,
                     perfect_clear,
                     combo,
-                    back_to_back,
                 } => {
                     let mut msg = Vec::new();
                     msg.push(format!("+{score_bonus}"));
@@ -132,10 +131,7 @@ impl Renderer for DebugRenderer {
                     .to_string();
                     msg.push(clear_action);
                     if *combo > 1 {
-                        msg.push(format!("[{combo}.combo]"));
-                    }
-                    if *back_to_back > 1 {
-                        msg.push(format!("({back_to_back}.B2B)"));
+                        msg.push(format!("#{combo}."));
                     }
                     msg.join(" ")
                 }

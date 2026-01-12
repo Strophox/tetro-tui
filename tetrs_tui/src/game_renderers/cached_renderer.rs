@@ -246,7 +246,6 @@ impl Renderer for CachedRenderer {
             gravity,
             score,
             consecutive_line_clears: _,
-            back_to_back_special_clears: _,
         } = game.state();
         // Screen: some titles.
         let mode_name = game
@@ -578,6 +577,10 @@ impl Renderer for CachedRenderer {
                     *active = false;
                 }
                 Feedback::PieceLocked(piece) => {
+                    if !app.settings().graphics().render_effects {
+                        *active = false;
+                        continue;
+                    }
                     #[rustfmt::skip]
                     let animation_locking = match app.settings().graphics().glyphset {
                         Glyphset::Electronika60 => [
@@ -629,7 +632,7 @@ impl Renderer for CachedRenderer {
                     }
                 }
                 Feedback::LineClears(lines_cleared, line_clear_delay) => {
-                    if line_clear_delay.is_zero() {
+                    if !app.settings().graphics().render_effects || line_clear_delay.is_zero() {
                         *active = false;
                         continue;
                     }
@@ -693,6 +696,10 @@ impl Renderer for CachedRenderer {
                     }
                 }
                 Feedback::HardDrop(_top_piece, bottom_piece) => {
+                    if !app.settings().graphics().render_effects {
+                        *active = false;
+                        continue;
+                    }
                     for ((x_tile, y_tile), tile_type_id) in bottom_piece.tiles() {
                         for y in y_tile..Game::SKYLINE {
                             self.hard_drop_tiles.push((
@@ -715,7 +722,6 @@ impl Renderer for CachedRenderer {
                     lineclears,
                     perfect_clear,
                     combo,
-                    back_to_back,
                 } => {
                     let mut msg = Vec::new();
                     msg.push(format!("+{score_bonus}"));
@@ -752,10 +758,7 @@ impl Renderer for CachedRenderer {
                     .to_string();
                     msg.push(clear_action);
                     if *combo > 1 {
-                        msg.push(format!("[{combo}.combo]"));
-                    }
-                    if *back_to_back > 1 {
-                        msg.push(format!("({back_to_back}.B2B)"));
+                        msg.push(format!("#{combo}."));
                     }
                     self.messages.push((*feedback_time, msg.join(" ")));
                     *active = false;

@@ -360,8 +360,6 @@ pub struct GameState {
     pub score: u64,
     /// The number of consecutive pieces that have been played and caused a line clear.
     pub consecutive_line_clears: u32,
-    /// The number of line clears that were either a quadruple, spin or perfect clear.
-    pub back_to_back_special_clears: u32,
 }
 
 /// This builder exposes the ability to configure a new [`Game`] beyond just [`GameMode`].
@@ -458,8 +456,6 @@ pub enum Feedback {
         perfect_clear: bool,
         /// The number of consecutive pieces played that caused a lineclear.
         combo: u32,
-        /// The number of consecutive lineclears where a spin, quadruple or perfect clear occurred.
-        back_to_back: u32,
     },
     /// A message containing an exact in-engine [`GameEvent`] that was processed.
     EngineEvent(GameEvent),
@@ -874,7 +870,6 @@ impl GameBuilder {
                 gravity,
                 score: 0,
                 consecutive_line_clears: 0,
-                back_to_back_special_clears: 0,
             },
             rng: self
                 .rng
@@ -1095,14 +1090,12 @@ impl Game {
                     self.apply_modifiers(&mut feedback_msgs, &ModifierPoint::BeforeEvent(event));
                     // Remove next event and handle it.
                     self.state.events.remove_entry(&event);
+                    if self.config.feedback_verbosity == FeedbackVerbosity::Debug {
+                        feedback_msgs.push((event_time, Feedback::EngineEvent(event)));
+                    }
                     let event_feedback_msgs = self.handle_event(event, event_time);
                     self.state.time = event_time;
-                    if self.config.feedback_verbosity != FeedbackVerbosity::Quiet {
-                        feedback_msgs.extend(event_feedback_msgs);
-                        if self.config.feedback_verbosity == FeedbackVerbosity::Debug {
-                            feedback_msgs.push((event_time, Feedback::EngineEvent(event)));
-                        }
-                    }
+                    feedback_msgs.extend(event_feedback_msgs);
                     self.apply_modifiers(&mut feedback_msgs, &ModifierPoint::AfterEvent(event));
                     // Stop simulation early if event or modifier ended game.
                     self.run_game_end_update();
@@ -1332,7 +1325,9 @@ impl Game {
                         .rotation_system
                         .rotate(&raw_piece, &self.state.board, turns)
                         .unwrap_or(raw_piece);
-                    feedback_events.push((event_time, Feedback::PieceSpawned(next_piece)));
+                    if self.config.feedback_verbosity != FeedbackVerbosity::Quiet {
+                        feedback_events.push((event_time, Feedback::PieceSpawned(next_piece)));
+                    }
                     // Newly spawned piece conflicts with board - Game over.
                     if !next_piece.fits(&self.state.board) {
                         self.state.end = Some(Err(GameOver::BlockOut));
@@ -1452,7 +1447,9 @@ impl Game {
                 let prev_piece = prev_piece.expect("harddrop event but no active piece");
                 // Move piece all the way down.
                 let dropped_piece = prev_piece.well_piece(&self.state.board);
-                feedback_events.push((event_time, Feedback::HardDrop(prev_piece, dropped_piece)));
+                if self.config.feedback_verbosity != FeedbackVerbosity::Quiet {
+                    feedback_events.push((event_time, Feedback::HardDrop(prev_piece, dropped_piece)));
+                }
                 self.state.events.insert(
                     GameEvent::LockTimer,
                     event_time + self.config.hard_drop_delay,
@@ -1465,7 +1462,9 @@ impl Game {
             }
             GameEvent::Lock => {
                 let prev_piece = prev_piece.expect("lock event but no active piece");
-                feedback_events.push((event_time, Feedback::PieceLocked(prev_piece)));
+                if self.config.feedback_verbosity != FeedbackVerbosity::Quiet {
+                    feedback_events.push((event_time, Feedback::PieceLocked(prev_piece)));
+                }
                 // Attempt to lock active piece fully above skyline - Game over.
                 if prev_piece
                     .tiles()
@@ -1477,7 +1476,7 @@ impl Game {
                 }
                 self.state.pieces_played[prev_piece.shape] += 1;
                 // Pre-save whether piece was spun into lock position.
-                let spin = prev_piece.fits_at(&self.state.board, (0, 1)).is_none();
+                let is_spin = prev_piece.fits_at(&self.state.board, (0, 1)).is_none();
                 // Locking.
                 for ((x, y), tile_type_id) in prev_piece.tiles() {
                     self.state.board[y][x] = Some(tile_type_id);
@@ -1490,41 +1489,38 @@ impl Game {
                     }
                 }
                 let n_lines_cleared = u32::try_from(lines_cleared.len()).unwrap();
-                if n_lines_cleared > 0 {
-                    // Add score bonus.
-                    let perfect_clear = self.state.board.iter().all(|line| {
+                if n_lines_cleared == 0 {
+                    self.state.consecutive_line_clears = 0;
+                } else {
+                    self.state.consecutive_line_clears += 1;
+                    // Compute score bonus.
+                    let n_combo = self.state.consecutive_line_clears;
+                    let is_perfect_clear = self.state.board.iter().all(|line| {
                         line.iter().all(|tile| tile.is_none())
                             || line.iter().all(|tile| tile.is_some())
                     });
-                    self.state.consecutive_line_clears += 1;
-                    let special_clear = n_lines_cleared >= 4 || spin || perfect_clear;
-                    if special_clear {
-                        self.state.back_to_back_special_clears += 1;
-                    } else {
-                        self.state.back_to_back_special_clears = 0;
-                    }
-                    let score_bonus = u32::try_from(Game::WIDTH).unwrap()
-                        * (n_lines_cleared + self.state.consecutive_line_clears - 1).pow(2)
-                        * self.state.back_to_back_special_clears.max(1)
-                        * if spin { 4 } else { 1 }
-                        * if perfect_clear { 100 } else { 1 };
+                    let score_bonus = n_lines_cleared
+                        * if is_spin { 2 } else { 1 }
+                        * if is_perfect_clear { 4 } else { 1 }
+                        * 2
+                        - 1
+                        + (n_combo - 1);
                     self.state.score += u64::from(score_bonus);
                     let yippie = Feedback::Accolade {
                         score_bonus,
                         shape: prev_piece.shape,
-                        spin,
+                        spin: is_spin,
                         lineclears: n_lines_cleared,
-                        perfect_clear,
-                        combo: self.state.consecutive_line_clears,
-                        back_to_back: self.state.back_to_back_special_clears,
+                        perfect_clear: is_perfect_clear,
+                        combo: n_combo,
                     };
-                    feedback_events.push((event_time, yippie));
-                    feedback_events.push((
-                        event_time,
-                        Feedback::LineClears(lines_cleared, self.config.line_clear_delay),
-                    ));
-                } else {
-                    self.state.consecutive_line_clears = 0;
+                    if self.config.feedback_verbosity != FeedbackVerbosity::Quiet {
+                        feedback_events.push((
+                            event_time,
+                            Feedback::LineClears(lines_cleared, self.config.line_clear_delay),
+                        ));
+                        feedback_events.push((event_time, yippie));
+                    }
                 }
                 // Clear all events and only put in line clear / appearance delay.
                 self.state.events.clear();

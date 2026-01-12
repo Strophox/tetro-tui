@@ -156,16 +156,18 @@ pub struct GraphicsSettings {
     pub glyphset: Glyphset,
     pub coloring: Coloring,
     pub coloring_lockedtiles: Coloring,
+    pub render_effects: bool,
 }
 
 impl Default for GraphicsSettings {
     fn default() -> Self {
         Self {
+            game_fps: 30.0,
+            show_fps: false,
             glyphset: Glyphset::Unicode,
             coloring: Coloring::Fullcolor,
             coloring_lockedtiles: Coloring::Fullcolor,
-            game_fps: 30.0,
-            show_fps: false,
+            render_effects: true,
         }
     }
 }
@@ -1205,7 +1207,6 @@ impl<T: Write> Application<T> {
             gravity,
             score,
             consecutive_line_clears: _,
-            back_to_back_special_clears: _,
         } = last_state;
         // if gamemode.name.as_ref().map(String::as_str) == Some("Puzzle")
         if gamemode.name.as_ref().is_some_and(|n| n == "Puzzle") && success {
@@ -1408,12 +1409,6 @@ impl<T: Write> Application<T> {
                         SaveGranularity::SettingsAndGames => "ON",
                     }
                 ),
-                "".to_string(),
-                if self.settings.save_on_exit == SaveGranularity::Nothing {
-                    "(*WARNING: current data will be lost on exit)".to_string()
-                } else {
-                    format!("(Save file at {:?})", Self::savefile_path())
-                },
             ];
             for (i, label) in labels.into_iter().enumerate() {
                 self.term
@@ -1430,6 +1425,22 @@ impl<T: Write> Application<T> {
                         }
                     )))?;
             }
+            self.term
+                .queue(MoveTo(
+                    x_main,
+                    y_main + y_selection + 4 + u16::try_from(selection_len).unwrap() + 1,
+                ))?
+                .queue(PrintStyledContent(
+                    format!(
+                        "{:^w_main$}",
+                        if self.settings.save_on_exit == SaveGranularity::Nothing {
+                            "(*WARNING: current data will be lost on exit)".to_string()
+                        } else {
+                            format!("(Save file at {:?})", Self::savefile_path())
+                        },
+                    )
+                    .italic(),
+                ))?;
             self.term.flush()?;
             // Wait for new input.
             match event::read()? {
@@ -1793,7 +1804,7 @@ impl<T: Write> Application<T> {
             let w_main = Self::W_MAIN.into();
             let (x_main, y_main) = Self::fetch_main_xy();
             let y_selection = Self::H_MAIN / 5;
-            
+
             // Draw menu title.
             self.term
                 .queue(Clear(ClearType::All))?
@@ -1879,7 +1890,7 @@ impl<T: Write> Application<T> {
                     self.settings.config().appearance_delay
                 ),
                 format!(
-                    "/!\\ Override - assume enhanced-key-events work: {} *",
+                    "(/!\\ Override) Assume enhanced-key-events: {} *",
                     self.kitty_assumed
                 ),
             ];
@@ -1891,7 +1902,7 @@ impl<T: Write> Application<T> {
                     ))?
                     .queue(Print(format!(
                         "{:^w_main$}",
-                        if i+1 == selected {
+                        if i + 1 == selected {
                             format!(">> {label} <<")
                         } else {
                             label
@@ -1903,14 +1914,17 @@ impl<T: Write> Application<T> {
                     x_main,
                     y_main + y_selection + 6 + u16::try_from(selection_len).unwrap(),
                 ))?
-                .queue(PrintStyledContent(format!(
-                    "{:^w_main$}",
-                    if self.kitty_detected {
-                        "(*Should apply, since enhanced-key-events seem available.)"
-                    } else {
-                        "(*Might NOT apply since enhanced-key-events seem UNavailable.)"
-                    },
-                ).italic()))?;
+                .queue(PrintStyledContent(
+                    format!(
+                        "{:^w_main$}",
+                        if self.kitty_detected {
+                            "(*Should apply, since enhanced-key-events seem available.)"
+                        } else {
+                            "(*Might NOT apply since enhanced-key-events seem UNavailable.)"
+                        },
+                    )
+                    .italic(),
+                ))?;
 
             self.term.flush()?;
             // Wait for new input.
@@ -2046,8 +2060,7 @@ impl<T: Write> Application<T> {
                     ..
                 }) => match selected {
                     0 => {
-                        self.settings.config_slot_active +=
-                            self.settings.config_slots.len() - 1;
+                        self.settings.config_slot_active += self.settings.config_slots.len() - 1;
                         self.settings.config_slot_active %= self.settings.config_slots.len();
                     }
                     1 => {
@@ -2147,9 +2160,8 @@ impl<T: Write> Application<T> {
                 format!("Framerate: {}", self.settings.graphics().game_fps),
                 format!("Show fps: {}", self.settings.graphics().show_fps),
                 format!(
-                    "Effects (apply on New Game): {}",
-                    self.settings.config().feedback_verbosity
-                        != tetrs_engine::FeedbackVerbosity::Quiet
+                    "Render effects: {}",
+                    self.settings.graphics().render_effects
                 ),
             ];
             for (i, label) in labels.into_iter().enumerate() {
@@ -2185,7 +2197,7 @@ impl<T: Write> Application<T> {
             self.term.flush()?;
             // Wait for new input.
             match event::read()? {
-                // Quit menu.
+                // Abort program.
                 Event::Key(KeyEvent {
                     code: KeyCode::Char('c'),
                     modifiers: KeyModifiers::CONTROL,
@@ -2196,11 +2208,14 @@ impl<T: Write> Application<T> {
                         "exited with ctrl-c".to_string(),
                     )))
                 }
+
+                // Quit menu.
                 Event::Key(KeyEvent {
                     code: KeyCode::Esc | KeyCode::Char('q'),
                     kind: Press,
                     ..
                 }) => break Ok(MenuUpdate::Pop),
+
                 // Move selector up.
                 Event::Key(KeyEvent {
                     code: KeyCode::Up | KeyCode::Char('k'),
@@ -2209,6 +2224,7 @@ impl<T: Write> Application<T> {
                 }) => {
                     selected += selection_len - 1;
                 }
+
                 // Move selector down.
                 Event::Key(KeyEvent {
                     code: KeyCode::Down | KeyCode::Char('j'),
@@ -2217,6 +2233,7 @@ impl<T: Write> Application<T> {
                 }) => {
                     selected += 1;
                 }
+
                 Event::Key(KeyEvent {
                     code: KeyCode::Right | KeyCode::Char('l'),
                     kind: Press | Repeat,
@@ -2245,24 +2262,14 @@ impl<T: Write> Application<T> {
                         self.settings.graphics_mut().game_fps += 1.0;
                     }
                     3 => {
-                        self.settings.graphics_mut().show_fps = !self.settings.graphics().show_fps;
+                        self.settings.graphics_mut().show_fps ^= true;
                     }
                     4 => {
-                        self.settings.config_mut().feedback_verbosity =
-                            match self.settings.config().feedback_verbosity {
-                                tetrs_engine::FeedbackVerbosity::Quiet => {
-                                    tetrs_engine::FeedbackVerbosity::Default
-                                }
-                                tetrs_engine::FeedbackVerbosity::Default => {
-                                    tetrs_engine::FeedbackVerbosity::Quiet
-                                }
-                                tetrs_engine::FeedbackVerbosity::Debug => {
-                                    tetrs_engine::FeedbackVerbosity::Quiet
-                                }
-                            };
+                        self.settings.graphics_mut().render_effects ^= true;
                     }
                     _ => {}
                 },
+
                 Event::Key(KeyEvent {
                     code: KeyCode::Left | KeyCode::Char('h'),
                     kind: Press | Repeat,
@@ -2293,24 +2300,15 @@ impl<T: Write> Application<T> {
                         }
                     }
                     3 => {
-                        self.settings.graphics_mut().show_fps = !self.settings.graphics().show_fps;
+                        self.settings.graphics_mut().show_fps ^= true;
                     }
                     4 => {
-                        self.settings.config_mut().feedback_verbosity =
-                            match self.settings.config().feedback_verbosity {
-                                tetrs_engine::FeedbackVerbosity::Quiet => {
-                                    tetrs_engine::FeedbackVerbosity::Default
-                                }
-                                tetrs_engine::FeedbackVerbosity::Default => {
-                                    tetrs_engine::FeedbackVerbosity::Quiet
-                                }
-                                tetrs_engine::FeedbackVerbosity::Debug => {
-                                    tetrs_engine::FeedbackVerbosity::Default
-                                }
-                            };
+                        self.settings.graphics_mut().render_effects ^= true;
                     }
                     _ => {}
                 },
+
+                // Reset values.
                 Event::Key(KeyEvent {
                     code: KeyCode::Delete | KeyCode::Char('d'),
                     kind: Press | Repeat,
@@ -2320,6 +2318,7 @@ impl<T: Write> Application<T> {
                         self.settings.graphics_mut().game_fps = 30.0;
                     }
                 }
+
                 // Other event: Just ignore.
                 _ => {}
             }
