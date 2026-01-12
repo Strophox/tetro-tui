@@ -558,23 +558,55 @@ Although there might be a nicer system somehow..
 
 ## Scoring
 
-The exact scoring formula is given as follows:
+I suspect coming up with a *decent* [scoring system](https://tetris.wiki/Scoring#Recent_guideline_compatible_games) is easier with the help of playtesters or at least practical game experience.
+
+I did try to come up with a new, simple, good formula, but it's tough to judge how much to reward the player for any given action (How many points should a 'perfect clear' receive, given that I can't remember to have gotten one more than once?).
+
+The one I came up with, *'probably sucks'* in some way, but I allowed myself to experiment, because I really wanted to reward [all types of 'spins' equally](https://harddrop.com/wiki/List_of_twists) (explicitly: I didn't understand modern Tetris' obsession with T-spins, when S-, Z-, L- and J-spins are also - if not more - satisfying).
+
+The current scoring formula is given as follows:
+
 <details>
 
 <summary>Scoring Formula</summary>
 
-```haskell
-score_bonus = 10
-            * (lines + combo - 1) ^ 2
-            * maximum [1, backToBack]
-            * (if spin then 4 else 1)
-            * (if perfect then 100 else 1)
-  where lines = "number of lines cleared simultaneously"
-        spin = "piece could not move up when locking occurred"
-        perfect = "board is empty after line clear"
-        combo = "number of consecutive played pieces where line clear occurred"
-        backToBack = "number of consecutive line clears where spin, perfect or quadruple line clear occurred"
+```python
+def score_bonus(
+    lines, # Number of lines cleared simultaneously.
+    combo, # Number of consecutively played pieces causing lineclear. Is always ≥1 if lines ≥ 1.
+    is_spin, # Was piece unable to budge when it locked down?
+    is_perfect, # Was board empty after lineclear?
+  ): return (
+    lines * (2 if is_spin else 1) * (4 if is_perfect else 1) * 2 - 1 + (combo - 1)
+  )
 ```
+
+Reasoning - motivation:
+If we remove any artificial goals or limits, this game allows play forever.
+But it is the ways of playing that can differ:
+- A player may always survive by clearing single lines as soon as possible to keep their stack low.
+- A player may always leave a 'well' in their stack and clear four lines at once. This appears 'cooler'/'more elegant'/'more skillful' etc.
+Therefore, besides survival, we may try to reward 'especially skillful play' through a scoring method.
+This is quite subjective, but we can try anyway.
+
+Note that, for simplicity, currently a bonus to the score is triggered when a lineclear occurs - although it would also be feasible to reward, e.g. spins which do not clear a line but still 'look' satisfying or display skill!
+
+Reasoning - scoring formula:
+As a general rule, higher score should correlate with 'how impressive' style of play is.
+But the weighing of various maneuvers in relation to each other is difficult to judge.
+
+For singles, easy rules can be set:
+1. Let's assign a unit point to the fundamental single lineclear: `I -> +1`.
+2. A double lineclear should give more than a combination of other basic clears: `II -> +3` (> `I I -> 2`).
+3. A triple lineclear should give more than a combination of other basic clears: `III -> +5` (`III III -> 10` > `II II II -> 9`).
+4. A quadruple lineclear should give more than a combination of other basic clears: `IV -> +7` (`IV IV IV -> 21` > `III III III III -> 20`).
+
+Furthermore, bonuses from 'streak'-like maneuvers:
+5. Combos ('clears by consecutive tetrominos'): They can be generated en masse with certain strategies (though the longest achievable combo is bounded). This leads us to believe they should not yield exceedingly large score bonuses. The most basic way is to still reward higher combo is to just add the length of the combo to the score: `Combo n -> +n`
+6. Back-to-Backs ('consecutive clears by Quadruple/Spin/Combo'): This form of score bonus is common to other tetromino stackers and can be kept up potentially ad infinitum. It additonally rewards the best maneuvers. With the current scoring method, which does this anyay, we are led to believe that B2B is not needed as incentive.
+
+7. Spins ('pieces locked by rotation'): In common tetromino stackers, T-spins are already rewarded massively (and in specific ways for various subtypes, but not other tetromino types). What matters is that any spin requires 'knowledge' on how to use the rotation system to fill unlikely gaps on the board. A spin generally enhances the impressiveness of a lineclear. We decide to make it a multiplier to the number of lineclears registered: `Spin -> #I *= 2`.
+8. Perfect Clears ('board blank after lineclear'): With certain piece generators, strategies can be used to greatly increase the generation of perfect clears, therefore should not yield an _exceedingly_ large score bonus. But they are still fundamentally satisfying to look at. We decide to set: `Perfect Clear -> #I *= 4`.
 
 </details>
 
@@ -586,36 +618,63 @@ score_bonus = 10
 *A table of some example bonuses:*
 | Score bonus | Action |
 | -: | :- |
-| +10 | Single |
-| +40 | Double |
-| +90 | Triple |
-| +160 | Quadruple |
-| +40 | ?-Spin Single |
-| +160 | ?-Spin Double |
-| +360 | ?-Spin Triple |
-| +40 | Single (2.combo) |
-| +90 | Single (3.combo) |
-| +160 | Single (4.combo) |
-| +90 | Double (2.combo) |
-| +160 | Double (3.combo) |
-| +250 | Double (4.combo) |
-| +160 | Triple (2.combo) |
-| +250 | Triple (3.combo) |
-| +360 | Triple (4.combo) |
-| +320 | Quadruple (2.B2B) |
-| +480 | Quadruple (3.B2B) |
-| +640 | Quadruple (4.B2B) |
-| +1'000 | Perfect Single |
-| +16'000 | Perfect L-Spin Double |
+| +  1 | Single |
+| +  3 | Double |
+| +  5 | Triple |
+| +  7 | Quadle |
+| +  3 | ?-Spin Single |
+| +  7 | ?-Spin Double |
+| + 11 | ?-Spin Triple |
+| +  2 | Single #2. |
+| +  4 | Double #2. |
+| +  6 | Triple #2. |
+| +  8 | Quadle #2. |
+| +  4 | ?-Spin Single #2. |
+| +  8 | ?-Spin Double #2. |
+| + 12 | ?-Spin Triple #2. |
+| +  3 | Single #3. |
+| +  5 | Double #3. |
+| +  7 | Triple #3. |
+| +  9 | Quadle #3. |
+| +  5 | ?-Spin Single #3. |
+| +  9 | ?-Spin Double #3. |
+| + 13 | ?-Spin Triple #3. |
+| +  4 | Single #4. |
+| +  6 | Double #4. |
+| +  8 | Triple #4. |
+| + 10 | Quadle #4. |
+| +  6 | ?-Spin Single #4. |
+| + 10 | ?-Spin Double #4. |
+| + 14 | ?-Spin Triple #4. |
+| +  7 | Perfect Single |
+| + 15 | Perfect Double |
+| + 23 | Perfect Triple |
+| + 31 | Perfect Quadle |
+| + 31 | Perfect ?-Spin Double |
+
+<details>
+
+<summary>(the above table was generated with Python:</summary>
+
+```python
+# FIXME: Define score_bonus(lines,combo,is_spin,is_perfect) for the following to work!
+def table():
+  names = ['Single','Double','Triple','Quadle']
+  row = lambda l,c,s,p: print(f"| +{score_bonus(l,c,s,p): >3} | {'Perfect ' if p else ''}{'?-Spin ' if s else ''}{names[l-1]}{f' #{c}.' if c > 1 else ''} |")
+  print("| Score bonus | Action |")
+  print("| -: | :- |")
+  for combo in [1,2,3,4]: # Or up until 20 etc.
+    for is_spin in [0,1]:
+      for lines in range(1, 4+1-is_spin): # Spins impossible for lines >= 4.
+        row(lines,combo,is_spin,0)
+  for lines in [1,2,3,4]:
+    row(lines,1,0,1) # Perfect clears with out spins or combos.
+  row(2,1,1,1) # Perfect clear with spin without combo (only possible for 2 lines.)
+```
 
 </details>
 
-Coming up with a *good* [scoring system](https://tetris.wiki/Scoring#Recent_guideline_compatible_games) is easier with practical experience and playtesters.
-
-I did actually try to come up with a new, simple, good formula, but it's tough to judge how much to reward the player for any given action *(how many points should a 'perfect clear' receive? - I've never achieved a single perfect clear in my life!)*.
-The one I came up with, put mildly, *probably sucks*.
-
-But I still allowed myself to experiment, because I really liked the idea of [rewarding all spins](https://harddrop.com/wiki/List_of_twists) (and don't understand modern Tetris' obsession with T-spins when S-, Z-, L- and J-spins are also so satisfying).
+</details>
 
 
 ## Controls
