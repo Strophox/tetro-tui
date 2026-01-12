@@ -5,3 +5,8 @@ members = [
     "tetrs_engine",
 ]
 resolver = "2"
+
+#[profile.release]
+#strip = true  # Automatically strip symbols from the binary.
+#opt-level = "z"  # Optimize for size.
+#lto = true # Link-time optimization.
