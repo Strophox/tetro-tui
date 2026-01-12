@@ -566,10 +566,6 @@ The one I came up with, *'probably sucks'* in some way, but I allowed myself to 
 
 The current scoring formula is given as follows:
 
-<details>
-
-<summary>Scoring Formula</summary>
-
 ```python
 def score_bonus(
     lines, # Number of lines cleared simultaneously.
@@ -581,7 +577,11 @@ def score_bonus(
   )
 ```
 
-Reasoning - motivation:
+<details>
+
+<summary>Reasoning</summary>
+
+**Reasoning - motivation:**
 If we remove any artificial goals or limits, this game allows play forever.
 But it is the ways of playing that can differ:
 - A player may always survive by clearing single lines as soon as possible to keep their stack low.
@@ -591,7 +591,7 @@ This is quite subjective, but we can try anyway.
 
 Note that, for simplicity, currently a bonus to the score is triggered when a lineclear occurs - although it would also be feasible to reward, e.g. spins which do not clear a line but still 'look' satisfying or display skill!
 
-Reasoning - scoring formula:
+**Reasoning - scoring formula:**
 As a general rule, higher score should correlate with 'how impressive' style of play is.
 But the weighing of various maneuvers in relation to each other is difficult to judge.
 
@@ -654,7 +654,7 @@ Furthermore, bonuses from 'streak'-like maneuvers:
 
 <details>
 
-<summary>(the above table was generated with Python:</summary>
+<summary>(Above table was generated with Python:</summary>
 
 ```python
 # FIXME: Define score_bonus(lines,combo,is_spin,is_perfect) for the following to work!
@@ -677,7 +677,7 @@ def table():
 </details>
 
 
-## Controls
+## Keybinds
 
 A search for the 'best' / 'most ergonomic' game keybinds was [inconclusive](https://youtube.com/watch?v=6YhkkyXydNI&t=809).
 In a sample of a few dozen opinions from reddit posts there was about a 50/50 split on
@@ -687,19 +687,27 @@ In a sample of a few dozen opinions from reddit posts there was about a 50/50 sp
 | `a` `d` | `←` `→` |
 | `←` `→` | `z` `x` |
 
-Frequent advice I saw was: "choose what feels best for you", which sounds about right. :P
-*(\*though some mentioned one should **not** hammer ` spacebar ` for hard drops, though it's the only button the Guideline binds to this action.)*
+Frequent advice seen was: "Choose what feels best for you.\*"
+*(\*There were explicit mentions that 'hard drop' being bound to `spacebar` is suboptimal for fast play.)*
+
+The current tetrs default keybinds were kept straightforward:
+- "~~`W`,~~`A`,`S`,`D`" - rotating
+- "`←`,`→`" - moving
+- "`↑`,`↓`" - dropping
+- "`Space`" - holding
 
 
 ## Menu Navigation
 
-Modeling how a TUI should handle menus and move between them was unclear initially.
-Luckily, I was able to look at how [Noita](https://noitagame.com/)'s menus are connected and saw that it was quite structured:
-The menus form a graph (with menus as nodes and valid transitions as directed edges), with only some menus ('pop-ups') that allow backtracking to a previous menu.
+Modeling how a TUI should handle menus and move between them is not straightforward for more complex systems.
+
+I looked at how [Noita](https://noitagame.com/)'s menus are connected and saw that it seemed structured in a way that I could imitate:
+The menus form a graph (with menus as nodes and valid transitions as directed edges).
+Most menus can be backtracked (i.e. pushing and popping a stack), though some menus do not allow backtracking to previous menus (e.g. Game Over) (alternatively, they clear the stack).
 
 <details>
 
-<summary>Tetrs Terminal Menu Graph</summary>
+<summary>Tetrs TUI menu graph</summary>
 
 ![tetrs menu graph](Gallery/tui-menu-graph.svg)
 
@@ -713,6 +721,10 @@ The menus form a graph (with menus as nodes and valid transitions as directed ed
 
 ### Background
 
+<details>
+
+<summary>Background info</summary>
+
 The goal of 'Combo Mode' is to keep a combo going for as many pieces/lines as possible, where combo is maintained by clearing lines with consecutive pieces.
 
 The fact that this is playable as its own gamemode is due to a special strategy known as the *4 wide (3 residual) combo setup*.
@@ -720,17 +732,11 @@ Here the board is completely filled except for a dedicated 4-wide vertical tunne
 
 It turns out there are only a finite number of these configurations inside a 4-wide well are useful to keep a combo:
 
-<details>
-
-<summary>
-
-**Image of 4-wide 3-residual combo setup configurations.**
-
-</summary>
-
-*Notice how due to the fact that a tetromino consists of 4 cells, clearing a line like this will always leave another 3 cells in the otherwise perfectly vertical 4-wide tunnel.*
+**Image of 4-wide 3-residual combo setup configurations:**
 
 ![harddrop.com 4wide 3res combo continuations](/Gallery/combo/harddrop.com_4-Wide-Combo-Setups.png)
+
+*Notice how due to the fact that a tetromino consists of 4 cells, clearing a line like this will always leave another 3 cells in the otherwise perfectly vertical 4-wide tunnel.*
 
 Graphic with modifications courtesy of [harddrop](https://harddrop.com/wiki/Combo_Setups#4-Wide_with_3_Residuals).
 
@@ -739,21 +745,18 @@ Graphic with modifications courtesy of [harddrop](https://harddrop.com/wiki/Comb
 
 ### Problem Approach
 
+<details>
+
+<summary>Problem approach</summary>
+
 Given finite piece preview and armed with the knowledge of how these combo states transition into each other, how do we find the best way to continue a combo?
 
 It turns out we can model this as a [graph](https://en.wikipedia.org/wiki/Graph_(abstract_data_type)) where we can see what paths we can take from our current state:
 
-<details>
 
-<summary>
-
-**Graph of all states reachable with 4 preview pieces + hold.**
-
-</summary>
+**Graph of all states reachable with 4 preview pieces + hold:**
 
 ![4-lookahead state graph](/Gallery/combo/combo_4-lookahead-graph.svg)
-
-</details>
 
 Different decisions can be made depending on whether we hold the current piece and use a different one, which can radically change the outcome.
 
@@ -764,8 +767,14 @@ While humans can vaguely do this for certain previews and also get a feeling for
 The bot currently only supports lookahead up to 42 (number of bit triplets that fit into `u128`), although it already tends to get quite slow for values half of that.
 As we'll see, it still does pretty okay for reasonable preview sizes.
 
+</details>
+
 
 ### Results and Evaluation
+
+<details>
+
+<summary>Results and evaluation</summary>
 
 <details>
 
@@ -777,7 +786,7 @@ Sidenote: <i>weeeeeee</i>
 
 </details>
 
-In short, the bot is pretty good and gets exponentially longer combos with larger preview, as can also be seen from the following chart.
+The bot does pretty well and gets seemingly exponentially longer combos with larger preview window, as can also be seen from the following chart.
 
 | Samples | Randomizer | Lookahead | Median combo | Average combo | Maximum combo |
 |-|-|-|-|-|-|
@@ -878,6 +887,8 @@ There's a larger space to be explored here - 4wide 3res is not the only combo se
 > 
 > To produce statistics, `cargo test <"simple"|"lookaheads"|"randomizers">` was used.
 
+</details>
+
 
 ## Miscellaneous Author Notes
 
@@ -909,7 +920,7 @@ On the Rust side of things I read / learned about / read:
 - super handy multithreading with [`std::sync::mpsc`](https://doc.rust-lang.org/std/sync/mpsc/)
 - [cargo workspaces](https://doc.rust-lang.org/book/ch14-03-cargo-workspaces.html) (to fully separate frontend and backend),
 - how [cargo git dependencies](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#specifying-dependencies-from-git-repositories) work (so one could reuse the backend from this repository),
-- and [cross-compilation](https://blog.logrocket.com/guide-cross-compilation-rust/#how-rust-represents-platforms) (for releases).
+- and [cross](https://blog.logrocket.com/guide-cross-compilation-rust/#how-rust-represents-platforms)-[compilation](https://github.com/cross-rs/cross) (for releases).
 
 All in all, Rust (known for its safety and performance while still providing ADTs) - proved to be an excellent choice for this project!
 
@@ -922,9 +933,6 @@ Other stuff:
   ```bash
   agg --font-family="DejaVu Sans Mono" --line-height=1.17 --renderer=resvg --font-size=20, --fps-cap=30 --last-frame-duration=0  my_rec.cast my_rec.gif
   ```
-
-
-\- If you find any typos in this readme you're more than welcome to keep them! ;D  *(\*actually you can open a PR if you really want to)*
 
 
 *„Piecement Places!“* - [CTWC 2016](https://www.youtube.com/watch?v=RlnlDKznIaw&t=121).
