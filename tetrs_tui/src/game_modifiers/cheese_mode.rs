@@ -7,10 +7,10 @@ use tetrs_engine::{FnGameMod, Game, GameEvent, GameMode, Limits, Line, ModifierP
 fn random_gap_lines(gap_size: usize) -> impl Iterator<Item = Line> {
     let gap_size = gap_size.min(Game::WIDTH);
     let grey_tile = Some(NonZeroU8::try_from(254).unwrap());
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     std::iter::from_fn(move || {
         let mut line = [grey_tile; Game::WIDTH];
-        let gap_idx = rng.gen_range(0..=line.len() - gap_size);
+        let gap_idx = rng.random_range(0..=line.len() - gap_size);
         for i in 0..gap_size {
             line[gap_idx + i] = None;
         }

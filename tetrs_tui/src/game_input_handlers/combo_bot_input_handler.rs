@@ -702,7 +702,7 @@ mod tests {
             format!("# Tetrs Combo (4-wide 3-res.) - Bot Statistics Summary\n\n").as_bytes(),
         )
         .unwrap();
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         for (lookahead, (randomizer, randomizer_name)) in configurations {
             let combos = std::iter::repeat_with(|| {
                 run_bot(lookahead, &mut randomizer.clone().with_rng(&mut rng))

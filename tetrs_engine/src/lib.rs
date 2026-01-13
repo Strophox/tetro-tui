@@ -48,7 +48,7 @@ use std::{
 
 pub use piece_generation::TetrominoSource;
 pub use piece_rotation::RotationSystem;
-use rand::{rngs::StdRng, RngCore, SeedableRng};
+use rand_chacha::{rand_core::{RngCore, SeedableRng}, ChaCha12Rng};
 
 /// Abstract identifier for which type of tile occupies a cell in the grid.
 pub type TileTypeID = NonZeroU8;
@@ -64,7 +64,7 @@ pub type Offset = (isize, isize);
 /// The type used to identify points in time in a game's internal timeline.
 pub type GameTime = Duration;
 /// The internal RNG used by a game.
-pub type GameRng = StdRng;
+pub type GameRng = ChaCha12Rng;
 /// A mapping for buttons, usable through `impl Index<Button>`.
 type ButtonsArray<T> = [T; Button::VARIANTS.len()];
 /// A mapping for which buttons were pressed.
@@ -849,7 +849,7 @@ impl GameBuilder {
 
     /// Creates a [`Game`] with the information specified by `self` and some one-time `modifiers`.
     pub fn build_modified(&self, modifiers: impl IntoIterator<Item = FnGameMod>) -> Game {
-        let seed = self.seed.unwrap_or_else(|| rand::thread_rng().next_u64());
+        let seed = self.seed.unwrap_or_else(|| rand::rng().next_u64());
         let gravity = self.mode.initial_gravity;
         Game {
             config: self.config.clone().unwrap_or_default(),

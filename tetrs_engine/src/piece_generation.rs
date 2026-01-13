@@ -6,7 +6,7 @@ use std::num::NonZeroU32;
 
 use rand::{
     self,
-    distributions::{Distribution, WeightedIndex},
+    distr::{Distribution, weighted::WeightedIndex},
     //prelude::SliceRandom, // vec.shuffle(rng)...
     Rng,
 };
@@ -153,7 +153,7 @@ impl<'a, 'b, R: Rng> Iterator for TetrominoIterator<'a, 'b, R> {
 
     fn next(&mut self) -> Option<Self::Item> {
         match &mut self.tetromino_generator {
-            TetrominoSource::Uniform => Some(Tetromino::VARIANTS[self.rng.gen_range(0..=6)]),
+            TetrominoSource::Uniform => Some(Tetromino::VARIANTS[self.rng.random_range(0..=6)]),
             TetrominoSource::Stock {
                 pieces_left,
                 multiplicity,

@@ -24,25 +24,25 @@ pub fn random_descent_lines() -> impl Iterator<Item = Line> {
     .map(|tet| Some(tet.tiletypeid()));
     let grey_tile = Some(NonZeroU8::try_from(254).unwrap());
     let playing_width = Game::WIDTH - (1 - Game::WIDTH % 2);
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     (0..).map(move |i| {
         let mut line = [None; Game::WIDTH];
         match i % 4 {
             0 | 2 => {}
             r => {
                 for (j, cell) in line.iter_mut().enumerate() {
-                    if j % 2 == 1 || (r == 1 && rng.gen_bool(0.5)) {
+                    if j % 2 == 1 || (r == 1 && rng.random_bool(0.5)) {
                         *cell = grey_tile;
                     }
                 }
                 // Make hole if row became completely closed off through rng.
                 if line.iter().all(|c| c.is_some()) {
-                    let hole_idx = 2 * rng.gen_range(0..playing_width / 2);
+                    let hole_idx = 2 * rng.random_range(0..playing_width / 2);
                     line[hole_idx] = None;
                 }
-                let gem_idx = rng.gen_range(0..playing_width);
+                let gem_idx = rng.random_range(0..playing_width);
                 if line[gem_idx].is_some() {
-                    line[gem_idx] = Some(NonZeroU8::try_from(rng.gen_range(1..=7)).unwrap());
+                    line[gem_idx] = Some(NonZeroU8::try_from(rng.random_range(1..=7)).unwrap());
                 }
             }
         };
@@ -55,7 +55,7 @@ pub fn random_descent_lines() -> impl Iterator<Item = Line> {
 
 pub fn new_game() -> Game {
     let mut line_source = random_descent_lines();
-    let descent_tetromino = if rand::thread_rng().gen_bool(0.5) {
+    let descent_tetromino = if rand::rng().random_bool(0.5) {
         Tetromino::L
     } else {
         Tetromino::J
