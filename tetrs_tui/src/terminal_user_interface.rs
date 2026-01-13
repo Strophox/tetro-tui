@@ -2142,8 +2142,24 @@ impl<T: Write> Application<T> {
     }
 
     fn menu_adjust_graphics(&mut self) -> io::Result<MenuUpdate> {
-        let selection_len = 5;
-        let mut selected = 0usize;
+        let if_slot_is_default_then_copy_and_switch = |settings: &mut Settings| {
+            if settings.graphics_slot_active < settings.graphics_slots_considered_immutable {
+                let mut n = 1;
+                let new_custom_slot_name = loop {
+                    let name = format!("custom_{n}");
+                    if settings.graphics_slots.iter().any(|s| s.0 == name) {
+                        n += 1;
+                    } else {
+                        break name;
+                    }
+                };
+                let new_slot = (new_custom_slot_name, settings.graphics().clone());
+                settings.graphics_slots.push(new_slot);
+                settings.graphics_slot_active = settings.graphics_slots.len() - 1;
+            }
+        };
+        let selection_len = 6;
+        let mut selected = 1usize;
         loop {
             let w_main = Self::W_MAIN.into();
             let (x_main, y_main) = Self::fetch_main_xy();
@@ -2154,6 +2170,41 @@ impl<T: Write> Application<T> {
                 .queue(Print(format!("{:^w_main$}", "# Graphics Settings #")))?
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
                 .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
+
+            // Draw slot label.
+            let slot_label = format!(
+                "Slot ({}/{}): \"{}\"{}",
+                self.settings.graphics_slot_active + 1,
+                self.settings.graphics_slots.len(),
+                self.settings.graphics_slots[self.settings.graphics_slot_active].0,
+                if self.settings.graphics_slots.len() < 2 {
+                    "".to_string()
+                } else {
+                    format!(
+                        " [←|{}→] ",
+                        if self.settings.graphics_slot_active
+                            < self.settings.graphics_slots_considered_immutable
+                        {
+                            ""
+                        } else {
+                            "Del|"
+                        }
+                    )
+                }
+            );
+            self.term
+                .queue(MoveTo(x_main, y_main + y_selection + 3))?
+                .queue(Print(format!(
+                    "{:^w_main$}",
+                    if selected == 0 {
+                        format!(">> {slot_label} <<")
+                    } else {
+                        slot_label
+                    }
+                )))?
+                .queue(MoveTo(x_main, y_main + y_selection + 4))?
+                .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
+
             let labels = [
                 format!("Glyphset: {:?}", self.settings.graphics().glyphset),
                 format!("Coloring: {:?}", self.settings.graphics().coloring),
@@ -2168,11 +2219,11 @@ impl<T: Write> Application<T> {
                 self.term
                     .queue(MoveTo(
                         x_main,
-                        y_main + y_selection + 2 + 2 + u16::try_from(i).unwrap(),
+                        y_main + y_selection + 6 + u16::try_from(i).unwrap(),
                     ))?
                     .queue(Print(format!(
                         "{:^w_main$}",
-                        if i == selected {
+                        if i+1 == selected {
                             format!(">> {label} <<")
                         } else {
                             label
@@ -2181,7 +2232,7 @@ impl<T: Write> Application<T> {
             }
             self.term.queue(MoveTo(
                 x_main + u16::try_from((w_main - 27) / 2).unwrap(),
-                y_main + y_selection + 4 + u16::try_from(selection_len).unwrap() + 2,
+                y_main + y_selection + 6 + u16::try_from(selection_len).unwrap() + 2,
             ))?;
             for tet in Tetromino::VARIANTS {
                 self.term.queue(PrintStyledContent(
@@ -2195,6 +2246,7 @@ impl<T: Write> Application<T> {
                 self.term.queue(Print(' '))?;
             }
             self.term.flush()?;
+
             // Wait for new input.
             match event::read()? {
                 // Abort program.
@@ -2240,6 +2292,11 @@ impl<T: Write> Application<T> {
                     ..
                 }) => match selected {
                     0 => {
+                        self.settings.graphics_slot_active += 1;
+                        self.settings.graphics_slot_active %= self.settings.graphics_slots.len();
+                    }
+                    1 => {
+                        if_slot_is_default_then_copy_and_switch(&mut self.settings);
                         self.settings.graphics_mut().glyphset =
                             match self.settings.graphics().glyphset {
                                 Glyphset::Electronika60 => Glyphset::ASCII,
@@ -2247,7 +2304,8 @@ impl<T: Write> Application<T> {
                                 Glyphset::Unicode => Glyphset::Electronika60,
                             };
                     }
-                    1 => {
+                    2 => {
+                        if_slot_is_default_then_copy_and_switch(&mut self.settings);
                         self.settings.graphics_mut().coloring =
                             match self.settings.graphics().coloring {
                                 Coloring::Monochrome => Coloring::Color16,
@@ -2258,13 +2316,16 @@ impl<T: Write> Application<T> {
                         self.settings.graphics_mut().coloring_lockedtiles =
                             self.settings.graphics().coloring;
                     }
-                    2 => {
+                    3 => {
+                        if_slot_is_default_then_copy_and_switch(&mut self.settings);
                         self.settings.graphics_mut().game_fps += 1.0;
                     }
-                    3 => {
+                    4 => {
+                        if_slot_is_default_then_copy_and_switch(&mut self.settings);
                         self.settings.graphics_mut().show_fps ^= true;
                     }
-                    4 => {
+                    5 => {
+                        if_slot_is_default_then_copy_and_switch(&mut self.settings);
                         self.settings.graphics_mut().render_effects ^= true;
                     }
                     _ => {}
@@ -2276,6 +2337,11 @@ impl<T: Write> Application<T> {
                     ..
                 }) => match selected {
                     0 => {
+                        self.settings.graphics_slot_active += 1;
+                        self.settings.graphics_slot_active %= self.settings.graphics_slots.len();
+                    }
+                    1 => {
+                        if_slot_is_default_then_copy_and_switch(&mut self.settings);
                         self.settings.graphics_mut().glyphset =
                             match self.settings.graphics().glyphset {
                                 Glyphset::Electronika60 => Glyphset::Unicode,
@@ -2283,7 +2349,8 @@ impl<T: Write> Application<T> {
                                 Glyphset::Unicode => Glyphset::ASCII,
                             };
                     }
-                    1 => {
+                    2 => {
+                        if_slot_is_default_then_copy_and_switch(&mut self.settings);
                         self.settings.graphics_mut().coloring =
                             match self.settings.graphics().coloring {
                                 Coloring::Monochrome => Coloring::Experimental,
@@ -2294,28 +2361,39 @@ impl<T: Write> Application<T> {
                         self.settings.graphics_mut().coloring_lockedtiles =
                             self.settings.graphics().coloring;
                     }
-                    2 => {
+                    3 => {
+                        if_slot_is_default_then_copy_and_switch(&mut self.settings);
                         if self.settings.graphics().game_fps >= 1.0 {
                             self.settings.graphics_mut().game_fps -= 1.0;
                         }
                     }
-                    3 => {
+                    4 => {
+                        if_slot_is_default_then_copy_and_switch(&mut self.settings);
                         self.settings.graphics_mut().show_fps ^= true;
                     }
-                    4 => {
+                    5 => {
+                        if_slot_is_default_then_copy_and_switch(&mut self.settings);
                         self.settings.graphics_mut().render_effects ^= true;
                     }
                     _ => {}
                 },
 
-                // Reset values.
+                // Reset graphics, or delete entire slot.
                 Event::Key(KeyEvent {
                     code: KeyCode::Delete | KeyCode::Char('d'),
-                    kind: Press | Repeat,
+                    kind: Press,
                     ..
                 }) => {
-                    if selected == 2 {
-                        self.settings.graphics_mut().game_fps = 30.0;
+                    if selected == 0 {
+                        // If a custom slot, then remove it (and return to the 'default' 0th slot).
+                        if self.settings.graphics_slot_active
+                            >= self.settings.graphics_slots_considered_immutable
+                        {
+                            self.settings
+                                .graphics_slots
+                                .remove(self.settings.graphics_slot_active);
+                            self.settings.graphics_slot_active = 0;
+                        }
                     }
                 }
 
