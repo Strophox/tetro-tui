@@ -2158,7 +2158,7 @@ impl<T: Write> Application<T> {
                 settings.graphics_slot_active = settings.graphics_slots.len() - 1;
             }
         };
-        let selection_len = 6;
+        let selection_len = 7;
         let mut selected = 1usize;
         loop {
             let w_main = Self::W_MAIN.into();
@@ -2213,6 +2213,10 @@ impl<T: Write> Application<T> {
                 format!(
                     "Render effects: {}",
                     self.settings.graphics().render_effects
+                ),
+                format!(
+                    "Color locked tiles: {}",
+                    self.settings.graphics().coloring_lockedtiles != Coloring::Monochrome
                 ),
             ];
             for (i, label) in labels.into_iter().enumerate() {
@@ -2328,6 +2332,14 @@ impl<T: Write> Application<T> {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
                         self.settings.graphics_mut().render_effects ^= true;
                     }
+                    6 => {
+                        if_slot_is_default_then_copy_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().coloring_lockedtiles =
+                            match self.settings.graphics().coloring_lockedtiles {
+                                Coloring::Monochrome => self.settings.graphics().coloring,
+                                _ => Coloring::Monochrome,
+                            };
+                    }
                     _ => {}
                 },
 
@@ -2374,6 +2386,14 @@ impl<T: Write> Application<T> {
                     5 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
                         self.settings.graphics_mut().render_effects ^= true;
+                    }
+                    6 => {
+                        if_slot_is_default_then_copy_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().coloring_lockedtiles =
+                            match self.settings.graphics().coloring_lockedtiles {
+                                Coloring::Monochrome => self.settings.graphics().coloring,
+                                _ => Coloring::Monochrome,
+                            };
                     }
                     _ => {}
                 },
