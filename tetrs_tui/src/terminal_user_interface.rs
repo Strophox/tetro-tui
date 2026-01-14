@@ -185,7 +185,6 @@ pub struct Settings {
     graphics_slots: Slots<GraphicsSettings>,
     graphics_slots_that_should_not_be_changed: usize,
     graphics_active: usize,
-    #[serde_as(as = "Vec<(_, Vec<(_, _)>)>")]
     palette_slots: Slots<Palette>,
     palette_slots_that_should_not_be_changed: usize,
     // NOTE: Reconsider #[serde_as(as = "Vec<(_, std::collections::HashMap<serde_with::json::JsonString, _>)>")]
