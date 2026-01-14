@@ -18,10 +18,10 @@ use tetrs_engine::{
 
 use crate::{
     game_renderers::{button_str, Renderer},
-    terminal_user_interface::{fmt_duration, fmt_keybinds, Application, Coloring, Glyphset},
+    terminal_user_interface::{fmt_duration, fmt_keybinds, Application, Glyphset},
 };
 
-use super::{tet_str_minuscule, tet_str_small, tile_to_color};
+use super::{tet_str_minuscule, tet_str_small};
 
 #[derive(Clone, Default, Debug)]
 struct ScreenBuf {
@@ -449,9 +449,15 @@ impl Renderer for CachedRenderer {
         let (x_preview_minuscule, y_preview_minuscule) = (50, 16);
         let (x_messages, y_messages) = (47, 18);
         let pos_board = |(x, y)| (x_board + 2 * x, y_board + Game::SKYLINE - y);
-        // Board: helpers.
-        let color = tile_to_color(app.settings().graphics().coloring);
-        let color_locked = tile_to_color(app.settings().graphics().coloring_lockedtiles);
+        // Color helpers.
+        let get_color =
+            |tile_type_id: &TileTypeID| app.settings().palette().get(&tile_type_id.get()).copied();
+        let get_color_locked = |tile_type_id: &TileTypeID| {
+            app.settings()
+                .palette_lockedtiles()
+                .get(&tile_type_id.get())
+                .copied()
+        };
         // Board: draw hard drop trail.
         for (
             HardDropTile {
@@ -481,7 +487,7 @@ impl Renderer for CachedRenderer {
                 continue;
             };
             self.screen
-                .buffer_str(tile, color(*tile_type_id), pos_board(*pos));
+                .buffer_str(tile, get_color(tile_type_id), pos_board(*pos));
         }
         self.hard_drop_tiles.retain(|elt| elt.1);
         // Board: draw fixed tiles.
@@ -496,7 +502,7 @@ impl Renderer for CachedRenderer {
                 if let Some(tile_type_id) = cell {
                     self.screen.buffer_str(
                         tile_ground,
-                        color_locked(*tile_type_id),
+                        get_color_locked(tile_type_id),
                         pos_board((x, y)),
                     );
                 }
@@ -507,21 +513,27 @@ impl Renderer for CachedRenderer {
             // Draw ghost piece.
             for (tile_pos, tile_type_id) in active_piece.well_piece(board).tiles() {
                 if tile_pos.1 <= Game::SKYLINE {
-                    self.screen
-                        .buffer_str(tile_ghost, color(tile_type_id), pos_board(tile_pos));
+                    self.screen.buffer_str(
+                        tile_ghost,
+                        get_color(&tile_type_id),
+                        pos_board(tile_pos),
+                    );
                 }
             }
             // Draw active piece.
             for (tile_pos, tile_type_id) in active_piece.tiles() {
                 if tile_pos.1 <= Game::SKYLINE {
-                    self.screen
-                        .buffer_str(tile_active, color(tile_type_id), pos_board(tile_pos));
+                    self.screen.buffer_str(
+                        tile_active,
+                        get_color(&tile_type_id),
+                        pos_board(tile_pos),
+                    );
                 }
             }
         }
         // Draw preview.
         if let Some(next_piece) = next_pieces.front() {
-            let color = color(next_piece.tiletypeid());
+            let color = get_color(&next_piece.tiletypeid());
             for (x, y) in next_piece.minos(Orientation::N) {
                 let pos = (x_preview + 2 * x, y_preview - y);
                 self.screen.buffer_str(tile_preview, color, pos);
@@ -533,7 +545,7 @@ impl Renderer for CachedRenderer {
             let str = tet_str_small(tet);
             self.screen.buffer_str(
                 str,
-                color(tet.tiletypeid()),
+                get_color(&tet.tiletypeid()),
                 (x_preview_small + x_offset_small, y_preview_small),
             );
             x_offset_small += str.chars().count() + 1;
@@ -545,7 +557,7 @@ impl Renderer for CachedRenderer {
             let str = tet_str_minuscule(tet);
             self.screen.buffer_str(
                 str,
-                color(tet.tiletypeid()),
+                get_color(&tet.tiletypeid()),
                 (
                     x_preview_minuscule + x_offset_minuscule,
                     y_preview_minuscule,
@@ -556,7 +568,7 @@ impl Renderer for CachedRenderer {
         // Draw held piece.
         if let Some((tet, swap_allowed)) = hold_piece {
             let str = tet_str_small(tet);
-            let color = color(if *swap_allowed {
+            let color = get_color(&if *swap_allowed {
                 tet.tiletypeid()
             } else {
                 NonZeroU8::try_from(254).unwrap()
@@ -608,15 +620,7 @@ impl Renderer for CachedRenderer {
                             (175, "▓▓"),
                         ],
                     };
-                    let color_locking = match app.settings().graphics().coloring {
-                        Coloring::Monochrome => None,
-                        Coloring::Color16 | Coloring::Fullcolor => Some(Color::White),
-                        Coloring::Experimental => Some(Color::Rgb {
-                            r: 207,
-                            g: 207,
-                            b: 207,
-                        }),
-                    };
+                    let color_locking = get_color(&NonZeroU8::try_from(255).unwrap());
                     // FIXME: Replace all these 'find tile' implementations with configurable system akin to animation lineclear (interpolated time).
                     let Some(tile) = animation_locking.iter().find_map(|(ms, tile)| {
                         (elapsed < Duration::from_millis(*ms)).then_some(tile)
@@ -674,12 +678,7 @@ impl Renderer for CachedRenderer {
                             "         ██         ",
                         ],
                     };
-                    let color_lineclear = match app.settings().graphics().coloring {
-                        Coloring::Monochrome => None,
-                        Coloring::Color16 | Coloring::Fullcolor | Coloring::Experimental => {
-                            Some(Color::White)
-                        }
-                    };
+                    let color_lineclear = get_color(&NonZeroU8::try_from(255).unwrap());
                     let percent = elapsed.as_secs_f64() / line_clear_delay.as_secs_f64();
                     let max_idx = f64::from(i32::try_from(animation_lineclear.len() - 1).unwrap());
                     // SAFETY: `0.0 <= percent && percent <= 1.0`.

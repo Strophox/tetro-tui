@@ -28,11 +28,17 @@ use tetrs_engine::{
 use crate::{
     game_input_handlers::{
         combo_bot_input_handler::ComboBotInputHandler,
-        terminal_input_handler::{Keybinds, TerminalInputHandler},
+        terminal_input_handler::{
+            guideline_keybinds, tetrs_default_keybinds, vim_keybinds, Keybinds,
+            TerminalInputHandler,
+        },
         InputSignal,
     },
     game_modifiers,
-    game_renderers::{self, cached_renderer::CachedRenderer, tet_str_small, Renderer},
+    game_renderers::{
+        cached_renderer::CachedRenderer, color16_palette, empty_palette, experimental_palette,
+        fullcolor_palette, tet_str_small, Palette, Renderer,
+    },
 };
 
 pub type Slots<T> = Vec<(String, T)>;
@@ -59,7 +65,7 @@ enum Menu {
         time_started: Instant,
         last_paused: Instant,
         total_duration_paused: Duration,
-        game_renderer: Box<CachedRenderer>,
+        game_renderer: CachedRenderer,
     },
     GameOver(Box<FinishedGameStats>),
     GameComplete(Box<FinishedGameStats>),
@@ -139,23 +145,14 @@ pub enum Glyphset {
     Unicode,
 }
 
-#[derive(
-    Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug, serde::Serialize, serde::Deserialize,
-)]
-pub enum Coloring {
-    Monochrome,
-    Color16,
-    Fullcolor,
-    Experimental,
-}
-
-#[derive(PartialEq, PartialOrd, Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
+#[serde_with::serde_as]
+#[derive(PartialEq, Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct GraphicsSettings {
-    pub game_fps: f64,
-    pub show_fps: bool,
+    game_fps: f64,
+    show_fps: bool,
     pub glyphset: Glyphset,
-    pub coloring: Coloring,
-    pub coloring_lockedtiles: Coloring,
+    palette_active: usize,
+    palette_active_lockedtiles: usize,
     pub render_effects: bool,
 }
 
@@ -165,8 +162,8 @@ impl Default for GraphicsSettings {
             game_fps: 30.0,
             show_fps: false,
             glyphset: Glyphset::Unicode,
-            coloring: Coloring::Fullcolor,
-            coloring_lockedtiles: Coloring::Fullcolor,
+            palette_active: 2,
+            palette_active_lockedtiles: 2,
             render_effects: true,
         }
     }
@@ -184,43 +181,69 @@ pub enum SaveGranularity {
 #[serde_with::serde_as]
 #[derive(PartialEq, Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Settings {
-    graphics_slots_considered_immutable: usize,
     graphics_slots: Slots<GraphicsSettings>,
-    graphics_slot_active: usize,
-    keybinds_slots_considered_immutable: usize,
+    graphics_slots_that_should_not_be_changed: usize,
+    graphics_active: usize,
+    #[serde_as(as = "Vec<(_, Vec<(_, _)>)>")]
+    palette_slots: Slots<Palette>,
+    palette_slots_that_should_not_be_changed: usize,
     // NOTE: Reconsider #[serde_as(as = "Vec<(_, std::collections::HashMap<serde_with::json::JsonString, _>)>")]
     #[serde_as(as = "Vec<(_, Vec<(_, _)>)>")]
     keybinds_slots: Slots<Keybinds>,
-    keybinds_slot_active: usize,
-    config_slots_considered_immutable: usize,
+    keybinds_slots_that_should_not_be_changed: usize,
+    keybinds_active: usize,
     config_slots: Slots<GameConfig>,
-    config_slot_active: usize,
-    pub new_game: NewGameSettings,
-    pub save_on_exit: SaveGranularity,
+    config_slots_that_should_not_be_changed: usize,
+    config_active: usize,
+    new_game: NewGameSettings,
+    save_on_exit: SaveGranularity,
 }
 
 impl Default for Settings {
     fn default() -> Self {
         Self {
-            graphics_slots_considered_immutable: 1,
-            graphics_slots: vec![("default".to_string(), GraphicsSettings::default())],
-            graphics_slot_active: 0,
-            keybinds_slots_considered_immutable: 3,
-            keybinds_slots: vec![
+            graphics_slots_that_should_not_be_changed: 1,
+            graphics_slots: vec![
+                ("default".to_string(), GraphicsSettings::default()),
                 (
-                    "tetrs default".to_string(),
-                    TerminalInputHandler::tetrs_default_keybinds(),
-                ),
-                ("Vim".to_string(), TerminalInputHandler::vim_keybinds()),
-                (
-                    "Guideline".to_string(),
-                    TerminalInputHandler::guideline_keybinds(),
+                    "high focus".to_string(),
+                    GraphicsSettings {
+                        palette_active_lockedtiles: 0,
+                        render_effects: false,
+                        game_fps: 60.0,
+                        ..GraphicsSettings::default()
+                    },
                 ),
             ],
-            keybinds_slot_active: 0,
-            config_slots_considered_immutable: 1,
-            config_slots: vec![("default".to_string(), GameConfig::default())],
-            config_slot_active: 0,
+            graphics_active: 0,
+            palette_slots: vec![
+                ("Monochrome".to_string(), empty_palette()), // NOTE: The slot at index 0 is the special 'monochrome'/no palette slot.
+                ("16-color".to_string(), color16_palette()),
+                ("Fullcolor".to_string(), fullcolor_palette()),
+                ("Experimental/Custom".to_string(), experimental_palette()),
+            ],
+            palette_slots_that_should_not_be_changed: 3,
+            keybinds_slots_that_should_not_be_changed: 3,
+            keybinds_slots: vec![
+                ("tetrs default".to_string(), tetrs_default_keybinds()),
+                ("Vim-like".to_string(), vim_keybinds()),
+                ("TTC default".to_string(), guideline_keybinds()),
+            ],
+            keybinds_active: 0,
+            config_slots_that_should_not_be_changed: 1,
+            config_slots: vec![
+                ("default".to_string(), GameConfig::default()),
+                (
+                    "high finesse".to_string(),
+                    GameConfig {
+                        preview_count: 9,
+                        delayed_auto_shift: Duration::from_millis(110),
+                        auto_repeat_rate: Duration::from_millis(0),
+                        ..GameConfig::default()
+                    },
+                ),
+            ],
+            config_active: 0,
             new_game: NewGameSettings {
                 custom_initial_gravity: 1,
                 custom_increase_gravity: true,
@@ -240,22 +263,29 @@ impl Default for Settings {
 
 impl Settings {
     pub fn graphics(&self) -> &GraphicsSettings {
-        &self.graphics_slots[self.graphics_slot_active].1
+        &self.graphics_slots[self.graphics_active].1
     }
     pub fn keybinds(&self) -> &Keybinds {
-        &self.keybinds_slots[self.keybinds_slot_active].1
+        &self.keybinds_slots[self.keybinds_active].1
     }
     pub fn config(&self) -> &GameConfig {
-        &self.config_slots[self.config_slot_active].1
+        &self.config_slots[self.config_active].1
     }
     fn graphics_mut(&mut self) -> &mut GraphicsSettings {
-        &mut self.graphics_slots[self.graphics_slot_active].1
+        &mut self.graphics_slots[self.graphics_active].1
     }
     fn keybinds_mut(&mut self) -> &mut Keybinds {
-        &mut self.keybinds_slots[self.keybinds_slot_active].1
+        &mut self.keybinds_slots[self.keybinds_active].1
     }
     fn config_mut(&mut self) -> &mut GameConfig {
-        &mut self.config_slots[self.config_slot_active].1
+        &mut self.config_slots[self.config_active].1
+    }
+
+    pub fn palette(&self) -> &Palette {
+        &self.palette_slots[self.graphics().palette_active].1
+    }
+    pub fn palette_lockedtiles(&self) -> &Palette {
+        &self.palette_slots[self.graphics().palette_active_lockedtiles].1
     }
 }
 
@@ -405,7 +435,7 @@ impl<T: Write> Application<T> {
                     time_started,
                     last_paused,
                     total_duration_paused,
-                    game_renderer.as_mut(),
+                    game_renderer,
                 ),
                 Menu::Pause => self.menu_pause(),
                 Menu::GameOver(finished_stats) => self.menu_game_over(finished_stats),
@@ -841,7 +871,7 @@ impl<T: Write> Application<T> {
                         time_started: now,
                         last_paused: now,
                         total_duration_paused: Duration::ZERO,
-                        game_renderer: Box::new(CachedRenderer::default()),
+                        game_renderer: Default::default(),
                     }));
                 }
                 // Move selector up or increase stat.
@@ -1469,6 +1499,13 @@ impl<T: Write> Application<T> {
                     0 => break Ok(MenuUpdate::Push(Menu::AdjustGraphics)),
                     1 => break Ok(MenuUpdate::Push(Menu::AdjustKeybinds)),
                     2 => break Ok(MenuUpdate::Push(Menu::AdjustGameplay)),
+                    3 => {
+                        self.settings.save_on_exit = match self.settings.save_on_exit {
+                            SaveGranularity::Nothing => SaveGranularity::SettingsAndGames,
+                            SaveGranularity::Settings => SaveGranularity::Nothing,
+                            SaveGranularity::SettingsAndGames => SaveGranularity::Settings,
+                        };
+                    }
                     _ => {}
                 },
                 // Move selector up.
@@ -1523,7 +1560,7 @@ impl<T: Write> Application<T> {
     fn menu_adjust_keybinds(&mut self) -> io::Result<MenuUpdate> {
         // "Trying to modify a default slot: create copy of slot to allow safely modifying that."
         let if_slot_is_default_then_copy_and_switch = |settings: &mut Settings| {
-            if settings.keybinds_slot_active < settings.keybinds_slots_considered_immutable {
+            if settings.keybinds_active < settings.keybinds_slots_that_should_not_be_changed {
                 let mut n = 1;
                 let new_custom_slot_name = loop {
                     let name = format!("custom_{n}");
@@ -1535,7 +1572,7 @@ impl<T: Write> Application<T> {
                 };
                 let new_slot = (new_custom_slot_name, settings.keybinds().clone());
                 settings.keybinds_slots.push(new_slot);
-                settings.keybinds_slot_active = settings.keybinds_slots.len() - 1;
+                settings.keybinds_active = settings.keybinds_slots.len() - 1;
             }
         };
         let buttons_available = Button::VARIANTS;
@@ -1558,16 +1595,16 @@ impl<T: Write> Application<T> {
             // Draw slot label.
             let slot_label = format!(
                 "Slot ({}/{}): \"{}\"{}",
-                self.settings.keybinds_slot_active + 1,
+                self.settings.keybinds_active + 1,
                 self.settings.keybinds_slots.len(),
-                self.settings.keybinds_slots[self.settings.keybinds_slot_active].0,
+                self.settings.keybinds_slots[self.settings.keybinds_active].0,
                 if self.settings.keybinds_slots.len() < 2 {
                     "".to_string()
                 } else {
                     format!(
                         " [←|{}→] ",
-                        if self.settings.keybinds_slot_active
-                            < self.settings.keybinds_slots_considered_immutable
+                        if self.settings.keybinds_active
+                            < self.settings.keybinds_slots_that_should_not_be_changed
                         {
                             ""
                         } else {
@@ -1712,13 +1749,13 @@ impl<T: Write> Application<T> {
                 }) => {
                     if selected == 0 {
                         // If a custom slot, then remove it (and return to the 'default' 0th slot).
-                        if self.settings.keybinds_slot_active
-                            >= self.settings.keybinds_slots_considered_immutable
+                        if self.settings.keybinds_active
+                            >= self.settings.keybinds_slots_that_should_not_be_changed
                         {
                             self.settings
                                 .keybinds_slots
-                                .remove(self.settings.keybinds_slot_active);
-                            self.settings.keybinds_slot_active = 0;
+                                .remove(self.settings.keybinds_active);
+                            self.settings.keybinds_active = 0;
                         }
                     } else {
                         // Trying to modify a default slot: create copy of slot to allow safely modifying that.
@@ -1756,8 +1793,8 @@ impl<T: Write> Application<T> {
                     ..
                 }) => {
                     if selected == 0 {
-                        self.settings.keybinds_slot_active += 1;
-                        self.settings.keybinds_slot_active %= self.settings.keybinds_slots.len();
+                        self.settings.keybinds_active += 1;
+                        self.settings.keybinds_active %= self.settings.keybinds_slots.len();
                     }
                 }
 
@@ -1768,9 +1805,9 @@ impl<T: Write> Application<T> {
                     ..
                 }) => {
                     if selected == 0 {
-                        self.settings.keybinds_slot_active +=
+                        self.settings.keybinds_active +=
                             self.settings.keybinds_slots.len() - 1;
-                        self.settings.keybinds_slot_active %= self.settings.keybinds_slots.len();
+                        self.settings.keybinds_active %= self.settings.keybinds_slots.len();
                     }
                 }
 
@@ -1783,7 +1820,7 @@ impl<T: Write> Application<T> {
 
     fn menu_adjust_gameplay(&mut self) -> io::Result<MenuUpdate> {
         let if_slot_is_default_then_copy_and_switch = |settings: &mut Settings| {
-            if settings.config_slot_active < settings.config_slots_considered_immutable {
+            if settings.config_active < settings.config_slots_that_should_not_be_changed {
                 let mut n = 1;
                 let new_custom_slot_name = loop {
                     let name = format!("custom_{n}");
@@ -1795,7 +1832,7 @@ impl<T: Write> Application<T> {
                 };
                 let new_slot = (new_custom_slot_name, settings.config().clone());
                 settings.config_slots.push(new_slot);
-                settings.config_slot_active = settings.config_slots.len() - 1;
+                settings.config_active = settings.config_slots.len() - 1;
             }
         };
         let selection_len = 10;
@@ -1819,16 +1856,16 @@ impl<T: Write> Application<T> {
             // Draw slot label.
             let slot_label = format!(
                 "Slot ({}/{}): \"{}\"{}",
-                self.settings.config_slot_active + 1,
+                self.settings.config_active + 1,
                 self.settings.config_slots.len(),
-                self.settings.config_slots[self.settings.config_slot_active].0,
+                self.settings.config_slots[self.settings.config_active].0,
                 if self.settings.config_slots.len() < 2 {
                     "".to_string()
                 } else {
                     format!(
                         " [←|{}→] ",
-                        if self.settings.config_slot_active
-                            < self.settings.config_slots_considered_immutable
+                        if self.settings.config_active
+                            < self.settings.config_slots_that_should_not_be_changed
                         {
                             ""
                         } else {
@@ -1918,9 +1955,9 @@ impl<T: Write> Application<T> {
                     format!(
                         "{:^w_main$}",
                         if self.kitty_detected {
-                            "(*Should apply, since enhanced-key-events seem available.)"
+                            "(*Should apply, since enhanced-key-events seem available)"
                         } else {
-                            "(*Might NOT apply since enhanced-key-events seem UNavailable.)"
+                            "(*Might NOT apply since enhanced-key-events seem unavailable)"
                         },
                     )
                     .italic(),
@@ -1965,13 +2002,13 @@ impl<T: Write> Application<T> {
                 }) => {
                     if selected == 0 {
                         // If a custom slot, then remove it (and return to the 'default' 0th slot).
-                        if self.settings.config_slot_active
-                            >= self.settings.config_slots_considered_immutable
+                        if self.settings.config_active
+                            >= self.settings.config_slots_that_should_not_be_changed
                         {
                             self.settings
                                 .config_slots
-                                .remove(self.settings.config_slot_active);
-                            self.settings.config_slot_active = 0;
+                                .remove(self.settings.config_active);
+                            self.settings.config_active = 0;
                         }
                     }
                 }
@@ -1998,8 +2035,8 @@ impl<T: Write> Application<T> {
                     ..
                 }) => match selected {
                     0 => {
-                        self.settings.config_slot_active += 1;
-                        self.settings.config_slot_active %= self.settings.config_slots.len();
+                        self.settings.config_active += 1;
+                        self.settings.config_active %= self.settings.config_slots.len();
                     }
                     1 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
@@ -2060,8 +2097,8 @@ impl<T: Write> Application<T> {
                     ..
                 }) => match selected {
                     0 => {
-                        self.settings.config_slot_active += self.settings.config_slots.len() - 1;
-                        self.settings.config_slot_active %= self.settings.config_slots.len();
+                        self.settings.config_active += self.settings.config_slots.len() - 1;
+                        self.settings.config_active %= self.settings.config_slots.len();
                     }
                     1 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
@@ -2143,7 +2180,7 @@ impl<T: Write> Application<T> {
 
     fn menu_adjust_graphics(&mut self) -> io::Result<MenuUpdate> {
         let if_slot_is_default_then_copy_and_switch = |settings: &mut Settings| {
-            if settings.graphics_slot_active < settings.graphics_slots_considered_immutable {
+            if settings.graphics_active < settings.graphics_slots_that_should_not_be_changed {
                 let mut n = 1;
                 let new_custom_slot_name = loop {
                     let name = format!("custom_{n}");
@@ -2155,7 +2192,7 @@ impl<T: Write> Application<T> {
                 };
                 let new_slot = (new_custom_slot_name, settings.graphics().clone());
                 settings.graphics_slots.push(new_slot);
-                settings.graphics_slot_active = settings.graphics_slots.len() - 1;
+                settings.graphics_active = settings.graphics_slots.len() - 1;
             }
         };
         let selection_len = 7;
@@ -2174,16 +2211,16 @@ impl<T: Write> Application<T> {
             // Draw slot label.
             let slot_label = format!(
                 "Slot ({}/{}): \"{}\"{}",
-                self.settings.graphics_slot_active + 1,
+                self.settings.graphics_active + 1,
                 self.settings.graphics_slots.len(),
-                self.settings.graphics_slots[self.settings.graphics_slot_active].0,
+                self.settings.graphics_slots[self.settings.graphics_active].0,
                 if self.settings.graphics_slots.len() < 2 {
                     "".to_string()
                 } else {
                     format!(
                         " [←|{}→] ",
-                        if self.settings.graphics_slot_active
-                            < self.settings.graphics_slots_considered_immutable
+                        if self.settings.graphics_active
+                            < self.settings.graphics_slots_that_should_not_be_changed
                         {
                             ""
                         } else {
@@ -2207,17 +2244,20 @@ impl<T: Write> Application<T> {
 
             let labels = [
                 format!("Glyphset: {:?}", self.settings.graphics().glyphset),
-                format!("Coloring: {:?}", self.settings.graphics().coloring),
-                format!("Framerate: {}", self.settings.graphics().game_fps),
-                format!("Show fps: {}", self.settings.graphics().show_fps),
+                format!(
+                    "Color palette: '{}'",
+                    self.settings.palette_slots[self.settings.graphics().palette_active].0
+                ),
+                format!(
+                    "Colored locked tiles: {}",
+                    self.settings.graphics().palette_active_lockedtiles != 0
+                ),
                 format!(
                     "Render effects: {}",
                     self.settings.graphics().render_effects
                 ),
-                format!(
-                    "Color locked tiles: {}",
-                    self.settings.graphics().coloring_lockedtiles != Coloring::Monochrome
-                ),
+                format!("Framerate: {}", self.settings.graphics().game_fps),
+                format!("Show fps: {}", self.settings.graphics().show_fps),
             ];
             for (i, label) in labels.into_iter().enumerate() {
                 self.term
@@ -2227,7 +2267,7 @@ impl<T: Write> Application<T> {
                     ))?
                     .queue(Print(format!(
                         "{:^w_main$}",
-                        if i+1 == selected {
+                        if i + 1 == selected {
                             format!(">> {label} <<")
                         } else {
                             label
@@ -2241,10 +2281,11 @@ impl<T: Write> Application<T> {
             for tet in Tetromino::VARIANTS {
                 self.term.queue(PrintStyledContent(
                     tet_str_small(&tet).with(
-                        game_renderers::tile_to_color(self.settings.graphics().coloring)(
-                            tet.tiletypeid(),
-                        )
-                        .unwrap_or(style::Color::Reset),
+                        *self
+                            .settings
+                            .palette()
+                            .get(&tet.tiletypeid().get())
+                            .unwrap_or(&style::Color::Reset),
                     ),
                 ))?;
                 self.term.queue(Print(' '))?;
@@ -2296,8 +2337,8 @@ impl<T: Write> Application<T> {
                     ..
                 }) => match selected {
                     0 => {
-                        self.settings.graphics_slot_active += 1;
-                        self.settings.graphics_slot_active %= self.settings.graphics_slots.len();
+                        self.settings.graphics_active += 1;
+                        self.settings.graphics_active %= self.settings.graphics_slots.len();
                     }
                     1 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
@@ -2310,35 +2351,32 @@ impl<T: Write> Application<T> {
                     }
                     2 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().coloring =
-                            match self.settings.graphics().coloring {
-                                Coloring::Monochrome => Coloring::Color16,
-                                Coloring::Color16 => Coloring::Fullcolor,
-                                Coloring::Fullcolor => Coloring::Experimental,
-                                Coloring::Experimental => Coloring::Monochrome,
-                            };
-                        self.settings.graphics_mut().coloring_lockedtiles =
-                            self.settings.graphics().coloring;
+                        self.settings.graphics_mut().palette_active += 1;
+                        self.settings.graphics_mut().palette_active %=
+                            self.settings.palette_slots.len();
+                        self.settings.graphics_mut().palette_active_lockedtiles =
+                            self.settings.graphics_mut().palette_active;
                     }
                     3 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().game_fps += 1.0;
+                        self.settings.graphics_mut().palette_active_lockedtiles =
+                            if self.settings.graphics().palette_active_lockedtiles == 0 {
+                                self.settings.graphics_mut().palette_active
+                            } else {
+                                0
+                            };
                     }
                     4 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().show_fps ^= true;
+                        self.settings.graphics_mut().render_effects ^= true;
                     }
                     5 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().render_effects ^= true;
+                        self.settings.graphics_mut().game_fps += 1.0;
                     }
                     6 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().coloring_lockedtiles =
-                            match self.settings.graphics().coloring_lockedtiles {
-                                Coloring::Monochrome => self.settings.graphics().coloring,
-                                _ => Coloring::Monochrome,
-                            };
+                        self.settings.graphics_mut().show_fps ^= true;
                     }
                     _ => {}
                 },
@@ -2349,8 +2387,9 @@ impl<T: Write> Application<T> {
                     ..
                 }) => match selected {
                     0 => {
-                        self.settings.graphics_slot_active += 1;
-                        self.settings.graphics_slot_active %= self.settings.graphics_slots.len();
+                        self.settings.graphics_active +=
+                            self.settings.graphics_slots.len() - 1;
+                        self.settings.graphics_active %= self.settings.graphics_slots.len();
                     }
                     1 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
@@ -2363,37 +2402,35 @@ impl<T: Write> Application<T> {
                     }
                     2 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().coloring =
-                            match self.settings.graphics().coloring {
-                                Coloring::Monochrome => Coloring::Experimental,
-                                Coloring::Color16 => Coloring::Monochrome,
-                                Coloring::Fullcolor => Coloring::Color16,
-                                Coloring::Experimental => Coloring::Fullcolor,
-                            };
-                        self.settings.graphics_mut().coloring_lockedtiles =
-                            self.settings.graphics().coloring;
+                        self.settings.graphics_mut().palette_active +=
+                            self.settings.palette_slots.len() - 1;
+                        self.settings.graphics_mut().palette_active %=
+                            self.settings.palette_slots.len();
+                        self.settings.graphics_mut().palette_active_lockedtiles =
+                            self.settings.graphics_mut().palette_active;
                     }
                     3 => {
+                        if_slot_is_default_then_copy_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().palette_active_lockedtiles =
+                            if self.settings.graphics().palette_active_lockedtiles == 0 {
+                                self.settings.graphics_mut().palette_active
+                            } else {
+                                0
+                            };
+                    }
+                    4 => {
+                        if_slot_is_default_then_copy_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().render_effects ^= true;
+                    }
+                    5 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
                         if self.settings.graphics().game_fps >= 1.0 {
                             self.settings.graphics_mut().game_fps -= 1.0;
                         }
                     }
-                    4 => {
-                        if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().show_fps ^= true;
-                    }
-                    5 => {
-                        if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().render_effects ^= true;
-                    }
                     6 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().coloring_lockedtiles =
-                            match self.settings.graphics().coloring_lockedtiles {
-                                Coloring::Monochrome => self.settings.graphics().coloring,
-                                _ => Coloring::Monochrome,
-                            };
+                        self.settings.graphics_mut().show_fps ^= true;
                     }
                     _ => {}
                 },
@@ -2406,13 +2443,13 @@ impl<T: Write> Application<T> {
                 }) => {
                     if selected == 0 {
                         // If a custom slot, then remove it (and return to the 'default' 0th slot).
-                        if self.settings.graphics_slot_active
-                            >= self.settings.graphics_slots_considered_immutable
+                        if self.settings.graphics_active
+                            >= self.settings.graphics_slots_that_should_not_be_changed
                         {
                             self.settings
                                 .graphics_slots
-                                .remove(self.settings.graphics_slot_active);
-                            self.settings.graphics_slot_active = 0;
+                                .remove(self.settings.graphics_active);
+                            self.settings.graphics_active = 0;
                         }
                     }
                 }

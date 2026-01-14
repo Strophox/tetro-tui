@@ -6,7 +6,7 @@ use std::num::NonZeroU32;
 
 use rand::{
     self,
-    distr::{Distribution, weighted::WeightedIndex},
+    distr::{weighted::WeightedIndex, Distribution},
     //prelude::SliceRandom, // vec.shuffle(rng)...
     Rng,
 };

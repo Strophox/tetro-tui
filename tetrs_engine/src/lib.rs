@@ -48,7 +48,10 @@ use std::{
 
 pub use piece_generation::TetrominoSource;
 pub use piece_rotation::RotationSystem;
-use rand_chacha::{rand_core::{RngCore, SeedableRng}, ChaCha12Rng};
+use rand_chacha::{
+    rand_core::{RngCore, SeedableRng},
+    ChaCha12Rng,
+};
 
 /// Abstract identifier for which type of tile occupies a cell in the grid.
 pub type TileTypeID = NonZeroU8;
