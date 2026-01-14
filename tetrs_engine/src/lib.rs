@@ -375,6 +375,7 @@ pub struct GameState {
 /// This will give you a [`Game`] as specified that you can then use as normal.
 /// The `GameBuilder` is not used up and its configuration can be re-used to initialize more [`Game`]s.
 #[derive(PartialEq, Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct GameBuilder {
     config: Option<GameConfig>,
     mode: GameMode,
@@ -907,8 +908,10 @@ impl fmt::Debug for Game {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.debug_struct("Game")
             .field("config", &self.config)
+            .field("mode", &self.mode)
             .field("state", &self.state)
             .field("rng", &self.rng)
+            .field("seed", &self.seed)
             .field("modifiers", &std::any::type_name_of_val(&self.modifiers))
             .finish()
     }

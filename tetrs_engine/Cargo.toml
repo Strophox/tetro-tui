@@ -22,5 +22,5 @@ serde = ["dep:serde"]
 
 [dependencies]
 rand = "0.9.2"
-rand_chacha = "0.9.0"
+rand_chacha = { version = "0.9.0", features = ["serde"] }
 serde = { version = "1.0", features = ["derive"], optional = true }
