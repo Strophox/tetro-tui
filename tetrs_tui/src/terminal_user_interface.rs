@@ -123,11 +123,12 @@ pub struct NewGameSettings {
     custom_initial_gravity: u32,
     custom_increase_gravity: bool,
     custom_mode_limit: Option<Stat>,
-    cheese_mode_limit: Option<NonZeroUsize>,
+    cheese_mode_linelimit: Option<NonZeroUsize>,
     cheese_mode_gap_size: usize,
     cheese_mode_gravity: u32,
-    combo_start_tiles: u16,
-    descent_mode_unlocked: bool,
+    combo_mode_linelimit: Option<NonZeroUsize>,
+    combo_start_layout: u16,
+    experimental_mode_unlocked: bool,
     /// Custom starting layout when playing Combo mode (4-wide rows), encoded as binary.
     /// Example: '▀▄▄▀' => 0b_1001_0110 = 150
     custom_start_board: Option<String>,
@@ -239,14 +240,15 @@ impl Default for Settings {
         let new_game = NewGameSettings {
             custom_initial_gravity: 1,
             custom_increase_gravity: true,
-            custom_mode_limit: None,
-            descent_mode_unlocked: false,
-            cheese_mode_gravity: 0,
-            cheese_mode_gap_size: 1,
-            cheese_mode_limit: Some(NonZeroUsize::try_from(20).unwrap()),
-            combo_start_tiles: game_modifiers::combo_mode::LAYOUTS[0],
             custom_start_board: None,
             custom_start_seed: None,
+            custom_mode_limit: None,
+            cheese_mode_linelimit: Some(NonZeroUsize::try_from(20).unwrap()),
+            cheese_mode_gravity: 0,
+            cheese_mode_gap_size: 1,
+            combo_mode_linelimit: Some(NonZeroUsize::try_from(20).unwrap()),
+            combo_start_layout: game_modifiers::combo_mode::LAYOUTS[0],
+            experimental_mode_unlocked: false,
         };
         Self {
             graphics_slots_that_should_not_be_changed: graphics_slots.len(),
@@ -649,7 +651,7 @@ impl<T: Write> Application<T> {
             ),
             (
                 "Master",
-                "Can you clear 30 levels at instant gravity?".to_string(),
+                "Can you clear 15 levels at instant gravity?".to_string(),
                 Box::new(|| Game::new(GameMode::master())),
             ),
         ];
@@ -672,11 +674,11 @@ impl<T: Write> Application<T> {
                 (
                     "Cheese",
                     format!(
-                        "Eat through lines like Swiss cheese. [limit: {:?}]",
-                        ng.cheese_mode_limit
+                        "Eat through lines like Swiss cheese. Limit: {:?}",
+                        ng.cheese_mode_linelimit
                     ),
                     Box::new({
-                        let cheese_mode_limit = ng.cheese_mode_limit;
+                        let cheese_mode_limit = ng.cheese_mode_linelimit;
                         let cheese_mode_gap_size = ng.cheese_mode_gap_size;
                         let cheese_mode_gravity = ng.cheese_mode_gravity;
                         move || {
@@ -691,16 +693,21 @@ impl<T: Write> Application<T> {
                 (
                     "Combo",
                     format!(
-                        "Get consecutive line clears. [start tiles: {:b}]",
-                        ng.combo_start_tiles
+                        "Get consecutive line clears. Limit: {:?}{}",
+                        ng.combo_mode_linelimit,
+                        if ng.combo_start_layout != crate::game_modifiers::combo_mode::LAYOUTS[0] {
+                            format!(", Layout={:b}", ng.combo_start_layout)
+                        } else {
+                            "".to_string()
+                        }
                     ),
                     Box::new({
-                        let combo_start_layout = ng.combo_start_tiles;
+                        let combo_start_layout = ng.combo_start_layout;
                         move || game_modifiers::combo_mode::new_game(1, combo_start_layout)
                     }),
                 ),
             ];
-            if ng.descent_mode_unlocked {
+            if ng.experimental_mode_unlocked {
                 special_gamemodes.insert(
                     1,
                     (
@@ -790,7 +797,14 @@ impl<T: Write> Application<T> {
                                 + u16::try_from(2 + j + selection_size).unwrap(),
                         ))?
                         .queue(Print(if j + 1 == customization_selected {
-                            format!(">{stat_str} [↓|↑]")
+                            format!(
+                                ">{stat_str}{}",
+                                if customization_selected != 3 || ng.custom_mode_limit.is_some() {
+                                    " [↓|↑]"
+                                } else {
+                                    ""
+                                }
+                            )
                         } else {
                             stat_str
                         }))?;
@@ -972,19 +986,12 @@ impl<T: Write> Application<T> {
                     if selected == selection_size - 1 && customization_selected > 0 {
                         customization_selected += customization_selection_size - 1
                     } else if selected == selection_size - 2 {
-                        let new_layout_idx = if let Some(i) = game_modifiers::combo_mode::LAYOUTS
-                            .iter()
-                            .position(|lay| *lay == ng.combo_start_tiles)
-                        {
-                            let layout_cnt = game_modifiers::combo_mode::LAYOUTS.len();
-                            (i + layout_cnt - 1) % layout_cnt
-                        } else {
-                            0
-                        };
-                        ng.combo_start_tiles = game_modifiers::combo_mode::LAYOUTS[new_layout_idx];
+                        if let Some(limit) = ng.combo_mode_linelimit {
+                            ng.combo_mode_linelimit = NonZeroUsize::try_from(limit.get() - 1).ok();
+                        }
                     } else if selected == selection_size - 3 {
-                        if let Some(limit) = ng.cheese_mode_limit {
-                            ng.cheese_mode_limit = NonZeroUsize::try_from(limit.get() - 1).ok();
+                        if let Some(limit) = ng.cheese_mode_linelimit {
+                            ng.cheese_mode_linelimit = NonZeroUsize::try_from(limit.get() - 1).ok();
                         }
                     }
                 }
@@ -1010,20 +1017,13 @@ impl<T: Write> Application<T> {
                             customization_selected += 1
                         }
                     } else if selected == selection_size - 2 {
-                        let new_layout_idx = if let Some(i) =
-                            crate::game_modifiers::combo_mode::LAYOUTS
-                                .iter()
-                                .position(|lay| *lay == ng.combo_start_tiles)
-                        {
-                            let layout_cnt = crate::game_modifiers::combo_mode::LAYOUTS.len();
-                            (i + 1) % layout_cnt
+                        ng.combo_mode_linelimit = if let Some(limit) = ng.combo_mode_linelimit {
+                            limit.checked_add(1)
                         } else {
-                            0
+                            Some(NonZeroUsize::MIN)
                         };
-                        ng.combo_start_tiles =
-                            crate::game_modifiers::combo_mode::LAYOUTS[new_layout_idx];
                     } else if selected == selection_size - 3 {
-                        ng.cheese_mode_limit = if let Some(limit) = ng.cheese_mode_limit {
+                        ng.cheese_mode_linelimit = if let Some(limit) = ng.cheese_mode_linelimit {
                             limit.checked_add(1)
                         } else {
                             Some(NonZeroUsize::MIN)
@@ -1040,6 +1040,19 @@ impl<T: Write> Application<T> {
                     if selected == selection_size - 1 {
                         ng.custom_start_seed = None;
                         ng.custom_start_board = None;
+                    } else if selected == selection_size - 2 {
+                        let new_layout_idx = if let Some(i) =
+                            crate::game_modifiers::combo_mode::LAYOUTS
+                                .iter()
+                                .position(|lay| *lay == ng.combo_start_layout)
+                        {
+                            let layout_cnt = crate::game_modifiers::combo_mode::LAYOUTS.len();
+                            (i + 1) % layout_cnt
+                        } else {
+                            0
+                        };
+                        ng.combo_start_layout =
+                            crate::game_modifiers::combo_mode::LAYOUTS[new_layout_idx];
                     }
                 }
                 // Other event: don't care.
@@ -1245,7 +1258,7 @@ impl<T: Write> Application<T> {
         } = last_state;
         // if gamemode.name.as_ref().map(String::as_str) == Some("Puzzle")
         if gamemode.name.as_ref().is_some_and(|n| n == "Puzzle") && success {
-            self.settings.new_game.descent_mode_unlocked = true;
+            self.settings.new_game.experimental_mode_unlocked = true;
         }
         let mut selected = 0usize;
         loop {

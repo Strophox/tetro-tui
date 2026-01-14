@@ -193,6 +193,7 @@ pub struct LockingData {
 /// designated by the `bool` stored with it.
 ///
 /// No limitations may allow for endless games.
+// FIXME: Better representation, e.g. as `Limit` type enum + vec of (bool, Limit).
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Default, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Limits {
