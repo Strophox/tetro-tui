@@ -172,10 +172,10 @@ impl Default for GraphicsSettings {
 #[derive(
     Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug, serde::Serialize, serde::Deserialize,
 )]
-pub enum SaveGranularity {
+pub enum SavefileGranularity {
     Nothing,
     Settings,
-    SettingsAndGames,
+    Everything,
 }
 
 #[serde_with::serde_as]
@@ -196,67 +196,72 @@ pub struct Settings {
     config_slots_that_should_not_be_changed: usize,
     config_active: usize,
     new_game: NewGameSettings,
-    save_on_exit: SaveGranularity,
+    save_on_exit: SavefileGranularity,
 }
 
 impl Default for Settings {
     fn default() -> Self {
+        let graphics_slots = vec![
+            ("default".to_string(), GraphicsSettings::default()),
+            (
+                "high focus".to_string(),
+                GraphicsSettings {
+                    palette_active_lockedtiles: 0,
+                    render_effects: false,
+                    game_fps: 60.0,
+                    ..GraphicsSettings::default()
+                },
+            ),
+        ];
+        let palette_slots = vec![
+            ("Monochrome".to_string(), empty_palette()), // NOTE: The slot at index 0 is the special 'monochrome'/no palette slot.
+            ("16-color".to_string(), color16_palette()),
+            ("Fullcolor".to_string(), fullcolor_palette()),
+            ("Experimental/Custom".to_string(), experimental_palette()),
+        ];
+        let keybinds_slots = vec![
+            ("tetrs default".to_string(), tetrs_default_keybinds()),
+            ("Vim-like".to_string(), vim_keybinds()),
+            ("TTC default".to_string(), guideline_keybinds()),
+        ];
+        let config_slots = vec![
+            ("default".to_string(), GameConfig::default()),
+            (
+                "high finesse".to_string(),
+                GameConfig {
+                    preview_count: 9,
+                    delayed_auto_shift: Duration::from_millis(110),
+                    auto_repeat_rate: Duration::from_millis(0),
+                    ..GameConfig::default()
+                },
+            ),
+        ];
+        let new_game = NewGameSettings {
+            custom_initial_gravity: 1,
+            custom_increase_gravity: true,
+            custom_mode_limit: None,
+            descent_mode_unlocked: false,
+            cheese_mode_gravity: 0,
+            cheese_mode_gap_size: 1,
+            cheese_mode_limit: Some(NonZeroUsize::try_from(20).unwrap()),
+            combo_start_tiles: game_modifiers::combo_mode::LAYOUTS[0],
+            custom_start_board: None,
+            custom_start_seed: None,
+        };
         Self {
-            graphics_slots_that_should_not_be_changed: 1,
-            graphics_slots: vec![
-                ("default".to_string(), GraphicsSettings::default()),
-                (
-                    "high focus".to_string(),
-                    GraphicsSettings {
-                        palette_active_lockedtiles: 0,
-                        render_effects: false,
-                        game_fps: 60.0,
-                        ..GraphicsSettings::default()
-                    },
-                ),
-            ],
+            graphics_slots_that_should_not_be_changed: graphics_slots.len(),
+            graphics_slots,
             graphics_active: 0,
-            palette_slots: vec![
-                ("Monochrome".to_string(), empty_palette()), // NOTE: The slot at index 0 is the special 'monochrome'/no palette slot.
-                ("16-color".to_string(), color16_palette()),
-                ("Fullcolor".to_string(), fullcolor_palette()),
-                ("Experimental/Custom".to_string(), experimental_palette()),
-            ],
-            palette_slots_that_should_not_be_changed: 3,
-            keybinds_slots_that_should_not_be_changed: 3,
-            keybinds_slots: vec![
-                ("tetrs default".to_string(), tetrs_default_keybinds()),
-                ("Vim-like".to_string(), vim_keybinds()),
-                ("TTC default".to_string(), guideline_keybinds()),
-            ],
+            palette_slots_that_should_not_be_changed: palette_slots.len(),
+            palette_slots,
+            keybinds_slots_that_should_not_be_changed: keybinds_slots.len(),
+            keybinds_slots,
             keybinds_active: 0,
-            config_slots_that_should_not_be_changed: 1,
-            config_slots: vec![
-                ("default".to_string(), GameConfig::default()),
-                (
-                    "high finesse".to_string(),
-                    GameConfig {
-                        preview_count: 9,
-                        delayed_auto_shift: Duration::from_millis(110),
-                        auto_repeat_rate: Duration::from_millis(0),
-                        ..GameConfig::default()
-                    },
-                ),
-            ],
+            config_slots_that_should_not_be_changed: config_slots.len(),
+            config_slots,
             config_active: 0,
-            new_game: NewGameSettings {
-                custom_initial_gravity: 1,
-                custom_increase_gravity: true,
-                custom_mode_limit: None,
-                descent_mode_unlocked: false,
-                cheese_mode_gravity: 0,
-                cheese_mode_gap_size: 1,
-                cheese_mode_limit: Some(NonZeroUsize::try_from(20).unwrap()),
-                combo_start_tiles: game_modifiers::combo_mode::LAYOUTS[0],
-                custom_start_board: None,
-                custom_start_seed: None,
-            },
-            save_on_exit: SaveGranularity::Nothing,
+            new_game,
+            save_on_exit: SavefileGranularity::Nothing,
         }
     }
 }
@@ -304,7 +309,7 @@ impl<T: Write> Drop for Application<T> {
         // FIXME: Handle errors?
         let savefile_path = Self::savefile_path();
         // If the user wants their data stored, try to do so.
-        if self.settings.save_on_exit != SaveGranularity::Nothing {
+        if self.settings.save_on_exit != SavefileGranularity::Nothing {
             if let Err(_e) = self.store_save(savefile_path) {
                 // FIXME: Make this debuggable.
                 //eprintln!("Could not save settings this time: {e} ");
@@ -379,7 +384,7 @@ impl<T: Write> Application<T> {
 
     fn store_save(&mut self, path: PathBuf) -> io::Result<()> {
         // Only save past games if needed.
-        self.past_games = if self.settings.save_on_exit == SaveGranularity::SettingsAndGames {
+        self.past_games = if self.settings.save_on_exit == SavefileGranularity::Everything {
             self.past_games
                 .iter()
                 .filter(|finished_game_stats| {
@@ -1434,9 +1439,9 @@ impl<T: Write> Application<T> {
                 format!(
                     "Keep save file: {}",
                     match self.settings.save_on_exit {
-                        SaveGranularity::Nothing => "OFF*",
-                        SaveGranularity::Settings => "ON but only settings (no scores)",
-                        SaveGranularity::SettingsAndGames => "ON",
+                        SavefileGranularity::Nothing => "OFF*",
+                        SavefileGranularity::Settings => "ON--only settings, no scores",
+                        SavefileGranularity::Everything => "ON",
                     }
                 ),
             ];
@@ -1463,7 +1468,7 @@ impl<T: Write> Application<T> {
                 .queue(PrintStyledContent(
                     format!(
                         "{:^w_main$}",
-                        if self.settings.save_on_exit == SaveGranularity::Nothing {
+                        if self.settings.save_on_exit == SavefileGranularity::Nothing {
                             "(*WARNING: current data will be lost on exit)".to_string()
                         } else {
                             format!("(Save file at {:?})", Self::savefile_path())
@@ -1500,11 +1505,7 @@ impl<T: Write> Application<T> {
                     1 => break Ok(MenuUpdate::Push(Menu::AdjustKeybinds)),
                     2 => break Ok(MenuUpdate::Push(Menu::AdjustGameplay)),
                     3 => {
-                        self.settings.save_on_exit = match self.settings.save_on_exit {
-                            SaveGranularity::Nothing => SaveGranularity::SettingsAndGames,
-                            SaveGranularity::Settings => SaveGranularity::Nothing,
-                            SaveGranularity::SettingsAndGames => SaveGranularity::Settings,
-                        };
+                        self.settings.save_on_exit = SavefileGranularity::Everything;
                     }
                     _ => {}
                 },
@@ -1531,12 +1532,13 @@ impl<T: Write> Application<T> {
                 }) => {
                     if selected == 3 {
                         self.settings.save_on_exit = match self.settings.save_on_exit {
-                            SaveGranularity::Nothing => SaveGranularity::SettingsAndGames,
-                            SaveGranularity::Settings => SaveGranularity::Nothing,
-                            SaveGranularity::SettingsAndGames => SaveGranularity::Settings,
+                            SavefileGranularity::Nothing => SavefileGranularity::Everything,
+                            SavefileGranularity::Settings => SavefileGranularity::Nothing,
+                            SavefileGranularity::Everything => SavefileGranularity::Settings,
                         };
                     }
                 }
+
                 Event::Key(KeyEvent {
                     code: KeyCode::Left | KeyCode::Char('h'),
                     kind: Press | Repeat,
@@ -1544,12 +1546,24 @@ impl<T: Write> Application<T> {
                 }) => {
                     if selected == 3 {
                         self.settings.save_on_exit = match self.settings.save_on_exit {
-                            SaveGranularity::Nothing => SaveGranularity::Settings,
-                            SaveGranularity::Settings => SaveGranularity::SettingsAndGames,
-                            SaveGranularity::SettingsAndGames => SaveGranularity::Nothing,
+                            SavefileGranularity::Nothing => SavefileGranularity::Settings,
+                            SavefileGranularity::Settings => SavefileGranularity::Everything,
+                            SavefileGranularity::Everything => SavefileGranularity::Nothing,
                         };
                     }
                 }
+
+                // Set save_on_exit to false.
+                Event::Key(KeyEvent {
+                    code: KeyCode::Delete | KeyCode::Char('d'),
+                    kind: Press,
+                    ..
+                }) => {
+                    if selected == 3 {
+                        self.settings.save_on_exit = SavefileGranularity::Nothing;
+                    }
+                }
+
                 // Other event: Just ignore.
                 _ => {}
             }
@@ -1805,8 +1819,7 @@ impl<T: Write> Application<T> {
                     ..
                 }) => {
                     if selected == 0 {
-                        self.settings.keybinds_active +=
-                            self.settings.keybinds_slots.len() - 1;
+                        self.settings.keybinds_active += self.settings.keybinds_slots.len() - 1;
                         self.settings.keybinds_active %= self.settings.keybinds_slots.len();
                     }
                 }
@@ -2387,8 +2400,7 @@ impl<T: Write> Application<T> {
                     ..
                 }) => match selected {
                     0 => {
-                        self.settings.graphics_active +=
-                            self.settings.graphics_slots.len() - 1;
+                        self.settings.graphics_active += self.settings.graphics_slots.len() - 1;
                         self.settings.graphics_active %= self.settings.graphics_slots.len();
                     }
                     1 => {
