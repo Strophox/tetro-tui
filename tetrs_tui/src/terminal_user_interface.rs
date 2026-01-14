@@ -1254,6 +1254,7 @@ impl<T: Write> Application<T> {
             gravity,
             score,
             consecutive_line_clears: _,
+            rng: _,
         } = last_state;
         // if gamemode.name.as_ref().map(String::as_str) == Some("Puzzle")
         if gamemode.name.as_ref().is_some_and(|n| n == "Puzzle") && success {

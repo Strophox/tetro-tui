@@ -80,7 +80,6 @@ pub type FnGameMod = Box<
         &mut GameConfig,
         &mut GameMode,
         &mut GameState,
-        &mut GameRng,
         &mut FeedbackMessages,
         &ModifierPoint,
     ),
@@ -364,6 +363,8 @@ pub struct GameState {
     pub score: u64,
     /// The number of consecutive pieces that have been played and caused a line clear.
     pub consecutive_line_clears: u32,
+    /// The internal pseudo random number generator used.
+    pub rng: GameRng,
 }
 
 /// This builder exposes the ability to configure a new [`Game`] beyond just [`GameMode`].
@@ -380,7 +381,6 @@ pub struct GameBuilder {
     config: Option<GameConfig>,
     mode: GameMode,
     _state: (),
-    rng: Option<GameRng>,
     seed: Option<u64>,
     // FIXME: Remove this verbose note at some point?
     // There's a certain chain of considerations for 'modifiers' are not a normal part of the
@@ -415,7 +415,6 @@ pub struct Game {
     config: GameConfig,
     mode: GameMode,
     state: GameState,
-    rng: GameRng,
     seed: u64,
     modifiers: Vec<FnGameMod>,
 }
@@ -841,7 +840,6 @@ impl GameBuilder {
             mode: game_mode,
             config: None,
             _state: (),
-            rng: None,
             seed: None,
             _modifiers: (),
         }
@@ -875,11 +873,8 @@ impl GameBuilder {
                 gravity,
                 score: 0,
                 consecutive_line_clears: 0,
+                rng: GameRng::seed_from_u64(seed),
             },
-            rng: self
-                .rng
-                .clone()
-                .unwrap_or_else(|| GameRng::seed_from_u64(seed)),
             seed,
             modifiers: modifiers.into_iter().collect(),
         }
@@ -910,7 +905,6 @@ impl fmt::Debug for Game {
             .field("config", &self.config)
             .field("mode", &self.mode)
             .field("state", &self.state)
-            .field("rng", &self.rng)
             .field("seed", &self.seed)
             .field("modifiers", &std::any::type_name_of_val(&self.modifiers))
             .finish()
@@ -1028,7 +1022,6 @@ impl Game {
                 &mut self.config,
                 &mut self.mode,
                 &mut self.state,
-                &mut self.rng,
                 feedback_msgs,
                 modifier_point,
             );
@@ -1262,7 +1255,7 @@ impl Game {
                     self.state.next_pieces.extend(
                         self.config
                             .tetromino_generator
-                            .with_rng(&mut self.rng)
+                            .with_rng(&mut self.state.rng)
                             .take(1),
                     );
                 }
@@ -1295,14 +1288,14 @@ impl Game {
                 let tetromino = self.state.next_pieces.pop_front().unwrap_or_else(|| {
                     self.config
                         .tetromino_generator
-                        .with_rng(&mut self.rng)
+                        .with_rng(&mut self.state.rng)
                         .next()
                         .expect("piece generator ran out before game finished")
                 });
                 self.state.next_pieces.extend(
                     self.config
                         .tetromino_generator
-                        .with_rng(&mut self.rng)
+                        .with_rng(&mut self.state.rng)
                         .take(
                             self.config
                                 .preview_count

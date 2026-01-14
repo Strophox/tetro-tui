@@ -246,6 +246,7 @@ impl Renderer for CachedRenderer {
             gravity,
             score,
             consecutive_line_clears: _,
+            rng: _,
         } = game.state();
         // Screen: some titles.
         let mode_name = game

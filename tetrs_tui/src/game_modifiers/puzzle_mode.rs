@@ -61,7 +61,7 @@ pub fn new_game() -> Game {
     let mut current_puzzle_attempt = 1;
     let mut current_puzzle_piececnt_limit = 0;
     let puzzle_mode: FnGameMod = Box::new(
-        move |config, _mode, state, _rng, feedback_events, modifier_point| {
+        move |config, _mode, state, feedback_events, modifier_point| {
             let game_piececnt = usize::try_from(state.pieces_played.iter().sum::<u32>()).unwrap();
             if !init {
                 let piececnt = load_puzzle(

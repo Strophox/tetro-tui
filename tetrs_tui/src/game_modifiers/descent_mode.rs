@@ -67,7 +67,7 @@ pub fn new_game() -> Game {
     let mut depth = 1u32;
     let mut init = false;
     let descent_mode: FnGameMod = Box::new(
-        move |config, _mode, state, _rng, _feedback_events, modifier_point| {
+        move |config, _mode, state, _feedback_events, modifier_point| {
             if !init {
                 for (line, worm_line) in state
                     .board

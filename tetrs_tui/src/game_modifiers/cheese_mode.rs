@@ -30,7 +30,7 @@ pub fn new_game(cheese_limit: Option<NonZeroUsize>, gap_size: usize, gravity: u3
     let mut temp_normal_tally = 0;
     let mut init = false;
     let cheese_mode: FnGameMod = Box::new(
-        move |_config, _mode, state, _rng, _feedback_events, modifier_point| {
+        move |_config, _mode, state, _feedback_events, modifier_point| {
             if !init {
                 for (line, cheese) in state.board.iter_mut().take(10).rev().zip(&mut line_source) {
                     *line = cheese;

@@ -46,7 +46,7 @@ pub fn new_game(gravity: u32, initial_layout: u16) -> Game {
     let mut line_source = four_wide_lines();
     let mut init = false;
     let combo_mode: FnGameMod = Box::new(
-        move |_config, _mode, state, _rng, _feedback_events, modifier_point| {
+        move |_config, _mode, state, _feedback_events, modifier_point| {
             if !init {
                 for (line, four_well) in state
                     .board
