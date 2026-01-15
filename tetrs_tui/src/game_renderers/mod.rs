@@ -129,6 +129,40 @@ pub fn oklch3_palette() -> Palette {
     HashMap::from(COLORS_OKLCH_P3PICK_HUE_INC)
 }
 
+pub fn gruvbox1_palette() -> Palette {
+    #[rustfmt::skip]
+    const COLORS_GRUVBOX_NORMAL: [(u8, Color); 7 + 3] = [
+        (  1, Color::Rgb{r:204,g: 36,b: 29}),
+        (  2, Color::Rgb{r:152,g:151,b: 26}),
+        (  3, Color::Rgb{r:215,g:153,b: 33}),
+        (  4, Color::Rgb{r: 69,g:133,b:136}),
+        (  5, Color::Rgb{r:177,g: 98,b:134}),
+        (  6, Color::Rgb{r:104,g:157,b:106}),
+        (  7, Color::Rgb{r:214,g: 93,b: 14}),
+        (253, Color::Rgb{r:  0,g:  0,b:  0}),
+        (254, Color::Rgb{r:127,g:127,b:127}),
+        (255, Color::Rgb{r:255,g:255,b:255}),
+    ];
+    HashMap::from(COLORS_GRUVBOX_NORMAL)
+}
+
+pub fn gruvbox2_palette() -> Palette {
+    #[rustfmt::skip]
+    const COLORS_GRUVBOX_LIGHT: [(u8, Color); 7 + 3] = [
+        (  1, Color::Rgb{r:251,g: 73,b: 52}),
+        (  2, Color::Rgb{r:184,g:187,b: 38}),
+        (  3, Color::Rgb{r:250,g:189,b: 47}),
+        (  4, Color::Rgb{r:131,g:165,b:152}),
+        (  5, Color::Rgb{r:211,g:134,b:155}),
+        (  6, Color::Rgb{r:142,g:192,b:124}),
+        (  7, Color::Rgb{r:254,g:128,b: 25}),
+        (253, Color::Rgb{r:  0,g:  0,b:  0}),
+        (254, Color::Rgb{r:127,g:127,b:127}),
+        (255, Color::Rgb{r:255,g:255,b:255}),
+    ];
+    HashMap::from(COLORS_GRUVBOX_LIGHT)
+}
+
 pub fn tet_str_small(t: &Tetromino) -> &'static str {
     match t {
         Tetromino::O => "██",

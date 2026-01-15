@@ -33,7 +33,7 @@ use crate::{
     },
     game_modifiers,
     game_renderers::{
-        Palette, Renderer, cached_renderer::CachedRenderer, color16_palette, empty_palette, fullcolor_palette, oklch1_palette, oklch2_palette, oklch3_palette, tet_str_small
+        Palette, Renderer, cached_renderer::CachedRenderer, color16_palette, empty_palette, fullcolor_palette, gruvbox1_palette, gruvbox2_palette, oklch1_palette, oklch2_palette, oklch3_palette, tet_str_small
     },
 };
 
@@ -213,6 +213,8 @@ impl Default for Settings {
             ("Monochrome".to_string(), empty_palette()), // NOTE: The slot at index 0 is the special 'monochrome'/no palette slot.
             ("16-color".to_string(), color16_palette()),
             ("Fullcolor".to_string(), fullcolor_palette()),
+            ("Experimental: Gruvbox1".to_string(), gruvbox1_palette()),
+            ("Experimental: Gruvbox2".to_string(), gruvbox2_palette()),
             ("Experimental: Oklch1".to_string(), oklch1_palette()),
             ("Experimental: Oklch2".to_string(), oklch2_palette()),
             ("Experimental: Oklch3".to_string(), oklch3_palette()),
