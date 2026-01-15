@@ -900,7 +900,7 @@ Finding a proper abstraction for `Game::update` (allowing arbitrary-time user in
 Frontend-wise I may as well have used [Ratatui](https://crates.io/crates/ratatui/), but decided to just do some basic menus using trusty [Crossterm](https://crates.io/crates/crossterm) for cross-platform terminal manipulation.
 However, next time I should use a TUI crate so as to sleep more peacefully at night not having to take responsibility for the ~horrible ad-hoc code I wrote for the interface aaaAAAA .~
 
-On the Rust side of things I read / learned about / read:
+On the Rust side of things I read / learned about:
 - some primers on [coding](https://docs.kernel.org/rust/coding-guidelines.html) [style](https://doc.rust-lang.org/nightly/style-guide/) [guidelines](https://github.com/rust-lang/rust-analyzer/blob/master/docs/dev/style.md#getters--setters) & `cargo fmt` (~`#[rustfmt::skip]`~),
 - "[How to order Rust code](https://deterministic.space/how-to-order-rust-code.html)",
 - an introduction to [writing](https://doc.rust-lang.org/book/ch14-02-publishing-to-crates-io.html) [documentation](https://rust-lang.github.io/api-guidelines/documentation.html) (like the fact they can even contain [tested examples](https://blog.guillaume-gomez.fr/articles/2020-03-12+Guide+on+how+to+write+documentation+for+a+Rust+crate#Hiding-lines)) & `cargo doc`,
