@@ -60,6 +60,7 @@ pub fn color16_palette() -> Palette {
     HashMap::from(COLORS_COLOR16)
 }
 
+#[allow(dead_code)]
 pub fn experimental_palette() -> Palette {
     #[rustfmt::skip]
     const COLORS_EXPERIMENTAL: [(u8, Color); 7 + 3] = [
@@ -75,6 +76,57 @@ pub fn experimental_palette() -> Palette {
         (255, Color::Rgb{r:255,g:255,b:255}),
     ];
     HashMap::from(COLORS_EXPERIMENTAL)
+}
+
+pub fn oklch1_palette() -> Palette {
+    #[rustfmt::skip]
+    const COLORS_OKLCH: [(u8, Color); 7 + 3] = [
+        (  1, Color::Rgb{r:180,g:180,b: 75}),
+        (  2, Color::Rgb{r:  6,g:198,b:200}),
+        (  3, Color::Rgb{r:116,g:195,b:125}),
+        (  4, Color::Rgb{r:240,g:138,b:165}),
+        (  5, Color::Rgb{r:182,g:156,b:244}),
+        (  6, Color::Rgb{r:234,g:151,b: 89}),
+        (  7, Color::Rgb{r:101,g:181,b:249}),
+        (253, Color::Rgb{r:  0,g:  0,b:  0}),
+        (254, Color::Rgb{r:127,g:127,b:127}),
+        (255, Color::Rgb{r:255,g:255,b:255}),
+    ];
+    HashMap::from(COLORS_OKLCH)
+}
+
+pub fn oklch2_palette() -> Palette {
+    #[rustfmt::skip]
+    const COLORS_OKLCH_P3PICK: [(u8, Color); 7 + 3] = [
+        (  1, Color::Rgb{r:234,g:173,b: 55}),
+        (  2, Color::Rgb{r:  0,g:188,b:184}),
+        (  3, Color::Rgb{r:110,g:183,b: 76}),
+        (  4, Color::Rgb{r:242,g:113,b:141}),
+        (  5, Color::Rgb{r:168,g:138,b:250}),
+        (  6, Color::Rgb{r:240,g:124,b: 67}),
+        (  7, Color::Rgb{r: 49,g:169,b:253}),
+        (253, Color::Rgb{r:  0,g:  0,b:  0}),
+        (254, Color::Rgb{r:127,g:127,b:127}),
+        (255, Color::Rgb{r:255,g:255,b:255}),
+    ];
+    HashMap::from(COLORS_OKLCH_P3PICK)
+}
+
+pub fn oklch3_palette() -> Palette {
+    #[rustfmt::skip]
+    const COLORS_OKLCH_P3PICK_HUE_INC: [(u8, Color); 7 + 3] = [
+        (  1, Color::Rgb{r:239,g:175,b: 50}),
+        (  2, Color::Rgb{r:  0,g:199,b:198}),
+        (  3, Color::Rgb{r:108,g:189,b: 70}),
+        (  4, Color::Rgb{r:255,g: 99,b:133}),
+        (  5, Color::Rgb{r:164,g:130,b:255}),
+        (  6, Color::Rgb{r:245,g:122,b: 62}),
+        (  7, Color::Rgb{r: 49,g:159,b:253}),
+        (253, Color::Rgb{r:  0,g:  0,b:  0}),
+        (254, Color::Rgb{r:127,g:127,b:127}),
+        (255, Color::Rgb{r:255,g:255,b:255}),
+    ];
+    HashMap::from(COLORS_OKLCH_P3PICK_HUE_INC)
 }
 
 pub fn tet_str_small(t: &Tetromino) -> &'static str {

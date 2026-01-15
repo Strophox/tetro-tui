@@ -27,17 +27,13 @@ use tetrs_engine::{
 
 use crate::{
     game_input_handlers::{
-        combo_bot_input_handler::ComboBotInputHandler,
-        terminal_input_handler::{
-            guideline_keybinds, tetrs_default_keybinds, vim_keybinds, Keybinds,
-            TerminalInputHandler,
-        },
-        InputSignal,
+        InputSignal, combo_bot_input_handler::ComboBotInputHandler, terminal_input_handler::{
+            Keybinds, TerminalInputHandler, guideline_keybinds, tetrs_default_keybinds, vim_keybinds
+        }
     },
     game_modifiers,
     game_renderers::{
-        cached_renderer::CachedRenderer, color16_palette, empty_palette, experimental_palette,
-        fullcolor_palette, tet_str_small, Palette, Renderer,
+        Palette, Renderer, cached_renderer::CachedRenderer, color16_palette, empty_palette, fullcolor_palette, oklch1_palette, oklch2_palette, oklch3_palette, tet_str_small
     },
 };
 
@@ -217,7 +213,9 @@ impl Default for Settings {
             ("Monochrome".to_string(), empty_palette()), // NOTE: The slot at index 0 is the special 'monochrome'/no palette slot.
             ("16-color".to_string(), color16_palette()),
             ("Fullcolor".to_string(), fullcolor_palette()),
-            ("Experimental/Custom".to_string(), experimental_palette()),
+            ("Experimental: Oklch1".to_string(), oklch1_palette()),
+            ("Experimental: Oklch2".to_string(), oklch2_palette()),
+            ("Experimental: Oklch3".to_string(), oklch3_palette()),
         ];
         let keybinds_slots = vec![
             ("tetrs default".to_string(), tetrs_default_keybinds()),
