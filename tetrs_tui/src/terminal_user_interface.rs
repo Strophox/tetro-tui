@@ -80,25 +80,12 @@ pub enum Glyphset {
 #[serde_with::serde_as]
 #[derive(PartialEq, Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct GraphicsSettings {
-    game_fps: f64,
-    show_fps: bool,
     pub glyphset: Glyphset,
     palette_active: usize,
     palette_active_lockedtiles: usize,
     pub render_effects: bool,
-}
-
-impl Default for GraphicsSettings {
-    fn default() -> Self {
-        Self {
-            game_fps: 30.0,
-            show_fps: false,
-            glyphset: Glyphset::Unicode,
-            palette_active: 2,
-            palette_active_lockedtiles: 2,
-            render_effects: true,
-        }
-    }
+    game_fps: f64,
+    show_fps: bool,
 }
 
 #[derive(
@@ -143,14 +130,23 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         let graphics_slots = vec![
-            ("default".to_owned(), GraphicsSettings::default()),
+            ("default".to_owned(), GraphicsSettings {
+                glyphset: Glyphset::Unicode,
+                palette_active: 3,
+                palette_active_lockedtiles: 3,
+                render_effects: true,
+                game_fps: 30.0,
+                show_fps: false,
+            }),
             (
                 "high focus".to_owned(),
                 GraphicsSettings {
+                    glyphset: Glyphset::Unicode,
+                    palette_active: 2,
                     palette_active_lockedtiles: 0,
                     render_effects: false,
                     game_fps: 60.0,
-                    ..GraphicsSettings::default()
+                    show_fps: false,
                 },
             ),
         ];
