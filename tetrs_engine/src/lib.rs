@@ -1080,7 +1080,10 @@ impl Game {
                     let event_feedback_msgs = self.handle_event(event, event_time);
                     self.state.time = event_time;
                     feedback_msgs.extend(event_feedback_msgs);
-                    self.run_modifier_updates(&mut feedback_msgs, &ModificationPoint::AfterEvent(event));
+                    self.run_modifier_updates(
+                        &mut feedback_msgs,
+                        &ModificationPoint::AfterEvent(event),
+                    );
                     // Stop simulation early if event or modifier ended game.
                     self.run_game_result_update();
                     if self.ended() {
@@ -1095,7 +1098,10 @@ impl Game {
                     // FIXME(Strophox): Why are we `take`ing the state?
                     // Update button inputs.
                     if let Some(pressed_buttons) = new_button_state.take() {
-                        self.run_modifier_updates(&mut feedback_msgs, &ModificationPoint::BeforeInput);
+                        self.run_modifier_updates(
+                            &mut feedback_msgs,
+                            &ModificationPoint::BeforeInput,
+                        );
                         if self.config.feedback_verbosity == FeedbackVerbosity::Debug {
                             feedback_msgs.push((
                                 update_time,
@@ -1106,7 +1112,10 @@ impl Game {
                             ));
                         }
                         self.run_input_update(pressed_buttons, update_time);
-                        self.run_modifier_updates(&mut feedback_msgs, &ModificationPoint::AfterInput);
+                        self.run_modifier_updates(
+                            &mut feedback_msgs,
+                            &ModificationPoint::AfterInput,
+                        );
                     } else {
                         self.run_game_result_update();
                         break 'event_simulation;
@@ -1259,7 +1268,7 @@ impl Game {
     /// It also returns some feedback events caused by clearing lines, locking the piece, etc.
     fn handle_event(&mut self, event: GameEvent, event_time: GameTime) -> FeedbackMessages {
         // Active piece touches the ground before update (or doesn't exist, counts as not touching).
-        let mut feedback_events = Vec::new();
+        let mut feedback_msgs = Vec::new();
         let prev_piece_data = self.state.active_piece_data;
         let prev_piece = prev_piece_data.unzip().0;
         let next_piece = match event {
@@ -1310,12 +1319,12 @@ impl Game {
                         .rotate(&raw_piece, &self.state.board, turns)
                         .unwrap_or(raw_piece);
                     if self.config.feedback_verbosity != FeedbackVerbosity::Quiet {
-                        feedback_events.push((event_time, Feedback::PieceSpawned(next_piece)));
+                        feedback_msgs.push((event_time, Feedback::PieceSpawned(next_piece)));
                     }
                     // Newly spawned piece conflicts with board - Game over.
                     if !next_piece.fits(&self.state.board) {
                         self.state.result = Some(Err(GameOver::BlockOut));
-                        return feedback_events;
+                        return feedback_msgs;
                     }
                     self.state.events.insert(GameEvent::Fall, event_time);
                     Some(next_piece)
@@ -1432,8 +1441,7 @@ impl Game {
                 // Move piece all the way down.
                 let dropped_piece = prev_piece.well_piece(&self.state.board);
                 if self.config.feedback_verbosity != FeedbackVerbosity::Quiet {
-                    feedback_events
-                        .push((event_time, Feedback::HardDrop(prev_piece, dropped_piece)));
+                    feedback_msgs.push((event_time, Feedback::HardDrop(prev_piece, dropped_piece)));
                 }
                 self.state.events.insert(
                     GameEvent::LockTimer,
@@ -1448,7 +1456,7 @@ impl Game {
             GameEvent::Lock => {
                 let prev_piece = prev_piece.expect("lock event but no active piece");
                 if self.config.feedback_verbosity != FeedbackVerbosity::Quiet {
-                    feedback_events.push((event_time, Feedback::PieceLocked(prev_piece)));
+                    feedback_msgs.push((event_time, Feedback::PieceLocked(prev_piece)));
                 }
                 // Attempt to lock active piece fully above skyline - Game over.
                 if prev_piece
@@ -1457,7 +1465,7 @@ impl Game {
                     .all(|((_, y), _)| *y >= Game::SKYLINE)
                 {
                     self.state.result = Some(Err(GameOver::LockOut));
-                    return feedback_events;
+                    return feedback_msgs;
                 }
                 self.state.pieces_locked[prev_piece.shape] += 1;
                 // Pre-save whether piece was spun into lock position.
@@ -1500,11 +1508,11 @@ impl Game {
                         combo: n_combo,
                     };
                     if self.config.feedback_verbosity != FeedbackVerbosity::Quiet {
-                        feedback_events.push((
+                        feedback_msgs.push((
                             event_time,
                             Feedback::LineClears(lines_cleared, self.config.line_clear_delay),
                         ));
-                        feedback_events.push((event_time, yippie));
+                        feedback_msgs.push((event_time, yippie));
                     }
                 }
                 // Clear all events and only put in line clear / appearance delay.
@@ -1580,7 +1588,7 @@ impl Game {
                 ),
             )
         });
-        feedback_events
+        feedback_msgs
     }
 
     // FIXME: THIS is, by far, the ugliest part of this entire program. For the love of what's good, I hope this code can someday be surgically excised and drop-in replaced with elegant code.

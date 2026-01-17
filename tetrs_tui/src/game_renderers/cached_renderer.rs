@@ -221,7 +221,7 @@ impl Renderer for CachedRenderer {
         app: &mut Application<T>,
         game: &Game,
         meta_data: &GameMetaData,
-        new_feedback_events: FeedbackMessages,
+        new_feedback_msgs: FeedbackMessages,
         screen_resized: bool,
     ) -> io::Result<()>
     where
@@ -267,7 +267,7 @@ impl Renderer for CachedRenderer {
                 Stat::PointsScored(s) => ("Points left:", s.saturating_sub(*score).to_string()),
             }
         } else {
-            ("", "".to_string())
+            ("", "".to_owned())
         };
         let f = |b| fmt_keybinds(b, app.settings().keybinds());
         let mut icons_move = format!("{}{}", f(Button::MoveLeft), f(Button::MoveRight));
@@ -528,7 +528,7 @@ impl Renderer for CachedRenderer {
         }
         // Update stored events.
         self.active_feedback.extend(
-            new_feedback_events
+            new_feedback_msgs
                 .into_iter()
                 .map(|(time, event)| (time, event, true)),
         );
@@ -676,7 +676,7 @@ impl Renderer for CachedRenderer {
                     let mut msg = Vec::new();
                     msg.push(format!("+{score_bonus}"));
                     if *perfect_clear {
-                        msg.push("Perfect".to_string());
+                        msg.push("Perfect".to_owned());
                     }
                     if *spin {
                         msg.push(format!("{shape:?}-Spin"));
@@ -738,7 +738,7 @@ impl Renderer for CachedRenderer {
         }
         self.active_feedback.retain(|elt| elt.2);
         // Draw messages.
-        for (y, (_event_time, message)) in self.messages.iter().rev().enumerate() {
+        for (y, (_timestamp, message)) in self.messages.iter().rev().enumerate() {
             let pos = (x_messages, y_messages + y);
             self.screen.buffer_str(message, None, pos);
         }

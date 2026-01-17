@@ -37,8 +37,7 @@ use crate::{
     game_modifiers,
     game_renderers::{
         cached_renderer::CachedRenderer, color16_palette, empty_palette, fullcolor_palette,
-        gruvbox1_palette, gruvbox2_palette, oklch1_palette, oklch2_palette, oklch3_palette,
-        tet_str_small, Palette, Renderer,
+        gruvbox_light_palette, gruvbox_palette, oklch2_palette, tet_str_small, Palette, Renderer,
     },
 };
 
@@ -53,11 +52,11 @@ pub type RecordedUserInput = Vec<(
 pub struct NewGameSettings {
     custom_initial_gravity: u32,
     custom_increase_gravity: bool,
-    custom_mode_limit: Option<Stat>,
-    cheese_mode_linelimit: Option<NonZeroUsize>,
-    cheese_mode_gap_size: usize,
-    cheese_mode_gravity: u32,
-    combo_mode_linelimit: Option<NonZeroUsize>,
+    custom_end_condition: Option<Stat>,
+    cheese_linelimit: Option<NonZeroUsize>,
+    cheese_gap_size: usize,
+    cheese_gravity: u32,
+    combo_linelimit: Option<NonZeroUsize>,
     combo_start_layout: u16,
     experimental_mode_unlocked: bool,
     /// Custom starting layout when playing Combo mode (4-wide rows), encoded as binary.
@@ -143,9 +142,9 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         let graphics_slots = vec![
-            ("default".to_string(), GraphicsSettings::default()),
+            ("default".to_owned(), GraphicsSettings::default()),
             (
-                "high focus".to_string(),
+                "high focus".to_owned(),
                 GraphicsSettings {
                     palette_active_lockedtiles: 0,
                     render_effects: false,
@@ -155,24 +154,22 @@ impl Default for Settings {
             ),
         ];
         let palette_slots = vec![
-            ("Monochrome".to_string(), empty_palette()), // NOTE: The slot at index 0 is the special 'monochrome'/no palette slot.
-            ("16-color".to_string(), color16_palette()),
-            ("Fullcolor".to_string(), fullcolor_palette()),
-            ("Experimental: Gruvbox1".to_string(), gruvbox1_palette()),
-            ("Experimental: Gruvbox2".to_string(), gruvbox2_palette()),
-            ("Experimental: Oklch1".to_string(), oklch1_palette()),
-            ("Experimental: Oklch2".to_string(), oklch2_palette()),
-            ("Experimental: Oklch3".to_string(), oklch3_palette()),
+            ("Monochrome".to_owned(), empty_palette()), // NOTE: The slot at index 0 is the special 'monochrome'/no palette slot.
+            ("16-color".to_owned(), color16_palette()),
+            ("Fullcolor".to_owned(), fullcolor_palette()),
+            ("Okpalette".to_owned(), oklch2_palette()),
+            ("Gruvbox".to_owned(), gruvbox_palette()),
+            ("Gruvbox (light)".to_owned(), gruvbox_light_palette()),
         ];
         let keybinds_slots = vec![
-            ("tetrs default".to_string(), tetrs_default_keybinds()),
-            ("Vim-like".to_string(), vim_keybinds()),
-            ("TTC default".to_string(), guideline_keybinds()),
+            ("tetrs default".to_owned(), tetrs_default_keybinds()),
+            ("Vim-like".to_owned(), vim_keybinds()),
+            ("TTC default".to_owned(), guideline_keybinds()),
         ];
         let config_slots = vec![
-            ("default".to_string(), Config::default()),
+            ("default".to_owned(), Config::default()),
             (
-                "high finesse".to_string(),
+                "high finesse".to_owned(),
                 Config {
                     preview_count: 9,
                     delayed_auto_shift: Duration::from_millis(110),
@@ -186,11 +183,11 @@ impl Default for Settings {
             custom_increase_gravity: true,
             custom_start_board: None,
             custom_start_seed: None,
-            custom_mode_limit: None,
-            cheese_mode_linelimit: Some(NonZeroUsize::try_from(20).unwrap()),
-            cheese_mode_gravity: 0,
-            cheese_mode_gap_size: 1,
-            combo_mode_linelimit: Some(NonZeroUsize::try_from(20).unwrap()),
+            custom_end_condition: None,
+            cheese_linelimit: Some(NonZeroUsize::try_from(20).unwrap()),
+            cheese_gravity: 0,
+            cheese_gap_size: 1,
+            combo_linelimit: Some(NonZeroUsize::try_from(20).unwrap()),
             combo_start_layout: game_modifiers::combo::LAYOUTS[0],
             experimental_mode_unlocked: false,
         };
@@ -293,7 +290,7 @@ impl std::fmt::Display for Menu {
         let name = match self {
             Menu::Title => "Title Screen",
             Menu::NewGame => "New Game",
-            Menu::Game { .. } => "Game", //&format!("Game {}", game.mode().name.as_ref().map_or("".to_string(), |ref name| format!("({name})"))),
+            Menu::Game { .. } => "Game", //&format!("Game {}", game.mode().name.as_ref().map_or("".to_owned(), |ref name| format!("({name})"))),
             Menu::GameOver(_) => "Game Over",
             Menu::GameComplete(_) => "Game Completed",
             Menu::Pause => "Pause",
@@ -642,7 +639,7 @@ impl<T: Write> Application<T> {
                     state: _,
                 }) => {
                     break Ok(MenuUpdate::Push(Menu::Quit(
-                        "exited with ctrl-c".to_string(),
+                        "exited with ctrl-c".to_owned(),
                     )))
                 }
                 Event::Key(KeyEvent {
@@ -698,7 +695,7 @@ impl<T: Write> Application<T> {
             Menu::Settings,
             Menu::Scores,
             Menu::About,
-            Menu::Quit("quit from title menu".to_string()),
+            Menu::Quit("quit from title menu".to_owned()),
         ];
         self.generic_placeholder_menu("", selection)
     }
@@ -709,25 +706,25 @@ impl<T: Write> Application<T> {
             (
                 "40-Lines",
                 Stat::TimeElapsed(Duration::ZERO),
-                "How fast can you clear forty lines?".to_string(),
+                "How fast can you clear forty lines?".to_owned(),
                 Box::new(|| Game::builder().rules(Rules::forty_lines()).build()),
             ),
             (
                 "Marathon",
                 Stat::PointsScored(0),
-                "Can you make it to level 15?".to_string(),
+                "Can you make it to level 15?".to_owned(),
                 Box::new(|| Game::builder().rules(Rules::marathon()).build()),
             ),
             (
                 "Time Trial",
                 Stat::PointsScored(0),
-                "What highscore can you get in 3 minutes?".to_string(),
+                "What highscore can you get in 3 minutes?".to_owned(),
                 Box::new(|| Game::builder().rules(Rules::time_trial()).build()),
             ),
             (
                 "Master",
                 Stat::PointsScored(0),
-                "Can you clear 15 levels at instant gravity?".to_string(),
+                "Can you clear 15 levels at instant gravity?".to_owned(),
                 Box::new(|| Game::builder().rules(Rules::master()).build()),
             ),
         ];
@@ -736,7 +733,7 @@ impl<T: Write> Application<T> {
             (
                 "Puzzle",
                 Stat::TimeElapsed(Duration::ZERO),
-                "Get perfect clears in all 24 puzzle levels.".to_string(),
+                "Get perfect clears in all 24 puzzle levels.".to_owned(),
                 Box::new(game_modifiers::puzzle::new_game),
             ),
             (
@@ -744,17 +741,17 @@ impl<T: Write> Application<T> {
                 Stat::PiecesLocked(0),
                 format!(
                     "Eat through lines like Swiss cheese. Limit: {:?}",
-                    self.settings.new_game_settings.cheese_mode_linelimit
+                    self.settings.new_game_settings.cheese_linelimit
                 ),
                 Box::new({
-                    let cheese_mode_limit = self.settings.new_game_settings.cheese_mode_linelimit;
-                    let cheese_mode_gap_size = self.settings.new_game_settings.cheese_mode_gap_size;
-                    let cheese_mode_gravity = self.settings.new_game_settings.cheese_mode_gravity;
+                    let cheese_limit = self.settings.new_game_settings.cheese_linelimit;
+                    let cheese_gap_size = self.settings.new_game_settings.cheese_gap_size;
+                    let cheese_gravity = self.settings.new_game_settings.cheese_gravity;
                     move || {
                         game_modifiers::cheese::new_game(
-                            cheese_mode_limit,
-                            cheese_mode_gap_size,
-                            cheese_mode_gravity,
+                            cheese_limit,
+                            cheese_gap_size,
+                            cheese_gravity,
                         )
                     }
                 }),
@@ -764,7 +761,7 @@ impl<T: Write> Application<T> {
                 Stat::TimeElapsed(Duration::ZERO),
                 format!(
                     "Get consecutive line clears. Limit: {:?}{}",
-                    self.settings.new_game_settings.combo_mode_linelimit,
+                    self.settings.new_game_settings.combo_linelimit,
                     if self.settings.new_game_settings.combo_start_layout
                         != crate::game_modifiers::combo::LAYOUTS[0]
                     {
@@ -773,7 +770,7 @@ impl<T: Write> Application<T> {
                             self.settings.new_game_settings.combo_start_layout
                         )
                     } else {
-                        "".to_string()
+                        "".to_owned()
                     }
                 ),
                 Box::new({
@@ -797,7 +794,7 @@ impl<T: Write> Application<T> {
                     (
                         "Descent (experimental)",
                         Stat::PointsScored(0),
-                        "Spin the piece and collect 'gems' by touching them.".to_string(),
+                        "Spin the piece and collect 'gems' by touching them.".to_owned(),
                         Box::new(game_modifiers::descent::new_game),
                     ),
                 )
@@ -879,7 +876,7 @@ impl<T: Write> Application<T> {
                     ),
                     format!(
                         "| Limit: {:?} [→]",
-                        self.settings.new_game_settings.custom_mode_limit
+                        self.settings.new_game_settings.custom_end_condition
                     ),
                 ];
                 for (j, stat_str) in stats_strs.into_iter().enumerate() {
@@ -895,7 +892,11 @@ impl<T: Write> Application<T> {
                             format!(
                                 ">{stat_str}{}",
                                 if customization_selected != 3
-                                    || self.settings.new_game_settings.custom_mode_limit.is_some()
+                                    || self
+                                        .settings
+                                        .new_game_settings
+                                        .custom_end_condition
+                                        .is_some()
                                 {
                                     " [↓|↑]"
                                 } else {
@@ -918,7 +919,7 @@ impl<T: Write> Application<T> {
                     state: _,
                 }) => {
                     break Ok(MenuUpdate::Push(Menu::Quit(
-                        "exited with ctrl-c".to_string(),
+                        "exited with ctrl-c".to_owned(),
                     )))
                 }
                 // Exit menu.
@@ -941,12 +942,12 @@ impl<T: Write> Application<T> {
                             &special_gamemodes[selected - normal_gamemodes.len()];
                         (*name, stat, func())
                     } else {
-                        let end_conditions = match self.settings.new_game_settings.custom_mode_limit
-                        {
-                            Some(c) => vec![(c, true)],
-                            None => vec![],
-                        };
-                        let custom_mode = Rules {
+                        let end_conditions =
+                            match self.settings.new_game_settings.custom_end_condition {
+                                Some(c) => vec![(c, true)],
+                                None => vec![],
+                            };
+                        let rules = Rules {
                             initial_gravity: self.settings.new_game_settings.custom_initial_gravity,
                             increase_gravity: self
                                 .settings
@@ -955,7 +956,7 @@ impl<T: Write> Application<T> {
                             end_conditions,
                         };
                         let mut custom_game_builder = Game::builder();
-                        custom_game_builder.rules(custom_mode);
+                        custom_game_builder.rules(rules);
                         custom_game_builder.config(self.settings.config().clone());
                         if let Some(seed) = self.settings.new_game_settings.custom_start_seed {
                             custom_game_builder.seed(seed);
@@ -1006,7 +1007,7 @@ impl<T: Write> Application<T> {
                                     !self.settings.new_game_settings.custom_increase_gravity;
                             }
                             3 => {
-                                match self.settings.new_game_settings.custom_mode_limit {
+                                match self.settings.new_game_settings.custom_end_condition {
                                     Some(Stat::TimeElapsed(ref mut dur)) => {
                                         *dur += d_time;
                                     }
@@ -1052,7 +1053,7 @@ impl<T: Write> Application<T> {
                                     !self.settings.new_game_settings.custom_increase_gravity;
                             }
                             3 => {
-                                match self.settings.new_game_settings.custom_mode_limit {
+                                match self.settings.new_game_settings.custom_end_condition {
                                     Some(Stat::TimeElapsed(ref mut t)) => {
                                         *t = t.saturating_sub(d_time);
                                     }
@@ -1087,13 +1088,13 @@ impl<T: Write> Application<T> {
                     if selected == selection_size - 1 && customization_selected > 0 {
                         customization_selected += customization_selection_size - 1
                     } else if selected == selection_size - 2 {
-                        if let Some(limit) = self.settings.new_game_settings.combo_mode_linelimit {
-                            self.settings.new_game_settings.combo_mode_linelimit =
+                        if let Some(limit) = self.settings.new_game_settings.combo_linelimit {
+                            self.settings.new_game_settings.combo_linelimit =
                                 NonZeroUsize::try_from(limit.get() - 1).ok();
                         }
                     } else if selected == selection_size - 3 {
-                        if let Some(limit) = self.settings.new_game_settings.cheese_mode_linelimit {
-                            self.settings.new_game_settings.cheese_mode_linelimit =
+                        if let Some(limit) = self.settings.new_game_settings.cheese_linelimit {
+                            self.settings.new_game_settings.cheese_linelimit =
                                 NonZeroUsize::try_from(limit.get() - 1).ok();
                         }
                     }
@@ -1108,8 +1109,8 @@ impl<T: Write> Application<T> {
                     if selected == selection_size - 1 {
                         // If reached last stat, cycle through stats for limit.
                         if customization_selected == customization_selection_size - 1 {
-                            self.settings.new_game_settings.custom_mode_limit =
-                                match self.settings.new_game_settings.custom_mode_limit {
+                            self.settings.new_game_settings.custom_end_condition =
+                                match self.settings.new_game_settings.custom_end_condition {
                                     Some(Stat::TimeElapsed(_)) => Some(Stat::PointsScored(9000)),
                                     Some(Stat::PointsScored(_)) => Some(Stat::PiecesLocked(100)),
                                     Some(Stat::PiecesLocked(_)) => Some(Stat::LinesCleared(40)),
@@ -1121,21 +1122,19 @@ impl<T: Write> Application<T> {
                             customization_selected += 1
                         }
                     } else if selected == selection_size - 2 {
-                        self.settings.new_game_settings.combo_mode_linelimit = if let Some(limit) =
-                            self.settings.new_game_settings.combo_mode_linelimit
-                        {
-                            limit.checked_add(1)
-                        } else {
-                            Some(NonZeroUsize::MIN)
-                        };
+                        self.settings.new_game_settings.combo_linelimit =
+                            if let Some(limit) = self.settings.new_game_settings.combo_linelimit {
+                                limit.checked_add(1)
+                            } else {
+                                Some(NonZeroUsize::MIN)
+                            };
                     } else if selected == selection_size - 3 {
-                        self.settings.new_game_settings.cheese_mode_linelimit = if let Some(limit) =
-                            self.settings.new_game_settings.cheese_mode_linelimit
-                        {
-                            limit.checked_add(1)
-                        } else {
-                            Some(NonZeroUsize::MIN)
-                        };
+                        self.settings.new_game_settings.cheese_linelimit =
+                            if let Some(limit) = self.settings.new_game_settings.cheese_linelimit {
+                                limit.checked_add(1)
+                            } else {
+                                Some(NonZeroUsize::MIN)
+                            };
                     }
                 }
                 // Move selector right (select stat).
@@ -1234,13 +1233,13 @@ impl<T: Write> Application<T> {
                     break frame_at;
                 }
             };
-            let mut new_feedback_events = Vec::new();
+            let mut new_feedback_msgs = Vec::new();
             'frame_idle: loop {
                 let frame_idle_remaining = next_frame_at - Instant::now();
                 match button_receiver.recv_timeout(frame_idle_remaining) {
                     Ok(InputSignal::AbortProgram) => {
                         break 'render MenuUpdate::Push(Menu::Quit(
-                            "exited with ctrl-c".to_string(),
+                            "exited with ctrl-c".to_owned(),
                         ));
                     }
                     Ok(InputSignal::ForfeitGame) => {
@@ -1264,9 +1263,9 @@ impl<T: Write> Application<T> {
                             })),
                         );
                         self.settings.new_game_settings.custom_start_seed = Some(game.seed());
-                        new_feedback_events.push((
+                        new_feedback_msgs.push((
                             game.state().time,
-                            tetrs_engine::Feedback::Text("(Snapshot taken!)".to_string()),
+                            tetrs_engine::Feedback::Text("(Snapshot taken!)".to_owned()),
                         ));
                     }
                     Ok(InputSignal::ButtonInput(button, button_state, instant)) => {
@@ -1280,7 +1279,7 @@ impl<T: Write> Application<T> {
                             .push((game_now, compress_buttons(&buttons_pressed)));
                         if let Ok(evts) = game.update(Some(buttons_pressed), game_now) {
                             inform_combo_bot(game, &evts);
-                            new_feedback_events.extend(evts);
+                            new_feedback_msgs.extend(evts);
                         }
                     }
                     Err(mpsc::RecvTimeoutError::Timeout) => {
@@ -1289,7 +1288,7 @@ impl<T: Write> Application<T> {
                         // FIXME: Handle/ensure no Err.
                         if let Ok(evts) = game.update(None, game_time_now) {
                             inform_combo_bot(game, &evts);
-                            new_feedback_events.extend(evts);
+                            new_feedback_msgs.extend(evts);
                         }
                         break 'frame_idle;
                     }
@@ -1299,7 +1298,7 @@ impl<T: Write> Application<T> {
                     }
                 };
             }
-            game_renderer.render(self, game, meta_data, new_feedback_events, clean_screen)?;
+            game_renderer.render(self, game, meta_data, new_feedback_msgs, clean_screen)?;
             clean_screen = false;
             // FPS counter.
             if self.settings.graphics().show_fps {
@@ -1354,7 +1353,7 @@ impl<T: Write> Application<T> {
             Menu::NewGame,
             Menu::Settings,
             Menu::Scores,
-            Menu::Quit("quit after game ended".to_string()),
+            Menu::Quit("quit after game ended".to_owned()),
         ];
         // if gamemode.name.as_ref().map(String::as_str) == Some("Puzzle")
         if result.is_ok() && meta_data.name == "Puzzle" {
@@ -1439,7 +1438,7 @@ impl<T: Write> Application<T> {
                     state: _,
                 }) => {
                     break Ok(MenuUpdate::Push(Menu::Quit(
-                        "exited with ctrl-c".to_string(),
+                        "exited with ctrl-c".to_owned(),
                     )))
                 }
                 Event::Key(KeyEvent {
@@ -1493,7 +1492,7 @@ impl<T: Write> Application<T> {
             Menu::Settings,
             Menu::Scores,
             Menu::About,
-            Menu::Quit("quit from pause".to_string()),
+            Menu::Quit("quit from pause".to_owned()),
         ];
         self.generic_placeholder_menu("Game Paused", selection)
     }
@@ -1512,9 +1511,9 @@ impl<T: Write> Application<T> {
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
                 .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
             let labels = [
-                "Adjust Graphics...".to_string(),
-                "Adjust Keybinds...".to_string(),
-                "Adjust Gameplay...".to_string(),
+                "Adjust Graphics...".to_owned(),
+                "Adjust Keybinds...".to_owned(),
+                "Adjust Gameplay...".to_owned(),
                 format!(
                     "Keep save file: {}",
                     match self.settings.save_on_exit {
@@ -1548,7 +1547,7 @@ impl<T: Write> Application<T> {
                     format!(
                         "{:^w_main$}",
                         if self.settings.save_on_exit == SavefileGranularity::Nothing {
-                            "(*WARNING: current data will be lost on exit)".to_string()
+                            "(*WARNING: current data will be lost on exit)".to_owned()
                         } else {
                             format!("(Save file at {:?})", Self::savefile_path())
                         },
@@ -1566,7 +1565,7 @@ impl<T: Write> Application<T> {
                     state: _,
                 }) => {
                     break Ok(MenuUpdate::Push(Menu::Quit(
-                        "exited with ctrl-c".to_string(),
+                        "exited with ctrl-c".to_owned(),
                     )))
                 }
                 Event::Key(KeyEvent {
@@ -1692,7 +1691,7 @@ impl<T: Write> Application<T> {
                 self.settings.keybinds_slots.len(),
                 self.settings.keybinds_slots[self.settings.keybinds_active].0,
                 if self.settings.keybinds_slots.len() < 2 {
-                    "".to_string()
+                    "".to_owned()
                 } else {
                     format!(
                         " [←|{}→] ",
@@ -1768,7 +1767,7 @@ impl<T: Write> Application<T> {
                     state: _,
                 }) => {
                     break Ok(MenuUpdate::Push(Menu::Quit(
-                        "exited with ctrl-c".to_string(),
+                        "exited with ctrl-c".to_owned(),
                     )))
                 }
 
@@ -1952,7 +1951,7 @@ impl<T: Write> Application<T> {
                 self.settings.config_slots.len(),
                 self.settings.config_slots[self.settings.config_active].0,
                 if self.settings.config_slots.len() < 2 {
-                    "".to_string()
+                    "".to_owned()
                 } else {
                     format!(
                         " [←|{}→] ",
@@ -1988,11 +1987,11 @@ impl<T: Write> Application<T> {
                 format!(
                     "Piece generation: {}",
                     match &self.settings.config().tetromino_generator {
-                        TetrominoSource::Uniform => "Uniformly random".to_string(),
-                        TetrominoSource::Stock { .. } => "Bag".to_string(),
-                        TetrominoSource::Recency { .. } => "Recency".to_string(),
+                        TetrominoSource::Uniform => "Uniformly random".to_owned(),
+                        TetrominoSource::Stock { .. } => "Bag".to_owned(),
+                        TetrominoSource::Recency { .. } => "Recency".to_owned(),
                         TetrominoSource::BalanceRelative { .. } =>
-                            "Balance relative counts".to_string(),
+                            "Balance relative counts".to_owned(),
                         TetrominoSource::Cycle { pattern, index: _ } =>
                             format!("Cycling pattern {pattern:?}"),
                     }
@@ -2066,7 +2065,7 @@ impl<T: Write> Application<T> {
                     state: _,
                 }) => {
                     break Ok(MenuUpdate::Push(Menu::Quit(
-                        "exited with ctrl-c".to_string(),
+                        "exited with ctrl-c".to_owned(),
                     )))
                 }
                 Event::Key(KeyEvent {
@@ -2307,7 +2306,7 @@ impl<T: Write> Application<T> {
                 self.settings.graphics_slots.len(),
                 self.settings.graphics_slots[self.settings.graphics_active].0,
                 if self.settings.graphics_slots.len() < 2 {
-                    "".to_string()
+                    "".to_owned()
                 } else {
                     format!(
                         " [←|{}→] ",
@@ -2394,7 +2393,7 @@ impl<T: Write> Application<T> {
                     state: _,
                 }) => {
                     break Ok(MenuUpdate::Push(Menu::Quit(
-                        "exited with ctrl-c".to_string(),
+                        "exited with ctrl-c".to_owned(),
                     )))
                 }
 
@@ -2647,7 +2646,7 @@ impl<T: Write> Application<T> {
                     state: _,
                 }) => {
                     break Ok(MenuUpdate::Push(Menu::Quit(
-                        "exited with ctrl-c".to_string(),
+                        "exited with ctrl-c".to_owned(),
                     )))
                 }
                 Event::Key(KeyEvent {

@@ -60,75 +60,65 @@ pub fn new_game() -> Game {
     let mut current_puzzle_idx = 0;
     let mut current_puzzle_attempt = 1;
     let mut current_puzzle_piececnt_limit = 0;
-    let mod_function: Box<GameModFn> =
-        Box::new(move |config, _mode, state, mod_pt, feedback_msgs| {
-            let game_piececnt = usize::try_from(state.pieces_locked.iter().sum::<u32>()).unwrap();
-            if !init {
-                let piececnt = load_puzzle(
-                    state,
-                    current_puzzle_attempt,
-                    current_puzzle_idx,
-                    feedback_msgs,
-                );
-                current_puzzle_piececnt_limit = game_piececnt + piececnt;
-                init = true;
-            } else if matches!(mod_pt, ModificationPoint::BeforeEvent(GameEvent::Spawn))
-                && game_piececnt == current_puzzle_piececnt_limit
-            {
-                let puzzle_done = state
-                    .board
-                    .iter()
-                    .all(|line| line.iter().all(|cell| cell.is_none()));
-                // Run out of attempts, game over.
-                if !puzzle_done && current_puzzle_attempt == MAX_STAGE_ATTEMPTS {
-                    state.result = Some(Err(GameOver::ModeLimit));
+    let mod_function: Box<GameModFn> = Box::new(move |config, _rules, state, modpoint, msgs| {
+        let game_piececnt = usize::try_from(state.pieces_locked.iter().sum::<u32>()).unwrap();
+        if !init {
+            let piececnt = load_puzzle(state, current_puzzle_attempt, current_puzzle_idx, msgs);
+            current_puzzle_piececnt_limit = game_piececnt + piececnt;
+            init = true;
+        } else if matches!(modpoint, ModificationPoint::BeforeEvent(GameEvent::Spawn))
+            && game_piececnt == current_puzzle_piececnt_limit
+        {
+            let puzzle_done = state
+                .board
+                .iter()
+                .all(|line| line.iter().all(|cell| cell.is_none()));
+            // Run out of attempts, game over.
+            if !puzzle_done && current_puzzle_attempt == MAX_STAGE_ATTEMPTS {
+                state.result = Some(Err(GameOver::ModeLimit));
+            } else {
+                if puzzle_done {
+                    current_puzzle_idx += 1;
+                    current_puzzle_attempt = 1;
                 } else {
-                    if puzzle_done {
-                        current_puzzle_idx += 1;
-                        current_puzzle_attempt = 1;
-                    } else {
-                        current_puzzle_attempt += 1;
-                    }
-                    if current_puzzle_idx == puzzles_len {
-                        // Done with all puzzles, game completed.
-                        state.result = Some(Ok(()));
-                    } else {
-                        // Load in new puzzle.
-                        let piececnt = load_puzzle(
-                            state,
-                            current_puzzle_attempt,
-                            current_puzzle_idx,
-                            feedback_msgs,
-                        );
-                        current_puzzle_piececnt_limit = game_piececnt + piececnt;
-                    }
+                    current_puzzle_attempt += 1;
+                }
+                if current_puzzle_idx == puzzles_len {
+                    // Done with all puzzles, game completed.
+                    state.result = Some(Ok(()));
+                } else {
+                    // Load in new puzzle.
+                    let piececnt =
+                        load_puzzle(state, current_puzzle_attempt, current_puzzle_idx, msgs);
+                    current_puzzle_piececnt_limit = game_piececnt + piececnt;
                 }
             }
-            // FIXME: handle displaying the level to the user better.
-            // Keep custom game state that's also visible to player, but hide it from the game engine that handles gameplay.
-            if matches!(
-                mod_pt,
-                ModificationPoint::BeforeEvent(_) | ModificationPoint::BeforeInput
-            ) {
-                config.preview_count = 0;
-                state.gravity = PUZZLE_GRAVITY;
-            } else {
-                config.preview_count = state.next_pieces.len();
-                state.gravity = u32::try_from(current_puzzle_idx + 1).unwrap();
-                // Delete accolades.
-                feedback_msgs.retain(|evt| !matches!(evt, (_, Feedback::Accolade { .. })));
-            }
-            // Remove spurious spawn.
-            if matches!(mod_pt, ModificationPoint::AfterEvent(GameEvent::Spawn))
-                && state.result.is_some()
-            {
-                state.active_piece_data = None;
-            }
-            // Remove ability to hold.
-            if matches!(mod_pt, ModificationPoint::AfterInput) {
-                state.events.remove(&GameEvent::Hold);
-            }
-        });
+        }
+        // FIXME: handle displaying the level to the user better.
+        // Keep custom game state that's also visible to player, but hide it from the game engine that handles gameplay.
+        if matches!(
+            modpoint,
+            ModificationPoint::BeforeEvent(_) | ModificationPoint::BeforeInput
+        ) {
+            config.preview_count = 0;
+            state.gravity = PUZZLE_GRAVITY;
+        } else {
+            config.preview_count = state.next_pieces.len();
+            state.gravity = u32::try_from(current_puzzle_idx + 1).unwrap();
+            // Delete accolades.
+            msgs.retain(|evt| !matches!(evt, (_, Feedback::Accolade { .. })));
+        }
+        // Remove spurious spawn.
+        if matches!(modpoint, ModificationPoint::AfterEvent(GameEvent::Spawn))
+            && state.result.is_some()
+        {
+            state.active_piece_data = None;
+        }
+        // Remove ability to hold.
+        if matches!(modpoint, ModificationPoint::AfterInput) {
+            state.events.remove(&GameEvent::Hold);
+        }
+    });
     let puzzle_modifier = Modifier {
         name: "puzzle".to_owned(),
         mod_function,

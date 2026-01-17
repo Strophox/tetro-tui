@@ -18,7 +18,7 @@ use crate::{
 #[allow(dead_code)]
 #[derive(Clone, Default, Debug)]
 pub struct DebugRenderer {
-    feedback_event_buffer: VecDeque<(GameTime, Feedback)>,
+    feedback_msgs_buffer: VecDeque<(GameTime, Feedback)>,
 }
 
 impl Renderer for DebugRenderer {
@@ -27,7 +27,7 @@ impl Renderer for DebugRenderer {
         app: &mut Application<T>,
         game: &Game,
         _meta_data: &GameMetaData,
-        new_feedback_events: FeedbackMessages,
+        new_feedback_msgs: FeedbackMessages,
         _screen_resized: bool,
     ) -> io::Result<()>
     where
@@ -83,12 +83,12 @@ impl Renderer for DebugRenderer {
             .queue(style::Print(format!("   {:?}", game_time)))?
             .queue(MoveToNextLine(1))?;
         // Draw feedback stuf
-        for evt in new_feedback_events {
-            self.feedback_event_buffer.push_front(evt);
+        for evt in new_feedback_msgs {
+            self.feedback_msgs_buffer.push_front(evt);
         }
         let mut feed_evt_msgs = Vec::new();
-        for (_, feedback_event) in self.feedback_event_buffer.iter() {
-            feed_evt_msgs.push(match feedback_event {
+        for (_, feedback) in self.feedback_msgs_buffer.iter() {
+            feed_evt_msgs.push(match feedback {
                 Feedback::Accolade {
                     score_bonus,
                     tetromino: shape,
@@ -100,7 +100,7 @@ impl Renderer for DebugRenderer {
                     let mut msg = Vec::new();
                     msg.push(format!("+{score_bonus}"));
                     if *perfect_clear {
-                        msg.push("Perfect".to_string());
+                        msg.push("Perfect".to_owned());
                     }
                     if *spin {
                         msg.push(format!("{shape:?}-Spin"));

@@ -67,7 +67,7 @@ pub fn new_game() -> Game {
     let mut depth = 1u32;
     let mut init = false;
     let mod_function: Box<GameModFn> =
-        Box::new(move |config, _mode, state, modpoint, _messages| {
+        Box::new(move |config, _rules, state, modpoint, _messages| {
             if !init {
                 for (line, worm_line) in state
                     .board

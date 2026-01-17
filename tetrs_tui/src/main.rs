@@ -43,7 +43,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             // let _ = file.write(std::backtrace::Backtrace::force_capture().to_string().as_bytes());
         }
     }));
-    let msg = app.run()?;
-    println!("{msg}");
+    let exit_msg = app.run()?;
+    println!("{exit_msg}");
     Ok(())
 }

@@ -617,12 +617,12 @@ pub fn fmt_statenode(
     let active_str = if let Some(tet) = active {
         format!("{tet:?}")
     } else {
-        "".to_string()
+        "".to_owned()
     };
     let hold_str = if let Some((tet, swap_allowed)) = hold {
         format!("({}{tet:?})", if *swap_allowed { "" } else { "-" })
     } else {
-        "".to_string()
+        "".to_owned()
     };
     format!("{id}.{depth}{layout}{active_str}{hold_str}{next_pieces_str}")
 }

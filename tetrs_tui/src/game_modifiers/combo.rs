@@ -44,7 +44,7 @@ pub fn new_game(gravity: u32, initial_layout: u16) -> Game {
     let mut line_source = four_wide_lines();
     let mut init = false;
     let mod_function: Box<GameModFn> =
-        Box::new(move |_config, _mode, state, mod_pt, _feedback_msgs| {
+        Box::new(move |_config, _rules, state, mod_pt, _feedback_msgs| {
             if !init {
                 for (line, four_well) in state
                     .board
@@ -67,7 +67,7 @@ pub fn new_game(gravity: u32, initial_layout: u16) -> Game {
             }
         });
     let combo_modifier = tetrs_engine::Modifier {
-        name: "combo_mode".to_owned(),
+        name: "combo".to_owned(),
         mod_function,
     };
     let rules = Rules {
