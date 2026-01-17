@@ -59,7 +59,7 @@ pub fn guideline_keybinds() -> Keybinds {
         (KeyCode::Char('x'), Button::RotateRight),
         (KeyCode::Up, Button::RotateRight),
         (KeyCode::Down, Button::DropSoft),
-        (KeyCode::Char(' '), Button::DropSoft),
+        (KeyCode::Char(' '), Button::DropHard),
         (KeyCode::Char('c'), Button::HoldPiece),
         (KeyCode::Modifier(M::LeftShift), Button::HoldPiece),
         (KeyCode::Modifier(M::RightShift), Button::HoldPiece),

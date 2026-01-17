@@ -115,7 +115,8 @@ pub enum PastGameSorting {
 pub enum SavefileGranularity {
     Nothing,
     Settings,
-    Everything,
+    SettingsGamedata,
+    SettingsGamedataUserinputs,
 }
 
 #[serde_with::serde_as]
@@ -405,9 +406,14 @@ impl<T: Write> Application<T> {
     }
 
     fn store_save(&mut self, path: PathBuf) -> io::Result<()> {
-        // Only save past games if needed.
-        if self.settings.save_on_exit != SavefileGranularity::Everything {
+        if self.settings.save_on_exit < SavefileGranularity::SettingsGamedata {
+            // Clear past games if no game data is wished to be stored.
             self.past_games.clear();
+        } if self.settings.save_on_exit < SavefileGranularity::SettingsGamedataUserinputs {
+            // Clear past game inputs if no game input data is wished to be stored.
+            for past_game in &mut self.past_games {
+                past_game.meta_data.recorded_user_input.clear();
+            }
         }
         let save_state = (&self.settings, &self.past_games);
         let save_str = serde_json::to_string(&save_state)?;
@@ -1519,8 +1525,9 @@ impl<T: Write> Application<T> {
                     "Keep save file: {}",
                     match self.settings.save_on_exit {
                         SavefileGranularity::Nothing => "OFF*",
-                        SavefileGranularity::Settings => "ON--only settings, no scores",
-                        SavefileGranularity::Everything => "ON",
+                        SavefileGranularity::Settings => "ON (save settings)",
+                        SavefileGranularity::SettingsGamedata => "ON (save settings, game stats)",
+                        SavefileGranularity::SettingsGamedataUserinputs => "ON (save settings, game stats & inputs)",
                     }
                 ),
             ];
@@ -1584,7 +1591,7 @@ impl<T: Write> Application<T> {
                     1 => break Ok(MenuUpdate::Push(Menu::AdjustKeybinds)),
                     2 => break Ok(MenuUpdate::Push(Menu::AdjustGameplay)),
                     3 => {
-                        self.settings.save_on_exit = SavefileGranularity::Everything;
+                        self.settings.save_on_exit = SavefileGranularity::SettingsGamedataUserinputs;
                     }
                     _ => {}
                 },
@@ -1611,9 +1618,10 @@ impl<T: Write> Application<T> {
                 }) => {
                     if selected == 3 {
                         self.settings.save_on_exit = match self.settings.save_on_exit {
-                            SavefileGranularity::Nothing => SavefileGranularity::Everything,
+                            SavefileGranularity::Nothing => SavefileGranularity::SettingsGamedataUserinputs,
+                            SavefileGranularity::SettingsGamedataUserinputs => SavefileGranularity::SettingsGamedata,
+                            SavefileGranularity::SettingsGamedata => SavefileGranularity::Settings,
                             SavefileGranularity::Settings => SavefileGranularity::Nothing,
-                            SavefileGranularity::Everything => SavefileGranularity::Settings,
                         };
                     }
                 }
@@ -1626,8 +1634,9 @@ impl<T: Write> Application<T> {
                     if selected == 3 {
                         self.settings.save_on_exit = match self.settings.save_on_exit {
                             SavefileGranularity::Nothing => SavefileGranularity::Settings,
-                            SavefileGranularity::Settings => SavefileGranularity::Everything,
-                            SavefileGranularity::Everything => SavefileGranularity::Nothing,
+                            SavefileGranularity::Settings => SavefileGranularity::SettingsGamedata,
+                            SavefileGranularity::SettingsGamedata => SavefileGranularity::SettingsGamedataUserinputs,
+                            SavefileGranularity::SettingsGamedataUserinputs => SavefileGranularity::Nothing,
                         };
                     }
                 }
