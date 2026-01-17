@@ -21,12 +21,12 @@ This repo contains:
 ## How to run
 
 1. [Download a release](https://github.com/Strophox/tetrs/releases) for your platform if available.
-2. Open your favourite terminal and run the TUI app (i.e. `.tetrs_tui` or `tetrs_tui.exe`)
+2. Open your favourite terminal and run the TUI app (i.e. `./tetrs_tui` or `tetrs_tui.exe`)
 
 > Or compile it yourself:
 > 1. Have [Rust](https://www.rust-lang.org/) (≥1.83.0) installed.
 > 2. `git clone` / download this repository.
-> 3. Navigate to `tetrs_tui/` and `cargo run`.
+> 3. Navigate to `tetrs/` and `cargo run`.
 
 > [!IMPORTANT]
 > Use a terminal like [kitty](<https://sw.kovidgoyal.net/kitty/>) (or any terminal with [support for progressive keyboard enhancement](https://docs.rs/crossterm/latest/crossterm/event/struct.PushKeyboardEnhancementFlags.html)) for smoother gameplay experience.
