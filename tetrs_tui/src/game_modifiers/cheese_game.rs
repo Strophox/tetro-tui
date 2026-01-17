@@ -2,7 +2,9 @@ use std::num::{NonZeroU8, NonZeroUsize};
 
 use rand::Rng;
 
-use tetrs_engine::{Game, GameEvent, GameModFn, Line, ModificationPoint, Modifier, Rules};
+use tetrs_engine::{
+    Game, GameBuilder, GameEvent, GameModFn, Line, ModificationPoint, Modifier, Rules,
+};
 
 fn random_gap_lines(gap_size: usize) -> impl Iterator<Item = Line> {
     let gap_size = gap_size.min(Game::WIDTH);
@@ -23,7 +25,12 @@ fn is_cheese_line(line: &Line) -> bool {
         .any(|cell| *cell == Some(NonZeroU8::try_from(254).unwrap()))
 }
 
-pub fn new_game(cheese_limit: Option<NonZeroUsize>, gap_size: usize, gravity: u32) -> Game {
+pub fn build_cheese(
+    builder: &GameBuilder,
+    cheese_limit: Option<NonZeroUsize>,
+    gap_size: usize,
+    gravity: u32,
+) -> Game {
     let mut line_source =
         random_gap_lines(gap_size).take(cheese_limit.unwrap_or(NonZeroUsize::MAX).get());
     let mut temp_cheese_tally = 0;
@@ -76,7 +83,8 @@ pub fn new_game(cheese_limit: Option<NonZeroUsize>, gap_size: usize, gravity: u3
         increase_gravity: false,
         end_conditions,
     };
-    Game::builder()
+    builder
+        .clone()
         .rules(rules)
         .build_modified([cheese_modifier])
 }

@@ -412,7 +412,6 @@ pub struct GameBuilder {
     // trait implementations for `PartialEq`, `Clone` and `Debug`, unlike `Game` which it is closely
     // based on but which can't even auto-derive `Debug`!
     _modifiers: (),
-    // pub initial_gravity: u32, // TODO
 }
 
 /// Main game struct representing one round of play.
@@ -881,19 +880,19 @@ impl GameBuilder {
     }
 
     /// Sets the [`GameConfig`] that will be used by `Game`.
-    pub fn config(&mut self, game_config: Config) -> &mut Self {
+    pub fn config(mut self, game_config: Config) -> Self {
         self.config = Some(game_config);
         self
     }
 
     /// Sets the [`GameMode`] that will be used by `Game`.
-    pub fn rules(&mut self, game_rules: Rules) -> &mut Self {
+    pub fn rules(mut self, game_rules: Rules) -> Self {
         self.rules = Some(game_rules);
         self
     }
 
     /// Sets the `seed` that will be used to initialize the PRNG in `Game`.
-    pub fn seed(&mut self, seed: u64) -> &mut Self {
+    pub fn seed(mut self, seed: u64) -> Self {
         self.seed = Some(seed);
         self
     }

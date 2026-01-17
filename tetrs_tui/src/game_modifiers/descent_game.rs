@@ -3,7 +3,8 @@ use std::{num::NonZeroU8, time::Duration};
 use rand::{self, Rng};
 
 use tetrs_engine::{
-    Game, GameEvent, GameModFn, GameTime, Line, ModificationPoint, Modifier, Rules, Tetromino,
+    Game, GameBuilder, GameEvent, GameModFn, GameTime, Line, ModificationPoint, Modifier, Rules,
+    Tetromino,
 };
 
 pub fn random_descent_lines() -> impl Iterator<Item = Line> {
@@ -53,7 +54,7 @@ pub fn random_descent_lines() -> impl Iterator<Item = Line> {
     })
 }
 
-pub fn new_game() -> Game {
+pub fn build_descent(builder: &GameBuilder) -> Game {
     let mut line_source = random_descent_lines();
     let descent_tetromino = if rand::rng().random_bool(0.5) {
         Tetromino::L
@@ -168,7 +169,8 @@ pub fn new_game() -> Game {
         name: "descent".to_owned(),
         mod_function,
     };
-    Game::builder()
+    builder
+        .clone()
         .rules(rules)
         .build_modified([descent_modifier])
 }

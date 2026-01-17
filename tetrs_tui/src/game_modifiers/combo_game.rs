@@ -1,6 +1,8 @@
 use std::num::NonZeroU8;
 
-use tetrs_engine::{Board, Game, GameEvent, GameModFn, Line, ModificationPoint, Rules, Tetromino};
+use tetrs_engine::{
+    Board, Game, GameBuilder, GameEvent, GameModFn, Line, ModificationPoint, Rules, Tetromino,
+};
 
 pub const LAYOUTS: [u16; 5] = [
     0b0000_0000_1100_1000, // "r"
@@ -40,7 +42,7 @@ fn four_wide_lines() -> impl Iterator<Item = Line> {
     })
 }
 
-pub fn new_game(gravity: u32, initial_layout: u16) -> Game {
+pub fn build_combo(builder: &GameBuilder, gravity: u32, initial_layout: u16) -> Game {
     let mut line_source = four_wide_lines();
     let mut init = false;
     let mod_function: Box<GameModFn> =
@@ -75,7 +77,8 @@ pub fn new_game(gravity: u32, initial_layout: u16) -> Game {
         increase_gravity: false,
         end_conditions: tetrs_engine::EndConditions::default(),
     };
-    Game::builder()
+    builder
+        .clone()
         .rules(rules)
         .build_modified([combo_modifier])
 }

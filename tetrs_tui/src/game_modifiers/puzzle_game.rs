@@ -1,14 +1,14 @@
 use std::{collections::VecDeque, num::NonZeroU8};
 
 use tetrs_engine::{
-    Feedback, FeedbackMessages, Game, GameEvent, GameModFn, GameOver, ModificationPoint, Modifier,
-    Rules, State, Tetromino,
+    Feedback, FeedbackMessages, Game, GameBuilder, GameEvent, GameModFn, GameOver,
+    ModificationPoint, Modifier, Rules, State, Tetromino,
 };
 
 const MAX_STAGE_ATTEMPTS: usize = 5;
 const PUZZLE_GRAVITY: u32 = 1;
 
-pub fn new_game() -> Game {
+pub fn build_puzzle(builder: &GameBuilder) -> Game {
     let puzzles = puzzle_list();
     let puzzles_len = puzzles.len();
     let load_puzzle = move |state: &mut State,
@@ -128,7 +128,8 @@ pub fn new_game() -> Game {
         increase_gravity: false,
         end_conditions: tetrs_engine::EndConditions::default(),
     };
-    Game::builder()
+    builder
+        .clone()
         .rules(rules)
         .build_modified([puzzle_modifier])
 }

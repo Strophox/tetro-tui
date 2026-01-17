@@ -1,5 +1,5 @@
-pub mod cheese;
-pub mod combo;
-pub mod descent;
-pub mod puzzle;
+pub mod cheese_game;
+pub mod combo_game;
+pub mod descent_game;
+pub mod puzzle_game;
 pub mod utils;
