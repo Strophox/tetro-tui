@@ -1,8 +1,8 @@
 use std::{collections::VecDeque, num::NonZeroU8};
 
 use tetrs_engine::{
-    Feedback, FeedbackMessages, FnGameMod, Game, GameEvent, GameMode, GameOver, GameState, Limits,
-    ModifierPoint, Tetromino,
+    Feedback, FeedbackMessages, Game, GameEvent, GameModFn, GameOver, ModificationPoint, Modifier,
+    Rules, State, Tetromino,
 };
 
 const MAX_STAGE_ATTEMPTS: usize = 5;
@@ -11,14 +11,14 @@ const PUZZLE_GRAVITY: u32 = 1;
 pub fn new_game() -> Game {
     let puzzles = puzzle_list();
     let puzzles_len = puzzles.len();
-    let load_puzzle = move |state: &mut GameState,
+    let load_puzzle = move |state: &mut State,
                             attempt: usize,
                             current_puzzle_idx: usize,
-                            feedback_events: &mut FeedbackMessages|
+                            feedback_msgs: &mut FeedbackMessages|
           -> usize {
         let (puzzle_name, puzzle_lines, puzzle_pieces) = &puzzles[current_puzzle_idx];
         // Game message.
-        feedback_events.push((
+        feedback_msgs.push((
             state.time,
             Feedback::Text(if attempt == 1 {
                 format!(
@@ -60,19 +60,19 @@ pub fn new_game() -> Game {
     let mut current_puzzle_idx = 0;
     let mut current_puzzle_attempt = 1;
     let mut current_puzzle_piececnt_limit = 0;
-    let puzzle_mode: FnGameMod = Box::new(
-        move |config, _mode, state, feedback_events, modifier_point| {
-            let game_piececnt = usize::try_from(state.pieces_played.iter().sum::<u32>()).unwrap();
+    let mod_function: Box<GameModFn> =
+        Box::new(move |config, _mode, state, mod_pt, feedback_msgs| {
+            let game_piececnt = usize::try_from(state.pieces_locked.iter().sum::<u32>()).unwrap();
             if !init {
                 let piececnt = load_puzzle(
                     state,
                     current_puzzle_attempt,
                     current_puzzle_idx,
-                    feedback_events,
+                    feedback_msgs,
                 );
                 current_puzzle_piececnt_limit = game_piececnt + piececnt;
                 init = true;
-            } else if matches!(modifier_point, ModifierPoint::BeforeEvent(GameEvent::Spawn))
+            } else if matches!(mod_pt, ModificationPoint::BeforeEvent(GameEvent::Spawn))
                 && game_piececnt == current_puzzle_piececnt_limit
             {
                 let puzzle_done = state
@@ -81,7 +81,7 @@ pub fn new_game() -> Game {
                     .all(|line| line.iter().all(|cell| cell.is_none()));
                 // Run out of attempts, game over.
                 if !puzzle_done && current_puzzle_attempt == MAX_STAGE_ATTEMPTS {
-                    state.end = Some(Err(GameOver::ModeLimit));
+                    state.result = Some(Err(GameOver::ModeLimit));
                 } else {
                     if puzzle_done {
                         current_puzzle_idx += 1;
@@ -91,14 +91,14 @@ pub fn new_game() -> Game {
                     }
                     if current_puzzle_idx == puzzles_len {
                         // Done with all puzzles, game completed.
-                        state.end = Some(Ok(()));
+                        state.result = Some(Ok(()));
                     } else {
                         // Load in new puzzle.
                         let piececnt = load_puzzle(
                             state,
                             current_puzzle_attempt,
                             current_puzzle_idx,
-                            feedback_events,
+                            feedback_msgs,
                         );
                         current_puzzle_piececnt_limit = game_piececnt + piececnt;
                     }
@@ -107,8 +107,8 @@ pub fn new_game() -> Game {
             // FIXME: handle displaying the level to the user better.
             // Keep custom game state that's also visible to player, but hide it from the game engine that handles gameplay.
             if matches!(
-                modifier_point,
-                ModifierPoint::BeforeEvent(_) | ModifierPoint::BeforeInput
+                mod_pt,
+                ModificationPoint::BeforeEvent(_) | ModificationPoint::BeforeInput
             ) {
                 config.preview_count = 0;
                 state.gravity = PUZZLE_GRAVITY;
@@ -116,27 +116,31 @@ pub fn new_game() -> Game {
                 config.preview_count = state.next_pieces.len();
                 state.gravity = u32::try_from(current_puzzle_idx + 1).unwrap();
                 // Delete accolades.
-                feedback_events.retain(|evt| !matches!(evt, (_, Feedback::Accolade { .. })));
+                feedback_msgs.retain(|evt| !matches!(evt, (_, Feedback::Accolade { .. })));
             }
             // Remove spurious spawn.
-            if matches!(modifier_point, ModifierPoint::AfterEvent(GameEvent::Spawn))
-                && state.end.is_some()
+            if matches!(mod_pt, ModificationPoint::AfterEvent(GameEvent::Spawn))
+                && state.result.is_some()
             {
                 state.active_piece_data = None;
             }
             // Remove ability to hold.
-            if matches!(modifier_point, ModifierPoint::AfterInput) {
+            if matches!(mod_pt, ModificationPoint::AfterInput) {
                 state.events.remove(&GameEvent::Hold);
             }
-        },
-    );
-    Game::builder(GameMode {
-        name: Some("Puzzle".to_string()),
+        });
+    let puzzle_modifier = Modifier {
+        name: "puzzle".to_owned(),
+        mod_function,
+    };
+    let rules = Rules {
         initial_gravity: 2,
         increase_gravity: false,
-        limits: Limits::default(),
-    })
-    .build_modified([puzzle_mode])
+        end_conditions: tetrs_engine::EndConditions::default(),
+    };
+    Game::builder()
+        .rules(rules)
+        .build_modified([puzzle_modifier])
 }
 
 #[allow(clippy::type_complexity)]

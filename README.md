@@ -285,6 +285,7 @@ We list considerations regarding perfomance of both the tetrs engine and TUI:
   - Refactor of complicated systems (e.g. locking).
   - *(In an ideal world.)* Certainty of panic-freedom of `Game::update` (without use of mods).
 - Better code comments for TUI in case it ever does get improved / refactored.
+- Possibly remove `#[allow(…)]`, `#[allow(rustfmt::…)]`, , `#[allow(clippy::…)]`.
 - List of `tetrs_engine` features?...
   - Small but attractive details of the `tetrs_engine` are not properly explained, e.g., an available *initial rotation system* which allows a piece to spawn already rotated if a rotation button was being held.
 
@@ -453,7 +454,7 @@ The general rationale behind most kicks is, "these first kicks feel most natural
 
 </details>
 
-<!--TODO: go through text below-->
+<!--TODO: Refactor locking and update text. -->
 ## Piece Locking
 
 The mechanics of locking down a piece on the grid can be more complicated than it might sound at first glance.

@@ -2,7 +2,7 @@ use std::num::{NonZeroU8, NonZeroUsize};
 
 use rand::Rng;
 
-use tetrs_engine::{FnGameMod, Game, GameEvent, GameMode, Limits, Line, ModifierPoint};
+use tetrs_engine::{Game, GameEvent, GameModFn, Line, ModificationPoint, Modifier, Rules};
 
 fn random_gap_lines(gap_size: usize) -> impl Iterator<Item = Line> {
     let gap_size = gap_size.min(Game::WIDTH);
@@ -29,16 +29,16 @@ pub fn new_game(cheese_limit: Option<NonZeroUsize>, gap_size: usize, gravity: u3
     let mut temp_cheese_tally = 0;
     let mut temp_normal_tally = 0;
     let mut init = false;
-    let cheese_mode: FnGameMod = Box::new(
-        move |_config, _mode, state, _feedback_events, modifier_point| {
+    let mod_function: Box<GameModFn> = Box::new(
+        move |_config, _mode, state, modification_point, _feedback_msgs| {
             if !init {
                 for (line, cheese) in state.board.iter_mut().take(10).rev().zip(&mut line_source) {
                     *line = cheese;
                 }
                 init = true;
             } else if matches!(
-                modifier_point,
-                ModifierPoint::BeforeEvent(GameEvent::LineClear)
+                modification_point,
+                ModificationPoint::BeforeEvent(GameEvent::LineClear)
             ) {
                 for line in state.board.iter() {
                     if line.iter().all(|mino| mino.is_some()) {
@@ -51,8 +51,8 @@ pub fn new_game(cheese_limit: Option<NonZeroUsize>, gap_size: usize, gravity: u3
                 }
             }
             if matches!(
-                modifier_point,
-                ModifierPoint::AfterEvent(GameEvent::LineClear)
+                modification_point,
+                ModificationPoint::AfterEvent(GameEvent::LineClear)
             ) {
                 state.lines_cleared -= temp_normal_tally;
                 for cheese in line_source.by_ref().take(temp_cheese_tally) {
@@ -63,14 +63,20 @@ pub fn new_game(cheese_limit: Option<NonZeroUsize>, gap_size: usize, gravity: u3
             }
         },
     );
-    Game::builder(GameMode {
-        name: Some("Cheese".to_string()),
+    let cheese_modifier = Modifier {
+        name: "cheese_mode".to_owned(),
+        mod_function,
+    };
+    let end_conditions = match cheese_limit {
+        Some(c) => vec![(tetrs_engine::Stat::LinesCleared(c.get()), true)],
+        None => vec![],
+    };
+    let rules = Rules {
         initial_gravity: gravity,
         increase_gravity: false,
-        limits: Limits {
-            lines: cheese_limit.map(|line_count| (true, line_count.get())),
-            ..Limits::default()
-        },
-    })
-    .build_modified([cheese_mode])
+        end_conditions,
+    };
+    Game::builder()
+        .rules(rules)
+        .build_modified([cheese_modifier])
 }

@@ -9,7 +9,7 @@ use std::{
 use crossterm::style::Color;
 use tetrs_engine::{Button, FeedbackMessages, Game, Tetromino};
 
-use crate::terminal_user_interface::Application;
+use crate::terminal_user_interface::{Application, GameMetaData};
 
 pub type Palette = HashMap<u8, Color>;
 
@@ -18,6 +18,7 @@ pub trait Renderer {
         &mut self,
         app: &mut Application<T>,
         game: &Game,
+        meta_data: &GameMetaData,
         new_feedback_events: FeedbackMessages,
         screen_resized: bool,
     ) -> io::Result<()>;

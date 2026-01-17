@@ -12,13 +12,12 @@ use crossterm::{
     terminal, QueueableCommand,
 };
 use tetrs_engine::{
-    Button, Coord, Feedback, FeedbackMessages, Game, GameState, GameTime, Orientation, Tetromino,
-    TileTypeID,
+    Button, Coord, Feedback, FeedbackMessages, Game, GameTime, Orientation, Stat, State, TileTypeID,
 };
 
 use crate::{
     game_renderers::{button_str, Renderer},
-    terminal_user_interface::{fmt_duration, fmt_keybinds, Application, Glyphset},
+    terminal_user_interface::{fmt_duration, fmt_keybinds, Application, GameMetaData, Glyphset},
 };
 
 use super::{tet_str_minuscule, tet_str_small};
@@ -221,6 +220,7 @@ impl Renderer for CachedRenderer {
         &mut self,
         app: &mut Application<T>,
         game: &Game,
+        meta_data: &GameMetaData,
         new_feedback_events: FeedbackMessages,
         screen_resized: bool,
     ) -> io::Result<()>
@@ -232,8 +232,8 @@ impl Renderer for CachedRenderer {
             self.screen
                 .buffer_reset((usize::from(x_main), usize::from(y_main)));
         }
-        let GameState {
-            end: _,
+        let State {
+            result: _,
             time: game_time,
             events: _,
             buttons_pressed: _,
@@ -241,85 +241,49 @@ impl Renderer for CachedRenderer {
             active_piece_data,
             hold_piece,
             next_pieces,
-            pieces_played,
+            pieces_locked: pieces_played,
             lines_cleared,
             gravity,
             score,
             consecutive_line_clears: _,
             rng: _,
         } = game.state();
+        let pieces = pieces_played.iter().sum::<u32>();
         // Screen: some titles.
-        let mode_name = game
-            .mode()
-            .name
-            .as_ref()
-            .unwrap_or(&"".to_string())
-            .to_ascii_uppercase();
-        let mode_name_space = mode_name.len().max(14);
-        let (goal_name, goal_value) = [
-            game.mode().limits.time.map(|(_, max_dur)| {
-                (
-                    "Time left:",
-                    fmt_duration(max_dur.saturating_sub(*game_time)),
-                )
-            }),
-            game.mode().limits.pieces.map(|(_, max_pcs)| {
-                (
-                    "Pieces remaining:",
-                    max_pcs
-                        .saturating_sub(pieces_played.iter().sum::<u32>())
-                        .to_string(),
-                )
-            }),
-            game.mode().limits.lines.map(|(_, max_lns)| {
-                (
-                    "Lines left to clear:",
-                    max_lns.saturating_sub(*lines_cleared).to_string(),
-                )
-            }),
-            game.mode().limits.gravity.map(|(_, max_lvl)| {
-                (
-                    "Gravity levels to advance:",
-                    max_lvl.saturating_sub(*gravity).to_string(),
-                )
-            }),
-            game.mode().limits.score.map(|(_, max_pts)| {
-                (
-                    "Points to score:",
-                    max_pts.saturating_sub(*score).to_string(),
-                )
-            }),
-        ]
-        .into_iter()
-        .find_map(|limit_text| limit_text)
-        .unwrap_or_default();
-        let (focus_name, focus_value) = match game
-            .mode()
-            .name
-            .as_ref()
-            .unwrap_or(&"".to_string())
-            .as_str()
+        let mode_name_space = meta_data.name.len().max(14);
+        let (endcond_title, endcond_value) = if let Some((c, _)) =
+            game.mode().end_conditions.first()
         {
-            "Marathon" => ("Score:", score.to_string()),
-            "40-Lines" => ("Time taken:", fmt_duration(*game_time)),
-            "Time Trial" => ("Score:", score.to_string()),
-            "Master" => ("", "".to_string()),
-            "Puzzle" => ("", "".to_string()),
-            _ => ("Lines cleared:", lines_cleared.to_string()),
+            match c {
+                Stat::TimeElapsed(t) => ("Time left:", fmt_duration(&t.saturating_sub(*game_time))),
+                Stat::PiecesLocked(p) => ("Pieces left:", p.saturating_sub(pieces).to_string()),
+                Stat::LinesCleared(l) => {
+                    ("Lines left:", l.saturating_sub(*lines_cleared).to_string())
+                }
+                Stat::GravityReached(g) => (
+                    "Gravity levels left:",
+                    g.saturating_sub(*gravity).to_string(),
+                ),
+                Stat::PointsScored(s) => ("Points left:", s.saturating_sub(*score).to_string()),
+            }
+        } else {
+            ("", "".to_string())
         };
-        let keybinds = &app.settings().keybinds();
-        let icons_moveleft = fmt_keybinds(Button::MoveLeft, keybinds);
-        let icons_moveright = fmt_keybinds(Button::MoveRight, keybinds);
-        let mut icons_move = format!("{icons_moveleft}{icons_moveright}");
-        let icons_rotateleft = fmt_keybinds(Button::RotateLeft, keybinds);
-        let icons_rotatearound = fmt_keybinds(Button::RotateAround, keybinds);
-        let icons_rotateright = fmt_keybinds(Button::RotateRight, keybinds);
-        let mut icons_rotate = format!("{icons_rotateleft}{icons_rotatearound}{icons_rotateright}");
-        let icons_dropsoft = fmt_keybinds(Button::DropSoft, keybinds);
-        let icons_dropsonic = fmt_keybinds(Button::DropSonic, keybinds);
-        let icons_drophard = fmt_keybinds(Button::DropHard, keybinds);
-        let mut icons_drop = format!("{icons_dropsoft}{icons_dropsonic}{icons_drophard}");
-        let mut icons_hold = fmt_keybinds(Button::HoldPiece, keybinds);
+        let f = |b| fmt_keybinds(b, app.settings().keybinds());
+        let mut icons_move = format!("{}{}", f(Button::MoveLeft), f(Button::MoveRight));
+        let mut icons_rotate = format!(
+            "{}{}{}",
+            f(Button::RotateLeft),
+            f(Button::RotateAround),
+            f(Button::RotateRight)
+        );
+        let mut icons_drop = format!(
+            "{}{}{}",
+            f(Button::DropSoft),
+            f(Button::DropSonic),
+            f(Button::DropHard)
+        );
+        let mut icons_hold = f(Button::HoldPiece);
         // FAIR enough https://users.rust-lang.org/t/truncating-a-string/77903/9 :
         let eleven = icons_move
             .char_indices()
@@ -345,20 +309,6 @@ impl Renderer for CachedRenderer {
             .nth(11)
             .unwrap_or(icons_hold.len());
         icons_hold.truncate(eleven);
-        let piececnts_o_i_s_z = [
-            format!("{}o", pieces_played[Tetromino::O]),
-            format!("{}i", pieces_played[Tetromino::I]),
-            format!("{}s", pieces_played[Tetromino::S]),
-            format!("{}z", pieces_played[Tetromino::Z]),
-        ]
-        .join(" ");
-        let piececnts_t_l_j_sum = [
-            format!("{}t", pieces_played[Tetromino::T]),
-            format!("{}l", pieces_played[Tetromino::L]),
-            format!("{}j", pieces_played[Tetromino::J]),
-            format!("={}", pieces_played.iter().sum::<u32>()),
-        ]
-        .join(" ");
         // Screen: draw.
         #[allow(clippy::useless_format)]
         #[rustfmt::skip]
@@ -366,78 +316,78 @@ impl Renderer for CachedRenderer {
             Glyphset::Electronika60 => vec![
                 format!("                                                            ", ),
                 format!("                                              {: ^w$      } ", "mode:", w=mode_name_space),
-                format!("   ALL STATS          <! . . . . . . . . . .!>{: ^w$      } ", mode_name, w=mode_name_space),
+                format!("   ALL STATS          <! . . . . . . . . . .!>{: ^w$      } ", meta_data.name, w=mode_name_space),
                 format!("   ----------         <! . . . . . . . . . .!>{: ^w$      } ", "", w=mode_name_space),
-                format!("   Gravity: {:<10    }<! . . . . . . . . . .!>  {          }", gravity, goal_name),
-                format!("   Lines: {:<12      }<! . . . . . . . . . .!>{:^14        }", lines_cleared, goal_value),
                 format!("   Score: {:<12      }<! . . . . . . . . . .!>              ", score),
-                format!("                      <! . . . . . . . . . .!>  {          }", focus_name),
-                format!("   Time elapsed       <! . . . . . . . . . .!>{:^14        }", focus_value),
-                format!("    {:<18            }<! . . . . . . . . . .!>              ", fmt_duration(*game_time)),
+                format!("   Lines: {:<12      }<! . . . . . . . . . .!> {           }", lines_cleared, endcond_title),
+                format!("                      <! . . . . . . . . . .!>   {         }", endcond_value),
+                format!("   Pieces:  {:<10    }<! . . . . . . . . . .!>              ", pieces),
+                format!("   Gravity: {:<10    }<! . . . . . . . . . .!>              ", gravity),
+                format!("   Time: {:<13       }<! . . . . . . . . . .!>              ", fmt_duration(game_time)),
                 format!("                      <! . . . . . . . . . .!>              ", ),
-                format!("   Pieces played      <! . . . . . . . . . .!>              ", ),
-                format!("    {:<18            }<! . . . . . . . . . .!>              ", piececnts_o_i_s_z),
-                format!("    {:<18            }<! . . . . . . . . . .!>              ", piececnts_t_l_j_sum),
+                format!("                      <! . . . . . . . . . .!>              ", ),
                 format!("                      <! . . . . . . . . . .!>              ", ),
                 format!("                      <! . . . . . . . . . .!>              ", ),
                 format!("   KEYBINDS           <! . . . . . . . . . .!>              ", ),
                 format!("   ---------          <! . . . . . . . . . .!>              ", ),
                 format!("   Move    {:<11     }<! . . . . . . . . . .!>              ", icons_move),
                 format!("   Rotate  {:<11     }<! . . . . . . . . . .!>              ", icons_rotate),
+                format!("                      <! . . . . . . . . . .!>              ", ),
                 format!("   Drop    {:<11     }<! . . . . . . . . . .!>              ", icons_drop),
                 format!("   Hold    {:<11     }<! . . . . . . . . . .!>              ", icons_hold),
+                format!("   Pause   [Esc]      <! . . . . . . . . . .!>              ", ),
                 format!("                      <!====================!>              ", ),
                format!(r"                        \/\/\/\/\/\/\/\/\/\/                ", ),
             ],
             Glyphset::ASCII => vec![
                 format!("                                                            ", ),
                 format!("                {     }|- - - - - - - - - - +{:-^w$       }+", if hold_piece.is_some() { "+-hold-" } else {"       "}, "mode", w=mode_name_space),
-                format!("   ALL STATS    {}     |                    |{: ^w$       }|", if hold_piece.is_some() { "| " } else {"  "}, mode_name, w=mode_name_space),
+                format!("   ALL STATS    {}     |                    |{: ^w$       }|", if hold_piece.is_some() { "| " } else {"  "}, meta_data.name, w=mode_name_space),
                 format!("   ----------   {     }|                    +{:-^w$       }+", if hold_piece.is_some() { "+------" } else {"       "}, "", w=mode_name_space),
-                format!("   Gravity: {:<11     }|                    |  {           }", gravity, goal_name),
-                format!("   Lines: {:<13       }|                    |{:^15         }", lines_cleared, goal_value),
                 format!("   Score: {:<13       }|                    |               ", score),
-                format!("                       |                    |  {           }", focus_name),
-                format!("   Time elapsed        |                    |{:^15         }", focus_value),
-                format!("    {:<19             }|                    |               ", fmt_duration(*game_time)),
+                format!("   Lines: {:<13       }|                    |  {           }", lines_cleared, endcond_title),
+                format!("                       |                    |    {         }", endcond_value),
+                format!("   Pieces:  {:<11     }|                    |               ", pieces),
+                format!("   Gravity: {:<11     }|                    |               ", gravity),
+                format!("   Time: {:<14        }|                    |               ", fmt_duration(game_time)),
                 format!("                       |                    |{             }", if !next_pieces.is_empty() { "-----next-----+" } else {"               "}),
-                format!("   Pieces played       |                    |             {}", if !next_pieces.is_empty() { " |" } else {"  "}),
-                format!("    {:<19             }|                    |             {}", piececnts_o_i_s_z, if !next_pieces.is_empty() { " |" } else {"  "}),
-                format!("    {:<19             }|                    |{             }", piececnts_t_l_j_sum, if !next_pieces.is_empty() { "--------------+" } else {"               "}),
-                format!("                       |                    |               ", ),
-                format!("                       |                    |               ", ),
+                format!("                       |                    |             {}", if !next_pieces.is_empty() { " |" } else {"  "}),
+                format!("                       |                    |             {}", if !next_pieces.is_empty() { " |" } else {"  "}),
+                format!("                       |                    |{             }", if !next_pieces.is_empty() { "--------------+" } else {"               "}),
                 format!("   KEYBINDS            |                    |               ", ),
                 format!("   ---------           |                    |               ", ),
                 format!("   Move    {:<12      }|                    |               ", icons_move),
                 format!("   Rotate  {:<12      }|                    |               ", icons_rotate),
+                format!("                       |                    |               ", ),
                 format!("   Drop    {:<12      }|                    |               ", icons_drop),
                 format!("   Hold    {:<12      }|                    |               ", icons_hold),
+                format!("   Pause   [Esc]       |                    |               ", ),
                 format!("                      ~#====================#~              ", ),
                 format!("                                                            ", ),
             ],
         Glyphset::Unicode => vec![
                 format!("                                                            ", ),
                 format!("                {     }╓╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╥{:─^w$       }┐", if hold_piece.is_some() { "┌─hold─" } else {"       "}, "mode", w=mode_name_space),
-                format!("   ALL STATS    {}     ║                    ║{: ^w$       }│", if hold_piece.is_some() { "│ " } else {"  "}, mode_name, w=mode_name_space),
+                format!("   ALL STATS    {}     ║                    ║{: ^w$       }│", if hold_piece.is_some() { "│ " } else {"  "}, meta_data.name, w=mode_name_space),
                 format!("   ─────────╴   {     }║                    ╟{:─^w$       }┘", if hold_piece.is_some() { "└──────" } else {"       "}, "", w=mode_name_space),
-                format!("   Gravity: {:<11     }║                    ║  {           }", gravity, goal_name),
-                format!("   Lines: {:<13       }║                    ║{:^15         }", lines_cleared, goal_value),
                 format!("   Score: {:<13       }║                    ║               ", score),
-                format!("                       ║                    ║  {           }", focus_name),
-                format!("   Time elapsed        ║                    ║{:^15         }", focus_value),
-                format!("    {:<19             }║                    ║               ", fmt_duration(*game_time)),
+                format!("   Lines: {:<13       }║                    ║  {           }", lines_cleared, endcond_title),
+                format!("                       ║                    ║    {         }", endcond_value),
+                format!("   Pieces:  {:<11     }║                    ║               ", pieces),
+                format!("   Gravity: {:<11     }║                    ║               ", gravity),
+                format!("   Time: {:<14        }║                    ║               ", fmt_duration(game_time)),
                 format!("                       ║                    ║{             }", if !next_pieces.is_empty() { "─────next─────┐" } else {"               "}),
-                format!("   Pieces played       ║                    ║             {}", if !next_pieces.is_empty() { " │" } else {"  "}),
-                format!("    {:<19             }║                    ║             {}", piececnts_o_i_s_z, if !next_pieces.is_empty() { " │" } else {"  "}),
-                format!("    {:<19             }║                    ║{             }", piececnts_t_l_j_sum, if !next_pieces.is_empty() { "──────────────┘" } else {"               "}),
-                format!("                       ║                    ║               ", ),
-                format!("                       ║                    ║               ", ),
+                format!("                       ║                    ║             {}", if !next_pieces.is_empty() { " │" } else {"  "}),
+                format!("                       ║                    ║             {}", if !next_pieces.is_empty() { " │" } else {"  "}),
+                format!("                       ║                    ║{             }", if !next_pieces.is_empty() { "──────────────┘" } else {"               "}),
                 format!("   KEYBINDS            ║                    ║               ", ),
                 format!("   ────────╴           ║                    ║               ", ),
                 format!("   Move    {:<12      }║                    ║               ", icons_move),
                 format!("   Rotate  {:<12      }║                    ║               ", icons_rotate),
+                format!("                       ║                    ║               ", ),
                 format!("   Drop    {:<12      }║                    ║               ", icons_drop),
                 format!("   Hold    {:<12      }║                    ║               ", icons_hold),
+                format!("   Pause   [Esc]       ║                    ║               ", ),
                 format!("                    ░▒▓█▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀█▓▒░            ", ),
                 format!("                                                            ", ),
             ],
@@ -717,10 +667,10 @@ impl Renderer for CachedRenderer {
                 }
                 Feedback::Accolade {
                     score_bonus,
-                    shape,
-                    spin,
-                    lineclears,
-                    perfect_clear,
+                    tetromino: shape,
+                    is_spin: spin,
+                    lines_cleared: lineclears,
+                    is_perfect_clear: perfect_clear,
                     combo,
                 } => {
                     let mut msg = Vec::new();

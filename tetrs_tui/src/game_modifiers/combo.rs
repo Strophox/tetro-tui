@@ -1,8 +1,6 @@
 use std::num::NonZeroU8;
 
-use tetrs_engine::{
-    Board, FnGameMod, Game, GameEvent, GameMode, Limits, Line, ModifierPoint, Tetromino,
-};
+use tetrs_engine::{Board, Game, GameEvent, GameModFn, Line, ModificationPoint, Rules, Tetromino};
 
 pub const LAYOUTS: [u16; 5] = [
     0b0000_0000_1100_1000, // "r"
@@ -45,8 +43,8 @@ fn four_wide_lines() -> impl Iterator<Item = Line> {
 pub fn new_game(gravity: u32, initial_layout: u16) -> Game {
     let mut line_source = four_wide_lines();
     let mut init = false;
-    let combo_mode: FnGameMod = Box::new(
-        move |_config, _mode, state, _feedback_events, modifier_point| {
+    let mod_function: Box<GameModFn> =
+        Box::new(move |_config, _mode, state, mod_pt, _feedback_msgs| {
             if !init {
                 for (line, four_well) in state
                     .board
@@ -58,24 +56,28 @@ pub fn new_game(gravity: u32, initial_layout: u16) -> Game {
                 }
                 init_board(&mut state.board, initial_layout);
                 init = true;
-            } else if matches!(modifier_point, ModifierPoint::AfterEvent(GameEvent::Lock)) {
+            } else if matches!(mod_pt, ModificationPoint::AfterEvent(GameEvent::Lock)) {
                 // No lineclear, game over.
                 if !state.events.contains_key(&GameEvent::LineClear) {
-                    state.end = Some(Err(tetrs_engine::GameOver::ModeLimit));
+                    state.result = Some(Err(tetrs_engine::GameOver::ModeLimit));
                 // Combo continues, prepare new line.
                 } else {
                     state.board.push(line_source.next().unwrap());
                 }
             }
-        },
-    );
-    Game::builder(GameMode {
-        name: Some("Combo".to_string()),
+        });
+    let combo_modifier = tetrs_engine::Modifier {
+        name: "combo_mode".to_owned(),
+        mod_function,
+    };
+    let rules = Rules {
         initial_gravity: gravity,
         increase_gravity: false,
-        limits: Limits::default(),
-    })
-    .build_modified([combo_mode])
+        end_conditions: tetrs_engine::EndConditions::default(),
+    };
+    Game::builder()
+        .rules(rules)
+        .build_modified([combo_modifier])
 }
 
 fn init_board(board: &mut Board, mut init_layout: u16) {

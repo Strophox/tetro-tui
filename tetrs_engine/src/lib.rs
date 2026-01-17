@@ -68,23 +68,19 @@ pub type Offset = (isize, isize);
 pub type GameTime = Duration;
 /// The internal RNG used by a game.
 pub type GameRng = ChaCha12Rng;
+/// Type of underlying functions at the heart of a [`GameModifier`].
+pub type GameModFn =
+    dyn FnMut(&mut Config, &mut Rules, &mut State, &ModificationPoint, &mut FeedbackMessages);
+/// A set of conditions to determine how a game specially ends and whether it results in a win (otherwise loss).
+pub type EndConditions = Vec<(Stat, bool)>;
+/// The result of a game that ended.
+pub type GameResult = Result<(), GameOver>;
 /// A mapping for buttons, usable through `impl Index<Button>`.
 type ButtonsArray<T> = [T; Button::VARIANTS.len()];
 /// A mapping for which buttons were pressed.
 pub type PressedButtons = ButtonsArray<bool>;
 /// Convenient type alias to denote a collection of [`Feedback`]s associated with some [`GameTime`].
 pub type FeedbackMessages = Vec<(GameTime, Feedback)>;
-/// Type of functions that can be used to modify a game, c.f. [`Game::add_modifier`].
-pub type FnGameMod = Box<
-    dyn FnMut(
-        &mut GameConfig,
-        &mut GameMode,
-        &mut GameState,
-        &mut FeedbackMessages,
-        &ModifierPoint,
-    ),
->;
-type EventMap = HashMap<GameEvent, GameTime>;
 
 /// Represents an abstract game input.
 // NOTE: We could consider calling this `Action` judging from its variants, however the Game stores a mapping of whether a given `Button` is active over a period of time. `Intents` could work but `Button` is less abstract and often corresponds directly to IRL player inputs.
@@ -186,26 +182,20 @@ pub struct LockingData {
     pub lowest_y: usize,
 }
 
-/// Stores the ways in which a round of the game should be limited.
-///
-/// Each limitation may be either of positive ('game completed') or negative ('game over'), as
-/// designated by the `bool` stored with it.
-///
-/// No limitations may allow for endless games.
-// FIXME: Better representation, e.g. as `Limit` type enum + vec of (bool, Limit).
-#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Default, Debug)]
+/// Certain statistics for which an instance of [`Game`] can be checked against.
+#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Limits {
-    /// The total time a round may be played.
-    pub time: Option<(bool, Duration)>,
-    /// The total number of pieces locked that may be played.
-    pub pieces: Option<(bool, u32)>,
-    /// The total number of full lines that may be cleared.
-    pub lines: Option<(bool, usize)>,
-    /// The gravity level to stop at.
-    pub gravity: Option<(bool, u32)>,
-    /// The number of game points to earn.
-    pub score: Option<(bool, u64)>,
+pub enum Stat {
+    /// Whether a given amount of total time has elapsed in-game.
+    TimeElapsed(GameTime),
+    /// Whether a given number of [`Tetromino`]s have been locked/placed on the game's [`Board`].
+    PiecesLocked(u32),
+    /// Whether a given number of lines have been cleared from the [`Board`].
+    LinesCleared(usize),
+    /// Whether a certain level of gravity has been reached already.
+    GravityReached(u32),
+    /// Whether a given number of points has been scored already.
+    PointsScored(u64),
 }
 
 /// The playing configuration specific to the single, current round of play.
@@ -214,9 +204,7 @@ pub struct Limits {
 /// and how it can be won/failed.
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Hash, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct GameMode {
-    /// Conventional name that may be given to an instance of this struct.
-    pub name: Option<String>,
+pub struct Rules {
     /// The gravity at which a game should start.
     pub initial_gravity: u32,
     /// Whether the gravity should be automatically incremented while the game plays.
@@ -227,8 +215,13 @@ pub struct GameMode {
     // What defines a gamemode? Maybe we just distribute these fields into the
     // other most appropriate structs, likely GameConfig and Game.
     pub increase_gravity: bool,
-    /// The limitations under which a game may end (un)successfully.
-    pub limits: Limits,
+    /// Stores the ways in which a round of the game should be limited.
+    ///
+    /// Each limitation may be either of positive ('game completed') or negative ('game over'), as
+    /// designated by the `bool` stored with it.
+    ///
+    /// No limitations may allow for endless games.
+    pub end_conditions: Vec<(Stat, bool)>,
 }
 
 /// The amount of feedback information that is to be generated.
@@ -251,7 +244,7 @@ pub enum FeedbackVerbosity {
 /// User-focused configuration options that mainly influence time-sensitive or cosmetic mechanics.
 #[derive(PartialEq, PartialOrd, Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct GameConfig {
+pub struct Config {
     /// The method of tetromino rotation used.
     pub rotation_system: RotationSystem,
     /// The method (and internal state) of tetromino generation used.
@@ -334,13 +327,11 @@ pub enum GameOver {
 /// Struct storing internal game state that changes over the course of play.
 #[derive(Eq, PartialEq, Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct GameState {
-    /// Whether the game has ended and how.
-    pub end: Option<Result<(), GameOver>>,
+pub struct State {
     /// Current in-game time.
     pub time: GameTime,
     /// Upcoming game events.
-    pub events: EventMap,
+    pub events: HashMap<GameEvent, GameTime>,
     /// The current state of buttons being pressed in the game.
     pub buttons_pressed: ButtonsArray<Option<GameTime>>,
     /// The main playing grid storing empty (`None`) and filled, fixed tiles (`Some(nz_u32)`).
@@ -354,7 +345,7 @@ pub struct GameState {
     /// Tallies of how many pieces of each type have been played so far.
     ///
     /// Accessibe through `impl Index<Tetromino> for [T; 7]`.
-    pub pieces_played: [u32; 7],
+    pub pieces_locked: [u32; Tetromino::VARIANTS.len()],
     /// The total number of lines that have been cleared.
     pub lines_cleared: usize,
     /// The current gravity/speed level the game is letting the pieces fall sat.
@@ -365,6 +356,16 @@ pub struct GameState {
     pub consecutive_line_clears: u32,
     /// The internal pseudo random number generator used.
     pub rng: GameRng,
+    /// Whether the game has ended and how.
+    pub result: Option<GameResult>,
+}
+
+/// Type of named modifiers that can be used to mod a game, c.f. [`GameBuilder::build_modified`].
+pub struct Modifier {
+    /// The name of a modifier.
+    pub name: String,
+    /// The function object which will be called at runtime.
+    pub mod_function: Box<GameModFn>,
 }
 
 /// This builder exposes the ability to configure a new [`Game`] beyond just [`GameMode`].
@@ -375,13 +376,16 @@ pub struct GameState {
 /// [`GameBuilder::build`] or [`GameBuilder::build_modified`].
 /// This will give you a [`Game`] as specified that you can then use as normal.
 /// The `GameBuilder` is not used up and its configuration can be re-used to initialize more [`Game`]s.
-#[derive(PartialEq, Clone, Debug)]
+#[derive(PartialEq, PartialOrd, Clone, Debug, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct GameBuilder {
-    config: Option<GameConfig>,
-    mode: GameMode,
+    /// The possible game configurations.
+    pub config: Option<Config>,
+    /// The game mode.
+    pub rules: Option<Rules>,
     _state: (),
-    seed: Option<u64>,
+    /// The possible game seed.
+    pub seed: Option<u64>,
     // FIXME: Remove this verbose note at some point?
     // There's a certain chain of considerations for 'modifiers' are not a normal part of the
     // configuration builder; For idiomatic reasons, we'd like our `GameBuilder` methods to be
@@ -408,15 +412,17 @@ pub struct GameBuilder {
     // trait implementations for `PartialEq`, `Clone` and `Debug`, unlike `Game` which it is closely
     // based on but which can't even auto-derive `Debug`!
     _modifiers: (),
+    // pub initial_gravity: u32, // TODO
 }
 
 /// Main game struct representing one round of play.
+#[derive(Debug)]
 pub struct Game {
-    config: GameConfig,
-    mode: GameMode,
-    state: GameState,
+    config: Config,
+    rules: Rules,
+    state: State,
     seed: u64,
-    modifiers: Vec<FnGameMod>,
+    modifiers: Vec<Modifier>,
 }
 
 /// An error that can be thrown by [`Game::update`].
@@ -450,16 +456,16 @@ pub enum Feedback {
     Accolade {
         /// The final computed score bonus caused by the action.
         score_bonus: u32,
-        /// The shape that was locked.
-        shape: Tetromino,
-        /// Whether the piece was spun into place.
-        spin: bool,
         /// How many lines were cleared by the piece simultaneously
-        lineclears: u32,
-        /// Whether the entire board was cleared empty by this action.
-        perfect_clear: bool,
+        lines_cleared: u32,
         /// The number of consecutive pieces played that caused a lineclear.
         combo: u32,
+        /// Whether the piece was spun into place.
+        is_spin: bool,
+        /// Whether the entire board was cleared empty by this action.
+        is_perfect_clear: bool,
+        /// The tetromino type that was locked.
+        tetromino: Tetromino,
     },
     /// A message containing an exact in-engine [`GameEvent`] that was processed.
     EngineEvent(GameEvent),
@@ -473,7 +479,7 @@ pub enum Feedback {
 
 /// The points at which a [`FnGameMod`] will be applied.
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
-pub enum ModifierPoint {
+pub enum ModificationPoint {
     /// Passed at the beginning of any call to [`Game::update`].
     UpdateStart,
     /// Passed when the modifier is called immediately before an [`GameEvent`] is handled.
@@ -671,96 +677,85 @@ impl ActivePiece {
     }
 }
 
-impl GameMode {
-    /// Produce a game mode template for "Marathon" mode.
-    ///
-    /// Settings:
-    /// - Name: "Marathon".
-    /// - Start level: 1.
-    /// - Level increment: Yes.
-    /// - Limits: Level 16.
-    pub fn marathon() -> Self {
+impl Default for Rules {
+    fn default() -> Self {
         Self {
-            name: Some(String::from("Marathon")),
             initial_gravity: 1,
             increase_gravity: true,
-            limits: Limits {
-                gravity: Some((true, 15)),
-                ..Limits::default()
-            },
+            end_conditions: EndConditions::default(),
+        }
+    }
+}
+
+impl Rules {
+    /// Produce a blank game mode template.
+    ///
+    /// Template:
+    /// * Name: (none).
+    /// * Initial gravity: 1.
+    /// * Increase gravity: true.
+    /// * End conditions: (none).
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Produce a game mode template for "Marathon" mode.
+    ///
+    /// Template:
+    /// * Name: "Marathon".
+    /// * Initial gravity: 1.
+    /// * Increase gravity: true.
+    /// * End conditions: GravityReached(15).
+    pub fn marathon() -> Self {
+        Self {
+            initial_gravity: 1,
+            increase_gravity: true,
+            end_conditions: vec![(Stat::GravityReached(15), true)],
         }
     }
 
     /// Produce a game mode template for "40-Lines" mode.
     ///
-    /// Settings:
-    /// - Name: "40-Lines".
-    /// - Start level: (variable).
-    /// - Level increment: No.
-    /// - Limits: 40 line clears.
-    pub fn sprint(initial_gravity: u32) -> Self {
+    /// Template:
+    /// * Name: "40-Lines".
+    /// * Initial gravity: 3.
+    /// * Increase gravity: false.
+    /// * End conditions: LinesCleared(40).
+    pub fn forty_lines() -> Self {
         Self {
-            name: Some(String::from("40-Lines")),
-            initial_gravity,
+            initial_gravity: 3,
             increase_gravity: false,
-            limits: Limits {
-                lines: Some((true, 40)),
-                ..Limits::default()
-            },
+            end_conditions: vec![(Stat::LinesCleared(40), true)],
         }
     }
 
     /// Produce a game mode template for "Time Trial" mode.
     ///
-    /// Settings:
-    /// - Name: "Time Trial".
-    /// - Start level: (variable).
-    /// - Level increment: No.
-    /// - Limits: 180 seconds.
-    pub fn ultra(initial_gravity: u32) -> Self {
+    /// Template:
+    /// * Name: "Time Trial".
+    /// * Initial gravity: 2.
+    /// * Increase gravity: false.
+    /// * End conditions: TimeElapsed(180s).
+    pub fn time_trial() -> Self {
         Self {
-            name: Some(String::from("Time Trial")),
-            initial_gravity,
+            initial_gravity: 2,
             increase_gravity: false,
-            limits: Limits {
-                time: Some((true, Duration::from_secs(3 * 60))),
-                ..Limits::default()
-            },
+            end_conditions: vec![(Stat::TimeElapsed(Duration::from_secs(3 * 60)), true)],
         }
     }
 
     /// Produce a game mode template for "Master" mode.
     ///
-    /// Settings:
-    /// - Name: "Master".
-    /// - Start level: 19.
-    /// - Level increment: Yes.
-    /// - Limits: 100 Lines.
+    /// Template:
+    /// * Name: none.
+    /// * Initial gravity: 20.
+    /// * Increase gravity: true.
+    /// * End conditions: GravityReached(35).
     pub fn master() -> Self {
         Self {
-            name: Some(String::from("Master")),
             initial_gravity: Game::INSTANT_GRAVITY,
             increase_gravity: true,
-            limits: Limits {
-                gravity: Some((true, 35)),
-                ..Limits::default()
-            },
-        }
-    }
-
-    /// Produce a game mode template for "Endless" mode.
-    ///
-    /// Settings:
-    /// - Name: "Endless".
-    /// - Start level: 1.
-    /// - Level increment: No.
-    /// - Limits: None.
-    pub fn zen(gravity: u32) -> Self {
-        Self {
-            name: Some(String::from("Endless")),
-            initial_gravity: gravity,
-            increase_gravity: false,
-            limits: Limits::default(),
+            end_conditions: vec![(Stat::GravityReached(Game::INSTANT_GRAVITY + 15), true)],
         }
     }
 }
@@ -815,7 +810,7 @@ impl<T> ops::IndexMut<Button> for [T; 9] {
     }
 }
 
-impl Default for GameConfig {
+impl Default for Config {
     fn default() -> Self {
         Self {
             rotation_system: RotationSystem::Ocular,
@@ -833,16 +828,19 @@ impl Default for GameConfig {
     }
 }
 
+impl fmt::Debug for Modifier {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.debug_struct("GameModifier")
+            .field("name", &self.name)
+            .field("func", &std::any::type_name_of_val(&self.mod_function))
+            .finish()
+    }
+}
+
 impl GameBuilder {
     /// Creates a blank new template representing a yet-to-be-started [`Game`] ready for configuration.
-    pub fn new(game_mode: GameMode) -> Self {
-        GameBuilder {
-            mode: game_mode,
-            config: None,
-            _state: (),
-            seed: None,
-            _modifiers: (),
-        }
+    pub fn new() -> Self {
+        Self::default()
     }
 
     /// Creates a [`Game`] with the information specified by `self`.
@@ -851,14 +849,13 @@ impl GameBuilder {
     }
 
     /// Creates a [`Game`] with the information specified by `self` and some one-time `modifiers`.
-    pub fn build_modified(&self, modifiers: impl IntoIterator<Item = FnGameMod>) -> Game {
+    pub fn build_modified(&self, modifiers: impl IntoIterator<Item = Modifier>) -> Game {
+        let config = self.config.clone().unwrap_or_default();
+        let mode = self.rules.clone().unwrap_or_default();
         let seed = self.seed.unwrap_or_else(|| rand::rng().next_u64());
-        let gravity = self.mode.initial_gravity;
+        let modifiers = modifiers.into_iter().collect();
         Game {
-            config: self.config.clone().unwrap_or_default(),
-            mode: self.mode.clone(),
-            state: GameState {
-                end: None,
+            state: State {
                 time: Duration::ZERO,
                 events: HashMap::from([(GameEvent::Spawn, Duration::ZERO)]),
                 buttons_pressed: ButtonsArray::default(),
@@ -868,27 +865,30 @@ impl GameBuilder {
                 active_piece_data: None,
                 hold_piece: None,
                 next_pieces: VecDeque::new(),
-                pieces_played: [0; 7],
+                pieces_locked: [0; 7],
                 lines_cleared: 0,
-                gravity,
+                gravity: mode.initial_gravity,
                 score: 0,
                 consecutive_line_clears: 0,
                 rng: GameRng::seed_from_u64(seed),
+                result: None,
             },
+            config,
+            rules: mode,
             seed,
-            modifiers: modifiers.into_iter().collect(),
+            modifiers,
         }
     }
 
     /// Sets the [`GameConfig`] that will be used by `Game`.
-    pub fn config(&mut self, game_config: GameConfig) -> &mut Self {
+    pub fn config(&mut self, game_config: Config) -> &mut Self {
         self.config = Some(game_config);
         self
     }
 
     /// Sets the [`GameMode`] that will be used by `Game`.
-    pub fn mode(&mut self, game_mode: GameMode) -> &mut Self {
-        self.mode = game_mode;
+    pub fn rules(&mut self, game_rules: Rules) -> &mut Self {
+        self.rules = Some(game_rules);
         self
     }
 
@@ -896,18 +896,6 @@ impl GameBuilder {
     pub fn seed(&mut self, seed: u64) -> &mut Self {
         self.seed = Some(seed);
         self
-    }
-}
-
-impl fmt::Debug for Game {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.debug_struct("Game")
-            .field("config", &self.config)
-            .field("mode", &self.mode)
-            .field("state", &self.state)
-            .field("seed", &self.seed)
-            .field("modifiers", &std::any::type_name_of_val(&self.modifiers))
-            .finish()
     }
 }
 
@@ -921,14 +909,20 @@ impl Game {
     // This is the level at which blocks start falling with 20G / instantly hit the floor.
     const INSTANT_GRAVITY: u32 = 20;
 
-    /// Start a new, default-configuration game given some game mode.
-    pub fn new(game_mode: GameMode) -> Self {
-        Self::builder(game_mode).build()
+    /// Creates a blank new template representing a yet-to-be-started [`Game`] ready for configuration.
+    pub fn builder() -> GameBuilder {
+        GameBuilder::default()
     }
 
-    /// Creates a blank new template representing a yet-to-be-started [`Game`] ready for configuration.
-    pub fn builder(game_mode: GameMode) -> GameBuilder {
-        GameBuilder::new(game_mode)
+    /// Creates a blueprint [`GameBuilder`] from which the exact game can potentially be rebuilt.
+    pub fn blueprint(&self) -> GameBuilder {
+        GameBuilder {
+            config: Some(self.config.clone()),
+            rules: Some(self.rules.clone()),
+            _state: (),
+            seed: Some(self.seed),
+            _modifiers: (),
+        }
     }
 
     /// Immediately end a game by forfeiting the current round.
@@ -936,26 +930,26 @@ impl Game {
     /// This can be used so `game.ended()` returns true and prevents future
     /// calls to `update` from continuing to advance the game.
     pub fn forfeit(&mut self) {
-        self.state.end = Some(Err(GameOver::Forfeit))
+        self.state.result = Some(Err(GameOver::Forfeit))
     }
 
-    /// Whether the game has ended, or whether it can continue to update.
+    /// Whether the game has ended, and whether it can continue to update.
     pub fn ended(&self) -> bool {
-        self.state.end.is_some()
+        self.state.result.is_some()
     }
 
     /// Read accessor for the current game configurations.
-    pub fn config(&self) -> &GameConfig {
+    pub fn config(&self) -> &Config {
         &self.config
     }
 
     /// Read accessor for the current game mode.
-    pub fn mode(&self) -> &GameMode {
-        &self.mode
+    pub fn mode(&self) -> &Rules {
+        &self.rules
     }
 
     /// Read accessor for the current game state.
-    pub fn state(&self) -> &GameState {
+    pub fn state(&self) -> &State {
         &self.state
     }
 
@@ -964,66 +958,53 @@ impl Game {
         self.seed
     }
 
+    /// Read accessor for the current game modifiers.
+    pub fn modifier_names(&self) -> impl Iterator<Item = &str> {
+        self.modifiers.iter().map(|m| m.name.as_str())
+    }
+
     /// Mutable accessor for the current game configurations.
-    pub fn config_mut(&mut self) -> &mut GameConfig {
+    pub fn config_mut(&mut self) -> &mut Config {
         &mut self.config
     }
 
-    /// Mutable accessor for the current game modifiers.
-    pub fn modifiers_mut(&mut self) -> &mut Vec<FnGameMod> {
-        &mut self.modifiers
+    fn check_stat_met(&self, stat: &Stat) -> bool {
+        match stat {
+            Stat::TimeElapsed(t) => *t <= self.state.time,
+            Stat::PiecesLocked(p) => *p <= self.state.pieces_locked.iter().sum(),
+            Stat::LinesCleared(l) => *l <= self.state.lines_cleared,
+            Stat::GravityReached(g) => *g <= self.state.gravity,
+            Stat::PointsScored(s) => *s <= self.state.score,
+        }
     }
 
     /// Updates the internal `self.state.end` state, checking whether any [`Limits`] have been reached.
-    fn run_game_end_update(&mut self) {
-        self.state.end = self.state.end.or_else(|| {
-            [
-                self.mode
-                    .limits
-                    .time
-                    .and_then(|(win, dur)| (dur <= self.state.time).then_some(win)),
-                self.mode.limits.pieces.and_then(|(win, pcs)| {
-                    (pcs <= self.state.pieces_played.iter().sum()).then_some(win)
-                }),
-                self.mode
-                    .limits
-                    .lines
-                    .and_then(|(win, lns)| (lns <= self.state.lines_cleared).then_some(win)),
-                self.mode
-                    .limits
-                    .gravity
-                    .and_then(|(win, lvl)| (lvl <= self.state.gravity).then_some(win)),
-                self.mode
-                    .limits
-                    .score
-                    .and_then(|(win, pts)| (pts <= self.state.score).then_some(win)),
-            ]
-            .into_iter()
-            .find_map(|limit_reached| {
-                limit_reached.map(|win| {
-                    if win {
-                        Ok(())
-                    } else {
-                        Err(GameOver::ModeLimit)
-                    }
-                })
+    fn run_game_result_update(&mut self) {
+        if self.state.result.is_some() {
+            return;
+        }
+        self.state.result = self.rules.end_conditions.iter().find_map(|(c, good)| {
+            self.check_stat_met(c).then_some(if *good {
+                Ok(())
+            } else {
+                Err(GameOver::ModeLimit)
             })
         });
     }
 
     /// Goes through all internal 'game mods' and applies them sequentially at the given [`ModifierPoint`].
-    fn apply_modifiers(
+    fn run_modifier_updates(
         &mut self,
         feedback_msgs: &mut FeedbackMessages,
-        modifier_point: &ModifierPoint,
+        modifier_point: &ModificationPoint,
     ) {
-        for modify in &mut self.modifiers {
-            modify(
+        for modifier in &mut self.modifiers {
+            (modifier.mod_function)(
                 &mut self.config,
-                &mut self.mode,
+                &mut self.rules,
                 &mut self.state,
-                feedback_msgs,
                 modifier_point,
+                feedback_msgs,
             );
         }
     }
@@ -1074,7 +1055,7 @@ impl Game {
         };
         // NOTE: Returning an empty Vec is efficient because it won't even allocate (as by Rust API).
         let mut feedback_msgs = Vec::new();
-        self.apply_modifiers(&mut feedback_msgs, &ModifierPoint::UpdateStart);
+        self.run_modifier_updates(&mut feedback_msgs, &ModificationPoint::UpdateStart);
         // We linearly process all events until we reach the update time.
         'event_simulation: loop {
             // Peek the next closest event.
@@ -1087,7 +1068,10 @@ impl Game {
             match next_event {
                 // Next event within requested update time, handle event first.
                 Some((&event, &event_time)) if event_time <= update_time => {
-                    self.apply_modifiers(&mut feedback_msgs, &ModifierPoint::BeforeEvent(event));
+                    self.run_modifier_updates(
+                        &mut feedback_msgs,
+                        &ModificationPoint::BeforeEvent(event),
+                    );
                     // Remove next event and handle it.
                     self.state.events.remove_entry(&event);
                     if self.config.feedback_verbosity == FeedbackVerbosity::Debug {
@@ -1096,9 +1080,9 @@ impl Game {
                     let event_feedback_msgs = self.handle_event(event, event_time);
                     self.state.time = event_time;
                     feedback_msgs.extend(event_feedback_msgs);
-                    self.apply_modifiers(&mut feedback_msgs, &ModifierPoint::AfterEvent(event));
+                    self.run_modifier_updates(&mut feedback_msgs, &ModificationPoint::AfterEvent(event));
                     // Stop simulation early if event or modifier ended game.
-                    self.run_game_end_update();
+                    self.run_game_result_update();
                     if self.ended() {
                         break 'event_simulation;
                     }
@@ -1111,7 +1095,7 @@ impl Game {
                     // FIXME(Strophox): Why are we `take`ing the state?
                     // Update button inputs.
                     if let Some(pressed_buttons) = new_button_state.take() {
-                        self.apply_modifiers(&mut feedback_msgs, &ModifierPoint::BeforeInput);
+                        self.run_modifier_updates(&mut feedback_msgs, &ModificationPoint::BeforeInput);
                         if self.config.feedback_verbosity == FeedbackVerbosity::Debug {
                             feedback_msgs.push((
                                 update_time,
@@ -1122,9 +1106,9 @@ impl Game {
                             ));
                         }
                         self.run_input_update(pressed_buttons, update_time);
-                        self.apply_modifiers(&mut feedback_msgs, &ModifierPoint::AfterInput);
+                        self.run_modifier_updates(&mut feedback_msgs, &ModificationPoint::AfterInput);
                     } else {
-                        self.run_game_end_update();
+                        self.run_game_result_update();
                         break 'event_simulation;
                     }
                 }
@@ -1330,7 +1314,7 @@ impl Game {
                     }
                     // Newly spawned piece conflicts with board - Game over.
                     if !next_piece.fits(&self.state.board) {
-                        self.state.end = Some(Err(GameOver::BlockOut));
+                        self.state.result = Some(Err(GameOver::BlockOut));
                         return feedback_events;
                     }
                     self.state.events.insert(GameEvent::Fall, event_time);
@@ -1472,10 +1456,10 @@ impl Game {
                     .iter()
                     .all(|((_, y), _)| *y >= Game::SKYLINE)
                 {
-                    self.state.end = Some(Err(GameOver::LockOut));
+                    self.state.result = Some(Err(GameOver::LockOut));
                     return feedback_events;
                 }
-                self.state.pieces_played[prev_piece.shape] += 1;
+                self.state.pieces_locked[prev_piece.shape] += 1;
                 // Pre-save whether piece was spun into lock position.
                 let is_spin = prev_piece.fits_at(&self.state.board, (0, 1)).is_none();
                 // Locking.
@@ -1509,10 +1493,10 @@ impl Game {
                     self.state.score += u64::from(score_bonus);
                     let yippie = Feedback::Accolade {
                         score_bonus,
-                        shape: prev_piece.shape,
-                        spin: is_spin,
-                        lineclears: n_lines_cleared,
-                        perfect_clear: is_perfect_clear,
+                        tetromino: prev_piece.shape,
+                        is_spin,
+                        lines_cleared: n_lines_cleared,
+                        is_perfect_clear,
                         combo: n_combo,
                     };
                     if self.config.feedback_verbosity != FeedbackVerbosity::Quiet {
@@ -1548,7 +1532,7 @@ impl Game {
                         self.state.board.remove(y);
                         self.state.lines_cleared += 1;
                         // Increment level if 10 lines cleared.
-                        if self.mode.increase_gravity && self.state.lines_cleared % 10 == 0 {
+                        if self.rules.increase_gravity && self.state.lines_cleared % 10 == 0 {
                             self.state.gravity = self.state.gravity.saturating_add(1);
                         }
                     }

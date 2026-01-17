@@ -3,7 +3,7 @@ use std::{num::NonZeroU8, time::Duration};
 use rand::{self, Rng};
 
 use tetrs_engine::{
-    FnGameMod, Game, GameEvent, GameMode, GameTime, Limits, Line, ModifierPoint, Tetromino,
+    Game, GameEvent, GameModFn, GameTime, Line, ModificationPoint, Modifier, Rules, Tetromino,
 };
 
 pub fn random_descent_lines() -> impl Iterator<Item = Line> {
@@ -66,8 +66,8 @@ pub fn new_game() -> Game {
     let camera_adjust_period = Duration::from_millis(125);
     let mut depth = 1u32;
     let mut init = false;
-    let descent_mode: FnGameMod = Box::new(
-        move |config, _mode, state, _feedback_events, modifier_point| {
+    let mod_function: Box<GameModFn> =
+        Box::new(move |config, _mode, state, modpoint, _messages| {
             if !init {
                 for (line, worm_line) in state
                     .board
@@ -98,12 +98,12 @@ pub fn new_game() -> Game {
                 state.board.insert(0, line_source.next().unwrap());
                 state.board.pop();
                 if active_piece.position.1 >= Game::SKYLINE {
-                    state.end = Some(Err(tetrs_engine::GameOver::ModeLimit));
+                    state.result = Some(Err(tetrs_engine::GameOver::ModeLimit));
                 }
             }
             if matches!(
-                modifier_point,
-                ModifierPoint::AfterEvent(GameEvent::Rotate(_))
+                modpoint,
+                ModificationPoint::AfterEvent(GameEvent::Rotate(_))
             ) {
                 let piece_tiles_coords = active_piece.tiles().map(|(coord, _)| coord);
                 for (y, line) in state.board.iter_mut().enumerate() {
@@ -137,8 +137,8 @@ pub fn new_game() -> Game {
             }
             // Keep custom game state that's also visible to player, but hide it from the game engine that handles gameplay.
             if matches!(
-                modifier_point,
-                ModifierPoint::BeforeEvent(_) | ModifierPoint::BeforeInput
+                modpoint,
+                ModificationPoint::BeforeEvent(_) | ModificationPoint::BeforeInput
             ) {
                 state.lines_cleared = 0;
                 state.next_pieces.clear();
@@ -150,21 +150,25 @@ pub fn new_game() -> Game {
                 //     NonZeroU32::try_from(u32::try_from(current_puzzle_idx + 1).unwrap()).unwrap();
             }
             // Remove ability to hold.
-            if matches!(modifier_point, ModifierPoint::AfterInput) {
+            if matches!(modpoint, ModificationPoint::AfterInput) {
                 state.events.remove(&GameEvent::Hold);
             }
             // FIXME: Remove jank.
             active_piece.shape = descent_tetromino;
-        },
-    );
-    Game::builder(GameMode {
-        name: Some("Descent".to_string()),
+        });
+    let rules = Rules {
         initial_gravity: 0,
         increase_gravity: false,
-        limits: Limits {
-            time: Some((true, Duration::from_secs(180))),
-            ..Limits::default()
-        },
-    })
-    .build_modified([descent_mode])
+        end_conditions: vec![(
+            tetrs_engine::Stat::TimeElapsed(Duration::from_secs(3 * 60)),
+            true,
+        )],
+    };
+    let descent_modifier = Modifier {
+        name: "descent".to_owned(),
+        mod_function,
+    };
+    Game::builder()
+        .rules(rules)
+        .build_modified([descent_modifier])
 }

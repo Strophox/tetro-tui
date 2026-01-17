@@ -8,11 +8,11 @@ use crossterm::{
     style::{self, Print},
     terminal, QueueableCommand,
 };
-use tetrs_engine::{Button, Feedback, FeedbackMessages, Game, GameState, GameTime};
+use tetrs_engine::{Button, Feedback, FeedbackMessages, Game, GameTime, State};
 
 use crate::{
     game_renderers::{button_str, Renderer},
-    terminal_user_interface::Application,
+    terminal_user_interface::{Application, GameMetaData},
 };
 
 #[allow(dead_code)]
@@ -26,6 +26,7 @@ impl Renderer for DebugRenderer {
         &mut self,
         app: &mut Application<T>,
         game: &Game,
+        _meta_data: &GameMetaData,
         new_feedback_events: FeedbackMessages,
         _screen_resized: bool,
     ) -> io::Result<()>
@@ -33,7 +34,7 @@ impl Renderer for DebugRenderer {
         T: Write,
     {
         // Draw game stuf
-        let GameState {
+        let State {
             time: game_time,
             board,
             active_piece_data,
@@ -90,10 +91,10 @@ impl Renderer for DebugRenderer {
             feed_evt_msgs.push(match feedback_event {
                 Feedback::Accolade {
                     score_bonus,
-                    shape,
-                    spin,
-                    lineclears,
-                    perfect_clear,
+                    tetromino: shape,
+                    is_spin: spin,
+                    lines_cleared: lineclears,
+                    is_perfect_clear: perfect_clear,
                     combo,
                 } => {
                     let mut msg = Vec::new();
