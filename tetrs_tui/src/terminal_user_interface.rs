@@ -934,7 +934,7 @@ impl<T: Write> Application<T> {
                     kind: Press,
                     ..
                 }) => {
-                    let (name, stat, game) = if selected < normal_gamemodes.len() {
+                    let (name, stat, mut game) = if selected < normal_gamemodes.len() {
                         let (name, stat, _desc, func) = &normal_gamemodes[selected];
                         (*name, stat, func())
                     } else if selected < normal_gamemodes.len() + special_gamemodes.len() {
@@ -972,6 +972,7 @@ impl<T: Write> Application<T> {
                         };
                         ("Custom", &Stat::PointsScored(0), custom_game)
                     };
+                    game.config_mut().clone_from(self.settings.config());
                     let now = Instant::now();
                     break Ok(MenuUpdate::Push(Menu::Game {
                         game: Box::new(game),
