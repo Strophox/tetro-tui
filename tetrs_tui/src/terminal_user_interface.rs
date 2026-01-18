@@ -250,10 +250,10 @@ pub struct GraphicsSettings {
     Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug, serde::Serialize, serde::Deserialize,
 )]
 pub enum SavefileGranularity {
-    Nothing,
-    Settings,
-    SettingsScoreboard,
-    SettingsScoreboardGamestores,
+    NoSavefile,
+    RememberSettings,
+    RememberSettingsScoreboard,
+    RememberSettingsScoreboardGamereplays,
 }
 
 #[serde_with::serde_as]
@@ -446,7 +446,7 @@ impl<T: Write> Drop for Application<T> {
         // FIXME: Handle errors?
         let savefile_path = Self::savefile_path();
         // If the user wants any of their data stored, try to do so.
-        if self.save_on_exit != SavefileGranularity::Nothing {
+        if self.save_on_exit != SavefileGranularity::NoSavefile {
             if let Err(_e) = self.store_savefile(savefile_path) {
                 // FIXME: Make this debuggable.
                 //eprintln!("Could not save settings this time: {e} ");
@@ -492,7 +492,7 @@ impl<T: Write> Application<T> {
             scoreboard: Scoreboard::default(),
             new_game_settings: NewGameSettings::default(),
             saved_game: None,
-            save_on_exit: SavefileGranularity::Nothing,
+            save_on_exit: SavefileGranularity::NoSavefile,
         };
 
         // Actually load in settings.
@@ -529,10 +529,10 @@ impl<T: Write> Application<T> {
     }
 
     fn store_savefile(&mut self, path: PathBuf) -> io::Result<()> {
-        if self.save_on_exit < SavefileGranularity::SettingsScoreboard {
+        if self.save_on_exit < SavefileGranularity::RememberSettingsScoreboard {
             // Clear scoreboard if no game data is wished to be stored.
             self.scoreboard.entries.clear();
-        } else if self.save_on_exit < SavefileGranularity::SettingsScoreboardGamestores {
+        } else if self.save_on_exit < SavefileGranularity::RememberSettingsScoreboardGamereplays {
             // Clear past game inputs if no game input data is wished to be stored.
             for (_entry, restoration_data) in &mut self.scoreboard.entries {
                 restoration_data.take();
@@ -1533,22 +1533,22 @@ impl<T: Write> Application<T> {
                 .queue(MoveTo(x_main, y_main + y_selection + 3))?
                 .queue(Print(format!(
                     "{:^w_main$}",
-                    format!("Points scored: {points_scored}")
+                    format!("Score: {points_scored}")
                 )))?
                 .queue(MoveTo(x_main, y_main + y_selection + 4))?
                 .queue(Print(format!(
                     "{:^w_main$}",
-                    format!("Gravity reached: {gravity_reached}",)
+                    format!("Lines: {}", lines_cleared)
                 )))?
                 .queue(MoveTo(x_main, y_main + y_selection + 5))?
                 .queue(Print(format!(
                     "{:^w_main$}",
-                    format!("Lines cleared: {}", lines_cleared)
+                    format!("Tetrominos locked: {}", pieces_locked.iter().sum::<u32>())
                 )))?
                 .queue(MoveTo(x_main, y_main + y_selection + 6))?
                 .queue(Print(format!(
                     "{:^w_main$}",
-                    format!("Pieces locked: {}", pieces_locked.iter().sum::<u32>())
+                    format!("Gravity reached: {gravity_reached}",)
                 )))?
                 .queue(MoveTo(x_main, y_main + y_selection + 7))?
                 .queue(Print(format!(
@@ -1666,11 +1666,12 @@ impl<T: Write> Application<T> {
                 format!(
                     "Keep save file: {}",
                     match self.save_on_exit {
-                        SavefileGranularity::Nothing => "OFF*",
-                        SavefileGranularity::Settings => "ON (save settings)",
-                        SavefileGranularity::SettingsScoreboard => "ON (save settings, game stats)",
-                        SavefileGranularity::SettingsScoreboardGamestores =>
-                            "ON (save settings, game stats & inputs)",
+                        SavefileGranularity::NoSavefile => "OFF*",
+                        SavefileGranularity::RememberSettings => "ON (save settings)",
+                        SavefileGranularity::RememberSettingsScoreboard =>
+                            "ON (save settings, scores)",
+                        SavefileGranularity::RememberSettingsScoreboardGamereplays =>
+                            "ON (save settings, scores, game replays)",
                     }
                 ),
             ];
@@ -1697,7 +1698,7 @@ impl<T: Write> Application<T> {
                 .queue(PrintStyledContent(
                     format!(
                         "{:^w_main$}",
-                        if self.save_on_exit == SavefileGranularity::Nothing {
+                        if self.save_on_exit == SavefileGranularity::NoSavefile {
                             "(*WARNING: current data will be lost on exit)".to_owned()
                         } else {
                             format!("(Save file at {:?})", Self::savefile_path())
@@ -1734,7 +1735,8 @@ impl<T: Write> Application<T> {
                     1 => break Ok(MenuUpdate::Push(Menu::AdjustKeybinds)),
                     2 => break Ok(MenuUpdate::Push(Menu::AdjustGameplay)),
                     3 => {
-                        self.save_on_exit = SavefileGranularity::SettingsScoreboardGamestores;
+                        self.save_on_exit =
+                            SavefileGranularity::RememberSettingsScoreboardGamereplays;
                     }
                     _ => {}
                 },
@@ -1761,16 +1763,18 @@ impl<T: Write> Application<T> {
                 }) => {
                     if selected == 3 {
                         self.save_on_exit = match self.save_on_exit {
-                            SavefileGranularity::Nothing => {
-                                SavefileGranularity::SettingsScoreboardGamestores
+                            SavefileGranularity::NoSavefile => {
+                                SavefileGranularity::RememberSettingsScoreboardGamereplays
                             }
-                            SavefileGranularity::SettingsScoreboardGamestores => {
-                                SavefileGranularity::SettingsScoreboard
+                            SavefileGranularity::RememberSettingsScoreboardGamereplays => {
+                                SavefileGranularity::RememberSettingsScoreboard
                             }
-                            SavefileGranularity::SettingsScoreboard => {
-                                SavefileGranularity::Settings
+                            SavefileGranularity::RememberSettingsScoreboard => {
+                                SavefileGranularity::RememberSettings
                             }
-                            SavefileGranularity::Settings => SavefileGranularity::Nothing,
+                            SavefileGranularity::RememberSettings => {
+                                SavefileGranularity::NoSavefile
+                            }
                         };
                     }
                 }
@@ -1782,15 +1786,17 @@ impl<T: Write> Application<T> {
                 }) => {
                     if selected == 3 {
                         self.save_on_exit = match self.save_on_exit {
-                            SavefileGranularity::Nothing => SavefileGranularity::Settings,
-                            SavefileGranularity::Settings => {
-                                SavefileGranularity::SettingsScoreboard
+                            SavefileGranularity::NoSavefile => {
+                                SavefileGranularity::RememberSettings
                             }
-                            SavefileGranularity::SettingsScoreboard => {
-                                SavefileGranularity::SettingsScoreboardGamestores
+                            SavefileGranularity::RememberSettings => {
+                                SavefileGranularity::RememberSettingsScoreboard
                             }
-                            SavefileGranularity::SettingsScoreboardGamestores => {
-                                SavefileGranularity::Nothing
+                            SavefileGranularity::RememberSettingsScoreboard => {
+                                SavefileGranularity::RememberSettingsScoreboardGamereplays
+                            }
+                            SavefileGranularity::RememberSettingsScoreboardGamereplays => {
+                                SavefileGranularity::NoSavefile
                             }
                         };
                     }
@@ -1803,7 +1809,7 @@ impl<T: Write> Application<T> {
                     ..
                 }) => {
                     if selected == 3 {
-                        self.save_on_exit = SavefileGranularity::Nothing;
+                        self.save_on_exit = SavefileGranularity::NoSavefile;
                     }
                 }
 
@@ -2708,7 +2714,7 @@ impl<T: Write> Application<T> {
     #[allow(clippy::len_zero)]
     fn menu_scoreboard(&mut self) -> io::Result<MenuUpdate> {
         const CAMERA_SIZE: usize = 14;
-        const CAMERA_MARGIN: usize = 4;
+        const CAMERA_MARGIN: usize = 3;
         let mut cursor_pos = 0usize;
         let mut camera_pos = 0usize;
         loop {
@@ -2814,34 +2820,45 @@ impl<T: Write> Application<T> {
                 // Move selector up.
                 Event::Key(KeyEvent {
                     code: KeyCode::Up | KeyCode::Char('k'),
-                    kind: Press | Repeat,
+                    kind: kind @ (Press | Repeat),
                     ..
                 }) if self.scoreboard.entries.len() > 0 => {
-                    // yo what the hell
-                    cursor_pos += self.scoreboard.entries.len() - 1;
-                    cursor_pos %= self.scoreboard.entries.len();
-                    if cursor_pos == self.scoreboard.entries.len() - 1 {
-                        camera_pos = self.scoreboard.entries.len().saturating_sub(CAMERA_SIZE);
-                    } else if 0 < camera_pos && cursor_pos < camera_pos + CAMERA_MARGIN {
-                        camera_pos -= 1;
+                    // We allow wrapping cursor pos, but only on manual presses (if detectable).
+                    if 0 < cursor_pos || kind == Press {
+                        // Cursor pos possibly wraps back down.
+                        cursor_pos += self.scoreboard.entries.len() - 1;
+                        cursor_pos %= self.scoreboard.entries.len();
+                        // If it does, then manually reset camera to bottom of scoreboard.
+                        if cursor_pos == self.scoreboard.entries.len() - 1 {
+                            camera_pos = self.scoreboard.entries.len().saturating_sub(CAMERA_SIZE);
+                        // Otherwise cursor just moved normally, and we may have to adapt camera (unless it hit scoreboard end).
+                        } else if 0 < camera_pos && cursor_pos < camera_pos + CAMERA_MARGIN {
+                            camera_pos -= 1;
+                        }
                     }
                 }
 
                 // Move selector down.
                 Event::Key(KeyEvent {
                     code: KeyCode::Down | KeyCode::Char('j'),
-                    kind: Press | Repeat,
+                    kind: kind @ (Press | Repeat),
                     ..
                 }) if self.scoreboard.entries.len() > 0 => {
-                    // yo what the hell pt.2
-                    cursor_pos += 1;
-                    cursor_pos %= self.scoreboard.entries.len();
-                    if cursor_pos == 0 {
-                        camera_pos = 0;
-                    } else if camera_pos + CAMERA_SIZE - CAMERA_MARGIN < cursor_pos
-                        && camera_pos < self.scoreboard.entries.len().saturating_sub(CAMERA_SIZE)
-                    {
-                        camera_pos += 1;
+                    // We allow wrapping cursor pos, but only on manual presses (if detectable).
+                    if cursor_pos < self.scoreboard.entries.len() - 1 || kind == Press {
+                        // Cursor pos possibly wraps back up.
+                        cursor_pos += 1;
+                        cursor_pos %= self.scoreboard.entries.len();
+                        // If it does, then manually reset camera to bottom of scoreboard.
+                        if cursor_pos == 0 {
+                            camera_pos = 0;
+                        // Otherwise cursor just moved normally, and we may have to adapt camera (unless it hit scoreboard end).
+                        } else if camera_pos + CAMERA_SIZE - CAMERA_MARGIN <= cursor_pos
+                            && camera_pos
+                                < self.scoreboard.entries.len().saturating_sub(CAMERA_SIZE)
+                        {
+                            camera_pos += 1;
+                        }
                     }
                 }
 
