@@ -438,7 +438,7 @@ pub struct Application<T: Write> {
     settings: Settings,
     new_game_settings: NewGameSettings,
     scoreboard: Scoreboard,
-    saved_game: Option<(GameRestorationData, GameMetaData)>,
+    saved_game: Option<(GameMetaData, GameRestorationData)>,
 }
 
 impl<T: Write> Drop for Application<T> {
@@ -1068,9 +1068,10 @@ impl<T: Write> Application<T> {
                         let new_recorded_user_input = RecordedUserInput::new();
                         (preset_game, new_meta_data, new_recorded_user_input)
                     // Load saved game.
-                    } else if let Some((game_restoration_data, game_meta_data)) = &self.saved_game {
+                    } else if let Some((game_meta_data, game_restoration_data)) = &self.saved_game {
                         let restored_game = game_restoration_data.restore(&self.new_game_settings);
-                        let restored_meta_data = game_meta_data.clone();
+                        let mut restored_meta_data = game_meta_data.clone();
+                        restored_meta_data.name.push('\'');
                         let restored_recorded_user_input =
                             game_restoration_data.recorded_user_input.clone();
                         (
@@ -1412,8 +1413,8 @@ impl<T: Write> Application<T> {
                     }
                     Ok(InputSignal::StoreSavepoint) => {
                         let _ = self.saved_game.insert((
-                            GameRestorationData::new(game, recorded_user_input),
                             meta_data.clone(),
+                            GameRestorationData::new(game, recorded_user_input),
                         ));
                         new_feedback_msgs.push((
                             game.state().time,

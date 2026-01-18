@@ -831,7 +831,10 @@ impl fmt::Debug for Modifier {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.debug_struct("GameModifier")
             .field("identifier", &self.identifier)
-            .field("mod_function", &std::any::type_name_of_val(&self.mod_function))
+            .field(
+                "mod_function",
+                &std::any::type_name_of_val(&self.mod_function),
+            )
             .finish()
     }
 }
