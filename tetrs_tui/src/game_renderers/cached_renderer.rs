@@ -461,14 +461,16 @@ impl Renderer for CachedRenderer {
         }
         // If a piece is in play.
         if let Some((active_piece, _)) = active_piece_data {
-            // Draw ghost piece.
-            for (tile_pos, tile_type_id) in active_piece.well_piece(board).tiles() {
-                if tile_pos.1 <= Game::SKYLINE {
-                    self.screen.buffer_str(
-                        tile_ghost,
-                        get_color(&tile_type_id),
-                        pos_board(tile_pos),
-                    );
+            if app.settings().graphics().show_ghost_piece {
+                // Draw ghost piece.
+                for (tile_pos, tile_type_id) in active_piece.well_piece(board).tiles() {
+                    if tile_pos.1 <= Game::SKYLINE {
+                        self.screen.buffer_str(
+                            tile_ghost,
+                            get_color(&tile_type_id),
+                            pos_board(tile_pos),
+                        );
+                    }
                 }
             }
             // Draw active piece.
