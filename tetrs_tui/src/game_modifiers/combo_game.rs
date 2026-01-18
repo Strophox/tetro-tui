@@ -1,7 +1,8 @@
 use std::num::{NonZeroU8, NonZeroUsize};
 
 use tetrs_engine::{
-    Board, Game, GameBuilder, GameEvent, Line, ModificationPoint, Modifier, Rules, Stat, Tetromino,
+    Board, EndConditions, Game, GameBuilder, GameEvent, Line, ModificationPoint, Modifier, Rules,
+    Stat, Tetromino,
 };
 
 pub const MOD_IDENTIFIER: &str = "endless_combo_board";
@@ -23,11 +24,15 @@ pub fn build(
     combo_limit: Option<NonZeroUsize>,
     combo_start_layout: u16,
 ) -> Game {
-    let combo_limit = combo_limit.unwrap_or(NonZeroUsize::MAX).get();
+    let end_conditions = if let Some(limit) = combo_limit {
+        vec![(Stat::LinesCleared(limit.get()), true)]
+    } else {
+        EndConditions::default()
+    };
     let rules = Rules {
         initial_gravity: 1,
         progressive_gravity: false,
-        end_conditions: vec![(Stat::LinesCleared(combo_limit), true)],
+        end_conditions,
     };
     builder
         .clone()

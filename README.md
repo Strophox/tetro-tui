@@ -6,8 +6,8 @@
 </div>
 
 This repo contains:
-- `tetrs_engine`, a tetromino game engine capable of handling many 'modern tetromino stacker' mechanics, and
-- `tetrs_tui`, a basic cross-platform Terminal User Interface, enabling a sufficiently polished, typical game experience.
+- `tetrs_engine`, a tetromino game backend – capable of handling modern 'stacker' mechanics;
+- `tetrs_tui`, a basic cross-platform Terminal User Interface – providing a sufficiently polished, familiar game experience.
 
 <!--
 ---

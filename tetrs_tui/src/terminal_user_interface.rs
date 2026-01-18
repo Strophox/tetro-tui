@@ -832,13 +832,13 @@ impl<T: Write> Application<T> {
         loop {
             #[allow(clippy::type_complexity)]
             let mut game_presets: Vec<(
-                &str,
+                String,
                 (Stat, bool),
                 String,
                 Box<dyn Fn(&GameBuilder) -> Game>,
             )> = vec![
                 (
-                    "40-Lines",
+                    "40-Lines".to_owned(),
                     (Stat::TimeElapsed(Duration::ZERO), true),
                     "How fast can you clear forty lines?".to_owned(),
                     Box::new(|builder: &GameBuilder| {
@@ -846,7 +846,7 @@ impl<T: Write> Application<T> {
                     }),
                 ),
                 (
-                    "Marathon",
+                    "Marathon".to_owned(),
                     (Stat::PointsScored(0), false),
                     "Can you make it to level 15?".to_owned(),
                     Box::new(|builder: &GameBuilder| {
@@ -854,7 +854,7 @@ impl<T: Write> Application<T> {
                     }),
                 ),
                 (
-                    "Time Trial",
+                    "Time Trial".to_owned(),
                     (Stat::PointsScored(0), false),
                     "What highscore can you get in 3 minutes?".to_owned(),
                     Box::new(|builder: &GameBuilder| {
@@ -862,7 +862,7 @@ impl<T: Write> Application<T> {
                     }),
                 ),
                 (
-                    "Master",
+                    "Master".to_owned(),
                     (Stat::PointsScored(0), false),
                     "Can you clear 15 levels at instant gravity?".to_owned(),
                     Box::new(|builder: &GameBuilder| {
@@ -870,13 +870,20 @@ impl<T: Write> Application<T> {
                     }),
                 ),
                 (
-                    "Puzzle",
+                    "Puzzle".to_owned(),
                     (Stat::TimeElapsed(Duration::ZERO), true),
                     "Get perfect clears in all 24 puzzle levels.".to_owned(),
                     Box::new(game_modifiers::puzzle_game::build),
                 ),
                 (
-                    "Cheese",
+                    format!(
+                        "{}Cheese",
+                        if let Some(limit) = self.new_game_settings.cheese_linelimit {
+                            format!("{limit}-")
+                        } else {
+                            "".to_owned()
+                        }
+                    ),
                     (Stat::PiecesLocked(0), true),
                     format!(
                         "Eat through lines like Swiss cheese. Limit: {:?}",
@@ -897,7 +904,14 @@ impl<T: Write> Application<T> {
                     }),
                 ),
                 (
-                    "Combo",
+                    format!(
+                        "{}Combo",
+                        if let Some(limit) = self.new_game_settings.combo_linelimit {
+                            format!("{limit}-")
+                        } else {
+                            "".to_owned()
+                        }
+                    ),
                     (Stat::TimeElapsed(Duration::ZERO), true),
                     format!(
                         "Get consecutive line clears. Limit: {:?}{}",
@@ -925,7 +939,7 @@ impl<T: Write> Application<T> {
                 game_presets.insert(
                     5,
                     (
-                        "Descent (experimental)",
+                        "Descent (experimental)".to_owned(),
                         (Stat::PointsScored(0), false),
                         "Spin the piece and collect 'gems' by touching them.".to_owned(),
                         Box::new(game_modifiers::descent_game::build),
