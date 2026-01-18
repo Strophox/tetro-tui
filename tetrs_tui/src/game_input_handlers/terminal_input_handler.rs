@@ -137,7 +137,7 @@ impl TerminalInputHandler {
                         kind: KeyEventKind::Press | KeyEventKind::Repeat,
                         ..
                     })) => {
-                        let _ = input_sender.send(InputSignal::TakeSnapshot);
+                        let _ = input_sender.send(InputSignal::StoreSavepoint);
                     }
                     // Escape pressed: send pause.
                     Ok(Event::Key(KeyEvent {
@@ -213,7 +213,7 @@ impl TerminalInputHandler {
                         kind: KeyEventKind::Press | KeyEventKind::Repeat,
                         ..
                     })) => {
-                        let _ = input_sender.send(InputSignal::TakeSnapshot);
+                        let _ = input_sender.send(InputSignal::StoreSavepoint);
                     }
                     // Escape pressed: send pause.
                     Ok(Event::Key(KeyEvent {

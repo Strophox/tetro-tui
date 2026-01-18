@@ -7,54 +7,9 @@ use tetrs_engine::{
     Tetromino,
 };
 
-pub fn random_descent_lines() -> impl Iterator<Item = Line> {
-    /*
-    We generate quadruple sets of lines like this:
-             X
-    0O0O O0O0X
-     */
-    let color_tiles = [
-        Tetromino::Z,
-        Tetromino::L,
-        Tetromino::O,
-        Tetromino::S,
-        Tetromino::I,
-        Tetromino::J,
-        Tetromino::T,
-    ]
-    .map(|tet| Some(tet.tiletypeid()));
-    let grey_tile = Some(NonZeroU8::try_from(254).unwrap());
-    let playing_width = Game::WIDTH - (1 - Game::WIDTH % 2);
-    let mut rng = rand::rng();
-    (0..).map(move |i| {
-        let mut line = [None; Game::WIDTH];
-        match i % 4 {
-            0 | 2 => {}
-            r => {
-                for (j, cell) in line.iter_mut().enumerate() {
-                    if j % 2 == 1 || (r == 1 && rng.random_bool(0.5)) {
-                        *cell = grey_tile;
-                    }
-                }
-                // Make hole if row became completely closed off through rng.
-                if line.iter().all(|c| c.is_some()) {
-                    let hole_idx = 2 * rng.random_range(0..playing_width / 2);
-                    line[hole_idx] = None;
-                }
-                let gem_idx = rng.random_range(0..playing_width);
-                if line[gem_idx].is_some() {
-                    line[gem_idx] = Some(NonZeroU8::try_from(rng.random_range(1..=7)).unwrap());
-                }
-            }
-        };
-        if playing_width < line.len() {
-            line[playing_width] = color_tiles[(i / 10) % 7];
-        }
-        line
-    })
-}
+pub const MOD_IDENTIFIER: &str = "descent_modifier";
 
-pub fn build_descent(builder: &GameBuilder) -> Game {
+pub fn build(builder: &GameBuilder) -> Game {
     let mut line_source = random_descent_lines();
     let descent_tetromino = if rand::rng().random_bool(0.5) {
         Tetromino::L
@@ -159,18 +114,65 @@ pub fn build_descent(builder: &GameBuilder) -> Game {
         });
     let rules = Rules {
         initial_gravity: 0,
-        increase_gravity: false,
+        progressive_gravity: false,
         end_conditions: vec![(
             tetrs_engine::Stat::TimeElapsed(Duration::from_secs(3 * 60)),
             true,
         )],
     };
     let descent_modifier = Modifier {
-        name: "descent".to_owned(),
+        identifier: MOD_IDENTIFIER.to_owned(),
         mod_function,
     };
     builder
         .clone()
         .rules(rules)
         .build_modified([descent_modifier])
+}
+
+pub fn random_descent_lines() -> impl Iterator<Item = Line> {
+    /*
+    We generate quadruple sets of lines like this:
+             X
+    0O0O O0O0X
+     */
+    let color_tiles = [
+        Tetromino::Z,
+        Tetromino::L,
+        Tetromino::O,
+        Tetromino::S,
+        Tetromino::I,
+        Tetromino::J,
+        Tetromino::T,
+    ]
+    .map(|tet| Some(tet.tiletypeid()));
+    let grey_tile = Some(NonZeroU8::try_from(254).unwrap());
+    let playing_width = Game::WIDTH - (1 - Game::WIDTH % 2);
+    let mut rng = rand::rng();
+    (0..).map(move |i| {
+        let mut line = [None; Game::WIDTH];
+        match i % 4 {
+            0 | 2 => {}
+            r => {
+                for (j, cell) in line.iter_mut().enumerate() {
+                    if j % 2 == 1 || (r == 1 && rng.random_bool(0.5)) {
+                        *cell = grey_tile;
+                    }
+                }
+                // Make hole if row became completely closed off through rng.
+                if line.iter().all(|c| c.is_some()) {
+                    let hole_idx = 2 * rng.random_range(0..playing_width / 2);
+                    line[hole_idx] = None;
+                }
+                let gem_idx = rng.random_range(0..playing_width);
+                if line[gem_idx].is_some() {
+                    line[gem_idx] = Some(NonZeroU8::try_from(rng.random_range(1..=7)).unwrap());
+                }
+            }
+        };
+        if playing_width < line.len() {
+            line[playing_width] = color_tiles[(i / 10) % 7];
+        }
+        line
+    })
 }

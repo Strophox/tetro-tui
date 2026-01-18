@@ -5,10 +5,12 @@ use tetrs_engine::{
     ModificationPoint, Modifier, Rules, State, Tetromino,
 };
 
+pub const MOD_IDENTIFIER: &str = "puzzle_modifier";
+
 const MAX_STAGE_ATTEMPTS: usize = 5;
 const PUZZLE_GRAVITY: u32 = 1;
 
-pub fn build_puzzle(builder: &GameBuilder) -> Game {
+pub fn build(builder: &GameBuilder) -> Game {
     let puzzles = puzzle_list();
     let puzzles_len = puzzles.len();
     let load_puzzle = move |state: &mut State,
@@ -120,12 +122,12 @@ pub fn build_puzzle(builder: &GameBuilder) -> Game {
         }
     });
     let puzzle_modifier = Modifier {
-        name: "puzzle".to_owned(),
+        identifier: MOD_IDENTIFIER.to_owned(),
         mod_function,
     };
     let rules = Rules {
         initial_gravity: 2,
-        increase_gravity: false,
+        progressive_gravity: false,
         end_conditions: tetrs_engine::EndConditions::default(),
     };
     builder

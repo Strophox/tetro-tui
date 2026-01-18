@@ -1,8 +1,10 @@
-use std::num::NonZeroU8;
+use std::num::{NonZeroU8, NonZeroUsize};
 
 use tetrs_engine::{
-    Board, Game, GameBuilder, GameEvent, GameModFn, Line, ModificationPoint, Rules, Tetromino,
+    Board, Game, GameBuilder, GameEvent, Line, ModificationPoint, Modifier, Rules, Stat, Tetromino,
 };
+
+pub const MOD_IDENTIFIER: &str = "endless_combo_board";
 
 pub const LAYOUTS: [u16; 5] = [
     0b0000_0000_1100_1000, // "r"
@@ -15,6 +17,74 @@ pub const LAYOUTS: [u16; 5] = [
                            0b1000_1000_1100_1100, // "b"
                            0b0000_0000_1110_1011, // "rl"*/
 ];
+
+pub fn build(
+    builder: &GameBuilder,
+    combo_limit: Option<NonZeroUsize>,
+    combo_start_layout: u16,
+) -> Game {
+    let combo_limit = combo_limit.unwrap_or(NonZeroUsize::MAX).get();
+    let rules = Rules {
+        initial_gravity: 1,
+        progressive_gravity: false,
+        end_conditions: vec![(Stat::LinesCleared(combo_limit), true)],
+    };
+    builder
+        .clone()
+        .rules(rules)
+        .build_modified([endless_combo_board(combo_start_layout)])
+}
+
+pub fn endless_combo_board(initial_layout: u16) -> Modifier {
+    let mut line_source = four_wide_lines();
+    let mut init = false;
+    Modifier {
+        identifier: MOD_IDENTIFIER.to_owned(),
+        mod_function: Box::new(move |_config, _rules, state, mod_pt, _feedback_msgs| {
+            if !init {
+                for (line, four_well) in state
+                    .board
+                    .iter_mut()
+                    .take(Game::HEIGHT)
+                    .zip(&mut line_source)
+                {
+                    *line = four_well;
+                }
+                init_board(&mut state.board, initial_layout);
+                init = true;
+            } else if matches!(mod_pt, ModificationPoint::AfterEvent(GameEvent::Lock)) {
+                // No lineclear, game over.
+                if !state.events.contains_key(&GameEvent::LineClear) {
+                    state.result = Some(Err(tetrs_engine::GameOver::ModeLimit));
+                // Combo continues, prepare new line.
+                } else {
+                    state.board.push(line_source.next().unwrap());
+                }
+            }
+        }),
+    }
+}
+
+fn init_board(board: &mut Board, mut init_layout: u16) {
+    let grey_tile = Some(NonZeroU8::try_from(254).unwrap());
+    let mut y = 0;
+    while init_layout != 0 {
+        if init_layout & 0b1000 != 0 {
+            board[y][3] = grey_tile;
+        }
+        if init_layout & 0b0100 != 0 {
+            board[y][4] = grey_tile;
+        }
+        if init_layout & 0b0010 != 0 {
+            board[y][5] = grey_tile;
+        }
+        if init_layout & 0b0001 != 0 {
+            board[y][6] = grey_tile;
+        }
+        init_layout /= 0b1_0000;
+        y += 1;
+    }
+}
 
 fn four_wide_lines() -> impl Iterator<Item = Line> {
     let color_tiles = [
@@ -40,66 +110,4 @@ fn four_wide_lines() -> impl Iterator<Item = Line> {
         line[9] = color_tiles[i_0];
         line
     })
-}
-
-pub fn build_combo(builder: &GameBuilder, gravity: u32, initial_layout: u16) -> Game {
-    let mut line_source = four_wide_lines();
-    let mut init = false;
-    let mod_function: Box<GameModFn> =
-        Box::new(move |_config, _rules, state, mod_pt, _feedback_msgs| {
-            if !init {
-                for (line, four_well) in state
-                    .board
-                    .iter_mut()
-                    .take(Game::HEIGHT)
-                    .zip(&mut line_source)
-                {
-                    *line = four_well;
-                }
-                init_board(&mut state.board, initial_layout);
-                init = true;
-            } else if matches!(mod_pt, ModificationPoint::AfterEvent(GameEvent::Lock)) {
-                // No lineclear, game over.
-                if !state.events.contains_key(&GameEvent::LineClear) {
-                    state.result = Some(Err(tetrs_engine::GameOver::ModeLimit));
-                // Combo continues, prepare new line.
-                } else {
-                    state.board.push(line_source.next().unwrap());
-                }
-            }
-        });
-    let combo_modifier = tetrs_engine::Modifier {
-        name: "combo".to_owned(),
-        mod_function,
-    };
-    let rules = Rules {
-        initial_gravity: gravity,
-        increase_gravity: false,
-        end_conditions: tetrs_engine::EndConditions::default(),
-    };
-    builder
-        .clone()
-        .rules(rules)
-        .build_modified([combo_modifier])
-}
-
-fn init_board(board: &mut Board, mut init_layout: u16) {
-    let grey_tile = Some(NonZeroU8::try_from(254).unwrap());
-    let mut y = 0;
-    while init_layout != 0 {
-        if init_layout & 0b1000 != 0 {
-            board[y][3] = grey_tile;
-        }
-        if init_layout & 0b0100 != 0 {
-            board[y][4] = grey_tile;
-        }
-        if init_layout & 0b0010 != 0 {
-            board[y][5] = grey_tile;
-        }
-        if init_layout & 0b0001 != 0 {
-            board[y][6] = grey_tile;
-        }
-        init_layout /= 0b1_0000;
-        y += 1;
-    }
 }

@@ -6,26 +6,9 @@ use tetrs_engine::{
     Game, GameBuilder, GameEvent, GameModFn, Line, ModificationPoint, Modifier, Rules,
 };
 
-fn random_gap_lines(gap_size: usize) -> impl Iterator<Item = Line> {
-    let gap_size = gap_size.min(Game::WIDTH);
-    let grey_tile = Some(NonZeroU8::try_from(254).unwrap());
-    let mut rng = rand::rng();
-    std::iter::from_fn(move || {
-        let mut line = [grey_tile; Game::WIDTH];
-        let gap_idx = rng.random_range(0..=line.len() - gap_size);
-        for i in 0..gap_size {
-            line[gap_idx + i] = None;
-        }
-        Some(line)
-    })
-}
+pub const MOD_IDENTIFIER: &str = "cheese_modifier";
 
-fn is_cheese_line(line: &Line) -> bool {
-    line.iter()
-        .any(|cell| *cell == Some(NonZeroU8::try_from(254).unwrap()))
-}
-
-pub fn build_cheese(
+pub fn build(
     builder: &GameBuilder,
     cheese_limit: Option<NonZeroUsize>,
     gap_size: usize,
@@ -71,7 +54,7 @@ pub fn build_cheese(
         },
     );
     let cheese_modifier = Modifier {
-        name: "cheese".to_owned(),
+        identifier: MOD_IDENTIFIER.to_owned(),
         mod_function,
     };
     let end_conditions = match cheese_limit {
@@ -80,11 +63,30 @@ pub fn build_cheese(
     };
     let rules = Rules {
         initial_gravity: gravity,
-        increase_gravity: false,
+        progressive_gravity: false,
         end_conditions,
     };
     builder
         .clone()
         .rules(rules)
         .build_modified([cheese_modifier])
+}
+
+fn random_gap_lines(gap_size: usize) -> impl Iterator<Item = Line> {
+    let gap_size = gap_size.min(Game::WIDTH);
+    let grey_tile = Some(NonZeroU8::try_from(254).unwrap());
+    let mut rng = rand::rng();
+    std::iter::from_fn(move || {
+        let mut line = [grey_tile; Game::WIDTH];
+        let gap_idx = rng.random_range(0..=line.len() - gap_size);
+        for i in 0..gap_size {
+            line[gap_idx + i] = None;
+        }
+        Some(line)
+    })
+}
+
+fn is_cheese_line(line: &Line) -> bool {
+    line.iter()
+        .any(|cell| *cell == Some(NonZeroU8::try_from(254).unwrap()))
 }

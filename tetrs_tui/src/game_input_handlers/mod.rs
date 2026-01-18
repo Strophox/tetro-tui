@@ -6,6 +6,6 @@ pub enum InputSignal {
     ForfeitGame,
     Pause,
     WindowResize,
-    TakeSnapshot,
+    StoreSavepoint,
     ButtonInput(tetrs_engine::Button, bool, std::time::Instant),
 }

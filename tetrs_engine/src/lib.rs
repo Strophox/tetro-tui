@@ -214,7 +214,7 @@ pub struct Rules {
     // an enum or just the underlying limits.
     // What defines a gamemode? Maybe we just distribute these fields into the
     // other most appropriate structs, likely GameConfig and Game.
-    pub increase_gravity: bool,
+    pub progressive_gravity: bool,
     /// Stores the ways in which a round of the game should be limited.
     ///
     /// Each limitation may be either of positive ('game completed') or negative ('game over'), as
@@ -363,7 +363,7 @@ pub struct State {
 /// Type of named modifiers that can be used to mod a game, c.f. [`GameBuilder::build_modified`].
 pub struct Modifier {
     /// The name of a modifier.
-    pub name: String,
+    pub identifier: String,
     /// The function object which will be called at runtime.
     pub mod_function: Box<GameModFn>,
 }
@@ -476,7 +476,7 @@ pub enum Feedback {
     Text(String),
 }
 
-/// The points at which a [`FnGameMod`] will be applied.
+/// The points at which a [`GameModFn`] will be applied.
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
 pub enum ModificationPoint {
     /// Passed at the beginning of any call to [`Game::update`].
@@ -680,7 +680,7 @@ impl Default for Rules {
     fn default() -> Self {
         Self {
             initial_gravity: 1,
-            increase_gravity: true,
+            progressive_gravity: true,
             end_conditions: EndConditions::default(),
         }
     }
@@ -692,7 +692,7 @@ impl Rules {
     /// Template:
     /// * Name: (none).
     /// * Initial gravity: 1.
-    /// * Increase gravity: true.
+    /// * Progressive gravity: true.
     /// * End conditions: (none).
     pub fn new() -> Self {
         Self::default()
@@ -703,12 +703,12 @@ impl Rules {
     /// Template:
     /// * Name: "Marathon".
     /// * Initial gravity: 1.
-    /// * Increase gravity: true.
+    /// * Progressive gravity: true.
     /// * End conditions: GravityReached(15).
     pub fn marathon() -> Self {
         Self {
             initial_gravity: 1,
-            increase_gravity: true,
+            progressive_gravity: true,
             end_conditions: vec![(Stat::GravityReached(15), true)],
         }
     }
@@ -718,12 +718,12 @@ impl Rules {
     /// Template:
     /// * Name: "40-Lines".
     /// * Initial gravity: 3.
-    /// * Increase gravity: false.
+    /// * Progressive gravity: false.
     /// * End conditions: LinesCleared(40).
     pub fn forty_lines() -> Self {
         Self {
             initial_gravity: 3,
-            increase_gravity: false,
+            progressive_gravity: false,
             end_conditions: vec![(Stat::LinesCleared(40), true)],
         }
     }
@@ -733,12 +733,12 @@ impl Rules {
     /// Template:
     /// * Name: "Time Trial".
     /// * Initial gravity: 2.
-    /// * Increase gravity: false.
+    /// * Progressive gravity: false.
     /// * End conditions: TimeElapsed(180s).
     pub fn time_trial() -> Self {
         Self {
             initial_gravity: 2,
-            increase_gravity: false,
+            progressive_gravity: false,
             end_conditions: vec![(Stat::TimeElapsed(Duration::from_secs(3 * 60)), true)],
         }
     }
@@ -748,12 +748,12 @@ impl Rules {
     /// Template:
     /// * Name: none.
     /// * Initial gravity: 20.
-    /// * Increase gravity: true.
+    /// * Progressive gravity: true.
     /// * End conditions: GravityReached(35).
     pub fn master() -> Self {
         Self {
             initial_gravity: Game::INSTANT_GRAVITY,
-            increase_gravity: true,
+            progressive_gravity: true,
             end_conditions: vec![(Stat::GravityReached(Game::INSTANT_GRAVITY + 15), true)],
         }
     }
@@ -830,8 +830,8 @@ impl Default for Config {
 impl fmt::Debug for Modifier {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.debug_struct("GameModifier")
-            .field("name", &self.name)
-            .field("func", &std::any::type_name_of_val(&self.mod_function))
+            .field("identifier", &self.identifier)
+            .field("mod_function", &std::any::type_name_of_val(&self.mod_function))
             .finish()
     }
 }
@@ -913,15 +913,17 @@ impl Game {
         GameBuilder::default()
     }
 
-    /// Creates a blueprint [`GameBuilder`] from which the exact game can potentially be rebuilt.
-    pub fn blueprint(&self) -> GameBuilder {
-        GameBuilder {
+    /// Creates a blueprint [`GameBuilder`] and an iterator over current modifier identifiers ([`&str`]s) from which the exact game can potentially be rebuilt.
+    pub fn blueprint(&self) -> (GameBuilder, impl Iterator<Item = &str>) {
+        let builder = GameBuilder {
             config: Some(self.config.clone()),
             rules: Some(self.rules.clone()),
             _state: (),
             seed: Some(self.seed),
             _modifiers: (),
-        }
+        };
+        let mod_identifiers = self.modifiers.iter().map(|m| m.identifier.as_str());
+        (builder, mod_identifiers)
     }
 
     /// Immediately end a game by forfeiting the current round.
@@ -957,14 +959,14 @@ impl Game {
         self.seed
     }
 
-    /// Read accessor for the current game modifiers.
-    pub fn modifier_names(&self) -> impl Iterator<Item = &str> {
-        self.modifiers.iter().map(|m| m.name.as_str())
-    }
-
     /// Mutable accessor for the current game configurations.
     pub fn config_mut(&mut self) -> &mut Config {
         &mut self.config
+    }
+
+    /// Mutable accessor for the current game modifiers.
+    pub fn modifiers_mut(&mut self) -> &mut Vec<Modifier> {
+        &mut self.modifiers
     }
 
     fn check_stat_met(&self, stat: &Stat) -> bool {
@@ -1539,7 +1541,7 @@ impl Game {
                         self.state.board.remove(y);
                         self.state.lines_cleared += 1;
                         // Increment level if 10 lines cleared.
-                        if self.rules.increase_gravity && self.state.lines_cleared % 10 == 0 {
+                        if self.rules.progressive_gravity && self.state.lines_cleared % 10 == 0 {
                             self.state.gravity = self.state.gravity.saturating_add(1);
                         }
                     }

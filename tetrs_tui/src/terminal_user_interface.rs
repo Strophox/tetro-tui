@@ -22,7 +22,8 @@ use crossterm::{
 
 use tetrs_engine::{
     piece_generation::TetrominoSource, piece_rotation::RotationSystem, Button, Config,
-    FeedbackMessages, Game, GameBuilder, PressedButtons, Rules, Stat, Tetromino,
+    FeedbackMessages, Game, GameBuilder, GameOver, Modifier, PressedButtons, Rules, Stat,
+    Tetromino,
 };
 
 use crate::{
@@ -34,7 +35,7 @@ use crate::{
         },
         InputSignal,
     },
-    game_modifiers,
+    game_modifiers::{self, cheese_game, combo_game, descent_game, puzzle_game},
     game_renderers::{
         cached_renderer::CachedRenderer, color16_palette, empty_palette, fullcolor_palette,
         gruvbox_light_palette, gruvbox_palette, oklch2_palette, tet_str_small, Palette, Renderer,
@@ -48,23 +49,181 @@ pub type RecordedUserInput = Vec<(
     u16, /*tetrs_engine::PressedButtons*/
 )>;
 
-#[derive(PartialEq, Clone, Debug, serde::Serialize, serde::Deserialize)]
-pub struct StartGameSettings {
-    custom_initial_gravity: u32,
-    custom_increase_gravity: bool,
-    custom_end_condition: Option<Stat>,
-    cheese_linelimit: Option<NonZeroUsize>,
-    cheese_gap_size: usize,
-    cheese_gravity: u32,
-    combo_linelimit: Option<NonZeroUsize>,
-    combo_start_layout: u16,
-    experimental_mode_unlocked: bool,
+#[derive(PartialEq, PartialOrd, Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct GameRestorationData {
+    builder: tetrs_engine::GameBuilder,
+    mod_identifiers: Vec<String>,
+    recorded_user_input: RecordedUserInput,
+}
+
+impl GameRestorationData {
+    fn new(game: &Game, recorded_user_input: &RecordedUserInput) -> GameRestorationData {
+        let (builder, mod_identifiers) = game.blueprint();
+        GameRestorationData {
+            builder,
+            mod_identifiers: mod_identifiers.map(str::to_owned).collect(),
+            recorded_user_input: recorded_user_input.clone(),
+        }
+    }
+
+    fn restore(&self, new_game_settings: &NewGameSettings) -> Game {
+        // Step 1: Prepare builder.
+        let builder = self.builder.clone();
+        // Step 2: Build actual game by identifying mods to finalize builder with.
+        let mut game = if let Some(mod_identifier) = self.mod_identifiers.first() {
+            if mod_identifier == puzzle_game::MOD_IDENTIFIER {
+                puzzle_game::build(&builder)
+            } else if mod_identifier == cheese_game::MOD_IDENTIFIER {
+                // FIXME: We're guessing the cheese settings based on our CURRENT settings (which might differ from the actual saved game)! But we don't have access to those settings right now.
+                cheese_game::build(
+                    &builder,
+                    new_game_settings.cheese_linelimit,
+                    new_game_settings.cheese_gap_size,
+                    new_game_settings.cheese_gravity,
+                )
+            } else if mod_identifier == combo_game::MOD_IDENTIFIER {
+                combo_game::build(
+                    &builder,
+                    new_game_settings.cheese_linelimit,
+                    new_game_settings.combo_start_layout,
+                )
+            } else if mod_identifier == descent_game::MOD_IDENTIFIER {
+                descent_game::build(&builder)
+            } else {
+                let spam_error_msg_modifier = Modifier {
+                    identifier: "spam_error_msg_unable_to_restore_mod_from_identifier".to_owned(),
+                    mod_function: Box::new({
+                        let m_i = mod_identifier.clone();
+                        let mut init = false;
+                        move |_config, _rules, state, _modpoint, msgs| {
+                            if init {
+                                return;
+                            }
+                            init = true;
+                            msgs.push((
+                                state.time,
+                                tetrs_engine::Feedback::Text(format!(
+                                    "ERROR: unable to restore from mod identifier {m_i:?}"
+                                )),
+                            ));
+                        }
+                    }),
+                };
+                builder.build_modified([spam_error_msg_modifier])
+            }
+        } else {
+            builder.build()
+        };
+
+        // Step 3: Reenact recorded game inputs.
+        let restore_feedback_verbosity = game.config().feedback_verbosity;
+
+        game.config_mut().feedback_verbosity = tetrs_engine::FeedbackVerbosity::Quiet;
+        for (input_time, int) in self.recorded_user_input.iter() {
+            let button_state = decompress_buttons(*int);
+            // FIXME: Error handling?
+            let _ = game.update(Some(button_state), *input_time);
+        }
+
+        game.config_mut().feedback_verbosity = restore_feedback_verbosity;
+
+        game
+    }
+}
+
+#[derive(
+    Eq, PartialEq, Ord, PartialOrd, Clone, Hash, Debug, serde::Serialize, serde::Deserialize,
+)]
+pub struct GameMetaData {
+    pub datetime: String,
+    pub name: String,
+    pub comparison_stat: (Stat, bool),
+}
+
+#[derive(
+    Eq, PartialEq, Ord, PartialOrd, Clone, Hash, Debug, serde::Serialize, serde::Deserialize,
+)]
+pub struct ScoreboardEntry {
+    meta_data: GameMetaData,
+    result: tetrs_engine::GameResult,
+    time_elapsed: tetrs_engine::GameTime,
+    pieces_locked: [u32; Tetromino::VARIANTS.len()],
+    lines_cleared: usize,
+    gravity_reached: u32,
+    points_scored: u64,
+}
+
+impl ScoreboardEntry {
+    fn new(game: &Game, meta_data: &GameMetaData) -> ScoreboardEntry {
+        ScoreboardEntry {
+            meta_data: meta_data.clone(),
+            time_elapsed: game.state().time,
+            pieces_locked: game.state().pieces_locked,
+            lines_cleared: game.state().lines_cleared,
+            gravity_reached: game.state().gravity,
+            points_scored: game.state().score,
+            result: game.state().result.unwrap_or(Err(GameOver::Forfeit)),
+        }
+    }
+}
+
+#[derive(
+    Eq,
+    PartialEq,
+    Ord,
+    PartialOrd,
+    Clone,
+    Copy,
+    Hash,
+    Debug,
+    Default,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+pub enum ScoreboardSorting {
+    #[default]
+    Chronological,
+    Semantic,
+}
+
+#[derive(PartialEq, PartialOrd, Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+pub struct Scoreboard {
+    sorting: ScoreboardSorting,
+    entries: Vec<(ScoreboardEntry, Option<GameRestorationData>)>,
+}
+
+#[derive(
+    Eq, PartialEq, Ord, PartialOrd, Clone, Hash, Debug, serde::Serialize, serde::Deserialize,
+)]
+pub struct NewGameSettings {
+    // FIXME: We kind of abuse the SavedGame struct to store stats about old games, but so detailed that we can actually restore a game to its last state.
+    custom_rules: Rules,
+    custom_seed: Option<u64>,
+    custom_board: Option<String>, // TODO: Option<Board>
     /// Custom starting layout when playing Combo mode (4-wide rows), encoded as binary.
     /// Example: '▀▄▄▀' => 0b_1001_0110 = 150
-    custom_start_board: Option<String>, // TODO: Option<Board>,
-    // TODO: Placeholder for proper snapshot functionality.
-    custom_start_seed: Option<u64>,
-    custom_game: Option<SavedGame>,
+    combo_start_layout: u16,
+    combo_linelimit: Option<NonZeroUsize>,
+    cheese_gap_size: usize,
+    cheese_gravity: u32,
+    cheese_linelimit: Option<NonZeroUsize>,
+    experimental_mode_unlocked: bool,
+}
+
+impl Default for NewGameSettings {
+    fn default() -> Self {
+        Self {
+            custom_rules: Rules::default(),
+            custom_seed: None,
+            custom_board: None,
+            cheese_linelimit: Some(NonZeroUsize::try_from(20).unwrap()),
+            cheese_gravity: 0,
+            cheese_gap_size: 1,
+            combo_linelimit: Some(NonZeroUsize::try_from(20).unwrap()),
+            combo_start_layout: game_modifiers::combo_game::LAYOUTS[0],
+            experimental_mode_unlocked: false,
+        }
+    }
 }
 
 #[derive(
@@ -77,8 +236,7 @@ pub enum Glyphset {
     Unicode,
 }
 
-#[serde_with::serde_as]
-#[derive(PartialEq, Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(PartialEq, PartialOrd, Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
 pub struct GraphicsSettings {
     pub glyphset: Glyphset,
     palette_active: usize,
@@ -91,53 +249,45 @@ pub struct GraphicsSettings {
 #[derive(
     Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug, serde::Serialize, serde::Deserialize,
 )]
-pub enum ScoreboardSorting {
-    Chronological,
-    Semantic,
-}
-
-#[derive(
-    Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug, serde::Serialize, serde::Deserialize,
-)]
 pub enum SavefileGranularity {
     Nothing,
     Settings,
-    SettingsGamedata,
-    SettingsGamedataUserinputs,
+    SettingsScoreboard,
+    SettingsScoreboardGamestores,
 }
 
 #[serde_with::serde_as]
 #[derive(PartialEq, Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Settings {
-    graphics_slots: Slots<GraphicsSettings>,
-    graphics_slots_that_should_not_be_changed: usize,
     graphics_active: usize,
-    palette_slots: Slots<Palette>,
+    keybinds_active: usize,
+    config_active: usize,
+    graphics_slots_that_should_not_be_changed: usize,
     palette_slots_that_should_not_be_changed: usize,
+    keybinds_slots_that_should_not_be_changed: usize,
+    config_slots_that_should_not_be_changed: usize,
+    graphics_slots: Slots<GraphicsSettings>,
+    palette_slots: Slots<Palette>,
+    config_slots: Slots<Config>,
     // NOTE: Reconsider #[serde_as(as = "Vec<(_, std::collections::HashMap<serde_with::json::JsonString, _>)>")]
     #[serde_as(as = "Vec<(_, Vec<(_, _)>)>")]
     keybinds_slots: Slots<Keybinds>,
-    keybinds_slots_that_should_not_be_changed: usize,
-    keybinds_active: usize,
-    config_slots: Slots<Config>,
-    config_slots_that_should_not_be_changed: usize,
-    config_active: usize,
-    start_game_settings: StartGameSettings,
-    scoreboard_sorting: ScoreboardSorting,
-    save_on_exit: SavefileGranularity,
 }
 
 impl Default for Settings {
     fn default() -> Self {
         let graphics_slots = vec![
-            ("default".to_owned(), GraphicsSettings {
-                glyphset: Glyphset::Unicode,
-                palette_active: 3,
-                palette_active_lockedtiles: 3,
-                render_effects: true,
-                game_fps: 30.0,
-                show_fps: false,
-            }),
+            (
+                "default".to_owned(),
+                GraphicsSettings {
+                    glyphset: Glyphset::Unicode,
+                    palette_active: 3,
+                    palette_active_lockedtiles: 3,
+                    render_effects: true,
+                    game_fps: 30.0,
+                    show_fps: false,
+                },
+            ),
             (
                 "high focus".to_owned(),
                 GraphicsSettings {
@@ -175,35 +325,18 @@ impl Default for Settings {
                 },
             ),
         ];
-        let start_game_settings = StartGameSettings {
-            custom_initial_gravity: 1,
-            custom_increase_gravity: true,
-            custom_start_board: None,
-            custom_start_seed: None,
-            custom_end_condition: None,
-            cheese_linelimit: Some(NonZeroUsize::try_from(20).unwrap()),
-            cheese_gravity: 0,
-            cheese_gap_size: 1,
-            combo_linelimit: Some(NonZeroUsize::try_from(20).unwrap()),
-            combo_start_layout: game_modifiers::combo_game::LAYOUTS[0],
-            experimental_mode_unlocked: false,
-            custom_game: None,
-        };
         Self {
-            graphics_slots_that_should_not_be_changed: graphics_slots.len(),
-            graphics_slots,
             graphics_active: 0,
-            palette_slots_that_should_not_be_changed: palette_slots.len(),
-            palette_slots,
-            keybinds_slots_that_should_not_be_changed: keybinds_slots.len(),
-            keybinds_slots,
             keybinds_active: 0,
-            config_slots_that_should_not_be_changed: config_slots.len(),
-            config_slots,
             config_active: 0,
-            start_game_settings,
-            scoreboard_sorting: ScoreboardSorting::Chronological,
-            save_on_exit: SavefileGranularity::Nothing,
+            graphics_slots_that_should_not_be_changed: graphics_slots.len(),
+            palette_slots_that_should_not_be_changed: palette_slots.len(),
+            keybinds_slots_that_should_not_be_changed: keybinds_slots.len(),
+            config_slots_that_should_not_be_changed: config_slots.len(),
+            graphics_slots,
+            palette_slots,
+            keybinds_slots,
+            config_slots,
         }
     }
 }
@@ -237,26 +370,12 @@ impl Settings {
 }
 
 #[derive(
-    Eq, PartialEq, Ord, PartialOrd, Clone, Hash, Debug, serde::Serialize, serde::Deserialize,
+    Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug, serde::Serialize, serde::Deserialize,
 )]
-pub struct GameMetaData {
-    pub datetime: String,
-    pub name: String,
-    pub comparison_stat: Stat,
-    pub recorded_user_input: RecordedUserInput,
-}
-
-#[derive(PartialEq, PartialOrd, Clone, Debug, serde::Serialize, serde::Deserialize)]
-pub struct SavedGame {
-    blueprint: tetrs_engine::GameBuilder,
-    modifier_identifiers: Vec<String>,
-    result: tetrs_engine::GameResult,
-    time_elapsed: tetrs_engine::GameTime,
-    pieces_locked: [u32; Tetromino::VARIANTS.len()],
-    lines_cleared: usize,
-    gravity_reached: u32,
-    points_scored: u64,
-    meta_data: GameMetaData,
+pub struct RuntimeData {
+    kitty_detected: bool,
+    kitty_assumed: bool,
+    combo_bot_enabled: bool,
 }
 
 #[derive(Debug)]
@@ -268,11 +387,12 @@ enum Menu {
         meta_data: GameMetaData,
         time_started: Instant,
         last_paused: Instant,
-        total_duration_paused: Duration,
+        total_pause_duration: Duration,
+        recorded_user_input: RecordedUserInput,
         game_renderer: Box<CachedRenderer>,
     },
-    GameOver(Box<SavedGame>),
-    GameComplete(Box<SavedGame>),
+    GameOver(Box<ScoreboardEntry>),
+    GameComplete(Box<ScoreboardEntry>),
     Pause,
     Settings,
     AdjustKeybinds,
@@ -288,7 +408,7 @@ impl std::fmt::Display for Menu {
         let name = match self {
             Menu::Title => "Title Screen",
             Menu::NewGame => "New Game",
-            Menu::Game { .. } => "Game", //&format!("Game {}", game.mode().name.as_ref().map_or("".to_owned(), |ref name| format!("({name})"))),
+            Menu::Game { meta_data, .. } => &format!("Game ({})", meta_data.name), //&format!("Game {}", game.mode().name.as_ref().map_or("".to_owned(), |ref name| format!("({name})"))),
             Menu::GameOver(_) => "Game Over",
             Menu::GameComplete(_) => "Game Completed",
             Menu::Pause => "Pause",
@@ -310,33 +430,31 @@ enum MenuUpdate {
     Push(Menu),
 }
 
-#[derive(Clone, Debug)]
+#[derive(PartialEq, Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Application<T: Write> {
+    runtime_data: RuntimeData,
     pub term: T,
+    save_on_exit: SavefileGranularity,
     settings: Settings,
-    past_games: Vec<SavedGame>,
-    kitty_detected: bool,
-    kitty_assumed: bool,
-    combo_bot_enabled: bool,
+    new_game_settings: NewGameSettings,
+    scoreboard: Scoreboard,
+    saved_game: Option<(GameRestorationData, GameMetaData)>,
 }
 
 impl<T: Write> Drop for Application<T> {
     fn drop(&mut self) {
         // FIXME: Handle errors?
         let savefile_path = Self::savefile_path();
-        // If the user wants their data stored, try to do so.
-        if self.settings.save_on_exit != SavefileGranularity::Nothing {
-            if let Err(_e) = self.store_save(savefile_path) {
+        // If the user wants any of their data stored, try to do so.
+        if self.save_on_exit != SavefileGranularity::Nothing {
+            if let Err(_e) = self.store_savefile(savefile_path) {
                 // FIXME: Make this debuggable.
                 //eprintln!("Could not save settings this time: {e} ");
                 //std::thread::sleep(Duration::from_secs(4));
             }
-        // Otherwise check if savefile exists.
-        } else if let Ok(exists) = savefile_path.try_exists() {
-            // Delete it for them if it does.
-            if exists {
-                let _ = std::fs::remove_file(savefile_path);
-            }
+        // Otherwise explicitly check for savefile to make sure it's removed.
+        } else if savefile_path.try_exists().is_ok_and(|exists| exists) {
+            let _ = std::fs::remove_file(savefile_path);
         }
         let _ = terminal::disable_raw_mode();
         let _ = self.term.execute(style::ResetColor);
@@ -364,31 +482,39 @@ impl<T: Write> Application<T> {
         let _ = term.execute(cursor::Hide);
         let _ = terminal::enable_raw_mode();
         let mut app = Self {
+            runtime_data: RuntimeData {
+                kitty_detected: false,
+                kitty_assumed: false,
+                combo_bot_enabled: false,
+            },
             term,
             settings: Settings::default(),
-            past_games: Vec::default(),
-            kitty_detected: false,
-            kitty_assumed: false,
-            combo_bot_enabled: false,
+            scoreboard: Scoreboard::default(),
+            new_game_settings: NewGameSettings::default(),
+            saved_game: None,
+            save_on_exit: SavefileGranularity::Nothing,
         };
 
         // Actually load in settings.
-        if app.load_save(Self::savefile_path()).is_err() {
+        if app.load_savefile(Self::savefile_path()).is_err() {
             // FIXME: Make this debuggable.
             //eprintln!("Could not loading settings: {e}");
             //std::thread::sleep(Duration::from_secs(5));
         }
 
-        // Now that the settings are loaded, we handle custom flags set for this session.
+        // Now that the settings are loaded, we handle separate flags set for this session.
+        let kitty_detected = terminal::supports_keyboard_enhancement().unwrap_or(false);
+        app.runtime_data = RuntimeData {
+            combo_bot_enabled,
+            kitty_detected,
+            kitty_assumed: kitty_detected,
+        };
         if custom_start_board.is_some() {
-            app.settings.start_game_settings.custom_start_board = custom_start_board;
+            app.new_game_settings.custom_board = custom_start_board;
         }
         if custom_start_seed.is_some() {
-            app.settings.start_game_settings.custom_start_seed = custom_start_seed;
+            app.new_game_settings.custom_seed = custom_start_seed;
         }
-        app.combo_bot_enabled = combo_bot_enabled;
-        app.kitty_detected = terminal::supports_keyboard_enhancement().unwrap_or(false);
-        app.kitty_assumed = app.kitty_detected;
         app
     }
 
@@ -402,18 +528,24 @@ impl<T: Write> Application<T> {
             .join(Self::SAVEFILE_NAME)
     }
 
-    fn store_save(&mut self, path: PathBuf) -> io::Result<()> {
-        if self.settings.save_on_exit < SavefileGranularity::SettingsGamedata {
-            // Clear past games if no game data is wished to be stored.
-            self.past_games.clear();
-        }
-        if self.settings.save_on_exit < SavefileGranularity::SettingsGamedataUserinputs {
+    fn store_savefile(&mut self, path: PathBuf) -> io::Result<()> {
+        if self.save_on_exit < SavefileGranularity::SettingsScoreboard {
+            // Clear scoreboard if no game data is wished to be stored.
+            self.scoreboard.entries.clear();
+        } else if self.save_on_exit < SavefileGranularity::SettingsScoreboardGamestores {
             // Clear past game inputs if no game input data is wished to be stored.
-            for past_game in &mut self.past_games {
-                past_game.meta_data.recorded_user_input.clear();
+            for (_entry, restoration_data) in &mut self.scoreboard.entries {
+                restoration_data.take();
             }
         }
-        let save_state = (&self.settings, &self.past_games);
+
+        let save_state = (
+            &self.save_on_exit,
+            &self.settings,
+            &self.new_game_settings,
+            &self.scoreboard,
+            &self.saved_game,
+        );
         let save_str = serde_json::to_string(&save_state)?;
         let mut file = File::create(path)?;
         // FIXME: Handle error?
@@ -421,23 +553,23 @@ impl<T: Write> Application<T> {
         Ok(())
     }
 
-    fn load_save(&mut self, path: PathBuf) -> io::Result<()> {
+    fn load_savefile(&mut self, path: PathBuf) -> io::Result<()> {
         let mut file = File::open(path)?;
         let mut save_str = String::new();
         file.read_to_string(&mut save_str)?;
         let save_state = serde_json::from_str(&save_str)?;
-        (self.settings, self.past_games) = save_state;
+        (
+            self.save_on_exit,
+            self.settings,
+            self.new_game_settings,
+            self.scoreboard,
+            self.saved_game,
+        ) = save_state;
         Ok(())
     }
 
-    fn log_game_as_past(&mut self, game: &Game, meta_data: &GameMetaData) -> SavedGame {
-        let past_game = transcribe(game, meta_data);
-        self.past_games.push(past_game.clone());
-        past_game
-    }
-
     fn sort_past_games_chronologically(&mut self) {
-        self.past_games.sort_by(|pg1, pg2| {
+        self.scoreboard.entries.sort_by(|(pg1, _), (pg2, _)| {
             pg1.meta_data
                 .datetime
                 .cmp(&pg2.meta_data.datetime)
@@ -447,18 +579,13 @@ impl<T: Write> Application<T> {
 
     #[rustfmt::skip]
     fn sort_past_games_semantically(&mut self) {
-        self.past_games.sort_by(|pg1, pg2|
+        self.scoreboard.entries.sort_by(|(pg1, _), (pg2, _)|
             // Sort by gamemode (name).
             pg1.meta_data.name.cmp(&pg2.meta_data.name).then_with(||
             // Sort by if gamemode was finished successfully.
-            pg1.result.is_ok().cmp(&pg2.result.is_ok()).then_with(||
-            // Stop here if game didn't admit an end condition...
-            if pg1.blueprint.rules.as_ref().unwrap().end_conditions.is_empty() {
-                // Sort by score here for convenience, and because we currently only show score for custom games by default.
-                pg1.points_scored.cmp(&pg2.points_scored)
-            } else {
+            pg1.result.is_ok().cmp(&pg2.result.is_ok()).then_with(|| {
                 // Sort by comparison stat...
-                let o = match pg1.meta_data.comparison_stat {
+                let o = match pg1.meta_data.comparison_stat.0 {
                     Stat::TimeElapsed(_)    => pg1.time_elapsed.cmp(&pg2.time_elapsed),
                     Stat::PiecesLocked(_)   => pg1.pieces_locked.cmp(&pg2.pieces_locked),
                     Stat::LinesCleared(_)   => pg1.lines_cleared.cmp(&pg2.lines_cleared),
@@ -469,11 +596,9 @@ impl<T: Write> Application<T> {
                 // how comparison stat compares to 'most important'(??) (often sole) end condition.
                 // This is shady, but the special order we subtly chose and never publicly document
                 // makes this make sense...
-                if pg1.blueprint.rules.as_ref().unwrap().end_conditions[0].0
-                        < pg1.meta_data.comparison_stat
+                if pg1.meta_data.comparison_stat.1
                     { o } else { o.reverse() }
-            }
-            )
+            })
             )
             .reverse()
         );
@@ -495,15 +620,17 @@ impl<T: Write> Application<T> {
                     game,
                     meta_data,
                     time_started,
-                    total_duration_paused,
+                    total_pause_duration,
                     last_paused,
+                    recorded_user_input,
                     game_renderer,
                 } => self.menu_game(
                     game,
                     meta_data,
                     time_started,
                     last_paused,
-                    total_duration_paused,
+                    total_pause_duration,
+                    recorded_user_input,
                     game_renderer.as_mut(),
                 ),
                 Menu::Pause => self.menu_pause(),
@@ -703,13 +830,13 @@ impl<T: Write> Application<T> {
             #[allow(clippy::type_complexity)]
             let mut game_presets: Vec<(
                 &str,
-                Stat,
+                (Stat, bool),
                 String,
                 Box<dyn Fn(&GameBuilder) -> Game>,
             )> = vec![
                 (
                     "40-Lines",
-                    Stat::TimeElapsed(Duration::ZERO),
+                    (Stat::TimeElapsed(Duration::ZERO), true),
                     "How fast can you clear forty lines?".to_owned(),
                     Box::new(|builder: &GameBuilder| {
                         builder.clone().rules(Rules::forty_lines()).build()
@@ -717,7 +844,7 @@ impl<T: Write> Application<T> {
                 ),
                 (
                     "Marathon",
-                    Stat::PointsScored(0),
+                    (Stat::PointsScored(0), false),
                     "Can you make it to level 15?".to_owned(),
                     Box::new(|builder: &GameBuilder| {
                         builder.clone().rules(Rules::marathon()).build()
@@ -725,7 +852,7 @@ impl<T: Write> Application<T> {
                 ),
                 (
                     "Time Trial",
-                    Stat::PointsScored(0),
+                    (Stat::PointsScored(0), false),
                     "What highscore can you get in 3 minutes?".to_owned(),
                     Box::new(|builder: &GameBuilder| {
                         builder.clone().rules(Rules::time_trial()).build()
@@ -733,7 +860,7 @@ impl<T: Write> Application<T> {
                 ),
                 (
                     "Master",
-                    Stat::PointsScored(0),
+                    (Stat::PointsScored(0), false),
                     "Can you clear 15 levels at instant gravity?".to_owned(),
                     Box::new(|builder: &GameBuilder| {
                         builder.clone().rules(Rules::master()).build()
@@ -741,23 +868,23 @@ impl<T: Write> Application<T> {
                 ),
                 (
                     "Puzzle",
-                    Stat::TimeElapsed(Duration::ZERO),
+                    (Stat::TimeElapsed(Duration::ZERO), true),
                     "Get perfect clears in all 24 puzzle levels.".to_owned(),
-                    Box::new(game_modifiers::puzzle_game::build_puzzle),
+                    Box::new(game_modifiers::puzzle_game::build),
                 ),
                 (
                     "Cheese",
-                    Stat::PiecesLocked(0),
+                    (Stat::PiecesLocked(0), true),
                     format!(
                         "Eat through lines like Swiss cheese. Limit: {:?}",
-                        self.settings.start_game_settings.cheese_linelimit
+                        self.new_game_settings.cheese_linelimit
                     ),
                     Box::new({
-                        let cheese_limit = self.settings.start_game_settings.cheese_linelimit;
-                        let cheese_gap_size = self.settings.start_game_settings.cheese_gap_size;
-                        let cheese_gravity = self.settings.start_game_settings.cheese_gravity;
+                        let cheese_limit = self.new_game_settings.cheese_linelimit;
+                        let cheese_gap_size = self.new_game_settings.cheese_gap_size;
+                        let cheese_gravity = self.new_game_settings.cheese_gravity;
                         move |builder: &GameBuilder| {
-                            game_modifiers::cheese_game::build_cheese(
+                            game_modifiers::cheese_game::build(
                                 builder,
                                 cheese_limit,
                                 cheese_gap_size,
@@ -768,38 +895,37 @@ impl<T: Write> Application<T> {
                 ),
                 (
                     "Combo",
-                    Stat::TimeElapsed(Duration::ZERO),
+                    (Stat::TimeElapsed(Duration::ZERO), true),
                     format!(
                         "Get consecutive line clears. Limit: {:?}{}",
-                        self.settings.start_game_settings.combo_linelimit,
-                        if self.settings.start_game_settings.combo_start_layout
-                            != crate::game_modifiers::combo_game::LAYOUTS[0]
-                        {
-                            format!(
-                                ", Layout={:b}",
-                                self.settings.start_game_settings.combo_start_layout
-                            )
+                        self.new_game_settings.combo_linelimit,
+                        if self.new_game_settings.combo_start_layout != combo_game::LAYOUTS[0] {
+                            format!(", Layout={:b}", self.new_game_settings.combo_start_layout)
                         } else {
                             "".to_owned()
                         }
                     ),
                     Box::new({
-                        let combo_start_layout =
-                            self.settings.start_game_settings.combo_start_layout;
+                        let combo_limit = self.new_game_settings.combo_linelimit;
+                        let combo_start_layout = self.new_game_settings.combo_start_layout;
                         move |builder: &GameBuilder| {
-                            game_modifiers::combo_game::build_combo(builder, 1, combo_start_layout)
+                            game_modifiers::combo_game::build(
+                                builder,
+                                combo_limit,
+                                combo_start_layout,
+                            )
                         }
                     }),
                 ),
             ];
-            if self.settings.start_game_settings.experimental_mode_unlocked {
+            if self.new_game_settings.experimental_mode_unlocked {
                 game_presets.insert(
                     5,
                     (
                         "Descent (experimental)",
-                        Stat::PointsScored(0),
+                        (Stat::PointsScored(0), false),
                         "Spin the piece and collect 'gems' by touching them.".to_owned(),
-                        Box::new(game_modifiers::descent_game::build_descent),
+                        Box::new(game_modifiers::descent_game::build),
                     ),
                 )
             }
@@ -851,20 +977,8 @@ impl<T: Write> Application<T> {
                     if selected == selection_size - 1 {
                         if customization_selected > 0 {
                             " | Custom:                             "
-                        } else if self
-                            .settings
-                            .start_game_settings
-                            .custom_start_seed
-                            .is_some()
-                            || self
-                                .settings
-                                .start_game_settings
-                                .custom_start_board
-                                .is_some()
-                        {
-                            ">> Custom: (clear board/seed with [Del])"
                         } else {
-                            ">> Custom: [→]                          "
+                            ">> Custom: [→] ([Del]=reset)            "
                         }
                     } else {
                         "Custom"
@@ -875,15 +989,15 @@ impl<T: Write> Application<T> {
                 let stats_strs = [
                     format!(
                         "| Initial gravity: {}",
-                        self.settings.start_game_settings.custom_initial_gravity
+                        self.new_game_settings.custom_rules.initial_gravity
                     ),
                     format!(
                         "| Auto-increase gravity: {}",
-                        self.settings.start_game_settings.custom_increase_gravity
+                        self.new_game_settings.custom_rules.progressive_gravity
                     ),
                     format!(
                         "| Limit: {:?} [→]",
-                        self.settings.start_game_settings.custom_end_condition
+                        self.new_game_settings.custom_rules.end_conditions.first()
                     ),
                 ];
                 for (j, stat_str) in stats_strs.into_iter().enumerate() {
@@ -899,11 +1013,11 @@ impl<T: Write> Application<T> {
                             format!(
                                 ">{stat_str}{}",
                                 if customization_selected != 3
-                                    || self
-                                        .settings
-                                        .start_game_settings
-                                        .custom_end_condition
-                                        .is_some()
+                                    || !self
+                                        .new_game_settings
+                                        .custom_rules
+                                        .end_conditions
+                                        .is_empty()
                                 {
                                     " [↓|↑]"
                                 } else {
@@ -941,58 +1055,64 @@ impl<T: Write> Application<T> {
                     kind: Press,
                     ..
                 }) => {
-                    let builder = Game::builder().config(self.settings.config().clone());
-                    let (name, stat, game) = if selected < game_presets.len() {
-                        let (name, stat, _desc, func) = &game_presets[selected];
-                        (*name, stat, func(&builder))
+                    // Build one of the selected game modes.
+                    let (game, meta_data, recorded_user_input) = if selected < game_presets.len() {
+                        let (name, comparison_stat, _desc, build) = &game_presets[selected];
+                        let preset_game =
+                            build(&Game::builder().config(self.settings.config().clone()));
+                        let new_meta_data = GameMetaData {
+                            datetime: chrono::Utc::now().format("%Y-%m-%d_%H:%M").to_string(),
+                            name: (*name).to_owned(),
+                            comparison_stat: *comparison_stat,
+                        };
+                        let new_recorded_user_input = RecordedUserInput::new();
+                        (preset_game, new_meta_data, new_recorded_user_input)
+                    // Load saved game.
+                    } else if let Some((game_restoration_data, game_meta_data)) = &self.saved_game {
+                        let restored_game = game_restoration_data.restore(&self.new_game_settings);
+                        let restored_meta_data = game_meta_data.clone();
+                        let restored_recorded_user_input =
+                            game_restoration_data.recorded_user_input.clone();
+                        (
+                            restored_game,
+                            restored_meta_data,
+                            restored_recorded_user_input,
+                        )
+                    // Build custom game.
                     } else {
-                        let end_conditions =
-                            match self.settings.start_game_settings.custom_end_condition {
-                                Some(c) => vec![(c, true)],
-                                None => vec![],
-                            };
-                        let rules = Rules {
-                            initial_gravity: self
-                                .settings
-                                .start_game_settings
-                                .custom_initial_gravity,
-                            increase_gravity: self
-                                .settings
-                                .start_game_settings
-                                .custom_increase_gravity,
-                            end_conditions,
-                        };
-                        let mut custom_game_builder = Game::builder();
-                        let _ = custom_game_builder.rules.insert(rules);
-                        let _ = custom_game_builder
-                            .config
-                            .insert(self.settings.config().clone());
-                        if let Some(seed) = self.settings.start_game_settings.custom_start_seed {
-                            let _ = custom_game_builder.seed.insert(seed);
+                        let mut builder = Game::builder()
+                            .config(self.settings.config().clone())
+                            .rules(self.new_game_settings.custom_rules.clone());
+                        // Optionally load custom seed.
+                        if self.new_game_settings.custom_seed.is_some() {
+                            builder.seed = self.new_game_settings.custom_seed;
                         }
-                        let custom_game = if let Some(ref custom_start_board_str) =
-                            self.settings.start_game_settings.custom_start_board
+                        // Optionally load custom board.
+                        let custom_game = if let Some(board) = &self.new_game_settings.custom_board
                         {
-                            custom_game_builder.build_modified([
-                                game_modifiers::utils::custom_start_board(custom_start_board_str),
-                            ])
+                            builder
+                                .build_modified([game_modifiers::utils::custom_start_board(board)])
+                        // Otherwise just build a normal custom game.
                         } else {
-                            custom_game_builder.build()
+                            builder.build()
                         };
-                        ("Custom", &Stat::PointsScored(0), custom_game)
+                        let new_meta_data = GameMetaData {
+                            datetime: chrono::Utc::now().format("%Y-%m-%d_%H:%M").to_string(),
+                            name: "Custom".to_owned(),
+                            comparison_stat: (Stat::PointsScored(0), false),
+                        };
+                        let new_recorded_user_input = RecordedUserInput::new();
+                        (custom_game, new_meta_data, new_recorded_user_input)
                     };
                     let now = Instant::now();
+                    let time_started = now - game.state().time;
                     break Ok(MenuUpdate::Push(Menu::Game {
                         game: Box::new(game),
-                        meta_data: GameMetaData {
-                            datetime: chrono::Utc::now().format("%Y-%m-%d_%H:%M").to_string(),
-                            name: name.to_owned(),
-                            comparison_stat: *stat,
-                            recorded_user_input: RecordedUserInput::new(),
-                        },
-                        time_started: now,
+                        meta_data,
+                        time_started,
                         last_paused: now,
-                        total_duration_paused: Duration::ZERO,
+                        total_pause_duration: Duration::ZERO,
+                        recorded_user_input,
                         game_renderer: Default::default(),
                     }));
                 }
@@ -1005,32 +1125,32 @@ impl<T: Write> Application<T> {
                     if customization_selected > 0 {
                         match customization_selected {
                             1 => {
-                                self.settings.start_game_settings.custom_initial_gravity = self
-                                    .settings
-                                    .start_game_settings
-                                    .custom_initial_gravity
-                                    .saturating_add(d_gravity);
+                                self.new_game_settings.custom_rules.initial_gravity += d_gravity;
                             }
                             2 => {
-                                self.settings.start_game_settings.custom_increase_gravity =
-                                    !self.settings.start_game_settings.custom_increase_gravity;
+                                self.new_game_settings.custom_rules.progressive_gravity ^= true;
                             }
                             3 => {
-                                match self.settings.start_game_settings.custom_end_condition {
-                                    Some(Stat::TimeElapsed(ref mut dur)) => {
-                                        *dur += d_time;
+                                match self
+                                    .new_game_settings
+                                    .custom_rules
+                                    .end_conditions
+                                    .first_mut()
+                                {
+                                    Some((Stat::TimeElapsed(ref mut t), _)) => {
+                                        *t += d_time;
                                     }
-                                    Some(Stat::PiecesLocked(ref mut pcs)) => {
-                                        *pcs += d_pieces;
+                                    Some((Stat::PiecesLocked(ref mut p), _)) => {
+                                        *p += d_pieces;
                                     }
-                                    Some(Stat::LinesCleared(ref mut lns)) => {
-                                        *lns += d_lines;
+                                    Some((Stat::LinesCleared(ref mut l), _)) => {
+                                        *l += d_lines;
                                     }
-                                    Some(Stat::GravityReached(ref mut lvl)) => {
-                                        *lvl += d_gravity;
+                                    Some((Stat::GravityReached(ref mut g), _)) => {
+                                        *g += d_gravity;
                                     }
-                                    Some(Stat::PointsScored(ref mut pts)) => {
-                                        *pts += d_score;
+                                    Some((Stat::PointsScored(ref mut s), _)) => {
+                                        *s += d_score;
                                     }
                                     None => {}
                                 };
@@ -1051,31 +1171,32 @@ impl<T: Write> Application<T> {
                     if customization_selected > 0 {
                         match customization_selected {
                             1 => {
-                                self.settings.start_game_settings.custom_initial_gravity = self
-                                    .settings
-                                    .start_game_settings
-                                    .custom_initial_gravity
-                                    .saturating_sub(d_gravity);
+                                let r = &mut self.new_game_settings.custom_rules.initial_gravity;
+                                *r = r.saturating_sub(d_gravity);
                             }
                             2 => {
-                                self.settings.start_game_settings.custom_increase_gravity =
-                                    !self.settings.start_game_settings.custom_increase_gravity;
+                                self.new_game_settings.custom_rules.progressive_gravity ^= true;
                             }
                             3 => {
-                                match self.settings.start_game_settings.custom_end_condition {
-                                    Some(Stat::TimeElapsed(ref mut t)) => {
+                                match self
+                                    .new_game_settings
+                                    .custom_rules
+                                    .end_conditions
+                                    .first_mut()
+                                {
+                                    Some((Stat::TimeElapsed(ref mut t), _)) => {
                                         *t = t.saturating_sub(d_time);
                                     }
-                                    Some(Stat::PiecesLocked(ref mut p)) => {
+                                    Some((Stat::PiecesLocked(ref mut p), _)) => {
                                         *p = p.saturating_sub(d_pieces);
                                     }
-                                    Some(Stat::LinesCleared(ref mut l)) => {
+                                    Some((Stat::LinesCleared(ref mut l), _)) => {
                                         *l = l.saturating_sub(d_lines);
                                     }
-                                    Some(Stat::GravityReached(ref mut g)) => {
+                                    Some((Stat::GravityReached(ref mut g), _)) => {
                                         *g = g.saturating_sub(d_gravity);
                                     }
-                                    Some(Stat::PointsScored(ref mut s)) => {
+                                    Some((Stat::PointsScored(ref mut s), _)) => {
                                         *s = s.saturating_sub(d_score);
                                     }
                                     None => {}
@@ -1097,13 +1218,13 @@ impl<T: Write> Application<T> {
                     if selected == selection_size - 1 && customization_selected > 0 {
                         customization_selected += customization_selection_size - 1
                     } else if selected == selection_size - 2 {
-                        if let Some(limit) = self.settings.start_game_settings.combo_linelimit {
-                            self.settings.start_game_settings.combo_linelimit =
+                        if let Some(limit) = self.new_game_settings.combo_linelimit {
+                            self.new_game_settings.combo_linelimit =
                                 NonZeroUsize::try_from(limit.get() - 1).ok();
                         }
                     } else if selected == selection_size - 3 {
-                        if let Some(limit) = self.settings.start_game_settings.cheese_linelimit {
-                            self.settings.start_game_settings.cheese_linelimit =
+                        if let Some(limit) = self.new_game_settings.cheese_linelimit {
+                            self.new_game_settings.cheese_linelimit =
                                 NonZeroUsize::try_from(limit.get() - 1).ok();
                         }
                     }
@@ -1118,34 +1239,42 @@ impl<T: Write> Application<T> {
                     if selected == selection_size - 1 {
                         // If reached last stat, cycle through stats for limit.
                         if customization_selected == customization_selection_size - 1 {
-                            self.settings.start_game_settings.custom_end_condition =
-                                match self.settings.start_game_settings.custom_end_condition {
-                                    Some(Stat::TimeElapsed(_)) => Some(Stat::PointsScored(9000)),
-                                    Some(Stat::PointsScored(_)) => Some(Stat::PiecesLocked(100)),
-                                    Some(Stat::PiecesLocked(_)) => Some(Stat::LinesCleared(40)),
-                                    Some(Stat::LinesCleared(_)) => Some(Stat::GravityReached(20)),
-                                    Some(Stat::GravityReached(_)) => None,
-                                    None => Some(Stat::TimeElapsed(Duration::from_secs(180))),
+                            self.new_game_settings.custom_rules.end_conditions =
+                                match self.new_game_settings.custom_rules.end_conditions.first() {
+                                    Some((Stat::TimeElapsed(_), _)) => {
+                                        vec![(Stat::PointsScored(9000), true)]
+                                    }
+                                    Some((Stat::PointsScored(_), _)) => {
+                                        vec![(Stat::PiecesLocked(100), true)]
+                                    }
+                                    Some((Stat::PiecesLocked(_), _)) => {
+                                        vec![(Stat::LinesCleared(40), true)]
+                                    }
+                                    Some((Stat::LinesCleared(_), _)) => {
+                                        vec![(Stat::GravityReached(20), true)]
+                                    }
+                                    Some((Stat::GravityReached(_), _)) => vec![],
+                                    None => {
+                                        vec![(Stat::TimeElapsed(Duration::from_secs(180)), true)]
+                                    }
                                 };
                         } else {
                             customization_selected += 1
                         }
                     } else if selected == selection_size - 2 {
-                        self.settings.start_game_settings.combo_linelimit = if let Some(limit) =
-                            self.settings.start_game_settings.combo_linelimit
-                        {
-                            limit.checked_add(1)
-                        } else {
-                            Some(NonZeroUsize::MIN)
-                        };
+                        self.new_game_settings.combo_linelimit =
+                            if let Some(limit) = self.new_game_settings.combo_linelimit {
+                                limit.checked_add(1)
+                            } else {
+                                Some(NonZeroUsize::MIN)
+                            };
                     } else if selected == selection_size - 3 {
-                        self.settings.start_game_settings.cheese_linelimit = if let Some(limit) =
-                            self.settings.start_game_settings.cheese_linelimit
-                        {
-                            limit.checked_add(1)
-                        } else {
-                            Some(NonZeroUsize::MIN)
-                        };
+                        self.new_game_settings.cheese_linelimit =
+                            if let Some(limit) = self.new_game_settings.cheese_linelimit {
+                                limit.checked_add(1)
+                            } else {
+                                Some(NonZeroUsize::MIN)
+                            };
                     }
                 }
                 // Move selector right (select stat).
@@ -1154,23 +1283,22 @@ impl<T: Write> Application<T> {
                     kind: Press | Repeat,
                     ..
                 }) => {
-                    // If custom gamemode selected, allow deleting custom start board and seed.
+                    // If custom gamemode selected, allow deleting TODO
                     if selected == selection_size - 1 {
-                        self.settings.start_game_settings.custom_start_seed = None;
-                        self.settings.start_game_settings.custom_start_board = None;
+                        self.saved_game = None;
+                        self.new_game_settings.custom_rules = Rules::default();
                     } else if selected == selection_size - 2 {
                         let new_layout_idx = if let Some(i) =
                             crate::game_modifiers::combo_game::LAYOUTS
                                 .iter()
-                                .position(|lay| {
-                                    *lay == self.settings.start_game_settings.combo_start_layout
-                                }) {
+                                .position(|lay| *lay == self.new_game_settings.combo_start_layout)
+                        {
                             let layout_cnt = crate::game_modifiers::combo_game::LAYOUTS.len();
                             (i + 1) % layout_cnt
                         } else {
                             0
                         };
-                        self.settings.start_game_settings.combo_start_layout =
+                        self.new_game_settings.combo_start_layout =
                             crate::game_modifiers::combo_game::LAYOUTS[new_layout_idx];
                     }
                 }
@@ -1180,6 +1308,7 @@ impl<T: Write> Application<T> {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn menu_game(
         &mut self,
         game: &mut Game,
@@ -1187,9 +1316,10 @@ impl<T: Write> Application<T> {
         time_started: &Instant,
         time_last_paused: &mut Instant,
         total_pause_duration: &mut Duration,
+        recorded_user_input: &mut RecordedUserInput,
         game_renderer: &mut impl Renderer,
     ) -> io::Result<MenuUpdate> {
-        if self.kitty_assumed {
+        if self.runtime_data.kitty_assumed {
             // FIXME: Kinda iffy. Do we need all flags? What undesirable effects might there be?
             let _ = self.term.execute(event::PushKeyboardEnhancementFlags(
                 event::KeyboardEnhancementFlags::all(),
@@ -1199,9 +1329,13 @@ impl<T: Write> Application<T> {
         // Prepare channel with which to communicate `Button` inputs / game interrupt.
         let mut buttons_pressed = tetrs_engine::PressedButtons::default();
         let (button_sender, button_receiver) = mpsc::channel();
-        let _input_handler =
-            TerminalInputHandler::new(&button_sender, self.settings.keybinds(), self.kitty_assumed);
-        let mut combo_bot_handler = (self.combo_bot_enabled && meta_data.name == "Combo")
+        let _input_handler = TerminalInputHandler::new(
+            &button_sender,
+            self.settings.keybinds(),
+            self.runtime_data.kitty_assumed,
+        );
+        let mut combo_bot_handler = (self.runtime_data.combo_bot_enabled
+            && meta_data.name == "Combo")
             .then(|| ComboBotInputHandler::new(&button_sender, Duration::from_millis(100)));
         let mut inform_combo_bot = |game: &Game, evts: &FeedbackMessages| {
             if let Some((_, state_sender)) = &mut combo_bot_handler {
@@ -1224,13 +1358,17 @@ impl<T: Write> Application<T> {
         let mut fps_counter_started = Instant::now();
         let menu_update = 'render: loop {
             // Exit if game ended
-            if game.ended() {
-                let past_game = self.log_game_as_past(game, meta_data);
-                let menu = if past_game.result.is_ok() {
+            if let Some(game_result) = game.state().result {
+                let scoreboard_entry = ScoreboardEntry::new(game, meta_data);
+                let game_restoration_data = GameRestorationData::new(game, recorded_user_input);
+                self.scoreboard
+                    .entries
+                    .push((scoreboard_entry.clone(), Some(game_restoration_data)));
+                let menu = if game_result.is_ok() {
                     Menu::GameComplete
                 } else {
                     Menu::GameOver
-                }(Box::new(past_game));
+                }(Box::new(scoreboard_entry));
                 break 'render MenuUpdate::Push(menu);
             }
             // Start next frame
@@ -1256,8 +1394,13 @@ impl<T: Write> Application<T> {
                     }
                     Ok(InputSignal::ForfeitGame) => {
                         game.forfeit();
-                        let past_game = self.log_game_as_past(game, meta_data);
-                        break 'render MenuUpdate::Push(Menu::GameOver(Box::new(past_game)));
+                        let scoreboard_entry = ScoreboardEntry::new(game, meta_data);
+                        let game_restoration_data =
+                            GameRestorationData::new(game, recorded_user_input);
+                        self.scoreboard
+                            .entries
+                            .push((scoreboard_entry.clone(), Some(game_restoration_data)));
+                        break 'render MenuUpdate::Push(Menu::GameOver(Box::new(scoreboard_entry)));
                     }
                     Ok(InputSignal::Pause) => {
                         *time_last_paused = Instant::now();
@@ -1267,17 +1410,14 @@ impl<T: Write> Application<T> {
                         clean_screen = true;
                         continue 'frame_idle;
                     }
-                    Ok(InputSignal::TakeSnapshot) => {
-                        self.settings.start_game_settings.custom_start_board = Some(
-                            String::from_iter(game.state().board.iter().rev().flat_map(|line| {
-                                line.iter()
-                                    .map(|cell| if cell.is_some() { 'X' } else { ' ' })
-                            })),
-                        );
-                        self.settings.start_game_settings.custom_start_seed = Some(game.seed());
+                    Ok(InputSignal::StoreSavepoint) => {
+                        let _ = self.saved_game.insert((
+                            GameRestorationData::new(game, recorded_user_input),
+                            meta_data.clone(),
+                        ));
                         new_feedback_msgs.push((
                             game.state().time,
-                            tetrs_engine::Feedback::Text("(Snapshot taken!)".to_owned()),
+                            tetrs_engine::Feedback::Text("(Savepoint stored.)".to_owned()),
                         ));
                     }
                     Ok(InputSignal::ButtonInput(button, button_state, instant)) => {
@@ -1286,9 +1426,7 @@ impl<T: Write> Application<T> {
                             - *total_pause_duration;
                         let game_now = std::cmp::max(game_time_userinput, game.state().time);
                         // FIXME: Handle/ensure no Err.
-                        meta_data
-                            .recorded_user_input
-                            .push((game_now, compress_buttons(&buttons_pressed)));
+                        recorded_user_input.push((game_now, compress_buttons(&buttons_pressed)));
                         if let Ok(evts) = game.update(Some(buttons_pressed), game_now) {
                             inform_combo_bot(game, &evts);
                             new_feedback_msgs.extend(evts);
@@ -1325,7 +1463,7 @@ impl<T: Write> Application<T> {
             }
         };
         // Console epilogue: De-initialization.
-        if self.kitty_assumed {
+        if self.runtime_data.kitty_assumed {
             let _ = self.term.execute(event::PopKeyboardEnhancementFlags);
         }
         if let Some(finished_state) = game.state().result {
@@ -1349,17 +1487,15 @@ impl<T: Write> Application<T> {
         Ok(menu_update)
     }
 
-    fn menu_game_ended(&mut self, past_game: &SavedGame) -> io::Result<MenuUpdate> {
-        let SavedGame {
-            blueprint: _,
-            modifier_identifiers: _,
+    fn menu_game_ended(&mut self, past_game: &ScoreboardEntry) -> io::Result<MenuUpdate> {
+        let ScoreboardEntry {
+            meta_data,
             result,
             time_elapsed,
             pieces_locked,
             lines_cleared,
             gravity_reached,
             points_scored,
-            meta_data,
         } = past_game;
         let selection = vec![
             Menu::NewGame,
@@ -1369,7 +1505,7 @@ impl<T: Write> Application<T> {
         ];
         // if gamemode.name.as_ref().map(String::as_str) == Some("Puzzle")
         if result.is_ok() && meta_data.name == "Puzzle" {
-            self.settings.start_game_settings.experimental_mode_unlocked = true;
+            self.new_game_settings.experimental_mode_unlocked = true;
         }
         let mut selected = 0usize;
         loop {
@@ -1528,11 +1664,11 @@ impl<T: Write> Application<T> {
                 "Adjust Gameplay...".to_owned(),
                 format!(
                     "Keep save file: {}",
-                    match self.settings.save_on_exit {
+                    match self.save_on_exit {
                         SavefileGranularity::Nothing => "OFF*",
                         SavefileGranularity::Settings => "ON (save settings)",
-                        SavefileGranularity::SettingsGamedata => "ON (save settings, game stats)",
-                        SavefileGranularity::SettingsGamedataUserinputs =>
+                        SavefileGranularity::SettingsScoreboard => "ON (save settings, game stats)",
+                        SavefileGranularity::SettingsScoreboardGamestores =>
                             "ON (save settings, game stats & inputs)",
                     }
                 ),
@@ -1560,7 +1696,7 @@ impl<T: Write> Application<T> {
                 .queue(PrintStyledContent(
                     format!(
                         "{:^w_main$}",
-                        if self.settings.save_on_exit == SavefileGranularity::Nothing {
+                        if self.save_on_exit == SavefileGranularity::Nothing {
                             "(*WARNING: current data will be lost on exit)".to_owned()
                         } else {
                             format!("(Save file at {:?})", Self::savefile_path())
@@ -1597,8 +1733,7 @@ impl<T: Write> Application<T> {
                     1 => break Ok(MenuUpdate::Push(Menu::AdjustKeybinds)),
                     2 => break Ok(MenuUpdate::Push(Menu::AdjustGameplay)),
                     3 => {
-                        self.settings.save_on_exit =
-                            SavefileGranularity::SettingsGamedataUserinputs;
+                        self.save_on_exit = SavefileGranularity::SettingsScoreboardGamestores;
                     }
                     _ => {}
                 },
@@ -1624,14 +1759,16 @@ impl<T: Write> Application<T> {
                     ..
                 }) => {
                     if selected == 3 {
-                        self.settings.save_on_exit = match self.settings.save_on_exit {
+                        self.save_on_exit = match self.save_on_exit {
                             SavefileGranularity::Nothing => {
-                                SavefileGranularity::SettingsGamedataUserinputs
+                                SavefileGranularity::SettingsScoreboardGamestores
                             }
-                            SavefileGranularity::SettingsGamedataUserinputs => {
-                                SavefileGranularity::SettingsGamedata
+                            SavefileGranularity::SettingsScoreboardGamestores => {
+                                SavefileGranularity::SettingsScoreboard
                             }
-                            SavefileGranularity::SettingsGamedata => SavefileGranularity::Settings,
+                            SavefileGranularity::SettingsScoreboard => {
+                                SavefileGranularity::Settings
+                            }
                             SavefileGranularity::Settings => SavefileGranularity::Nothing,
                         };
                     }
@@ -1643,13 +1780,15 @@ impl<T: Write> Application<T> {
                     ..
                 }) => {
                     if selected == 3 {
-                        self.settings.save_on_exit = match self.settings.save_on_exit {
+                        self.save_on_exit = match self.save_on_exit {
                             SavefileGranularity::Nothing => SavefileGranularity::Settings,
-                            SavefileGranularity::Settings => SavefileGranularity::SettingsGamedata,
-                            SavefileGranularity::SettingsGamedata => {
-                                SavefileGranularity::SettingsGamedataUserinputs
+                            SavefileGranularity::Settings => {
+                                SavefileGranularity::SettingsScoreboard
                             }
-                            SavefileGranularity::SettingsGamedataUserinputs => {
+                            SavefileGranularity::SettingsScoreboard => {
+                                SavefileGranularity::SettingsScoreboardGamestores
+                            }
+                            SavefileGranularity::SettingsScoreboardGamestores => {
                                 SavefileGranularity::Nothing
                             }
                         };
@@ -1659,11 +1798,11 @@ impl<T: Write> Application<T> {
                 // Set save_on_exit to false.
                 Event::Key(KeyEvent {
                     code: KeyCode::Delete | KeyCode::Char('d'),
-                    kind: Press,
+                    kind: Press | Repeat,
                     ..
                 }) => {
                     if selected == 3 {
-                        self.settings.save_on_exit = SavefileGranularity::Nothing;
+                        self.save_on_exit = SavefileGranularity::Nothing;
                     }
                 }
 
@@ -1831,7 +1970,7 @@ impl<T: Write> Application<T> {
                             .execute(cursor::MoveToNextLine(1))?
                             .execute(Clear(ClearType::CurrentLine))?;
                         // Wait until appropriate keypress detected.
-                        if self.kitty_assumed {
+                        if self.runtime_data.kitty_assumed {
                             // FIXME: Kinda iffy. Do we need all flags? What undesirable effects might there be?
                             let _ = self.term.execute(event::PushKeyboardEnhancementFlags(
                                 event::KeyboardEnhancementFlags::all(),
@@ -1852,7 +1991,7 @@ impl<T: Write> Application<T> {
                             }
                         }
                         // Console epilogue: De-initialization.
-                        if self.kitty_assumed {
+                        if self.runtime_data.kitty_assumed {
                             let _ = self.term.execute(event::PopKeyboardEnhancementFlags);
                         }
                     }
@@ -2044,7 +2183,7 @@ impl<T: Write> Application<T> {
                 ),
                 format!(
                     "(/!\\ Override) Assume enhanced-key-events: {} *",
-                    self.kitty_assumed
+                    self.runtime_data.kitty_assumed
                 ),
             ];
             for (i, label) in labels.into_iter().enumerate() {
@@ -2070,7 +2209,7 @@ impl<T: Write> Application<T> {
                 .queue(PrintStyledContent(
                     format!(
                         "{:^w_main$}",
-                        if self.kitty_detected {
+                        if self.runtime_data.kitty_detected {
                             "(*Should apply, since enhanced-key-events seem available)"
                         } else {
                             "(*Might NOT apply since enhanced-key-events seem unavailable)"
@@ -2098,17 +2237,6 @@ impl<T: Write> Application<T> {
                     kind: Press,
                     ..
                 }) => break Ok(MenuUpdate::Pop),
-                // Select.
-                // Event::Key(KeyEvent {
-                //     code: KeyCode::Enter | KeyCode::Char('e'),
-                //     kind: Press,
-                //     ..
-                // }) => {
-                //     if selected == selection_len - 1 {
-                //         *self.settings.config_mut() = GameConfig::default();
-                //         self.kitty_assumed = self.kitty_detected;
-                //     }
-                // }
 
                 // Reset config, or delete entire slot.
                 Event::Key(KeyEvent {
@@ -2203,7 +2331,7 @@ impl<T: Write> Application<T> {
                     }
                     9 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                        self.kitty_assumed = !self.kitty_assumed;
+                        self.runtime_data.kitty_assumed ^= true;
                     }
                     _ => {}
                 },
@@ -2283,7 +2411,7 @@ impl<T: Write> Application<T> {
                     }
                     9 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                        self.kitty_assumed = !self.kitty_assumed;
+                        self.runtime_data.kitty_assumed ^= true;
                     }
                     _ => {}
                 },
@@ -2306,7 +2434,7 @@ impl<T: Write> Application<T> {
                         break name;
                     }
                 };
-                let new_slot = (new_custom_slot_name, settings.graphics().clone());
+                let new_slot = (new_custom_slot_name, *settings.graphics());
                 settings.graphics_slots.push(new_slot);
                 settings.graphics_active = settings.graphics_slots.len() - 1;
             }
@@ -2593,7 +2721,7 @@ impl<T: Write> Application<T> {
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
                 .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
 
-            let fmt_comparison_stat = |p: &SavedGame| match p.meta_data.comparison_stat {
+            let fmt_comparison_stat = |p: &ScoreboardEntry| match p.meta_data.comparison_stat.0 {
                 Stat::TimeElapsed(_) => format!("time: {}", fmt_duration(&p.time_elapsed)),
                 Stat::PiecesLocked(_) => format!("pieces: {}", p.pieces_locked.iter().sum::<u32>()),
                 Stat::LinesCleared(_) => format!("lines: {}", p.lines_cleared),
@@ -2601,23 +2729,24 @@ impl<T: Write> Application<T> {
                 Stat::PointsScored(_) => format!("points: {}", p.points_scored),
             };
 
-            let fmt_past_game = |p: &SavedGame| {
+            let fmt_past_game = |(e, _): &(ScoreboardEntry, Option<GameRestorationData>)| {
                 format!(
                     "{} {} | {}{}",
-                    p.meta_data.datetime,
-                    p.meta_data.name,
-                    fmt_comparison_stat(p),
-                    if p.result.is_ok() { "" } else { " (unf.)" }
+                    e.meta_data.datetime,
+                    e.meta_data.name,
+                    fmt_comparison_stat(e),
+                    if e.result.is_ok() { "" } else { " (unf.)" }
                 )
             };
 
-            match self.settings.scoreboard_sorting {
+            match self.scoreboard.sorting {
                 ScoreboardSorting::Chronological => self.sort_past_games_chronologically(),
                 ScoreboardSorting::Semantic => self.sort_past_games_semantically(),
             };
 
             for (i, entry) in self
-                .past_games
+                .scoreboard
+                .entries
                 .iter()
                 .skip(camera_pos)
                 .take(CAMERA_SIZE)
@@ -2639,7 +2768,8 @@ impl<T: Write> Application<T> {
                     )))?;
             }
             let entries_left = self
-                .past_games
+                .scoreboard
+                .entries
                 .len()
                 .saturating_sub(camera_pos + CAMERA_SIZE);
             self.term
@@ -2656,7 +2786,7 @@ impl<T: Write> Application<T> {
                         } else {
                             "".to_owned()
                         },
-                        format!("({:?} order [←|→])", self.settings.scoreboard_sorting)
+                        format!("({:?} order [←|→])", self.scoreboard.sorting)
                     )
                 )))?;
             self.term.flush()?;
@@ -2685,12 +2815,12 @@ impl<T: Write> Application<T> {
                     code: KeyCode::Up | KeyCode::Char('k'),
                     kind: Press | Repeat,
                     ..
-                }) if self.past_games.len() > 0 => {
+                }) if self.scoreboard.entries.len() > 0 => {
                     // yo what the hell
-                    cursor_pos += self.past_games.len() - 1;
-                    cursor_pos %= self.past_games.len();
-                    if cursor_pos == self.past_games.len() - 1 {
-                        camera_pos = self.past_games.len().saturating_sub(CAMERA_SIZE);
+                    cursor_pos += self.scoreboard.entries.len() - 1;
+                    cursor_pos %= self.scoreboard.entries.len();
+                    if cursor_pos == self.scoreboard.entries.len() - 1 {
+                        camera_pos = self.scoreboard.entries.len().saturating_sub(CAMERA_SIZE);
                     } else if 0 < camera_pos && cursor_pos < camera_pos + CAMERA_MARGIN {
                         camera_pos -= 1;
                     }
@@ -2701,14 +2831,14 @@ impl<T: Write> Application<T> {
                     code: KeyCode::Down | KeyCode::Char('j'),
                     kind: Press | Repeat,
                     ..
-                }) if self.past_games.len() > 0 => {
+                }) if self.scoreboard.entries.len() > 0 => {
                     // yo what the hell pt.2
                     cursor_pos += 1;
-                    cursor_pos %= self.past_games.len();
+                    cursor_pos %= self.scoreboard.entries.len();
                     if cursor_pos == 0 {
                         camera_pos = 0;
                     } else if camera_pos + CAMERA_SIZE - CAMERA_MARGIN < cursor_pos
-                        && camera_pos < self.past_games.len().saturating_sub(CAMERA_SIZE)
+                        && camera_pos < self.scoreboard.entries.len().saturating_sub(CAMERA_SIZE)
                     {
                         camera_pos += 1;
                     }
@@ -2719,7 +2849,7 @@ impl<T: Write> Application<T> {
                     kind: Press | Repeat,
                     ..
                 }) => {
-                    self.settings.scoreboard_sorting = match self.settings.scoreboard_sorting {
+                    self.scoreboard.sorting = match self.scoreboard.sorting {
                         ScoreboardSorting::Chronological => ScoreboardSorting::Semantic,
                         ScoreboardSorting::Semantic => ScoreboardSorting::Chronological,
                     };
@@ -2730,7 +2860,7 @@ impl<T: Write> Application<T> {
                     kind: Press | Repeat,
                     ..
                 }) => {
-                    self.settings.scoreboard_sorting = match self.settings.scoreboard_sorting {
+                    self.scoreboard.sorting = match self.scoreboard.sorting {
                         ScoreboardSorting::Chronological => ScoreboardSorting::Semantic,
                         ScoreboardSorting::Semantic => ScoreboardSorting::Chronological,
                     };
@@ -2739,11 +2869,11 @@ impl<T: Write> Application<T> {
                 // Delete entire slot.
                 Event::Key(KeyEvent {
                     code: KeyCode::Delete | KeyCode::Char('d'),
-                    kind: Press,
+                    kind: Press | Repeat,
                     ..
-                }) if self.past_games.len() > 0 => {
-                    self.past_games.remove(cursor_pos);
-                    if 0 < cursor_pos && cursor_pos == self.past_games.len() {
+                }) if self.scoreboard.entries.len() > 0 => {
+                    self.scoreboard.entries.remove(cursor_pos);
+                    if 0 < cursor_pos && cursor_pos == self.scoreboard.entries.len() {
                         cursor_pos -= 1;
                         camera_pos = camera_pos.saturating_sub(1);
                     }
@@ -2827,8 +2957,6 @@ fn compress_buttons(button_state: &PressedButtons) -> u16 {
         .fold(0, |int, b| (int << 1) | u16::from(*b))
 }
 
-// TODO: Use this to enable game replay.
-#[allow(dead_code)]
 fn decompress_buttons(mut int: u16) -> PressedButtons {
     let mut button_state = PressedButtons::default();
     for i in 0..Button::VARIANTS.len() {
@@ -2836,18 +2964,4 @@ fn decompress_buttons(mut int: u16) -> PressedButtons {
         int >>= 1;
     }
     button_state
-}
-
-fn transcribe(game: &Game, meta_data: &GameMetaData) -> SavedGame {
-    SavedGame {
-        meta_data: meta_data.clone(),
-        result: game.state().result.unwrap(),
-        time_elapsed: game.state().time,
-        pieces_locked: game.state().pieces_locked,
-        lines_cleared: game.state().lines_cleared,
-        gravity_reached: game.state().gravity,
-        points_scored: game.state().score,
-        blueprint: game.blueprint(),
-        modifier_identifiers: game.modifier_names().map(str::to_owned).collect(),
-    }
 }

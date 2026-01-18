@@ -38,9 +38,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         args.enable_combo_bot,
     );
     std::panic::set_hook(Box::new(|panic_info| {
-        if let Ok(mut file) = std::fs::File::create("tetrs_tui_crash_message.txt") {
+        let crash_file_name = format!(
+            "tetrs-tui_crash-msg_{}.txt",
+            chrono::Utc::now().format("%Y-%m-%d_%Hh%Mm%Ss")
+        );
+        if let Ok(mut file) = std::fs::File::create(crash_file_name) {
             let _ = file.write(panic_info.to_string().as_bytes());
-            // let _ = file.write(std::backtrace::Backtrace::force_capture().to_string().as_bytes());
+            // FIXME: remove: let _ = file.write(std::backtrace::Backtrace::force_capture().to_string().as_bytes());
         }
     }));
     let exit_msg = app.run()?;
