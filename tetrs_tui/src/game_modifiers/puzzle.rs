@@ -8,7 +8,6 @@ use tetrs_engine::{
 pub const MOD_ID: &str = "puzzle";
 
 const MAX_STAGE_ATTEMPTS: usize = 5;
-const PUZZLE_GRAVITY: u32 = 1;
 
 pub fn build(builder: &GameBuilder) -> Game {
     let puzzles = puzzle_list();
@@ -96,17 +95,14 @@ pub fn build(builder: &GameBuilder) -> Game {
                 }
             }
         }
-        // FIXME: handle displaying the level to the user better.
         // Keep custom game state that's also visible to player, but hide it from the game engine that handles gameplay.
         if matches!(
             modpoint,
             ModificationPoint::BeforeEvent(_) | ModificationPoint::BeforeInput
         ) {
             config.preview_count = 0;
-            state.gravity = PUZZLE_GRAVITY;
         } else {
             config.preview_count = state.next_pieces.len();
-            state.gravity = u32::try_from(current_puzzle_idx + 1).unwrap();
             // Delete accolades.
             msgs.retain(|evt| !matches!(evt, (_, Feedback::Accolade { .. })));
         }

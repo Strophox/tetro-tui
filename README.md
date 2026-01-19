@@ -457,7 +457,6 @@ The general rationale behind most kicks is, "these first kicks feel most natural
 
 </details>
 
-<!--FIXME: Refactor locking and update text. -->
 ## Piece Locking
 
 The mechanics of locking down a piece on the grid can be more complicated than it might sound at first glance.
@@ -664,7 +663,7 @@ Special maneuver bonus conditions:
 <summary>(Above table was generated with Python:</summary>
 
 ```python
-# FIXME: Define score_bonus(lines,combo,is_spin,is_perfect) for the following to work!
+# NOTE: Use above `def score_bonus(lines,combo,is_spin,is_perfect)` before calling the following code!
 def table():
   names = ['Single','Double','Triple','Quadle']
   row = lambda l,c,s,p: print(f"| +{score_bonus(l,c,s,p): >3} | {'Perfect ' if p else ''}{'?-Spin ' if s else ''}{names[l-1]}{f' #{c}.' if c > 1 else ''} |")

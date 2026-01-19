@@ -209,12 +209,6 @@ pub struct Rules {
     /// The gravity at which a game should start.
     pub initial_gravity: u32,
     /// Whether the gravity should be automatically incremented while the game plays.
-    // FIXME: This is arguably a configuration, and should live in GameConfig.
-    // The whole concept of a GameMode is a bit shaky, including the names and
-    // the scoreboard using strings to compare for 'same gamemode' instead of
-    // an enum or just the underlying limits.
-    // What defines a gamemode? Maybe we just distribute these fields into the
-    // other most appropriate structs, likely GameConfig and Game.
     pub progressive_gravity: bool,
     /// Stores the ways in which a round of the game should be limited.
     ///
@@ -322,9 +316,6 @@ pub enum GameOver {
     Forfeit,
 }
 
-// FIXME: Document all Invariants.
-// * Until the game has finished there will always be more events: `finished.is_some() || !next_events.is_empty()`.
-// * Unhandled events lie in the future: `for (event,event_time) in self.events { assert(self.time_updated < event_time); }`.
 /// Struct storing internal game state that changes over the course of play.
 #[derive(Eq, PartialEq, Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -411,31 +402,6 @@ pub struct GameBuilder {
     _state: (),
     /// The possible game seed.
     pub seed: Option<u64>,
-    // FIXME: Remove this verbose note at some point?
-    // There's a certain chain of considerations for 'modifiers' are not a normal part of the
-    // configuration builder; For idiomatic reasons, we'd like our `GameBuilder` methods to be
-    // chainable, and possibly end with `.build()`. But now our `build` finalizer method either:
-    // * Consumes `GameBuilder` but so forces the entire chain to eat and return an owned
-    //   `GameBuilder` along itself. This is not idiomatic when one wants to conditionally modify a
-    //   builder, and needs to reassign the old builder value if the branch is not taken:
-    //   ```let builder = if condition { builder.seed(s) } else { builder };```
-    //   One point of `&mut ...` is exactly to enable good ergonomics for in-place modification.
-    // * Else make the chain to use `&mut GameBuilder` and enable conditonal modification, but force
-    //   `build` itself to use only a (mutable) reference to produce a `Game`.
-    //
-    // We go with the second, as it makes more intuitive sense for a builder to be modifying
-    // itself / be modified by the user, as well as ultimately being able to produce the same
-    // `Game` from the same, deterministic, static configuation several times (for `build(&self)`).
-    //
-    // The problem is not completely solved, as the only non-copyable things might be game
-    // modifiers, which are very customizable, powerful and possibly highly stateful, and should
-    // not be shared across `Game`s by default or accident.
-    //
-    // By forcing the user to specify modifiers as an optional way to finish the build, we
-    // guarantee that the same mod can only be shared if the user explicitly does so.
-    // Also, now the rest of `GameBuilder` is 'deterministic', insofar that it gains derivable
-    // trait implementations for `PartialEq`, `Clone` and `Debug`, unlike `Game` which it is closely
-    // based on but which can't even auto-derive `Debug`!
     _modifiers: (),
 }
 
@@ -786,7 +752,6 @@ impl Rules {
 
 impl Button {
     /// All button variants.
-    // FIXME: Needs to be MANUALLY updated in sync with `Button`...
     pub const VARIANTS: [Self; 9] = [
         Self::MoveLeft,
         Self::MoveRight,

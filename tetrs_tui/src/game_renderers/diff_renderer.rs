@@ -198,7 +198,6 @@ impl ScreenBuf {
     }
 }
 
-// FIXME: go through- and derive more generally for all tetrs_tui structs?
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
 struct HardDropTile {
     creation_time: GameTime,

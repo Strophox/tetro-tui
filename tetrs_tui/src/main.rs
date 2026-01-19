@@ -46,7 +46,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         );
         if let Ok(mut file) = std::fs::File::create(crash_file_name) {
             let _ = file.write(panic_info.to_string().as_bytes());
-            // FIXME: remove: let _ = file.write(std::backtrace::Backtrace::force_capture().to_string().as_bytes());
+            //let _ = file.write(std::backtrace::Backtrace::force_capture().to_string().as_bytes());
         }
     }));
 

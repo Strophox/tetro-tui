@@ -161,8 +161,8 @@ impl<T: Write> Application<T> {
                         let game_time_userinput = instant.saturating_duration_since(*time_started)
                             - *total_pause_duration;
                         let game_now = std::cmp::max(game_time_userinput, game.state().time);
-                        // FIXME: Handle/ensure no Err.
                         recorded_user_input.push((game_now, encode_buttons(&buttons_pressed)));
+                        // FIXME: Handle error?
                         if let Ok(evts) = game.update(Some(buttons_pressed), game_now) {
                             inform_combo_bot(game, &evts);
                             new_feedback_msgs.extend(evts);
@@ -171,7 +171,7 @@ impl<T: Write> Application<T> {
                     Err(mpsc::RecvTimeoutError::Timeout) => {
                         let game_time_now = Instant::now().saturating_duration_since(*time_started)
                             - *total_pause_duration;
-                        // FIXME: Handle/ensure no Err.
+                        // FIXME: Handle error?
                         if let Ok(evts) = game.update(None, game_time_now) {
                             inform_combo_bot(game, &evts);
                             new_feedback_msgs.extend(evts);

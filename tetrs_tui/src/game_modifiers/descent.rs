@@ -109,7 +109,7 @@ pub fn build(builder: &GameBuilder) -> Game {
             if matches!(modpoint, ModificationPoint::AfterInput) {
                 state.events.remove(&GameEvent::Hold);
             }
-            // FIXME: Remove jank.
+            // FIXME: EXTREME JANK.
             active_piece.shape = descent_tetromino;
         });
     let rules = Rules {

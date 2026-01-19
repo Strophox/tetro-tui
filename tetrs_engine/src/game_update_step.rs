@@ -86,12 +86,11 @@ impl Game {
                         break 'event_simulation;
                     }
                 }
-                // FIXME: Are we not 'unintentionally' catching the `None` case too?
+                // FIXME(Strophox): Are we not 'unintentionally' catching the `None` case too?
                 _ => {
                     // Possibly process user input events now or break out.
                     // NOTE: We should be able to update the time here because `self.process_input(...)` does not access it.
                     self.state.time = update_time;
-                    // FIXME(Strophox): Why are we `take`ing the state?
                     // Update button inputs.
                     if let Some(pressed_buttons) = new_button_state.take() {
                         self.run_modifier_updates(
@@ -601,7 +600,7 @@ impl Game {
         feedback_msgs
     }
 
-    // FIXME: THIS is, by far, the ugliest part of this entire program. For the love of what's good, I hope this code can someday be surgically excised and drop-in replaced with elegant code.
+    // FIXME: This is really unexpectedly complicated code. This should be reconsidered or at least commented.
     /// Calculates the newest locking details for the main active piece.
     fn calculate_locking_data(
         &mut self,
@@ -612,7 +611,7 @@ impl Game {
         touches_ground: bool,
     ) -> LockingData {
         let Ok(level) = NonZeroU32::try_from(self.state.gravity) else {
-            // FIXME: bruh, basically a placeholder.
+            // FIXME: This is just a placeholder(!)(?)
             return LockingData {
                 touches_ground,
                 last_touchdown: None,

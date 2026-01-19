@@ -1,7 +1,8 @@
 use std::num::{NonZeroU8, NonZeroUsize};
 
 use tetrs_engine::{
-    Game, GameBuilder, GameEvent, GameModFn, GameRng, Line, ModificationPoint, Modifier, Rules, Stat
+    Game, GameBuilder, GameEvent, GameModFn, GameRng, Line, ModificationPoint, Modifier, Rules,
+    Stat,
 };
 
 pub const MOD_ID: &str = "cheese";
@@ -19,7 +20,8 @@ pub fn build(
     let mod_function: Box<GameModFn> = Box::new(
         move |_config, _rules, state, modification_point, _feedback_msgs| {
             if !init {
-                let mut line_source = random_gap_lines(gapsize, &mut state.rng, &mut remaining_lines);
+                let mut line_source =
+                    random_gap_lines(gapsize, &mut state.rng, &mut remaining_lines);
                 for (line, cheese) in state.board.iter_mut().take(10).rev().zip(&mut line_source) {
                     *line = cheese;
                 }
@@ -30,7 +32,9 @@ pub fn build(
             ) {
                 for line in state.board.iter() {
                     if line.iter().all(|mino| mino.is_some()) {
-                        let is_cheese_line = line.iter().any(|cell| *cell == Some(NonZeroU8::try_from(254).unwrap()));
+                        let is_cheese_line = line
+                            .iter()
+                            .any(|cell| *cell == Some(NonZeroU8::try_from(254).unwrap()));
                         if is_cheese_line {
                             temp_cheese_tally += 1;
                         } else {
@@ -75,7 +79,11 @@ pub fn build(
         .build_modified([cheese_modifier])
 }
 
-fn random_gap_lines<'a>(gapsize: usize, rng: &'a mut GameRng, remaining: &'a mut usize) -> impl Iterator<Item = Line> + 'a {
+fn random_gap_lines<'a>(
+    gapsize: usize,
+    rng: &'a mut GameRng,
+    remaining: &'a mut usize,
+) -> impl Iterator<Item = Line> + 'a {
     let gap_size = gapsize.min(Game::WIDTH);
     let grey_tile = Some(NonZeroU8::try_from(254).unwrap());
     std::iter::from_fn(move || {

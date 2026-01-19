@@ -161,11 +161,9 @@ pub struct Scoreboard {
     Eq, PartialEq, Ord, PartialOrd, Clone, Hash, Debug, serde::Serialize, serde::Deserialize,
 )]
 pub struct NewGameSettings {
-    // TODO: remove dead fix-me's like this
-    // FIXME: We kind of abuse the SavedGame struct to store stats about old games, but so detailed that we can actually restore a game to its last state.
     custom_rules: Rules,
     custom_seed: Option<u64>,
-    custom_board: Option<String>, // For more compact serialization of NewGameSettings, we store an encoded `Board` (using `encode_board`).
+    custom_board: Option<String>, // For more compact serialization of NewGameSettings, we store an encoded `Board` (see `encode_board`).
     /// Custom starting layout when playing Combo mode (4-wide rows), encoded as binary.
     /// Example: '▀▄▄▀' => 0b_1001_0110 = 150
     combo_startlayout: u16,
@@ -412,12 +410,11 @@ pub struct Application<T: Write> {
 
 impl<T: Write> Drop for Application<T> {
     fn drop(&mut self) {
-        // FIXME: Handle errors?
         let savefile_path = Self::savefile_path();
         // If the user wants any of their data stored, try to do so.
         if self.save_on_exit != SavefileGranularity::NoSavefile {
+            // FIXME: Handle error?
             if let Err(_e) = self.store_savefile(savefile_path) {
-                // FIXME: Make this debuggable.
                 //eprintln!("Could not save settings this time: {e} ");
                 //std::thread::sleep(Duration::from_secs(4));
             }
@@ -425,6 +422,7 @@ impl<T: Write> Drop for Application<T> {
         } else if savefile_path.try_exists().is_ok_and(|exists| exists) {
             let _ = std::fs::remove_file(savefile_path);
         }
+        // FIXME: Handle error?
         let _ = terminal::disable_raw_mode();
         let _ = self.term.execute(style::ResetColor);
         let _ = self.term.execute(cursor::Show);
@@ -445,7 +443,7 @@ impl<T: Write> Application<T> {
         combo_bot_enabled: bool,
     ) -> Self {
         // Console prologue: Initialization.
-        // FIXME: Handle errors?
+        // FIXME: Handle error?
         let _ = term.execute(terminal::EnterAlternateScreen);
         let _ = term.execute(terminal::SetTitle("tetrs - Terminal User Interface"));
         let _ = term.execute(cursor::Hide);
@@ -465,8 +463,8 @@ impl<T: Write> Application<T> {
         };
 
         // Actually load in settings.
+        // FIXME: Handle error?
         if app.load_savefile(Self::savefile_path()).is_err() {
-            // FIXME: Make this debuggable.
             //eprintln!("Could not loading settings: {e}");
             //std::thread::sleep(Duration::from_secs(5));
         }

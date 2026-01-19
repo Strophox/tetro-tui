@@ -42,7 +42,6 @@ pub mod show_recency_tetromino_likelihood {
                     snap: _,
                 } = config.tetromino_generator
                 else {
-                    // FIXME: Provide info about other generators too?
                     return;
                 };
                 let mut pieces_played_strs = [
