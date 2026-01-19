@@ -18,7 +18,7 @@ use tetrs_engine::{
 use crate::{
     game_renderers::{button_str, Renderer},
     terminal_user_interface::{Application, GameMetaData, Glyphset},
-    tui_utils::{fmt_duration, fmt_keybinds},
+    utils::{fmt_duration, fmt_keybinds},
 };
 
 use super::{tet_str_minuscule, tet_str_small};

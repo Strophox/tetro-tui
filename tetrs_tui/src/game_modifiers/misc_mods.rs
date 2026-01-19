@@ -1,7 +1,7 @@
 pub mod custom_start_board {
     use tetrs_engine::Modifier;
 
-    use crate::tui_utils::decode_board;
+    use crate::utils::decode_board;
 
     pub const MOD_ID: &str = "custom_start_board";
 
