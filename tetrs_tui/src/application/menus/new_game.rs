@@ -197,7 +197,17 @@ impl<T: Write> Application<T> {
                     .queue(Print(format!(
                         "{:^w_main$}",
                         if selected == selection_len - 2 {
-                            format!(">> Load \"{}\" from {} [Del] <<", sp.0.title, sp.0.datetime)
+                            format!(
+                                ">> Load \"{}\" at {:#?} [Del]<<",
+                                sp.0.title,
+                                if sp.1 == 0 {
+                                    Duration::ZERO
+                                } else {
+                                    sp.2.recorded_user_input
+                                        [(sp.1 - 1) % sp.2.recorded_user_input.len()]
+                                    .0
+                                }
+                            )
                         } else {
                             format!("Load savepoint... ({})", sp.0.title)
                         },
@@ -431,6 +441,11 @@ impl<T: Write> Application<T> {
                             self.new_game_settings.combo_linelimit =
                                 NonZeroUsize::try_from(limit.get() - 1).ok();
                         }
+                    } else if let Some(sp) = &mut self.savepoint {
+                        if selected == selection_len - 2 {
+                            sp.1 += sp.2.recorded_user_input.len();
+                            sp.1 %= sp.2.recorded_user_input.len() + 1;
+                        }
                     }
                 }
 
@@ -480,6 +495,11 @@ impl<T: Write> Application<T> {
                             } else {
                                 Some(NonZeroUsize::MIN)
                             };
+                    } else if let Some(sp) = &mut self.savepoint {
+                        if selected == selection_len - 2 {
+                            sp.1 += 1;
+                            sp.1 %= sp.2.recorded_user_input.len() + 1;
+                        }
                     }
                 }
 
@@ -541,8 +561,9 @@ impl<T: Write> Application<T> {
                     (preset_game, new_meta_data, new_recorded_user_input)
                 // Load saved game.
                 } else if selected == selection_len - 2 {
-                    let (game_meta_data, game_restoration_data) = &self.savepoint.as_ref().unwrap();
-                    let restored_game = game_restoration_data.restore();
+                    let (game_meta_data, input_index, game_restoration_data) =
+                        &self.savepoint.as_ref().unwrap();
+                    let restored_game = game_restoration_data.restore(*input_index);
                     let mut restored_meta_data = game_meta_data.clone();
                     restored_meta_data.title.push('\'');
                     let restored_recorded_user_input =

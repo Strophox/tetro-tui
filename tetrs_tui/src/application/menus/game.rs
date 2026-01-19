@@ -132,6 +132,7 @@ impl<T: Write> Application<T> {
                     Ok(InputSignal::StoreSavepoint) => {
                         let _ = self.savepoint.insert((
                             meta_data.clone(),
+                            recorded_user_input.len(),
                             GameRestorationData::new(game, recorded_user_input),
                         ));
                         new_feedback_msgs.push((

@@ -52,7 +52,7 @@ impl GameRestorationData {
         }
     }
 
-    fn restore(&self) -> Game {
+    fn restore(&self, input_index: usize) -> Game {
         // Step 1: Prepare builder.
         let builder = self.builder.clone();
         // Step 2: Build actual game by possibly reconstructing mods to finalize builder with.
@@ -84,7 +84,7 @@ impl GameRestorationData {
         let restore_feedback_verbosity = game.config().feedback_verbosity;
 
         game.config_mut().feedback_verbosity = FeedbackVerbosity::Quiet;
-        for (input_time, int) in self.recorded_user_input.iter() {
+        for (input_time, int) in self.recorded_user_input.iter().take(input_index) {
             let button_state = decode_buttons(*int);
             // FIXME: Error handling?
             let _ = game.update(Some(button_state), *input_time);
@@ -404,7 +404,7 @@ pub struct Application<T: Write> {
     save_on_exit: SavefileGranularity,
     settings: Settings,
     new_game_settings: NewGameSettings,
-    savepoint: Option<(GameMetaData, GameRestorationData)>,
+    savepoint: Option<(GameMetaData, usize, GameRestorationData)>,
     scoreboard: Scoreboard,
 }
 
