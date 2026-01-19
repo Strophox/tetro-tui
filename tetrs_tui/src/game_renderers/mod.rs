@@ -1,5 +1,5 @@
-pub mod cached_renderer;
-pub mod debug_renderer;
+pub mod diff_renderer;
+pub mod legacy_debug_renderer;
 
 use std::{
     collections::HashMap,

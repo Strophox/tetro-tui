@@ -207,14 +207,14 @@ struct HardDropTile {
 }
 
 #[derive(Clone, Default, Debug)]
-pub struct CachedRenderer {
+pub struct DiffRenderer {
     screen: ScreenBuf,
     active_feedback: Vec<(GameTime, Feedback, bool)>,
     messages: Vec<(GameTime, String)>,
     hard_drop_tiles: Vec<(HardDropTile, bool)>,
 }
 
-impl Renderer for CachedRenderer {
+impl Renderer for DiffRenderer {
     // NOTE self: what is the concept of having an ADT but some functions are only defined on some variants (that may contain record data)?
     fn render<T>(
         &mut self,

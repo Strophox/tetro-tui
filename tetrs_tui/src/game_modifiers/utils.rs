@@ -2,23 +2,14 @@ use tetrs_engine::{
     piece_generation::TetrominoSource, Feedback, GameEvent, ModificationPoint, Modifier, Tetromino,
 };
 
-pub fn custom_start_board(board_str: &str) -> Modifier {
-    let grey_tile = Some(std::num::NonZeroU8::try_from(254).unwrap());
+pub fn custom_start_board(board: &tetrs_engine::Board) -> Modifier {
+    let board = board.clone();
     let mut init = false;
-    let board_str = board_str.to_owned();
     Modifier {
         identifier: "custom_start_board".to_owned(),
         mod_function: Box::new(move |_config, _rules, state, _modpoint, _msgs| {
             if !init {
-                let mut chars = board_str.chars().rev();
-                'init: for row in state.board.iter_mut() {
-                    for cell in row.iter_mut().rev() {
-                        let Some(char) = chars.next() else {
-                            break 'init;
-                        };
-                        *cell = if char != ' ' { grey_tile } else { None };
-                    }
-                }
+                state.board.clone_from(&board);
                 init = true;
             }
         }),

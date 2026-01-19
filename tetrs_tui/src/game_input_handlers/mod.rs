@@ -7,5 +7,7 @@ pub enum InputSignal {
     Pause,
     WindowResize,
     StoreSavepoint,
+    StoreSeed,
+    StoreBoard,
     ButtonInput(tetrs_engine::Button, bool, std::time::Instant),
 }

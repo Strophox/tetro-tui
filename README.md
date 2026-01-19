@@ -152,9 +152,11 @@ For more technical gameplay discussion see [Features of the Tetrs Engine](#featu
 
   | Key | Action |
   | `Esc` | Pause game |
-  | `Ctrl`+`D` | Forfeit current game |
+  | `Ctrl`+`D` | Forfeit game |
   | `Ctrl`+`C` | Abort program |
-  | `Ctrl`+`S` | *(experimental)* Save game seed |
+  | `Ctrl`+`S` | Store savepoint |
+  | `Ctrl`+`E` | Store seed |
+  | `Ctrl`+`B` | Store board |
   
   </details>
   
@@ -278,7 +280,8 @@ We list considerations regarding perfomance of both the tetrs engine and TUI:
 
 ## Future Work
 
-- FIXMEs in the code base.
+- `TODO`s serve as important markers for issues/features that should be dealt with 'ASAP' or at least before releases.
+- Long-term `FIXME`s in the code base.
 - General improvements to the tetrs engine:
   - Better API documentation (`cargo doc --open`).
   - Better implementation/code comments.
@@ -454,7 +457,7 @@ The general rationale behind most kicks is, "these first kicks feel most natural
 
 </details>
 
-<!--TODO: Refactor locking and update text. -->
+<!--FIXME: Refactor locking and update text. -->
 ## Piece Locking
 
 The mechanics of locking down a piece on the grid can be more complicated than it might sound at first glance.
@@ -603,8 +606,11 @@ For singles, easy rules can be set:
 4. A quadruple lineclear should give more than a combination of other basic clears: `IV -> +7` (`IV IV IV -> 21` > `III III III III -> 20`).
 
 Furthermore, bonuses from 'streak'-like maneuvers:
+
 5. Combos ('clears by consecutive tetrominos'): They can be generated en masse with certain strategies (though the longest achievable combo is bounded). This leads us to believe they should not yield exceedingly large score bonuses. The most basic way is to still reward higher combo is to just add the length of the combo to the score: `Combo n -> +n`
 6. Back-to-Backs ('consecutive clears by Quadruple/Spin/Combo'): This form of score bonus is common to other tetromino stackers and can be kept up potentially ad infinitum. It additonally rewards the best maneuvers. With the current scoring method, which does this anyay, we are led to believe that B2B is not needed as incentive.
+
+Special maneuver bonus conditions:
 
 7. Spins ('pieces locked by rotation'): In common tetromino stackers, T-spins are already rewarded massively (and in specific ways for various subtypes, but not other tetromino types). What matters is that any spin requires 'knowledge' on how to use the rotation system to fill unlikely gaps on the board. A spin generally enhances the impressiveness of a lineclear. We decide to make it a multiplier to the number of lineclears registered: `Spin -> #I *= 2`.
 8. Perfect Clears ('board blank after lineclear'): With certain piece generators, strategies can be used to greatly increase the generation of perfect clears, therefore should not yield an _exceedingly_ large score bonus. But they are still fundamentally satisfying to look at. We decide to set: `Perfect Clear -> #I *= 4`.

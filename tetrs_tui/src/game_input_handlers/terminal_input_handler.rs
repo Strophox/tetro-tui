@@ -122,6 +122,7 @@ impl TerminalInputHandler {
                         let _ = input_sender.send(InputSignal::AbortProgram);
                         break 'react_to_event;
                     }
+
                     Ok(Event::Key(KeyEvent {
                         code: KeyCode::Char('d'),
                         modifiers: KeyModifiers::CONTROL,
@@ -131,6 +132,7 @@ impl TerminalInputHandler {
                         let _ = input_sender.send(InputSignal::ForfeitGame);
                         break 'react_to_event;
                     }
+
                     Ok(Event::Key(KeyEvent {
                         code: KeyCode::Char('s'),
                         modifiers: KeyModifiers::CONTROL,
@@ -139,7 +141,25 @@ impl TerminalInputHandler {
                     })) => {
                         let _ = input_sender.send(InputSignal::StoreSavepoint);
                     }
-                    // Escape pressed: send pause.
+
+                    Ok(Event::Key(KeyEvent {
+                        code: KeyCode::Char('e'),
+                        modifiers: KeyModifiers::CONTROL,
+                        kind: KeyEventKind::Press | KeyEventKind::Repeat,
+                        ..
+                    })) => {
+                        let _ = input_sender.send(InputSignal::StoreSeed);
+                    }
+
+                    Ok(Event::Key(KeyEvent {
+                        code: KeyCode::Char('b'),
+                        modifiers: KeyModifiers::CONTROL,
+                        kind: KeyEventKind::Press | KeyEventKind::Repeat,
+                        ..
+                    })) => {
+                        let _ = input_sender.send(InputSignal::StoreBoard);
+                    }
+
                     Ok(Event::Key(KeyEvent {
                         code: KeyCode::Esc,
                         kind: KeyEventKind::Press,
@@ -148,10 +168,11 @@ impl TerminalInputHandler {
                         let _ = input_sender.send(InputSignal::Pause);
                         break 'react_to_event;
                     }
+
                     Ok(Event::Resize(..)) => {
                         let _ = input_sender.send(InputSignal::WindowResize);
                     }
-                    // Candidate key pressed.
+
                     Ok(Event::Key(KeyEvent {
                         code: key,
                         kind: KeyEventKind::Press | KeyEventKind::Repeat,
@@ -188,7 +209,6 @@ impl TerminalInputHandler {
                 //     Ok(false) | Err(_) => continue 'react_to_event,
                 // }
                 match event::read() {
-                    // Direct interrupt.
                     Ok(Event::Key(KeyEvent {
                         code: KeyCode::Char('c'),
                         modifiers: KeyModifiers::CONTROL,
@@ -198,6 +218,7 @@ impl TerminalInputHandler {
                         let _ = input_sender.send(InputSignal::AbortProgram);
                         break 'react_to_event;
                     }
+
                     Ok(Event::Key(KeyEvent {
                         code: KeyCode::Char('d'),
                         modifiers: KeyModifiers::CONTROL,
@@ -207,6 +228,7 @@ impl TerminalInputHandler {
                         let _ = input_sender.send(InputSignal::ForfeitGame);
                         break 'react_to_event;
                     }
+
                     Ok(Event::Key(KeyEvent {
                         code: KeyCode::Char('s'),
                         modifiers: KeyModifiers::CONTROL,
@@ -215,7 +237,25 @@ impl TerminalInputHandler {
                     })) => {
                         let _ = input_sender.send(InputSignal::StoreSavepoint);
                     }
-                    // Escape pressed: send pause.
+
+                    Ok(Event::Key(KeyEvent {
+                        code: KeyCode::Char('e'),
+                        modifiers: KeyModifiers::CONTROL,
+                        kind: KeyEventKind::Press | KeyEventKind::Repeat,
+                        ..
+                    })) => {
+                        let _ = input_sender.send(InputSignal::StoreSeed);
+                    }
+
+                    Ok(Event::Key(KeyEvent {
+                        code: KeyCode::Char('b'),
+                        modifiers: KeyModifiers::CONTROL,
+                        kind: KeyEventKind::Press | KeyEventKind::Repeat,
+                        ..
+                    })) => {
+                        let _ = input_sender.send(InputSignal::StoreBoard);
+                    }
+
                     Ok(Event::Key(KeyEvent {
                         code: KeyCode::Esc,
                         kind: KeyEventKind::Press,
@@ -224,15 +264,16 @@ impl TerminalInputHandler {
                         let _ = input_sender.send(InputSignal::Pause);
                         break 'react_to_event;
                     }
+
                     Ok(Event::Resize(..)) => {
                         let _ = input_sender.send(InputSignal::WindowResize);
                     }
-                    // TTY simulated press repeat: ignore.
+
                     Ok(Event::Key(KeyEvent {
                         kind: KeyEventKind::Repeat,
                         ..
                     })) => {}
-                    // Candidate key actually changed.
+
                     Ok(Event::Key(KeyEvent { code, kind, .. })) => match keybinds.get(&code) {
                         // No binding: ignore.
                         None => {}
