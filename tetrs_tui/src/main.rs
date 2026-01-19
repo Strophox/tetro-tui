@@ -32,15 +32,11 @@ struct Args {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Read commandline arguments.
     let args = Args::parse();
-    
+
     // Initialize application.
     let stdout = io::BufWriter::new(io::stdout());
-    let mut app = application::Application::new(
-        stdout,
-        args.seed,
-        args.board,
-        args.enable_combo_bot,
-    );
+    let mut app =
+        application::Application::new(stdout, args.seed, args.board, args.enable_combo_bot);
 
     // Catch panics and write error to separate file, so it isn't lost due to app's terminal shenanigans.
     std::panic::set_hook(Box::new(|panic_info| {
@@ -57,6 +53,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Run main application.
     let exit_msg = app.run()?;
     println!("{exit_msg}");
-    
+
     Ok(())
 }

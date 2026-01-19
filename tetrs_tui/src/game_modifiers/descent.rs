@@ -3,8 +3,8 @@ use std::{num::NonZeroU8, time::Duration};
 use rand::{self, Rng};
 
 use tetrs_engine::{
-    Game, GameBuilder, GameEvent, GameModFn, GameTime, Line, ModificationPoint, Modifier, Rules,
-    Tetromino,
+    Game, GameBuilder, GameEvent, GameModFn, GameOver, GameTime, Line, ModificationPoint, Modifier,
+    Rules, Stat, Tetromino,
 };
 
 pub const MOD_ID: &str = "descent";
@@ -54,7 +54,7 @@ pub fn build(builder: &GameBuilder) -> Game {
                 state.board.insert(0, line_source.next().unwrap());
                 state.board.pop();
                 if active_piece.position.1 >= Game::SKYLINE {
-                    state.result = Some(Err(tetrs_engine::GameOver::ModeLimit));
+                    state.result = Some(Err(GameOver::ModeLimit));
                 }
             }
             if matches!(
@@ -115,10 +115,7 @@ pub fn build(builder: &GameBuilder) -> Game {
     let rules = Rules {
         initial_gravity: 0,
         progressive_gravity: false,
-        end_conditions: vec![(
-            tetrs_engine::Stat::TimeElapsed(Duration::from_secs(3 * 60)),
-            true,
-        )],
+        end_conditions: vec![(Stat::TimeElapsed(Duration::from_secs(3 * 60)), true)],
     };
     let descent_modifier = Modifier {
         descriptor: MOD_ID.to_owned(),

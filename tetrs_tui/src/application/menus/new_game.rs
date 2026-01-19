@@ -18,8 +18,8 @@ use crossterm::{
 use tetrs_engine::{Game, GameBuilder, Rules, Stat};
 
 use crate::{
-    game_modifiers,
     application::{Application, GameMetaData, Menu, MenuUpdate, RecordedUserInput},
+    game_modifiers,
 };
 
 impl<T: Write> Application<T> {
@@ -128,7 +128,7 @@ impl<T: Write> Application<T> {
                         let start_layout = self.new_game_settings.combo_startlayout;
                         move |builder: &GameBuilder| {
                             let end_conditions = match linelimit {
-                                Some(c) => vec![(tetrs_engine::Stat::LinesCleared(c.get()), true)],
+                                Some(c) => vec![(Stat::LinesCleared(c.get()), true)],
                                 None => vec![],
                             };
                             let rules = Rules {
@@ -545,7 +545,6 @@ impl<T: Write> Application<T> {
                     kind: Press | Repeat,
                     ..
                 }) => {
-                    // If custom gamemode selected, allow deleting TODO
                     if selected == selection_len - 1 {
                         self.new_game_settings.custom_seed = None;
                         self.new_game_settings.custom_board = None;
@@ -553,18 +552,17 @@ impl<T: Write> Application<T> {
                     } else if selected == selection_len - 2 {
                         self.savepoint = None;
                     } else if selected == 6 {
-                        let new_layout_idx = if let Some(i) =
-                            crate::game_modifiers::combo_board::LAYOUTS
-                                .iter()
-                                .position(|lay| *lay == self.new_game_settings.combo_startlayout)
+                        let new_layout_idx = if let Some(i) = game_modifiers::combo_board::LAYOUTS
+                            .iter()
+                            .position(|lay| *lay == self.new_game_settings.combo_startlayout)
                         {
-                            let layout_cnt = crate::game_modifiers::combo_board::LAYOUTS.len();
+                            let layout_cnt = game_modifiers::combo_board::LAYOUTS.len();
                             (i + 1) % layout_cnt
                         } else {
                             0
                         };
                         self.new_game_settings.combo_startlayout =
-                            crate::game_modifiers::combo_board::LAYOUTS[new_layout_idx];
+                            game_modifiers::combo_board::LAYOUTS[new_layout_idx];
                     }
                 }
                 // Other event: don't care.

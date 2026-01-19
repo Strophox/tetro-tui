@@ -14,14 +14,12 @@ use crossterm::{
 use tetrs_engine::Tetromino;
 
 use crate::{
-    game_renderers::tet_str_small,
     application::{Application, Glyphset, Menu, MenuUpdate, Settings},
+    game_renderers::tet_str_small,
 };
 
 impl<T: Write> Application<T> {
-    pub(in crate::application) fn menu_adjust_graphics(
-        &mut self,
-    ) -> io::Result<MenuUpdate> {
+    pub(in crate::application) fn menu_adjust_graphics(&mut self) -> io::Result<MenuUpdate> {
         let if_slot_is_default_then_copy_and_switch = |settings: &mut Settings| {
             if settings.graphics_slot_active < settings.graphics_slots_that_should_not_be_changed {
                 let mut n = 1;

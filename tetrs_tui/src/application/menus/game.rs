@@ -11,17 +11,17 @@ use crossterm::{
     terminal::{self, Clear, ClearType},
     ExecutableCommand,
 };
-use tetrs_engine::{FeedbackMessages, Game};
+use tetrs_engine::{Feedback, FeedbackMessages, Game, PressedButtons};
 
 use crate::{
-    game_input_handlers::{
-        combo_bot::ComboBotInputHandler, terminal::TerminalInputHandler, InputSignal,
-    },
-    game_renderers::Renderer,
     application::{
         Application, GameMetaData, GameRestorationData, Menu, MenuUpdate, RecordedUserInput,
         ScoreboardEntry,
     },
+    game_input_handlers::{
+        combo_bot::ComboBotInputHandler, terminal::TerminalInputHandler, InputSignal,
+    },
+    game_renderers::Renderer,
     utils::{encode_board, encode_buttons},
 };
 
@@ -45,7 +45,7 @@ impl<T: Write> Application<T> {
             ));
         }
         // Prepare channel with which to communicate `Button` inputs / game interrupt.
-        let mut buttons_pressed = tetrs_engine::PressedButtons::default();
+        let mut buttons_pressed = PressedButtons::default();
         let (button_sender, button_receiver) = mpsc::channel();
         let _input_handler = TerminalInputHandler::new(
             &button_sender,
@@ -57,9 +57,10 @@ impl<T: Write> Application<T> {
             .then(|| ComboBotInputHandler::new(&button_sender, Duration::from_millis(100)));
         let mut inform_combo_bot = |game: &Game, evts: &FeedbackMessages| {
             if let Some((_, state_sender)) = &mut combo_bot_handler {
-                if evts.iter().any(|(_, feedback)| {
-                    matches!(feedback, tetrs_engine::Feedback::PieceSpawned(_))
-                }) {
+                if evts
+                    .iter()
+                    .any(|(_, feedback)| matches!(feedback, Feedback::PieceSpawned(_)))
+                {
                     let combo_state = ComboBotInputHandler::encode(game).unwrap();
                     if state_sender.send(combo_state).is_err() {
                         combo_bot_handler = None;
@@ -135,14 +136,14 @@ impl<T: Write> Application<T> {
                         ));
                         new_feedback_msgs.push((
                             game.state().time,
-                            tetrs_engine::Feedback::Text("(Savepoint captured.)".to_owned()),
+                            Feedback::Text("(Savepoint captured.)".to_owned()),
                         ));
                     }
                     Ok(InputSignal::StoreSeed) => {
                         let _ = self.new_game_settings.custom_seed.insert(game.seed());
                         new_feedback_msgs.push((
                             game.state().time,
-                            tetrs_engine::Feedback::Text("(Seed captured.)".to_owned()),
+                            Feedback::Text("(Seed captured.)".to_owned()),
                         ));
                     }
                     Ok(InputSignal::StoreBoard) => {
@@ -152,7 +153,7 @@ impl<T: Write> Application<T> {
                             .insert(encode_board(&game.state().board));
                         new_feedback_msgs.push((
                             game.state().time,
-                            tetrs_engine::Feedback::Text("(Board captured.)".to_owned()),
+                            Feedback::Text("(Board captured.)".to_owned()),
                         ));
                     }
                     Ok(InputSignal::ButtonInput(button, button_state, instant)) => {

@@ -16,8 +16,8 @@ use tetrs_engine::{
 };
 
 use crate::{
-    game_renderers::{button_str, Renderer},
     application::{Application, GameMetaData, Glyphset},
+    game_renderers::{button_str, Renderer},
     utils::{fmt_duration, fmt_keybinds},
 };
 

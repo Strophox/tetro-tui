@@ -19,9 +19,7 @@ use crate::{
 };
 
 impl<T: Write> Application<T> {
-    pub(in crate::application) fn menu_adjust_keybinds(
-        &mut self,
-    ) -> io::Result<MenuUpdate> {
+    pub(in crate::application) fn menu_adjust_keybinds(&mut self) -> io::Result<MenuUpdate> {
         // "Trying to modify a default slot: create copy of slot to allow safely modifying that."
         let if_slot_is_default_then_copy_and_switch = |settings: &mut Settings| {
             if settings.keybinds_slot_active < settings.keybinds_slots_that_should_not_be_changed {

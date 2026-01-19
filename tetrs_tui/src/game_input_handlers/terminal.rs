@@ -15,7 +15,7 @@ use tetrs_engine::Button;
 
 use super::InputSignal;
 
-pub type Keybinds = std::collections::HashMap<crossterm::event::KeyCode, tetrs_engine::Button>;
+pub type Keybinds = std::collections::HashMap<crossterm::event::KeyCode, Button>;
 
 pub fn tetrs_default_keybinds() -> Keybinds {
     const KEYBINDS_TETRS: [(KeyCode, Button); 8] = [

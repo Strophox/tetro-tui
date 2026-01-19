@@ -11,8 +11,8 @@ use crossterm::{
 use tetrs_engine::{Button, Feedback, FeedbackMessages, Game, GameTime, State};
 
 use crate::{
-    game_renderers::{button_str, Renderer},
     application::{Application, GameMetaData},
+    game_renderers::{button_str, Renderer},
 };
 
 #[allow(dead_code)]

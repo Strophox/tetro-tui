@@ -1,8 +1,8 @@
 use std::{collections::VecDeque, num::NonZeroU8};
 
 use tetrs_engine::{
-    Feedback, FeedbackMessages, Game, GameBuilder, GameEvent, GameModFn, GameOver,
-    ModificationPoint, Modifier, Rules, State, Tetromino,
+    EndConditions, Feedback, FeedbackMessages, Game, GameBuilder, GameEvent, GameModFn, GameOver,
+    Line, ModificationPoint, Modifier, Rules, State, Tetromino,
 };
 
 pub const MOD_ID: &str = "puzzle";
@@ -44,7 +44,7 @@ pub fn build(builder: &GameBuilder) -> Game {
             .zip(state.board.iter_mut())
         {
             let grey_tile = Some(NonZeroU8::try_from(254).unwrap());
-            *board_line = tetrs_engine::Line::default();
+            *board_line = Line::default();
             if load_line.iter().any(|c| c != &b' ') {
                 for (board_cell, puzzle_tile) in board_line
                     .iter_mut()
@@ -128,7 +128,7 @@ pub fn build(builder: &GameBuilder) -> Game {
     let rules = Rules {
         initial_gravity: 2,
         progressive_gravity: false,
-        end_conditions: tetrs_engine::EndConditions::default(),
+        end_conditions: EndConditions::default(),
     };
     builder
         .clone()

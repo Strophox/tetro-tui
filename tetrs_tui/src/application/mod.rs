@@ -11,7 +11,10 @@ use std::{
 
 use crossterm::{cursor, style, terminal, ExecutableCommand};
 
-use tetrs_engine::{Config, Game, GameOver, Modifier, Rules, Stat, Tetromino};
+use tetrs_engine::{
+    Config, Feedback, FeedbackVerbosity, Game, GameBuilder, GameOver, GameResult, GameTime,
+    Modifier, Rules, Stat, Tetromino,
+};
 
 use crate::{
     game_input_handlers::terminal::{
@@ -28,13 +31,13 @@ use crate::{
 pub type Slots<T> = Vec<(String, T)>;
 
 pub type RecordedUserInput = Vec<(
-    tetrs_engine::GameTime,
-    u16, /*tetrs_engine::PressedButtons*/
+    GameTime,
+    u16, // For serialization reasons, we use an encoded version of `tetrs_engine::PressedButtons` (see `encode_buttons`).
 )>;
 
 #[derive(PartialEq, PartialOrd, Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct GameRestorationData {
-    builder: tetrs_engine::GameBuilder,
+    builder: GameBuilder,
     mod_descriptors: Vec<String>,
     recorded_user_input: RecordedUserInput,
 }
@@ -68,7 +71,7 @@ impl GameRestorationData {
                         mod_function: Box::new({ let mut init = false;
                             move |_config, _rules, state, _modpoint, msgs| {
                                 if init { return; } init = true;
-                                msgs.push((state.time, tetrs_engine::Feedback::Text(format!("ERROR: {msg:?}"))));
+                                msgs.push((state.time, Feedback::Text(format!("ERROR: {msg:?}"))));
                             }
                         }),
                     };
@@ -80,7 +83,7 @@ impl GameRestorationData {
         // Step 3: Reenact recorded game inputs.
         let restore_feedback_verbosity = game.config().feedback_verbosity;
 
-        game.config_mut().feedback_verbosity = tetrs_engine::FeedbackVerbosity::Quiet;
+        game.config_mut().feedback_verbosity = FeedbackVerbosity::Quiet;
         for (input_time, int) in self.recorded_user_input.iter() {
             let button_state = decode_buttons(*int);
             // FIXME: Error handling?
@@ -107,8 +110,8 @@ pub struct GameMetaData {
 )]
 pub struct ScoreboardEntry {
     meta_data: GameMetaData,
-    result: tetrs_engine::GameResult,
-    time_elapsed: tetrs_engine::GameTime,
+    result: GameResult,
+    time_elapsed: GameTime,
     pieces_locked: [u32; Tetromino::VARIANTS.len()],
     lines_cleared: usize,
     gravity_reached: u32,

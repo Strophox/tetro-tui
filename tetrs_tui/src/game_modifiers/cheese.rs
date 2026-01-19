@@ -3,7 +3,7 @@ use std::num::{NonZeroU8, NonZeroUsize};
 use rand::Rng;
 
 use tetrs_engine::{
-    Game, GameBuilder, GameEvent, GameModFn, Line, ModificationPoint, Modifier, Rules,
+    Game, GameBuilder, GameEvent, GameModFn, Line, ModificationPoint, Modifier, Rules, Stat,
 };
 
 pub const MOD_ID: &str = "cheese";
@@ -62,7 +62,7 @@ pub fn build(
         mod_function,
     };
     let end_conditions = match linelimit {
-        Some(c) => vec![(tetrs_engine::Stat::LinesCleared(c.get()), true)],
+        Some(c) => vec![(Stat::LinesCleared(c.get()), true)],
         None => vec![],
     };
     let rules = Rules {

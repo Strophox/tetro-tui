@@ -19,9 +19,7 @@ use tetrs_engine::{RotationSystem, TetrominoSource};
 use crate::application::{Application, Menu, MenuUpdate, Settings};
 
 impl<T: Write> Application<T> {
-    pub(in crate::application) fn menu_adjust_gameplay(
-        &mut self,
-    ) -> io::Result<MenuUpdate> {
+    pub(in crate::application) fn menu_adjust_gameplay(&mut self) -> io::Result<MenuUpdate> {
         let if_slot_is_default_then_copy_and_switch = |settings: &mut Settings| {
             if settings.config_slot_active < settings.config_slots_that_should_not_be_changed {
                 let mut n = 1;

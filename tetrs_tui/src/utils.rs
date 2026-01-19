@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use crossterm::event::KeyCode;
-use tetrs_engine::{Board, Button, Game, PressedButtons};
+use tetrs_engine::{Board, Button, Game, Line, PressedButtons};
 
 use crate::game_input_handlers::terminal::Keybinds;
 
@@ -90,7 +90,7 @@ pub fn encode_board(board: &Board) -> String {
 pub fn decode_board(string: &str) -> Board {
     let grey_tile = Some(std::num::NonZeroU8::try_from(254).unwrap());
     let mut chars = string.chars();
-    std::iter::repeat_n(tetrs_engine::Line::default(), Game::HEIGHT)
+    std::iter::repeat_n(Line::default(), Game::HEIGHT)
         .map(|mut line| {
             for tile in &mut line {
                 if let Some(char) = chars.next() {
