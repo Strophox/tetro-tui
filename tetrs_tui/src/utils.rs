@@ -84,7 +84,7 @@ pub fn encode_board(board: &Board) -> String {
                 .map(|tile| if tile.is_some() { 'X' } else { ' ' })
                 .collect::<String>()
         })
-        .collect()
+        .collect::<String>().trim_end().to_owned()
 }
 
 pub fn decode_board(string: &str) -> Board {
