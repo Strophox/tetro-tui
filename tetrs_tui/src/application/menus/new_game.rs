@@ -159,9 +159,8 @@ impl<T: Write> Application<T> {
             let selection_len = game_presets.len() + savepoint_available + 1;
             // There are four columns for the custom stat selection.
             let customization_selection_size = 4;
-            selected = selected.rem_euclid(selection_len);
-            customization_selected =
-                customization_selected.rem_euclid(customization_selection_size);
+            selected %= selection_len;
+            customization_selected %= customization_selection_size;
             // Render menu title.
             self.term
                 .queue(Clear(ClearType::All))?
@@ -289,6 +288,7 @@ impl<T: Write> Application<T> {
             }
             self.term.flush()?;
             // Wait for new input.
+            let mut immediately_start_new_game = false;
             match event::read()? {
                 // Quit app.
                 Event::Key(KeyEvent {
@@ -301,83 +301,23 @@ impl<T: Write> Application<T> {
                         "exited with ctrl-c".to_owned(),
                     )))
                 }
+
                 // Exit menu.
                 Event::Key(KeyEvent {
                     code: KeyCode::Esc | KeyCode::Char('q'),
                     kind: Press,
                     ..
                 }) => break Ok(MenuUpdate::Pop),
+
                 // Try select mode.
                 Event::Key(KeyEvent {
                     code: KeyCode::Enter | KeyCode::Char('e'),
                     kind: Press,
                     ..
                 }) => {
-                    // Build one of the selected game modes.
-                    let (game, meta_data, recorded_user_input) = if selected < game_presets.len() {
-                        let (title, comparison_stat, _desc, build) = &game_presets[selected];
-                        let builder = Game::builder().config(self.settings.config().clone());
-                        let preset_game = build(&builder);
-                        let new_meta_data = GameMetaData {
-                            datetime: chrono::Utc::now().format("%Y-%m-%d_%H:%M").to_string(),
-                            title: title.to_owned(),
-                            comparison_stat: comparison_stat.to_owned(),
-                        };
-                        let new_recorded_user_input = RecordedUserInput::new();
-                        (preset_game, new_meta_data, new_recorded_user_input)
-                    // Load saved game.
-                    } else if selected == selection_len - 2 {
-                        let (game_meta_data, game_restoration_data) =
-                            &self.savepoint.as_ref().unwrap();
-                        let restored_game = game_restoration_data.restore();
-                        let mut restored_meta_data = game_meta_data.clone();
-                        restored_meta_data.title.push('\'');
-                        let restored_recorded_user_input =
-                            game_restoration_data.recorded_user_input.clone();
-                        (
-                            restored_game,
-                            restored_meta_data,
-                            restored_recorded_user_input,
-                        )
-                    // Build custom game.
-                    } else {
-                        let mut builder = Game::builder()
-                            .config(self.settings.config().clone())
-                            .rules(self.new_game_settings.custom_rules.clone());
-                        // Optionally load custom seed.
-                        if self.new_game_settings.custom_seed.is_some() {
-                            builder.seed = self.new_game_settings.custom_seed;
-                        }
-                        // Optionally load custom board.
-                        let custom_game = if let Some(board) = &self.new_game_settings.custom_board
-                        {
-                            builder.build_modified([
-                                game_modifiers::misc::custom_start_board::modifier(board),
-                            ])
-                        // Otherwise just build a normal custom game.
-                        } else {
-                            builder.build()
-                        };
-                        let new_meta_data = GameMetaData {
-                            datetime: chrono::Utc::now().format("%Y-%m-%d_%H:%M").to_string(),
-                            title: "Custom".to_owned(),
-                            comparison_stat: (Stat::PointsScored(0), false),
-                        };
-                        let new_recorded_user_input = RecordedUserInput::new();
-                        (custom_game, new_meta_data, new_recorded_user_input)
-                    };
-                    let now = Instant::now();
-                    let time_started = now - game.state().time;
-                    break Ok(MenuUpdate::Push(Menu::Game {
-                        game: Box::new(game),
-                        meta_data,
-                        time_started,
-                        last_paused: now,
-                        total_pause_duration: Duration::ZERO,
-                        recorded_user_input,
-                        game_renderer: Default::default(),
-                    }));
+                    immediately_start_new_game = true;
                 }
+
                 // Move selector up or increase stat.
                 Event::Key(KeyEvent {
                     code: KeyCode::Up | KeyCode::Char('k'),
@@ -423,6 +363,7 @@ impl<T: Write> Application<T> {
                         selected += selection_len - 1;
                     }
                 }
+
                 // Move selector down or decrease stat.
                 Event::Key(KeyEvent {
                     code: KeyCode::Down | KeyCode::Char('j'),
@@ -471,6 +412,7 @@ impl<T: Write> Application<T> {
                         selected += 1;
                     }
                 }
+
                 // Move selector left (select stat).
                 Event::Key(KeyEvent {
                     code: KeyCode::Left | KeyCode::Char('h'),
@@ -491,6 +433,7 @@ impl<T: Write> Application<T> {
                         }
                     }
                 }
+
                 // Move selector right (select stat).
                 Event::Key(KeyEvent {
                     code: KeyCode::Right | KeyCode::Char('l'),
@@ -539,6 +482,7 @@ impl<T: Write> Application<T> {
                             };
                     }
                 }
+
                 // Move selector right (select stat).
                 Event::Key(KeyEvent {
                     code: KeyCode::Delete | KeyCode::Char('d'),
@@ -565,8 +509,86 @@ impl<T: Write> Application<T> {
                             game_modifiers::combo_board::LAYOUTS[new_layout_idx];
                     }
                 }
+
+                Event::Key(KeyEvent {
+                    code: KeyCode::Char(c @ '0'..='9'),
+                    kind: Press | Repeat,
+                    ..
+                }) => {
+                    let n = c.to_string().parse::<usize>().unwrap();
+                    if n <= selection_len {
+                        selected = if n == 0 { 10 - 1 } else { n - 1 };
+                        immediately_start_new_game = true;
+                    }
+                }
+
                 // Other event: don't care.
                 _ => {}
+            }
+
+            if immediately_start_new_game {
+                // Build one of the selected game modes.
+                let (game, meta_data, recorded_user_input) = if selected < game_presets.len() {
+                    let (title, comparison_stat, _desc, build) = &game_presets[selected];
+                    let builder = Game::builder().config(self.settings.config().clone());
+                    let preset_game = build(&builder);
+                    let new_meta_data = GameMetaData {
+                        datetime: chrono::Utc::now().format("%Y-%m-%d_%H:%M").to_string(),
+                        title: title.to_owned(),
+                        comparison_stat: comparison_stat.to_owned(),
+                    };
+                    let new_recorded_user_input = RecordedUserInput::new();
+                    (preset_game, new_meta_data, new_recorded_user_input)
+                // Load saved game.
+                } else if selected == selection_len - 2 {
+                    let (game_meta_data, game_restoration_data) = &self.savepoint.as_ref().unwrap();
+                    let restored_game = game_restoration_data.restore();
+                    let mut restored_meta_data = game_meta_data.clone();
+                    restored_meta_data.title.push('\'');
+                    let restored_recorded_user_input =
+                        game_restoration_data.recorded_user_input.clone();
+                    (
+                        restored_game,
+                        restored_meta_data,
+                        restored_recorded_user_input,
+                    )
+                // Build custom game.
+                } else {
+                    let mut builder = Game::builder()
+                        .config(self.settings.config().clone())
+                        .rules(self.new_game_settings.custom_rules.clone());
+                    // Optionally load custom seed.
+                    if self.new_game_settings.custom_seed.is_some() {
+                        builder.seed = self.new_game_settings.custom_seed;
+                    }
+                    // Optionally load custom board.
+                    let custom_game = if let Some(board) = &self.new_game_settings.custom_board {
+                        builder.build_modified([
+                            game_modifiers::misc::custom_start_board::modifier(board),
+                        ])
+                    // Otherwise just build a normal custom game.
+                    } else {
+                        builder.build()
+                    };
+                    let new_meta_data = GameMetaData {
+                        datetime: chrono::Utc::now().format("%Y-%m-%d_%H:%M").to_string(),
+                        title: "Custom".to_owned(),
+                        comparison_stat: (Stat::PointsScored(0), false),
+                    };
+                    let new_recorded_user_input = RecordedUserInput::new();
+                    (custom_game, new_meta_data, new_recorded_user_input)
+                };
+                let now = Instant::now();
+                let time_started = now - game.state().time;
+                break Ok(MenuUpdate::Push(Menu::Game {
+                    game: Box::new(game),
+                    meta_data,
+                    time_started,
+                    last_paused: now,
+                    total_pause_duration: Duration::ZERO,
+                    recorded_user_input,
+                    game_renderer: Default::default(),
+                }));
             }
         }
     }

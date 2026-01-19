@@ -180,10 +180,10 @@ impl Default for NewGameSettings {
             custom_rules: Rules::default(),
             custom_seed: None,
             custom_board: None,
-            cheese_linelimit: Some(NonZeroUsize::try_from(20).unwrap()),
+            cheese_linelimit: Some(NonZeroUsize::try_from(50).unwrap()),
             cheese_gravity: 0,
             cheese_gapsize: 1,
-            combo_linelimit: Some(NonZeroUsize::try_from(20).unwrap()),
+            combo_linelimit: Some(NonZeroUsize::try_from(25).unwrap()),
             combo_startlayout: game_modifiers::combo_board::LAYOUTS[0],
             experimental_mode_unlocked: false,
         }

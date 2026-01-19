@@ -349,11 +349,11 @@ impl Renderer for DiffRenderer {
                 format!("                       |                    |    {         }", endcond_value),
                 format!("   Pieces:  {:<11     }|                    |               ", pieces),
                 format!("   Gravity: {:<11     }|                    |               ", gravity),
-                format!("   Time: {:<14        }|                    |               ", fmt_duration(game_time)),
-                format!("                       |                    |{             }", if !next_pieces.is_empty() { "-----next-----+" } else {"               "}),
+                format!("   Time: {:<14        }|                    |{             }", fmt_duration(game_time), if !next_pieces.is_empty() { "-----next-----+" } else {"               "}),
                 format!("                       |                    |             {}", if !next_pieces.is_empty() { " |" } else {"  "}),
                 format!("                       |                    |             {}", if !next_pieces.is_empty() { " |" } else {"  "}),
                 format!("                       |                    |{             }", if !next_pieces.is_empty() { "--------------+" } else {"               "}),
+                format!("                       |                    |               ", ),
                 format!("   KEYBINDS            |                    |               ", ),
                 format!("   ---------           |                    |               ", ),
                 format!("   Move    {:<12      }|                    |               ", icons_move),
@@ -375,11 +375,11 @@ impl Renderer for DiffRenderer {
                 format!("                       ║                    ║    {         }", endcond_value),
                 format!("   Pieces:  {:<11     }║                    ║               ", pieces),
                 format!("   Gravity: {:<11     }║                    ║               ", gravity),
-                format!("   Time: {:<14        }║                    ║               ", fmt_duration(game_time)),
-                format!("                       ║                    ║{             }", if !next_pieces.is_empty() { "─────next─────┐" } else {"               "}),
+                format!("   Time: {:<14        }║                    ║{             }", fmt_duration(game_time), if !next_pieces.is_empty() { "─────next─────┐" } else {"               "}),
                 format!("                       ║                    ║             {}", if !next_pieces.is_empty() { " │" } else {"  "}),
                 format!("                       ║                    ║             {}", if !next_pieces.is_empty() { " │" } else {"  "}),
                 format!("                       ║                    ║{             }", if !next_pieces.is_empty() { "──────────────┘" } else {"               "}),
+                format!("                       ║                    ║               ", ),
                 format!("   KEYBINDS            ║                    ║               ", ),
                 format!("   ────────╴           ║                    ║               ", ),
                 format!("   Move    {:<12      }║                    ║               ", icons_move),
@@ -395,7 +395,7 @@ impl Renderer for DiffRenderer {
         self.screen.buffer_from(base_screen);
         let (x_board, y_board) = (24, 1);
         let (x_hold, y_hold) = (18, 2);
-        let (x_preview, y_preview) = (48, 12);
+        let (x_preview, y_preview) = (48, 11);
         let (x_preview_small, y_preview_small) = (48, 14);
         let (x_preview_minuscule, y_preview_minuscule) = (50, 16);
         let (x_messages, y_messages) = (47, 18);
@@ -409,6 +409,7 @@ impl Renderer for DiffRenderer {
                 .get(&tile_type_id.get())
                 .copied()
         };
+
         // Board: draw hard drop trail.
         for (
             HardDropTile {
@@ -441,7 +442,8 @@ impl Renderer for DiffRenderer {
                 .buffer_str(tile, get_color(tile_type_id), pos_board(*pos));
         }
         self.hard_drop_tiles.retain(|elt| elt.1);
-        // Board: draw fixed tiles.
+
+        // Board: draw locked tiles.
         let (tile_ground, tile_ghost, tile_active, tile_preview) =
             match app.settings().graphics().glyphset {
                 Glyphset::Electronika60 => ("▮▮", " .", "▮▮", "▮▮"),
@@ -459,10 +461,11 @@ impl Renderer for DiffRenderer {
                 }
             }
         }
+
         // If a piece is in play.
         if let Some((active_piece, _)) = active_piece_data {
+            // Draw ghost piece.
             if app.settings().graphics().show_ghost_piece {
-                // Draw ghost piece.
                 for (tile_pos, tile_type_id) in active_piece.well_piece(board).tiles() {
                     if tile_pos.1 <= Game::SKYLINE {
                         self.screen.buffer_str(
@@ -473,6 +476,7 @@ impl Renderer for DiffRenderer {
                     }
                 }
             }
+
             // Draw active piece.
             for (tile_pos, tile_type_id) in active_piece.tiles() {
                 if tile_pos.1 <= Game::SKYLINE {
@@ -484,6 +488,7 @@ impl Renderer for DiffRenderer {
                 }
             }
         }
+
         // Draw preview.
         if let Some(next_piece) = next_pieces.front() {
             let color = get_color(&next_piece.tiletypeid());
@@ -492,6 +497,7 @@ impl Renderer for DiffRenderer {
                 self.screen.buffer_str(tile_preview, color, pos);
             }
         }
+
         // Draw small preview pieces 2,3,4.
         let mut x_offset_small = 0;
         for tet in next_pieces.iter().skip(1).take(3) {
