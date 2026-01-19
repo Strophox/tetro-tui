@@ -24,10 +24,10 @@ use crossterm::{
     QueueableCommand,
 };
 
-use crate::terminal_user_interface::{Application, Menu, MenuUpdate};
+use crate::application::{Application, Menu, MenuUpdate};
 
 impl<T: Write> Application<T> {
-    pub(in crate::terminal_user_interface) fn generic_placeholder_menu(
+    pub(in crate::application) fn generic_placeholder_menu(
         &mut self,
         current_menu_name: &str,
         selection: Vec<Menu>,

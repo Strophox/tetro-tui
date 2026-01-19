@@ -13,12 +13,12 @@ use crossterm::{
 };
 
 use crate::{
-    terminal_user_interface::{Application, Menu, MenuUpdate, ScoreboardEntry},
+    application::{Application, Menu, MenuUpdate, ScoreboardEntry},
     utils::fmt_duration,
 };
 
 impl<T: Write> Application<T> {
-    pub(in crate::terminal_user_interface) fn menu_game_ended(
+    pub(in crate::application) fn menu_game_ended(
         &mut self,
         past_game: &ScoreboardEntry,
     ) -> io::Result<MenuUpdate> {

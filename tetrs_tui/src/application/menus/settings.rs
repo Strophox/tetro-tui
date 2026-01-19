@@ -12,10 +12,10 @@ use crossterm::{
     QueueableCommand,
 };
 
-use crate::terminal_user_interface::{Application, Menu, MenuUpdate, SavefileGranularity};
+use crate::application::{Application, Menu, MenuUpdate, SavefileGranularity};
 
 impl<T: Write> Application<T> {
-    pub(in crate::terminal_user_interface) fn menu_settings(&mut self) -> io::Result<MenuUpdate> {
+    pub(in crate::application) fn menu_settings(&mut self) -> io::Result<MenuUpdate> {
         let selection_len = 4;
         let mut selected = 0usize;
         loop {

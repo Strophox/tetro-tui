@@ -19,11 +19,11 @@ use tetrs_engine::{Game, GameBuilder, Rules, Stat};
 
 use crate::{
     game_modifiers,
-    terminal_user_interface::{Application, GameMetaData, Menu, MenuUpdate, RecordedUserInput},
+    application::{Application, GameMetaData, Menu, MenuUpdate, RecordedUserInput},
 };
 
 impl<T: Write> Application<T> {
-    pub(in crate::terminal_user_interface) fn menu_new_game(&mut self) -> io::Result<MenuUpdate> {
+    pub(in crate::application) fn menu_new_game(&mut self) -> io::Result<MenuUpdate> {
         let mut selected = 0usize;
         let mut customization_selected = 0usize;
         let (d_time, d_score, d_pieces, d_lines, d_gravity) =
@@ -352,7 +352,7 @@ impl<T: Write> Application<T> {
                         let custom_game = if let Some(board) = &self.new_game_settings.custom_board
                         {
                             builder.build_modified([
-                                game_modifiers::misc_mods::custom_start_board::modifier(board),
+                                game_modifiers::misc::custom_start_board::modifier(board),
                             ])
                         // Otherwise just build a normal custom game.
                         } else {

@@ -9,7 +9,7 @@ use std::{
 use crossterm::style::Color;
 use tetrs_engine::{Button, FeedbackMessages, Game, Tetromino};
 
-use crate::terminal_user_interface::{Application, GameMetaData};
+use crate::application::{Application, GameMetaData};
 
 pub type Palette = HashMap<u8, Color>;
 

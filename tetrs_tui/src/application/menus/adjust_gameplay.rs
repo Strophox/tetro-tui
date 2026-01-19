@@ -16,10 +16,10 @@ use crossterm::{
 };
 use tetrs_engine::{RotationSystem, TetrominoSource};
 
-use crate::terminal_user_interface::{Application, Menu, MenuUpdate, Settings};
+use crate::application::{Application, Menu, MenuUpdate, Settings};
 
 impl<T: Write> Application<T> {
-    pub(in crate::terminal_user_interface) fn menu_adjust_gameplay(
+    pub(in crate::application) fn menu_adjust_gameplay(
         &mut self,
     ) -> io::Result<MenuUpdate> {
         let if_slot_is_default_then_copy_and_switch = |settings: &mut Settings| {

@@ -12,7 +12,7 @@ use tetrs_engine::{Button, Feedback, FeedbackMessages, Game, GameTime, State};
 
 use crate::{
     game_renderers::{button_str, Renderer},
-    terminal_user_interface::{Application, GameMetaData},
+    application::{Application, GameMetaData},
 };
 
 #[allow(dead_code)]

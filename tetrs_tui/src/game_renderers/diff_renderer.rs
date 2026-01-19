@@ -17,7 +17,7 @@ use tetrs_engine::{
 
 use crate::{
     game_renderers::{button_str, Renderer},
-    terminal_user_interface::{Application, GameMetaData, Glyphset},
+    application::{Application, GameMetaData, Glyphset},
     utils::{fmt_duration, fmt_keybinds},
 };
 

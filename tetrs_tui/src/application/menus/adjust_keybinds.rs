@@ -14,12 +14,12 @@ use crossterm::{
 use tetrs_engine::Button;
 
 use crate::{
-    terminal_user_interface::{Application, Menu, MenuUpdate, Settings},
+    application::{Application, Menu, MenuUpdate, Settings},
     utils::fmt_keybinds,
 };
 
 impl<T: Write> Application<T> {
-    pub(in crate::terminal_user_interface) fn menu_adjust_keybinds(
+    pub(in crate::application) fn menu_adjust_keybinds(
         &mut self,
     ) -> io::Result<MenuUpdate> {
         // "Trying to modify a default slot: create copy of slot to allow safely modifying that."

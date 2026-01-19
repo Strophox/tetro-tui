@@ -15,11 +15,11 @@ use tetrs_engine::Tetromino;
 
 use crate::{
     game_renderers::tet_str_small,
-    terminal_user_interface::{Application, Glyphset, Menu, MenuUpdate, Settings},
+    application::{Application, Glyphset, Menu, MenuUpdate, Settings},
 };
 
 impl<T: Write> Application<T> {
-    pub(in crate::terminal_user_interface) fn menu_adjust_graphics(
+    pub(in crate::application) fn menu_adjust_graphics(
         &mut self,
     ) -> io::Result<MenuUpdate> {
         let if_slot_is_default_then_copy_and_switch = |settings: &mut Settings| {

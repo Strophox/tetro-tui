@@ -18,7 +18,7 @@ use crate::{
         combo_bot::ComboBotInputHandler, terminal::TerminalInputHandler, InputSignal,
     },
     game_renderers::Renderer,
-    terminal_user_interface::{
+    application::{
         Application, GameMetaData, GameRestorationData, Menu, MenuUpdate, RecordedUserInput,
         ScoreboardEntry,
     },
@@ -27,7 +27,7 @@ use crate::{
 
 impl<T: Write> Application<T> {
     #[allow(clippy::too_many_arguments)]
-    pub(in crate::terminal_user_interface) fn menu_game(
+    pub(in crate::application) fn menu_game(
         &mut self,
         game: &mut Game,
         meta_data: &mut GameMetaData,

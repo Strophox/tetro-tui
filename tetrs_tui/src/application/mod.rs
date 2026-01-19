@@ -488,6 +488,14 @@ impl<T: Write> Application<T> {
         &self.settings
     }
 
+    pub(crate) fn fetch_main_xy() -> (u16, u16) {
+        let (w_console, h_console) = terminal::size().unwrap_or((0, 0));
+        (
+            w_console.saturating_sub(Self::W_MAIN) / 2,
+            h_console.saturating_sub(Self::H_MAIN) / 2,
+        )
+    }
+
     fn savefile_path() -> PathBuf {
         dirs::config_dir()
             .unwrap_or_else(|| PathBuf::from("."))
@@ -572,7 +580,6 @@ impl<T: Write> Application<T> {
 
     pub fn run(&mut self) -> io::Result<String> {
         let mut menu_stack = vec![Menu::Title];
-        // Preparing main application loop.
         let msg = loop {
             // Retrieve active menu, stop application if stack is empty.
             let Some(screen) = menu_stack.last_mut() else {
@@ -629,13 +636,5 @@ impl<T: Write> Application<T> {
             }
         };
         Ok(msg)
-    }
-
-    pub(crate) fn fetch_main_xy() -> (u16, u16) {
-        let (w_console, h_console) = terminal::size().unwrap_or((0, 0));
-        (
-            w_console.saturating_sub(Self::W_MAIN) / 2,
-            h_console.saturating_sub(Self::H_MAIN) / 2,
-        )
     }
 }

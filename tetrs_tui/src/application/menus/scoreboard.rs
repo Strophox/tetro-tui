@@ -14,7 +14,7 @@ use crossterm::{
 use tetrs_engine::Stat;
 
 use crate::{
-    terminal_user_interface::{
+    application::{
         Application, GameRestorationData, Menu, MenuUpdate, ScoreboardEntry, ScoreboardSorting,
     },
     utils::fmt_duration,
@@ -22,7 +22,7 @@ use crate::{
 
 impl<T: Write> Application<T> {
     #[allow(clippy::len_zero)]
-    pub(in crate::terminal_user_interface) fn menu_scoreboard(&mut self) -> io::Result<MenuUpdate> {
+    pub(in crate::application) fn menu_scoreboard(&mut self) -> io::Result<MenuUpdate> {
         const CAMERA_SIZE: usize = 14;
         const CAMERA_MARGIN: usize = 3;
         let mut cursor_pos = 0usize;
