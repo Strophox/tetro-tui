@@ -2,6 +2,7 @@ mod game_input_handlers;
 mod game_modifiers;
 mod game_renderers;
 mod terminal_user_interface;
+mod tui_utils;
 
 use std::io::{self, Write};
 

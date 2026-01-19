@@ -1,11 +1,8 @@
-use std::num::{NonZeroU8, NonZeroUsize};
+use std::num::NonZeroU8;
 
-use tetrs_engine::{
-    Board, EndConditions, Game, GameBuilder, GameEvent, Line, ModificationPoint, Modifier, Rules,
-    Stat, Tetromino,
-};
+use tetrs_engine::{Board, Game, GameEvent, Line, ModificationPoint, Modifier, Tetromino};
 
-pub const MOD_IDENTIFIER: &str = "endless_combo_board";
+pub const MOD_ID: &str = "combo_board";
 
 pub const LAYOUTS: [u16; 5] = [
     0b0000_0000_1100_1000, // "r"
@@ -19,32 +16,14 @@ pub const LAYOUTS: [u16; 5] = [
                            0b0000_0000_1110_1011, // "rl"*/
 ];
 
-pub fn build(
-    builder: &GameBuilder,
-    combo_limit: Option<NonZeroUsize>,
-    combo_start_layout: u16,
-) -> Game {
-    let end_conditions = if let Some(limit) = combo_limit {
-        vec![(Stat::LinesCleared(limit.get()), true)]
-    } else {
-        EndConditions::default()
-    };
-    let rules = Rules {
-        initial_gravity: 1,
-        progressive_gravity: false,
-        end_conditions,
-    };
-    builder
-        .clone()
-        .rules(rules)
-        .build_modified([endless_combo_board(combo_start_layout)])
-}
-
-pub fn endless_combo_board(initial_layout: u16) -> Modifier {
+pub fn modifier(initial_layout: u16) -> Modifier {
     let mut line_source = four_wide_lines();
     let mut init = false;
     Modifier {
-        identifier: MOD_IDENTIFIER.to_owned(),
+        descriptor: format!(
+            "{MOD_ID}\n{}",
+            serde_json::to_string(&initial_layout).unwrap()
+        ),
         mod_function: Box::new(move |_config, _rules, state, mod_pt, _feedback_msgs| {
             if !init {
                 for (line, four_well) in state

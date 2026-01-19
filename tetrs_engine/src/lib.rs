@@ -362,8 +362,32 @@ pub struct State {
 
 /// Type of named modifiers that can be used to mod a game, c.f. [`GameBuilder::build_modified`].
 pub struct Modifier {
-    /// The name of a modifier.
-    pub identifier: String,
+    /// Given a function which produces a modifier ready to be attached to a game,
+    /// ```rust
+    /// fn modifier(arg1: T1, ..., argX: TX) -> Modifier;
+    /// ```
+    /// or alternatively a builder function which builds a modified game,
+    /// ```rust
+    /// fn build(builder: &GameBuilder, arg1: T1, ..., argX: TX) -> Game;
+    /// ```
+    /// Then, by convention, the modifier descriptor should be produced as
+    /// ```rust
+    /// let mod_args = serde_json::to_string(&(arg1, ..., argX)).unwrap();
+    /// let descriptor = format!("{MOD_ID}\n{mod_args}");
+    /// ``````
+    /// In other words, the descriptor is intended to contain information to:
+    /// * Identify a modifier.
+    /// * Possibly reconstruct the modifier using its original arguments.
+    ///
+    /// This is mostly relevant if the mod is not only reconstructible,
+    /// but also reproducible: In this case not only do the original arguments
+    /// have to match to produce the same initial state of the modifier, but the
+    /// modifier itself needs to act deterministically (e.g. if it uses random
+    /// elements by tapping into [`GameRng`] as opposed to global `thread_rng`).
+    ///
+    /// This is a convention; There are no restrictions on whether a modifier
+    /// is actually reconstructible or reproducible.
+    pub descriptor: String,
     /// The function object which will be called at runtime.
     pub mod_function: Box<GameModFn>,
 }
@@ -830,7 +854,7 @@ impl Default for Config {
 impl fmt::Debug for Modifier {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.debug_struct("GameModifier")
-            .field("identifier", &self.identifier)
+            .field("identifier", &self.descriptor)
             .field(
                 "mod_function",
                 &std::any::type_name_of_val(&self.mod_function),
@@ -925,8 +949,8 @@ impl Game {
             seed: Some(self.seed),
             _modifiers: (),
         };
-        let mod_identifiers = self.modifiers.iter().map(|m| m.identifier.as_str());
-        (builder, mod_identifiers)
+        let mod_descriptors = self.modifiers.iter().map(|m| m.descriptor.as_str());
+        (builder, mod_descriptors)
     }
 
     /// Immediately end a game by forfeiting the current round.

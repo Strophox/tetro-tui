@@ -5,7 +5,7 @@ use tetrs_engine::{
     ModificationPoint, Modifier, Rules, State, Tetromino,
 };
 
-pub const MOD_IDENTIFIER: &str = "puzzle_modifier";
+pub const MOD_ID: &str = "puzzle";
 
 const MAX_STAGE_ATTEMPTS: usize = 5;
 const PUZZLE_GRAVITY: u32 = 1;
@@ -122,7 +122,7 @@ pub fn build(builder: &GameBuilder) -> Game {
         }
     });
     let puzzle_modifier = Modifier {
-        identifier: MOD_IDENTIFIER.to_owned(),
+        descriptor: MOD_ID.to_owned(),
         mod_function,
     };
     let rules = Rules {

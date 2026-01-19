@@ -7,7 +7,7 @@ use tetrs_engine::{
     Tetromino,
 };
 
-pub const MOD_IDENTIFIER: &str = "descent_modifier";
+pub const MOD_ID: &str = "descent";
 
 pub fn build(builder: &GameBuilder) -> Game {
     let mut line_source = random_descent_lines();
@@ -121,7 +121,7 @@ pub fn build(builder: &GameBuilder) -> Game {
         )],
     };
     let descent_modifier = Modifier {
-        identifier: MOD_IDENTIFIER.to_owned(),
+        descriptor: MOD_ID.to_owned(),
         mod_function,
     };
     builder

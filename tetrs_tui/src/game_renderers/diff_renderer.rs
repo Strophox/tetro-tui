@@ -17,7 +17,8 @@ use tetrs_engine::{
 
 use crate::{
     game_renderers::{button_str, Renderer},
-    terminal_user_interface::{fmt_duration, fmt_keybinds, Application, GameMetaData, Glyphset},
+    terminal_user_interface::{Application, GameMetaData, Glyphset},
+    tui_utils::{fmt_duration, fmt_keybinds},
 };
 
 use super::{tet_str_minuscule, tet_str_small};
@@ -250,7 +251,7 @@ impl Renderer for DiffRenderer {
         } = game.state();
         let pieces = pieces_played.iter().sum::<u32>();
         // Screen: some titles.
-        let mode_name_space = meta_data.name.len().max(14);
+        let mode_name_space = meta_data.title.len().max(14);
         let (endcond_title, endcond_value) = if let Some((c, _)) =
             game.mode().end_conditions.first()
         {
@@ -316,7 +317,7 @@ impl Renderer for DiffRenderer {
             Glyphset::Electronika60 => vec![
                 format!("                                                            ", ),
                 format!("                                              {: ^w$      } ", "mode:", w=mode_name_space),
-                format!("   ALL STATS          <! . . . . . . . . . .!>{: ^w$      } ", meta_data.name, w=mode_name_space),
+                format!("   ALL STATS          <! . . . . . . . . . .!>{: ^w$      } ", meta_data.title, w=mode_name_space),
                 format!("   ----------         <! . . . . . . . . . .!>{: ^w$      } ", "", w=mode_name_space),
                 format!("   Score: {:<12      }<! . . . . . . . . . .!>              ", score),
                 format!("   Lines: {:<12      }<! . . . . . . . . . .!> {           }", lines_cleared, endcond_title),
@@ -342,7 +343,7 @@ impl Renderer for DiffRenderer {
             Glyphset::ASCII => vec![
                 format!("                                                            ", ),
                 format!("                {     }|- - - - - - - - - - +{:-^w$       }+", if hold_piece.is_some() { "+-hold-" } else {"       "}, "mode", w=mode_name_space),
-                format!("   ALL STATS    {}     |                    |{: ^w$       }|", if hold_piece.is_some() { "| " } else {"  "}, meta_data.name, w=mode_name_space),
+                format!("   ALL STATS    {}     |                    |{: ^w$       }|", if hold_piece.is_some() { "| " } else {"  "}, meta_data.title, w=mode_name_space),
                 format!("   ----------   {     }|                    +{:-^w$       }+", if hold_piece.is_some() { "+------" } else {"       "}, "", w=mode_name_space),
                 format!("   Score: {:<13       }|                    |               ", score),
                 format!("   Lines: {:<13       }|                    |  {           }", lines_cleared, endcond_title),
@@ -368,7 +369,7 @@ impl Renderer for DiffRenderer {
         Glyphset::Unicode => vec![
                 format!("                                                            ", ),
                 format!("                {     }╓╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╥{:─^w$       }┐", if hold_piece.is_some() { "┌─hold─" } else {"       "}, "mode", w=mode_name_space),
-                format!("   ALL STATS    {}     ║                    ║{: ^w$       }│", if hold_piece.is_some() { "│ " } else {"  "}, meta_data.name, w=mode_name_space),
+                format!("   ALL STATS    {}     ║                    ║{: ^w$       }│", if hold_piece.is_some() { "│ " } else {"  "}, meta_data.title, w=mode_name_space),
                 format!("   ─────────╴   {     }║                    ╟{:─^w$       }┘", if hold_piece.is_some() { "└──────" } else {"       "}, "", w=mode_name_space),
                 format!("   Score: {:<13       }║                    ║               ", score),
                 format!("   Lines: {:<13       }║                    ║  {           }", lines_cleared, endcond_title),

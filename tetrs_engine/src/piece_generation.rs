@@ -140,7 +140,7 @@ impl TetrominoSource {
     }
 }
 
-/* FIXME: Remove the statefulness inherent to TetrominoSource from tetrs_engine::Config (Game.config) into tetrs_engine::State (Game.state).
+/* TODO: Remove the statefulness inherent to TetrominoSource from tetrs_engine::Config (Game.config) into tetrs_engine::State (Game.state).
 Explanation: The fact we have to do a weird *stateless* clone is because it messes in surprisingly
 subtle ways if we don't: When trying to restore a game, we save the exact CONFIG of the game at
 the time of snapshot. But the builder then takes this config and might DIRECTLY use the 'config'

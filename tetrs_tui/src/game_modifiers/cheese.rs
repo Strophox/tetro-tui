@@ -6,16 +6,17 @@ use tetrs_engine::{
     Game, GameBuilder, GameEvent, GameModFn, Line, ModificationPoint, Modifier, Rules,
 };
 
-pub const MOD_IDENTIFIER: &str = "cheese_modifier";
+pub const MOD_ID: &str = "cheese";
 
+// TODO: Make deterministic based on GameRng!
 pub fn build(
     builder: &GameBuilder,
-    cheese_limit: Option<NonZeroUsize>,
-    gap_size: usize,
+    linelimit: Option<NonZeroUsize>,
+    gapsize: usize,
     gravity: u32,
 ) -> Game {
     let mut line_source =
-        random_gap_lines(gap_size).take(cheese_limit.unwrap_or(NonZeroUsize::MAX).get());
+        random_gap_lines(gapsize).take(linelimit.unwrap_or(NonZeroUsize::MAX).get());
     let mut temp_cheese_tally = 0;
     let mut temp_normal_tally = 0;
     let mut init = false;
@@ -54,10 +55,13 @@ pub fn build(
         },
     );
     let cheese_modifier = Modifier {
-        identifier: MOD_IDENTIFIER.to_owned(),
+        descriptor: format!(
+            "{MOD_ID}\n{}",
+            serde_json::to_string(&(linelimit, gapsize, gravity)).unwrap()
+        ),
         mod_function,
     };
-    let end_conditions = match cheese_limit {
+    let end_conditions = match linelimit {
         Some(c) => vec![(tetrs_engine::Stat::LinesCleared(c.get()), true)],
         None => vec![],
     };
