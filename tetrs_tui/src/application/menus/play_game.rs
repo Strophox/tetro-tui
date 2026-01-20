@@ -19,7 +19,7 @@ use crate::{
         ScoreboardEntry,
     },
     game_input_handlers::{
-        combo_bot::ComboBotInputHandler, terminal::TerminalInputHandler, InputSignal,
+        combo_bot::ComboBotInputHandler, live_terminal::LiveTerminalInputHandler, InputSignal,
     },
     game_renderers::Renderer,
     utils::{encode_board, encode_buttons},
@@ -27,7 +27,7 @@ use crate::{
 
 impl<T: Write> Application<T> {
     #[allow(clippy::too_many_arguments)]
-    pub(in crate::application) fn menu_game(
+    pub(in crate::application) fn menu_play_game(
         &mut self,
         game: &mut Game,
         meta_data: &mut GameMetaData,
@@ -47,7 +47,7 @@ impl<T: Write> Application<T> {
         // Prepare channel with which to communicate `Button` inputs / game interrupt.
         let mut buttons_pressed = PressedButtons::default();
         let (button_sender, button_receiver) = mpsc::channel();
-        let _input_handler = TerminalInputHandler::new(
+        let _input_handler = LiveTerminalInputHandler::new(
             &button_sender,
             self.settings.keybinds(),
             self.runtime_data.kitty_assumed,

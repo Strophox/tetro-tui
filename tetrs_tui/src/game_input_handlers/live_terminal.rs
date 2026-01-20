@@ -68,18 +68,18 @@ pub fn guideline_keybinds() -> Keybinds {
 }
 
 #[derive(Debug)]
-pub struct TerminalInputHandler {
+pub struct LiveTerminalInputHandler {
     _thread_handle: JoinHandle<()>,
     running_thread_flag: Arc<AtomicBool>,
 }
 
-impl Drop for TerminalInputHandler {
+impl Drop for LiveTerminalInputHandler {
     fn drop(&mut self) {
         self.running_thread_flag.store(false, Ordering::Release);
     }
 }
 
-impl TerminalInputHandler {
+impl LiveTerminalInputHandler {
     pub fn new(
         input_sender: &Sender<InputSignal>,
         keybinds: &Keybinds,
@@ -91,7 +91,7 @@ impl TerminalInputHandler {
         } else {
             Self::spawn_standard
         };
-        TerminalInputHandler {
+        LiveTerminalInputHandler {
             _thread_handle: spawn(
                 running_thread_flag.clone(),
                 input_sender.clone(),

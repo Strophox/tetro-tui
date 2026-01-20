@@ -744,6 +744,7 @@ impl Game {
         }
     }
 
+    // FIXME: Make this more parametric instead of hardcoded?
     /// The amount of time left for a piece to fall naturally, purely dependent on level
     /// and an optional soft-drop-factor.
     #[rustfmt::skip]
@@ -777,6 +778,7 @@ impl Game {
         drop_delay
     }
 
+    // FIXME: Make this more parametric instead of hardcoded?
     /// The amount of time left for an common ground lock timer, purely dependent on level.
     #[rustfmt::skip]
     const fn lock_delay(level: NonZeroU32) -> Duration {

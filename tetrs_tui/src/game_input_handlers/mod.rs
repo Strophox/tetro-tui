@@ -1,5 +1,5 @@
 pub mod combo_bot;
-pub mod terminal;
+pub mod live_terminal;
 
 pub enum InputSignal {
     AbortProgram,

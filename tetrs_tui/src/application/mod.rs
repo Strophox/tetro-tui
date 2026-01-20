@@ -17,7 +17,7 @@ use tetrs_engine::{
 };
 
 use crate::{
-    game_input_handlers::terminal::{
+    game_input_handlers::live_terminal::{
         guideline_keybinds, tetrs_default_keybinds, vim_keybinds, Keybinds,
     },
     game_modifiers,
@@ -598,7 +598,7 @@ impl<T: Write> Application<T> {
                     last_paused,
                     recorded_user_input,
                     game_renderer,
-                } => self.menu_game(
+                } => self.menu_play_game(
                     game,
                     meta_data,
                     time_started,
