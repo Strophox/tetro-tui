@@ -295,9 +295,10 @@ We list considerations regarding perfomance of both the tetrs engine and TUI:
 
 ## Contribution Guidelines
 
-Issues are especially welcome to help round off any sharp edges on this project;
+Issues especially are welcome if you encounter any problems! Both in the engine and the TUI
 
-At best, it could be noted that the TUI itself was - in principle - a 'proof-of-concept' and not originally intended to be greatly expanded upon (as seen by its direct usage of Crossterm, instead of Ratatui or similar). But discussions in issues are welcome regardless!
+Note that the TUI itself was (in principle) started as 'proof-of-concept'.
+It expanded in scope but unfortunately the code is not in an easy-to-modify state, especially to new contributors.
 
 
 ## Provenance

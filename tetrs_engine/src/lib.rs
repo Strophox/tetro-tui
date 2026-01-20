@@ -486,7 +486,7 @@ impl Orientation {
     /// Find a new direction by turning right some number of times.
     ///
     /// This accepts `i32` to allow for left rotation.
-    pub fn rotate_right(&self, right_turns: i8) -> Self {
+    pub const fn rotate_right(&self, right_turns: i8) -> Self {
         use Orientation::*;
         let base = match self {
             N => 0,
@@ -512,7 +512,7 @@ impl Tetromino {
     };
 
     /// Returns the mino offsets of a tetromino shape, given an orientation.
-    pub fn minos(&self, oriented: Orientation) -> [Coord; 4] {
+    pub const fn minos(&self, oriented: Orientation) -> [Coord; 4] {
         use Orientation::*;
         match self {
             Tetromino::O => [(0, 0), (1, 0), (0, 1), (1, 1)], // ⠶
@@ -920,32 +920,32 @@ impl Game {
     }
 
     /// Read accessor for the current game configurations.
-    pub fn config(&self) -> &Config {
+    pub const fn config(&self) -> &Config {
         &self.config
     }
 
     /// Read accessor for the current game mode.
-    pub fn mode(&self) -> &Rules {
+    pub const fn mode(&self) -> &Rules {
         &self.rules
     }
 
     /// Read accessor for the current game state.
-    pub fn state(&self) -> &State {
+    pub const fn state(&self) -> &State {
         &self.state
     }
 
     /// Read accessor for the game seed.
-    pub fn seed(&self) -> u64 {
+    pub const fn seed(&self) -> u64 {
         self.seed
     }
 
     /// Mutable accessor for the current game configurations.
-    pub fn config_mut(&mut self) -> &mut Config {
+    pub const fn config_mut(&mut self) -> &mut Config {
         &mut self.config
     }
 
     /// Mutable accessor for the current game modifiers.
-    pub fn modifiers_mut(&mut self) -> &mut Vec<Modifier> {
+    pub const fn modifiers_mut(&mut self) -> &mut Vec<Modifier> {
         &mut self.modifiers
     }
 
@@ -961,7 +961,7 @@ impl Game {
     }
 
     /// Whether the game has ended, and whether it can continue to update.
-    pub fn ended(&self) -> bool {
+    pub const fn ended(&self) -> bool {
         self.state.result.is_some()
     }
 
