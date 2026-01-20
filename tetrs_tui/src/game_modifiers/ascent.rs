@@ -3,7 +3,8 @@ use std::{num::NonZeroU8, time::Duration};
 use rand::{self, Rng};
 
 use tetrs_engine::{
-    ActivePiece, Game, GameBuilder, GameEvent, GameModFn, GameRng, GameTime, Line, LockingData, ModificationPoint, Modifier, Rules, Stat, Tetromino
+    ActivePiece, Game, GameBuilder, GameEvent, GameModFn, GameRng, GameTime, Line, LockingData,
+    ModificationPoint, Modifier, Rules, Stat, Tetromino,
 };
 
 pub const MOD_ID: &str = "ascent";
@@ -12,12 +13,6 @@ pub const MOD_ID: &str = "ascent";
 const PLAYABLE_WIDTH: usize = Game::WIDTH - (1 - Game::WIDTH % 2);
 
 pub fn build(builder: &GameBuilder) -> Game {
-    let ascent_tetromino = if rand::rng().random_bool(0.5) {
-        Tetromino::L
-    } else {
-        Tetromino::J
-    };
-    
     let timeperiod_camera_adjust = Duration::from_millis(125);
     let mut timepoint_camera_adjusted = GameTime::ZERO;
     let mut height_generated = 0usize;
@@ -28,17 +23,33 @@ pub fn build(builder: &GameBuilder) -> Game {
             if !init {
                 init = true;
                 let line_source = random_ascent_lines(&mut state.rng, &mut height_generated);
-                for (line, ascent_line) in state
-                    .board
-                    .iter_mut()
-                    .take(Game::HEIGHT)
-                    .zip(line_source)
+                for (line, ascent_line) in
+                    state.board.iter_mut().take(Game::HEIGHT).zip(line_source)
                 {
                     *line = ascent_line;
                 }
+                // Remove spawn event.
+                state.events.clear();
+                // Manually place active piece.
+                let asc_tet_1 = Tetromino::L;
+                let asc_tet_2 = Tetromino::J;
+                state.active_piece_data = Some((
+                    ActivePiece {
+                        shape: asc_tet_1,
+                        orientation: tetrs_engine::Orientation::N,
+                        position: (0, 0),
+                    },
+                    LockingData {
+                        touches_ground: true,
+                        last_touchdown: None,
+                        last_liftoff: None,
+                        ground_time_left: Duration::ZERO,
+                        lowest_y: 0,
+                    },
+                ));
+                state.hold_piece = Some((asc_tet_2, true));
+                // No further pieces required.
                 config.preview_count = 0;
-                state.active_piece_data = Some((ActivePiece { shape: ascent_tetromino, orientation: tetrs_engine::Orientation::N, position: (0,0) }, LockingData { touches_ground: true, last_touchdown: None, last_liftoff: None, ground_time_left: Duration::ZERO, lowest_y: 0 }));
-                state.events.clear()
             }
 
             // We can only do things if a piece exists.
@@ -99,11 +110,20 @@ pub fn build(builder: &GameBuilder) -> Game {
                 }
             }
 
+            if state.events.remove(&GameEvent::Hold).is_some() {
+                let (tet1, tet2) = (
+                    &mut state.active_piece_data.as_mut().unwrap().0.shape,
+                    &mut state.hold_piece.as_mut().unwrap().0,
+                );
+                (*tet1, *tet2) = (*tet2, *tet1);
+            }
+
             // Remove various events we don't want to happen.
-                state.events.remove(&GameEvent::Hold);
-                state.events.remove(&GameEvent::HardDrop);
-                state.events.remove(&GameEvent::LockTimer);
-                // state.events.remove(&GameEvent::Lock);
+            state.events.remove(&GameEvent::HardDrop);
+            state.events.remove(&GameEvent::LockTimer);
+            //state.events.remove(&GameEvent::Lock);
+            // Ensure we can always hold actually.
+            state.hold_piece.unwrap().1 = true;
         });
 
     let rules = Rules {
@@ -123,9 +143,12 @@ pub fn build(builder: &GameBuilder) -> Game {
         .build_modified([ascent_modifier])
 }
 
-pub fn random_ascent_lines<'a>(rng: &'a mut GameRng, height_generated: &'a mut usize) -> impl Iterator<Item = Line> + 'a {
+pub fn random_ascent_lines<'a>(
+    rng: &'a mut GameRng,
+    height_generated: &'a mut usize,
+) -> impl Iterator<Item = Line> + 'a {
     std::iter::repeat(Line::default()).map(move |mut line| {
-        if *height_generated % 2 != 0 {
+        if !height_generated.is_multiple_of(2) {
             // Add hinges.
             for (j, tile) in line.iter_mut().enumerate() {
                 if j % 2 == 1 {
@@ -143,7 +166,14 @@ pub fn random_ascent_lines<'a>(rng: &'a mut GameRng, height_generated: &'a mut u
 
         // Extra tile for even board width and odd playable width.
         if PLAYABLE_WIDTH != line.len() {
-            line[PLAYABLE_WIDTH] = Some(NonZeroU8::try_from(if (*height_generated / 10) % 2 == 0 { 255/*white*/ } else { 2 /*sky*/ }).unwrap());
+            line[PLAYABLE_WIDTH] = Some(
+                NonZeroU8::try_from(if (*height_generated / 10).is_multiple_of(2) {
+                    255 /*white*/
+                } else {
+                    2 /*sky*/
+                })
+                .unwrap(),
+            );
         }
 
         *height_generated += 1;

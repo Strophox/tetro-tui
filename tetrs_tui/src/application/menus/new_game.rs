@@ -144,9 +144,9 @@ impl<T: Write> Application<T> {
             ];
             if self.new_game_settings.experimental_mode_unlocked {
                 game_presets.push((
-                    "Ascent (experimental)".to_owned(),
+                    "Ascent".to_owned(),
                     (Stat::PointsScored(0), false),
-                    "Rise above and beyond collecting 'gems'.".to_owned(),
+                    "(Experimental) Per aspera ad astra.".to_owned(),
                     Box::new(game_modifiers::ascent::build),
                 ))
             }
