@@ -1,5 +1,6 @@
-pub mod diff_renderer;
-pub mod legacy_debug_renderer;
+pub mod braille;
+pub mod diff;
+pub mod legacy_debug;
 
 use std::{
     collections::HashMap,

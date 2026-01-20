@@ -22,8 +22,8 @@ use crate::{
     },
     game_modifiers,
     game_renderers::{
-        color16_palette, diff_renderer::DiffRenderer, empty_palette, fullcolor_palette,
-        gruvbox_light_palette, gruvbox_palette, oklch2_palette, Palette,
+        self, color16_palette, empty_palette, fullcolor_palette, gruvbox_light_palette,
+        gruvbox_palette, oklch2_palette, Palette,
     },
     utils::decode_buttons,
 };
@@ -356,7 +356,7 @@ enum Menu {
         last_paused: Instant,
         total_pause_duration: Duration,
         recorded_user_input: RecordedUserInput,
-        game_renderer: Box<DiffRenderer>,
+        game_renderer: Box<game_renderers::diff::DiffRenderer>,
     },
     GameOver(Box<ScoreboardEntry>),
     GameComplete(Box<ScoreboardEntry>),
