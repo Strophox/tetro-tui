@@ -173,7 +173,27 @@ For more technical gameplay discussion see [Features of the Tetrs Engine](#featu
     A game replay consists of the initial game state + list of user button inputs during gameplay.
 
 </details>
-  
+
+
+<details>
+
+<summary> More info about TUI controls. </summary>
+
+The controls of the TUI menus are mostly kept simple.
+
+  | Keys | General meaning |
+  | `↓`,`↑` or `j`,`k` | Navigate |
+  | `←`,`→` or `h`,`l` | Change value |
+  | `Enter` or `e` | Select |
+  | `Esc` or `q` | Return back |
+  | `Del` or `d` | Delete/reset |
+  |  |  |
+  | `Ctrl`,`Shift` | Accelerate timeline controls for "Load savepoint" |
+  | `1`,`2`,`3`... | Quickselect gamemode in "New Game" menu |
+
+
+</details>
+
 
 ### Scoreboard
 
