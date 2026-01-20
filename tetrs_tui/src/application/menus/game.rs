@@ -162,7 +162,10 @@ impl<T: Write> Application<T> {
                         let game_time_userinput = instant.saturating_duration_since(*time_started)
                             - *total_pause_duration;
                         let game_now = std::cmp::max(game_time_userinput, game.state().time);
-                        recorded_user_input.push((game_now, encode_buttons(&buttons_pressed)));
+                        recorded_user_input.push((
+                            game_now.as_nanos().try_into().unwrap(),
+                            encode_buttons(&buttons_pressed),
+                        ));
                         // FIXME: Handle error?
                         if let Ok(evts) = game.update(Some(buttons_pressed), game_now) {
                             inform_combo_bot(game, &evts);

@@ -165,7 +165,12 @@ For more technical gameplay discussion see [Features of the Tetrs Engine](#featu
   - Piece generation: 'Recency', 'Balance relative counts', 'Uniformly random', 'Bag'
   - Preview count: default=4, possible values: 0 – "how wide is your terminal"
   - Various timings: 'Delayed auto shift' (DAS), 'Auto repeat rate' (ARR), 'Soft drop factor' (SDF), 'Line clear delay', 'Appearance delay'
-- **Keep Save File**: The TUI **will not store any additional data by default** where you run it. To save your settings (keybinds, past games etc.) you can **explicitly toggle this on**. You can also toggle it so only settings but no past games/scores are saved.
+- **Keep Save File**: The TUI will not store any additional data by default where you run it. You can **explicitly toggle on save data** to have it remember things - at various granularities:
+  - *OFF* - This will delete any existing save file upon program exit.
+  - Remember *Settings* - This will only remember what you have stored in settings (including New Game settings).
+  - Remember all the above *+ Scores* - This will additionally store a lightweight scoreboard with basic info.
+  - Remember all the above *+ Game replays* - This will additionally store the data needed to watch a game replay of past games.
+    A game replay consists of the initial game state + list of user button inputs during gameplay.
 
 </details>
   

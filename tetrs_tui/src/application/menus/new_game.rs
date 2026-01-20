@@ -144,10 +144,10 @@ impl<T: Write> Application<T> {
             ];
             if self.new_game_settings.experimental_mode_unlocked {
                 game_presets.push((
-                    "Descent (experimental)".to_owned(),
+                    "Ascent (experimental)".to_owned(),
                     (Stat::PointsScored(0), false),
-                    "Spin the piece and collect 'gems' by touching them.".to_owned(),
-                    Box::new(game_modifiers::descent::build),
+                    "Rise above and beyond collecting 'gems'.".to_owned(),
+                    Box::new(game_modifiers::legacy_descent::build),
                 ))
             }
             // First part: rendering the menu.
@@ -203,9 +203,11 @@ impl<T: Write> Application<T> {
                                 if sp.1 == 0 {
                                     Duration::ZERO
                                 } else {
-                                    sp.2.recorded_user_input
-                                        [(sp.1 - 1) % sp.2.recorded_user_input.len()]
-                                    .0
+                                    Duration::from_nanos(
+                                        sp.2.recorded_user_input
+                                            [(sp.1 - 1) % sp.2.recorded_user_input.len()]
+                                        .0,
+                                    )
                                 }
                             )
                         } else {
@@ -427,6 +429,7 @@ impl<T: Write> Application<T> {
                 Event::Key(KeyEvent {
                     code: KeyCode::Left | KeyCode::Char('h'),
                     kind: Press | Repeat,
+                    modifiers,
                     ..
                 }) => {
                     if selected == selection_len - 1 && customization_selected > 0 {
@@ -443,7 +446,17 @@ impl<T: Write> Application<T> {
                         }
                     } else if let Some(sp) = &mut self.savepoint {
                         if selected == selection_len - 2 {
-                            sp.1 += sp.2.recorded_user_input.len();
+                            sp.1 += sp.2.recorded_user_input.len()
+                                * if modifiers.contains(KeyModifiers::SHIFT) {
+                                    10
+                                } else {
+                                    1
+                                }
+                                * if modifiers.contains(KeyModifiers::CONTROL) {
+                                    100
+                                } else {
+                                    1
+                                };
                             sp.1 %= sp.2.recorded_user_input.len() + 1;
                         }
                     }
@@ -453,6 +466,7 @@ impl<T: Write> Application<T> {
                 Event::Key(KeyEvent {
                     code: KeyCode::Right | KeyCode::Char('l'),
                     kind: Press | Repeat,
+                    modifiers,
                     ..
                 }) => {
                     // If custom gamemode selected, allow incrementing stat selection.
@@ -497,7 +511,15 @@ impl<T: Write> Application<T> {
                             };
                     } else if let Some(sp) = &mut self.savepoint {
                         if selected == selection_len - 2 {
-                            sp.1 += 1;
+                            sp.1 += if modifiers.contains(KeyModifiers::SHIFT) {
+                                10
+                            } else {
+                                1
+                            } * if modifiers.contains(KeyModifiers::CONTROL) {
+                                100
+                            } else {
+                                1
+                            };
                             sp.1 %= sp.2.recorded_user_input.len() + 1;
                         }
                     }

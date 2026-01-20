@@ -906,19 +906,6 @@ impl Game {
         GameBuilder::default()
     }
 
-    /// Creates a blueprint [`GameBuilder`] and an iterator over current modifier identifiers ([`&str`]s) from which the exact game can potentially be rebuilt.
-    pub fn blueprint(&self) -> (GameBuilder, impl Iterator<Item = &str>) {
-        let builder = GameBuilder {
-            config: Some(self.config.clone()),
-            rules: Some(self.rules.clone()),
-            _state: (),
-            seed: Some(self.seed),
-            _modifiers: (),
-        };
-        let mod_descriptors = self.modifiers.iter().map(|m| m.descriptor.as_str());
-        (builder, mod_descriptors)
-    }
-
     /// Read accessor for the current game configurations.
     pub const fn config(&self) -> &Config {
         &self.config
@@ -971,6 +958,36 @@ impl Game {
     /// calls to `update` from continuing to advance the game.
     pub fn forfeit(&mut self) {
         self.state.result = Some(Err(GameOver::Forfeit))
+    }
+
+    /// Creates a blueprint [`GameBuilder`] and an iterator over current modifier identifiers ([`&str`]s) from which the exact game can potentially be rebuilt.
+    pub fn blueprint(&self) -> (GameBuilder, impl Iterator<Item = &str>) {
+        let builder = GameBuilder {
+            config: Some(self.config.clone()),
+            rules: Some(self.rules.clone()),
+            _state: (),
+            seed: Some(self.seed),
+            _modifiers: (),
+        };
+        let mod_descriptors = self.modifiers.iter().map(|m| m.descriptor.as_str());
+        (builder, mod_descriptors)
+    }
+
+    /// Tries to create an identical, independent copy of the current game.
+    ///
+    /// This function fails if the [`Game`] has any modifiers attached to it.
+    pub fn try_clone(&self) -> Option<Self> {
+        if self.modifiers.is_empty() {
+            None
+        } else {
+            Some(Game {
+                config: self.config.clone(),
+                rules: self.rules.clone(),
+                state: self.state.clone(),
+                seed: self.seed,
+                modifiers: Vec::new(),
+            })
+        }
     }
 }
 

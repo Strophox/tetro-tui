@@ -31,8 +31,8 @@ use crate::{
 pub type Slots<T> = Vec<(String, T)>;
 
 pub type RecordedUserInput = Vec<(
-    GameTime,
-    u16, // For serialization reasons, we use an encoded version of `tetrs_engine::PressedButtons` (see `encode_buttons`).
+    u64, // For serialization reasons, we use an encoded version of `GameTime` (see `std::time::Duration::as_nanos`).
+    u16, // For serialization reasons, we use an encoded version of `tetrs_engine::PressedButtons` (see `crate::utils::encode_buttons`).
 )>;
 
 #[derive(PartialEq, PartialOrd, Clone, Debug, serde::Serialize, serde::Deserialize)]
@@ -87,7 +87,7 @@ impl GameRestorationData {
         for (input_time, int) in self.recorded_user_input.iter().take(input_index) {
             let button_state = decode_buttons(*int);
             // FIXME: Error handling?
-            let _ = game.update(Some(button_state), *input_time);
+            let _ = game.update(Some(button_state), GameTime::from_nanos(*input_time));
         }
 
         game.config_mut().feedback_verbosity = restore_feedback_verbosity;
