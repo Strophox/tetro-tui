@@ -4,7 +4,7 @@ pub mod ascent;
 pub mod cheese;
 pub mod combo_board;
 pub mod legacy_descent;
-pub mod misc;
+pub mod misc_modifiers;
 pub mod puzzle;
 
 pub fn reconstruct_modified<'a>(
@@ -58,9 +58,9 @@ pub fn reconstruct_modified<'a>(
             let linelimit = get_mod_args(&mut lines, mod_id)?;
             let modifier = combo_board::modifier(linelimit);
             compounding_modifiers.push(modifier);
-        } else if mod_id == misc::custom_start_board::MOD_ID {
+        } else if mod_id == misc_modifiers::custom_start_board::MOD_ID {
             let encoded_board = get_mod_args(&mut lines, mod_id)?;
-            let modifier = misc::custom_start_board::modifier(encoded_board);
+            let modifier = misc_modifiers::custom_start_board::modifier(encoded_board);
             compounding_modifiers.push(modifier);
         } else {
             return Err(format!("unrecognized mod {mod_id:?}"));

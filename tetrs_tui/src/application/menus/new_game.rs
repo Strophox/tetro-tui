@@ -144,7 +144,7 @@ impl<T: Write> Application<T> {
             ];
             if self.new_game_settings.experimental_mode_unlocked {
                 game_presets.push((
-                    "Ascent".to_owned(),
+                    "*Ascent".to_owned(),
                     (Stat::PointsScored(0), false),
                     "(Experimental) Per aspera ad astra.".to_owned(),
                     Box::new(game_modifiers::ascent::build),
@@ -607,7 +607,7 @@ impl<T: Write> Application<T> {
                     // Optionally load custom board.
                     let custom_game = if let Some(board) = &self.new_game_settings.custom_board {
                         builder.build_modified([
-                            game_modifiers::misc::custom_start_board::modifier(board),
+                            game_modifiers::misc_modifiers::custom_start_board::modifier(board),
                         ])
                     // Otherwise just build a normal custom game.
                     } else {
