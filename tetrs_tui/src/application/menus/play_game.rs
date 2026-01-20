@@ -30,10 +30,10 @@ impl<T: Write> Application<T> {
     pub(in crate::application) fn menu_play_game(
         &mut self,
         game: &mut Game,
-        meta_data: &mut GameMetaData,
+        game_meta_data: &mut GameMetaData,
         time_started: &Instant,
         time_last_paused: &mut Instant,
-        total_pause_duration: &mut Duration,
+        duration_paused_total: &mut Duration,
         recorded_user_input: &mut RecordedUserInput,
         game_renderer: &mut impl Renderer,
     ) -> io::Result<MenuUpdate> {
@@ -47,13 +47,14 @@ impl<T: Write> Application<T> {
         // Prepare channel with which to communicate `Button` inputs / game interrupt.
         let mut buttons_pressed = PressedButtons::default();
         let (button_sender, button_receiver) = mpsc::channel();
+
         let _input_handler = LiveTerminalInputHandler::new(
             &button_sender,
             self.settings.keybinds(),
             self.runtime_data.kitty_assumed,
         );
         let mut combo_bot_handler = (self.runtime_data.combo_bot_enabled
-            && meta_data.title == "Combo")
+            && game_meta_data.title == "Combo")
             .then(|| ComboBotInputHandler::new(&button_sender, Duration::from_millis(100)));
         let mut inform_combo_bot = |game: &Game, evts: &FeedbackMessages| {
             if let Some((_, state_sender)) = &mut combo_bot_handler {
@@ -70,7 +71,7 @@ impl<T: Write> Application<T> {
         };
         // Game Loop
         let session_resumed = Instant::now();
-        *total_pause_duration += session_resumed.saturating_duration_since(*time_last_paused);
+        *duration_paused_total += session_resumed.saturating_duration_since(*time_last_paused);
         let mut clean_screen = true;
         let mut f = 0u32;
         let mut fps_counter = 0;
@@ -78,7 +79,7 @@ impl<T: Write> Application<T> {
         let menu_update = 'render: loop {
             // Exit if game ended
             if let Some(game_result) = game.state().result {
-                let scoreboard_entry = ScoreboardEntry::new(game, meta_data);
+                let scoreboard_entry = ScoreboardEntry::new(game, game_meta_data);
                 let game_restoration_data = GameRestorationData::new(game, recorded_user_input);
                 self.scoreboard
                     .entries
@@ -113,7 +114,7 @@ impl<T: Write> Application<T> {
                     }
                     Ok(InputSignal::ForfeitGame) => {
                         game.forfeit();
-                        let scoreboard_entry = ScoreboardEntry::new(game, meta_data);
+                        let scoreboard_entry = ScoreboardEntry::new(game, game_meta_data);
                         let game_restoration_data =
                             GameRestorationData::new(game, recorded_user_input);
                         self.scoreboard
@@ -131,7 +132,7 @@ impl<T: Write> Application<T> {
                     }
                     Ok(InputSignal::StoreSavepoint) => {
                         let _ = self.savepoint.insert((
-                            meta_data.clone(),
+                            game_meta_data.clone(),
                             recorded_user_input.len(),
                             GameRestorationData::new(game, recorded_user_input),
                         ));
@@ -160,7 +161,7 @@ impl<T: Write> Application<T> {
                     Ok(InputSignal::ButtonInput(button, button_state, instant)) => {
                         buttons_pressed[button] = button_state;
                         let game_time_userinput = instant.saturating_duration_since(*time_started)
-                            - *total_pause_duration;
+                            - *duration_paused_total;
                         let game_now = std::cmp::max(game_time_userinput, game.state().time);
                         recorded_user_input.push((
                             game_now.as_nanos().try_into().unwrap(),
@@ -174,7 +175,7 @@ impl<T: Write> Application<T> {
                     }
                     Err(mpsc::RecvTimeoutError::Timeout) => {
                         let game_time_now = Instant::now().saturating_duration_since(*time_started)
-                            - *total_pause_duration;
+                            - *duration_paused_total;
                         // FIXME: Handle error?
                         if let Ok(evts) = game.update(None, game_time_now) {
                             inform_combo_bot(game, &evts);
@@ -188,7 +189,7 @@ impl<T: Write> Application<T> {
                     }
                 };
             }
-            game_renderer.render(self, game, meta_data, new_feedback_msgs, clean_screen)?;
+            game_renderer.render(self, game, game_meta_data, new_feedback_msgs, clean_screen)?;
             clean_screen = false;
             // FPS counter.
             if self.settings.graphics().show_fps {
