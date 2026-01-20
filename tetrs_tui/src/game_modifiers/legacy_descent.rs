@@ -7,6 +7,7 @@ use tetrs_engine::{
     Rules, Stat, Tetromino,
 };
 
+// NOTE: THIS MOD IS NOT REPRODUCIBLE (is not deterministic).
 pub const MOD_ID: &str = "descent";
 
 pub fn build(builder: &GameBuilder) -> Game {
@@ -17,7 +18,7 @@ pub fn build(builder: &GameBuilder) -> Game {
         Tetromino::J
     };
     let mut instant_last_descent = GameTime::ZERO;
-    let base_descent_period = Duration::from_secs(2_000_000);
+    let base_descent_period = Duration::from_secs(5); // This is the base rate at which the game will scroll down on its own.
     let mut instant_camera_adjusted = instant_last_descent;
     let camera_adjust_period = Duration::from_millis(125);
     let mut depth = 1u32;
@@ -108,6 +109,8 @@ pub fn build(builder: &GameBuilder) -> Game {
             // Remove ability to hold.
             if matches!(modpoint, ModificationPoint::AfterInput) {
                 state.events.remove(&GameEvent::Hold);
+                state.events.remove(&GameEvent::HardDrop);
+                state.events.remove(&GameEvent::LockTimer);
             }
             // FIXME: EXTREME JANK.
             active_piece.shape = descent_tetromino;

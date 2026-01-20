@@ -147,7 +147,7 @@ impl<T: Write> Application<T> {
                     "Ascent (experimental)".to_owned(),
                     (Stat::PointsScored(0), false),
                     "Rise above and beyond collecting 'gems'.".to_owned(),
-                    Box::new(game_modifiers::legacy_descent::build),
+                    Box::new(game_modifiers::ascent::build),
                 ))
             }
             // First part: rendering the menu.
