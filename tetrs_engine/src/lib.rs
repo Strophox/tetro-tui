@@ -36,8 +36,8 @@ TASK: Document all features (including IRS, etc. - cargo feature `serde`).
 #![warn(missing_docs)]
 
 pub mod game_update_step;
-pub mod piece_generation;
-pub mod piece_rotation;
+pub mod rotation_system;
+pub mod tetromino_generator;
 
 use std::{
     collections::{HashMap, VecDeque},
@@ -47,12 +47,12 @@ use std::{
     time::Duration,
 };
 
-pub use piece_generation::TetrominoSource;
-pub use piece_rotation::RotationSystem;
 use rand_chacha::{
     rand_core::{RngCore, SeedableRng},
     ChaCha12Rng,
 };
+pub use rotation_system::RotationSystem;
+pub use tetromino_generator::TetrominoGenerator;
 
 /// Abstract identifier for which type of tile occupies a cell in the grid.
 pub type TileTypeID = NonZeroU8;
@@ -243,7 +243,7 @@ pub struct Config {
     /// The method of tetromino rotation used.
     pub rotation_system: RotationSystem,
     /// The method (and internal state) of tetromino generation used.
-    pub tetromino_generation: TetrominoSource,
+    pub tetromino_generation: TetrominoGenerator,
     /// How many pieces should be pre-generated and accessible/visible in the game state.
     pub preview_count: usize,
     /// How long it takes for the active piece to start automatically shifting more to the side
@@ -335,7 +335,7 @@ pub struct State {
     /// Upcoming pieces to be played.
     pub next_pieces: VecDeque<Tetromino>,
     /// The method (and internal state) of tetromino generation used.
-    pub piece_generator: TetrominoSource,
+    pub piece_generator: TetrominoGenerator,
     /// Tallies of how many pieces of each type have been played so far.
     ///
     /// Accessibe through `impl Index<Tetromino> for [T; 7]`.
@@ -805,7 +805,7 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             rotation_system: RotationSystem::Ocular,
-            tetromino_generation: TetrominoSource::recency(),
+            tetromino_generation: TetrominoGenerator::recency(),
             preview_count: 4,
             delayed_auto_shift: Duration::from_millis(167),
             auto_repeat_rate: Duration::from_millis(33),

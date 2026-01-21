@@ -22,7 +22,7 @@ pub mod custom_start_board {
 #[allow(dead_code)]
 pub mod show_recency_tetromino_likelihood {
     use tetrs_engine::{
-        piece_generation::TetrominoSource, Feedback, GameEvent, ModificationPoint, Modifier,
+        tetromino_generator::TetrominoGenerator, Feedback, GameEvent, ModificationPoint, Modifier,
         Tetromino,
     };
 
@@ -35,7 +35,7 @@ pub mod show_recency_tetromino_likelihood {
                 if !matches!(modpoint, ModificationPoint::AfterEvent(GameEvent::Spawn)) {
                     return;
                 }
-                let TetrominoSource::Recency {
+                let TetrominoGenerator::Recency {
                     last_generated,
                     snap: _,
                 } = config.tetromino_generation

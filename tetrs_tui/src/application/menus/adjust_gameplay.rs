@@ -14,7 +14,7 @@ use crossterm::{
     terminal::{Clear, ClearType},
     QueueableCommand,
 };
-use tetrs_engine::{RotationSystem, TetrominoSource};
+use tetrs_engine::{RotationSystem, TetrominoGenerator};
 
 use crate::application::{Application, Menu, MenuUpdate, Settings};
 
@@ -97,12 +97,12 @@ impl<T: Write> Application<T> {
                 format!(
                     "Piece generation: {}",
                     match &self.settings.config().tetromino_generation {
-                        TetrominoSource::Uniform => "Uniformly random".to_owned(),
-                        TetrominoSource::Stock { .. } => "Bag".to_owned(),
-                        TetrominoSource::Recency { .. } => "Recency".to_owned(),
-                        TetrominoSource::BalanceRelative { .. } =>
+                        TetrominoGenerator::Uniform => "Uniformly random".to_owned(),
+                        TetrominoGenerator::Stock { .. } => "Bag".to_owned(),
+                        TetrominoGenerator::Recency { .. } => "Recency".to_owned(),
+                        TetrominoGenerator::BalanceRelative { .. } =>
                             "Balance relative counts".to_owned(),
-                        TetrominoSource::Cycle { pattern, index: _ } =>
+                        TetrominoGenerator::Cycle { pattern, index: _ } =>
                             format!("Cycling pattern {pattern:?}"),
                     }
                 ),
@@ -239,17 +239,18 @@ impl<T: Write> Application<T> {
                     }
                     2 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                        self.settings.config_mut().tetromino_generation = match self
-                            .settings
-                            .config()
-                            .tetromino_generation
-                        {
-                            TetrominoSource::Uniform => TetrominoSource::bag(),
-                            TetrominoSource::Stock { .. } => TetrominoSource::recency(),
-                            TetrominoSource::Recency { .. } => TetrominoSource::balance_relative(),
-                            TetrominoSource::BalanceRelative { .. } => TetrominoSource::uniform(),
-                            TetrominoSource::Cycle { .. } => TetrominoSource::uniform(),
-                        };
+                        self.settings.config_mut().tetromino_generation =
+                            match self.settings.config().tetromino_generation {
+                                TetrominoGenerator::Uniform => TetrominoGenerator::bag(),
+                                TetrominoGenerator::Stock { .. } => TetrominoGenerator::recency(),
+                                TetrominoGenerator::Recency { .. } => {
+                                    TetrominoGenerator::balance_relative()
+                                }
+                                TetrominoGenerator::BalanceRelative { .. } => {
+                                    TetrominoGenerator::uniform()
+                                }
+                                TetrominoGenerator::Cycle { .. } => TetrominoGenerator::uniform(),
+                            };
                     }
                     3 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
@@ -303,13 +304,15 @@ impl<T: Write> Application<T> {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
                         self.settings.config_mut().tetromino_generation =
                             match self.settings.config().tetromino_generation {
-                                TetrominoSource::Uniform => TetrominoSource::balance_relative(),
-                                TetrominoSource::Stock { .. } => TetrominoSource::uniform(),
-                                TetrominoSource::Recency { .. } => TetrominoSource::bag(),
-                                TetrominoSource::BalanceRelative { .. } => {
-                                    TetrominoSource::recency()
+                                TetrominoGenerator::Uniform => {
+                                    TetrominoGenerator::balance_relative()
                                 }
-                                TetrominoSource::Cycle { .. } => TetrominoSource::uniform(),
+                                TetrominoGenerator::Stock { .. } => TetrominoGenerator::uniform(),
+                                TetrominoGenerator::Recency { .. } => TetrominoGenerator::bag(),
+                                TetrominoGenerator::BalanceRelative { .. } => {
+                                    TetrominoGenerator::recency()
+                                }
+                                TetrominoGenerator::Cycle { .. } => TetrominoGenerator::uniform(),
                             };
                     }
                     3 => {

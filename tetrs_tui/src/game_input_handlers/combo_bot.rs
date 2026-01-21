@@ -632,7 +632,7 @@ mod tests {
     use std::{collections::HashMap, num::NonZeroU32};
 
     use super::*;
-    use tetrs_engine::piece_generation::TetrominoSource;
+    use tetrs_engine::tetromino_generator::TetrominoGenerator;
 
     const COMBO_MAX: usize = 1_000_000;
 
@@ -640,7 +640,7 @@ mod tests {
     fn benchmark_demo() {
         let sample_count = 2_500;
         let lookahead = 4;
-        let randomizer = (TetrominoSource::recency(), "recency");
+        let randomizer = (TetrominoGenerator::recency(), "recency");
         run_analyses_on(sample_count, std::iter::once((lookahead, randomizer)));
     }
 
@@ -648,7 +648,7 @@ mod tests {
     fn benchmark_simple() {
         let sample_count = 1_000;
         let lookahead = 8;
-        let randomizer = (TetrominoSource::bag(), "bag");
+        let randomizer = (TetrominoGenerator::bag(), "bag");
         run_analyses_on(sample_count, std::iter::once((lookahead, randomizer)));
     }
 
@@ -656,7 +656,7 @@ mod tests {
     fn benchmark_lookaheads() {
         let sample_count = 10_000;
         let lookaheads = 0..=9;
-        let randomizer = (TetrominoSource::bag(), "bag");
+        let randomizer = (TetrominoGenerator::bag(), "bag");
         run_analyses_on(sample_count, lookaheads.zip(std::iter::repeat(randomizer)));
     }
 
@@ -666,30 +666,30 @@ mod tests {
         let lookahead = 3;
         #[rustfmt::skip]
         let randomizers = [
-            (TetrominoSource::uniform(), "uniform"),
-            (TetrominoSource::balance_relative(), "balance-relative"),
-            (TetrominoSource::bag(), "bag"),
-            (TetrominoSource::stock(NonZeroU32::MIN.saturating_add(1), 0).unwrap(), "bag-2"),
-            (TetrominoSource::stock(NonZeroU32::MIN.saturating_add(2), 0).unwrap(), "bag-3"),
-            (TetrominoSource::stock(NonZeroU32::MIN.saturating_add(1), 7).unwrap(), "bag-2_restock-on-7"),
-            (TetrominoSource::stock(NonZeroU32::MIN.saturating_add(1), 7).unwrap(), "bag-3_restock-on-7"),
-            (TetrominoSource::recency_with(0.0).unwrap(), "recency-0.0"),
-            (TetrominoSource::recency_with(0.5).unwrap(), "recency-0.5"),
-            (TetrominoSource::recency_with(1.0).unwrap(), "recency-1.0"),
-            (TetrominoSource::recency_with(1.5).unwrap(), "recency-1.5"),
-            (TetrominoSource::recency_with(2.0).unwrap(), "recency-2.0"),
-            (TetrominoSource::recency(), "recency"),
-            (TetrominoSource::recency_with(3.0).unwrap(), "recency-3.0"),
-            (TetrominoSource::recency_with(8.0).unwrap(), "recency-7.0"),
-            (TetrominoSource::recency_with(16.0).unwrap(), "recency-16.0"),
-            (TetrominoSource::recency_with(32.0).unwrap(), "recency-32.0"),
+            (TetrominoGenerator::uniform(), "uniform"),
+            (TetrominoGenerator::balance_relative(), "balance-relative"),
+            (TetrominoGenerator::bag(), "bag"),
+            (TetrominoGenerator::stock(NonZeroU32::MIN.saturating_add(1), 0).unwrap(), "bag-2"),
+            (TetrominoGenerator::stock(NonZeroU32::MIN.saturating_add(2), 0).unwrap(), "bag-3"),
+            (TetrominoGenerator::stock(NonZeroU32::MIN.saturating_add(1), 7).unwrap(), "bag-2_restock-on-7"),
+            (TetrominoGenerator::stock(NonZeroU32::MIN.saturating_add(1), 7).unwrap(), "bag-3_restock-on-7"),
+            (TetrominoGenerator::recency_with(0.0).unwrap(), "recency-0.0"),
+            (TetrominoGenerator::recency_with(0.5).unwrap(), "recency-0.5"),
+            (TetrominoGenerator::recency_with(1.0).unwrap(), "recency-1.0"),
+            (TetrominoGenerator::recency_with(1.5).unwrap(), "recency-1.5"),
+            (TetrominoGenerator::recency_with(2.0).unwrap(), "recency-2.0"),
+            (TetrominoGenerator::recency(), "recency"),
+            (TetrominoGenerator::recency_with(3.0).unwrap(), "recency-3.0"),
+            (TetrominoGenerator::recency_with(8.0).unwrap(), "recency-7.0"),
+            (TetrominoGenerator::recency_with(16.0).unwrap(), "recency-16.0"),
+            (TetrominoGenerator::recency_with(32.0).unwrap(), "recency-32.0"),
         ];
         run_analyses_on(sample_count, std::iter::repeat(lookahead).zip(randomizers));
     }
 
     fn run_analyses_on<'a>(
         sample_count: usize,
-        configurations: impl IntoIterator<Item = (usize, (TetrominoSource, &'a str))>,
+        configurations: impl IntoIterator<Item = (usize, (TetrominoGenerator, &'a str))>,
     ) {
         let timestamp = chrono::Utc::now().format("%Y-%m-%d_%H-%M-%S").to_string();
         let summaries_filename = format!("combot-{timestamp}_SUMMARY.md");

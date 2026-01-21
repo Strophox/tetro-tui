@@ -19,7 +19,7 @@ use crate::Tetromino;
 /// [`TetrominoIterator`] that implements [`Iterator`].
 #[derive(PartialEq, PartialOrd, Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum TetrominoSource {
+pub enum TetrominoGenerator {
     /// Uniformly random piece generator.
     Uniform,
     /// Standard 'bag' generator.
@@ -69,7 +69,7 @@ pub enum TetrominoSource {
     },
 }
 
-impl TetrominoSource {
+impl TetrominoGenerator {
     /// Initialize an instance of the [`TetrominoSource::Uniform`] variant.
     pub const fn uniform() -> Self {
         Self::Uniform
@@ -132,8 +132,8 @@ impl TetrominoSource {
     }
 
     /// Method that allows `TetrominoSource` to be used as [`Iterator`].
-    pub fn with_rng<'a, 'b, R: Rng>(&'a mut self, rng: &'b mut R) -> TetrominoIterator<'a, 'b, R> {
-        TetrominoIterator {
+    pub fn with_rng<'a, 'b, R: Rng>(&'a mut self, rng: &'b mut R) -> Iter<'a, 'b, R> {
+        Iter {
             tetromino_generator: self,
             rng,
         }
@@ -141,20 +141,20 @@ impl TetrominoSource {
 }
 
 /// Struct produced from [`TetrominoSource::with_rng`] which implements [`Iterator`].
-pub struct TetrominoIterator<'a, 'b, R: Rng> {
+pub struct Iter<'a, 'b, R: Rng> {
     /// Selected tetromino generator to use as information source.
-    pub tetromino_generator: &'a mut TetrominoSource,
+    pub tetromino_generator: &'a mut TetrominoGenerator,
     /// Thread random number generator for raw soure of randomness.
     pub rng: &'b mut R,
 }
 
-impl<'a, 'b, R: Rng> Iterator for TetrominoIterator<'a, 'b, R> {
+impl<'a, 'b, R: Rng> Iterator for Iter<'a, 'b, R> {
     type Item = Tetromino;
 
     fn next(&mut self) -> Option<Self::Item> {
         match &mut self.tetromino_generator {
-            TetrominoSource::Uniform => Some(Tetromino::VARIANTS[self.rng.random_range(0..=6)]),
-            TetrominoSource::Stock {
+            TetrominoGenerator::Uniform => Some(Tetromino::VARIANTS[self.rng.random_range(0..=6)]),
+            TetrominoGenerator::Stock {
                 pieces_left,
                 multiplicity,
                 restock_threshold: refill_threshold,
@@ -172,7 +172,7 @@ impl<'a, 'b, R: Rng> Iterator for TetrominoIterator<'a, 'b, R> {
                 // SAFETY: 0 <= idx <= 6.
                 Some(Tetromino::VARIANTS[idx])
             }
-            TetrominoSource::BalanceRelative { relative_counts } => {
+            TetrominoGenerator::BalanceRelative { relative_counts } => {
                 let weighing = |&x| 1.0 / f64::from(x).exp(); // Alternative weighing function: `1.0 / (f64::from(x) + 1.0);`
                 let weights = relative_counts.iter().map(weighing);
                 // SAFETY: `weights` will always be non-zero due to `weighing`.
@@ -189,7 +189,7 @@ impl<'a, 'b, R: Rng> Iterator for TetrominoIterator<'a, 'b, R> {
                 // SAFETY: 0 <= idx <= 6.
                 Some(Tetromino::VARIANTS[idx])
             }
-            TetrominoSource::Recency {
+            TetrominoGenerator::Recency {
                 last_generated,
                 snap,
             } => {
@@ -205,7 +205,7 @@ impl<'a, 'b, R: Rng> Iterator for TetrominoIterator<'a, 'b, R> {
                 // SAFETY: 0 <= idx <= 6.
                 Some(Tetromino::VARIANTS[idx])
             }
-            TetrominoSource::Cycle { pattern, index } => {
+            TetrominoGenerator::Cycle { pattern, index } => {
                 let tetromino = pattern[*index];
                 *index += 1;
                 if *index == pattern.len() {
