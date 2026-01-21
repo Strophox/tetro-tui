@@ -4,15 +4,23 @@ version = "0.2.6"
 edition = "2021"
 
 [dependencies]
+# Generating timestamps.
 chrono = "0.4.38"
+# Command-line arguments.
 clap = { version = "4.5.9", features = ["derive"] }
+# Cross-platform terminal handling.
 crossterm = { version = "0.27.0", features = ["serde"] }
+# Cross-platform "Find the standard 'applications config' folder".
 dirs = "6.0.0"
+# Expose `random_range` for ChaCha12Rng.
 rand = "0.9.2"
+# Serializing data to store save file.
 serde = { version = "1.0.204", features = ["derive"] }
 serde_json = "1.0.120"
 serde_with = { version = "3.9.0", features = ["json"] }
+# Game logic.
 tetrs_engine = { path = "../tetrs_engine", features = ["serde"] }
 
 [features]
+# Debug graphs for 'Combo Bot'.
 graphviz = []

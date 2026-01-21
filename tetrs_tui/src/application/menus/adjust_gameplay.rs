@@ -96,7 +96,7 @@ impl<T: Write> Application<T> {
                 ),
                 format!(
                     "Piece generation: {}",
-                    match &self.settings.config().tetromino_generator {
+                    match &self.settings.config().tetromino_generation {
                         TetrominoSource::Uniform => "Uniformly random".to_owned(),
                         TetrominoSource::Stock { .. } => "Bag".to_owned(),
                         TetrominoSource::Recency { .. } => "Recency".to_owned(),
@@ -239,10 +239,10 @@ impl<T: Write> Application<T> {
                     }
                     2 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                        self.settings.config_mut().tetromino_generator = match self
+                        self.settings.config_mut().tetromino_generation = match self
                             .settings
                             .config()
-                            .tetromino_generator
+                            .tetromino_generation
                         {
                             TetrominoSource::Uniform => TetrominoSource::bag(),
                             TetrominoSource::Stock { .. } => TetrominoSource::recency(),
@@ -301,8 +301,8 @@ impl<T: Write> Application<T> {
                     }
                     2 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                        self.settings.config_mut().tetromino_generator =
-                            match self.settings.config().tetromino_generator {
+                        self.settings.config_mut().tetromino_generation =
+                            match self.settings.config().tetromino_generation {
                                 TetrominoSource::Uniform => TetrominoSource::balance_relative(),
                                 TetrominoSource::Stock { .. } => TetrominoSource::uniform(),
                                 TetrominoSource::Recency { .. } => TetrominoSource::bag(),

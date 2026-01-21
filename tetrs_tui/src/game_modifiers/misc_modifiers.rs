@@ -38,7 +38,7 @@ pub mod show_recency_tetromino_likelihood {
                 let TetrominoSource::Recency {
                     last_generated,
                     snap: _,
-                } = config.tetromino_generator
+                } = config.tetromino_generation
                 else {
                     return;
                 };

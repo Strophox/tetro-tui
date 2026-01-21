@@ -241,6 +241,7 @@ impl Renderer for DiffRenderer {
             active_piece_data,
             hold_piece,
             next_pieces,
+            piece_generator: _,
             pieces_locked: pieces_played,
             lines_cleared,
             gravity,

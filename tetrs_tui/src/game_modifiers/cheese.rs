@@ -1,5 +1,6 @@
 use std::num::{NonZeroU8, NonZeroUsize};
 
+use rand::Rng;
 use tetrs_engine::{
     Game, GameBuilder, GameEvent, GameModFn, GameRng, Line, ModificationPoint, Modifier, Rules,
     Stat,
@@ -90,7 +91,7 @@ fn random_gap_lines<'a>(
         if *remaining > 0 {
             *remaining -= 1;
             let mut line = [grey_tile; Game::WIDTH];
-            let gap_idx = rand::Rng::random_range(rng, 0..=line.len() - gap_size);
+            let gap_idx = rng.random_range(0..=line.len() - gap_size);
             for i in 0..gap_size {
                 line[gap_idx + i] = None;
             }

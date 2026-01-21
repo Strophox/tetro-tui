@@ -243,7 +243,7 @@ pub struct Config {
     /// The method of tetromino rotation used.
     pub rotation_system: RotationSystem,
     /// The method (and internal state) of tetromino generation used.
-    pub tetromino_generator: TetrominoSource,
+    pub tetromino_generation: TetrominoSource,
     /// How many pieces should be pre-generated and accessible/visible in the game state.
     pub preview_count: usize,
     /// How long it takes for the active piece to start automatically shifting more to the side
@@ -317,7 +317,7 @@ pub enum GameOver {
 }
 
 /// Struct storing internal game state that changes over the course of play.
-#[derive(Eq, PartialEq, Clone, Debug)]
+#[derive(PartialEq, Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct State {
     /// Current in-game time.
@@ -334,6 +334,8 @@ pub struct State {
     pub hold_piece: Option<(Tetromino, bool)>,
     /// Upcoming pieces to be played.
     pub next_pieces: VecDeque<Tetromino>,
+    /// The method (and internal state) of tetromino generation used.
+    pub piece_generator: TetrominoSource,
     /// Tallies of how many pieces of each type have been played so far.
     ///
     /// Accessibe through `impl Index<Tetromino> for [T; 7]`.
@@ -803,7 +805,7 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             rotation_system: RotationSystem::Ocular,
-            tetromino_generator: TetrominoSource::recency(),
+            tetromino_generation: TetrominoSource::recency(),
             preview_count: 4,
             delayed_auto_shift: Duration::from_millis(167),
             auto_repeat_rate: Duration::from_millis(33),
@@ -851,12 +853,11 @@ impl GameBuilder {
                 time: Duration::ZERO,
                 events: HashMap::from([(GameEvent::Spawn, Duration::ZERO)]),
                 buttons_pressed: ButtonsArray::default(),
-                board: std::iter::repeat(Line::default())
-                    .take(Game::HEIGHT)
-                    .collect(),
+                board: std::iter::repeat_n(Line::default(), Game::HEIGHT).collect(),
                 active_piece_data: None,
                 hold_piece: None,
                 next_pieces: VecDeque::new(),
+                piece_generator: config.tetromino_generation.clone(),
                 pieces_locked: [0; 7],
                 lines_cleared: 0,
                 gravity: mode.initial_gravity,

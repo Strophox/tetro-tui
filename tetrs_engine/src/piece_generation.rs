@@ -17,7 +17,7 @@ use crate::Tetromino;
 ///
 /// To actually generate [`Tetromino`]s, the [`TetrominoSource::with_rng`] method needs to be used to yield a
 /// [`TetrominoIterator`] that implements [`Iterator`].
-#[derive(PartialEq, PartialOrd, Debug)]
+#[derive(PartialEq, PartialOrd, Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum TetrominoSource {
     /// Uniformly random piece generator.
@@ -136,42 +136,6 @@ impl TetrominoSource {
         TetrominoIterator {
             tetromino_generator: self,
             rng,
-        }
-    }
-}
-
-/* TODO: Remove the statefulness inherent to TetrominoSource from tetrs_engine::Config (Game.config) into tetrs_engine::State (Game.state).
-Explanation: The fact we have to do a weird *stateless* clone is because it messes in surprisingly
-subtle ways if we don't: When trying to restore a game, we save the exact CONFIG of the game at
-the time of snapshot. But the builder then takes this config and might DIRECTLY use the 'config'
-of the TetrominoSource as the start state -- even tho we wanted to build the game exactly in its
-original start state (i.e. default TetrominoSource).
-GameBuilder already correctly reproduces the default Game.state by generating it on demand
-with GameBuilder::build. But TetrominoSource secretly smuggles mutable game state into Game.config!
-*/
-impl Clone for TetrominoSource {
-    fn clone(&self) -> Self {
-        use TetrominoSource as TS;
-        // match self { WARNING__DO_NOT_USE_THIS_CLONE_IMPLEMENTATION_CODE_AT_THIS_TIME
-        //     Self::Uniform => Self::Uniform,
-        //     Self::Stock { pieces_left, multiplicity, restock_threshold } => Self::Stock { pieces_left: pieces_left.clone(), multiplicity: multiplicity.clone(), restock_threshold: restock_threshold.clone() },
-        //     Self::Recency { last_generated, snap } => Self::Recency { last_generated: last_generated.clone(), snap: snap.clone() },
-        //     Self::BalanceRelative { relative_counts } => Self::BalanceRelative { relative_counts: relative_counts.clone() },
-        //     Self::Cycle { pattern, index } => Self::Cycle { pattern: pattern.clone(), index: index.clone() },
-        // }
-        match self {
-            TS::Uniform => TS::uniform(),
-            TS::Stock {
-                pieces_left: _,
-                multiplicity,
-                restock_threshold,
-            } => unsafe { TS::stock(*multiplicity, *restock_threshold).unwrap_unchecked() },
-            TS::Recency {
-                last_generated: _,
-                snap,
-            } => unsafe { TS::recency_with(*snap).unwrap_unchecked() },
-            TS::BalanceRelative { relative_counts: _ } => TS::balance_relative(),
-            TS::Cycle { pattern, index: _ } => TS::cycle(pattern.clone()),
         }
     }
 }

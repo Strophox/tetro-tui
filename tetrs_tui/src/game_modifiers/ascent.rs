@@ -1,6 +1,6 @@
 use std::{num::NonZeroU8, time::Duration};
 
-use rand::{self, Rng};
+use rand::Rng;
 
 use tetrs_engine::{
     ActivePiece, Game, GameBuilder, GameEvent, GameModFn, GameRng, GameTime, Line, LockingData,

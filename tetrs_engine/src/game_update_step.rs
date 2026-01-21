@@ -246,8 +246,8 @@ impl Game {
                     self.state.next_pieces.push_front(held_piece);
                 } else {
                     self.state.next_pieces.extend(
-                        self.config
-                            .tetromino_generator
+                        self.state
+                            .piece_generator
                             .with_rng(&mut self.state.rng)
                             .take(1),
                     );
@@ -279,15 +279,15 @@ impl Game {
                     "spawning event but an active piece is still in play"
                 );
                 let tetromino = self.state.next_pieces.pop_front().unwrap_or_else(|| {
-                    self.config
-                        .tetromino_generator
+                    self.state
+                        .piece_generator
                         .with_rng(&mut self.state.rng)
                         .next()
                         .expect("piece generator ran out before game finished")
                 });
                 self.state.next_pieces.extend(
-                    self.config
-                        .tetromino_generator
+                    self.state
+                        .piece_generator
                         .with_rng(&mut self.state.rng)
                         .take(
                             self.config
