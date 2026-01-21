@@ -12,8 +12,8 @@ use std::{
 use crossterm::{cursor, style, terminal, ExecutableCommand};
 
 use tetrs_engine::{
-    Config, Feedback, FeedbackVerbosity, Game, GameBuilder, GameOver, GameResult, GameTime,
-    Modifier, Rules, Stat, Tetromino,
+    Board, Button, Config, Feedback, FeedbackVerbosity, Game, GameBuilder, GameOver, GameResult,
+    GameTime, Line, Modifier, PressedButtons, Rules, Stat, Tetromino,
 };
 
 use crate::{
@@ -25,15 +25,93 @@ use crate::{
         self, color16_palette, empty_palette, fullcolor_palette, gruvbox_light_palette,
         gruvbox_palette, oklch2_palette, Palette,
     },
-    utils::decode_buttons,
 };
 
 pub type Slots<T> = Vec<(String, T)>;
 
-pub type RecordedUserInput = Vec<(
-    u64, // For serialization reasons, we use an encoded version of `GameTime` (see `std::time::Duration::as_nanos`).
-    u16, // For serialization reasons, we use an encoded version of `tetrs_engine::PressedButtons` (see `crate::utils::encode_buttons`).
-)>;
+#[derive(
+    Eq,
+    PartialEq,
+    Ord,
+    PartialOrd,
+    Clone,
+    Hash,
+    Debug,
+    Default,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+pub struct RecordedUserInput(Vec<u128>);
+
+impl RecordedUserInput {
+    /*
+    For serialization reasons, we encode a single user input as a u128 instead of
+    (GameTime, PressedButtons), which would have a verbose string representation:
+
+        RecordedUserInput(Vec<(GameTime,PressedButtons)>)
+         ≈ [{"secs":0,"nanos":908203743},[true,false,false,false,false,false,false,false,false]],
+           [{"secs":1,"nanos":233015063},[true,false,true,false,false,false,false,false,false]],
+           [{"secs":1,"nanos":365309796},[true,false,false,false,false,false,false,false,false]],
+           [{"secs":1,"nanos":388531761},[false,false,false,false,false,false,false,false,false]],
+           ...
+
+    Using simple code,
+    fn encode(timepoint: GameTime, button_state: PressedButtons) -> (u128, u16) {
+        return (timepoint.as_nanos(), Self::encode_buttons(&button_state)) }
+    fn decode((nanos, button_bits): (u128, u16)) -> (GameTime, PressedButtons) {
+        return (std::time::Duration::from_nanos(u64::try_from(nanos).unwrap()), Self::decode_buttons(button_bits)) }
+    one can already get it down to:
+
+        RecordedUserInput ≃ Vec<(u128, u16)>) ≃ "(nanos, buttonbits)"
+         ≈ [288059470,256],[583743082,260],[603193641,4],[694800339,0], ...
+
+     Finally, one can do bit-fiddling to try and save json formatting/punctuation:
+
+        RecordedUserInput ≈ Vec<u128> ≃ "nanos|buttonbits"
+         ≈ 39593290236160,61671350206464,62077007626244,67818618486784, ...
+
+        RecordedUserInput ≈ Vec<u128> ≃ "nanos|buttonbits" (optimal bit shifting)
+         ≈ 196780933376,434373048320,528447540228,618951716352, ...
+
+     The last representation is what we use.
+     For further compression, run-length encoding and stuff could be considered,
+     but the buttons take relatively little space, whereas the timestamps take a lot
+     and due to the noisiness of the nanos things seems more cumbersome to compress effectively.
+    */
+
+    pub fn encode(timepoint: GameTime, button_state: PressedButtons) -> u128 {
+        // Encode `GameTime = std::time::Duration` using `std::time::Duration::as_nanos`.
+        let nanos: u128 = timepoint.as_nanos();
+        // Encode `tetrs_engine::PressedButtons` using `crate::utils::encode_buttons`.
+        let button_bits: u16 = Self::encode_buttons(&button_state);
+        (nanos << Button::VARIANTS.len()) | u128::from(button_bits)
+    }
+
+    pub fn decode(int: u128) -> (GameTime, PressedButtons) {
+        let mask = u128::MAX >> (128 - Button::VARIANTS.len());
+        let button_bits = u16::try_from(int & mask).unwrap();
+        let nanos = u64::try_from(int >> Button::VARIANTS.len()).unwrap();
+        (
+            std::time::Duration::from_nanos(nanos),
+            Self::decode_buttons(button_bits),
+        )
+    }
+
+    fn encode_buttons(button_state: &PressedButtons) -> u16 {
+        button_state
+            .iter()
+            .fold(0, |int, b| (int << 1) | u16::from(*b))
+    }
+
+    fn decode_buttons(mut button_bits: u16) -> PressedButtons {
+        let mut button_state = PressedButtons::default();
+        for i in 0..Button::VARIANTS.len() {
+            button_state[Button::VARIANTS.len() - 1 - i] = button_bits & 1 != 0;
+            button_bits >>= 1;
+        }
+        button_state
+    }
+}
 
 #[derive(PartialEq, PartialOrd, Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct GameRestorationData {
@@ -84,10 +162,10 @@ impl GameRestorationData {
         let restore_feedback_verbosity = game.config().feedback_verbosity;
 
         game.config_mut().feedback_verbosity = FeedbackVerbosity::Quiet;
-        for (input_time, int) in self.recorded_user_input.iter().take(input_index) {
-            let button_state = decode_buttons(*int);
+        for bits in self.recorded_user_input.0.iter().take(input_index) {
+            let (input_time, button_state) = RecordedUserInput::decode(*bits);
             // FIXME: Error handling?
-            let _ = game.update(Some(button_state), GameTime::from_nanos(*input_time));
+            let _ = game.update(Some(button_state), input_time);
         }
 
         game.config_mut().feedback_verbosity = restore_feedback_verbosity;
@@ -190,6 +268,38 @@ impl Default for NewGameSettings {
     }
 }
 
+impl NewGameSettings {
+    pub fn encode_board(board: &Board) -> String {
+        board
+            .iter()
+            .map(|line| {
+                line.iter()
+                    .map(|tile| if tile.is_some() { 'X' } else { ' ' })
+                    .collect::<String>()
+            })
+            .collect::<String>()
+            .trim_end()
+            .to_owned()
+    }
+
+    pub fn decode_board(board_str: &str) -> Board {
+        let grey_tile = Some(std::num::NonZeroU8::try_from(254).unwrap());
+        let mut chars = board_str.chars();
+        std::iter::repeat_n(Line::default(), Game::HEIGHT)
+            .map(|mut line| {
+                for tile in &mut line {
+                    if let Some(char) = chars.next() {
+                        *tile = if char != ' ' { grey_tile } else { None };
+                    } else {
+                        break;
+                    }
+                }
+                line
+            })
+            .collect()
+    }
+}
+
 #[derive(
     Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug, serde::Serialize, serde::Deserialize,
 )]
@@ -218,7 +328,7 @@ pub enum SavefileGranularity {
     NoSavefile,
     RememberSettings,
     RememberSettingsScoreboard,
-    RememberSettingsScoreboardGamereplays,
+    RememberSettingsScoreboardGamerecords,
 }
 
 #[serde_with::serde_as]
@@ -507,7 +617,7 @@ impl<T: Write> Application<T> {
         if self.save_on_exit < SavefileGranularity::RememberSettingsScoreboard {
             // Clear scoreboard if no game data is wished to be stored.
             self.scoreboard.entries.clear();
-        } else if self.save_on_exit < SavefileGranularity::RememberSettingsScoreboardGamereplays {
+        } else if self.save_on_exit < SavefileGranularity::RememberSettingsScoreboardGamerecords {
             // Clear past game inputs if no game input data is wished to be stored.
             for (_entry, restoration_data) in &mut self.scoreboard.entries {
                 restoration_data.take();

@@ -15,14 +15,13 @@ use tetrs_engine::{Feedback, FeedbackMessages, Game, PressedButtons};
 
 use crate::{
     application::{
-        Application, GameMetaData, GameRestorationData, Menu, MenuUpdate, RecordedUserInput,
-        ScoreboardEntry,
+        Application, GameMetaData, GameRestorationData, Menu, MenuUpdate, NewGameSettings,
+        RecordedUserInput, ScoreboardEntry,
     },
     game_input_handlers::{
         combo_bot::ComboBotInputHandler, live_terminal::LiveTerminalInputHandler, InputSignal,
     },
     game_renderers::Renderer,
-    utils::{encode_board, encode_buttons},
 };
 
 impl<T: Write> Application<T> {
@@ -133,7 +132,7 @@ impl<T: Write> Application<T> {
                     Ok(InputSignal::StoreSavepoint) => {
                         let _ = self.savepoint.insert((
                             game_meta_data.clone(),
-                            recorded_user_input.len(),
+                            recorded_user_input.0.len(),
                             GameRestorationData::new(game, recorded_user_input),
                         ));
                         new_feedback_msgs.push((
@@ -152,7 +151,7 @@ impl<T: Write> Application<T> {
                         let _ = self
                             .new_game_settings
                             .custom_board
-                            .insert(encode_board(&game.state().board));
+                            .insert(NewGameSettings::encode_board(&game.state().board));
                         new_feedback_msgs.push((
                             game.state().time,
                             Feedback::Text("(Board captured.)".to_owned()),
@@ -163,10 +162,9 @@ impl<T: Write> Application<T> {
                         let game_time_userinput = instant.saturating_duration_since(*time_started)
                             - *duration_paused_total;
                         let game_now = std::cmp::max(game_time_userinput, game.state().time);
-                        recorded_user_input.push((
-                            game_now.as_nanos().try_into().unwrap(),
-                            encode_buttons(&buttons_pressed),
-                        ));
+                        recorded_user_input
+                            .0
+                            .push(RecordedUserInput::encode(game_now, buttons_pressed));
                         // FIXME: Handle error?
                         if let Ok(evts) = game.update(Some(buttons_pressed), game_now) {
                             inform_combo_bot(game, &evts);

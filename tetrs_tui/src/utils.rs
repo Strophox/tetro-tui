@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use crossterm::event::KeyCode;
-use tetrs_engine::{Board, Button, Game, Line, PressedButtons};
+use tetrs_engine::Button;
 
 use crate::game_input_handlers::live_terminal::Keybinds;
 
@@ -59,49 +59,4 @@ pub fn fmt_keybinds(button: Button, keybinds: &Keybinds) -> String {
         .filter_map(|(&k, &b)| (b == button).then_some(fmt_key(k)))
         .collect::<Vec<String>>()
         .join("")
-}
-
-pub fn encode_buttons(button_state: &PressedButtons) -> u16 {
-    button_state
-        .iter()
-        .fold(0, |int, b| (int << 1) | u16::from(*b))
-}
-
-pub fn decode_buttons(mut int: u16) -> PressedButtons {
-    let mut button_state = PressedButtons::default();
-    for i in 0..Button::VARIANTS.len() {
-        button_state[Button::VARIANTS.len() - 1 - i] = int & 1 != 0;
-        int >>= 1;
-    }
-    button_state
-}
-
-pub fn encode_board(board: &Board) -> String {
-    board
-        .iter()
-        .map(|line| {
-            line.iter()
-                .map(|tile| if tile.is_some() { 'X' } else { ' ' })
-                .collect::<String>()
-        })
-        .collect::<String>()
-        .trim_end()
-        .to_owned()
-}
-
-pub fn decode_board(string: &str) -> Board {
-    let grey_tile = Some(std::num::NonZeroU8::try_from(254).unwrap());
-    let mut chars = string.chars();
-    std::iter::repeat_n(Line::default(), Game::HEIGHT)
-        .map(|mut line| {
-            for tile in &mut line {
-                if let Some(char) = chars.next() {
-                    *tile = if char != ' ' { grey_tile } else { None };
-                } else {
-                    break;
-                }
-            }
-            line
-        })
-        .collect()
 }

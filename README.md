@@ -138,7 +138,7 @@ For more technical gameplay discussion see [Features of the Tetrs Engine](#featu
   <summary> Default tetrs controls. </summary>
   
   | Key | Action |
-  | -: | :-: |
+  | :-: | :- |
   | `←` | Move left |
   | `→` | Move right |
   | `A` | Rotate left (CCW) |
@@ -151,6 +151,7 @@ For more technical gameplay discussion see [Features of the Tetrs Engine](#featu
   Special controls:
 
   | Key | Action |
+  | :-: | :- |
   | `Esc` | Pause game |
   | `Ctrl`+`D` | Forfeit game |
   | `Ctrl`+`C` | Abort program |
@@ -169,8 +170,8 @@ For more technical gameplay discussion see [Features of the Tetrs Engine](#featu
   - *OFF* - This will delete any existing save file upon program exit.
   - Remember *Settings* - This will only remember what you have stored in settings (including New Game settings).
   - Remember all the above *+ Scores* - This will additionally store a lightweight scoreboard with basic info.
-  - Remember all the above *+ Game replays* - This will additionally store the data needed to watch a game replay of past games.
-    A game replay consists of the initial game state + list of user button inputs during gameplay.
+  - Remember all the above *+ Game recordings* - This will additionally store the data needed to watch a game replay of past games.
+    A game recording consists of the initial game state + list of (encoded) user button inputs during gameplay.
 
 </details>
 
@@ -182,6 +183,7 @@ For more technical gameplay discussion see [Features of the Tetrs Engine](#featu
 The controls of the TUI menus are mostly kept simple.
 
   | Keys | General meaning |
+  | :-: | :- |
   | `↓`,`↑` or `j`,`k` | Navigate |
   | `←`,`→` or `h`,`l` | Change value |
   | `Enter` or `e` | Select |

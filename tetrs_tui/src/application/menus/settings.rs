@@ -39,7 +39,7 @@ impl<T: Write> Application<T> {
                         SavefileGranularity::RememberSettings => "ON (save settings)",
                         SavefileGranularity::RememberSettingsScoreboard =>
                             "ON (save settings, scores)",
-                        SavefileGranularity::RememberSettingsScoreboardGamereplays =>
+                        SavefileGranularity::RememberSettingsScoreboardGamerecords =>
                             "ON (save settings, scores, game replays)",
                     }
                 ),
@@ -105,7 +105,7 @@ impl<T: Write> Application<T> {
                     2 => break Ok(MenuUpdate::Push(Menu::AdjustGameplay)),
                     3 => {
                         self.save_on_exit =
-                            SavefileGranularity::RememberSettingsScoreboardGamereplays;
+                            SavefileGranularity::RememberSettingsScoreboardGamerecords;
                     }
                     _ => {}
                 },
@@ -133,9 +133,9 @@ impl<T: Write> Application<T> {
                     if selected == 3 {
                         self.save_on_exit = match self.save_on_exit {
                             SavefileGranularity::NoSavefile => {
-                                SavefileGranularity::RememberSettingsScoreboardGamereplays
+                                SavefileGranularity::RememberSettingsScoreboardGamerecords
                             }
-                            SavefileGranularity::RememberSettingsScoreboardGamereplays => {
+                            SavefileGranularity::RememberSettingsScoreboardGamerecords => {
                                 SavefileGranularity::RememberSettingsScoreboard
                             }
                             SavefileGranularity::RememberSettingsScoreboard => {
@@ -162,9 +162,9 @@ impl<T: Write> Application<T> {
                                 SavefileGranularity::RememberSettingsScoreboard
                             }
                             SavefileGranularity::RememberSettingsScoreboard => {
-                                SavefileGranularity::RememberSettingsScoreboardGamereplays
+                                SavefileGranularity::RememberSettingsScoreboardGamerecords
                             }
-                            SavefileGranularity::RememberSettingsScoreboardGamereplays => {
+                            SavefileGranularity::RememberSettingsScoreboardGamerecords => {
                                 SavefileGranularity::NoSavefile
                             }
                         };

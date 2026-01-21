@@ -1,12 +1,10 @@
 pub mod custom_start_board {
     use tetrs_engine::Modifier;
 
-    use crate::utils::decode_board;
-
     pub const MOD_ID: &str = "custom_start_board";
 
     pub fn modifier(encoded_board: &str) -> Modifier {
-        let board = decode_board(encoded_board);
+        let board = crate::application::NewGameSettings::decode_board(encoded_board);
         let mut init = false;
         Modifier {
             descriptor: format!("{MOD_ID}\n{encoded_board}"),

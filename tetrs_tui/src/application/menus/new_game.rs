@@ -203,11 +203,11 @@ impl<T: Write> Application<T> {
                                 if sp.1 == 0 {
                                     Duration::ZERO
                                 } else {
-                                    Duration::from_nanos(
-                                        sp.2.recorded_user_input
-                                            [(sp.1 - 1) % sp.2.recorded_user_input.len()]
-                                        .0,
+                                    RecordedUserInput::decode(
+                                        sp.2.recorded_user_input.0
+                                            [(sp.1 - 1) % sp.2.recorded_user_input.0.len()],
                                     )
+                                    .0
                                 }
                             )
                         } else {
@@ -446,7 +446,7 @@ impl<T: Write> Application<T> {
                         }
                     } else if let Some(sp) = &mut self.savepoint {
                         if selected == selection_len - 2 {
-                            sp.1 += sp.2.recorded_user_input.len()
+                            sp.1 += sp.2.recorded_user_input.0.len()
                                 * if modifiers.contains(KeyModifiers::SHIFT) {
                                     10
                                 } else {
@@ -457,7 +457,7 @@ impl<T: Write> Application<T> {
                                 } else {
                                     1
                                 };
-                            sp.1 %= sp.2.recorded_user_input.len() + 1;
+                            sp.1 %= sp.2.recorded_user_input.0.len() + 1;
                         }
                     }
                 }
@@ -520,7 +520,7 @@ impl<T: Write> Application<T> {
                             } else {
                                 1
                             };
-                            sp.1 %= sp.2.recorded_user_input.len() + 1;
+                            sp.1 %= sp.2.recorded_user_input.0.len() + 1;
                         }
                     }
                 }
@@ -579,8 +579,8 @@ impl<T: Write> Application<T> {
                         title: title.to_owned(),
                         comparison_stat: comparison_stat.to_owned(),
                     };
-                    let new_recorded_user_input = RecordedUserInput::new();
-                    (preset_game, new_meta_data, new_recorded_user_input)
+                    let empty_user_input_record = RecordedUserInput::default();
+                    (preset_game, new_meta_data, empty_user_input_record)
                 // Load saved game.
                 } else if selected == selection_len - 2 {
                     let (game_meta_data, input_index, game_restoration_data) =
@@ -618,8 +618,8 @@ impl<T: Write> Application<T> {
                         title: "Custom".to_owned(),
                         comparison_stat: (Stat::PointsScored(0), false),
                     };
-                    let new_recorded_user_input = RecordedUserInput::new();
-                    (custom_game, new_meta_data, new_recorded_user_input)
+                    let empty_user_input_record = RecordedUserInput::default();
+                    (custom_game, new_meta_data, empty_user_input_record)
                 };
                 let now = Instant::now();
                 let time_started = now - game.state().time;
