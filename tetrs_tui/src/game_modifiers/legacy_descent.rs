@@ -4,7 +4,7 @@ use rand::{self, Rng};
 
 use tetrs_engine::{
     Game, GameBuilder, GameEvent, GameModFn, GameOver, GameTime, Line, ModificationPoint, Modifier,
-    Rules, Stat, Tetromino,
+    Stat, Tetromino,
 };
 
 // NOTE: THIS MOD IS NOT REPRODUCIBLE (is not deterministic).
@@ -52,8 +52,8 @@ pub fn build(builder: &GameBuilder) -> Game {
                 instant_camera_adjusted = state.time;
                 depth += 1;
                 active_piece.position.1 += 1;
-                state.board.insert(0, line_source.next().unwrap());
-                state.board.pop();
+                state.board.rotate_left(1);
+                state.board[Game::HEIGHT - 1] = Line::default();
                 if active_piece.position.1 >= Game::SKYLINE {
                     state.result = Some(Err(GameOver::ModeLimit));
                 }
@@ -99,7 +99,7 @@ pub fn build(builder: &GameBuilder) -> Game {
             ) {
                 state.lines_cleared = 0;
                 state.next_pieces.clear();
-                config.preview_count = 0;
+                config.piece_preview_count = 0;
                 // state.level = NonZeroU32::try_from(SPEED_LEVEL).unwrap();
             } else {
                 state.lines_cleared = usize::try_from(depth).unwrap();
@@ -115,19 +115,16 @@ pub fn build(builder: &GameBuilder) -> Game {
             // FIXME: EXTREME JANK.
             active_piece.shape = descent_tetromino;
         });
-    let rules = Rules {
-        initial_gravity: 0,
-        progressive_gravity: false,
-        end_conditions: vec![(Stat::TimeElapsed(Duration::from_secs(3 * 60)), true)],
-    };
-    let descent_modifier = Modifier {
-        descriptor: MOD_ID.to_owned(),
-        mod_function,
-    };
+
     builder
         .clone()
-        .rules(rules)
-        .build_modified([descent_modifier])
+        .initial_gravity(0)
+        .progressive_gravity(false)
+        .end_conditions(vec![(Stat::TimeElapsed(Duration::from_secs(3 * 60)), true)])
+        .build_modified([Modifier {
+            descriptor: MOD_ID.to_owned(),
+            mod_function,
+        }])
 }
 
 pub fn random_descent_lines() -> impl Iterator<Item = Line> {

@@ -58,6 +58,9 @@ pub fn reconstruct_modified<'a>(
             let linelimit = get_mod_args(&mut lines, mod_id)?;
             let modifier = combo_board::modifier(linelimit);
             compounding_modifiers.push(modifier);
+        } else if mod_id == misc_modifiers::print_recency_tet_gen_stats::MOD_ID {
+            let modifier = misc_modifiers::print_recency_tet_gen_stats::modifier();
+            compounding_modifiers.push(modifier);
         } else if mod_id == misc_modifiers::custom_start_board::MOD_ID {
             let encoded_board = get_mod_args(&mut lines, mod_id)?;
             let modifier = misc_modifiers::custom_start_board::modifier(encoded_board);

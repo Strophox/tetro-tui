@@ -130,31 +130,36 @@ impl<T: Write> Application<T> {
                         continue 'frame_idle;
                     }
                     Ok(InputSignal::StoreSavepoint) => {
-                        let _ = self.savepoint.insert((
+                        let _ = self.game_savepoint.insert((
                             game_meta_data.clone(),
                             recorded_user_input.0.len(),
                             GameRestorationData::new(game, recorded_user_input),
                         ));
                         new_feedback_msgs.push((
                             game.state().time,
-                            Feedback::Text("(Savepoint captured.)".to_owned()),
+                            Feedback::Text("(Savepoint stored!)".to_owned()),
                         ));
                     }
                     Ok(InputSignal::StoreSeed) => {
-                        let _ = self.new_game_settings.custom_seed.insert(game.seed());
+                        let _ = self
+                            .settings
+                            .new_game
+                            .custom_seed
+                            .insert(game.init_vals().seed);
                         new_feedback_msgs.push((
                             game.state().time,
-                            Feedback::Text("(Seed captured.)".to_owned()),
+                            Feedback::Text(format!("(Seed stored! {})", game.init_vals().seed)),
                         ));
                     }
                     Ok(InputSignal::StoreBoard) => {
                         let _ = self
-                            .new_game_settings
+                            .settings
+                            .new_game
                             .custom_board
                             .insert(NewGameSettings::encode_board(&game.state().board));
                         new_feedback_msgs.push((
                             game.state().time,
-                            Feedback::Text("(Board captured.)".to_owned()),
+                            Feedback::Text("(Board stored!)".to_owned()),
                         ));
                     }
                     Ok(InputSignal::ButtonInput(button, button_state, instant)) => {

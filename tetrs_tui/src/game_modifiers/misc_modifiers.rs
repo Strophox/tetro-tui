@@ -20,25 +20,25 @@ pub mod custom_start_board {
 
 // NOTE: Can be / was used for debugging.
 #[allow(dead_code)]
-pub mod show_recency_tetromino_likelihood {
+pub mod print_recency_tet_gen_stats {
     use tetrs_engine::{
         tetromino_generator::TetrominoGenerator, Feedback, GameEvent, ModificationPoint, Modifier,
         Tetromino,
     };
 
-    pub const MOD_ID: &str = "show_recency_tetromino_likelihood";
+    pub const MOD_ID: &str = "print_recency_tet_gen_stats";
 
     pub fn modifier() -> Modifier {
         Modifier {
             descriptor: MOD_ID.to_owned(),
-            mod_function: Box::new(|config, _rules, state, modpoint, msgs| {
+            mod_function: Box::new(|_config, _rules, state, modpoint, msgs| {
                 if !matches!(modpoint, ModificationPoint::AfterEvent(GameEvent::Spawn)) {
                     return;
                 }
                 let TetrominoGenerator::Recency {
                     last_generated,
                     snap: _,
-                } = config.tetromino_generation
+                } = state.piece_generator
                 else {
                     return;
                 };
@@ -52,27 +52,25 @@ pub mod show_recency_tetromino_likelihood {
                     Tetromino::J,
                 ];
                 pieces_played_strs.sort_by_key(|&t| last_generated[t]);
-                msgs.push((
-                    state.time,
-                    Feedback::Text(
-                        pieces_played_strs
-                            .map(|tet| {
-                                format!(
-                                    "{tet:?}{}{}{}",
-                                    last_generated[tet],
-                                    // "█".repeat(lg[t] as usize),
-                                    "█".repeat(
-                                        (last_generated[tet] * last_generated[tet]) as usize / 8
-                                    ),
-                                    [" ", "▏", "▎", "▍", "▌", "▋", "▊", "▉"]
-                                        [(last_generated[tet] * last_generated[tet]) as usize % 8]
-                                )
-                                .to_ascii_lowercase()
-                            })
-                            .join("")
-                            .to_string(),
-                    ),
-                ));
+
+                let [o, i, s, z, t, l, j] = state.pieces_locked;
+                let str_piece_tallies = format!("{o}o {i}i {s}s {z}z {t}t {l}l {j}j");
+                let str_piece_likelihood = pieces_played_strs
+                    .map(|tet| {
+                        format!(
+                            "{tet:?}{}{}{}",
+                            last_generated[tet],
+                            // "█".repeat(lg[t] as usize),
+                            "█".repeat((last_generated[tet] * last_generated[tet]) as usize / 8),
+                            [" ", "▏", "▎", "▍", "▌", "▋", "▊", "▉"]
+                                [(last_generated[tet] * last_generated[tet]) as usize % 8]
+                        )
+                        .to_ascii_lowercase()
+                    })
+                    .join("");
+                msgs.push((state.time, Feedback::Text("".to_owned())));
+                msgs.push((state.time, Feedback::Text(str_piece_likelihood)));
+                msgs.push((state.time, Feedback::Text(str_piece_tallies)));
                 // config.line_clear_delay = Duration::ZERO;
                 // config.appearance_delay = Duration::ZERO;
                 // state.board.remove(0);

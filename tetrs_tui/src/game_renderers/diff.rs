@@ -252,8 +252,11 @@ impl Renderer for DiffRenderer {
         let pieces = pieces_played.iter().sum::<u32>();
         // Screen: some titles.
         let mode_name_space = meta_data.title.len().max(14);
-        let (endcond_title, endcond_value) = if let Some((c, _)) =
-            game.mode().end_conditions.first()
+        let (endcond_title, endcond_value) = if let Some((c, _)) = game
+            .config()
+            .end_conditions
+            .iter()
+            .find(|(_stat, to_win)| *to_win)
         {
             match c {
                 Stat::TimeElapsed(t) => ("Time left:", fmt_duration(&t.saturating_sub(*game_time))),

@@ -2,8 +2,7 @@ use std::num::{NonZeroU8, NonZeroUsize};
 
 use rand::Rng;
 use tetrs_engine::{
-    Game, GameBuilder, GameEvent, GameModFn, GameRng, Line, ModificationPoint, Modifier, Rules,
-    Stat,
+    Game, GameBuilder, GameEvent, GameModFn, GameRng, Line, ModificationPoint, Modifier, Stat,
 };
 
 pub const MOD_ID: &str = "cheese";
@@ -51,33 +50,29 @@ pub fn build(
                 state.lines_cleared -= temp_normal_tally;
                 let line_source = random_gap_lines(gapsize, &mut state.rng, &mut remaining_lines);
                 for cheese in line_source.take(temp_cheese_tally) {
-                    state.board.insert(0, cheese);
+                    state.board.rotate_right(1);
+                    state.board[0] = cheese;
                 }
                 temp_cheese_tally = 0;
                 temp_normal_tally = 0;
             }
         },
     );
-    let cheese_modifier = Modifier {
-        descriptor: format!(
-            "{MOD_ID}\n{}",
-            serde_json::to_string(&(linelimit, gapsize, gravity)).unwrap()
-        ),
-        mod_function,
-    };
-    let end_conditions = match linelimit {
-        Some(c) => vec![(Stat::LinesCleared(c.get()), true)],
-        None => vec![],
-    };
-    let rules = Rules {
-        initial_gravity: gravity,
-        progressive_gravity: false,
-        end_conditions,
-    };
     builder
         .clone()
-        .rules(rules)
-        .build_modified([cheese_modifier])
+        .initial_gravity(gravity)
+        .progressive_gravity(false)
+        .end_conditions(match linelimit {
+            Some(c) => vec![(Stat::LinesCleared(c.get()), true)],
+            None => vec![],
+        })
+        .build_modified([Modifier {
+            descriptor: format!(
+                "{MOD_ID}\n{}",
+                serde_json::to_string(&(linelimit, gapsize, gravity)).unwrap()
+            ),
+            mod_function,
+        }])
 }
 
 fn random_gap_lines<'a>(

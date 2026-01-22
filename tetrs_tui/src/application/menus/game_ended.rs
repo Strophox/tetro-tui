@@ -39,7 +39,7 @@ impl<T: Write> Application<T> {
         ];
         // if gamemode.name.as_ref().map(String::as_str) == Some("Puzzle")
         if result.is_ok() && meta_data.title == "Puzzle" {
-            self.new_game_settings.experimental_mode_unlocked = true;
+            self.settings.new_game.experimental_mode_unlocked = true;
         }
         let mut selected = 0usize;
         loop {

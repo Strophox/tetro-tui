@@ -60,7 +60,7 @@ pub type TileTypeID = NonZeroU8;
 pub type Line = [Option<TileTypeID>; Game::WIDTH];
 // NOTE: Would've liked to use `impl Game { type Board = ...` (https://github.com/rust-lang/rust/issues/8995)
 /// The type of the entire two-dimensional playing grid.
-pub type Board = Vec<Line>;
+pub type Board = [Line; Game::HEIGHT];
 /// Coordinates conventionally used to index into the [`Board`], starting in the bottom left.
 pub type Coord = (usize, usize);
 /// Coordinates offsets that can be [`add`]ed to [`Coord`]inates.
@@ -70,8 +70,13 @@ pub type GameTime = Duration;
 /// The internal RNG used by a game.
 pub type GameRng = ChaCha12Rng;
 /// Type of underlying functions at the heart of a [`GameModifier`].
-pub type GameModFn =
-    dyn FnMut(&mut Config, &mut Rules, &mut State, &ModificationPoint, &mut FeedbackMessages);
+pub type GameModFn = dyn FnMut(
+    &mut Configuration,
+    &mut InitialValues,
+    &mut State,
+    &ModificationPoint,
+    &mut FeedbackMessages,
+);
 /// A set of conditions to determine how a game specially ends and whether it results in a win (otherwise loss).
 pub type EndConditions = Vec<(Stat, bool)>;
 /// The result of a game that ended.
@@ -205,18 +210,13 @@ pub enum Stat {
 /// and how it can be won/failed.
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Hash, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Rules {
+pub struct InitialValues {
     /// The gravity at which a game should start.
     pub initial_gravity: u32,
-    /// Whether the gravity should be automatically incremented while the game plays.
-    pub progressive_gravity: bool,
-    /// Stores the ways in which a round of the game should be limited.
-    ///
-    /// Each limitation may be either of positive ('game completed') or negative ('game over'), as
-    /// designated by the `bool` stored with it.
-    ///
-    /// No limitations may allow for endless games.
-    pub end_conditions: Vec<(Stat, bool)>,
+    /// The method (and internal state) of tetromino generation used.
+    pub start_generator: TetrominoGenerator,
+    /// The value to seed the game's PRNG with.
+    pub seed: u64,
 }
 
 /// The amount of feedback information that is to be generated.
@@ -239,13 +239,11 @@ pub enum FeedbackVerbosity {
 /// User-focused configuration options that mainly influence time-sensitive or cosmetic mechanics.
 #[derive(PartialEq, PartialOrd, Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Config {
+pub struct Configuration {
+    /// How many pieces should be pre-generated and accessible/visible in the game state.
+    pub piece_preview_count: usize,
     /// The method of tetromino rotation used.
     pub rotation_system: RotationSystem,
-    /// The method (and internal state) of tetromino generation used.
-    pub tetromino_generation: TetrominoGenerator,
-    /// How many pieces should be pre-generated and accessible/visible in the game state.
-    pub preview_count: usize,
     /// How long it takes for the active piece to start automatically shifting more to the side
     /// after the initial time a 'move' button has been pressed.
     pub delayed_auto_shift: Duration,
@@ -263,6 +261,15 @@ pub struct Config {
     pub line_clear_delay: Duration,
     /// How long the game should wait *additionally* before spawning a new piece.
     pub appearance_delay: Duration,
+    /// Whether the gravity should be automatically incremented while the game plays.
+    pub progressive_gravity: bool,
+    /// Stores the ways in which a round of the game should be limited.
+    ///
+    /// Each limitation may be either of positive ('game completed') or negative ('game over'), as
+    /// designated by the `bool` stored with it.
+    ///
+    /// No limitations may allow for endless games.
+    pub end_conditions: Vec<(Stat, bool)>,
     /// The amount of feedback information that is to be generated.
     pub feedback_verbosity: FeedbackVerbosity,
 }
@@ -317,7 +324,7 @@ pub enum GameOver {
 }
 
 /// Struct storing internal game state that changes over the course of play.
-#[derive(PartialEq, Clone, Debug)]
+#[derive(Eq, PartialEq, Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct State {
     /// Current in-game time.
@@ -394,26 +401,25 @@ pub struct Modifier {
 /// [`GameBuilder::build`] or [`GameBuilder::build_modified`].
 /// This will give you a [`Game`] as specified that you can then use as normal.
 /// The `GameBuilder` is not used up and its configuration can be re-used to initialize more [`Game`]s.
-#[derive(PartialEq, PartialOrd, Clone, Debug, Default)]
+#[derive(PartialEq, PartialOrd, Clone, Default, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct GameBuilder {
-    /// The possible game configurations.
-    pub config: Option<Config>,
-    /// The game mode.
-    pub rules: Option<Rules>,
-    _state: (),
-    /// The possible game seed.
+    /// Many of the configuration options that will be set for the game.
+    pub config: Configuration,
+    /// The gravity at which a game should start.
+    pub initial_gravity: Option<u32>,
+    /// The method (and internal state) of tetromino generation used.
+    pub start_generator: Option<TetrominoGenerator>,
+    /// The value to seed the game's PRNG with.
     pub seed: Option<u64>,
-    _modifiers: (),
 }
 
 /// Main game struct representing one round of play.
 #[derive(Debug)]
 pub struct Game {
-    config: Config,
-    rules: Rules,
+    config: Configuration,
+    init_vals: InitialValues,
     state: State,
-    seed: u64,
     modifiers: Vec<Modifier>,
 }
 
@@ -669,89 +675,6 @@ impl ActivePiece {
     }
 }
 
-impl Default for Rules {
-    fn default() -> Self {
-        Self {
-            initial_gravity: 1,
-            progressive_gravity: true,
-            end_conditions: EndConditions::default(),
-        }
-    }
-}
-
-impl Rules {
-    /// Produce a blank game mode template.
-    ///
-    /// Template:
-    /// * Name: (none).
-    /// * Initial gravity: 1.
-    /// * Progressive gravity: true.
-    /// * End conditions: (none).
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    /// Produce a game mode template for "Marathon" mode.
-    ///
-    /// Template:
-    /// * Name: "Marathon".
-    /// * Initial gravity: 1.
-    /// * Progressive gravity: true.
-    /// * End conditions: GravityReached(15).
-    pub fn marathon() -> Self {
-        Self {
-            initial_gravity: 1,
-            progressive_gravity: true,
-            end_conditions: vec![(Stat::GravityReached(15), true)],
-        }
-    }
-
-    /// Produce a game mode template for "40-Lines" mode.
-    ///
-    /// Template:
-    /// * Name: "40-Lines".
-    /// * Initial gravity: 3.
-    /// * Progressive gravity: false.
-    /// * End conditions: LinesCleared(40).
-    pub fn forty_lines() -> Self {
-        Self {
-            initial_gravity: 3,
-            progressive_gravity: false,
-            end_conditions: vec![(Stat::LinesCleared(40), true)],
-        }
-    }
-
-    /// Produce a game mode template for "Time Trial" mode.
-    ///
-    /// Template:
-    /// * Name: "Time Trial".
-    /// * Initial gravity: 2.
-    /// * Progressive gravity: false.
-    /// * End conditions: TimeElapsed(180s).
-    pub fn time_trial() -> Self {
-        Self {
-            initial_gravity: 2,
-            progressive_gravity: false,
-            end_conditions: vec![(Stat::TimeElapsed(Duration::from_secs(3 * 60)), true)],
-        }
-    }
-
-    /// Produce a game mode template for "Master" mode.
-    ///
-    /// Template:
-    /// * Name: none.
-    /// * Initial gravity: 20.
-    /// * Progressive gravity: true.
-    /// * End conditions: GravityReached(35).
-    pub fn master() -> Self {
-        Self {
-            initial_gravity: Game::INSTANT_GRAVITY,
-            progressive_gravity: true,
-            end_conditions: vec![(Stat::GravityReached(Game::INSTANT_GRAVITY + 15), true)],
-        }
-    }
-}
-
 impl Button {
     /// All button variants.
     pub const VARIANTS: [Self; 9] = [
@@ -801,12 +724,11 @@ impl<T> ops::IndexMut<Button> for [T; 9] {
     }
 }
 
-impl Default for Config {
+impl Default for Configuration {
     fn default() -> Self {
         Self {
+            piece_preview_count: 4,
             rotation_system: RotationSystem::Ocular,
-            tetromino_generation: TetrominoGenerator::recency(),
-            preview_count: 4,
             delayed_auto_shift: Duration::from_millis(167),
             auto_repeat_rate: Duration::from_millis(33),
             soft_drop_factor: 10.0,
@@ -814,6 +736,8 @@ impl Default for Config {
             ground_time_max: Duration::from_millis(2000),
             line_clear_delay: Duration::from_millis(200),
             appearance_delay: Duration::from_millis(50),
+            progressive_gravity: true,
+            end_conditions: EndConditions::default(),
             feedback_verbosity: FeedbackVerbosity::default(),
         }
     }
@@ -844,50 +768,133 @@ impl GameBuilder {
 
     /// Creates a [`Game`] with the information specified by `self` and some one-time `modifiers`.
     pub fn build_modified(&self, modifiers: impl IntoIterator<Item = Modifier>) -> Game {
-        let config = self.config.clone().unwrap_or_default();
-        let mode = self.rules.clone().unwrap_or_default();
-        let seed = self.seed.unwrap_or_else(|| rand::rng().next_u64());
-        let modifiers = modifiers.into_iter().collect();
+        let init_vals = InitialValues {
+            initial_gravity: self.initial_gravity.unwrap_or(1),
+            start_generator: self.start_generator.clone().unwrap_or_default(),
+            seed: self.seed.unwrap_or_else(|| rand::rng().next_u64()),
+        };
         Game {
+            config: self.config.clone(),
             state: State {
                 time: Duration::ZERO,
                 events: HashMap::from([(GameEvent::Spawn, Duration::ZERO)]),
                 buttons_pressed: ButtonsArray::default(),
-                board: std::iter::repeat_n(Line::default(), Game::HEIGHT).collect(),
+                board: Board::default(),
                 active_piece_data: None,
                 hold_piece: None,
-                next_pieces: VecDeque::new(),
-                piece_generator: config.tetromino_generation.clone(),
+                next_pieces: VecDeque::default(),
+                piece_generator: init_vals.start_generator.clone(),
                 pieces_locked: [0; 7],
                 lines_cleared: 0,
-                gravity: mode.initial_gravity,
+                gravity: init_vals.initial_gravity,
                 score: 0,
                 consecutive_line_clears: 0,
-                rng: GameRng::seed_from_u64(seed),
+                rng: GameRng::seed_from_u64(init_vals.seed),
                 result: None,
             },
-            config,
-            rules: mode,
-            seed,
-            modifiers,
+            init_vals,
+            modifiers: modifiers.into_iter().collect(),
         }
     }
 
-    /// Sets the [`GameConfig`] that will be used by `Game`.
-    pub fn config(mut self, game_config: Config) -> Self {
-        self.config = Some(game_config);
+    /// Sets the [`InitialValues`] that will be used by [`Game`].
+    pub fn init_vals(self, x: InitialValues) -> Self {
+        self.seed(x.seed)
+            .initial_gravity(x.initial_gravity)
+            .start_generator(x.start_generator)
+    }
+
+    /// The value to seed the game's PRNG with.
+    pub fn seed(mut self, x: u64) -> Self {
+        self.seed = Some(x);
         self
     }
 
-    /// Sets the [`GameMode`] that will be used by `Game`.
-    pub fn rules(mut self, game_rules: Rules) -> Self {
-        self.rules = Some(game_rules);
+    /// The gravity at which a game should start.
+    pub fn initial_gravity(mut self, x: u32) -> Self {
+        self.initial_gravity = Some(x);
         self
     }
 
-    /// Sets the `seed` that will be used to initialize the PRNG in `Game`.
-    pub fn seed(mut self, seed: u64) -> Self {
-        self.seed = Some(seed);
+    /// The method (and internal state) of tetromino generation used.
+    pub fn start_generator(mut self, x: TetrominoGenerator) -> Self {
+        self.start_generator = Some(x);
+        self
+    }
+
+    /// Sets the [`Configuration`] that will be used by [`Game`].
+    pub fn config(mut self, x: Configuration) -> Self {
+        self.config = x;
+        self
+    }
+
+    /// How many pieces should be pre-generated and accessible/visible in the game state.
+    pub fn piece_preview_count(mut self, x: usize) -> Self {
+        self.config.piece_preview_count = x;
+        self
+    }
+    /// The method of tetromino rotation used.
+    pub fn rotation_system(mut self, x: RotationSystem) -> Self {
+        self.config.rotation_system = x;
+        self
+    }
+    /// How long it takes for the active piece to start automatically shifting more to the side
+    /// after the initial time a 'move' button has been pressed.
+    pub fn delayed_auto_shift(mut self, x: Duration) -> Self {
+        self.config.delayed_auto_shift = x;
+        self
+    }
+    /// How long it takes for automatic side movement to repeat once it has started.
+    pub fn auto_repeat_rate(mut self, x: Duration) -> Self {
+        self.config.auto_repeat_rate = x;
+        self
+    }
+    /// How much faster than normal drop speed a piece should fall while 'soft drop' is being held.
+    pub fn soft_drop_factor(mut self, x: f64) -> Self {
+        self.config.soft_drop_factor = x;
+        self
+    }
+    /// How long it takes a piece to attempt locking down after 'hard drop' has landed the piece on
+    /// the ground.
+    pub fn hard_drop_delay(mut self, x: Duration) -> Self {
+        self.config.hard_drop_delay = x;
+        self
+    }
+    /// How long each spawned active piece may touch the ground in total until it should lock down
+    /// immediately.
+    pub fn ground_time_max(mut self, x: Duration) -> Self {
+        self.config.ground_time_max = x;
+        self
+    }
+    /// How long the game should wait after clearing a line.
+    pub fn line_clear_delay(mut self, x: Duration) -> Self {
+        self.config.line_clear_delay = x;
+        self
+    }
+    /// How long the game should wait *additionally* before spawning a new piece.
+    pub fn appearance_delay(mut self, x: Duration) -> Self {
+        self.config.appearance_delay = x;
+        self
+    }
+    /// Whether the gravity should be automatically incremented while the game plays.
+    pub fn progressive_gravity(mut self, x: bool) -> Self {
+        self.config.progressive_gravity = x;
+        self
+    }
+    /// Stores the ways in which a round of the game should be limited.
+    ///
+    /// Each limitation may be either of positive ('game completed') or negative ('game over'), as
+    /// designated by the `bool` stored with it.
+    ///
+    /// No limitations may allow for endless games.
+    pub fn end_conditions(mut self, x: Vec<(Stat, bool)>) -> Self {
+        self.config.end_conditions = x;
+        self
+    }
+
+    /// The amount of feedback information that is to be generated.
+    pub fn feedback_verbosity(mut self, x: FeedbackVerbosity) -> Self {
+        self.config.feedback_verbosity = x;
         self
     }
 }
@@ -899,22 +906,27 @@ impl Game {
     pub const WIDTH: usize = 10;
     /// The maximal height of the (conventionally visible) playing grid that can be played in.
     pub const SKYLINE: usize = 20;
-    // This is the level at which blocks start falling with 20G / instantly hit the floor.
-    const INSTANT_GRAVITY: u32 = 20;
+    /// This is the gravity level at which blocks instantly hit the floor ("20G").
+    pub const INSTANT_GRAVITY: u32 = 20;
 
     /// Creates a blank new template representing a yet-to-be-started [`Game`] ready for configuration.
     pub fn builder() -> GameBuilder {
         GameBuilder::default()
     }
 
-    /// Read accessor for the current game configurations.
-    pub const fn config(&self) -> &Config {
+    /// Read accessor for the game's configuration.
+    pub const fn config(&self) -> &Configuration {
         &self.config
     }
 
-    /// Read accessor for the current game mode.
-    pub const fn mode(&self) -> &Rules {
-        &self.rules
+    /// Read accessor for the game's initial values.
+    pub const fn init_vals(&self) -> &InitialValues {
+        &self.init_vals
+    }
+
+    /// Read accessor for the game's list of modifiers.
+    pub const fn modifiers(&self) -> &Vec<Modifier> {
+        &self.modifiers
     }
 
     /// Read accessor for the current game state.
@@ -922,13 +934,8 @@ impl Game {
         &self.state
     }
 
-    /// Read accessor for the game seed.
-    pub const fn seed(&self) -> u64 {
-        self.seed
-    }
-
     /// Mutable accessor for the current game configurations.
-    pub const fn config_mut(&mut self) -> &mut Config {
+    pub const fn config_mut(&mut self) -> &mut Configuration {
         &mut self.config
     }
 
@@ -964,11 +971,10 @@ impl Game {
     /// Creates a blueprint [`GameBuilder`] and an iterator over current modifier identifiers ([`&str`]s) from which the exact game can potentially be rebuilt.
     pub fn blueprint(&self) -> (GameBuilder, impl Iterator<Item = &str>) {
         let builder = GameBuilder {
-            config: Some(self.config.clone()),
-            rules: Some(self.rules.clone()),
-            _state: (),
-            seed: Some(self.seed),
-            _modifiers: (),
+            config: self.config.clone(),
+            initial_gravity: Some(self.init_vals.initial_gravity),
+            start_generator: Some(self.init_vals.start_generator.clone()),
+            seed: Some(self.init_vals.seed),
         };
         let mod_descriptors = self.modifiers.iter().map(|m| m.descriptor.as_str());
         (builder, mod_descriptors)
@@ -983,9 +989,8 @@ impl Game {
         } else {
             Some(Game {
                 config: self.config.clone(),
-                rules: self.rules.clone(),
+                init_vals: self.init_vals.clone(),
                 state: self.state.clone(),
-                seed: self.seed,
                 modifiers: Vec::new(),
             })
         }

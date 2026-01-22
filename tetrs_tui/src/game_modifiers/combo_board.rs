@@ -7,8 +7,8 @@ use tetrs_engine::{
 pub const MOD_ID: &str = "combo_board";
 
 pub const LAYOUTS: [u16; 5] = [
-    0b0000_0000_1100_1000, // "r"
-    0b0000_0000_0000_1110, // "_"
+    0b0000_0000_1100_1000, // "r "
+    0b0000_0000_0000_1110, // "_ "
     0b0000_1100_1000_1011, // "f _"
     0b0000_1100_1000_1101, // "k ."
     0b1000_1000_1000_1101, // "L ."
@@ -26,7 +26,7 @@ pub fn modifier(initial_layout: u16) -> Modifier {
             "{MOD_ID}\n{}",
             serde_json::to_string(&initial_layout).unwrap()
         ),
-        mod_function: Box::new(move |_config, _rules, state, mod_pt, _feedback_msgs| {
+        mod_function: Box::new(move |_config, _rules, state, modpoint, _feedback_msgs| {
             if !init {
                 for (line, four_well) in state
                     .board
@@ -38,14 +38,17 @@ pub fn modifier(initial_layout: u16) -> Modifier {
                 }
                 init_board(&mut state.board, initial_layout);
                 init = true;
-            } else if matches!(mod_pt, ModificationPoint::AfterEvent(GameEvent::Lock)) {
+            } else if matches!(modpoint, ModificationPoint::AfterEvent(GameEvent::Lock)) {
                 // No lineclear, game over.
                 if !state.events.contains_key(&GameEvent::LineClear) {
                     state.result = Some(Err(GameOver::ModeLimit));
-                // Combo continues, prepare new line.
-                } else {
-                    state.board.push(line_source.next().unwrap());
                 }
+            // Combo continues, prepare new line.
+            } else if matches!(
+                modpoint,
+                ModificationPoint::AfterEvent(GameEvent::LineClear)
+            ) {
+                state.board[Game::HEIGHT - 1] = line_source.next().unwrap();
             }
         }),
     }

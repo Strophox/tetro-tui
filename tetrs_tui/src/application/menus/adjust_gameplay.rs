@@ -21,19 +21,19 @@ use crate::application::{Application, Menu, MenuUpdate, Settings};
 impl<T: Write> Application<T> {
     pub(in crate::application) fn menu_adjust_gameplay(&mut self) -> io::Result<MenuUpdate> {
         let if_slot_is_default_then_copy_and_switch = |settings: &mut Settings| {
-            if settings.config_slot_active < settings.config_slots_that_should_not_be_changed {
+            if settings.gameplay_slot_active < settings.gameplay_slots_that_should_not_be_changed {
                 let mut n = 1;
                 let new_custom_slot_name = loop {
                     let name = format!("custom_{n}");
-                    if settings.config_slots.iter().any(|s| s.0 == name) {
+                    if settings.gameplay_slots.iter().any(|s| s.0 == name) {
                         n += 1;
                     } else {
                         break name;
                     }
                 };
-                let new_slot = (new_custom_slot_name, settings.config().clone());
-                settings.config_slots.push(new_slot);
-                settings.config_slot_active = settings.config_slots.len() - 1;
+                let new_slot = (new_custom_slot_name, settings.gameplay().clone());
+                settings.gameplay_slots.push(new_slot);
+                settings.gameplay_slot_active = settings.gameplay_slots.len() - 1;
             }
         };
         let selection_len = 10;
@@ -57,16 +57,16 @@ impl<T: Write> Application<T> {
             // Draw slot label.
             let slot_label = format!(
                 "Slot ({}/{}): \"{}\"{}",
-                self.settings.config_slot_active + 1,
-                self.settings.config_slots.len(),
-                self.settings.config_slots[self.settings.config_slot_active].0,
-                if self.settings.config_slots.len() < 2 {
+                self.settings.gameplay_slot_active + 1,
+                self.settings.gameplay_slots.len(),
+                self.settings.gameplay_slots[self.settings.gameplay_slot_active].0,
+                if self.settings.gameplay_slots.len() < 2 {
                     "".to_owned()
                 } else {
                     format!(
                         " [←|{}→] ",
-                        if self.settings.config_slot_active
-                            < self.settings.config_slots_that_should_not_be_changed
+                        if self.settings.gameplay_slot_active
+                            < self.settings.gameplay_slots_that_should_not_be_changed
                         {
                             ""
                         } else {
@@ -92,11 +92,11 @@ impl<T: Write> Application<T> {
             let labels = [
                 format!(
                     "Rotation system: {:?}",
-                    self.settings.config().rotation_system
+                    self.settings.gameplay().rotation_system
                 ),
                 format!(
-                    "Piece generation: {}",
-                    match &self.settings.config().tetromino_generation {
+                    "Tetromino generator: {}",
+                    match &self.settings.gameplay().tetromino_generator {
                         TetrominoGenerator::Uniform => "Uniformly random".to_owned(),
                         TetrominoGenerator::Stock { .. } => "Bag".to_owned(),
                         TetrominoGenerator::Recency { .. } => "Recency".to_owned(),
@@ -106,26 +106,29 @@ impl<T: Write> Application<T> {
                             format!("Cycling pattern {pattern:?}"),
                     }
                 ),
-                format!("Preview size: {}", self.settings.config().preview_count),
                 format!(
-                    "Delayed auto shift: {:?} *",
-                    self.settings.config().delayed_auto_shift
+                    "Piece preview count: {}",
+                    self.settings.gameplay().piece_preview_count
                 ),
                 format!(
-                    "Auto repeat rate: {:?} *",
-                    self.settings.config().auto_repeat_rate
+                    "Delayed auto shift (DAS): {:?} *",
+                    self.settings.gameplay().delayed_auto_shift
                 ),
                 format!(
-                    "Soft drop factor: {} *",
-                    self.settings.config().soft_drop_factor
+                    "Auto repeat rate (ARR): {:?} *",
+                    self.settings.gameplay().auto_repeat_rate
                 ),
                 format!(
-                    "Line clear delay: {:?}",
-                    self.settings.config().line_clear_delay
+                    "Soft drop factor (SDF): {} *",
+                    self.settings.gameplay().soft_drop_factor
                 ),
                 format!(
-                    "Appearance delay: {:?}",
-                    self.settings.config().appearance_delay
+                    "Line clear delay (LCD): {:?}",
+                    self.settings.gameplay().line_clear_delay
+                ),
+                format!(
+                    "Appearance delay (ARE): {:?}",
+                    self.settings.gameplay().appearance_delay
                 ),
                 format!(
                     "(/!\\ Override) Assume enhanced-key-events: {} *",
@@ -192,13 +195,13 @@ impl<T: Write> Application<T> {
                 }) => {
                     if selected == 0 {
                         // If a custom slot, then remove it (and return to the 'default' 0th slot).
-                        if self.settings.config_slot_active
-                            >= self.settings.config_slots_that_should_not_be_changed
+                        if self.settings.gameplay_slot_active
+                            >= self.settings.gameplay_slots_that_should_not_be_changed
                         {
                             self.settings
-                                .config_slots
-                                .remove(self.settings.config_slot_active);
-                            self.settings.config_slot_active = 0;
+                                .gameplay_slots
+                                .remove(self.settings.gameplay_slot_active);
+                            self.settings.gameplay_slot_active = 0;
                         }
                     }
                 }
@@ -225,13 +228,13 @@ impl<T: Write> Application<T> {
                     ..
                 }) => match selected {
                     0 => {
-                        self.settings.config_slot_active += 1;
-                        self.settings.config_slot_active %= self.settings.config_slots.len();
+                        self.settings.gameplay_slot_active += 1;
+                        self.settings.gameplay_slot_active %= self.settings.gameplay_slots.len();
                     }
                     1 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                        self.settings.config_mut().rotation_system =
-                            match self.settings.config().rotation_system {
+                        self.settings.gameplay_mut().rotation_system =
+                            match self.settings.gameplay().rotation_system {
                                 RotationSystem::Ocular => RotationSystem::Classic,
                                 RotationSystem::Classic => RotationSystem::Super,
                                 RotationSystem::Super => RotationSystem::Ocular,
@@ -239,8 +242,8 @@ impl<T: Write> Application<T> {
                     }
                     2 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                        self.settings.config_mut().tetromino_generation =
-                            match self.settings.config().tetromino_generation {
+                        self.settings.gameplay_mut().tetromino_generator =
+                            match self.settings.gameplay().tetromino_generator {
                                 TetrominoGenerator::Uniform => TetrominoGenerator::bag(),
                                 TetrominoGenerator::Stock { .. } => TetrominoGenerator::recency(),
                                 TetrominoGenerator::Recency { .. } => {
@@ -254,27 +257,27 @@ impl<T: Write> Application<T> {
                     }
                     3 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                        self.settings.config_mut().preview_count += 1;
+                        self.settings.gameplay_mut().piece_preview_count += 1;
                     }
                     4 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                        self.settings.config_mut().delayed_auto_shift += Duration::from_millis(1);
+                        self.settings.gameplay_mut().delayed_auto_shift += Duration::from_millis(1);
                     }
                     5 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                        self.settings.config_mut().auto_repeat_rate += Duration::from_millis(1);
+                        self.settings.gameplay_mut().auto_repeat_rate += Duration::from_millis(1);
                     }
                     6 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                        self.settings.config_mut().soft_drop_factor += 0.5;
+                        self.settings.gameplay_mut().soft_drop_factor += 0.5;
                     }
                     7 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                        self.settings.config_mut().line_clear_delay += Duration::from_millis(10);
+                        self.settings.gameplay_mut().line_clear_delay += Duration::from_millis(10);
                     }
                     8 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                        self.settings.config_mut().appearance_delay += Duration::from_millis(10);
+                        self.settings.gameplay_mut().appearance_delay += Duration::from_millis(10);
                     }
                     9 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
@@ -288,13 +291,14 @@ impl<T: Write> Application<T> {
                     ..
                 }) => match selected {
                     0 => {
-                        self.settings.config_slot_active += self.settings.config_slots.len() - 1;
-                        self.settings.config_slot_active %= self.settings.config_slots.len();
+                        self.settings.gameplay_slot_active +=
+                            self.settings.gameplay_slots.len() - 1;
+                        self.settings.gameplay_slot_active %= self.settings.gameplay_slots.len();
                     }
                     1 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                        self.settings.config_mut().rotation_system =
-                            match self.settings.config().rotation_system {
+                        self.settings.gameplay_mut().rotation_system =
+                            match self.settings.gameplay().rotation_system {
                                 RotationSystem::Ocular => RotationSystem::Super,
                                 RotationSystem::Super => RotationSystem::Classic,
                                 RotationSystem::Classic => RotationSystem::Ocular,
@@ -302,8 +306,8 @@ impl<T: Write> Application<T> {
                     }
                     2 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                        self.settings.config_mut().tetromino_generation =
-                            match self.settings.config().tetromino_generation {
+                        self.settings.gameplay_mut().tetromino_generator =
+                            match self.settings.gameplay().tetromino_generator {
                                 TetrominoGenerator::Uniform => {
                                     TetrominoGenerator::balance_relative()
                                 }
@@ -317,44 +321,47 @@ impl<T: Write> Application<T> {
                     }
                     3 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                        self.settings.config_mut().preview_count =
-                            self.settings.config().preview_count.saturating_sub(1);
+                        self.settings.gameplay_mut().piece_preview_count = self
+                            .settings
+                            .gameplay()
+                            .piece_preview_count
+                            .saturating_sub(1);
                     }
                     4 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                        self.settings.config_mut().delayed_auto_shift = self
+                        self.settings.gameplay_mut().delayed_auto_shift = self
                             .settings
-                            .config()
+                            .gameplay()
                             .delayed_auto_shift
                             .saturating_sub(Duration::from_millis(1));
                     }
                     5 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                        self.settings.config_mut().auto_repeat_rate = self
+                        self.settings.gameplay_mut().auto_repeat_rate = self
                             .settings
-                            .config()
+                            .gameplay()
                             .auto_repeat_rate
                             .saturating_sub(Duration::from_millis(1));
                     }
                     6 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                        if self.settings.config().soft_drop_factor > 0.0 {
-                            self.settings.config_mut().soft_drop_factor -= 0.5;
+                        if self.settings.gameplay().soft_drop_factor > 0.0 {
+                            self.settings.gameplay_mut().soft_drop_factor -= 0.5;
                         }
                     }
                     7 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                        self.settings.config_mut().line_clear_delay = self
+                        self.settings.gameplay_mut().line_clear_delay = self
                             .settings
-                            .config()
+                            .gameplay()
                             .line_clear_delay
                             .saturating_sub(Duration::from_millis(10));
                     }
                     8 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                        self.settings.config_mut().appearance_delay = self
+                        self.settings.gameplay_mut().appearance_delay = self
                             .settings
-                            .config()
+                            .gameplay()
                             .appearance_delay
                             .saturating_sub(Duration::from_millis(10));
                     }

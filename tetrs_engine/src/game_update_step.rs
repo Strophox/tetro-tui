@@ -125,7 +125,7 @@ impl Game {
         if self.state.result.is_some() {
             return;
         }
-        self.state.result = self.rules.end_conditions.iter().find_map(|(c, good)| {
+        self.state.result = self.config.end_conditions.iter().find_map(|(c, good)| {
             self.check_stat_met(c).then_some(if *good {
                 Ok(())
             } else {
@@ -143,7 +143,7 @@ impl Game {
         for modifier in &mut self.modifiers {
             (modifier.mod_function)(
                 &mut self.config,
-                &mut self.rules,
+                &mut self.init_vals,
                 &mut self.state,
                 modifier_point,
                 feedback_msgs,
@@ -291,7 +291,7 @@ impl Game {
                         .with_rng(&mut self.state.rng)
                         .take(
                             self.config
-                                .preview_count
+                                .piece_preview_count
                                 .saturating_sub(self.state.next_pieces.len()),
                         ),
                 );
@@ -546,16 +546,15 @@ impl Game {
                 for y in (0..Game::HEIGHT).rev() {
                     // Full line: move it to the cleared lines storage and push an empty line to the board.
                     if self.state.board[y].iter().all(|mino| mino.is_some()) {
-                        self.state.board.remove(y);
+                        // Starting from the offending line, we move down all others, then default the uppermost.
+                        self.state.board[y..].rotate_left(1);
+                        self.state.board[Game::HEIGHT - 1] = Line::default();
                         self.state.lines_cleared += 1;
                         // Increment level if 10 lines cleared.
-                        if self.rules.progressive_gravity && self.state.lines_cleared % 10 == 0 {
+                        if self.config.progressive_gravity && self.state.lines_cleared % 10 == 0 {
                             self.state.gravity = self.state.gravity.saturating_add(1);
                         }
                     }
-                }
-                while self.state.board.len() < Game::HEIGHT {
-                    self.state.board.push(Line::default());
                 }
                 self.state
                     .events

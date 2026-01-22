@@ -39,10 +39,10 @@ impl Renderer for BrailleRenderer {
             ..
         } = game.state();
 
-        let mut bd = board.clone();
+        let mut board = *board;
         if let Some((active_piece, _)) = active_piece_data {
             for ((x, y), tile_type_id) in active_piece.tiles() {
-                bd[y][x] = Some(tile_type_id);
+                board[y][x] = Some(tile_type_id);
             }
         }
 
@@ -61,7 +61,7 @@ impl Renderer for BrailleRenderer {
         ]
         .iter()
         .map(|[i0, i1, i2, i3]| {
-            let [l0, l1, l2, l3] = [bd[*i0], bd[*i1], bd[*i2], bd[*i3]];
+            let [l0, l1, l2, l3] = [board[*i0], board[*i1], board[*i2], board[*i3]];
             [[0, 1], [2, 3], [4, 5], [6, 7], [8, 9]]
                 .iter()
                 .map(|[j0, j1]| {

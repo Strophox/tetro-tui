@@ -4,7 +4,7 @@ use rand::Rng;
 
 use tetrs_engine::{
     ActivePiece, Game, GameBuilder, GameEvent, GameModFn, GameRng, GameTime, Line, LockingData,
-    ModificationPoint, Modifier, Rules, Stat, Tetromino,
+    ModificationPoint, Modifier, Stat, Tetromino,
 };
 
 pub const MOD_ID: &str = "ascent";
@@ -49,7 +49,7 @@ pub fn build(builder: &GameBuilder) -> Game {
                 ));
                 state.hold_piece = Some((asc_tet_2, true));
                 // No further pieces required.
-                config.preview_count = 0;
+                config.piece_preview_count = 0;
             }
 
             // We can only do things if a piece exists.
@@ -66,8 +66,8 @@ pub fn build(builder: &GameBuilder) -> Game {
                 active_piece.position.1 -= 1;
                 state.lines_cleared += 1;
                 let mut line_source = random_ascent_lines(&mut state.rng, &mut height_generated);
-                state.board.push(line_source.next().unwrap());
-                state.board.remove(0);
+                state.board.rotate_left(1);
+                state.board[Game::HEIGHT - 1] = line_source.next().unwrap();
                 timepoint_camera_adjusted = state.time;
             }
 
@@ -126,21 +126,15 @@ pub fn build(builder: &GameBuilder) -> Game {
             state.hold_piece.unwrap().1 = true;
         });
 
-    let rules = Rules {
-        initial_gravity: 0,
-        progressive_gravity: false,
-        end_conditions: vec![(Stat::TimeElapsed(Duration::from_secs(3 * 60)), true)],
-    };
-
-    let ascent_modifier = Modifier {
-        descriptor: MOD_ID.to_owned(),
-        mod_function,
-    };
-
     builder
         .clone()
-        .rules(rules)
-        .build_modified([ascent_modifier])
+        .initial_gravity(0)
+        .progressive_gravity(false)
+        .end_conditions(vec![(Stat::TimeElapsed(Duration::from_secs(2 * 60)), true)])
+        .build_modified([Modifier {
+            descriptor: MOD_ID.to_owned(),
+            mod_function,
+        }])
 }
 
 pub fn random_ascent_lines<'a>(

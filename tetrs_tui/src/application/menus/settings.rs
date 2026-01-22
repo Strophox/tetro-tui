@@ -68,12 +68,19 @@ impl<T: Write> Application<T> {
                     format!(
                         "{:^w_main$}",
                         if self.save_on_exit == SavefileGranularity::NoSavefile {
-                            "(*WARNING: current data will be lost on exit)".to_owned()
+                            "(*Caution: no data will not be stored on exit)".to_owned()
                         } else {
-                            format!("(Save file at {:?})", Self::savefile_path())
+                            format!("(Save file - {:?})", Self::savefile_path())
                         },
                     )
-                    .italic(),
+                    .italic()
+                    .with(
+                        if self.save_on_exit == SavefileGranularity::NoSavefile {
+                            crossterm::style::Color::Yellow
+                        } else {
+                            crossterm::style::Color::Reset
+                        },
+                    ),
                 ))?;
             self.term.flush()?;
             // Wait for new input.

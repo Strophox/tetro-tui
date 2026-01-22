@@ -2,7 +2,7 @@ use std::{collections::VecDeque, num::NonZeroU8};
 
 use tetrs_engine::{
     EndConditions, Feedback, FeedbackMessages, Game, GameBuilder, GameEvent, GameModFn, GameOver,
-    Line, ModificationPoint, Modifier, Rules, State, Tetromino,
+    Line, ModificationPoint, Modifier, State, Tetromino,
 };
 
 pub const MOD_ID: &str = "puzzle";
@@ -100,9 +100,9 @@ pub fn build(builder: &GameBuilder) -> Game {
             modpoint,
             ModificationPoint::BeforeEvent(_) | ModificationPoint::BeforeInput
         ) {
-            config.preview_count = 0;
+            config.piece_preview_count = 0;
         } else {
-            config.preview_count = state.next_pieces.len();
+            config.piece_preview_count = state.next_pieces.len();
             // Delete accolades.
             msgs.retain(|evt| !matches!(evt, (_, Feedback::Accolade { .. })));
         }
@@ -117,19 +117,15 @@ pub fn build(builder: &GameBuilder) -> Game {
             state.events.remove(&GameEvent::Hold);
         }
     });
-    let puzzle_modifier = Modifier {
-        descriptor: MOD_ID.to_owned(),
-        mod_function,
-    };
-    let rules = Rules {
-        initial_gravity: 2,
-        progressive_gravity: false,
-        end_conditions: EndConditions::default(),
-    };
     builder
         .clone()
-        .rules(rules)
-        .build_modified([puzzle_modifier])
+        .initial_gravity(2)
+        .progressive_gravity(false)
+        .end_conditions(EndConditions::default())
+        .build_modified([Modifier {
+            descriptor: MOD_ID.to_owned(),
+            mod_function,
+        }])
 }
 
 #[allow(clippy::type_complexity)]

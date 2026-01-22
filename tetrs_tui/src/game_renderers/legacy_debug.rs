@@ -40,10 +40,10 @@ impl Renderer for DebugRenderer {
             active_piece_data,
             ..
         } = game.state();
-        let mut temp_board = board.clone();
+        let mut board = *board;
         if let Some((active_piece, _)) = active_piece_data {
             for ((x, y), tile_type_id) in active_piece.tiles() {
-                temp_board[y][x] = Some(tile_type_id);
+                board[y][x] = Some(tile_type_id);
             }
         }
         app.term
@@ -52,7 +52,7 @@ impl Renderer for DebugRenderer {
         app.term
             .queue(Print("   +--------------------+"))?
             .queue(MoveToNextLine(1))?;
-        for (idx, line) in temp_board.iter().take(20).enumerate().rev() {
+        for (idx, line) in board.iter().take(20).enumerate().rev() {
             let txt_line = format!(
                 "{idx:02} |{}|",
                 line.iter()

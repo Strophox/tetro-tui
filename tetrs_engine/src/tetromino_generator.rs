@@ -17,7 +17,7 @@ use crate::Tetromino;
 ///
 /// To actually generate [`Tetromino`]s, the [`TetrominoSource::with_rng`] method needs to be used to yield a
 /// [`TetrominoIterator`] that implements [`Iterator`].
-#[derive(PartialEq, PartialOrd, Clone, Debug)]
+#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Hash, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum TetrominoGenerator {
     /// Uniformly random piece generator.
@@ -49,7 +49,7 @@ pub enum TetrominoGenerator {
         /// Determines how strongly it weighs pieces not generated in a while.
         ///
         ///
-        snap: f64,
+        snap: u32,
     },
     /// Experimental generator based off of how many times each [`Tetromino`] type has been seen
     /// *in total so far*.
@@ -67,6 +67,12 @@ pub enum TetrominoGenerator {
         /// Index to the piece that will be yielded next.
         index: usize,
     },
+}
+
+impl Default for TetrominoGenerator {
+    fn default() -> Self {
+        Self::recency()
+    }
 }
 
 impl TetrominoGenerator {
@@ -102,20 +108,16 @@ impl TetrominoGenerator {
     /// Initialize a default instance of the [`TetrominoSource::Recency`] variant.
     pub const fn recency() -> Self {
         // SAFETY: 2.5 is not NaN.
-        unsafe { Self::recency_with(2.5).unwrap_unchecked() }
+        Self::recency_with(250)
     }
 
     /// Initialize a custom instance of the [`TetrominoSource::Recency`] variant.
     ///
     /// This function returns `None` when `snap` is NaN (see [`f64::is_nan`]).
-    pub const fn recency_with(snap: f64) -> Option<Self> {
-        if !snap.is_nan() {
-            Some(Self::Recency {
-                last_generated: [1; 7],
-                snap,
-            })
-        } else {
-            None
+    pub const fn recency_with(snap: u32) -> Self {
+        Self::Recency {
+            last_generated: [1; 7],
+            snap,
         }
     }
 
@@ -193,15 +195,15 @@ impl<'a, 'b, R: Rng> Iterator for Iter<'a, 'b, R> {
                 last_generated,
                 snap,
             } => {
-                let weighing = |&x| f64::from(x).powf(*snap);
+                let weighing = |&x| f64::from(x).powf(f64::from(*snap) / 100.);
                 let weights = last_generated.iter().map(weighing);
                 // SAFETY: `weights` will always be non-zero due to struct invarian.
                 let idx = WeightedIndex::new(weights).unwrap().sample(&mut self.rng);
                 // Update all tetromino last_played values and maybe rebalance all relative counts..
+                last_generated[idx] = 0;
                 for x in last_generated.iter_mut() {
                     *x += 1;
                 }
-                last_generated[idx] = 0;
                 // SAFETY: 0 <= idx <= 6.
                 Some(Tetromino::VARIANTS[idx])
             }

@@ -12,8 +12,9 @@ use std::{
 use crossterm::{cursor, style, terminal, ExecutableCommand};
 
 use tetrs_engine::{
-    Board, Button, Config, Feedback, FeedbackVerbosity, Game, GameBuilder, GameOver, GameResult,
-    GameTime, Line, Modifier, PressedButtons, Rules, Stat, Tetromino,
+    Board, Button, Configuration, Feedback, FeedbackVerbosity, Game, GameBuilder, GameOver,
+    GameResult, GameTime, Modifier, PressedButtons, RotationSystem, Stat, Tetromino,
+    TetrominoGenerator,
 };
 
 use crate::{
@@ -239,7 +240,9 @@ pub struct Scoreboard {
     Eq, PartialEq, Ord, PartialOrd, Clone, Hash, Debug, serde::Serialize, serde::Deserialize,
 )]
 pub struct NewGameSettings {
-    custom_rules: Rules,
+    custom_initial_gravity: u32,
+    custom_progressive_gravity: bool,
+    custom_win_condition: Option<Stat>,
     custom_seed: Option<u64>,
     custom_board: Option<String>, // For more compact serialization of NewGameSettings, we store an encoded `Board` (see `encode_board`).
     /// Custom starting layout when playing Combo mode (4-wide rows), encoded as binary.
@@ -255,7 +258,9 @@ pub struct NewGameSettings {
 impl Default for NewGameSettings {
     fn default() -> Self {
         Self {
-            custom_rules: Rules::default(),
+            custom_initial_gravity: 1,
+            custom_progressive_gravity: true,
+            custom_win_condition: None,
             custom_seed: None,
             custom_board: None,
             cheese_linelimit: Some(NonZeroUsize::try_from(50).unwrap()),
@@ -285,18 +290,17 @@ impl NewGameSettings {
     pub fn decode_board(board_str: &str) -> Board {
         let grey_tile = Some(std::num::NonZeroU8::try_from(254).unwrap());
         let mut chars = board_str.chars();
-        std::iter::repeat_n(Line::default(), Game::HEIGHT)
-            .map(|mut line| {
-                for tile in &mut line {
-                    if let Some(char) = chars.next() {
-                        *tile = if char != ' ' { grey_tile } else { None };
-                    } else {
-                        break;
-                    }
+        let mut new_board = Board::default();
+        for line in &mut new_board {
+            for tile in line {
+                if let Some(char) = chars.next() {
+                    *tile = if char != ' ' { grey_tile } else { None };
+                } else {
+                    break;
                 }
-                line
-            })
-            .collect()
+            }
+        }
+        new_board
     }
 }
 
@@ -321,6 +325,48 @@ pub struct GraphicsSettings {
     show_fps: bool,
 }
 
+impl Default for GraphicsSettings {
+    fn default() -> Self {
+        Self {
+            glyphset: Glyphset::Unicode,
+            palette_active: 3,
+            palette_active_lockedtiles: 3,
+            render_effects: true,
+            show_ghost_piece: true,
+            game_fps: 30.0,
+            show_fps: false,
+        }
+    }
+}
+
+#[derive(PartialEq, PartialOrd, Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct GameplaySettings {
+    rotation_system: RotationSystem,
+    tetromino_generator: TetrominoGenerator,
+    piece_preview_count: usize,
+    delayed_auto_shift: Duration,
+    auto_repeat_rate: Duration,
+    soft_drop_factor: f64,
+    line_clear_delay: Duration,
+    appearance_delay: Duration,
+}
+
+impl Default for GameplaySettings {
+    fn default() -> Self {
+        let c = Configuration::default();
+        Self {
+            rotation_system: c.rotation_system,
+            tetromino_generator: TetrominoGenerator::default(),
+            piece_preview_count: c.piece_preview_count,
+            delayed_auto_shift: c.delayed_auto_shift,
+            auto_repeat_rate: c.auto_repeat_rate,
+            soft_drop_factor: c.soft_drop_factor,
+            line_clear_delay: c.line_clear_delay,
+            appearance_delay: c.appearance_delay,
+        }
+    }
+}
+
 #[derive(
     Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug, serde::Serialize, serde::Deserialize,
 )]
@@ -336,34 +382,24 @@ pub enum SavefileGranularity {
 pub struct Settings {
     graphics_slot_active: usize,
     keybinds_slot_active: usize,
-    config_slot_active: usize,
+    gameplay_slot_active: usize,
     graphics_slots_that_should_not_be_changed: usize,
     palette_slots_that_should_not_be_changed: usize,
     keybinds_slots_that_should_not_be_changed: usize,
-    config_slots_that_should_not_be_changed: usize,
+    gameplay_slots_that_should_not_be_changed: usize,
     graphics_slots: Slots<GraphicsSettings>,
     palette_slots: Slots<Palette>,
-    config_slots: Slots<Config>,
+    gameplay_slots: Slots<GameplaySettings>,
     // NOTE: Reconsider #[serde_as(as = "Vec<(_, std::collections::HashMap<serde_with::json::JsonString, _>)>")]
     #[serde_as(as = "Vec<(_, Vec<(_, _)>)>")]
     keybinds_slots: Slots<Keybinds>,
+    new_game: NewGameSettings,
 }
 
 impl Default for Settings {
     fn default() -> Self {
         let graphics_slots = vec![
-            (
-                "default".to_owned(),
-                GraphicsSettings {
-                    glyphset: Glyphset::Unicode,
-                    palette_active: 3,
-                    palette_active_lockedtiles: 3,
-                    render_effects: true,
-                    show_ghost_piece: true,
-                    game_fps: 30.0,
-                    show_fps: false,
-                },
-            ),
+            ("default".to_owned(), GraphicsSettings::default()),
             (
                 "high focus".to_owned(),
                 GraphicsSettings {
@@ -390,30 +426,31 @@ impl Default for Settings {
             ("Vim-like".to_owned(), vim_keybinds()),
             ("TTC default".to_owned(), guideline_keybinds()),
         ];
-        let config_slots = vec![
-            ("default".to_owned(), Config::default()),
+        let gameplay_slots = vec![
+            ("default".to_owned(), GameplaySettings::default()),
             (
                 "high finesse".to_owned(),
-                Config {
-                    preview_count: 9,
+                GameplaySettings {
                     delayed_auto_shift: Duration::from_millis(110),
                     auto_repeat_rate: Duration::from_millis(0),
-                    ..Config::default()
+                    piece_preview_count: 9,
+                    ..GameplaySettings::default()
                 },
             ),
         ];
         Self {
             graphics_slot_active: 0,
             keybinds_slot_active: 0,
-            config_slot_active: 0,
+            gameplay_slot_active: 0,
             graphics_slots_that_should_not_be_changed: graphics_slots.len(),
             palette_slots_that_should_not_be_changed: palette_slots.len(),
             keybinds_slots_that_should_not_be_changed: keybinds_slots.len(),
-            config_slots_that_should_not_be_changed: config_slots.len(),
+            gameplay_slots_that_should_not_be_changed: gameplay_slots.len(),
             graphics_slots,
             palette_slots,
             keybinds_slots,
-            config_slots,
+            gameplay_slots,
+            new_game: NewGameSettings::default(),
         }
     }
 }
@@ -425,8 +462,8 @@ impl Settings {
     pub fn keybinds(&self) -> &Keybinds {
         &self.keybinds_slots[self.keybinds_slot_active].1
     }
-    pub fn config(&self) -> &Config {
-        &self.config_slots[self.config_slot_active].1
+    pub fn gameplay(&self) -> &GameplaySettings {
+        &self.gameplay_slots[self.gameplay_slot_active].1
     }
     fn graphics_mut(&mut self) -> &mut GraphicsSettings {
         &mut self.graphics_slots[self.graphics_slot_active].1
@@ -434,8 +471,8 @@ impl Settings {
     fn keybinds_mut(&mut self) -> &mut Keybinds {
         &mut self.keybinds_slots[self.keybinds_slot_active].1
     }
-    fn config_mut(&mut self) -> &mut Config {
-        &mut self.config_slots[self.config_slot_active].1
+    fn gameplay_mut(&mut self) -> &mut GameplaySettings {
+        &mut self.gameplay_slots[self.gameplay_slot_active].1
     }
 
     pub fn palette(&self) -> &Palette {
@@ -513,9 +550,8 @@ pub struct Application<T: Write> {
     pub term: T,
     save_on_exit: SavefileGranularity,
     settings: Settings,
-    new_game_settings: NewGameSettings,
-    savepoint: Option<(GameMetaData, usize, GameRestorationData)>,
     scoreboard: Scoreboard,
+    game_savepoint: Option<(GameMetaData, usize, GameRestorationData)>,
 }
 
 impl<T: Write> Drop for Application<T> {
@@ -567,8 +603,7 @@ impl<T: Write> Application<T> {
             term,
             settings: Settings::default(),
             scoreboard: Scoreboard::default(),
-            new_game_settings: NewGameSettings::default(),
-            savepoint: None,
+            game_savepoint: None,
             save_on_exit: SavefileGranularity::NoSavefile,
         };
 
@@ -587,10 +622,10 @@ impl<T: Write> Application<T> {
             kitty_assumed: kitty_detected,
         };
         if custom_start_board.is_some() {
-            app.new_game_settings.custom_board = custom_start_board;
+            app.settings.new_game.custom_board = custom_start_board;
         }
         if custom_start_seed.is_some() {
-            app.new_game_settings.custom_seed = custom_start_seed;
+            app.settings.new_game.custom_seed = custom_start_seed;
         }
         app
     }
@@ -627,9 +662,8 @@ impl<T: Write> Application<T> {
         let save_state = (
             &self.save_on_exit,
             &self.settings,
-            &self.new_game_settings,
             &self.scoreboard,
-            &self.savepoint,
+            &self.game_savepoint,
         );
         let save_str = serde_json::to_string(&save_state)?;
         let mut file = File::create(path)?;
@@ -646,9 +680,8 @@ impl<T: Write> Application<T> {
         (
             self.save_on_exit,
             self.settings,
-            self.new_game_settings,
             self.scoreboard,
-            self.savepoint,
+            self.game_savepoint,
         ) = save_state;
         Ok(())
     }
