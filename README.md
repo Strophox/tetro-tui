@@ -352,6 +352,7 @@ We list considerations regarding perfomance of both the tetrs engine and TUI:
 
 - `TODO`s serve as important markers for issues/features that should be dealt with 'ASAP' or at least before releases.
 - Long-term `FIXME`s in the code base.
+- Due to fast development iterations, A lot of documentation might be missing or be outdated (including descriptions in this README).
 - General improvements to the tetrs engine:
   - Better API documentation (`cargo doc --open`).
   - Better implementation/code comments.
@@ -371,7 +372,7 @@ Note that the TUI itself was (in principle) started as 'proof-of-concept'.
 It expanded in scope but unfortunately the code is not in an easy-to-modify state, especially to new contributors.
 
 
-## Provenance
+## Code Provenance
 
 100% human-grown spaghetti code
 
@@ -1010,6 +1011,8 @@ Other stuff:
   ```bash
   agg --font-family="DejaVu Sans Mono" --line-height=1.17 --renderer=resvg --font-size=20, --fps-cap=30 --last-frame-duration=0  my_rec.cast my_rec.gif
   ```
+- Some TUI palettes inspired by [Gruvbox](https://github.com/morhetz/gruvbox) and [Wezterm palettes ('Matrix')](https://wezterm.org/colorschemes/index.html).
+- Terminal that have been tested for Kitty compatibility: Kitty, Alacritty (doesn't work on Windows though?)
 
 
 *„Piecement Places!“* - [CTWC 2016](https://www.youtube.com/watch?v=RlnlDKznIaw&t=121).
