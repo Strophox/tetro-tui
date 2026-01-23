@@ -24,7 +24,7 @@ use crate::{
     game_modifiers,
     game_renderers::{
         self, color16_palette, empty_palette, fullcolor_palette, gruvbox_light_palette,
-        gruvbox_palette, oklch2_palette, Palette,
+        gruvbox_palette, oklch2_palette, the_matrix_palette, Palette,
     },
 };
 
@@ -420,8 +420,9 @@ impl Default for Settings {
             ("16-color".to_owned(), color16_palette()),
             ("Fullcolor".to_owned(), fullcolor_palette()),
             ("Okpalette".to_owned(), oklch2_palette()),
-            ("Gruvbox".to_owned(), gruvbox_palette()),
             ("Gruvbox (light)".to_owned(), gruvbox_light_palette()),
+            ("Gruvbox".to_owned(), gruvbox_palette()),
+            ("The Matrix".to_owned(), the_matrix_palette()),
         ];
         let keybinds_slots = vec![
             ("tetrs default".to_owned(), tetrs_default_keybinds()),
@@ -581,7 +582,8 @@ impl<T: Write> Application<T> {
     pub const W_MAIN: u16 = 80;
     pub const H_MAIN: u16 = 24;
 
-    pub const SAVEFILE_NAME: &'static str = ".tetrs_tui_savefile.json";
+    pub const SAVEFILE_NAME: &'static str =
+        concat!(".tetrs_tui_", clap::crate_version!(), "_savefile.json");
 
     pub fn new(
         mut term: T,

@@ -34,9 +34,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut app = application::Application::new(stdout, args.seed, args.board);
 
     // Catch panics and write error to separate file, so it isn't lost due to app's terminal shenanigans.
+    #[cfg(debug_assertions)]
     std::panic::set_hook(Box::new(|panic_info| {
         let crash_file_name = format!(
-            "tetrs-tui_crash-msg_{}.txt",
+            "tetrs_tui_{}_crash-msg-{}.txt",
+            clap::crate_version!(),
             chrono::Utc::now().format("%Y-%m-%d_%Hh%Mm%Ss")
         );
         if let Ok(mut file) = std::fs::File::create(crash_file_name) {

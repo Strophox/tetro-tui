@@ -6,7 +6,11 @@ impl<T: Write> Application<T> {
     pub(in crate::application) fn menu_about(&mut self) -> io::Result<MenuUpdate> {
         /* FIXME: About menu. */
         self.generic_menu(
-            "About tetrs - Visit https://github.com/Strophox/tetrs",
+            concat!(
+                "About tetrs_tui ",
+                clap::crate_version!(),
+                " - https://github.com/Strophox/tetrs"
+            ),
             vec![],
         )
     }

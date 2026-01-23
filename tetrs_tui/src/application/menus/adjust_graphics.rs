@@ -121,7 +121,7 @@ impl<T: Write> Application<T> {
             }
             self.term.queue(MoveTo(
                 x_main + u16::try_from((w_main - 27) / 2).unwrap(),
-                y_main + y_selection + 6 + u16::try_from(selection_len).unwrap() + 2,
+                y_main + y_selection + 6 + u16::try_from(selection_len).unwrap() + 1,
             ))?;
             for tet in Tetromino::VARIANTS {
                 self.term.queue(PrintStyledContent(

@@ -130,6 +130,23 @@ pub fn gruvbox_light_palette() -> Palette {
     HashMap::from(COLORS_GRUVBOX_LIGHT)
 }
 
+pub fn the_matrix_palette() -> Palette {
+    #[rustfmt::skip]
+    const COLORS_THE_MATRIX: [(u8, Color); 7 + 3] = [
+        (  1, Color::Rgb{r:233,g:226,b:  0}),
+        (  2, Color::Rgb{r: 80,g:180,b: 90}),
+        (  3, Color::Rgb{r:144,g:215,b: 98}),
+        (  4, Color::Rgb{r: 35,g:117,b: 90}),
+        (  5, Color::Rgb{r: 64,g:153,b: 49}),
+        (  6, Color::Rgb{r: 47,g:192,b:121}),
+        (  7, Color::Rgb{r: 79,g:126,b:126}),
+        (253, Color::Rgb{r: 15,g: 25,b: 28}),
+        (254, Color::Rgb{r:109,g:127,b:113}),
+        (255, Color::Rgb{r:234,g:255,b:244}),
+    ];
+    HashMap::from(COLORS_THE_MATRIX)
+}
+
 pub fn tet_str_small(t: &Tetromino) -> &'static str {
     match t {
         Tetromino::O => "██",

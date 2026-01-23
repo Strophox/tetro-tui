@@ -22,8 +22,8 @@ pub mod custom_start_board {
 #[allow(dead_code)]
 pub mod print_recency_tet_gen_stats {
     use tetrs_engine::{
-        tetromino_generator::TetrominoGenerator, Feedback, GameEvent, UpdatePoint, Modifier,
-        Tetromino,
+        tetromino_generator::TetrominoGenerator, Feedback, GameEvent, Modifier, Tetromino,
+        UpdatePoint,
     };
 
     pub const MOD_ID: &str = "print_recency_tet_gen_stats";

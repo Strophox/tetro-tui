@@ -2,7 +2,7 @@ use std::num::{NonZeroU8, NonZeroUsize};
 
 use rand::Rng;
 use tetrs_engine::{
-    Game, GameBuilder, GameEvent, GameModFn, GameRng, Line, UpdatePoint, Modifier, Stat,
+    Game, GameBuilder, GameEvent, GameModFn, GameRng, Line, Modifier, Stat, UpdatePoint,
 };
 
 pub const MOD_ID: &str = "cheese";
@@ -17,47 +17,38 @@ pub fn build(
     let mut temp_normal_tally = 0;
     let mut remaining_lines = linelimit.unwrap_or(NonZeroUsize::MAX).get();
     let mut init = false;
-    let mod_function: Box<GameModFn> = Box::new(
-        move |_config, _init_vals, state, point, _msgs| {
-            if !init {
-                let mut line_source =
-                    random_gap_lines(gapsize, &mut state.rng, &mut remaining_lines);
-                for (line, cheese) in state.board.iter_mut().take(10).rev().zip(&mut line_source) {
-                    *line = cheese;
-                }
-                init = true;
-            } else if matches!(
-                point,
-                UpdatePoint::BeforeEvent(GameEvent::LineClear)
-            ) {
-                for line in state.board.iter() {
-                    if line.iter().all(|mino| mino.is_some()) {
-                        let is_cheese_line = line
-                            .iter()
-                            .any(|cell| *cell == Some(NonZeroU8::try_from(254).unwrap()));
-                        if is_cheese_line {
-                            temp_cheese_tally += 1;
-                        } else {
-                            temp_normal_tally += 1;
-                        }
+    let mod_function: Box<GameModFn> = Box::new(move |_config, _init_vals, state, point, _msgs| {
+        if !init {
+            let mut line_source = random_gap_lines(gapsize, &mut state.rng, &mut remaining_lines);
+            for (line, cheese) in state.board.iter_mut().take(10).rev().zip(&mut line_source) {
+                *line = cheese;
+            }
+            init = true;
+        } else if matches!(point, UpdatePoint::BeforeEvent(GameEvent::LineClear)) {
+            for line in state.board.iter() {
+                if line.iter().all(|mino| mino.is_some()) {
+                    let is_cheese_line = line
+                        .iter()
+                        .any(|cell| *cell == Some(NonZeroU8::try_from(254).unwrap()));
+                    if is_cheese_line {
+                        temp_cheese_tally += 1;
+                    } else {
+                        temp_normal_tally += 1;
                     }
                 }
             }
-            if matches!(
-                point,
-                UpdatePoint::AfterEvent(GameEvent::LineClear)
-            ) {
-                state.lines_cleared -= temp_normal_tally;
-                let line_source = random_gap_lines(gapsize, &mut state.rng, &mut remaining_lines);
-                for cheese in line_source.take(temp_cheese_tally) {
-                    state.board.rotate_right(1);
-                    state.board[0] = cheese;
-                }
-                temp_cheese_tally = 0;
-                temp_normal_tally = 0;
+        }
+        if matches!(point, UpdatePoint::AfterEvent(GameEvent::LineClear)) {
+            state.lines_cleared -= temp_normal_tally;
+            let line_source = random_gap_lines(gapsize, &mut state.rng, &mut remaining_lines);
+            for cheese in line_source.take(temp_cheese_tally) {
+                state.board.rotate_right(1);
+                state.board[0] = cheese;
             }
-        },
-    );
+            temp_cheese_tally = 0;
+            temp_normal_tally = 0;
+        }
+    });
     builder
         .clone()
         .initial_gravity(gravity)
