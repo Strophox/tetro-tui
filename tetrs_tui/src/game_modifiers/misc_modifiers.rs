@@ -8,7 +8,7 @@ pub mod custom_start_board {
         let mut init = false;
         Modifier {
             descriptor: format!("{MOD_ID}\n{encoded_board}"),
-            mod_function: Box::new(move |_config, _rules, state, _modpoint, _msgs| {
+            mod_function: Box::new(move |_config, _init_vals, state, _point, _msgs| {
                 if !init {
                     state.board.clone_from(&board);
                     init = true;
@@ -22,7 +22,7 @@ pub mod custom_start_board {
 #[allow(dead_code)]
 pub mod print_recency_tet_gen_stats {
     use tetrs_engine::{
-        tetromino_generator::TetrominoGenerator, Feedback, GameEvent, ModificationPoint, Modifier,
+        tetromino_generator::TetrominoGenerator, Feedback, GameEvent, UpdatePoint, Modifier,
         Tetromino,
     };
 
@@ -31,8 +31,8 @@ pub mod print_recency_tet_gen_stats {
     pub fn modifier() -> Modifier {
         Modifier {
             descriptor: MOD_ID.to_owned(),
-            mod_function: Box::new(|_config, _rules, state, modpoint, msgs| {
-                if !matches!(modpoint, ModificationPoint::AfterEvent(GameEvent::Spawn)) {
+            mod_function: Box::new(|_config, _init_vals, state, point, msgs| {
+                if !matches!(point, UpdatePoint::AfterEvent(GameEvent::Spawn)) {
                     return;
                 }
                 let TetrominoGenerator::Recency {

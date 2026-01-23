@@ -3,8 +3,8 @@ use std::{num::NonZeroU8, time::Duration};
 use rand::{self, Rng};
 
 use tetrs_engine::{
-    Game, GameBuilder, GameEvent, GameModFn, GameOver, GameTime, Line, ModificationPoint, Modifier,
-    Stat, Tetromino,
+    Game, GameBuilder, GameEvent, GameModFn, GameOver, GameTime, Line, Modifier, Stat, Tetromino,
+    UpdatePoint,
 };
 
 // NOTE: THIS MOD IS NOT REPRODUCIBLE (is not deterministic).
@@ -23,98 +23,94 @@ pub fn build(builder: &GameBuilder) -> Game {
     let camera_adjust_period = Duration::from_millis(125);
     let mut depth = 1u32;
     let mut init = false;
-    let mod_function: Box<GameModFn> =
-        Box::new(move |config, _rules, state, modpoint, _messages| {
-            if !init {
-                for (line, worm_line) in state
-                    .board
-                    .iter_mut()
-                    .take(Game::SKYLINE)
-                    .rev()
-                    .zip(&mut line_source)
-                {
-                    *line = worm_line;
-                }
-                init = true;
+    let mod_function: Box<GameModFn> = Box::new(move |config, _init_vals, state, point, _msgs| {
+        if !init {
+            for (line, worm_line) in state
+                .board
+                .iter_mut()
+                .take(Game::SKYLINE)
+                .rev()
+                .zip(&mut line_source)
+            {
+                *line = worm_line;
             }
-            let Some((active_piece, _)) = &mut state.active_piece_data else {
-                return;
-            };
-            let descent_period_elapsed = state.time.saturating_sub(instant_last_descent)
-                >= base_descent_period.div_f64(f64::from(depth).powf(1.0 / 2.5));
-            let camera_adjust_elapsed =
-                state.time.saturating_sub(instant_camera_adjusted) >= camera_adjust_period;
-            let camera_hit_bottom = active_piece.position.1 <= 1;
-            if descent_period_elapsed || (camera_hit_bottom && camera_adjust_elapsed) {
-                if descent_period_elapsed {
-                    instant_last_descent = state.time;
-                }
-                instant_camera_adjusted = state.time;
-                depth += 1;
-                active_piece.position.1 += 1;
-                state.board.rotate_left(1);
-                state.board[Game::HEIGHT - 1] = Line::default();
-                if active_piece.position.1 >= Game::SKYLINE {
-                    state.result = Some(Err(GameOver::ModeLimit));
-                }
+            init = true;
+        }
+        let Some((active_piece, _)) = &mut state.active_piece_data else {
+            return;
+        };
+        let descent_period_elapsed = state.time.saturating_sub(instant_last_descent)
+            >= base_descent_period.div_f64(f64::from(depth).powf(1.0 / 2.5));
+        let camera_adjust_elapsed =
+            state.time.saturating_sub(instant_camera_adjusted) >= camera_adjust_period;
+        let camera_hit_bottom = active_piece.position.1 <= 1;
+        if descent_period_elapsed || (camera_hit_bottom && camera_adjust_elapsed) {
+            if descent_period_elapsed {
+                instant_last_descent = state.time;
             }
-            if matches!(
-                modpoint,
-                ModificationPoint::AfterEvent(GameEvent::Rotate(_))
-            ) {
-                let piece_tiles_coords = active_piece.tiles().map(|(coord, _)| coord);
-                for (y, line) in state.board.iter_mut().enumerate() {
-                    for (x, tile) in line.iter_mut().take(9).enumerate() {
-                        if let Some(tiletypeid) = tile {
-                            let i = tiletypeid.get();
-                            if i <= 7 {
-                                let j = if piece_tiles_coords
-                                    .iter()
-                                    .any(|(x_p, y_p)| x_p.abs_diff(x) + y_p.abs_diff(y) <= 1)
-                                {
-                                    state.score += 1;
-                                    253
-                                } else {
-                                    match i {
-                                        4 => 6,
-                                        6 => 1,
-                                        1 => 3,
-                                        3 => 2,
-                                        2 => 7,
-                                        7 => 5,
-                                        5 => 4,
-                                        _ => unreachable!(),
-                                    }
-                                };
-                                *tiletypeid = NonZeroU8::try_from(j).unwrap();
-                            }
+            instant_camera_adjusted = state.time;
+            depth += 1;
+            active_piece.position.1 += 1;
+            state.board.rotate_left(1);
+            state.board[Game::HEIGHT - 1] = Line::default();
+            if active_piece.position.1 >= Game::SKYLINE {
+                state.result = Some(Err(GameOver::Limit));
+            }
+        }
+        if matches!(point, UpdatePoint::AfterEvent(GameEvent::Rotate(_))) {
+            let piece_tiles_coords = active_piece.tiles().map(|(coord, _)| coord);
+            for (y, line) in state.board.iter_mut().enumerate() {
+                for (x, tile) in line.iter_mut().take(9).enumerate() {
+                    if let Some(tiletypeid) = tile {
+                        let i = tiletypeid.get();
+                        if i <= 7 {
+                            let j = if piece_tiles_coords
+                                .iter()
+                                .any(|(x_p, y_p)| x_p.abs_diff(x) + y_p.abs_diff(y) <= 1)
+                            {
+                                state.score += 1;
+                                253
+                            } else {
+                                match i {
+                                    4 => 6,
+                                    6 => 1,
+                                    1 => 3,
+                                    3 => 2,
+                                    2 => 7,
+                                    7 => 5,
+                                    5 => 4,
+                                    _ => unreachable!(),
+                                }
+                            };
+                            *tiletypeid = NonZeroU8::try_from(j).unwrap();
                         }
                     }
                 }
             }
-            // Keep custom game state that's also visible to player, but hide it from the game engine that handles gameplay.
-            if matches!(
-                modpoint,
-                ModificationPoint::BeforeEvent(_) | ModificationPoint::BeforeInput
-            ) {
-                state.lines_cleared = 0;
-                state.next_pieces.clear();
-                config.piece_preview_count = 0;
-                // state.level = NonZeroU32::try_from(SPEED_LEVEL).unwrap();
-            } else {
-                state.lines_cleared = usize::try_from(depth).unwrap();
-                // state.level =
-                //     NonZeroU32::try_from(u32::try_from(current_puzzle_idx + 1).unwrap()).unwrap();
-            }
-            // Remove ability to hold.
-            if matches!(modpoint, ModificationPoint::AfterInput) {
-                state.events.remove(&GameEvent::Hold);
-                state.events.remove(&GameEvent::HardDrop);
-                state.events.remove(&GameEvent::LockTimer);
-            }
-            // FIXME: EXTREME JANK.
-            active_piece.shape = descent_tetromino;
-        });
+        }
+        // Keep custom game state that's also visible to player, but hide it from the game engine that handles gameplay.
+        if matches!(
+            point,
+            UpdatePoint::BeforeEvent(_) | UpdatePoint::BeforeInput
+        ) {
+            state.lines_cleared = 0;
+            state.next_pieces.clear();
+            config.piece_preview_count = 0;
+            // state.level = NonZeroU32::try_from(SPEED_LEVEL).unwrap();
+        } else {
+            state.lines_cleared = usize::try_from(depth).unwrap();
+            // state.level =
+            //     NonZeroU32::try_from(u32::try_from(current_puzzle_idx + 1).unwrap()).unwrap();
+        }
+        // Remove ability to hold.
+        if matches!(point, UpdatePoint::AfterInput) {
+            state.events.remove(&GameEvent::Hold);
+            state.events.remove(&GameEvent::HardDrop);
+            state.events.remove(&GameEvent::LockTimer);
+        }
+        // FIXME: EXTREME JANK.
+        active_piece.shape = descent_tetromino;
+    });
 
     builder
         .clone()

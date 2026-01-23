@@ -9,25 +9,29 @@ mechanics.
 ```
 use tetrs_engine::*;
 
-// Starting a game - note that in-game time starts at 0.0s.
-let mut game = Game::new(GameMode::marathon());
+// Starting up a game - note that in-game time starts at 0.0s.
+let mut game = Game::builder()
+    .seed(42)
+    /* ...Further optional configuration possible... */
+    .build();
 
 // Receive the information from I/O that 'left' was pressed.
-let mut buttons_state_1 = PressedButtons::default();
-buttons_state_1[Button::MoveLeft] = true;
-// Updating the game with the info that 'left' should be pressed at in-game second 3.0:
-let update_time_1 = std::time::Duration::from_secs(3);
-game.update(Some(buttons_state_1), update_time_1);
+let mut button_state = PressedButtons::default();
+button_state[Button::MoveLeft] = true;
+
+// Updating the game with the info that 'left' should be pressed at second 5.0;
+// If a piece is in the game, it will try to move left.
+game.update(Some(button_state), GameTime::from_secs(5.0));
 
 // ...
 
-// Updating the game with the info that no input has changed up to in-game second 4.0:
-let update_time_2 = std::time::Duration::from_secs(4);
-game.update(None, update_time_2);
+// Updating the game with the info that no input change has occurred up to second 7.0;
+// This updates the game, e.g., pieces fall.
+game.update(None, GameTime::from_secs(7.0));
 
-// Read most recent game state:
+// Read most recent game state;
+// This is how a UI can know how to render the board, etc.
 let GameState { board, .. } = game.state();
-// (Do rendering, etc...)
 ```
 
 TASK: Document all features (including IRS, etc. - cargo feature `serde`).
@@ -74,7 +78,7 @@ pub type GameModFn = dyn FnMut(
     &mut Configuration,
     &mut InitialValues,
     &mut State,
-    &ModificationPoint,
+    &UpdatePoint,
     &mut FeedbackMessages,
 );
 /// A set of conditions to determine how a game specially ends and whether it results in a win (otherwise loss).
@@ -204,10 +208,9 @@ pub enum Stat {
     PointsScored(u64),
 }
 
-/// The playing configuration specific to the single, current round of play.
+/// Some values that were used to help initialize the game.
 ///
-/// A 'game mode' usually mainly designates the rules of how a game progresses
-/// and how it can be won/failed.
+/// Used for game reproducibility.
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Hash, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct InitialValues {
@@ -236,7 +239,11 @@ pub enum FeedbackVerbosity {
     Debug,
 }
 
-/// User-focused configuration options that mainly influence time-sensitive or cosmetic mechanics.
+/// Configuration options of the game, which can be modified without hurting internal invariants.
+///
+/// # Reproducibility
+/// Modifying a [`Game`]'s configuration after it was created might not make it easily
+/// reproducible anymore.
 #[derive(PartialEq, PartialOrd, Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Configuration {
@@ -320,7 +327,7 @@ pub enum GameOver {
     /// blocking one or several of the spawn cells.
     BlockOut,
     /// Generic game over by having reached a (negative) game limit.
-    ModeLimit,
+    Limit,
     /// Generic game over by player forfeit.
     Forfeit,
 }
@@ -395,8 +402,7 @@ pub struct Modifier {
     pub mod_function: Box<GameModFn>,
 }
 
-/// This builder exposes the ability to configure a new [`Game`] beyond just [`GameMode`].
-/// The [`Game::new`] method is actually based on this builder but without making use of more options.
+/// This builder exposes the ability to configure a new [`Game`] to varying degrees.
 ///
 /// Generally speaking, when using `GameBuilder`, you’ll first call [`GameBuilder::new`] or
 /// [`Game::builder`], then chain calls to methods to set each field, then call
@@ -474,13 +480,13 @@ pub enum Feedback {
     EngineInput(PressedButtons, PressedButtons),
     /// Generic text feedback message.
     ///
-    /// This is currently unused in base game modes.
+    /// This is currently unused in the base engine.
     Text(String),
 }
 
 /// The points at which a [`GameModFn`] will be applied.
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
-pub enum ModificationPoint {
+pub enum UpdatePoint {
     /// Passed at the beginning of any call to [`Game::update`].
     UpdateStart,
     /// Passed when the modifier is called immediately before an [`GameEvent`] is handled.
@@ -944,6 +950,10 @@ impl Game {
     }
 
     /// Mutable accessor for the current game configurations.
+    ///
+    /// # Reproducibility
+    /// Modifying a [`Game`]'s configuration after it was created might not make it easily
+    /// reproducible anymore.
     pub const fn config_mut(&mut self) -> &mut Configuration {
         &mut self.config
     }

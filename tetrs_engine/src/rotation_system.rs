@@ -12,7 +12,7 @@ pub enum RotationSystem {
     Ocular,
     /// The right-handed variant of the classic, kick-less rotation system used in NES Tetris.
     Classic,
-    /// The Super Rotation System as used in the modern standard.
+    /// The Super Rotation System.
     Super,
 }
 
@@ -21,21 +21,6 @@ impl RotationSystem {
     ///
     /// This will return `None` if the rotation is not possible, and `Some(p)` if the rotation
     /// succeeded with `p` as the new state of the piece.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use tetrs_engine::*;
-    /// # let game = Game::new(GameMode::marathon());
-    /// # let empty_board = &game.state().board;
-    /// let i_piece = ActivePiece { shape: Tetromino::I, orientation: Orientation::N, position: (0, 0) };
-    ///
-    /// // Rotate left once.
-    /// let i_rotated = RotationSystem::Ocular.rotate(&i_piece, empty_board, -1);
-    ///
-    /// let i_expected = ActivePiece { shape: Tetromino::I, orientation: Orientation::W, position: (1, 0) };
-    /// assert_eq!(i_rotated, Some(i_expected));
-    /// ```
     pub fn rotate(
         &self,
         piece: &ActivePiece,

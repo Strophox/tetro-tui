@@ -2,7 +2,7 @@ use std::num::{NonZeroU8, NonZeroUsize};
 
 use rand::Rng;
 use tetrs_engine::{
-    Game, GameBuilder, GameEvent, GameModFn, GameRng, Line, ModificationPoint, Modifier, Stat,
+    Game, GameBuilder, GameEvent, GameModFn, GameRng, Line, UpdatePoint, Modifier, Stat,
 };
 
 pub const MOD_ID: &str = "cheese";
@@ -18,7 +18,7 @@ pub fn build(
     let mut remaining_lines = linelimit.unwrap_or(NonZeroUsize::MAX).get();
     let mut init = false;
     let mod_function: Box<GameModFn> = Box::new(
-        move |_config, _rules, state, modification_point, _feedback_msgs| {
+        move |_config, _init_vals, state, point, _msgs| {
             if !init {
                 let mut line_source =
                     random_gap_lines(gapsize, &mut state.rng, &mut remaining_lines);
@@ -27,8 +27,8 @@ pub fn build(
                 }
                 init = true;
             } else if matches!(
-                modification_point,
-                ModificationPoint::BeforeEvent(GameEvent::LineClear)
+                point,
+                UpdatePoint::BeforeEvent(GameEvent::LineClear)
             ) {
                 for line in state.board.iter() {
                     if line.iter().all(|mino| mino.is_some()) {
@@ -44,8 +44,8 @@ pub fn build(
                 }
             }
             if matches!(
-                modification_point,
-                ModificationPoint::AfterEvent(GameEvent::LineClear)
+                point,
+                UpdatePoint::AfterEvent(GameEvent::LineClear)
             ) {
                 state.lines_cleared -= temp_normal_tally;
                 let line_source = random_gap_lines(gapsize, &mut state.rng, &mut remaining_lines);

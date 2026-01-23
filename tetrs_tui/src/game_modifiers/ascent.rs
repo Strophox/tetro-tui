@@ -4,7 +4,7 @@ use rand::Rng;
 
 use tetrs_engine::{
     ActivePiece, Game, GameBuilder, GameEvent, GameModFn, GameRng, GameTime, Line, LockingData,
-    ModificationPoint, Modifier, Stat, Tetromino,
+    Modifier, Stat, Tetromino, UpdatePoint,
 };
 
 pub const MOD_ID: &str = "ascent";
@@ -73,10 +73,7 @@ pub fn build(builder: &GameBuilder) -> Game {
 
             // Update state after each piece rotation, for gem scorekeeping.
             // Also change colors for fun after each rotation.
-            if matches!(
-                modpoint,
-                ModificationPoint::AfterEvent(GameEvent::Rotate(_))
-            ) {
+            if matches!(modpoint, UpdatePoint::AfterEvent(GameEvent::Rotate(_))) {
                 let piece_tiles_coords = active_piece.tiles().map(|(coord, _)| coord);
 
                 for (y, line) in state.board.iter_mut().enumerate() {

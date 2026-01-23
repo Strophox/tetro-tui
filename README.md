@@ -210,12 +210,12 @@ There is currently a minimalistic singleplayer scoreboard implementation which d
 </details>
 
 
-# Features of the Tetrs Engine
+# Depth of the Tetrs Engine
 
 > For accurate and detailed information about the engine refer to documentation / the code itself.*
 
-The point of the tetrs engine is that it is frontend-agnostic (the tui mostly serves as an elaborate proof-of-concept).
-Very basic interaction with the engine is decoupled from actual user input or passing of time, the engine is merely a 'simulator' for the underlying tetromino game and keeps its own notion of a simulated timeline. Consider the following example:
+The point of the tetrs engine is that it is frontend-agnostic (the TUI originally served mostly as elaborate proof-of-concept).
+Very basic interaction with the engine is decoupled from IO or passing of time, the engine is merely a 'simulator' for the underlying tetromino game. Consider the following example:
 
 ```rust
 // Starting a round of the game.
@@ -249,15 +249,13 @@ Notice that `game` does not advance its internal state until the caller of `game
 
 tetrs makes liberal use of Rust's type system to encode its many, but meaningful data structures.
 
-The `Game` struct central to the entire engine, together with an `update` function, is defined as follows:
+The `Game` struct with its `update` function is the center piece of the engine:
 ```rust
-pub struct Game {
-    config: GameConfig,
-    mode: GameMode,
-    state: GameState,
-    rng: GameRng,
-    seed: u64,
-    modifiers: Vec<FnGameMod>,
+struct Game {
+    config: Configuration,
+    init_vals: InitialValues,
+    state: State,
+    modifiers: Vec<Modifier>,
 }
 
 impl Game {
@@ -268,17 +266,62 @@ impl Game {
   ) -> Result<FeedbackMessages, UpdateGameError>
 }
 ```
-And everything else should follow from there.
 
-Roughly:
-- `GameConfig` holds game configuration which is almost 'cosmetic' - it can be changed while the game is running without big issues.
-- `GameMode` holds certain rules concerning progression, such as difficulty increase and win/loss conditions.
-- `GameState` holds internal game state.
-- `GameRng` is the game-own PRNG.
-- `seed: u64` is the starting seed.
-- `Vec<FnGameMod>` are custom modifiers which are the current mechanism to 'mod' the engine/a game.
+The internal structs of `Game` are listed for the interested;
+For accurate and detailed information about the engine refer to documentation / the code itself:
 
-> For accurate and detailed information about the engine refer to documentation / the code itself.
+```rust
+struct Configuration {
+    piece_preview_count: usize,
+    allow_prespawn_actions: bool,
+    rotation_system: RotationSystem,
+    delayed_auto_shift: Duration,
+    auto_repeat_rate: Duration,
+    soft_drop_factor: f64,
+    hard_drop_delay: Duration,
+    ground_time_max: Duration,
+    line_clear_delay: Duration,
+    appearance_delay: Duration,
+    progressive_gravity: bool,
+    end_conditions: Vec<(Stat, bool)>,
+    feedback_verbosity: FeedbackVerbosity,
+}
+
+struct InitialValues {
+    initial_gravity: u32,
+    start_generator: TetrominoGenerator,
+    seed: u64,
+}
+
+pub struct State {
+    time: GameTime,
+    events: HashMap<GameEvent, GameTime>,
+    buttons_pressed: ButtonsArray<Option<GameTime>>,
+    board: Board,
+    active_piece_data: Option<(ActivePiece, LockingData)>,
+    hold_piece: Option<(Tetromino, bool)>,
+    next_pieces: VecDeque<Tetromino>,
+    piece_generator: TetrominoGenerator,
+    pieces_locked: [u32; Tetromino::VARIANTS.len()],
+    lines_cleared: usize,
+    gravity: u32,
+    score: u64,
+    consecutive_line_clears: u32,
+    rng: GameRng,
+    result: Option<GameResult>,
+}
+
+struct Modifier {
+    descriptor: String,
+    mod_function: Box<dyn FnMut(
+        &mut Configuration,
+        &mut InitialValues,
+        &mut State,
+        &UpdatePoint,
+        &mut FeedbackMessages,
+    )>,
+}
+```
 
 </details>
 

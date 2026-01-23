@@ -51,7 +51,7 @@ impl Game {
         };
         // NOTE: Returning an empty Vec is efficient because it won't even allocate (as by Rust API).
         let mut feedback_msgs = Vec::new();
-        self.run_modifier_updates(&mut feedback_msgs, &ModificationPoint::UpdateStart);
+        self.run_modifier_updates(&mut feedback_msgs, &UpdatePoint::UpdateStart);
         // We linearly process all events until we reach the update time.
         'event_simulation: loop {
             // Peek the next closest event.
@@ -64,10 +64,7 @@ impl Game {
             match next_event {
                 // Next event within requested update time, handle event first.
                 Some((&event, &event_time)) if event_time <= update_time => {
-                    self.run_modifier_updates(
-                        &mut feedback_msgs,
-                        &ModificationPoint::BeforeEvent(event),
-                    );
+                    self.run_modifier_updates(&mut feedback_msgs, &UpdatePoint::BeforeEvent(event));
                     // Remove next event and handle it.
                     self.state.events.remove_entry(&event);
                     if self.config.feedback_verbosity == FeedbackVerbosity::Debug {
@@ -76,10 +73,7 @@ impl Game {
                     let event_feedback_msgs = self.handle_event(event, event_time);
                     self.state.time = event_time;
                     feedback_msgs.extend(event_feedback_msgs);
-                    self.run_modifier_updates(
-                        &mut feedback_msgs,
-                        &ModificationPoint::AfterEvent(event),
-                    );
+                    self.run_modifier_updates(&mut feedback_msgs, &UpdatePoint::AfterEvent(event));
                     // Stop simulation early if event or modifier ended game.
                     self.run_game_result_update();
                     if self.ended() {
@@ -93,10 +87,7 @@ impl Game {
                     self.state.time = update_time;
                     // Update button inputs.
                     if let Some(pressed_buttons) = new_button_state.take() {
-                        self.run_modifier_updates(
-                            &mut feedback_msgs,
-                            &ModificationPoint::BeforeInput,
-                        );
+                        self.run_modifier_updates(&mut feedback_msgs, &UpdatePoint::BeforeInput);
                         if self.config.feedback_verbosity == FeedbackVerbosity::Debug {
                             feedback_msgs.push((
                                 update_time,
@@ -107,10 +98,7 @@ impl Game {
                             ));
                         }
                         self.run_input_update(pressed_buttons, update_time);
-                        self.run_modifier_updates(
-                            &mut feedback_msgs,
-                            &ModificationPoint::AfterInput,
-                        );
+                        self.run_modifier_updates(&mut feedback_msgs, &UpdatePoint::AfterInput);
                     } else {
                         self.run_game_result_update();
                         break 'event_simulation;
@@ -126,11 +114,8 @@ impl Game {
             return;
         }
         self.state.result = self.config.end_conditions.iter().find_map(|(c, good)| {
-            self.check_stat_met(c).then_some(if *good {
-                Ok(())
-            } else {
-                Err(GameOver::ModeLimit)
-            })
+            self.check_stat_met(c)
+                .then_some(if *good { Ok(()) } else { Err(GameOver::Limit) })
         });
     }
 
@@ -138,7 +123,7 @@ impl Game {
     fn run_modifier_updates(
         &mut self,
         feedback_msgs: &mut FeedbackMessages,
-        modifier_point: &ModificationPoint,
+        modifier_point: &UpdatePoint,
     ) {
         for modifier in &mut self.modifiers {
             (modifier.mod_function)(

@@ -148,7 +148,7 @@ impl GameRestorationData {
                     let print_error_msg_mod = Modifier {
                         descriptor: "print_error_msg_mod".to_owned(),
                         mod_function: Box::new({ let mut init = false;
-                            move |_config, _rules, state, _modpoint, msgs| {
+                            move |_config, _init_vals, state, _point, msgs| {
                                 if init { return; } init = true;
                                 msgs.push((state.time, Feedback::Text(format!("ERROR: {msg:?}"))));
                             }
