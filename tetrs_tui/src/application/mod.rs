@@ -162,7 +162,7 @@ impl GameRestorationData {
         // Step 3: Reenact recorded game inputs.
         let restore_feedback_verbosity = game.config().feedback_verbosity;
 
-        game.config_mut().feedback_verbosity = FeedbackVerbosity::Quiet;
+        game.config_mut().feedback_verbosity = FeedbackVerbosity::Silent;
         for bits in self.recorded_user_input.0.iter().take(input_index) {
             let (input_time, button_state) = RecordedUserInput::decode(*bits);
             // FIXME: Error handling?
@@ -349,6 +349,7 @@ pub struct GameplaySettings {
     soft_drop_factor: f64,
     line_clear_delay: Duration,
     appearance_delay: Duration,
+    allow_prespawn_actions: bool,
 }
 
 impl Default for GameplaySettings {
@@ -363,6 +364,7 @@ impl Default for GameplaySettings {
             soft_drop_factor: c.soft_drop_factor,
             line_clear_delay: c.line_clear_delay,
             appearance_delay: c.appearance_delay,
+            allow_prespawn_actions: c.allow_prespawn_actions,
         }
     }
 }
@@ -489,7 +491,6 @@ impl Settings {
 pub struct RuntimeData {
     kitty_detected: bool,
     kitty_assumed: bool,
-    combo_bot_enabled: bool,
 }
 
 #[derive(Debug)]
@@ -586,7 +587,6 @@ impl<T: Write> Application<T> {
         mut term: T,
         custom_start_seed: Option<u64>,
         custom_start_board: Option<String>,
-        combo_bot_enabled: bool,
     ) -> Self {
         // Console prologue: Initialization.
         // FIXME: Handle error?
@@ -598,7 +598,6 @@ impl<T: Write> Application<T> {
             runtime_data: RuntimeData {
                 kitty_detected: false,
                 kitty_assumed: false,
-                combo_bot_enabled: false,
             },
             term,
             settings: Settings::default(),
@@ -617,7 +616,6 @@ impl<T: Write> Application<T> {
         // Now that the settings are loaded, we handle separate flags set for this session.
         let kitty_detected = terminal::supports_keyboard_enhancement().unwrap_or(false);
         app.runtime_data = RuntimeData {
-            combo_bot_enabled,
             kitty_detected,
             kitty_assumed: kitty_detected,
         };

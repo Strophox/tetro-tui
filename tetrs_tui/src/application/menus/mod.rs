@@ -27,7 +27,7 @@ use crossterm::{
 use crate::application::{Application, Menu, MenuUpdate};
 
 impl<T: Write> Application<T> {
-    pub(in crate::application) fn generic_placeholder_menu(
+    pub(in crate::application) fn generic_menu(
         &mut self,
         current_menu_name: &str,
         selection: Vec<Menu>,
@@ -92,7 +92,7 @@ impl<T: Write> Application<T> {
                     .queue(PrintStyledContent(
                         format!(
                             "{:^w_main$}",
-                            "(Controls: [←][↓][↑][→] [Esc][Enter][Del] / hjklqed)",
+                            "(Controls: [←|↓|↑|→] [Esc|Enter|Del] / hjklqed)",
                         )
                         .italic(),
                     ))?;

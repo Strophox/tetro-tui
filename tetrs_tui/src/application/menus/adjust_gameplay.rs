@@ -36,12 +36,12 @@ impl<T: Write> Application<T> {
                 settings.gameplay_slot_active = settings.gameplay_slots.len() - 1;
             }
         };
-        let selection_len = 10;
+        let selection_len = 11;
         let mut selected = 1usize;
         loop {
             let w_main = Self::W_MAIN.into();
             let (x_main, y_main) = Self::fetch_main_xy();
-            let y_selection = Self::H_MAIN / 5;
+            let y_selection = Self::H_MAIN / 7;
 
             // Draw menu title.
             self.term
@@ -131,7 +131,11 @@ impl<T: Write> Application<T> {
                     self.settings.gameplay().appearance_delay
                 ),
                 format!(
-                    "(/!\\ Override) Assume enhanced-key-events: {} *",
+                    "Allow pre-spawn rotate/hold/move (IRS/IHS/IMS): {:?} *",
+                    self.settings.gameplay().allow_prespawn_actions
+                ),
+                format!(
+                    "/!\\ Override - assume enhanced-key-events: {} *",
                     self.runtime_data.kitty_assumed
                 ),
             ];
@@ -159,9 +163,9 @@ impl<T: Write> Application<T> {
                     format!(
                         "{:^w_main$}",
                         if self.runtime_data.kitty_detected {
-                            "(*Should apply, since enhanced-key-events seem available)"
+                            "(*Should apply, since terminal seems to support enhanced-key-events)"
                         } else {
-                            "(*Might NOT apply since enhanced-key-events seem unavailable)"
+                            "(*Unlikely to apply, enhanced-key-events seem unsupported by terminal)"
                         },
                     )
                     .italic(),
@@ -281,6 +285,10 @@ impl<T: Write> Application<T> {
                     }
                     9 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
+                        self.settings.gameplay_mut().allow_prespawn_actions ^= true;
+                    }
+                    10 => {
+                        if_slot_is_default_then_copy_and_switch(&mut self.settings);
                         self.runtime_data.kitty_assumed ^= true;
                     }
                     _ => {}
@@ -366,6 +374,10 @@ impl<T: Write> Application<T> {
                             .saturating_sub(Duration::from_millis(10));
                     }
                     9 => {
+                        if_slot_is_default_then_copy_and_switch(&mut self.settings);
+                        self.settings.gameplay_mut().allow_prespawn_actions ^= true;
+                    }
+                    10 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
                         self.runtime_data.kitty_assumed ^= true;
                     }

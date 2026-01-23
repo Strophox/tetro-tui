@@ -11,6 +11,6 @@ impl<T: Write> Application<T> {
             Menu::About,
             Menu::Quit("quit from pause".to_owned()),
         ];
-        self.generic_placeholder_menu("Game Paused", selection)
+        self.generic_menu("Game Paused", selection)
     }
 }

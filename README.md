@@ -106,9 +106,9 @@ For more technical gameplay discussion see [Features of the Tetrs Engine](#featu
 
 - Standard tetrs engine modes:
   - **40-Lines**: "How fast can you clear forty lines?"
-  - **Marathon**: "Can you make it to level 15?"
+  - **Marathon**: "Can you make it to level 16?"
   - **Time Trial**: "What highscore can you get in 3 minutes?"
-  - **Master**: "Can you clear 30 levels at instant gravity?"
+  - **Master**: "Can you clear 15 levels at instant gravity?"
 - Modes created using the engine's 'modding' system:
   - **Puzzle**: "Get perfect clears in all 24 puzzle levels." *Note:* This mode is intended to be played (and in fact demonstrates) the [Ocular Rotation System](#ocular-rotation-system).
   - **Cheese**: "Eat through lines like Swiss cheese."

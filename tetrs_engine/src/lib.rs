@@ -227,7 +227,7 @@ pub enum FeedbackVerbosity {
     /// Note that game modifiers called may choose to generate feedback messages
     /// themselves, which will not again be discarded once received by
     /// the base game engine.
-    Quiet,
+    Silent,
     /// Base level of feedback about in-game events.
     #[default]
     Default,
@@ -242,6 +242,8 @@ pub enum FeedbackVerbosity {
 pub struct Configuration {
     /// How many pieces should be pre-generated and accessible/visible in the game state.
     pub piece_preview_count: usize,
+    /// Whether holding a rotation button lets a piece be smoothly spawned in a rotated state.
+    pub allow_prespawn_actions: bool,
     /// The method of tetromino rotation used.
     pub rotation_system: RotationSystem,
     /// How long it takes for the active piece to start automatically shifting more to the side
@@ -436,11 +438,12 @@ pub enum UpdateGameError {
 /// A number of feedback events that can be returned by the game.
 ///
 /// These can be used to more easily render visual feedback to the player.
+/// The [`EngineEvent`] and [`EngineInput`] variants are currently accessible if [`FeedbackVerbosity::Debug`] is toggled.
+/// All other events are generally variants of [`EngineEvents`] but providing additional info to reconstruct
+/// a visual effect (e.g. location of where a lock actually occurred).
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Hash, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Feedback {
-    /// A new piece was spawned.
-    PieceSpawned(ActivePiece),
     /// A piece was locked down in a certain configuration.
     PieceLocked(ActivePiece),
     /// A number of lines were cleared.
@@ -494,7 +497,7 @@ impl Orientation {
     /// Find a new direction by turning right some number of times.
     ///
     /// This accepts `i32` to allow for left rotation.
-    pub const fn rotate_right(&self, right_turns: i8) -> Self {
+    pub const fn reorient_right(&self, right_turns: i8) -> Self {
         use Orientation::*;
         let base = match self {
             N => 0,
@@ -634,14 +637,14 @@ impl ActivePiece {
 
     /// Checks whether the piece fits a given offset from its current location onto the board, with
     /// its rotation changed by some number of right turns.
-    pub fn fits_at_rotated(
+    pub fn fits_at_reoriented(
         &self,
         board: &Board,
         offset: Offset,
         right_turns: i8,
     ) -> Option<ActivePiece> {
         let mut new_piece = *self;
-        new_piece.orientation = new_piece.orientation.rotate_right(right_turns);
+        new_piece.orientation = new_piece.orientation.reorient_right(right_turns);
         new_piece.position = add(self.position, offset)?;
         new_piece.fits(board).then_some(new_piece)
     }
@@ -655,7 +658,7 @@ impl ActivePiece {
         right_turns: i8,
     ) -> Option<ActivePiece> {
         let mut new_piece = *self;
-        new_piece.orientation = new_piece.orientation.rotate_right(right_turns);
+        new_piece.orientation = new_piece.orientation.reorient_right(right_turns);
         let old_pos = self.position;
         offsets.into_iter().find_map(|offset| {
             new_piece.position = add(old_pos, offset)?;
@@ -728,6 +731,7 @@ impl Default for Configuration {
     fn default() -> Self {
         Self {
             piece_preview_count: 4,
+            allow_prespawn_actions: true,
             rotation_system: RotationSystem::Ocular,
             delayed_auto_shift: Duration::from_millis(167),
             auto_repeat_rate: Duration::from_millis(33),
@@ -831,6 +835,11 @@ impl GameBuilder {
     /// How many pieces should be pre-generated and accessible/visible in the game state.
     pub fn piece_preview_count(mut self, x: usize) -> Self {
         self.config.piece_preview_count = x;
+        self
+    }
+    /// Whether holding a rotation button lets a piece be smoothly spawned in a rotated state.
+    pub fn allow_prespawn_actions(mut self, x: bool) -> Self {
+        self.config.allow_prespawn_actions = x;
         self
     }
     /// The method of tetromino rotation used.
@@ -1013,8 +1022,8 @@ impl std::error::Error for UpdateGameError {}
 
 /// Adds an offset to a board coordinate, failing if the result is out of bounds
 /// (negative or positive overflow in either direction).
-pub fn add((x0, y0): Coord, (x1, y1): Offset) -> Option<Coord> {
-    Some((x0.checked_add_signed(x1)?, y0.checked_add_signed(y1)?))
+pub fn add((x, y): Coord, (dx, dy): Offset) -> Option<Coord> {
+    Some((x.checked_add_signed(dx)?, y.checked_add_signed(dy)?))
 }
 
 /*#[cfg(test)]

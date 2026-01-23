@@ -52,13 +52,13 @@ impl<T: Write> Application<T> {
                 (
                     "Marathon".to_owned(),
                     (Stat::PointsScored(0), false),
-                    "Can you make it to level 15?".to_owned(),
+                    "Can you make it to level 16?".to_owned(),
                     Box::new(|builder: &GameBuilder| {
                         builder
                             .clone()
                             .initial_gravity(1)
                             .progressive_gravity(true)
-                            .end_conditions(vec![(Stat::GravityReached(15), true)])
+                            .end_conditions(vec![(Stat::GravityReached(16), true)])
                             .build()
                     }),
                 ),
@@ -88,7 +88,7 @@ impl<T: Write> Application<T> {
                             .initial_gravity(Game::INSTANT_GRAVITY)
                             .progressive_gravity(true)
                             .end_conditions(vec![(
-                                Stat::GravityReached(Game::INSTANT_GRAVITY + 15),
+                                Stat::GravityReached(Game::INSTANT_GRAVITY + 16),
                                 true,
                             )])
                             .build()
@@ -172,7 +172,7 @@ impl<T: Write> Application<T> {
                 game_presets.push((
                     "*Ascent".to_owned(),
                     (Stat::PointsScored(0), false),
-                    "(Experimental) Per aspera ad astra.".to_owned(),
+                    "(Experimental) Per aspera ad astra".to_owned(),
                     Box::new(game_modifiers::ascent::build),
                 ))
             }
@@ -578,13 +578,14 @@ impl<T: Write> Application<T> {
                     .rotation_system(g.rotation_system)
                     .start_generator(g.tetromino_generator.clone())
                     .piece_preview_count(g.piece_preview_count)
+                    .allow_prespawn_actions(g.allow_prespawn_actions)
                     .delayed_auto_shift(g.delayed_auto_shift)
                     .auto_repeat_rate(g.auto_repeat_rate)
                     .soft_drop_factor(g.soft_drop_factor)
                     .line_clear_delay(g.line_clear_delay)
                     .appearance_delay(g.appearance_delay);
                 // Build one of the selected game modes.
-                let (mut game, meta_data, recorded_user_input) = if selected < game_presets.len() {
+                let (game, meta_data, recorded_user_input) = if selected < game_presets.len() {
                     let (title, comparison_stat, _desc, build) = &game_presets[selected];
                     let preset_game = build(&builder);
                     let new_meta_data = GameMetaData {
@@ -639,9 +640,9 @@ impl<T: Write> Application<T> {
                     let empty_user_input_record = RecordedUserInput::default();
                     (custom_game, new_meta_data, empty_user_input_record)
                 };
-                // TODO: remove
-                game.modifiers_mut()
-                    .push(game_modifiers::misc_modifiers::print_recency_tet_gen_stats::modifier());
+                // FIXME: Remove or implement as feature/toggle.
+                // game.modifiers_mut()
+                //     .push(game_modifiers::misc_modifiers::print_recency_tet_gen_stats::modifier());
                 // game.modifiers_mut().push(tetrs_engine::Modifier { descriptor: "always_clear_board".to_owned(), mod_function: Box::new(|_c, _i, s, _m, _f| {
                 //     s.board = Default::default();
                 // })});

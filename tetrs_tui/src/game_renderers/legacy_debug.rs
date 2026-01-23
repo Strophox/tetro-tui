@@ -136,7 +136,6 @@ impl Renderer for DebugRenderer {
                     }
                     msg.join(" ")
                 }
-                Feedback::PieceSpawned(_) => continue,
                 Feedback::PieceLocked(_) => continue,
                 Feedback::LineClears(..) => continue,
                 Feedback::HardDrop(_, _) => continue,

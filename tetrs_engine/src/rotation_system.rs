@@ -265,7 +265,7 @@ fn classic_rotate(piece: &ActivePiece, board: &Board, right_turns: i8) -> Option
         1 => false,
         // Classic didn't define 180 rotation, just check if the "default" 180 rotation fits.
         2 => {
-            return piece.fits_at_rotated(board, (0, 0), 2);
+            return piece.fits_at_reoriented(board, (0, 0), 2);
         }
         // One left rotation.
         3 => true,
@@ -290,5 +290,5 @@ fn classic_rotate(piece: &ActivePiece, board: &Board, right_turns: i8) -> Option
             W => if left_rotation { ( 0, 0) } else { ( 0, 1) }, // ⠲⠂ <- ⠺  -> ⠴⠄ // ⠖⠂ <- ⠹  -> ⠤⠆ // ⠒⠆ <- ⠼  -> ⠦⠄
         },
     };
-    piece.fits_at_rotated(board, kick, right_turns)
+    piece.fits_at_reoriented(board, kick, right_turns)
 }

@@ -107,7 +107,6 @@ impl TetrominoGenerator {
 
     /// Initialize a default instance of the [`TetrominoSource::Recency`] variant.
     pub const fn recency() -> Self {
-        // SAFETY: 2.5 is not NaN.
         Self::recency_with(250)
     }
 

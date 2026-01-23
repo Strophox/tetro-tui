@@ -548,9 +548,6 @@ impl Renderer for DiffRenderer {
         for (feedback_time, feedback, active) in self.active_feedback.iter_mut() {
             let elapsed = game_time.saturating_sub(*feedback_time);
             match feedback {
-                Feedback::PieceSpawned(_piece) => {
-                    *active = false;
-                }
                 Feedback::PieceLocked(piece) => {
                     if !app.settings().graphics().render_effects {
                         *active = false;

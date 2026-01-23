@@ -24,9 +24,6 @@ struct Args {
     ///          => `./tetrs_tui --board="XX  XXX XXO  OOO   O"` or `./tetrs_tui -b "XX  XXX XXO  OOO   O"`.
     #[arg(short, long)]
     board: Option<String>,
-    /// Whether to enable the combo bot in Combo mode: `./tetrs_tui --enable-combo-bot` or `./tetrs_tui -e`
-    #[arg(short, long)]
-    enable_combo_bot: bool,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -35,8 +32,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Initialize application.
     let stdout = io::BufWriter::new(io::stdout());
-    let mut app =
-        application::Application::new(stdout, args.seed, args.board, args.enable_combo_bot);
+    let mut app = application::Application::new(stdout, args.seed, args.board);
 
     // Catch panics and write error to separate file, so it isn't lost due to app's terminal shenanigans.
     std::panic::set_hook(Box::new(|panic_info| {

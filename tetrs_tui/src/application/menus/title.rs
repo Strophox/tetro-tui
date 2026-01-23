@@ -11,6 +11,6 @@ impl<T: Write> Application<T> {
             Menu::About,
             Menu::Quit("quit from title menu".to_owned()),
         ];
-        self.generic_placeholder_menu("", selection)
+        self.generic_menu("", selection)
     }
 }

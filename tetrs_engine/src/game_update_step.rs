@@ -238,10 +238,12 @@ impl Game {
         }
     }
 
-    /// Try holding a tetromino in the game state and report success.
+    /// Check if a tetromino can be held TODO
     fn attempt_hold(&mut self, tetromino: Tetromino, event_time: GameTime) -> bool {
         match self.state.hold_piece {
+            // Holding possible.
             None | Some((_, true)) => {
+                // Hold is executed by spawning the un-held piece or a new piece, so prep next_pieces.
                 if let Some((held_piece, _)) = self.state.hold_piece {
                     self.state.next_pieces.push_front(held_piece);
                 } else {
@@ -252,7 +254,9 @@ impl Game {
                             .take(1),
                     );
                 }
+                // Now hold tetromino passed to function
                 self.state.hold_piece = Some((tetromino, false));
+                // FIXME(Strophox): Clear necessary?
                 self.state.events.clear();
                 self.state.events.insert(GameEvent::Spawn, event_time);
                 true
@@ -295,48 +299,91 @@ impl Game {
                                 .saturating_sub(self.state.next_pieces.len()),
                         ),
                 );
-                // Initial Hold System.
+                // "Initial Hold" system.
                 if self.state.buttons_pressed[Button::HoldPiece].is_some()
+                    && self.config.allow_prespawn_actions
                     && self.attempt_hold(tetromino, event_time)
+                // FIXME: This stateful 'hold' call actually pushes another piece to next_pieces even tho spawn itself already does this at the start.
                 {
                     None
+                // Actually spawn a piece.
                 } else {
                     let pos = match tetromino {
                         Tetromino::O => (4, 20),
                         _ => (3, 20),
                     };
                     let orientation = Orientation::N;
-                    let original_piece = ActivePiece {
+
+                    let raw_spawn_piece = ActivePiece {
                         shape: tetromino,
                         orientation,
                         position: pos,
                     };
+
+                    // "Initial Move" system.
+                    let mut x_moves = 0;
+                    if self.config.allow_prespawn_actions {
+                        if self.state.buttons_pressed[Button::MoveRight].is_some() {
+                            x_moves += 1;
+                        }
+                        if self.state.buttons_pressed[Button::MoveLeft].is_some() {
+                            x_moves -= 1;
+                        }
+                    }
+
+                    let offset_piece = ActivePiece {
+                        position: add(raw_spawn_piece.position, (x_moves, 0)).unwrap(),
+                        ..raw_spawn_piece
+                    };
+
+                    // "Initial Rotation" system.
                     let mut turns = 0;
-                    if self.state.buttons_pressed[Button::RotateRight].is_some() {
-                        turns += 1;
+                    if self.config.allow_prespawn_actions {
+                        if self.state.buttons_pressed[Button::RotateRight].is_some() {
+                            turns += 1;
+                        }
+                        if self.state.buttons_pressed[Button::RotateAround].is_some() {
+                            turns += 2;
+                        }
+                        if self.state.buttons_pressed[Button::RotateLeft].is_some() {
+                            turns += 3;
+                        }
                     }
-                    if self.state.buttons_pressed[Button::RotateAround].is_some() {
-                        turns += 2;
-                    }
-                    if self.state.buttons_pressed[Button::RotateLeft].is_some() {
-                        turns -= 1;
-                    }
-                    // Initial Rotation system.
-                    let next_piece = self
-                        .config
-                        .rotation_system
-                        .rotate(&original_piece, &self.state.board, turns)
-                        .unwrap_or(original_piece);
-                    if self.config.feedback_verbosity != FeedbackVerbosity::Quiet {
-                        feedback_msgs.push((event_time, Feedback::PieceSpawned(next_piece)));
-                    }
-                    // Newly spawned piece conflicts with board - Game over.
-                    if !next_piece.fits(&self.state.board) {
+
+                    let offset_rotated_piece =
+                        self.config
+                            .rotation_system
+                            .rotate(&offset_piece, &self.state.board, turns);
+
+                    let rotated_piece = self.config.rotation_system.rotate(
+                        &raw_spawn_piece,
+                        &self.state.board,
+                        turns,
+                    );
+
+                    let offset_piece = offset_piece.fits(&self.state.board).then_some(offset_piece);
+
+                    let raw_spawn_piece = raw_spawn_piece
+                        .fits(&self.state.board)
+                        .then_some(raw_spawn_piece);
+
+                    // Try finding `Some` spawn piece from the given options that tested whether they fit on the board.
+                    let spawn_piece = [
+                        offset_rotated_piece,
+                        offset_piece,
+                        rotated_piece,
+                        raw_spawn_piece,
+                    ]
+                    .into_iter()
+                    .find_map(|piece| piece);
+
+                    if spawn_piece.is_none() {
                         self.state.result = Some(Err(GameOver::BlockOut));
                         return feedback_msgs;
                     }
+
                     self.state.events.insert(GameEvent::Fall, event_time);
-                    Some(next_piece)
+                    spawn_piece
                 }
             }
             GameEvent::Hold => {
@@ -449,7 +496,7 @@ impl Game {
                 let prev_piece = prev_piece.expect("harddrop event but no active piece");
                 // Move piece all the way down.
                 let dropped_piece = prev_piece.well_piece(&self.state.board);
-                if self.config.feedback_verbosity != FeedbackVerbosity::Quiet {
+                if self.config.feedback_verbosity != FeedbackVerbosity::Silent {
                     feedback_msgs.push((event_time, Feedback::HardDrop(prev_piece, dropped_piece)));
                 }
                 self.state.events.insert(
@@ -464,7 +511,7 @@ impl Game {
             }
             GameEvent::Lock => {
                 let prev_piece = prev_piece.expect("lock event but no active piece");
-                if self.config.feedback_verbosity != FeedbackVerbosity::Quiet {
+                if self.config.feedback_verbosity != FeedbackVerbosity::Silent {
                     feedback_msgs.push((event_time, Feedback::PieceLocked(prev_piece)));
                 }
                 // Attempt to lock active piece fully above skyline - Game over.
@@ -516,7 +563,7 @@ impl Game {
                         is_perfect_clear,
                         combo: n_combo,
                     };
-                    if self.config.feedback_verbosity != FeedbackVerbosity::Quiet {
+                    if self.config.feedback_verbosity != FeedbackVerbosity::Silent {
                         feedback_msgs.push((
                             event_time,
                             Feedback::LineClears(lines_cleared, self.config.line_clear_delay),

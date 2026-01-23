@@ -1,3 +1,4 @@
+#![allow(dead_code)] // FIXME: Combo Bot.
 #![allow(clippy::just_underscores_and_digits)]
 
 use std::{

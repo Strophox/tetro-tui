@@ -11,16 +11,14 @@ use crossterm::{
     terminal::{self, Clear, ClearType},
     ExecutableCommand,
 };
-use tetrs_engine::{Feedback, FeedbackMessages, Game, PressedButtons};
+use tetrs_engine::{Feedback, Game, PressedButtons};
 
 use crate::{
     application::{
         Application, GameMetaData, GameRestorationData, Menu, MenuUpdate, NewGameSettings,
         RecordedUserInput, ScoreboardEntry,
     },
-    game_input_handlers::{
-        combo_bot::ComboBotInputHandler, live_terminal::LiveTerminalInputHandler, InputSignal,
-    },
+    game_input_handlers::{live_terminal::LiveTerminalInputHandler, InputSignal},
     game_renderers::Renderer,
 };
 
@@ -52,22 +50,23 @@ impl<T: Write> Application<T> {
             self.settings.keybinds(),
             self.runtime_data.kitty_assumed,
         );
-        let mut combo_bot_handler = (self.runtime_data.combo_bot_enabled
-            && game_meta_data.title == "Combo")
-            .then(|| ComboBotInputHandler::new(&button_sender, Duration::from_millis(100)));
-        let mut inform_combo_bot = |game: &Game, evts: &FeedbackMessages| {
-            if let Some((_, state_sender)) = &mut combo_bot_handler {
-                if evts
-                    .iter()
-                    .any(|(_, feedback)| matches!(feedback, Feedback::PieceSpawned(_)))
-                {
-                    let combo_state = ComboBotInputHandler::encode(game).unwrap();
-                    if state_sender.send(combo_state).is_err() {
-                        combo_bot_handler = None;
-                    }
-                }
-            }
-        };
+        // FIXME: Combo Bot.
+        // let mut combo_bot_handler = (self.runtime_data.combo_bot_enabled
+        //     && game_meta_data.title == "Combo")
+        //     .then(|| ComboBotInputHandler::new(&button_sender, Duration::from_millis(100)));
+        // let mut inform_combo_bot = |game: &Game, evts: &FeedbackMessages| {
+        //     if let Some((_, state_sender)) = &mut combo_bot_handler {
+        //         if evts
+        //             .iter()
+        //             .any(|(_, feedback)| matches!(feedback, Feedback::PieceSpawned(_)))
+        //         {
+        //             let combo_state = ComboBotInputHandler::encode(game).unwrap();
+        //             if state_sender.send(combo_state).is_err() {
+        //                 combo_bot_handler = None;
+        //             }
+        //         }
+        //     }
+        // };
         // Game Loop
         let session_resumed = Instant::now();
         *duration_paused_total += session_resumed.saturating_duration_since(*time_last_paused);
@@ -172,7 +171,8 @@ impl<T: Write> Application<T> {
                             .push(RecordedUserInput::encode(game_now, buttons_pressed));
                         // FIXME: Handle error?
                         if let Ok(evts) = game.update(Some(buttons_pressed), game_now) {
-                            inform_combo_bot(game, &evts);
+                            // FIXME: Combo Bot.
+                            // inform_combo_bot(game, &evts);
                             new_feedback_msgs.extend(evts);
                         }
                     }
@@ -181,7 +181,8 @@ impl<T: Write> Application<T> {
                             - *duration_paused_total;
                         // FIXME: Handle error?
                         if let Ok(evts) = game.update(None, game_time_now) {
-                            inform_combo_bot(game, &evts);
+                            // FIXME: Combo Bot.
+                            // inform_combo_bot(game, &evts);
                             new_feedback_msgs.extend(evts);
                         }
                         break 'frame_idle;
