@@ -457,7 +457,7 @@ It was primarily created by *looking* at a given piece + orientation, and drawin
 
 I present to you, a heatmap overview of the Ocular Rotation System:
 
-![Ocular Rotation System Heatmap](Gallery/rotation/ocular-rotation-system_16px.png)
+![Ocular Rotation System Heatmap](Gallery/rotation/ocular-rotation-system_16x.png)
 
 **How to read it**:
 Such a heatmap is created by considering each combination of (piece, orientation, rotate left or right).
@@ -465,7 +465,7 @@ By overlapping all the _new_ possible positions for a piece after rotation, one 
 
 Here is a comparison with the Super Rotation System's heatmap:
 
-![Super Rotation System Heatmap](Gallery/rotation/super-rotation-system_16px.png)
+![Super Rotation System Heatmap](Gallery/rotation/super-rotation-system_16x.png)
 
 With the SRS heatmap one starts to spot some rotational symmetries (i.e., you can always rotate *back-and-forth between two positions*).
 This is arguably overshadowed by all the asymmetrical kicks, and very lenient vertical (downwards and upwards) kicks which contribute to an unintuitiveness to SRS' kicks.
@@ -492,7 +492,7 @@ The general rationale behind most kicks is, "these first kicks feel most natural
 
 *\*Notation*: `nTlr 0-3` describes kick positions `0` to `3` when rotating a `n`orth-facing `T`-piece to the `l`eft _or_ `r`ight.
 
-![Ocular Rotation System Heatmap](Gallery/rotation/ocular-rotation-system+_16px.png)
+![Ocular Rotation System Heatmap](Gallery/rotation/ocular-rotation-system+_16x.png)
 
 - **O**-piece.
   - As the most symmetrical piece, having no kicks would be most natural, but also make it the only piece where rotation is 'useless'. Adding limited kicks however already turns out to be very useful to the player:
