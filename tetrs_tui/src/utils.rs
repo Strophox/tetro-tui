@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use crossterm::event::KeyCode;
+use crossterm::event::{KeyCode, KeyModifiers};
 use tetrs_engine::Button;
 
 use crate::game_input_handlers::live_terminal::Keybinds;
@@ -17,46 +17,67 @@ pub fn fmt_duration(dur: &Duration) -> String {
 pub fn fmt_key(key: KeyCode) -> String {
     use crossterm::event::ModifierKeyCode as M;
     use KeyCode as K;
-    format!("[{}]", 'String_not_str: {
-        match key {
-            K::Backspace => "Back",
-            //K::Enter => "Enter",
-            K::Left => "←",
-            K::Right => "→",
-            K::Up => "↑",
-            K::Down => "↓",
-            //K::Home => "Home",
-            //K::End => "End",
-            //K::Insert => "Insert",
-            K::Delete => "Del",
-            //K::Menu => "Menu",
-            K::PageUp => "PgUp",
-            K::PageDown => "PgDn",
-            //K::Tab => "Tab",
-            //K::CapsLock => "CapsLock",
-            K::F(k) => break 'String_not_str format!("F{k}"),
-            K::Char(' ') => "Space",
-            K::Char(c) => break 'String_not_str c.to_uppercase().to_string(),
-            //K::Esc => "Esc",
-            K::Modifier(M::LeftShift) => "LShift",
-            K::Modifier(M::RightShift) => "RShift",
-            K::Modifier(M::LeftControl) => "LCtrl",
-            K::Modifier(M::RightControl) => "RCtrl",
-            K::Modifier(M::LeftSuper) => "LSuper",
-            K::Modifier(M::RightSuper) => "RSuper",
-            K::Modifier(M::LeftAlt) => "LAlt",
-            K::Modifier(M::RightAlt) => "RAlt",
-            K::Modifier(M::IsoLevel3Shift) => "AltGr",
-            k => break 'String_not_str format!("{:?}", k),
-        }
-        .to_string()
-    })
+    match key {
+        K::Backspace => "Back",
+        //K::Enter => "Enter",
+        K::Left => "←",
+        K::Right => "→",
+        K::Up => "↑",
+        K::Down => "↓",
+        //K::Home => "Home",
+        //K::End => "End",
+        //K::Insert => "Insert",
+        K::Delete => "Del",
+        //K::Menu => "Menu",
+        K::PageUp => "PgUp",
+        K::PageDown => "PgDn",
+        //K::Tab => "Tab",
+        //K::CapsLock => "CapsLock",
+        K::F(k) => return format!("F{k}"),
+        K::Char(' ') => "Space",
+        K::Char(c) => return c.to_uppercase().to_string(),
+        //K::Esc => "Esc",
+        K::Modifier(M::LeftAlt) => "LAlt",
+        K::Modifier(M::RightAlt) => "RAlt",
+        K::Modifier(M::LeftShift) => "LShift",
+        K::Modifier(M::RightShift) => "RShift",
+        K::Modifier(M::LeftControl) => "LCtrl",
+        K::Modifier(M::RightControl) => "RCtrl",
+        K::Modifier(M::IsoLevel3Shift) => "AltGr",
+        K::Modifier(M::IsoLevel5Shift) => "Iso5",
+        K::Modifier(M::LeftSuper) => "LSuper",
+        K::Modifier(M::RightSuper) => "RSuper",
+        K::Modifier(M::LeftHyper) => "LHyper",
+        K::Modifier(M::RightHyper) => "RHyper",
+        K::Modifier(M::LeftMeta) => "LMeta",
+        K::Modifier(M::RightMeta) => "RMeta",
+        k => return format!("{:?}", k),
+    }
+    .to_string()
 }
 
-pub fn fmt_keybinds(button: Button, keybinds: &Keybinds) -> String {
+pub fn fmt_keymods(keymod: KeyModifiers) -> String {
+    use KeyModifiers as KMs;
+    [
+        keymod.contains(KMs::CONTROL).then_some("Ctrl"),
+        keymod.contains(KMs::SHIFT).then_some("Shift"),
+        keymod.contains(KMs::ALT).then_some("Alt"),
+        keymod.contains(KMs::SUPER).then_some("Super"),
+        keymod.contains(KMs::HYPER).then_some("Hyper"),
+        keymod.contains(KMs::META).then_some("Meta"),
+    ].into_iter().flatten().collect::<Vec<_>>().join("+")
+}
+
+pub fn fmt_keys_bound_to(button: Button, keybinds: &Keybinds) -> String {
     keybinds
         .iter()
-        .filter_map(|(&k, &b)| (b == button).then_some(fmt_key(k)))
-        .collect::<Vec<String>>()
+        .filter_map(|(&(k, kms), &b)| (b == button).then_some(
+            if kms.is_empty() {
+                format!("[{}]", fmt_key(k))
+            } else {
+                format!("[{}+{}]", fmt_keymods(kms), fmt_key(k))
+            }
+        ))
+        .collect::<Vec<_>>()
         .join("")
 }

@@ -18,7 +18,7 @@ use tetrs_engine::{
 use crate::{
     application::{Application, GameMetaData, Glyphset},
     game_renderers::{button_str, Renderer},
-    utils::{fmt_duration, fmt_keybinds},
+    utils::{fmt_duration, fmt_keys_bound_to},
 };
 
 use super::{tet_str_minuscule, tet_str_small};
@@ -272,7 +272,7 @@ impl Renderer for DiffPrintRenderer {
         } else {
             ("", "".to_owned())
         };
-        let f = |b| fmt_keybinds(b, app.settings().keybinds());
+        let f = |b| fmt_keys_bound_to(b, app.settings().keybinds());
         let mut icons_move = format!("{}{}", f(Button::MoveLeft), f(Button::MoveRight));
         let mut icons_rotate = format!(
             "{}{}{}",

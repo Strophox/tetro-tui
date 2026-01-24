@@ -15,7 +15,7 @@ use tetrs_engine::Button;
 
 use crate::{
     application::{Application, Menu, MenuUpdate, Settings},
-    utils::fmt_keybinds,
+    utils::fmt_keys_bound_to,
 };
 
 impl<T: Write> Application<T> {
@@ -92,7 +92,7 @@ impl<T: Write> Application<T> {
             let button_names = buttons_available.iter().map(|&button| {
                 format!(
                     "{button:?}: {}",
-                    fmt_keybinds(button, self.settings.keybinds())
+                    fmt_keys_bound_to(button, self.settings.keybinds())
                 )
             });
             for (i, name) in button_names.enumerate() {
@@ -185,13 +185,13 @@ impl<T: Write> Application<T> {
                         }
                         loop {
                             if let Event::Key(KeyEvent {
-                                code, kind: Press, ..
+                                code, modifiers, kind: Press, ..
                             }) = event::read()?
                             {
                                 // Add key pressed unless it's `Esc`.
                                 if code != KeyCode::Esc {
                                     if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                                    self.settings.keybinds_mut().insert(code, current_button);
+                                    self.settings.keybinds_mut().insert((code, modifiers), current_button);
                                 }
                                 break;
                             }

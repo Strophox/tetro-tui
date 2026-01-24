@@ -15,10 +15,10 @@ use tetrs_engine::Button;
 
 use super::InputSignal;
 
-pub type Keybinds = HashMap<KeyCode, Button>;
+pub type Keybinds = HashMap<(KeyCode, KeyModifiers), Button>;
 
 pub fn tetrs_default_keybinds() -> Keybinds {
-    const KEYBINDS_TETRS: [(KeyCode, Button); 8] = [
+    let keybinds_tetrs: [((KeyCode, KeyModifiers), Button); 8] = [
         (KeyCode::Left, Button::MoveLeft),
         (KeyCode::Right, Button::MoveRight),
         (KeyCode::Char('a'), Button::RotateLeft),
@@ -28,12 +28,12 @@ pub fn tetrs_default_keybinds() -> Keybinds {
         (KeyCode::Up, Button::DropHard),
         //(KeyCode::Char('w'), Button::DropSonic),
         (KeyCode::Char(' '), Button::HoldPiece),
-    ];
-    HashMap::from(KEYBINDS_TETRS)
+    ].map(|(k,b)| ((k, KeyModifiers::NONE), b));
+    HashMap::from(keybinds_tetrs)
 }
 
 pub fn vim_keybinds() -> Keybinds {
-    const KEYBINDS_VIM: [(KeyCode, Button); 7] = [
+    let keybinds_vim: [((KeyCode, KeyModifiers), Button); 7] = [
         (KeyCode::Char('h'), Button::MoveLeft),
         (KeyCode::Char('l'), Button::MoveRight),
         (KeyCode::Char('a'), Button::RotateLeft),
@@ -43,13 +43,13 @@ pub fn vim_keybinds() -> Keybinds {
         (KeyCode::Char('k'), Button::DropHard),
         //(KeyCode::Char('w'), Button::DropSonic),
         (KeyCode::Char(' '), Button::HoldPiece),
-    ];
-    HashMap::from(KEYBINDS_VIM)
+    ].map(|(k,b)| ((k, KeyModifiers::NONE), b));
+    HashMap::from(keybinds_vim)
 }
 
 pub fn guideline_keybinds() -> Keybinds {
     use crossterm::event::ModifierKeyCode as M;
-    const KEYBINDS_GUIDELINE: [(KeyCode, Button); 13] = [
+    let keybinds_guidelinle: [((KeyCode, KeyModifiers), Button); 13] = [
         (KeyCode::Left, Button::MoveLeft),
         (KeyCode::Right, Button::MoveRight),
         (KeyCode::Char('z'), Button::RotateLeft),
@@ -63,8 +63,8 @@ pub fn guideline_keybinds() -> Keybinds {
         (KeyCode::Char('c'), Button::HoldPiece),
         (KeyCode::Modifier(M::LeftShift), Button::HoldPiece),
         (KeyCode::Modifier(M::RightShift), Button::HoldPiece),
-    ];
-    HashMap::from(KEYBINDS_GUIDELINE)
+    ].map(|(k,b)| ((k, KeyModifiers::NONE), b));
+    HashMap::from(keybinds_guidelinle)
 }
 
 #[derive(Debug)]
@@ -174,11 +174,12 @@ impl LiveTerminalInputHandler {
                     }
 
                     Ok(Event::Key(KeyEvent {
-                        code: key,
+                        code,
+                        modifiers,
                         kind: KeyEventKind::Press | KeyEventKind::Repeat,
                         ..
                     })) => {
-                        if let Some(&button) = keybinds.get(&key) {
+                        if let Some(&button) = keybinds.get(&(code, modifiers)) {
                             // Binding found: send button press.
                             let now = Instant::now();
                             let _ = input_sender.send(InputSignal::ButtonInput(button, true, now));
@@ -274,7 +275,7 @@ impl LiveTerminalInputHandler {
                         ..
                     })) => {}
 
-                    Ok(Event::Key(KeyEvent { code, kind, .. })) => match keybinds.get(&code) {
+                    Ok(Event::Key(KeyEvent { code, modifiers, kind, .. })) => match keybinds.get(&(code, modifiers)) {
                         // No binding: ignore.
                         None => {}
                         // Binding found: send button un-/press.
