@@ -274,6 +274,7 @@ impl Default for NewGameSettings {
 }
 
 impl NewGameSettings {
+    #[allow(dead_code)]
     pub fn encode_board(board: &Board) -> String {
         board
             .iter()
@@ -316,10 +317,11 @@ pub enum Glyphset {
 
 #[derive(PartialEq, PartialOrd, Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
 pub struct GraphicsSettings {
-    pub glyphset: Glyphset,
     palette_active: usize,
     palette_active_lockedtiles: usize,
+    pub glyphset: Glyphset,
     pub render_effects: bool,
+    pub blindfolded: bool,
     pub show_ghost_piece: bool,
     game_fps: f64,
     show_fps: bool,
@@ -332,6 +334,7 @@ impl Default for GraphicsSettings {
             palette_active: 3,
             palette_active_lockedtiles: 3,
             render_effects: true,
+            blindfolded: false,
             show_ghost_piece: true,
             game_fps: 30.0,
             show_fps: false,
@@ -405,13 +408,11 @@ impl Default for Settings {
             (
                 "high focus".to_owned(),
                 GraphicsSettings {
-                    glyphset: Glyphset::Unicode,
                     palette_active: 2,
                     palette_active_lockedtiles: 0,
                     render_effects: false,
-                    show_ghost_piece: true,
                     game_fps: 60.0,
-                    show_fps: false,
+                    ..GraphicsSettings::default()
                 },
             ),
         ];
@@ -505,7 +506,7 @@ enum Menu {
         last_paused: Instant,
         total_pause_duration: Duration,
         recorded_user_input: RecordedUserInput,
-        game_renderer: Box<game_renderers::diff::DiffRenderer>,
+        game_renderer: Box<game_renderers::diff_print::DiffPrintRenderer>,
     },
     GameOver(Box<ScoreboardEntry>),
     GameComplete(Box<ScoreboardEntry>),

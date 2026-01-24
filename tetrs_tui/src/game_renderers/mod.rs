@@ -1,5 +1,5 @@
 pub mod braille;
-pub mod diff;
+pub mod diff_print;
 pub mod legacy_debug;
 
 use std::{

@@ -15,8 +15,8 @@ use tetrs_engine::{Feedback, Game, PressedButtons};
 
 use crate::{
     application::{
-        Application, GameMetaData, GameRestorationData, Menu, MenuUpdate, NewGameSettings,
-        RecordedUserInput, ScoreboardEntry,
+        Application, GameMetaData, GameRestorationData, Menu, MenuUpdate, RecordedUserInput,
+        ScoreboardEntry,
     },
     game_input_handlers::{live_terminal::LiveTerminalInputHandler, InputSignal},
     game_renderers::Renderer,
@@ -147,19 +147,22 @@ impl<T: Write> Application<T> {
                             .insert(game.init_vals().seed);
                         new_feedback_msgs.push((
                             game.state().time,
-                            Feedback::Text(format!("(Seed stored! {})", game.init_vals().seed)),
+                            Feedback::Text(format!("(Seed stored: {})", game.init_vals().seed)),
                         ));
                     }
-                    Ok(InputSignal::StoreBoard) => {
-                        let _ = self
-                            .settings
-                            .new_game
-                            .custom_board
-                            .insert(NewGameSettings::encode_board(&game.state().board));
-                        new_feedback_msgs.push((
-                            game.state().time,
-                            Feedback::Text("(Board stored!)".to_owned()),
-                        ));
+                    Ok(InputSignal::Blindfold) => {
+                        self.settings.graphics_mut().blindfolded ^= true;
+                        if self.settings.graphics().blindfolded {
+                            new_feedback_msgs.push((
+                                game.state().time,
+                                Feedback::Text("Blindfolded! [Ctrl+B]".to_owned()),
+                            ));
+                        } else {
+                            new_feedback_msgs.push((
+                                game.state().time,
+                                Feedback::Text("Blindfolds removed! [Ctrl+B]".to_owned()),
+                            ));
+                        }
                     }
                     Ok(InputSignal::ButtonInput(button, button_state, instant)) => {
                         buttons_pressed[button] = button_state;

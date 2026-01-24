@@ -8,6 +8,6 @@ pub enum InputSignal {
     WindowResize,
     StoreSavepoint,
     StoreSeed,
-    StoreBoard,
+    Blindfold,
     ButtonInput(tetrs_engine::Button, bool, std::time::Instant),
 }

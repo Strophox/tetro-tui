@@ -24,14 +24,14 @@ use crate::{
 use super::{tet_str_minuscule, tet_str_small};
 
 #[derive(Clone, Default, Debug)]
-struct ScreenBuf {
+struct TerminalScreenBuffer {
     prev: Vec<Vec<(char, Option<Color>)>>,
     next: Vec<Vec<(char, Option<Color>)>>,
     x_draw: usize,
     y_draw: usize,
 }
 
-impl ScreenBuf {
+impl TerminalScreenBuffer {
     fn buffer_reset(&mut self, (x, y): (usize, usize)) {
         self.prev.clear();
         (self.x_draw, self.y_draw) = (x, y);
@@ -207,15 +207,14 @@ struct HardDropTile {
 }
 
 #[derive(Clone, Default, Debug)]
-pub struct DiffRenderer {
-    screen: ScreenBuf,
+pub struct DiffPrintRenderer {
+    screen: TerminalScreenBuffer,
     active_feedback: Vec<(GameTime, Feedback, bool)>,
     messages: Vec<(GameTime, String)>,
     hard_drop_tiles: Vec<(HardDropTile, bool)>,
 }
 
-impl Renderer for DiffRenderer {
-    // NOTE self: what is the concept of having an ADT but some functions are only defined on some variants (that may contain record data)?
+impl Renderer for DiffPrintRenderer {
     fn render<T>(
         &mut self,
         app: &mut Application<T>,
@@ -447,21 +446,23 @@ impl Renderer for DiffRenderer {
         }
         self.hard_drop_tiles.retain(|elt| elt.1);
 
-        // Board: draw locked tiles.
         let (tile_ground, tile_ghost, tile_active, tile_preview) =
             match app.settings().graphics().glyphset {
                 Glyphset::Electronika60 => ("▮▮", " .", "▮▮", "▮▮"),
                 Glyphset::ASCII => ("##", "::", "[]", "[]"),
                 Glyphset::Unicode => ("██", "░░", "▓▓", "▒▒"),
             };
-        for (y, line) in board.iter().enumerate().take(21).rev() {
-            for (x, cell) in line.iter().enumerate() {
-                if let Some(tile_type_id) = cell {
-                    self.screen.buffer_str(
-                        tile_ground,
-                        get_color_locked(tile_type_id),
-                        pos_board((x, y)),
-                    );
+        // Board: draw locked tiles.
+        if !app.settings().graphics().blindfolded {
+            for (y, line) in board.iter().enumerate().take(21).rev() {
+                for (x, cell) in line.iter().enumerate() {
+                    if let Some(tile_type_id) = cell {
+                        self.screen.buffer_str(
+                            tile_ground,
+                            get_color_locked(tile_type_id),
+                            pos_board((x, y)),
+                        );
+                    }
                 }
             }
         }

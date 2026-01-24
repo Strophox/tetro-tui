@@ -157,7 +157,7 @@ impl LiveTerminalInputHandler {
                         kind: KeyEventKind::Press | KeyEventKind::Repeat,
                         ..
                     })) => {
-                        let _ = input_sender.send(InputSignal::StoreBoard);
+                        let _ = input_sender.send(InputSignal::Blindfold);
                     }
 
                     Ok(Event::Key(KeyEvent {
@@ -253,7 +253,7 @@ impl LiveTerminalInputHandler {
                         kind: KeyEventKind::Press | KeyEventKind::Repeat,
                         ..
                     })) => {
-                        let _ = input_sender.send(InputSignal::StoreBoard);
+                        let _ = input_sender.send(InputSignal::Blindfold);
                     }
 
                     Ok(Event::Key(KeyEvent {
