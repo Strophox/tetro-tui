@@ -288,7 +288,6 @@ impl<T: Write> Application<T> {
                         self.settings.gameplay_mut().allow_prespawn_actions ^= true;
                     }
                     10 => {
-                        if_slot_is_default_then_copy_and_switch(&mut self.settings);
                         self.runtime_data.kitty_assumed ^= true;
                     }
                     _ => {}
@@ -378,7 +377,6 @@ impl<T: Write> Application<T> {
                         self.settings.gameplay_mut().allow_prespawn_actions ^= true;
                     }
                     10 => {
-                        if_slot_is_default_then_copy_and_switch(&mut self.settings);
                         self.runtime_data.kitty_assumed ^= true;
                     }
                     _ => {}

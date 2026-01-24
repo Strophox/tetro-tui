@@ -90,7 +90,7 @@ impl<T: Write> Application<T> {
                     self.settings.palette_slots[self.settings.graphics().palette_active].0
                 ),
                 format!(
-                    "Colored locked tiles: {}",
+                    "Color locked tiles: {}",
                     self.settings.graphics().palette_active_lockedtiles != 0
                 ),
                 format!(
