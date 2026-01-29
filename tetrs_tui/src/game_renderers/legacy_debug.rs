@@ -8,11 +8,11 @@ use crossterm::{
     style::{self, Print},
     terminal, QueueableCommand,
 };
-use tetrs_engine::{Button, Feedback, FeedbackMessages, Game, GameTime, State};
+use tetrs_engine::{Feedback, FeedbackMessages, Game, GameTime, State};
 
 use crate::{
     application::{Application, GameMetaData},
-    game_renderers::{button_str, Renderer},
+    game_renderers::Renderer,
 };
 
 #[allow(dead_code)]
@@ -37,12 +37,11 @@ impl Renderer for DebugRenderer {
         let State {
             time: game_time,
             board,
-            active_piece_data,
             ..
         } = game.state();
         let mut board = *board;
-        if let Some((active_piece, _)) = active_piece_data {
-            for ((x, y), tile_type_id) in active_piece.tiles() {
+        if let tetrs_engine::Phase::PieceInPlay { piece_data: tetrs_engine::PieceData { piece, .. }, .. } = game.phase() {
+            for ((x, y), tile_type_id) in piece.tiles() {
                 board[y][x] = Some(tile_type_id);
             }
         }
@@ -137,26 +136,9 @@ impl Renderer for DebugRenderer {
                     msg.join(" ")
                 }
                 Feedback::PieceLocked(_) => continue,
-                Feedback::LineClears(..) => continue,
+                Feedback::LinesClearing(..) => continue,
                 Feedback::HardDrop(_, _) => continue,
-                Feedback::EngineEvent(game_event) => format!("{game_event:?}"),
-                Feedback::EngineInput(pressed_old, pressed_new) => {
-                    #[allow(clippy::filter_map_bool_then)]
-                    let buttons_old_str = pressed_old
-                        .iter()
-                        .zip(Button::VARIANTS)
-                        .filter_map(|(p, b)| p.then(|| button_str(&b).to_string()))
-                        .collect::<Vec<_>>()
-                        .join("");
-                    let buttons_new_str = pressed_new
-                        .iter()
-                        .zip(Button::VARIANTS)
-                        .filter(|(p, _)| **p)
-                        .map(|(_, b)| button_str(&b))
-                        .collect::<Vec<_>>()
-                        .join(" ");
-                    format!("[{buttons_old_str}]~>[{buttons_new_str}]")
-                }
+                Feedback::Debug(update_point) => format!("{update_point:?}"),
                 Feedback::Text(s) => s.clone(),
             });
         }

@@ -3,8 +3,7 @@ use std::{num::NonZeroU8, time::Duration};
 use rand::Rng;
 
 use tetrs_engine::{
-    ActivePiece, Game, GameBuilder, GameEvent, GameModFn, GameRng, GameTime, Line, LockingData,
-    Modifier, Stat, Tetromino, UpdatePoint,
+    Button, ButtonChange, Game, GameBuilder, GameModFn, GameRng, GameTime, Line, Modifier, Phase, Piece, PieceData, Stat, Tetromino, UpdatePoint
 };
 
 pub const MOD_ID: &str = "ascent";
@@ -18,7 +17,7 @@ pub fn build(builder: &GameBuilder) -> Game {
     let mut height_generated = 0usize;
     let mut init = false;
     let mod_function: Box<GameModFn> =
-        Box::new(move |config, _rules, state, modpoint, _messages| {
+        Box::new(move |point, _called_after, config, _init_vals, state, phase, _msgs| {
             // Initialize mod.
             if !init {
                 init = true;
@@ -28,42 +27,40 @@ pub fn build(builder: &GameBuilder) -> Game {
                 {
                     *line = ascent_line;
                 }
-                // Remove spawn event.
-                state.events.clear();
                 // Manually place active piece.
-                let asc_tet_1 = Tetromino::L;
-                let asc_tet_2 = Tetromino::J;
-                state.active_piece_data = Some((
-                    ActivePiece {
-                        shape: asc_tet_1,
-                        orientation: tetrs_engine::Orientation::N,
-                        position: (0, 0),
-                    },
-                    LockingData {
-                        touches_ground: true,
-                        last_touchdown: None,
-                        last_liftoff: None,
-                        ground_time_left: Duration::ZERO,
+                let asc_tet_01 = Tetromino::L;
+                let asc_tet_02 = Tetromino::J;
+                *phase = Phase::PieceInPlay {
+                    piece_data: PieceData {
+                        piece: Piece {
+                            shape: asc_tet_01,
+                            orientation: tetrs_engine::Orientation::N,
+                            position: (0, 0),
+                        },
+                        fall_or_lock_scheduled: Duration::MAX,
+                        is_fall_not_lock: false,
                         lowest_y: 0,
-                    },
-                ));
-                state.hold_piece = Some((asc_tet_2, true));
+                        latest_lock_scheduled: Duration::MAX,
+                        move_scheduled: None,
+                    }
+                };
+                state.hold_piece = Some((asc_tet_02, true));
                 // No further pieces required.
                 config.piece_preview_count = 0;
             }
 
             // We can only do things if a piece exists.
-            let Some((active_piece, _)) = &mut state.active_piece_data else {
+            let Some(piece) = phase.piece_mut() else {
                 return;
             };
 
             let has_camera_adjust_period_elapsed =
                 state.time.saturating_sub(timepoint_camera_adjusted) >= timeperiod_camera_adjust;
-            let hit_camera_top = Game::SKYLINE - 5 <= active_piece.position.1;
+            let hit_camera_top = Game::SKYLINE - 5 <= piece.position.1;
 
             // Ascending virtual infinite board.
             if hit_camera_top && has_camera_adjust_period_elapsed {
-                active_piece.position.1 -= 1;
+                piece.position.1 -= 1;
                 state.lines_cleared += 1;
                 let mut line_source = random_ascent_lines(&mut state.rng, &mut height_generated);
                 state.board.rotate_left(1);
@@ -73,8 +70,8 @@ pub fn build(builder: &GameBuilder) -> Game {
 
             // Update state after each piece rotation, for gem scorekeeping.
             // Also change colors for fun after each rotation.
-            if matches!(modpoint, UpdatePoint::AfterEvent(GameEvent::Rotate(_))) {
-                let piece_tiles_coords = active_piece.tiles().map(|(coord, _)| coord);
+            if matches!(point, UpdatePoint::PiecePlay(ButtonChange::Press(Button::RotateLeft | Button::RotateAround | Button::RotateRight))) {
+                let piece_tiles_coords = piece.tiles().map(|(coord, _)| coord);
 
                 for (y, line) in state.board.iter_mut().enumerate() {
                     for (x, tile) in line.iter_mut().take(PLAYABLE_WIDTH).enumerate() {
@@ -107,19 +104,23 @@ pub fn build(builder: &GameBuilder) -> Game {
                 }
             }
 
-            if state.events.remove(&GameEvent::Hold).is_some() {
-                let (tet1, tet2) = (
-                    &mut state.active_piece_data.as_mut().unwrap().0.shape,
-                    &mut state.hold_piece.as_mut().unwrap().0,
-                );
-                (*tet1, *tet2) = (*tet2, *tet1);
+            // Replace hold with custom hold.
+            if let UpdatePoint::MainLoop(button_changes) = point {
+                if matches!(button_changes.first(), Some(ButtonChange::Press(Button::HoldPiece))) {
+                    // Remove hold input to stop engine from processing it.
+                    **button_changes = &button_changes[1..];
+                    // Manually swap pieces.
+                    let (tet1, tet2) = (
+                        &mut phase.piece_mut().unwrap().shape,
+                        &mut state.hold_piece.as_mut().unwrap().0,
+                    );
+                    (*tet1, *tet2) = (*tet2, *tet1);
+                } else if matches!(button_changes.first(), Some(ButtonChange::Press(Button::DropSoft | Button::DropHard))) {
+                    **button_changes = &button_changes[1..];
+                }
             }
 
-            // Remove various events we don't want to happen.
-            state.events.remove(&GameEvent::HardDrop);
-            state.events.remove(&GameEvent::LockTimer);
-            //state.events.remove(&GameEvent::Lock);
-            // Ensure we can always hold actually.
+            // Ensure we can always hold.
             state.hold_piece.unwrap().1 = true;
         });
 

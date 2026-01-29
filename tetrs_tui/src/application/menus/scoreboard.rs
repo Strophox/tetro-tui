@@ -17,7 +17,7 @@ use crate::{
     application::{
         Application, GameRestorationData, Menu, MenuUpdate, ScoreboardEntry, ScoreboardSorting,
     },
-    utils::fmt_duration,
+    fmt_utils::fmt_duration,
 };
 
 impl<T: Write> Application<T> {

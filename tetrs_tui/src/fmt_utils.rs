@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use crossterm::event::{KeyCode, KeyModifiers};
-use tetrs_engine::Button;
+use tetrs_engine::{Button, Tetromino};
 
 use crate::game_input_handlers::live_terminal::Keybinds;
 
@@ -12,6 +12,63 @@ pub fn fmt_duration(dur: &Duration) -> String {
         dur.as_secs() % 60,
         dur.as_millis() % 1000 / 10
     )
+}
+
+pub fn fmt_tet_small(t: &Tetromino) -> &'static str {
+    use Tetromino::*;
+    match t {
+        O => "██",
+        I => "▄▄▄▄",
+        S => "▄█▀",
+        Z => "▀█▄",
+        T => "▄█▄",
+        L => "▄▄█",
+        J => "█▄▄",
+    }
+}
+
+pub fn fmt_tet_mini(t: &Tetromino) -> &'static str {
+    use Tetromino::*;
+    match t {
+        O => "⠶", //"⠶",
+        I => "⡇", //"⠤⠤",
+        S => "⠳", //"⠴⠂",
+        Z => "⠞", //"⠲⠄",
+        T => "⠗", //"⠴⠄",
+        L => "⠧", //"⠤⠆",
+        J => "⠼", //"⠦⠄",
+    }
+}
+
+#[allow(dead_code)]
+pub fn fmt_button(b: &Button) -> &'static str {
+    use Button as B;
+    match b {
+        B::MoveLeft => "←",
+        B::MoveRight => "→",
+        B::RotateLeft => "↺",
+        B::RotateRight => "↻",
+        B::RotateAround => "↔",
+        B::DropSoft => "↓",
+        B::DropHard => "⤓",
+        B::TeleDown => "⇓",
+        B::TeleLeft => "⇐",
+        B::TeleRight => "⇒",
+        B::HoldPiece => "h",
+    }
+}
+
+#[allow(dead_code)]
+pub fn fmt_button_state(button_state: &[bool; Button::VARIANTS.len()]) -> String {
+    let s = button_state
+            .iter()
+            .zip(Button::VARIANTS)
+            .filter(|(p, _)| **p)
+            .map(|(_, b)| fmt_button(&b))
+            .collect::<Vec<_>>()
+            .join(" ");
+        
+    format!("[{s}]")
 }
 
 pub fn fmt_key(key: KeyCode) -> String {
@@ -68,7 +125,7 @@ pub fn fmt_keymods(keymod: KeyModifiers) -> String {
     ].into_iter().flatten().collect::<Vec<_>>().join("+")
 }
 
-pub fn fmt_keys_bound_to(button: Button, keybinds: &Keybinds) -> String {
+pub fn fmt_keybinds_of(button: Button, keybinds: &Keybinds) -> String {
     keybinds
         .iter()
         .filter_map(|(&(k, kms), &b)| (b == button).then_some(

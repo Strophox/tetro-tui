@@ -14,8 +14,7 @@ use crossterm::{
 use tetrs_engine::Tetromino;
 
 use crate::{
-    application::{Application, Glyphset, Menu, MenuUpdate, Settings},
-    game_renderers::tet_str_small,
+    application::{Application, Glyphset, Menu, MenuUpdate, Settings}, fmt_utils::fmt_tet_small,
 };
 
 impl<T: Write> Application<T> {
@@ -125,7 +124,7 @@ impl<T: Write> Application<T> {
             ))?;
             for tet in Tetromino::VARIANTS {
                 self.term.queue(PrintStyledContent(
-                    tet_str_small(&tet).with(
+                    fmt_tet_small(&tet).with(
                         *self
                             .settings
                             .palette()

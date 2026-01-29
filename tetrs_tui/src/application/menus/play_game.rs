@@ -11,7 +11,7 @@ use crossterm::{
     terminal::{self, Clear, ClearType},
     ExecutableCommand,
 };
-use tetrs_engine::{Feedback, Game, PressedButtons};
+use tetrs_engine::{Feedback, Game};
 
 use crate::{
     application::{
@@ -42,7 +42,6 @@ impl<T: Write> Application<T> {
             ));
         }
         // Prepare channel with which to communicate `Button` inputs / game interrupt.
-        let mut buttons_pressed = PressedButtons::default();
         let (button_sender, button_receiver) = mpsc::channel();
 
         let _input_handler = LiveTerminalInputHandler::new(
@@ -76,7 +75,7 @@ impl<T: Write> Application<T> {
         let mut fps_counter_started = Instant::now();
         let menu_update = 'render: loop {
             // Exit if game ended
-            if let Some(game_result) = game.state().result {
+            if let Some(game_result) = game.result() {
                 let scoreboard_entry = ScoreboardEntry::new(game, game_meta_data);
                 let game_restoration_data = GameRestorationData::new(game, recorded_user_input);
                 self.scoreboard
@@ -110,6 +109,7 @@ impl<T: Write> Application<T> {
                             "exited with ctrl-c".to_owned(),
                         ));
                     }
+
                     Ok(InputSignal::ForfeitGame) => {
                         game.forfeit();
                         let scoreboard_entry = ScoreboardEntry::new(game, game_meta_data);
@@ -120,14 +120,17 @@ impl<T: Write> Application<T> {
                             .push((scoreboard_entry.clone(), Some(game_restoration_data)));
                         break 'render MenuUpdate::Push(Menu::GameOver(Box::new(scoreboard_entry)));
                     }
+
                     Ok(InputSignal::Pause) => {
                         *time_last_paused = Instant::now();
                         break 'render MenuUpdate::Push(Menu::Pause);
                     }
+
                     Ok(InputSignal::WindowResize) => {
                         clean_screen = true;
                         continue 'frame_idle;
                     }
+
                     Ok(InputSignal::StoreSavepoint) => {
                         let _ = self.game_savepoint.insert((
                             game_meta_data.clone(),
@@ -139,6 +142,7 @@ impl<T: Write> Application<T> {
                             Feedback::Text("(Savepoint stored!)".to_owned()),
                         ));
                     }
+
                     Ok(InputSignal::StoreSeed) => {
                         let _ = self
                             .settings
@@ -150,6 +154,7 @@ impl<T: Write> Application<T> {
                             Feedback::Text(format!("(Seed stored: {})", game.init_vals().seed)),
                         ));
                     }
+
                     Ok(InputSignal::Blindfold) => {
                         self.settings.graphics_mut().blindfolded ^= true;
                         if self.settings.graphics().blindfolded {
@@ -164,32 +169,39 @@ impl<T: Write> Application<T> {
                             ));
                         }
                     }
-                    Ok(InputSignal::ButtonInput(button, button_state, instant)) => {
-                        buttons_pressed[button] = button_state;
+
+                    Ok(InputSignal::ButtonInput(button_change, instant)) => {
                         let game_time_userinput = instant.saturating_duration_since(*time_started)
                             - *duration_paused_total;
-                        let game_now = std::cmp::max(game_time_userinput, game.state().time);
+                        let update_target_time = std::cmp::max(game_time_userinput, game.state().time);
+                        
+                        let (msgs, ended) = game.update(update_target_time, &[button_change]).unwrap();
                         recorded_user_input
                             .0
-                            .push(RecordedUserInput::encode(game_now, buttons_pressed));
-                        // FIXME: Handle error?
-                        if let Ok(evts) = game.update(Some(buttons_pressed), game_now) {
-                            // FIXME: Combo Bot.
-                            // inform_combo_bot(game, &evts);
-                            new_feedback_msgs.extend(evts);
+                            .push(RecordedUserInput::encode(update_target_time, button_change));
+
+                        // FIXME: Combo Bot.
+                        // inform_combo_bot(game, &evts);
+
+                        new_feedback_msgs.extend(msgs);
+                        if ended {
+                            break 'frame_idle;
                         }
                     }
+
                     Err(mpsc::RecvTimeoutError::Timeout) => {
-                        let game_time_now = Instant::now().saturating_duration_since(*time_started)
+                        let update_target_time = Instant::now().saturating_duration_since(*time_started)
                             - *duration_paused_total;
-                        // FIXME: Handle error?
-                        if let Ok(evts) = game.update(None, game_time_now) {
-                            // FIXME: Combo Bot.
-                            // inform_combo_bot(game, &evts);
-                            new_feedback_msgs.extend(evts);
-                        }
+                            
+                        let (msgs, _ended) = game.update(update_target_time, &[]).unwrap();
+
+                        // FIXME: Combo Bot.
+                        // inform_combo_bot(game, &evts);
+
+                        new_feedback_msgs.extend(msgs);
                         break 'frame_idle;
                     }
+
                     Err(mpsc::RecvTimeoutError::Disconnected) => {
                         // NOTE: We kind of rely on this not happening too often.
                         break 'render MenuUpdate::Push(Menu::Pause);
@@ -214,9 +226,9 @@ impl<T: Write> Application<T> {
         if self.runtime_data.kitty_assumed {
             let _ = self.term.execute(event::PopKeyboardEnhancementFlags);
         }
-        if let Some(finished_state) = game.state().result {
+        if let Some(game_result) = game.result() {
             let h_console = terminal::size()?.1;
-            if finished_state.is_ok() {
+            if game_result.is_ok() {
                 for i in 0..h_console {
                     self.term
                         .execute(MoveTo(0, i))?

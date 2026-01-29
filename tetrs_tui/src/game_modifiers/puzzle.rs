@@ -1,8 +1,7 @@
 use std::{collections::VecDeque, num::NonZeroU8};
 
 use tetrs_engine::{
-    EndConditions, Feedback, FeedbackMessages, Game, GameBuilder, GameEvent, GameModFn, GameOver,
-    Line, Modifier, State, Tetromino, UpdatePoint,
+    Button, ButtonChange, EndConditions, Feedback, FeedbackMessages, Game, GameBuilder, GameModFn, GameOver, Line, Modifier, Phase, State, Tetromino, UpdatePoint
 };
 
 pub const MOD_ID: &str = "puzzle";
@@ -61,13 +60,13 @@ pub fn build(builder: &GameBuilder) -> Game {
     let mut current_puzzle_idx = 0;
     let mut current_puzzle_attempt = 1;
     let mut current_puzzle_piececnt_limit = 0;
-    let mod_function: Box<GameModFn> = Box::new(move |config, _init_vals, state, point, msgs| {
+    let mod_function: Box<GameModFn> = Box::new(move |point, called_after, _config, _init_vals, state, phase, msgs| {
         let game_piececnt = usize::try_from(state.pieces_locked.iter().sum::<u32>()).unwrap();
         if !init {
             let piececnt = load_puzzle(state, current_puzzle_attempt, current_puzzle_idx, msgs);
             current_puzzle_piececnt_limit = game_piececnt + piececnt;
             init = true;
-        } else if matches!(point, UpdatePoint::BeforeEvent(GameEvent::Spawn))
+        } else if !called_after && matches!(point, UpdatePoint::PieceSpawn)
             && game_piececnt == current_puzzle_piececnt_limit
         {
             let puzzle_done = state
@@ -76,7 +75,7 @@ pub fn build(builder: &GameBuilder) -> Game {
                 .all(|line| line.iter().all(|cell| cell.is_none()));
             // Run out of attempts, game over.
             if !puzzle_done && current_puzzle_attempt == MAX_STAGE_ATTEMPTS {
-                state.result = Some(Err(GameOver::Limit));
+                *phase = Phase::GameEnded(Err(GameOver::Limit));
             } else {
                 if puzzle_done {
                     current_puzzle_idx += 1;
@@ -86,7 +85,7 @@ pub fn build(builder: &GameBuilder) -> Game {
                 }
                 if current_puzzle_idx == puzzles_len {
                     // Done with all puzzles, game completed.
-                    state.result = Some(Ok(()));
+                    *phase = Phase::GameEnded(Ok(()));
                 } else {
                     // Load in new puzzle.
                     let piececnt =
@@ -95,24 +94,16 @@ pub fn build(builder: &GameBuilder) -> Game {
                 }
             }
         }
-        // Keep custom game state that's also visible to player, but hide it from the game engine that handles gameplay.
-        if matches!(
-            point,
-            UpdatePoint::BeforeEvent(_) | UpdatePoint::BeforeInput
-        ) {
-            config.piece_preview_count = 0;
-        } else {
-            config.piece_preview_count = state.next_pieces.len();
-            // Delete accolades.
-            msgs.retain(|evt| !matches!(evt, (_, Feedback::Accolade { .. })));
-        }
-        // Remove spurious spawn.
-        if matches!(point, UpdatePoint::AfterEvent(GameEvent::Spawn)) && state.result.is_some() {
-            state.active_piece_data = None;
-        }
+
+        // Delete accolades.
+        msgs.retain(|evt| !matches!(evt, (_, Feedback::Accolade { .. })));
+        
         // Remove ability to hold.
-        if matches!(point, UpdatePoint::AfterInput) {
-            state.events.remove(&GameEvent::Hold);
+        if let UpdatePoint::MainLoop(button_changes) = point {
+            if matches!(button_changes.first(), Some(ButtonChange::Press(Button::HoldPiece))) {
+                // Remove hold input to stop engine from processing it.
+                **button_changes = &button_changes[1..];
+            }
         }
     });
     builder

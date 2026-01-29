@@ -12,7 +12,7 @@ use std::{
     vec,
 };
 
-use tetrs_engine::{Button, Game, Tetromino};
+use tetrs_engine::{Button, ButtonChange, Game, Tetromino};
 
 use super::InputSignal;
 
@@ -119,9 +119,12 @@ impl ComboBotInputHandler {
                 MAX_LOOKAHEAD
             ));
         }
+        let Some(piece) = game.phase().piece() else {
+            return Err(format!("wrong phase w/o piece = {:?}", game.phase()));
+        };
         Ok(ComboState {
             layout: (pattern, flipped),
-            active: Some(game.state().active_piece_data.unwrap().0.shape),
+            active: Some(piece.shape),
             hold: game.state().hold_piece,
             next_pieces: Self::encode_next_queue(
                 game.state().next_pieces.iter().take(MAX_LOOKAHEAD),
@@ -177,17 +180,19 @@ impl ComboBotInputHandler {
                                     Button::MoveRight => Button::MoveLeft,
                                     Button::RotateLeft => Button::RotateRight,
                                     Button::RotateRight => Button::RotateLeft,
+                                    Button::TeleLeft => Button::TeleRight,
+                                    Button::TeleRight => Button::TeleLeft,
                                     Button::RotateAround
                                     | Button::DropSoft
                                     | Button::DropHard
-                                    | Button::DropSonic
+                                    | Button::TeleDown
                                     | Button::HoldPiece => button,
                                 };
                             }
                             let now = Instant::now();
-                            let _ = button_sender.send(InputSignal::ButtonInput(button, true, now));
+                            let _ = button_sender.send(InputSignal::ButtonInput(ButtonChange::Press(button), now));
                             let _ =
-                                button_sender.send(InputSignal::ButtonInput(button, false, now));
+                                button_sender.send(InputSignal::ButtonInput(ButtonChange::Release(button), now));
                             /*TBD: Remove debug: let s=format!("[ main4 SENT button = {button:?} ]\n");let _=std::io::Write::write(&mut std::fs::OpenOptions::new().append(true).open("tetrs_tui_error_message_COMBO.txt").unwrap(), s.as_bytes());*/
                             thread::sleep(idle_time);
                         }
@@ -437,9 +442,9 @@ fn reachable_with((pattern, flip): Layout, mut shape: Tetromino) -> Vec<(Layout,
         // "█▀  "
         Pat::_200 => match shape {
             T => vec![((Pat::_137, !flip), &[RotateLeft, MoveRight, MoveRight, DropHard][..]),
-                      ((Pat::_14, flip), &[RotateLeft, MoveRight, MoveRight, DropSonic, RotateRight, DropSoft][..])],
-            L => vec![((Pat::_13, flip), &[RotateLeft, MoveRight, MoveRight, DropSonic, RotateRight, DropSoft][..])],
-            S => vec![((Pat::_14, flip), &[RotateRight, MoveRight, DropSonic, RotateRight, DropSoft][..]),
+                      ((Pat::_14, flip), &[RotateLeft, MoveRight, MoveRight, TeleDown, RotateRight, DropSoft][..])],
+            L => vec![((Pat::_13, flip), &[RotateLeft, MoveRight, MoveRight, TeleDown, RotateRight, DropSoft][..])],
+            S => vec![((Pat::_14, flip), &[RotateRight, MoveRight, TeleDown, RotateRight, DropSoft][..]),
                       ((Pat::_73, !flip), &[RotateRight, MoveRight, DropHard][..])],
             Z => vec![((Pat::_133, !flip), &[RotateRight, MoveRight, DropHard][..]),
                       ((Pat::_104, flip), &[MoveRight, DropHard][..])],
@@ -505,10 +510,10 @@ fn reachable_with((pattern, flip): Layout, mut shape: Tetromino) -> Vec<(Layout,
         // "▄▄ ▀"
         Pat::_28 => match shape {
             T => vec![((Pat::_76, flip), &[MoveLeft/***/, DropHard][..])],
-            L => vec![((Pat::_76, !flip), &[RotateLeft, MoveRight, MoveRight, MoveLeft, DropSonic, RotateAround, DropSoft][..])], // SPECIAL: 180°
+            L => vec![((Pat::_76, !flip), &[RotateLeft, MoveRight, MoveRight, MoveLeft, TeleDown, RotateAround, DropSoft][..])], // SPECIAL: 180°
             J => vec![((Pat::_140, flip), &[MoveLeft/***/, DropHard][..]),
                       ((Pat::_14, flip), &[RotateRight, RotateRight, MoveLeft/***/, DropHard][..])],
-            Z => vec![((Pat::_14, !flip), &[RotateRight, MoveRight, DropSonic, RotateLeft, DropSoft][..])],
+            Z => vec![((Pat::_14, !flip), &[RotateRight, MoveRight, TeleDown, RotateLeft, DropSoft][..])],
             I => vec![((Pat::_28, flip), &[DropHard][..])],
             _ => vec![],
         },
@@ -551,13 +556,13 @@ fn reachable_with((pattern, flip): Layout, mut shape: Tetromino) -> Vec<(Layout,
         },
         // "▄▀ ▄"
         Pat::_73 => match shape {
-            S => vec![((Pat::_14, !flip), &[RotateRight, MoveRight, MoveLeft, DropSonic, RotateRight, DropSoft][..])],
+            S => vec![((Pat::_14, !flip), &[RotateRight, MoveRight, MoveLeft, TeleDown, RotateRight, DropSoft][..])],
             I => vec![((Pat::_73, flip), &[DropHard][..])],
             _ => vec![],
         },
         // "▄▀▀ "
         Pat::_104 => match shape {
-            L => vec![((Pat::_14, !flip), &[RotateLeft, MoveRight, MoveRight, DropSonic, RotateRight, DropHard][..])],
+            L => vec![((Pat::_14, !flip), &[RotateLeft, MoveRight, MoveRight, TeleDown, RotateRight, DropHard][..])],
             I => vec![((Pat::_104, flip), &[DropHard][..])],
             _ => vec![],
         },

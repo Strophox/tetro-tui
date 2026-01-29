@@ -7,8 +7,8 @@ pub mod custom_start_board {
         let board = crate::application::NewGameSettings::decode_board(encoded_board);
         let mut init = false;
         Modifier {
-            descriptor: format!("{MOD_ID}\n{encoded_board}"),
-            mod_function: Box::new(move |_config, _init_vals, state, _point, _msgs| {
+            descriptor: format!("{MOD_ID}\n{}", serde_json::to_string(&encoded_board).unwrap()),
+            mod_function: Box::new(move |_point, _called_after, _config, _init_vals, state, _phase, _msgs| {
                 if !init {
                     state.board.clone_from(&board);
                     init = true;
@@ -22,7 +22,7 @@ pub mod custom_start_board {
 #[allow(dead_code)]
 pub mod print_recency_tet_gen_stats {
     use tetrs_engine::{
-        tetromino_generator::TetrominoGenerator, Feedback, GameEvent, Modifier, Tetromino,
+        tetromino_generator::TetrominoGenerator, Feedback, Modifier, Tetromino,
         UpdatePoint,
     };
 
@@ -31,8 +31,8 @@ pub mod print_recency_tet_gen_stats {
     pub fn modifier() -> Modifier {
         Modifier {
             descriptor: MOD_ID.to_owned(),
-            mod_function: Box::new(|_config, _init_vals, state, point, msgs| {
-                if !matches!(point, UpdatePoint::AfterEvent(GameEvent::Spawn)) {
+            mod_function: Box::new(|point, _called_after, _config, _init_vals, state, _phase, msgs| {
+                if !matches!(point, UpdatePoint::PieceSpawn) {
                     return;
                 }
                 let TetrominoGenerator::Recency {
@@ -42,16 +42,8 @@ pub mod print_recency_tet_gen_stats {
                 else {
                     return;
                 };
-                let mut pieces_played_strs = [
-                    Tetromino::O,
-                    Tetromino::I,
-                    Tetromino::S,
-                    Tetromino::Z,
-                    Tetromino::T,
-                    Tetromino::L,
-                    Tetromino::J,
-                ];
-                pieces_played_strs.sort_by_key(|&t| last_generated[t]);
+                let mut pieces_played_strs = Tetromino::VARIANTS;
+                pieces_played_strs.sort_by_key(|&tet| last_generated[tet as usize]);
 
                 let [o, i, s, z, t, l, j] = state.pieces_locked;
                 let str_piece_tallies = format!("{o}o {i}i {s}s {z}z {t}t {l}l {j}j");
@@ -59,11 +51,11 @@ pub mod print_recency_tet_gen_stats {
                     .map(|tet| {
                         format!(
                             "{tet:?}{}{}{}",
-                            last_generated[tet],
+                            last_generated[tet as usize],
                             // "█".repeat(lg[t] as usize),
-                            "█".repeat((last_generated[tet] * last_generated[tet]) as usize / 8),
+                            "█".repeat((last_generated[tet as usize] * last_generated[tet as usize]) as usize / 8),
                             [" ", "▏", "▎", "▍", "▌", "▋", "▊", "▉"]
-                                [(last_generated[tet] * last_generated[tet]) as usize % 8]
+                                [(last_generated[tet as usize] * last_generated[tet as usize]) as usize % 8]
                         )
                         .to_ascii_lowercase()
                     })

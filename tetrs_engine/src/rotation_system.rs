@@ -2,7 +2,7 @@
 This module handles rotation of [`ActivePiece`]s.
 */
 
-use crate::{ActivePiece, Board, Orientation, Tetromino};
+use crate::{Piece, Board, Orientation, Tetromino};
 
 /// Handles the logic of how to rotate a tetromino in play.
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
@@ -23,10 +23,10 @@ impl RotationSystem {
     /// succeeded with `p` as the new state of the piece.
     pub fn rotate(
         &self,
-        piece: &ActivePiece,
+        piece: &Piece,
         board: &Board,
         right_turns: i8,
-    ) -> Option<ActivePiece> {
+    ) -> Option<Piece> {
         match self {
             RotationSystem::Ocular => ocular_rotate(piece, board, right_turns),
             RotationSystem::Classic => classic_rotate(piece, board, right_turns),
@@ -64,7 +64,7 @@ Given we know how  L(↑→↓←)↺↻  then we can figure out [all of J]:
     J(→←)↺↻  :=  ⇔ L(←→)↻↺"
 */
 #[rustfmt::skip]
-fn ocular_rotate(piece: &ActivePiece, board: &Board, right_turns: i8) -> Option<ActivePiece> {
+fn ocular_rotate(piece: &Piece, board: &Board, right_turns: i8) -> Option<Piece> {
     use Orientation::*;
     // Figure out whether to turn 'right' (90° CW), 'left' (90° CCW), 'around' (180°) or not at all (0°).
     match right_turns.rem_euclid(4) {
@@ -240,7 +240,7 @@ fn ocular_rotate(piece: &ActivePiece, board: &Board, right_turns: i8) -> Option<
     }
 }
 
-fn super_rotate(piece: &ActivePiece, board: &Board, right_turns: i8) -> Option<ActivePiece> {
+fn super_rotate(piece: &Piece, board: &Board, right_turns: i8) -> Option<Piece> {
     let left = match right_turns.rem_euclid(4) {
         // No rotation occurred.
         0 => return Some(*piece),
@@ -292,7 +292,7 @@ fn super_rotate(piece: &ActivePiece, board: &Board, right_turns: i8) -> Option<A
     piece.first_fit(board, kick_table.iter().copied(), right_turns)
 }
 
-fn classic_rotate(piece: &ActivePiece, board: &Board, right_turns: i8) -> Option<ActivePiece> {
+fn classic_rotate(piece: &Piece, board: &Board, right_turns: i8) -> Option<Piece> {
     let left_rotation = match right_turns.rem_euclid(4) {
         // No rotation occurred.
         0 => return Some(*piece),

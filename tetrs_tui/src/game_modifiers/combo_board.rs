@@ -1,6 +1,6 @@
 use std::num::NonZeroU8;
 
-use tetrs_engine::{Board, Game, GameEvent, GameOver, Line, Modifier, Tetromino, UpdatePoint};
+use tetrs_engine::{Board, Game, GameOver, Line, Modifier, Phase, Tetromino, UpdatePoint};
 
 pub const MOD_ID: &str = "combo_board";
 
@@ -24,7 +24,7 @@ pub fn modifier(initial_layout: u16) -> Modifier {
             "{MOD_ID}\n{}",
             serde_json::to_string(&initial_layout).unwrap()
         ),
-        mod_function: Box::new(move |_config, _init_vals, state, point, _msgs| {
+        mod_function: Box::new(move |point, called_after, _config, _init_vals, state, phase, _msgs| {
             if !init {
                 for (line, four_well) in state
                     .board
@@ -36,13 +36,10 @@ pub fn modifier(initial_layout: u16) -> Modifier {
                 }
                 init_board(&mut state.board, initial_layout);
                 init = true;
-            } else if matches!(point, UpdatePoint::AfterEvent(GameEvent::Lock)) {
-                // No lineclear, game over.
-                if !state.events.contains_key(&GameEvent::LineClear) {
-                    state.result = Some(Err(GameOver::Limit));
-                }
+            } else if called_after && matches!(point, UpdatePoint::PieceLock) && !matches!(phase, Phase::LinesClearing { .. }) {
+                *phase = Phase::GameEnded(Err(GameOver::Limit));
             // Combo continues, prepare new line.
-            } else if matches!(point, UpdatePoint::AfterEvent(GameEvent::LineClear)) {
+            } else if called_after && matches!(point, UpdatePoint::LinesClear) {
                 state.board[Game::HEIGHT - 1] = line_source.next().unwrap();
             }
         }),

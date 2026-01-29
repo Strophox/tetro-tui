@@ -574,7 +574,8 @@ impl<T: Write> Application<T> {
 
             if immediately_start_new_game {
                 let g = self.settings.gameplay();
-                let builder = Game::builder()
+                let mut builder = Game::builder();
+                builder
                     .rotation_system(g.rotation_system)
                     .start_generator(g.tetromino_generator.clone())
                     .piece_preview_count(g.piece_preview_count)
@@ -585,7 +586,7 @@ impl<T: Write> Application<T> {
                     .line_clear_delay(g.line_clear_delay)
                     .appearance_delay(g.appearance_delay);
                 // Build one of the selected game modes.
-                let (game, meta_data, recorded_user_input) = if selected < game_presets.len() {
+                let (mut game, meta_data, recorded_user_input) = if selected < game_presets.len() {
                     let (title, comparison_stat, _desc, build) = &game_presets[selected];
                     let preset_game = build(&builder);
                     let new_meta_data = GameMetaData {
@@ -612,7 +613,7 @@ impl<T: Write> Application<T> {
                 // Build custom game.
                 } else {
                     let n = &self.settings.new_game;
-                    let mut builder = builder
+                    builder
                         .initial_gravity(n.custom_initial_gravity)
                         .progressive_gravity(n.custom_progressive_gravity)
                         .end_conditions(match n.custom_win_condition {
@@ -646,6 +647,7 @@ impl<T: Write> Application<T> {
                 // game.modifiers_mut().push(tetrs_engine::Modifier { descriptor: "always_clear_board".to_owned(), mod_function: Box::new(|_c, _i, s, _m, _f| {
                 //     s.board = Default::default();
                 // })});
+                game.config.feedback_verbosity = tetrs_engine::FeedbackVerbosity::Debug; // TODO: Remove
                 let now = Instant::now();
                 let time_started = now - game.state().time;
                 break Ok(MenuUpdate::Push(Menu::Game {

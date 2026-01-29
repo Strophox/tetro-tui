@@ -15,7 +15,7 @@ use tetrs_engine::Button;
 
 use crate::{
     application::{Application, Menu, MenuUpdate, Settings},
-    utils::fmt_keys_bound_to,
+    fmt_utils::fmt_keybinds_of,
 };
 
 impl<T: Write> Application<T> {
@@ -92,7 +92,7 @@ impl<T: Write> Application<T> {
             let button_names = buttons_available.iter().map(|&button| {
                 format!(
                     "{button:?}: {}",
-                    fmt_keys_bound_to(button, self.settings.keybinds())
+                    fmt_keybinds_of(button, self.settings.keybinds())
                 )
             });
             for (i, name) in button_names.enumerate() {
