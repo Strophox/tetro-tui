@@ -8,7 +8,7 @@ use std::{
 };
 
 use crossterm::style::Color;
-use tetrs_engine::{Button, FeedbackMessages, Game, Tetromino};
+use tetrs_engine::{FeedbackMessages, Game};
 
 use crate::application::{Application, GameMetaData};
 
@@ -145,42 +145,4 @@ pub fn the_matrix_palette() -> Palette {
         (255, Color::Rgb{r:234,g:255,b:244}),
     ];
     HashMap::from(COLORS_THE_MATRIX)
-}
-
-pub fn tet_str_small(t: &Tetromino) -> &'static str {
-    match t {
-        Tetromino::O => "██",
-        Tetromino::I => "▄▄▄▄",
-        Tetromino::S => "▄█▀",
-        Tetromino::Z => "▀█▄",
-        Tetromino::T => "▄█▄",
-        Tetromino::L => "▄▄█",
-        Tetromino::J => "█▄▄",
-    }
-}
-
-pub fn tet_str_minuscule(t: &Tetromino) -> &'static str {
-    match t {
-        Tetromino::O => "⠶", //"⠶",
-        Tetromino::I => "⡇", //"⠤⠤",
-        Tetromino::S => "⠳", //"⠴⠂",
-        Tetromino::Z => "⠞", //"⠲⠄",
-        Tetromino::T => "⠗", //"⠴⠄",
-        Tetromino::L => "⠧", //"⠤⠆",
-        Tetromino::J => "⠼", //"⠦⠄",
-    }
-}
-
-pub fn button_str(b: &Button) -> &'static str {
-    match b {
-        Button::MoveLeft => "←",
-        Button::MoveRight => "→",
-        Button::RotateLeft => "↺",
-        Button::RotateRight => "↻",
-        Button::RotateAround => "↔",
-        Button::DropSoft => "↓",
-        Button::DropHard => "⤓",
-        Button::DropSonic => "⇓",
-        Button::HoldPiece => "h",
-    }
 }

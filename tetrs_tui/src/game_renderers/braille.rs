@@ -35,13 +35,12 @@ impl Renderer for BrailleRenderer {
     ) -> io::Result<()> {
         let State {
             board,
-            active_piece_data,
             ..
         } = game.state();
 
         let mut board = *board;
-        if let Some((active_piece, _)) = active_piece_data {
-            for ((x, y), tile_type_id) in active_piece.tiles() {
+        if let Some(piece) = game.phase().piece() {
+            for ((x, y), tile_type_id) in piece.tiles() {
                 board[y][x] = Some(tile_type_id);
             }
         }

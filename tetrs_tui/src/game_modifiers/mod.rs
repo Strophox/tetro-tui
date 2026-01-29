@@ -3,7 +3,6 @@ use tetrs_engine::{Game, GameBuilder, Modifier};
 pub mod ascent;
 pub mod cheese;
 pub mod combo_board;
-pub mod legacy_descent;
 pub mod misc_modifiers;
 pub mod puzzle;
 
@@ -46,9 +45,6 @@ pub fn reconstruct_modified<'a>(
         } else if mod_id == ascent::MOD_ID {
             let build = Box::new(ascent::build);
             set_building_modifier(mod_id, build)?;
-        } else if mod_id == legacy_descent::MOD_ID {
-            let build = Box::new(legacy_descent::build);
-            set_building_modifier(mod_id, build)?;
         } else if mod_id == cheese::MOD_ID {
             let (linelimit, gapsize, gravity) = get_mod_args(&mut lines, mod_id)?;
             let build =
@@ -71,7 +67,7 @@ pub fn reconstruct_modified<'a>(
     }
     Ok(if let Some((_, build)) = building_modifier {
         let mut game = build(builder);
-        game.modifiers_mut().extend(compounding_modifiers);
+        game.modifiers.extend(compounding_modifiers);
         game
     } else {
         builder.build_modified(compounding_modifiers)

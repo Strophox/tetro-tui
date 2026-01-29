@@ -9,5 +9,5 @@ pub enum InputSignal {
     StoreSavepoint,
     StoreSeed,
     Blindfold,
-    ButtonInput(tetrs_engine::Button, bool, std::time::Instant),
+    ButtonInput(tetrs_engine::ButtonChange, std::time::Instant),
 }

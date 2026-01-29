@@ -622,13 +622,29 @@ Nice.
 </details>
 
 Although now it *may potentially* be abused by players which keep pieces in the air, only to occasionally touch down and reset the lock timer while hardly adding any ground time (note that this problem vanishes at 20G).
-
 A small patch for this is to check the last time the piece touched the ground, and if that was, say, less than 2×(drop delay) ago, then act as if the piece had been touching ground all along. This way the piece is guaranteed to be counted as "continuously on ground" even with fast upward kicks of height ≤ 2.
+
+At this point we note that this 'ground continuity fix', for practical purposes, always applies.
+I.e. we can just act like the piece is 'continuously draining its available ground time' once it reaches a lowest y.
+We simplify the system to reach our final implementation:
+
+<details>
+
+<summary> 'Timer' Placement Lock Down </summary>
+
+*Let 'lock time cap' denote the maximum amount of time we allow a player to spend time readjusting a piece once it has reached a certain lowest height*
+
+> - If the piece touches a surface
+>   - start a lock timer of 500ms (\**var with lvl*).
+>   - start a lock time cap of 10⋅lock\_timer.
+>   - record the lowest y coordinate the piece has reached.
+> - If the piece moves/rotates (change in position), reset lock timer ('move reset').
+> - If the lock timer runs out *or* the ground time reaches 2.25s, lock the piece immediately as soon as it touches the next surface.
+> - If the piece falls below the previously lowest recorded y coordinate, reset the lock time cap.
 
 </details>
 
-In the end, a timer-based extended placement lockdown (+ ground continuity fix) is what I used.
-Although there might be a nicer system somehow..
+</details>
 
 
 ## Scoring

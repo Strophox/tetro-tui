@@ -39,14 +39,14 @@ TASK: Document all features (including IRS, etc. - cargo feature `serde`).
 
 #![warn(missing_docs)]
 
-pub mod game_update_step;
+pub mod game_update;
 pub mod rotation_system;
 pub mod tetromino_generator;
 
 use std::{
-    collections::{HashMap, VecDeque},
+    collections::VecDeque,
     fmt,
-    num::{NonZeroU32, NonZeroU8},
+    num::NonZeroU8,
     ops,
     time::Duration,
 };
@@ -75,68 +75,20 @@ pub type GameTime = Duration;
 pub type GameRng = ChaCha12Rng;
 /// Type of underlying functions at the heart of a [`GameModifier`].
 pub type GameModFn = dyn FnMut(
+    &mut UpdatePoint<&mut &[ButtonChange]>,
+    bool,
     &mut Configuration,
     &mut InitialValues,
     &mut State,
-    &UpdatePoint,
+    &mut Phase,
     &mut FeedbackMessages,
 );
 /// A set of conditions to determine how a game specially ends and whether it results in a win (otherwise loss).
 pub type EndConditions = Vec<(Stat, bool)>;
 /// The result of a game that ended.
 pub type GameResult = Result<(), GameOver>;
-/// A mapping for buttons, usable through `impl Index<Button>`.
-type ButtonsArray<T> = [T; Button::VARIANTS.len()];
-/// A mapping for which buttons were pressed.
-pub type PressedButtons = ButtonsArray<bool>;
 /// Convenient type alias to denote a collection of [`Feedback`]s associated with some [`GameTime`].
 pub type FeedbackMessages = Vec<(GameTime, Feedback)>;
-
-/// Represents an abstract game input.
-// NOTE: We could consider calling this `Action` judging from its variants, however the Game stores a mapping of whether a given `Button` is active over a period of time. `Intents` could work but `Button` is less abstract and often corresponds directly to IRL player inputs.
-#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum Button {
-    /// Movement to the left.
-    MoveLeft,
-    /// Movement to the right.
-    MoveRight,
-    /// Rotation by 90° counter-clockwise.
-    RotateLeft,
-    /// Rotation by 90° clockwise.
-    RotateRight,
-    /// Rotation by 180°.
-    RotateAround,
-    /// "Soft" dropping.
-    /// This conventionally drops a piece down by one, afterwards continuing to
-    /// drop at sped-up rate while held.
-    DropSoft,
-    /// "Hard" dropping.
-    /// This conventionally drops a piece straight down until it hits a surface,
-    /// locking it there (almost) immediately.
-    DropHard,
-    /// "Sonic" dropping.
-    /// This conventionally drops a piece straight down until it hits a surface,
-    /// **without** locking it immediately or performing any other special handling
-    /// with respect to locking.
-    DropSonic,
-    /// Holding and swapping in a held piece.
-    HoldPiece,
-}
-
-/// Represents the orientation an active piece can be in.
-#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum Orientation {
-    /// North.
-    N,
-    /// East.
-    E,
-    /// South.
-    S,
-    /// West.
-    W,
-}
 
 /// Represents one of the seven playable piece shapes.
 ///
@@ -146,7 +98,7 @@ pub enum Orientation {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Tetromino {
     /// 'O'-Tetromino: Four tiles arranged in one big square; '⠶', `██`.
-    O,
+    O = 0,
     /// 'I'-Tetromino: Four tiles arranged in one straight line; '⡇', `▄▄▄▄`.
     I,
     /// 'S'-Tetromino: Four tiles arranged in a left-snaking manner; '⠳', `▄█▀`.
@@ -161,13 +113,27 @@ pub enum Tetromino {
     J,
 }
 
+/// Represents the orientation an active piece can be in.
+#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub enum Orientation {
+    /// North.
+    N = 0,
+    /// East.
+    E,
+    /// South.
+    S,
+    /// West.
+    W,
+}
+
 /// An active tetromino in play.
 ///
 /// Notably, the [`Game`] additionally stores [`LockingData`] corresponding
 /// to the main active piece outside this struct.
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct ActivePiece {
+pub struct Piece {
     /// Type of tetromino the active piece is.
     pub shape: Tetromino,
     /// In which way the tetromino is re-oriented.
@@ -176,20 +142,49 @@ pub struct ActivePiece {
     pub position: Coord,
 }
 
-/// Locking details stored about an active piece in play.
+/// Represents an abstract game input.
+// NOTE: We could consider calling this `Action` judging from its variants, however the Game stores a mapping of whether a given `Button` is active over a period of time. `Intents` could work but `Button` is less abstract and often corresponds directly to IRL player inputs.
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct LockingData {
-    /// Whether the main piece currently touches a surface below.
-    pub touches_ground: bool,
-    /// The last time the main piece was recorded to touching ground after not having done previously.
-    pub last_touchdown: Option<GameTime>,
-    /// The last time the main piece was recorded to be afloat after not having been previously.
-    pub last_liftoff: Option<GameTime>,
-    /// The total duration the main piece is allowed to touch ground until it should immediately lock down.
-    pub ground_time_left: Duration,
-    /// The lowest recorded vertical position of the main piece.
-    pub lowest_y: usize,
+pub enum Button {
+    /// Moves the piece once to the left.
+    MoveLeft = 0,
+    /// Moves the piece once to the right.
+    MoveRight,
+    /// Rotate the piece by +90° (clockwise).
+    RotateLeft,
+    /// Rotate the piece by -90° (counter-clockwise).
+    RotateRight,
+    /// Rotate the piece by 180° (flip around).
+    RotateAround,
+    /// "Soft" dropping.
+    /// This drops a piece down by one, locking it immediately if it hit a surface,
+    /// Otherwise holding this button decreases fall speed by the game [`Configuration`]'s `soft_drop_factor`.
+    DropSoft,
+    /// "Hard" dropping.
+    /// This immediately drops a piece all the way down until it hits a surface,
+    /// locking it there (almost) instantly, too.
+    DropHard,
+    /// Teleport the piece down, also known as "Sonic" dropping.
+    /// This immediately drops a piece all the way down until it hits a surface,
+    /// but without locking it (unlike [`Button::DropHard`]).
+    TeleDown,
+    /// Instantly 'teleports' (moves) a piece left until it hits a surface.
+    TeleLeft,
+    /// Instantly 'teleports' (moves) a piece right until it hits a surface.
+    TeleRight,
+    /// Holding the current piece; and swapping in a new piece if one was held previously.
+    HoldPiece,
+}
+
+/// A change in button state, between being held down or unpressed.
+#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub enum ButtonChange {
+    /// The signal of a button now being active / 'pressed down'.
+    Press(Button),
+    /// The signal of a button now being inactive / 'not pressed down'.
+    Release(Button),
 }
 
 /// Certain statistics for which an instance of [`Game`] can be checked against.
@@ -206,20 +201,6 @@ pub enum Stat {
     GravityReached(u32),
     /// Whether a given number of points has been scored already.
     PointsScored(u64),
-}
-
-/// Some values that were used to help initialize the game.
-///
-/// Used for game reproducibility.
-#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Hash, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct InitialValues {
-    /// The gravity at which a game should start.
-    pub initial_gravity: u32,
-    /// The method (and internal state) of tetromino generation used.
-    pub start_generator: TetrominoGenerator,
-    /// The value to seed the game's PRNG with.
-    pub seed: u64,
 }
 
 /// The amount of feedback information that is to be generated.
@@ -260,12 +241,9 @@ pub struct Configuration {
     pub auto_repeat_rate: Duration,
     /// How much faster than normal drop speed a piece should fall while 'soft drop' is being held.
     pub soft_drop_factor: f64,
-    /// How long it takes a piece to attempt locking down after 'hard drop' has landed the piece on
-    /// the ground.
-    pub hard_drop_delay: Duration,
     /// How long each spawned active piece may touch the ground in total until it should lock down
     /// immediately.
-    pub ground_time_max: Duration,
+    pub lock_time_max_factor: f64,
     /// How long the game should wait after clearing a line.
     pub line_clear_delay: Duration,
     /// How long the game should wait *additionally* before spawning a new piece.
@@ -283,37 +261,36 @@ pub struct Configuration {
     pub feedback_verbosity: FeedbackVerbosity,
 }
 
-/// An event that is scheduled by the game engine to execute some action.
+/// Some values that were used to help initialize the game.
+///
+/// Used for game reproducibility.
+#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Hash, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct InitialValues {
+    /// The gravity at which a game should start.
+    pub initial_gravity: u32,
+    /// The method (and internal state) of tetromino generation used.
+    pub start_generator: TetrominoGenerator,
+    /// The value to seed the game's PRNG with.
+    pub seed: u64,
+}
+
+/// Locking details stored about an active piece in play.
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum GameEvent {
-    /// Event of a line being cleared from the board.
-    LineClear,
-    /// Event of a new [`ActivePiece`] coming into play.
-    Spawn,
-    /// Event of the current [`ActivePiece`] being fixed on the board, allowing no further updates
-    /// to its state.
-    Lock,
-    /// Event of trying to hold / swap out the current piece.
-    Hold,
-    /// Event of the active piece being dropped down and a fast [`GameEvent::LockTimer`] being initiated.
-    HardDrop,
-    /// Event of the active piece being dropped down (without any further action or locking).
-    SonicDrop,
-    /// Event of the active piece immediately dropping down by one.
-    SoftDrop,
-    /// Event of the active piece moving down due to ordinary game gravity.
-    Fall,
-    /// Event of the active piece moving sideways.
-    ///
-    /// Stores whether it was the initial move input in that direction.
-    Move(bool),
-    /// Event of the active piece rotating.
-    ///
-    /// Stores some number of right turns.
-    Rotate(i8),
-    /// Event of attempted piece lock down.
-    LockTimer,
+pub struct PieceData {
+    /// The tetromino game piece itself.
+    pub piece: Piece,
+    /// The time of the next fall or lock event.
+    pub fall_or_lock_scheduled: GameTime,
+    /// Whether `fall_or_lock_time` refers to a fall or lock event.
+    pub is_fall_not_lock: bool,
+    /// The lowest recorded vertical position of the main piece.
+    pub lowest_y: usize,
+    /// The total duration the main piece is allowed until it should immediately lock down.
+    pub latest_lock_scheduled: GameTime,
+    /// Optional time of the next move event.
+    pub move_scheduled: Option<GameTime>,
 }
 
 /// Represents how a game can end.
@@ -332,20 +309,43 @@ pub enum GameOver {
     Forfeit,
 }
 
+/// An event that is scheduled by the game engine to execute some action.
+#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub enum Phase {
+    /// The state of the game being irreversibly over, and not playable anymore.
+    GameEnded(GameResult),
+    /// The state of the game "taking its time" to clear out lines.
+    /// In this state the board is as it was at the time of the piece locking down,
+    /// i.e. with some horizontally completed lines.
+    /// After exiting this state, the 
+    LinesClearing {
+        /// The in-game time at which the game moves on to the next `ActionState.`
+        line_clears_done_time: GameTime
+    },
+    /// The state of the game "taking its time" to spawn a piece.
+    /// This is the state the board will have right before attempting to spawn a new piece.
+    Spawning {
+        /// The in-game time at which the game moves on to the next `ActionState.`
+        spawn_time: GameTime
+    },
+    /// The state of the game having an active piece in-play, which can be controlled by a player.
+    PieceInPlay {
+        /// The data required to play a piece in this `ActionState.`
+        piece_data: PieceData
+    },
+}
+
 /// Struct storing internal game state that changes over the course of play.
 #[derive(Eq, PartialEq, Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct State {
     /// Current in-game time.
     pub time: GameTime,
-    /// Upcoming game events.
-    pub events: HashMap<GameEvent, GameTime>,
     /// The current state of buttons being pressed in the game.
-    pub buttons_pressed: ButtonsArray<Option<GameTime>>,
+    pub buttons_pressed: [Option<GameTime>; Button::VARIANTS.len()],
     /// The main playing grid storing empty (`None`) and filled, fixed tiles (`Some(nz_u32)`).
     pub board: Board,
-    /// All relevant data of the current piece in play.
-    pub active_piece_data: Option<(ActivePiece, LockingData)>,
     /// Data about the piece being held. `true` denotes that the held piece can be swapped back in.
     pub hold_piece: Option<(Tetromino, bool)>,
     /// Upcoming pieces to be played.
@@ -366,8 +366,29 @@ pub struct State {
     pub consecutive_line_clears: u32,
     /// The internal pseudo random number generator used.
     pub rng: GameRng,
-    /// Whether the game has ended and how.
-    pub result: Option<GameResult>,
+}
+
+/// Represents a specific point which was reached in a call to [`Game::update`].
+#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub enum UpdatePoint<T> {
+    /// Represents a `Game::update` call handling [`ActionState::LinesClearing`].
+    LinesClear,
+    /// Represents a `Game::update` call handling [`ActionState::Spawning`].
+    PieceSpawn,
+    /// Represents a `Game::update` call handling [`ActionState::PieceInPlay`], specifically a piece moving autonomously (DAS/ARR).
+    PieceAutoMove,
+    /// Represents a `Game::update` call handling [`ActionState::PieceInPlay`], specifically a piece falling autonomously.
+    PieceFall,
+    /// Represents a `Game::update` call handling [`ActionState::PieceInPlay`], specifically a piece locking down.
+    PieceLock,
+    /// Represents a `Game::update` call handling [`ActionState::PieceInPlay`], specifically an update ([`ButtonChange`]) to the state of [`Button`]s by the player.
+    PiecePlay(ButtonChange),
+    /// Represents a `Game::update` call at a general point at the head of the main loop.
+    /// Typically:
+    /// * `T = &mut &[ButtonChange]` for [`GameModFn`] purposes, or
+    /// * `T = String` for [`Feedback`] purposes.
+    MainLoop(T),
 }
 
 /// Type of named modifiers that can be used to mod a game, c.f. [`GameBuilder::build_modified`].
@@ -399,6 +420,9 @@ pub struct Modifier {
     /// is actually reconstructible or reproducible.
     pub descriptor: String,
     /// The function object which will be called at runtime.
+    /// ```rust
+    /// mod_function = |point, called_after, config, init_vals, state, phase, msgs| { /* ... */ };
+    /// ```
     pub mod_function: Box<GameModFn>,
 }
 
@@ -425,20 +449,21 @@ pub struct GameBuilder {
 /// Main game struct representing one round of play.
 #[derive(Debug)]
 pub struct Game {
-    config: Configuration,
+    /// Some internal configuration options of the `Game`.
+    /// 
+    /// # Reproducibility
+    /// Modifying a `Game`'s configuration after it was created might not make it easily
+    /// reproducible anymore.
+    pub config: Configuration,
     init_vals: InitialValues,
     state: State,
-    modifiers: Vec<Modifier>,
-}
-
-/// An error that can be thrown by [`Game::update`].
-#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
-pub enum UpdateGameError {
-    /// Error variant caused by an attempt to update the game with a requested `update_time` that lies in
-    /// the game's past (` < game.state().time`).
-    DurationPassed,
-    /// Error variant caused by an attempt to update a game that has ended (`game.ended() == true`).
-    GameEnded,
+    phase: Phase,
+    /// A list of special modifiers that apply to the `Game`.
+    /// 
+    /// # Reproducibility
+    /// Modifying a `Game`'s modifiers after it was created might not make it easily
+    /// reproducible anymore.
+    pub modifiers: Vec<Modifier>,
 }
 
 /// A number of feedback events that can be returned by the game.
@@ -451,13 +476,13 @@ pub enum UpdateGameError {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Feedback {
     /// A piece was locked down in a certain configuration.
-    PieceLocked(ActivePiece),
+    PieceLocked(Piece),
     /// A number of lines were cleared.
     ///
     /// The duration indicates the line clear delay the game was configured with at the time.
-    LineClears(Vec<usize>, Duration),
+    LinesClearing(Vec<usize>, Duration),
     /// A piece was quickly dropped from its original position to a new one.
-    HardDrop(ActivePiece, ActivePiece),
+    HardDrop(Piece, Piece),
     /// The player cleared some lines with a number of other stats that might have increased their
     /// score bonus.
     Accolade {
@@ -474,52 +499,18 @@ pub enum Feedback {
         /// The tetromino type that was locked.
         tetromino: Tetromino,
     },
-    /// A message containing an exact in-engine [`GameEvent`] that was processed.
-    EngineEvent(GameEvent),
-    /// A message containing an exact in-engine [`PressedButtons`] (user input) that was processed.
-    EngineInput(PressedButtons, PressedButtons),
+    /// A message containing an exact in-engine `UpdatePoint` that was processed.
+    Debug(UpdatePoint<String>),
     /// Generic text feedback message.
     ///
     /// This is currently unused in the base engine.
     Text(String),
 }
 
-/// The points at which a [`GameModFn`] will be applied.
+/// An error thrown by [`Game::update`] if it receives a timestamp in the game's past.
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
-pub enum UpdatePoint {
-    /// Passed at the beginning of any call to [`Game::update`].
-    UpdateStart,
-    /// Passed when the modifier is called immediately before an [`GameEvent`] is handled.
-    BeforeEvent(GameEvent),
-    /// Passed when the modifier is called immediately after an [`GameEvent`] has been handled.
-    AfterEvent(GameEvent),
-    /// Passed when the modifier is called immediately before new user input is handled.
-    BeforeInput,
-    /// Passed when the modifier is called immediately after new user input has been handled.
-    AfterInput,
-}
-
-impl Orientation {
-    /// Find a new direction by turning right some number of times.
-    ///
-    /// This accepts `i32` to allow for left rotation.
-    pub const fn reorient_right(&self, right_turns: i8) -> Self {
-        use Orientation::*;
-        let base = match self {
-            N => 0,
-            E => 1,
-            S => 2,
-            W => 3,
-        };
-        match (base + right_turns).rem_euclid(4) {
-            0 => N,
-            1 => E,
-            2 => S,
-            3 => W,
-            _ => unreachable!(),
-        }
-    }
-}
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct UpdateGameError;
 
 impl Tetromino {
     /// The Tetromino variants.
@@ -583,37 +574,23 @@ impl Tetromino {
     }
 }
 
-impl<T> ops::Index<Tetromino> for [T; 7] {
-    type Output = T;
-
-    fn index(&self, idx: Tetromino) -> &Self::Output {
-        match idx {
-            Tetromino::O => &self[0],
-            Tetromino::I => &self[1],
-            Tetromino::S => &self[2],
-            Tetromino::Z => &self[3],
-            Tetromino::T => &self[4],
-            Tetromino::L => &self[5],
-            Tetromino::J => &self[6],
+impl Orientation {
+    /// Find a new direction by turning right some number of times.
+    ///
+    /// This accepts `i32` to allow for left rotation.
+    pub const fn reorient_right(&self, right_turns: i8) -> Self {
+        use Orientation::*;
+        match (*self as i8 + right_turns).rem_euclid(4) {
+            0 => N,
+            1 => E,
+            2 => S,
+            3 => W,
+            _ => unreachable!(),
         }
     }
 }
 
-impl<T> ops::IndexMut<Tetromino> for [T; 7] {
-    fn index_mut(&mut self, idx: Tetromino) -> &mut Self::Output {
-        match idx {
-            Tetromino::O => &mut self[0],
-            Tetromino::I => &mut self[1],
-            Tetromino::S => &mut self[2],
-            Tetromino::Z => &mut self[3],
-            Tetromino::T => &mut self[4],
-            Tetromino::L => &mut self[5],
-            Tetromino::J => &mut self[6],
-        }
-    }
-}
-
-impl ActivePiece {
+impl Piece {
     /// Returns the coordinates and tile types for he piece on the board.
     pub fn tiles(&self) -> [(Coord, TileTypeID); 4] {
         let Self {
@@ -635,7 +612,7 @@ impl ActivePiece {
     }
 
     /// Checks whether the piece fits a given offset from its current location onto the board.
-    pub fn fits_at(&self, board: &Board, offset: Offset) -> Option<ActivePiece> {
+    pub fn fits_at(&self, board: &Board, offset: Offset) -> Option<Piece> {
         let mut new_piece = *self;
         new_piece.position = add(self.position, offset)?;
         new_piece.fits(board).then_some(new_piece)
@@ -648,7 +625,7 @@ impl ActivePiece {
         board: &Board,
         offset: Offset,
         right_turns: i8,
-    ) -> Option<ActivePiece> {
+    ) -> Option<Piece> {
         let mut new_piece = *self;
         new_piece.orientation = new_piece.orientation.reorient_right(right_turns);
         new_piece.position = add(self.position, offset)?;
@@ -662,7 +639,7 @@ impl ActivePiece {
         board: &Board,
         offsets: impl IntoIterator<Item = Offset>,
         right_turns: i8,
-    ) -> Option<ActivePiece> {
+    ) -> Option<Piece> {
         let mut new_piece = *self;
         new_piece.orientation = new_piece.orientation.reorient_right(right_turns);
         let old_pos = self.position;
@@ -672,64 +649,51 @@ impl ActivePiece {
         })
     }
 
-    /// Returns the lowest position the piece can reached until it touches ground if dropped
-    /// straight down.
-    pub fn well_piece(&self, board: &Board) -> ActivePiece {
-        let mut well_piece = *self;
-        // Move piece all the way down.
-        while let Some(piece_below) = well_piece.fits_at(board, (0, -1)) {
-            well_piece = piece_below;
+    /// Returns the position the piece would hit if it kept moving at `offset` steps.
+    /// For offset `(0,0)` this function return immediately.
+    pub fn teleported(&self, board: &Board, offset: Offset) -> Piece {
+        let mut piece = *self;
+        if offset != (0,0) {
+            // Move piece as far as possible.
+            while let Some(new_piece) = piece.fits_at(board, offset) {
+                piece = new_piece;
+            }
         }
-        well_piece
+        piece
     }
 }
 
 impl Button {
     /// All button variants.
-    pub const VARIANTS: [Self; 9] = [
-        Self::MoveLeft,
-        Self::MoveRight,
-        Self::RotateLeft,
-        Self::RotateRight,
-        Self::RotateAround,
-        Self::DropSoft,
-        Self::DropHard,
-        Self::DropSonic,
-        Self::HoldPiece,
-    ];
+    pub const VARIANTS: [Self; 11] = {
+        use Button as B;
+        [
+            B::MoveLeft,
+            B::MoveRight,
+            B::RotateLeft,
+            B::RotateRight,
+            B::RotateAround,
+            B::DropSoft,
+            B::DropHard,
+            B::TeleDown,
+            B::TeleLeft,
+            B::TeleRight,
+            B::HoldPiece,
+        ]
+    };
 }
 
-impl<T> ops::Index<Button> for [T; 9] {
+impl<T> ops::Index<Button> for [T; Button::VARIANTS.len()] {
     type Output = T;
 
     fn index(&self, idx: Button) -> &Self::Output {
-        match idx {
-            Button::MoveLeft => &self[0],
-            Button::MoveRight => &self[1],
-            Button::RotateLeft => &self[2],
-            Button::RotateRight => &self[3],
-            Button::RotateAround => &self[4],
-            Button::DropSoft => &self[5],
-            Button::DropHard => &self[6],
-            Button::DropSonic => &self[7],
-            Button::HoldPiece => &self[8],
-        }
+        &self[idx as usize]
     }
 }
 
-impl<T> ops::IndexMut<Button> for [T; 9] {
+impl<T> ops::IndexMut<Button> for [T; Button::VARIANTS.len()] {
     fn index_mut(&mut self, idx: Button) -> &mut Self::Output {
-        match idx {
-            Button::MoveLeft => &mut self[0],
-            Button::MoveRight => &mut self[1],
-            Button::RotateLeft => &mut self[2],
-            Button::RotateRight => &mut self[3],
-            Button::RotateAround => &mut self[4],
-            Button::DropSoft => &mut self[5],
-            Button::DropHard => &mut self[6],
-            Button::DropSonic => &mut self[7],
-            Button::HoldPiece => &mut self[8],
-        }
+        &mut self[idx as usize]
     }
 }
 
@@ -742,8 +706,7 @@ impl Default for Configuration {
             delayed_auto_shift: Duration::from_millis(167),
             auto_repeat_rate: Duration::from_millis(33),
             soft_drop_factor: 10.0,
-            hard_drop_delay: Duration::from_micros(100),
-            ground_time_max: Duration::from_millis(2000),
+            lock_time_max_factor: 10.0,
             line_clear_delay: Duration::from_millis(200),
             appearance_delay: Duration::from_millis(50),
             progressive_gravity: true,
@@ -753,10 +716,30 @@ impl Default for Configuration {
     }
 }
 
+impl Phase {
+    /// Read accessor to a `Phase`'s possible [`Piece`].
+    pub fn piece(&self) -> Option<&Piece> {
+        if let Phase::PieceInPlay { piece_data: PieceData { piece, ..}, .. } = self {
+            Some(piece)
+        } else {
+            None
+        }
+    }
+
+    /// Mutable accessor to a `Phase`'s possible [`Piece`].
+    pub fn piece_mut(&mut self) -> Option<&mut Piece> {
+        if let Phase::PieceInPlay { piece_data: PieceData { piece, ..}, .. } = self {
+            Some(piece)
+        } else {
+            None
+        }
+    }
+}
+
 impl fmt::Debug for Modifier {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.debug_struct("GameModifier")
-            .field("identifier", &self.descriptor)
+        fmt.debug_struct("Modifier")
+            .field("descriptor", &self.descriptor)
             .field(
                 "mod_function",
                 &std::any::type_name_of_val(&self.mod_function),
@@ -787,10 +770,8 @@ impl GameBuilder {
             config: self.config.clone(),
             state: State {
                 time: Duration::ZERO,
-                events: HashMap::from([(GameEvent::Spawn, Duration::ZERO)]),
-                buttons_pressed: ButtonsArray::default(),
+                buttons_pressed: Default::default(),
                 board: Board::default(),
-                active_piece_data: None,
                 hold_piece: None,
                 next_pieces: VecDeque::default(),
                 piece_generator: init_vals.start_generator.clone(),
@@ -800,99 +781,93 @@ impl GameBuilder {
                 score: 0,
                 consecutive_line_clears: 0,
                 rng: GameRng::seed_from_u64(init_vals.seed),
-                result: None,
             },
+            phase: Phase::Spawning { spawn_time: Duration::ZERO },
             init_vals,
             modifiers: modifiers.into_iter().collect(),
         }
     }
 
+    /// Sets the [`Configuration`] that will be used by [`Game`].
+    pub fn config(&mut self, x: Configuration) -> &mut Self {
+        self.config = x;
+        self
+    }
+
     /// Sets the [`InitialValues`] that will be used by [`Game`].
-    pub fn init_vals(self, x: InitialValues) -> Self {
+    pub fn init_vals(&mut self, x: InitialValues) -> &mut Self {
         self.seed(x.seed)
             .initial_gravity(x.initial_gravity)
             .start_generator(x.start_generator)
     }
 
     /// The value to seed the game's PRNG with.
-    pub fn seed(mut self, x: u64) -> Self {
+    pub fn seed(&mut self, x: u64) -> &mut Self {
         self.seed = Some(x);
         self
     }
 
     /// The gravity at which a game should start.
-    pub fn initial_gravity(mut self, x: u32) -> Self {
+    pub fn initial_gravity(&mut self, x: u32) -> &mut Self {
         self.initial_gravity = Some(x);
         self
     }
 
     /// The method (and internal state) of tetromino generation used.
-    pub fn start_generator(mut self, x: TetrominoGenerator) -> Self {
+    pub fn start_generator(&mut self, x: TetrominoGenerator) -> &mut Self {
         self.start_generator = Some(x);
         self
     }
 
-    /// Sets the [`Configuration`] that will be used by [`Game`].
-    pub fn config(mut self, x: Configuration) -> Self {
-        self.config = x;
-        self
-    }
-
     /// How many pieces should be pre-generated and accessible/visible in the game state.
-    pub fn piece_preview_count(mut self, x: usize) -> Self {
+    pub fn piece_preview_count(&mut self, x: usize) -> &mut Self {
         self.config.piece_preview_count = x;
         self
     }
     /// Whether holding a rotation button lets a piece be smoothly spawned in a rotated state.
-    pub fn allow_prespawn_actions(mut self, x: bool) -> Self {
+    pub fn allow_prespawn_actions(&mut self, x: bool) -> &mut Self {
         self.config.allow_prespawn_actions = x;
         self
     }
     /// The method of tetromino rotation used.
-    pub fn rotation_system(mut self, x: RotationSystem) -> Self {
+    pub fn rotation_system(&mut self, x: RotationSystem) -> &mut Self {
         self.config.rotation_system = x;
         self
     }
     /// How long it takes for the active piece to start automatically shifting more to the side
     /// after the initial time a 'move' button has been pressed.
-    pub fn delayed_auto_shift(mut self, x: Duration) -> Self {
+    pub fn delayed_auto_shift(&mut self, x: Duration) -> &mut Self {
         self.config.delayed_auto_shift = x;
         self
     }
     /// How long it takes for automatic side movement to repeat once it has started.
-    pub fn auto_repeat_rate(mut self, x: Duration) -> Self {
+    pub fn auto_repeat_rate(&mut self, x: Duration) -> &mut Self {
         self.config.auto_repeat_rate = x;
         self
     }
     /// How much faster than normal drop speed a piece should fall while 'soft drop' is being held.
-    pub fn soft_drop_factor(mut self, x: f64) -> Self {
+    pub fn soft_drop_factor(&mut self, x: f64) -> &mut Self {
         self.config.soft_drop_factor = x;
-        self
-    }
-    /// How long it takes a piece to attempt locking down after 'hard drop' has landed the piece on
-    /// the ground.
-    pub fn hard_drop_delay(mut self, x: Duration) -> Self {
-        self.config.hard_drop_delay = x;
         self
     }
     /// How long each spawned active piece may touch the ground in total until it should lock down
     /// immediately.
-    pub fn ground_time_max(mut self, x: Duration) -> Self {
-        self.config.ground_time_max = x;
+    pub fn lock_time_cap_factor(&mut self, x: f64) -> &mut Self {
+        self.config.lock_time_max_factor = x;
         self
     }
     /// How long the game should wait after clearing a line.
-    pub fn line_clear_delay(mut self, x: Duration) -> Self {
+    pub fn line_clear_delay(&mut self, x: Duration) -> &mut Self {
         self.config.line_clear_delay = x;
         self
     }
     /// How long the game should wait *additionally* before spawning a new piece.
-    pub fn appearance_delay(mut self, x: Duration) -> Self {
+    pub fn appearance_delay(&mut self, x: Duration) -> &mut Self {
         self.config.appearance_delay = x;
         self
     }
     /// Whether the gravity should be automatically incremented while the game plays.
-    pub fn progressive_gravity(mut self, x: bool) -> Self {
+    pub fn progressive_gravity(&mut self, x: bool) -> &mut Self {
         self.config.progressive_gravity = x;
         self
     }
@@ -902,13 +877,13 @@ impl GameBuilder {
     /// designated by the `bool` stored with it.
     ///
     /// No limitations may allow for endless games.
-    pub fn end_conditions(mut self, x: Vec<(Stat, bool)>) -> Self {
+    pub fn end_conditions(&mut self, x: Vec<(Stat, bool)>) -> &mut Self {
         self.config.end_conditions = x;
         self
     }
 
     /// The amount of feedback information that is to be generated.
-    pub fn feedback_verbosity(mut self, x: FeedbackVerbosity) -> Self {
+    pub fn feedback_verbosity(&mut self, x: FeedbackVerbosity) -> &mut Self {
         self.config.feedback_verbosity = x;
         self
     }
@@ -929,19 +904,9 @@ impl Game {
         GameBuilder::default()
     }
 
-    /// Read accessor for the game's configuration.
-    pub const fn config(&self) -> &Configuration {
-        &self.config
-    }
-
     /// Read accessor for the game's initial values.
     pub const fn init_vals(&self) -> &InitialValues {
         &self.init_vals
-    }
-
-    /// Read accessor for the game's list of modifiers.
-    pub const fn modifiers(&self) -> &Vec<Modifier> {
-        &self.modifiers
     }
 
     /// Read accessor for the current game state.
@@ -949,18 +914,14 @@ impl Game {
         &self.state
     }
 
-    /// Mutable accessor for the current game configurations.
-    ///
-    /// # Reproducibility
-    /// Modifying a [`Game`]'s configuration after it was created might not make it easily
-    /// reproducible anymore.
-    pub const fn config_mut(&mut self) -> &mut Configuration {
-        &mut self.config
+    /// Read accessor for the current game state.
+    pub const fn phase(&self) -> &Phase {
+        &self.phase
     }
 
-    /// Mutable accessor for the current game modifiers.
-    pub const fn modifiers_mut(&mut self) -> &mut Vec<Modifier> {
-        &mut self.modifiers
+    /// Read accessor for the game's list of modifiers.
+    pub const fn modifiers(&self) -> &Vec<Modifier> {
+        &self.modifiers
     }
 
     /// Check whether a certain stat value has been met or exceeded.
@@ -975,8 +936,11 @@ impl Game {
     }
 
     /// Whether the game has ended, and whether it can continue to update.
-    pub const fn ended(&self) -> bool {
-        self.state.result.is_some()
+    pub const fn result(&self) -> Option<GameResult> {
+        match self.phase {
+            Phase::GameEnded(game_result) => Some(game_result),
+            _ => None,
+        }
     }
 
     /// Immediately end a game by forfeiting the current round.
@@ -984,7 +948,7 @@ impl Game {
     /// This can be used so `game.ended()` returns true and prevents future
     /// calls to `update` from continuing to advance the game.
     pub fn forfeit(&mut self) {
-        self.state.result = Some(Err(GameOver::Forfeit))
+        self.phase = Phase::GameEnded(Err(GameOver::Forfeit))
     }
 
     /// Creates a blueprint [`GameBuilder`] and an iterator over current modifier identifiers ([`&str`]s) from which the exact game can potentially be rebuilt.
@@ -1010,6 +974,7 @@ impl Game {
                 config: self.config.clone(),
                 init_vals: self.init_vals.clone(),
                 state: self.state.clone(),
+                phase: self.phase.clone(),
                 modifiers: Vec::new(),
             })
         }
@@ -1018,12 +983,7 @@ impl Game {
 
 impl std::fmt::Display for UpdateGameError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let s = match self {
-            UpdateGameError::DurationPassed => {
-                "attempt to update game to timestamp it already passed"
-            }
-            UpdateGameError::GameEnded => "attempt to update game after it ended",
-        };
+        let s = "attempt to update game to timestamp past";
         write!(f, "{s}")
     }
 }

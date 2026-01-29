@@ -11,7 +11,7 @@ use std::{
 
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 
-use tetrs_engine::Button;
+use tetrs_engine::{Button, ButtonChange};
 
 use super::InputSignal;
 
@@ -182,8 +182,8 @@ impl LiveTerminalInputHandler {
                         if let Some(&button) = keybinds.get(&(code, modifiers)) {
                             // Binding found: send button press.
                             let now = Instant::now();
-                            let _ = input_sender.send(InputSignal::ButtonInput(button, true, now));
-                            let _ = input_sender.send(InputSignal::ButtonInput(button, false, now));
+                            let _ = input_sender.send(InputSignal::ButtonInput(ButtonChange::Press(button), now));
+                            let _ = input_sender.send(InputSignal::ButtonInput(ButtonChange::Release(button), now));
                         }
                     }
                     // Don't care about other events: ignore.
@@ -280,10 +280,10 @@ impl LiveTerminalInputHandler {
                         None => {}
                         // Binding found: send button un-/press.
                         Some(&button) => {
+                            let wrap = if kind == KeyEventKind::Press { ButtonChange::Press } else { ButtonChange::Release };
                             // FIXME: This module could be refactored by handling all the `let _ = input_sender.send(..)` lines and automatically stopping the thread, possibly removing the need for a synchronized run_thread flag in the first place.
                             let _ = input_sender.send(InputSignal::ButtonInput(
-                                button,
-                                kind == KeyEventKind::Press,
+                                wrap(button),
                                 Instant::now(),
                             ));
                         }

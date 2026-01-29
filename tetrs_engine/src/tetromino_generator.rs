@@ -15,7 +15,7 @@ use crate::Tetromino;
 
 /// Handles the information of which pieces to spawn during a game.
 ///
-/// To actually generate [`Tetromino`]s, the [`TetrominoSource::with_rng`] method needs to be used to yield a
+/// To actually generate [`Tetromino`]s, the [`TetrominoGenerator::with_rng`] method needs to be used to yield a
 /// [`TetrominoIterator`] that implements [`Iterator`].
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Hash, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -76,12 +76,12 @@ impl Default for TetrominoGenerator {
 }
 
 impl TetrominoGenerator {
-    /// Initialize an instance of the [`TetrominoSource::Uniform`] variant.
+    /// Initialize an instance of the [`TetrominoGenerator::Uniform`] variant.
     pub const fn uniform() -> Self {
         Self::Uniform
     }
 
-    /// Initialize a 7-Bag instance of the [`TetrominoSource::Stock`] variant.
+    /// Initialize a 7-Bag instance of the [`TetrominoGenerator::Stock`] variant.
     pub const fn bag() -> Self {
         Self::Stock {
             pieces_left: [1; 7],
@@ -90,7 +90,7 @@ impl TetrominoGenerator {
         }
     }
 
-    /// Initialize a custom instance of the [`TetrominoSource::Stock`] variant.
+    /// Initialize a custom instance of the [`TetrominoGenerator::Stock`] variant.
     ///
     /// This function returns `None` when `refill_threshold < multiplicity * 7`.
     pub const fn stock(multiplicity: NonZeroU32, refill_threshold: u32) -> Option<Self> {
@@ -105,12 +105,12 @@ impl TetrominoGenerator {
         }
     }
 
-    /// Initialize a default instance of the [`TetrominoSource::Recency`] variant.
+    /// Initialize a default instance of the [`TetrominoGenerator::Recency`] variant.
     pub const fn recency() -> Self {
         Self::recency_with(250)
     }
 
-    /// Initialize a custom instance of the [`TetrominoSource::Recency`] variant.
+    /// Initialize a custom instance of the [`TetrominoGenerator::Recency`] variant.
     ///
     /// This function returns `None` when `snap` is NaN (see [`f64::is_nan`]).
     pub const fn recency_with(snap: u32) -> Self {
@@ -120,36 +120,36 @@ impl TetrominoGenerator {
         }
     }
 
-    /// Initialize an instance of the [`TetrominoSource::BalanceRelative`] variant.
+    /// Initialize an instance of the [`TetrominoGenerator::BalanceRelative`] variant.
     pub const fn balance_relative() -> Self {
         Self::BalanceRelative {
             relative_counts: [0; 7],
         }
     }
 
-    /// Initialize a custom instance of the [`TetrominoSource::Cycle`] variant.
+    /// Initialize a custom instance of the [`TetrominoGenerator::Cycle`] variant.
     pub const fn cycle(pattern: Vec<Tetromino>) -> Self {
         Self::Cycle { pattern, index: 0 }
     }
 
-    /// Method that allows `TetrominoSource` to be used as [`Iterator`].
-    pub fn with_rng<'a, 'b, R: Rng>(&'a mut self, rng: &'b mut R) -> Iter<'a, 'b, R> {
-        Iter {
+    /// Method that allows `TetrominoGenerator` to be used as [`Iterator`].
+    pub fn with_rng<'a, 'b, R: Rng>(&'a mut self, rng: &'b mut R) -> WithRng<'a, 'b, R> {
+        WithRng {
             tetromino_generator: self,
             rng,
         }
     }
 }
 
-/// Struct produced from [`TetrominoSource::with_rng`] which implements [`Iterator`].
-pub struct Iter<'a, 'b, R: Rng> {
+/// Struct produced from [`TetrominoGenerator::with_rng`] which implements [`Iterator`].
+pub struct WithRng<'a, 'b, R: Rng> {
     /// Selected tetromino generator to use as information source.
     pub tetromino_generator: &'a mut TetrominoGenerator,
     /// Thread random number generator for raw soure of randomness.
     pub rng: &'b mut R,
 }
 
-impl<'a, 'b, R: Rng> Iterator for Iter<'a, 'b, R> {
+impl<'a, 'b, R: Rng> Iterator for WithRng<'a, 'b, R> {
     type Item = Tetromino;
 
     fn next(&mut self) -> Option<Self::Item> {

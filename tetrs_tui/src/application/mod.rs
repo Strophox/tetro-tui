@@ -12,9 +12,7 @@ use std::{
 use crossterm::{cursor, style, terminal, ExecutableCommand};
 
 use tetrs_engine::{
-    Board, Button, Configuration, Feedback, FeedbackVerbosity, Game, GameBuilder, GameOver,
-    GameResult, GameTime, Modifier, PressedButtons, RotationSystem, Stat, Tetromino,
-    TetrominoGenerator,
+    Board, Button, ButtonChange, Configuration, Feedback, FeedbackVerbosity, Game, GameBuilder, GameOver, GameResult, GameTime, Modifier, RotationSystem, Stat, Tetromino, TetrominoGenerator
 };
 
 use crate::{
@@ -49,68 +47,52 @@ impl RecordedUserInput {
     For serialization reasons, we encode a single user input as a u128 instead of
     (GameTime, PressedButtons), which would have a verbose string representation:
 
-        RecordedUserInput(Vec<(GameTime,PressedButtons)>)
-         ≈ [{"secs":0,"nanos":908203743},[true,false,false,false,false,false,false,false,false]],
+        RecordedUserInput(Vec<(GameTime,ButtonChange)>) TODO
+         ↝ [{"secs":0,"nanos":908203743},[true,false,false,false,false,false,false,false,false]],
            [{"secs":1,"nanos":233015063},[true,false,true,false,false,false,false,false,false]],
            [{"secs":1,"nanos":365309796},[true,false,false,false,false,false,false,false,false]],
            [{"secs":1,"nanos":388531761},[false,false,false,false,false,false,false,false,false]],
            ...
 
-    Using simple code,
-    fn encode(timepoint: GameTime, button_state: PressedButtons) -> (u128, u16) {
-        return (timepoint.as_nanos(), Self::encode_buttons(&button_state)) }
-    fn decode((nanos, button_bits): (u128, u16)) -> (GameTime, PressedButtons) {
-        return (std::time::Duration::from_nanos(u64::try_from(nanos).unwrap()), Self::decode_buttons(button_bits)) }
-    one can already get it down to:
+    Instead one can do manual encoding as numbers (&bit-fiddling) to try and save json formatting/punctuation:
 
-        RecordedUserInput ≃ Vec<(u128, u16)>) ≃ "(nanos, buttonbits)"
-         ≈ [288059470,256],[583743082,260],[603193641,4],[694800339,0], ...
-
-     Finally, one can do bit-fiddling to try and save json formatting/punctuation:
-
-        RecordedUserInput ≈ Vec<u128> ≃ "nanos|buttonbits"
-         ≈ 39593290236160,61671350206464,62077007626244,67818618486784, ...
-
-        RecordedUserInput ≈ Vec<u128> ≃ "nanos|buttonbits" (optimal bit shifting)
-         ≈ 196780933376,434373048320,528447540228,618951716352, ...
-
-     The last representation is what we use.
-     For further compression, run-length encoding and stuff could be considered,
-     but the buttons take relatively little space, whereas the timestamps take a lot
-     and due to the noisiness of the nanos things seems more cumbersome to compress effectively.
+        RecordedUserInput ≈ Vec<u128> ≃ "nanos|buttonchangebits" (optimal bit shifting)
+         ↝ 196780933376,434373048320,528447540228,618951716352, ...
     */
 
-    pub fn encode(timepoint: GameTime, button_state: PressedButtons) -> u128 {
+    pub const BUTTON_CHANGE_BITS: usize = 5; 
+
+    pub fn encode(update_target_time: GameTime, button_change: ButtonChange) -> u128 {
         // Encode `GameTime = std::time::Duration` using `std::time::Duration::as_nanos`.
-        let nanos: u128 = timepoint.as_nanos();
-        // Encode `tetrs_engine::PressedButtons` using `crate::utils::encode_buttons`.
-        let button_bits: u16 = Self::encode_buttons(&button_state);
-        (nanos << Button::VARIANTS.len()) | u128::from(button_bits)
+        let nanos: u128 = update_target_time.as_nanos();
+        // Encode `tetrs_engine::ButtonChange` using `Self::encode_button_change`.
+        let bc_bits: u8 = Self::encode_button_change(&button_change);
+        (nanos << Self::BUTTON_CHANGE_BITS) | u128::from(bc_bits)
     }
 
-    pub fn decode(int: u128) -> (GameTime, PressedButtons) {
-        let mask = u128::MAX >> (128 - Button::VARIANTS.len());
-        let button_bits = u16::try_from(int & mask).unwrap();
-        let nanos = u64::try_from(int >> Button::VARIANTS.len()).unwrap();
+    pub fn decode(num: u128) -> (GameTime, ButtonChange) {
+        let mask = u128::MAX >> (128 - Self::BUTTON_CHANGE_BITS);
+        let bc_bits = u8::try_from(num & mask).unwrap();
+        let nanos = u64::try_from(num >> Self::BUTTON_CHANGE_BITS).unwrap();
         (
             std::time::Duration::from_nanos(nanos),
-            Self::decode_buttons(button_bits),
+            Self::decode_button_change(bc_bits),
         )
     }
 
-    fn encode_buttons(button_state: &PressedButtons) -> u16 {
-        button_state
-            .iter()
-            .fold(0, |int, b| (int << 1) | u16::from(*b))
+    pub fn encode_button_change(button_change: &ButtonChange) -> u8 {
+        match button_change {
+            ButtonChange::Release(button) => (*button as u8) << 1,
+            ButtonChange::Press(button) => ((*button as u8) << 1) | 1,
+        }
     }
 
-    fn decode_buttons(mut button_bits: u16) -> PressedButtons {
-        let mut button_state = PressedButtons::default();
-        for i in 0..Button::VARIANTS.len() {
-            button_state[Button::VARIANTS.len() - 1 - i] = button_bits & 1 != 0;
-            button_bits >>= 1;
-        }
-        button_state
+    pub fn decode_button_change(bc_bits: u8) -> ButtonChange {
+        (if bc_bits.is_multiple_of(2) {
+            ButtonChange::Press
+        } else {
+            ButtonChange::Release
+        })(Button::VARIANTS[usize::from(bc_bits >> 1)])
     }
 }
 
@@ -148,7 +130,7 @@ impl GameRestorationData {
                     let print_error_msg_mod = Modifier {
                         descriptor: "print_error_msg_mod".to_owned(),
                         mod_function: Box::new({ let mut init = false;
-                            move |_config, _init_vals, state, _point, msgs| {
+                            move |_point, _called_after, _config, _init_vals, state, _phase, msgs| {
                                 if init { return; } init = true;
                                 msgs.push((state.time, Feedback::Text(format!("ERROR: {msg:?}"))));
                             }
@@ -160,16 +142,16 @@ impl GameRestorationData {
         };
 
         // Step 3: Reenact recorded game inputs.
-        let restore_feedback_verbosity = game.config().feedback_verbosity;
+        let restore_feedback_verbosity = game.config.feedback_verbosity;
 
-        game.config_mut().feedback_verbosity = FeedbackVerbosity::Silent;
+        game.config.feedback_verbosity = FeedbackVerbosity::Silent;
         for bits in self.recorded_user_input.0.iter().take(input_index) {
-            let (input_time, button_state) = RecordedUserInput::decode(*bits);
+            let (update_time, button_change) = RecordedUserInput::decode(*bits);
             // FIXME: Error handling?
-            let _ = game.update(Some(button_state), input_time);
+            let _ = game.update(update_time, &[button_change]);
         }
 
-        game.config_mut().feedback_verbosity = restore_feedback_verbosity;
+        game.config.feedback_verbosity = restore_feedback_verbosity;
 
         game
     }
@@ -206,7 +188,7 @@ impl ScoreboardEntry {
             lines_cleared: game.state().lines_cleared,
             gravity_reached: game.state().gravity,
             points_scored: game.state().score,
-            result: game.state().result.unwrap_or(Err(GameOver::Forfeit)),
+            result: game.result().unwrap_or(Err(GameOver::Forfeit)),
         }
     }
 }

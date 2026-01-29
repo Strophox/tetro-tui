@@ -17,11 +17,9 @@ use tetrs_engine::{
 
 use crate::{
     application::{Application, GameMetaData, Glyphset},
-    game_renderers::{button_str, Renderer},
-    utils::{fmt_duration, fmt_keys_bound_to},
+    game_renderers::Renderer,
+    fmt_utils::{fmt_duration, fmt_keybinds_of, fmt_tet_small, fmt_tet_mini},
 };
-
-use super::{tet_str_minuscule, tet_str_small};
 
 #[derive(Clone, Default, Debug)]
 struct TerminalScreenBuffer {
@@ -232,12 +230,9 @@ impl Renderer for DiffPrintRenderer {
                 .buffer_reset((usize::from(x_main), usize::from(y_main)));
         }
         let State {
-            result: _,
             time: game_time,
-            events: _,
             buttons_pressed: _,
             board,
-            active_piece_data,
             hold_piece,
             next_pieces,
             piece_generator: _,
@@ -252,7 +247,7 @@ impl Renderer for DiffPrintRenderer {
         // Screen: some titles.
         let mode_name_space = meta_data.title.len().max(14);
         let (endcond_title, endcond_value) = if let Some((c, _)) = game
-            .config()
+            .config
             .end_conditions
             .iter()
             .find(|(_stat, to_win)| *to_win)
@@ -272,7 +267,7 @@ impl Renderer for DiffPrintRenderer {
         } else {
             ("", "".to_owned())
         };
-        let f = |b| fmt_keys_bound_to(b, app.settings().keybinds());
+        let f = |b| fmt_keybinds_of(b, app.settings().keybinds());
         let mut icons_move = format!("{}{}", f(Button::MoveLeft), f(Button::MoveRight));
         let mut icons_rotate = format!(
             "{}{}{}",
@@ -283,7 +278,7 @@ impl Renderer for DiffPrintRenderer {
         let mut icons_drop = format!(
             "{}{}{}",
             f(Button::DropSoft),
-            f(Button::DropSonic),
+            f(Button::TeleDown),
             f(Button::DropHard)
         );
         let mut icons_hold = f(Button::HoldPiece);
@@ -468,10 +463,10 @@ impl Renderer for DiffPrintRenderer {
         }
 
         // If a piece is in play.
-        if let Some((active_piece, _)) = active_piece_data {
+        if let tetrs_engine::Phase::PieceInPlay { piece_data: tetrs_engine::PieceData { piece, .. }, .. } = game.phase() {
             // Draw ghost piece.
             if app.settings().graphics().show_ghost_piece {
-                for (tile_pos, tile_type_id) in active_piece.well_piece(board).tiles() {
+                for (tile_pos, tile_type_id) in piece.teleported(board, (0,-1)).tiles() {
                     if tile_pos.1 <= Game::SKYLINE {
                         self.screen.buffer_str(
                             tile_ghost,
@@ -483,7 +478,7 @@ impl Renderer for DiffPrintRenderer {
             }
 
             // Draw active piece.
-            for (tile_pos, tile_type_id) in active_piece.tiles() {
+            for (tile_pos, tile_type_id) in piece.tiles() {
                 if tile_pos.1 <= Game::SKYLINE {
                     self.screen.buffer_str(
                         tile_active,
@@ -506,7 +501,7 @@ impl Renderer for DiffPrintRenderer {
         // Draw small preview pieces 2,3,4.
         let mut x_offset_small = 0;
         for tet in next_pieces.iter().skip(1).take(3) {
-            let str = tet_str_small(tet);
+            let str = fmt_tet_small(tet);
             self.screen.buffer_str(
                 str,
                 get_color(&tet.tiletypeid()),
@@ -518,7 +513,7 @@ impl Renderer for DiffPrintRenderer {
         let mut x_offset_minuscule = 0;
         for tet in next_pieces.iter().skip(4) {
             //.take(5) {
-            let str = tet_str_minuscule(tet);
+            let str = fmt_tet_mini(tet);
             self.screen.buffer_str(
                 str,
                 get_color(&tet.tiletypeid()),
@@ -531,7 +526,7 @@ impl Renderer for DiffPrintRenderer {
         }
         // Draw held piece.
         if let Some((tet, swap_allowed)) = hold_piece {
-            let str = tet_str_small(tet);
+            let str = fmt_tet_small(tet);
             let color = get_color(&if *swap_allowed {
                 tet.tiletypeid()
             } else {
@@ -596,7 +591,7 @@ impl Renderer for DiffPrintRenderer {
                         }
                     }
                 }
-                Feedback::LineClears(lines_cleared, line_clear_delay) => {
+                Feedback::LinesClearing(lines_cleared, line_clear_delay) => {
                     if !app.settings().graphics().render_effects || line_clear_delay.is_zero() {
                         *active = false;
                         continue;
@@ -727,21 +722,9 @@ impl Renderer for DiffPrintRenderer {
                     self.messages.push((*feedback_time, msg.clone()));
                     *active = false;
                 }
-                Feedback::EngineEvent(game_event) => {
+                Feedback::Debug(update_point) => {
                     self.messages
-                        .push((*feedback_time, format!("{game_event:?}")));
-                    *active = false;
-                }
-                Feedback::EngineInput(_pressed_old, pressed_new) => {
-                    let buttons_str = pressed_new
-                        .iter()
-                        .zip(Button::VARIANTS)
-                        .filter(|(p, _)| **p)
-                        .map(|(_, b)| button_str(&b))
-                        .collect::<Vec<_>>()
-                        .join(" ");
-                    self.messages
-                        .push((*feedback_time, format!("[{buttons_str}]")));
+                        .push((*feedback_time, format!("{update_point:?}")));
                     *active = false;
                 }
             }

@@ -131,7 +131,7 @@ impl<T: Write> Application<T> {
                     self.settings.gameplay().appearance_delay
                 ),
                 format!(
-                    "Allow pre-spawn rotate/hold/move (IRS/IHS/IMS): {:?} *",
+                    "Allow pre-spawn rotate/hold/move (IRS/IHS): {:?} *",
                     self.settings.gameplay().allow_prespawn_actions
                 ),
                 format!(

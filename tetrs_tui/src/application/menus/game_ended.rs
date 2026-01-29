@@ -14,7 +14,7 @@ use crossterm::{
 
 use crate::{
     application::{Application, Menu, MenuUpdate, ScoreboardEntry},
-    utils::fmt_duration,
+    fmt_utils::fmt_duration,
 };
 
 impl<T: Write> Application<T> {
