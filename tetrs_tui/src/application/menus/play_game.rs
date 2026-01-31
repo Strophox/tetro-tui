@@ -11,7 +11,7 @@ use crossterm::{
     terminal::{self, Clear, ClearType},
     ExecutableCommand,
 };
-use tetrs_engine::{Feedback, Game};
+use tetrs_engine::{Feedback, Game, UpdateGameError};
 
 use crate::{
     application::{
@@ -41,6 +41,7 @@ impl<T: Write> Application<T> {
                 // event::KeyboardEnhancementFlags::REPORT_EVENT_TYPES,
             ));
         }
+
         // Prepare channel with which to communicate `Button` inputs / game interrupt.
         let (button_sender, button_receiver) = mpsc::channel();
 
@@ -49,6 +50,7 @@ impl<T: Write> Application<T> {
             self.settings.keybinds(),
             self.runtime_data.kitty_assumed,
         );
+
         // FIXME: Combo Bot.
         // let mut combo_bot_handler = (self.runtime_data.combo_bot_enabled
         //     && game_meta_data.title == "Combo")
@@ -66,6 +68,7 @@ impl<T: Write> Application<T> {
         //         }
         //     }
         // };
+
         // Game Loop
         let session_resumed = Instant::now();
         *duration_paused_total += session_resumed.saturating_duration_since(*time_last_paused);
@@ -73,7 +76,7 @@ impl<T: Write> Application<T> {
         let mut f = 0u32;
         let mut fps_counter = 0;
         let mut fps_counter_started = Instant::now();
-        let menu_update = 'render: loop {
+        let menu_update = 'play_game: loop {
             // Exit if game ended
             if let Some(game_result) = game.result() {
                 let scoreboard_entry = ScoreboardEntry::new(game, game_meta_data);
@@ -86,11 +89,13 @@ impl<T: Write> Application<T> {
                 } else {
                     Menu::GameOver
                 }(Box::new(scoreboard_entry));
-                break 'render MenuUpdate::Push(menu);
+                break 'play_game MenuUpdate::Push(menu);
             }
+
             // Start next frame
             f += 1;
             fps_counter += 1;
+            // TODO(Strophox): What?
             let next_frame_at = loop {
                 let frame_at = session_resumed
                     + Duration::from_secs_f64(f64::from(f) / self.settings.graphics().game_fps);
@@ -100,12 +105,14 @@ impl<T: Write> Application<T> {
                     break frame_at;
                 }
             };
+
             let mut new_feedback_msgs = Vec::new();
+
             'frame_idle: loop {
                 let frame_idle_remaining = next_frame_at - Instant::now();
                 match button_receiver.recv_timeout(frame_idle_remaining) {
                     Ok(InputSignal::AbortProgram) => {
-                        break 'render MenuUpdate::Push(Menu::Quit(
+                        break 'play_game MenuUpdate::Push(Menu::Quit(
                             "exited with ctrl-c".to_owned(),
                         ));
                     }
@@ -118,12 +125,12 @@ impl<T: Write> Application<T> {
                         self.scoreboard
                             .entries
                             .push((scoreboard_entry.clone(), Some(game_restoration_data)));
-                        break 'render MenuUpdate::Push(Menu::GameOver(Box::new(scoreboard_entry)));
+                        break 'play_game MenuUpdate::Push(Menu::GameOver(Box::new(scoreboard_entry)));
                     }
 
                     Ok(InputSignal::Pause) => {
                         *time_last_paused = Instant::now();
-                        break 'render MenuUpdate::Push(Menu::Pause);
+                        break 'play_game MenuUpdate::Push(Menu::Pause);
                     }
 
                     Ok(InputSignal::WindowResize) => {
@@ -173,9 +180,10 @@ impl<T: Write> Application<T> {
                     Ok(InputSignal::ButtonInput(button_change, instant)) => {
                         let game_time_userinput = instant.saturating_duration_since(*time_started)
                             - *duration_paused_total;
+                        // Guarantee update cannot fail because of past input; input user as quickly as possible if it *was* in the (hopefully not so distant) past.
                         let update_target_time = std::cmp::max(game_time_userinput, game.state().time);
                         
-                        let (msgs, ended) = game.update(update_target_time, &[button_change]).unwrap();
+                        let result = game.update(update_target_time, Some(button_change));
                         recorded_user_input
                             .0
                             .push(RecordedUserInput::encode(update_target_time, button_change));
@@ -183,9 +191,10 @@ impl<T: Write> Application<T> {
                         // FIXME: Combo Bot.
                         // inform_combo_bot(game, &evts);
 
-                        new_feedback_msgs.extend(msgs);
-                        if ended {
-                            break 'frame_idle;
+                        match result {
+                            Ok(msgs) => new_feedback_msgs.extend(msgs),
+                            Err(UpdateGameError::GameEnded) => break 'frame_idle,
+                            Err(UpdateGameError::TargetTimeInPast) => unreachable!(),
                         }
                     }
 
@@ -193,18 +202,21 @@ impl<T: Write> Application<T> {
                         let update_target_time = Instant::now().saturating_duration_since(*time_started)
                             - *duration_paused_total;
                             
-                        let (msgs, _ended) = game.update(update_target_time, &[]).unwrap();
+                        let result = game.update(update_target_time, None);
 
                         // FIXME: Combo Bot.
                         // inform_combo_bot(game, &evts);
 
-                        new_feedback_msgs.extend(msgs);
+                        if let Ok(msgs) = result {
+                            new_feedback_msgs.extend(msgs);
+                        }
+
                         break 'frame_idle;
                     }
 
                     Err(mpsc::RecvTimeoutError::Disconnected) => {
                         // NOTE: We kind of rely on this not happening too often.
-                        break 'render MenuUpdate::Push(Menu::Pause);
+                        break 'play_game MenuUpdate::Push(Menu::Pause);
                     }
                 };
             }

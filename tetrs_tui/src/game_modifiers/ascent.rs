@@ -37,11 +37,11 @@ pub fn build(builder: &GameBuilder) -> Game {
                             orientation: tetrs_engine::Orientation::N,
                             position: (0, 0),
                         },
-                        fall_or_lock_scheduled: Duration::MAX,
+                        fall_or_lock_time: Duration::MAX,
                         is_fall_not_lock: false,
                         lowest_y: 0,
                         latest_lock_scheduled: Duration::MAX,
-                        move_scheduled: None,
+                        auto_move_scheduled: None,
                     }
                 };
                 state.hold_piece = Some((asc_tet_02, true));
@@ -106,17 +106,17 @@ pub fn build(builder: &GameBuilder) -> Game {
 
             // Replace hold with custom hold.
             if let UpdatePoint::MainLoop(button_changes) = point {
-                if matches!(button_changes.first(), Some(ButtonChange::Press(Button::HoldPiece))) {
+                if matches!(button_changes, Some(ButtonChange::Press(Button::HoldPiece))) {
                     // Remove hold input to stop engine from processing it.
-                    **button_changes = &button_changes[1..];
+                    button_changes.take();
                     // Manually swap pieces.
                     let (tet1, tet2) = (
                         &mut phase.piece_mut().unwrap().shape,
                         &mut state.hold_piece.as_mut().unwrap().0,
                     );
                     (*tet1, *tet2) = (*tet2, *tet1);
-                } else if matches!(button_changes.first(), Some(ButtonChange::Press(Button::DropSoft | Button::DropHard))) {
-                    **button_changes = &button_changes[1..];
+                } else if matches!(button_changes, Some(ButtonChange::Press(Button::DropSoft | Button::DropHard))) {
+                    button_changes.take();
                 }
             }
 
