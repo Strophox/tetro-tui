@@ -15,7 +15,7 @@ use tetrs_engine::{Feedback, Game, UpdateGameError};
 
 use crate::{
     application::{
-        Application, GameMetaData, GameRestorationData, Menu, MenuUpdate, RecordedUserInput,
+        Application, GameMetaData, GameRestorationData, Menu, MenuUpdate, ButtonInputs,
         ScoreboardEntry,
     },
     game_input_handlers::{live_terminal::LiveTerminalInputHandler, InputSignal},
@@ -31,7 +31,7 @@ impl<T: Write> Application<T> {
         time_started: &Instant,
         time_last_paused: &mut Instant,
         duration_paused_total: &mut Duration,
-        recorded_user_input: &mut RecordedUserInput,
+        recorded_button_inputs: &mut ButtonInputs,
         game_renderer: &mut impl Renderer,
     ) -> io::Result<MenuUpdate> {
         if self.runtime_data.kitty_assumed {
@@ -80,7 +80,7 @@ impl<T: Write> Application<T> {
             // Exit if game ended
             if let Some(game_result) = game.result() {
                 let scoreboard_entry = ScoreboardEntry::new(game, game_meta_data);
-                let game_restoration_data = GameRestorationData::new(game, recorded_user_input);
+                let game_restoration_data = GameRestorationData::new(game, recorded_button_inputs);
                 self.scoreboard
                     .entries
                     .push((scoreboard_entry.clone(), Some(game_restoration_data)));
@@ -121,7 +121,7 @@ impl<T: Write> Application<T> {
                         game.forfeit();
                         let scoreboard_entry = ScoreboardEntry::new(game, game_meta_data);
                         let game_restoration_data =
-                            GameRestorationData::new(game, recorded_user_input);
+                            GameRestorationData::new(game, recorded_button_inputs);
                         self.scoreboard
                             .entries
                             .push((scoreboard_entry.clone(), Some(game_restoration_data)));
@@ -141,8 +141,8 @@ impl<T: Write> Application<T> {
                     Ok(InputSignal::StoreSavepoint) => {
                         let _ = self.game_savepoint.insert((
                             game_meta_data.clone(),
-                            recorded_user_input.0.len(),
-                            GameRestorationData::new(game, recorded_user_input),
+                            GameRestorationData::new(game, recorded_button_inputs),
+                            recorded_button_inputs.0.len(),
                         ));
                         new_feedback_msgs.push((
                             game.state().time,
@@ -165,6 +165,7 @@ impl<T: Write> Application<T> {
                     Ok(InputSignal::Blindfold) => {
                         self.settings.graphics_mut().blindfolded ^= true;
                         if self.settings.graphics().blindfolded {
+                            // TODO: make this more visible to user in frontend.
                             new_feedback_msgs.push((
                                 game.state().time,
                                 Feedback::Text("Blindfolded! [Ctrl+B]".to_owned()),
@@ -184,9 +185,10 @@ impl<T: Write> Application<T> {
                         let update_target_time = std::cmp::max(game_time_userinput, game.state().time);
                         
                         let result = game.update(update_target_time, Some(button_change));
-                        recorded_user_input
+
+                        recorded_button_inputs
                             .0
-                            .push(RecordedUserInput::encode(update_target_time, button_change));
+                            .push(ButtonInputs::encode(update_target_time, button_change));
 
                         // FIXME: Combo Bot.
                         // inform_combo_bot(game, &evts);

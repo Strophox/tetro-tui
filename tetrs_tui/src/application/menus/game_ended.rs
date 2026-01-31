@@ -23,7 +23,7 @@ impl<T: Write> Application<T> {
         past_game: &ScoreboardEntry,
     ) -> io::Result<MenuUpdate> {
         let ScoreboardEntry {
-            meta_data,
+            game_meta_data: meta_data,
             result,
             time_elapsed,
             pieces_locked,

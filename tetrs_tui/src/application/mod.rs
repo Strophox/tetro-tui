@@ -40,14 +40,14 @@ pub type Slots<T> = Vec<(String, T)>;
     serde::Serialize,
     serde::Deserialize,
 )]
-pub struct RecordedUserInput(Vec<u128>);
+pub struct ButtonInputs(Vec<u128>);
 
-impl RecordedUserInput {
+impl ButtonInputs {
     /*
     For serialization reasons, we encode a single user input as a u128 instead of
     (GameTime, PressedButtons), which would have a verbose string representation:
 
-        RecordedUserInput(Vec<(GameTime,ButtonChange)>) TODO
+        ButtonInputs(Vec<(GameTime,ButtonChange)>) TODO
          ↝ [{"secs":0,"nanos":908203743},[true,false,false,false,false,false,false,false,false]],
            [{"secs":1,"nanos":233015063},[true,false,true,false,false,false,false,false,false]],
            [{"secs":1,"nanos":365309796},[true,false,false,false,false,false,false,false,false]],
@@ -56,7 +56,7 @@ impl RecordedUserInput {
 
     Instead one can do manual encoding as numbers (&bit-fiddling) to try and save json formatting/punctuation:
 
-        RecordedUserInput ≈ Vec<u128> ≃ "nanos|buttonchangebits" (optimal bit shifting)
+        ButtonInputs ≈ Vec<u128> ≃ "nanos|buttonchangebits" (optimal bit shifting)
          ↝ 196780933376,434373048320,528447540228,618951716352, ...
     */
 
@@ -82,16 +82,16 @@ impl RecordedUserInput {
 
     pub fn encode_button_change(button_change: &ButtonChange) -> u8 {
         match button_change {
-            ButtonChange::Release(button) => (*button as u8) << 1,
             ButtonChange::Press(button) => ((*button as u8) << 1) | 1,
+            ButtonChange::Release(button) => (*button as u8) << 1,
         }
     }
 
     pub fn decode_button_change(bc_bits: u8) -> ButtonChange {
         (if bc_bits.is_multiple_of(2) {
-            ButtonChange::Press
-        } else {
             ButtonChange::Release
+        } else {
+            ButtonChange::Press
         })(Button::VARIANTS[usize::from(bc_bits >> 1)])
     }
 }
@@ -100,16 +100,16 @@ impl RecordedUserInput {
 pub struct GameRestorationData {
     builder: GameBuilder,
     mod_descriptors: Vec<String>,
-    recorded_user_input: RecordedUserInput,
+    button_inputs: ButtonInputs,
 }
 
 impl GameRestorationData {
-    fn new(game: &Game, recorded_user_input: &RecordedUserInput) -> GameRestorationData {
+    fn new(game: &Game, button_inputs: &ButtonInputs) -> GameRestorationData {
         let (builder, mod_descriptors) = game.blueprint();
         GameRestorationData {
             builder,
             mod_descriptors: mod_descriptors.map(str::to_owned).collect(),
-            recorded_user_input: recorded_user_input.clone(),
+            button_inputs: button_inputs.clone(),
         }
     }
 
@@ -145,8 +145,8 @@ impl GameRestorationData {
         let restore_feedback_verbosity = game.config.feedback_verbosity;
 
         game.config.feedback_verbosity = FeedbackVerbosity::Silent;
-        for bits in self.recorded_user_input.0.iter().take(input_index) {
-            let (update_time, button_change) = RecordedUserInput::decode(*bits);
+        for bits in self.button_inputs.0.iter().take(input_index) {
+            let (update_time, button_change) = ButtonInputs::decode(*bits);
             // FIXME: Error handling?
             let _ = game.update(update_time, Some(button_change));
         }
@@ -170,7 +170,7 @@ pub struct GameMetaData {
     Eq, PartialEq, Ord, PartialOrd, Clone, Hash, Debug, serde::Serialize, serde::Deserialize,
 )]
 pub struct ScoreboardEntry {
-    meta_data: GameMetaData,
+    game_meta_data: GameMetaData,
     result: GameResult,
     time_elapsed: GameTime,
     pieces_locked: [u32; Tetromino::VARIANTS.len()],
@@ -180,9 +180,9 @@ pub struct ScoreboardEntry {
 }
 
 impl ScoreboardEntry {
-    fn new(game: &Game, meta_data: &GameMetaData) -> ScoreboardEntry {
+    fn new(game: &Game, game_meta_data: &GameMetaData) -> ScoreboardEntry {
         ScoreboardEntry {
-            meta_data: meta_data.clone(),
+            game_meta_data: game_meta_data.clone(),
             time_elapsed: game.state().time,
             pieces_locked: game.state().pieces_locked,
             lines_cleared: game.state().lines_cleared,
@@ -487,7 +487,7 @@ enum Menu {
         time_started: Instant,
         last_paused: Instant,
         total_pause_duration: Duration,
-        recorded_user_input: RecordedUserInput,
+        recorded_button_inputs: ButtonInputs,
         game_renderer: Box<game_renderers::diff_print::DiffPrintRenderer>,
     },
     GameOver(Box<ScoreboardEntry>),
@@ -536,7 +536,7 @@ pub struct Application<T: Write> {
     save_on_exit: SavefileGranularity,
     settings: Settings,
     scoreboard: Scoreboard,
-    game_savepoint: Option<(GameMetaData, usize, GameRestorationData)>,
+    game_savepoint: Option<(GameMetaData, GameRestorationData, usize)>,
 }
 
 impl<T: Write> Drop for Application<T> {
@@ -671,9 +671,9 @@ impl<T: Write> Application<T> {
 
     fn sort_past_games_chronologically(&mut self) {
         self.scoreboard.entries.sort_by(|(pg1, _), (pg2, _)| {
-            pg1.meta_data
+            pg1.game_meta_data
                 .datetime
-                .cmp(&pg2.meta_data.datetime)
+                .cmp(&pg2.game_meta_data.datetime)
                 .reverse()
         });
     }
@@ -682,11 +682,11 @@ impl<T: Write> Application<T> {
     fn sort_past_games_semantically(&mut self) {
         self.scoreboard.entries.sort_by(|(pg1, _), (pg2, _)|
             // Sort by gamemode (name).
-            pg1.meta_data.title.cmp(&pg2.meta_data.title).then_with(||
+            pg1.game_meta_data.title.cmp(&pg2.game_meta_data.title).then_with(||
             // Sort by if gamemode was finished successfully.
             pg1.result.is_ok().cmp(&pg2.result.is_ok()).then_with(|| {
                 // Sort by comparison stat...
-                let o = match pg1.meta_data.comparison_stat.0 {
+                let o = match pg1.game_meta_data.comparison_stat.0 {
                     Stat::TimeElapsed(_)    => pg1.time_elapsed.cmp(&pg2.time_elapsed),
                     Stat::PiecesLocked(_)   => pg1.pieces_locked.cmp(&pg2.pieces_locked),
                     Stat::LinesCleared(_)   => pg1.lines_cleared.cmp(&pg2.lines_cleared),
@@ -697,7 +697,7 @@ impl<T: Write> Application<T> {
                 // how comparison stat compares to 'most important'(??) (often sole) end condition.
                 // This is shady, but the special order we subtly chose and never publicly document
                 // makes this make sense...
-                if pg1.meta_data.comparison_stat.1
+                if pg1.game_meta_data.comparison_stat.1
                     { o } else { o.reverse() }
             })
             )
@@ -722,7 +722,7 @@ impl<T: Write> Application<T> {
                     time_started,
                     total_pause_duration,
                     last_paused,
-                    recorded_user_input,
+                    recorded_button_inputs,
                     game_renderer,
                 } => self.menu_play_game(
                     game,
@@ -730,7 +730,7 @@ impl<T: Write> Application<T> {
                     time_started,
                     last_paused,
                     total_pause_duration,
-                    recorded_user_input,
+                    recorded_button_inputs,
                     game_renderer.as_mut(),
                 ),
                 Menu::Pause => self.menu_pause(),

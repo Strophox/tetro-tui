@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use crossterm::event::{KeyCode, KeyModifiers};
-use tetrs_engine::{Button, Tetromino};
+use tetrs_engine::{Button, ButtonChange, Tetromino};
 
 use crate::game_input_handlers::live_terminal::Keybinds;
 
@@ -55,6 +55,13 @@ pub fn fmt_button(b: &Button) -> &'static str {
         B::TeleLeft => "⇐",
         B::TeleRight => "⇒",
         B::HoldPiece => "h",
+    }
+}
+
+pub fn fmt_button_change(button_change: &ButtonChange) -> String {
+    match button_change {
+        ButtonChange::Press(b) => format!("++[{}]", fmt_button(b)),
+        ButtonChange::Release(b) => format!("--[{}]", fmt_button(b)),
     }
 }
 

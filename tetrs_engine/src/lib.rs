@@ -288,7 +288,7 @@ pub struct PieceData {
     /// The lowest recorded vertical position of the main piece.
     pub lowest_y: usize,
     /// The total duration the main piece is allowed until it should immediately lock down.
-    pub latest_lock_scheduled: GameTime,
+    pub binding_lock_time: GameTime,
     /// Optional time of the next move event.
     pub auto_move_scheduled: Option<GameTime>,
 }
