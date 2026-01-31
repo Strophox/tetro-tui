@@ -297,7 +297,7 @@ let/*TODO:dbg*/s=format!("IN do_spawn\n");if let Ok(f)=&mut std::fs::OpenOptions
         // Piece just spawned, lowest y = initial y.
         let lowest_y = piece.position.1;
         // Piece just spawned, standard full lock time max.
-        let latest_lock_scheduled = spawn_time + lock_delay(state.gravity, Some(config.lock_time_max_factor));
+        let binding_lock_time = spawn_time + lock_delay(state.gravity, Some(config.lock_time_max_factor));
         // Schedule immediate move after spawning, if any move button held.
         // NOTE: We have no Initial Move System for (mechanics, code) simplicity reasons.
         let auto_move_scheduled = if button_ml || button_mr {
@@ -313,7 +313,7 @@ let/*TODO:dbg*/s=format!("IN do_spawn\n");if let Ok(f)=&mut std::fs::OpenOptions
                 is_fall_not_lock,
                 auto_move_scheduled,
                 lowest_y,
-                latest_lock_scheduled,
+                binding_lock_time,
             },
         }
     } else {
@@ -358,16 +358,16 @@ fn do_autonomous_move (
 
     let new_is_fall_not_lock = new_piece.fits_at(&state.board, (0, -1)).is_some();
 
-    let (new_lowest_y, new_latest_lock_scheduled) = if new_piece.position.1 < previous_piece_data.lowest_y {
+    let (new_lowest_y, new_binding_lock_time) = if new_piece.position.1 < previous_piece_data.lowest_y {
         (new_piece.position.1, auto_move_time + lock_delay(state.gravity, Some(config.lock_time_max_factor)))
     } else {
-        (previous_piece_data.lowest_y, previous_piece_data.latest_lock_scheduled)
+        (previous_piece_data.lowest_y, previous_piece_data.binding_lock_time)
     };
 
-    let new_fall_or_lock_scheduled =  if new_is_fall_not_lock {
+    let new_fall_or_lock_time =  if new_is_fall_not_lock {
         previous_piece_data.fall_or_lock_time
     } else {
-        (auto_move_time + lock_delay(state.gravity, None)).min(new_latest_lock_scheduled)
+        (auto_move_time + lock_delay(state.gravity, None)).min(new_binding_lock_time)
     };
     
     // Update 'ActionState';
@@ -375,11 +375,11 @@ fn do_autonomous_move (
     Phase::PieceInPlay {
         piece_data: PieceData {
             piece: new_piece,
-            fall_or_lock_time: new_fall_or_lock_scheduled,
+            fall_or_lock_time: new_fall_or_lock_time,
             is_fall_not_lock: new_is_fall_not_lock,
             auto_move_scheduled: new_move_scheduled,
             lowest_y: new_lowest_y,
-            latest_lock_scheduled: new_latest_lock_scheduled,
+            binding_lock_time: new_binding_lock_time,
         }
     }
 }
@@ -397,7 +397,7 @@ fn do_fall(
     //    2. Moving - due to how it is mostly a single movement + updating falling/locking info.
     //    3. Locking - due to how simple it is if it happens.
     //
-    // # Analysis of nontrivial autonomous-event updates (`PieceData.fall_or_lock_scheduled`, `PieceData.move_scheduled`).
+    // # Analysis of nontrivial autonomous-event updates (`PieceData.fall_or_lock_time`, `PieceData.move_scheduled`).
     //
     // ## Falling
     // 
@@ -433,7 +433,7 @@ fn do_fall(
     }
 
     // Move resumption.
-    let new_move_scheduled = if let Some((moved_piece, new_move_scheduled)) = check_piece_became_movable_get_moved_piece_and_move_scheduled(previous_piece_data.piece, new_piece, &state.board, calc_move_dx_and_next_move_time(&state.buttons_pressed, fall_time, config)) {
+    let new_auto_move_scheduled = if let Some((moved_piece, new_move_scheduled)) = check_piece_became_movable_get_moved_piece_and_move_scheduled(previous_piece_data.piece, new_piece, &state.board, calc_move_dx_and_next_move_time(&state.buttons_pressed, fall_time, config)) {
         // Naïvely, movement direction should be kept;
         // But due to the system mentioned in (⁴), we do need to check
         // if the piece was stuck and became unstuck, and manually do a move in this case! 
@@ -447,18 +447,18 @@ fn do_fall(
 
     let new_is_fall_not_lock = new_piece.fits_at(&state.board, (0, -1)).is_some();
 
-    let (new_lowest_y, new_latest_lock_scheduled) = if new_piece.position.1 < previous_piece_data.lowest_y {
+    let (new_lowest_y, new_binding_lock_time) = if new_piece.position.1 < previous_piece_data.lowest_y {
         (new_piece.position.1, fall_time + lock_delay(state.gravity, Some(config.lock_time_max_factor)))
     } else {
-        (previous_piece_data.lowest_y, previous_piece_data.latest_lock_scheduled)
+        (previous_piece_data.lowest_y, previous_piece_data.binding_lock_time)
     };
 
-    let new_fall_or_lock_scheduled =  if new_is_fall_not_lock {
+    let new_fall_or_lock_time =  if new_is_fall_not_lock {
         let soft_drop_factor = state.buttons_pressed[Button::DropSoft].is_some().then_some(config.soft_drop_factor);
         fall_time + fall_delay(state.gravity, soft_drop_factor)
 
     } else {
-        (fall_time + lock_delay(state.gravity, None)).min(new_latest_lock_scheduled)
+        (fall_time + lock_delay(state.gravity, None)).min(new_binding_lock_time)
     };
     
     // 'Update' ActionState;
@@ -466,11 +466,11 @@ fn do_fall(
     Phase::PieceInPlay {
         piece_data: PieceData {
             piece: new_piece,
-            fall_or_lock_time: new_fall_or_lock_scheduled,
+            fall_or_lock_time: new_fall_or_lock_time,
             is_fall_not_lock: new_is_fall_not_lock,
-            auto_move_scheduled: new_move_scheduled,
+            auto_move_scheduled: new_auto_move_scheduled,
             lowest_y: new_lowest_y,
-            latest_lock_scheduled: new_latest_lock_scheduled,
+            binding_lock_time: new_binding_lock_time,
         }
     }
 }
@@ -491,7 +491,7 @@ fn do_player_button_update(
     //    2. Figuring out falling and locking (scheduling / preparing autonomous piece updates).
     //    3. All other immediate button changes (easy).
     //
-    // # Analysis of nontrivial autonomous-event updates (`PieceData.fall_or_lock_scheduled`, `PieceData.move_scheduled`).
+    // # Analysis of nontrivial autonomous-event updates (`PieceData.fall_or_lock_time`, `PieceData.move_scheduled`).
     //
     // ## Falling
     // 
@@ -663,7 +663,7 @@ let/*TODO:dbg*/s=format!(" - moving\n");if let Ok(f)=&mut std::fs::OpenOptions::
 
     // Update movetimer and rest of movement stuff.
     // See also (³) and (⁴).
-    let new_move_scheduled = if let Some(move_scheduled) = maybe_override_auto_move {
+    let new_auto_move_scheduled = if let Some(move_scheduled) = maybe_override_auto_move {
         // If we were in a case where movement was explicitly changed, do so.
         // This implements (³).
         move_scheduled
@@ -682,12 +682,11 @@ let/*TODO:dbg*/s=format!(" - moving\n");if let Ok(f)=&mut std::fs::OpenOptions::
         previous_piece_data.auto_move_scheduled
     };
 
-    // Update `lowest_y`, re-set `latest_lock_scheduled` if applicable.
-    // `latest_lock_scheduled` is needed below.
-    let (new_lowest_y, new_latest_lock_scheduled) = if new_piece.position.1 < previous_piece_data.lowest_y {
+    // Update `lowest_y`, re-set `binding_lock_time` if applicable.
+    let (new_lowest_y, new_binding_lock_time) = if new_piece.position.1 < previous_piece_data.lowest_y {
         (new_piece.position.1, button_update_time + lock_delay(state.gravity, Some(config.lock_time_max_factor)))
     } else {
-        (previous_piece_data.lowest_y, previous_piece_data.latest_lock_scheduled)
+        (previous_piece_data.lowest_y, previous_piece_data.binding_lock_time)
     };
 
     // Update `is_fall_not_lock`, i.e., whether we are falling (otherwise locking) now.
@@ -696,7 +695,7 @@ let/*TODO:dbg*/s=format!(" - moving\n");if let Ok(f)=&mut std::fs::OpenOptions::
 
     // Update falltimer and locktimer.
     // See also (¹) and (²).
-    let new_fall_or_lock_scheduled = if new_is_fall_not_lock {
+    let new_fall_or_lock_time = if new_is_fall_not_lock {
         // Calculate scheduled fall time.
         // This implements (¹).
         let was_falling = previous_piece_data.piece.fits_at(&state.board, (0,-1)).is_some();
@@ -719,7 +718,7 @@ let/*TODO:dbg*/s=format!(" - moving\n");if let Ok(f)=&mut std::fs::OpenOptions::
 
         } else if new_piece != previous_piece_data.piece {
             // On the ground - Refresh lock time if piece moved.
-            (button_update_time + lock_delay(state.gravity, None)).min(new_latest_lock_scheduled)
+            (button_update_time + lock_delay(state.gravity, None)).min(new_binding_lock_time)
 
         } else {
             // Previous lock time.
@@ -732,11 +731,11 @@ let/*TODO:dbg*/s=format!(" - moving\n");if let Ok(f)=&mut std::fs::OpenOptions::
     Phase::PieceInPlay {
         piece_data: PieceData {
             piece: new_piece,
-            fall_or_lock_time: new_fall_or_lock_scheduled,
+            fall_or_lock_time: new_fall_or_lock_time,
             is_fall_not_lock: new_is_fall_not_lock,
-            auto_move_scheduled: new_move_scheduled,
+            auto_move_scheduled: new_auto_move_scheduled,
             lowest_y: new_lowest_y,
-            latest_lock_scheduled: new_latest_lock_scheduled,
+            binding_lock_time: new_binding_lock_time,
         }
     }
 }

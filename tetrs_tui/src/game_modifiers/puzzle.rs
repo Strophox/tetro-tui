@@ -63,9 +63,10 @@ pub fn build(builder: &GameBuilder) -> Game {
     let mod_function: Box<GameModFn> = Box::new(move |point, called_after, _config, _init_vals, state, phase, msgs| {
         let game_piececnt = usize::try_from(state.pieces_locked.iter().sum::<u32>()).unwrap();
         if !init {
+            init = true;
             let piececnt = load_puzzle(state, current_puzzle_attempt, current_puzzle_idx, msgs);
             current_puzzle_piececnt_limit = game_piececnt + piececnt;
-            init = true;
+
         } else if !called_after && matches!(point, UpdatePoint::PieceSpawn)
             && game_piececnt == current_puzzle_piececnt_limit
         {
@@ -85,7 +86,8 @@ pub fn build(builder: &GameBuilder) -> Game {
                 }
                 if current_puzzle_idx == puzzles_len {
                     // Done with all puzzles, game completed.
-                    *phase = Phase::GameEnded(Ok(()));
+                    *phase = Phase::GameEnded(Ok(())); // TODO: Fix.
+let/*TODO:dbg*/s=format!("PUZZLES DONE\n");if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
                 } else {
                     // Load in new puzzle.
                     let piececnt =
@@ -111,6 +113,7 @@ pub fn build(builder: &GameBuilder) -> Game {
         .initial_gravity(2)
         .progressive_gravity(false)
         .end_conditions(EndConditions::default())
+        .piece_preview_count(0)
         .build_modified([Modifier {
             descriptor: MOD_ID.to_owned(),
             mod_function,
