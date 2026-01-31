@@ -100,9 +100,9 @@ pub fn build(builder: &GameBuilder) -> Game {
         
         // Remove ability to hold.
         if let UpdatePoint::MainLoop(button_changes) = point {
-            if matches!(button_changes.first(), Some(ButtonChange::Press(Button::HoldPiece))) {
+            if matches!(button_changes, Some(ButtonChange::Press(Button::HoldPiece))) {
                 // Remove hold input to stop engine from processing it.
-                **button_changes = &button_changes[1..];
+                button_changes.take();
             }
         }
     });

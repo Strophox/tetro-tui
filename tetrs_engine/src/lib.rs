@@ -75,7 +75,7 @@ pub type GameTime = Duration;
 pub type GameRng = ChaCha12Rng;
 /// Type of underlying functions at the heart of a [`GameModifier`].
 pub type GameModFn = dyn FnMut(
-    &mut UpdatePoint<&mut &[ButtonChange]>,
+    &mut UpdatePoint<&mut Option<ButtonChange>>,
     bool,
     &mut Configuration,
     &mut InitialValues,
@@ -282,7 +282,7 @@ pub struct PieceData {
     /// The tetromino game piece itself.
     pub piece: Piece,
     /// The time of the next fall or lock event.
-    pub fall_or_lock_scheduled: GameTime,
+    pub fall_or_lock_time: GameTime,
     /// Whether `fall_or_lock_time` refers to a fall or lock event.
     pub is_fall_not_lock: bool,
     /// The lowest recorded vertical position of the main piece.
@@ -290,7 +290,7 @@ pub struct PieceData {
     /// The total duration the main piece is allowed until it should immediately lock down.
     pub latest_lock_scheduled: GameTime,
     /// Optional time of the next move event.
-    pub move_scheduled: Option<GameTime>,
+    pub auto_move_scheduled: Option<GameTime>,
 }
 
 /// Represents how a game can end.
@@ -321,7 +321,7 @@ pub enum Phase {
     /// After exiting this state, the 
     LinesClearing {
         /// The in-game time at which the game moves on to the next `ActionState.`
-        line_clears_done_time: GameTime
+        lines_cleared_time: GameTime
     },
     /// The state of the game "taking its time" to spawn a piece.
     /// This is the state the board will have right before attempting to spawn a new piece.
@@ -344,17 +344,17 @@ pub struct State {
     pub time: GameTime,
     /// The current state of buttons being pressed in the game.
     pub buttons_pressed: [Option<GameTime>; Button::VARIANTS.len()],
-    /// The main playing grid storing empty (`None`) and filled, fixed tiles (`Some(nz_u32)`).
-    pub board: Board,
-    /// Data about the piece being held. `true` denotes that the held piece can be swapped back in.
-    pub hold_piece: Option<(Tetromino, bool)>,
-    /// Upcoming pieces to be played.
-    pub next_pieces: VecDeque<Tetromino>,
+    /// The internal pseudo random number generator used.
+    pub rng: GameRng,
     /// The method (and internal state) of tetromino generation used.
     pub piece_generator: TetrominoGenerator,
+    /// Upcoming pieces to be played.
+    pub next_pieces: VecDeque<Tetromino>,
+    /// Data about the piece being held. `true` denotes that the held piece can be swapped back in.
+    pub hold_piece: Option<(Tetromino, bool)>,
+    /// The main playing grid storing empty (`None`) and filled, fixed tiles (`Some(nz_u32)`).
+    pub board: Board,
     /// Tallies of how many pieces of each type have been played so far.
-    ///
-    /// Accessibe through `impl Index<Tetromino> for [T; 7]`.
     pub pieces_locked: [u32; Tetromino::VARIANTS.len()],
     /// The total number of lines that have been cleared.
     pub lines_cleared: usize,
@@ -364,8 +364,6 @@ pub struct State {
     pub score: u64,
     /// The number of consecutive pieces that have been played and caused a line clear.
     pub consecutive_line_clears: u32,
-    /// The internal pseudo random number generator used.
-    pub rng: GameRng,
 }
 
 /// Represents a specific point which was reached in a call to [`Game::update`].
@@ -507,10 +505,15 @@ pub enum Feedback {
     Text(String),
 }
 
-/// An error thrown by [`Game::update`] if it receives a timestamp in the game's past.
+/// An error that can be thrown by [`Game::update`].
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct UpdateGameError;
+pub enum UpdateGameError {
+    /// Error variant caused by an attempt to update the game with a requested `update_time` that lies in
+    /// the game's past (` < game.state().time`).
+    TargetTimeInPast,
+    /// Error variant caused by an attempt to update a game that has ended (`game.ended() == true`).
+    GameEnded,
+}
 
 impl Tetromino {
     /// The Tetromino variants.
@@ -924,6 +927,45 @@ impl Game {
         &self.modifiers
     }
 
+    /// Retrieve the when the next *autonomous* in-game update is scheduled.
+    /// I.e., compute the next time the game would change state assuming no button updates
+    pub fn peek_update_time(&self) -> Option<GameTime> {
+        let action_time = match self.phase {
+            Phase::GameEnded(_) => return None,
+            Phase::LinesClearing { lines_cleared_time } => lines_cleared_time,
+            Phase::Spawning { spawn_time } => spawn_time,
+            Phase::PieceInPlay { piece_data } => {
+                if let Some(move_time) = piece_data.auto_move_scheduled {
+                    if move_time < piece_data.fall_or_lock_time {
+                        move_time
+                    } else {
+                        piece_data.fall_or_lock_time
+                    }
+                } else {
+                    piece_data.fall_or_lock_time
+                }
+            },
+        };
+
+        let time_limit =
+            self.config
+                .end_conditions
+                .iter()
+                .find_map(|(stat, _)|
+                    if let Stat::TimeElapsed(cap_time) = stat { Some(*cap_time) } else { None }
+                );
+                
+        Some(if let Some(cap_time) = time_limit {
+            if cap_time < action_time {
+                cap_time
+            } else {
+                action_time
+            }
+        } else {
+            action_time
+        })
+    }
+
     /// Check whether a certain stat value has been met or exceeded.
     pub fn check_stat_met(&self, stat: &Stat) -> bool {
         match stat {
@@ -935,20 +977,20 @@ impl Game {
         }
     }
 
+    /// Immediately end a game by forfeiting the current round.
+    ///
+    /// This can be used so `game.ended()` returns true and prevents future
+    /// calls to `update` from continuing to advance the game.
+    pub const fn forfeit(&mut self) {
+        self.phase = Phase::GameEnded(Err(GameOver::Forfeit))
+    }
+
     /// Whether the game has ended, and whether it can continue to update.
     pub const fn result(&self) -> Option<GameResult> {
         match self.phase {
             Phase::GameEnded(game_result) => Some(game_result),
             _ => None,
         }
-    }
-
-    /// Immediately end a game by forfeiting the current round.
-    ///
-    /// This can be used so `game.ended()` returns true and prevents future
-    /// calls to `update` from continuing to advance the game.
-    pub fn forfeit(&mut self) {
-        self.phase = Phase::GameEnded(Err(GameOver::Forfeit))
     }
 
     /// Creates a blueprint [`GameBuilder`] and an iterator over current modifier identifiers ([`&str`]s) from which the exact game can potentially be rebuilt.
@@ -983,7 +1025,12 @@ impl Game {
 
 impl std::fmt::Display for UpdateGameError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let s = "attempt to update game to timestamp past";
+        let s = match self {
+            UpdateGameError::TargetTimeInPast => {
+                "attempt to update game to timestamp it already passed"
+            }
+            UpdateGameError::GameEnded => "attempt to update game after it ended",
+        };
         write!(f, "{s}")
     }
 }

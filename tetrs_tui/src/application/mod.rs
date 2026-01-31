@@ -148,7 +148,7 @@ impl GameRestorationData {
         for bits in self.recorded_user_input.0.iter().take(input_index) {
             let (update_time, button_change) = RecordedUserInput::decode(*bits);
             // FIXME: Error handling?
-            let _ = game.update(update_time, &[button_change]);
+            let _ = game.update(update_time, Some(button_change));
         }
 
         game.config.feedback_verbosity = restore_feedback_verbosity;
