@@ -17,7 +17,7 @@ pub fn build(builder: &GameBuilder) -> Game {
     let mut height_generated = 0usize;
     let mut init = false;
     let mod_function: Box<GameModFn> =
-        Box::new(move |point, _called_after, config, _init_vals, state, phase, _msgs| {
+        Box::new(move |point, config, _init_vals, state, phase, _msgs| {
             // Initialize mod.
             if !init {
                 init = true;
@@ -33,7 +33,7 @@ pub fn build(builder: &GameBuilder) -> Game {
                 *phase = Phase::PieceInPlay {
                     piece_data: PieceData {
                         piece: Piece {
-                            shape: asc_tet_01,
+                            tetromino: asc_tet_01,
                             orientation: tetrs_engine::Orientation::N,
                             position: (0, 0),
                         },
@@ -70,7 +70,7 @@ pub fn build(builder: &GameBuilder) -> Game {
 
             // Update state after each piece rotation, for gem scorekeeping.
             // Also change colors for fun after each rotation.
-            if matches!(point, UpdatePoint::PiecePlay(ButtonChange::Press(Button::RotateLeft | Button::RotateAround | Button::RotateRight))) {
+            if matches!(point, UpdatePoint::PiecePlayed(ButtonChange::Press(Button::RotateLeft | Button::RotateAround | Button::RotateRight))) {
                 let piece_tiles_coords = piece.tiles().map(|(coord, _)| coord);
 
                 for (y, line) in state.board.iter_mut().enumerate() {
@@ -105,13 +105,13 @@ pub fn build(builder: &GameBuilder) -> Game {
             }
 
             // Replace hold with custom hold.
-            if let UpdatePoint::MainLoop(button_changes) = point {
+            if let UpdatePoint::MainLoopHead(button_changes) = point {
                 if matches!(button_changes, Some(ButtonChange::Press(Button::HoldPiece))) {
                     // Remove hold input to stop engine from processing it.
                     button_changes.take();
                     // Manually swap pieces.
                     let (tet1, tet2) = (
-                        &mut phase.piece_mut().unwrap().shape,
+                        &mut phase.piece_mut().unwrap().tetromino,
                         &mut state.hold_piece.as_mut().unwrap().0,
                     );
                     (*tet1, *tet2) = (*tet2, *tet1);

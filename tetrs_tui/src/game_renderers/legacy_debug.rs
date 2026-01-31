@@ -90,7 +90,7 @@ impl Renderer for DebugRenderer {
             feed_evt_msgs.push(match feedback {
                 Feedback::Accolade {
                     score_bonus,
-                    tetromino: shape,
+                    tetromino,
                     is_spin: spin,
                     lines_cleared: lineclears,
                     is_perfect_clear: perfect_clear,
@@ -102,7 +102,7 @@ impl Renderer for DebugRenderer {
                         msg.push("Perfect".to_owned());
                     }
                     if *spin {
-                        msg.push(format!("{shape:?}-Spin"));
+                        msg.push(format!("{tetromino:?}-Spin"));
                     }
                     let clear_action = match lineclears {
                         1 => "Single",

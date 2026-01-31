@@ -225,7 +225,7 @@ impl<T: Write> Application<T> {
                         "{:^w_main$}",
                         if selected == selection_len - 2 {
                             if *load_offset == 0 {
-                                format!(">> Load {load_title} run from scratch [Del] <<")
+                                format!(">> Load {load_title:?} run from scratch [Del] <<")
                             } else {
                                 let (load_time, load_input) = ButtonInputs::decode(
                                     button_inputs.0[(load_offset - 1) % button_inputs.0.len()]);
@@ -234,7 +234,7 @@ impl<T: Write> Application<T> {
                                 format!(">> Load {load_title} from {load_offset}/{load_offset_max} ({load_input} @{load_time}) [Del] <<")
                             }
                         } else {
-                            format!("Savepoint - load {load_title}...")
+                            format!("Savepoint - load {load_title} run...")
                         },
                     )))?;
             }

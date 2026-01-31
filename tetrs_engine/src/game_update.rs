@@ -54,9 +54,9 @@ let/*TODO:dbg*/s=format!("# IN___ update {target_time:?}, {button_changes:?}, {:
             if let Some(new_phase) = self.try_end_game_if_end_condition_met() {
                 self.phase = new_phase;
             }
-            self.run_mods(UpdatePoint::MainLoop(&mut button_changes), false, &mut feedback_msgs);
+            self.run_mods(UpdatePoint::MainLoopHead(&mut button_changes), &mut feedback_msgs);
 
-            self.phase = match (self.phase, button_changes) {
+            match (self.phase, button_changes) {
                 // Game ended by now.
                 // Return accumulated messages.
                 (Phase::GameEnded(_), _) => {
@@ -67,27 +67,21 @@ let/*TODO:dbg*/s=format!("# OUTOF update {target_time:?}, {button_changes:?}, {:
                 // Lines clearing.
                 // Move on to spawning.
                 (Phase::LinesClearing { lines_cleared_time }, _) if lines_cleared_time <= target_time => {
-                    self.run_mods(UpdatePoint::LinesClear, false, &mut feedback_msgs);
-                    
 let/*TODO:dbg*/s=format!("INTO do_line_clearing ({lines_cleared_time:?})\n");if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
-                    let new_phase = do_line_clearing(&mut self.state, &self.config, lines_cleared_time);
+                    self.phase = do_line_clearing(&mut self.state, &self.config, lines_cleared_time);
                     self.state.time = lines_cleared_time;
                     
-                    self.run_mods(UpdatePoint::LinesClear, true, &mut feedback_msgs);
-                    new_phase
+                    self.run_mods(UpdatePoint::LinesCleared, &mut feedback_msgs);
                 }
 
                 // Piece spawning.
                 // - May move on to game over (BlockOut).
                 // - Normally: Move on to piece-in-play.
                 (Phase::Spawning { spawn_time }, _) if spawn_time <= target_time => {
-                    self.run_mods(UpdatePoint::PieceSpawn, false, &mut feedback_msgs);
-                    
-                    let new_phase = do_spawn(&mut self.state, &self.config, spawn_time);
+                    self.phase = do_spawn(&mut self.state, &self.config, spawn_time);
                     self.state.time = spawn_time;
-                    
-                    self.run_mods(UpdatePoint::PieceSpawn, true, &mut feedback_msgs);
-                    new_phase
+
+                    self.run_mods(UpdatePoint::PieceSpawned, &mut feedback_msgs);
                 }
 
                 // Piece autonomously moving / falling / locking.
@@ -96,71 +90,62 @@ let/*TODO:dbg*/s=format!("INTO do_line_clearing ({lines_cleared_time:?})\n");if 
                     piece_data.fall_or_lock_time <= target_time ||
                     piece_data.auto_move_scheduled.is_some_and(|move_time| move_time <= target_time)
                 ) => {
-                    'workaround: {
-                        if let Some(move_time) = piece_data.auto_move_scheduled {
-                            if move_time <= piece_data.fall_or_lock_time && move_time <= target_time {
-                                // Piece is moving autonomously and before next fall/lock.
-                                self.run_mods(UpdatePoint::PieceAutoMove, false, &mut feedback_msgs);
-                                
+                    let mut flag = false;
+                    if let Some(move_time) = piece_data.auto_move_scheduled {
+                        if move_time <= piece_data.fall_or_lock_time && move_time <= target_time {
+                            // Piece is moving autonomously and before next fall/lock.
+                            flag = true;
+
 let/*TODO:dbg*/s=format!("INTO do_autonomous_move ({move_time:?})\n");if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
-                                let new_phase = do_autonomous_move(&mut self.state, &self.config, piece_data, move_time);
-                                self.state.time = move_time;
-                                
-                                self.run_mods(UpdatePoint::PieceAutoMove, true, &mut feedback_msgs);
-                                break 'workaround new_phase
-                            }
+                            self.phase = do_autonomous_move(&mut self.state, &self.config, piece_data, move_time);
+                            self.state.time = move_time;
+                            
+                            self.run_mods(UpdatePoint::PieceAutoMoved, &mut feedback_msgs);
                         }
-                        // Piece is not moving autonomously and instead falls or locks
+                    }
+                    // else: Piece is not moving autonomously and instead falls or locks
+                    if !flag {
                         if piece_data.is_fall_not_lock {
-                            self.run_mods(UpdatePoint::PieceFall, false, &mut feedback_msgs);
-                            
 let/*TODO:dbg*/s=format!("INTO do_fall ({:?})\n", piece_data.fall_or_lock_time);if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
-                            let new_phase = do_fall(&mut self.state, &self.config, piece_data, piece_data.fall_or_lock_time);
+                            self.phase = do_fall(&mut self.state, &self.config, piece_data, piece_data.fall_or_lock_time);
                             self.state.time = piece_data.fall_or_lock_time;
                             
-                            self.run_mods(UpdatePoint::PieceFall, true, &mut feedback_msgs);
-                            new_phase
+                            self.run_mods(UpdatePoint::PieceFell, &mut feedback_msgs);
                         } else {
-                            self.run_mods(UpdatePoint::PieceLock, false, &mut feedback_msgs);
-                            
 let/*TODO:dbg*/s=format!("INTO do_lock ({:?})\n", piece_data.fall_or_lock_time);if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
-                            let new_phase = do_lock(&mut self.state, &self.config, piece_data.piece, piece_data.fall_or_lock_time, &mut feedback_msgs);
+                            self.phase = do_lock(&mut self.state, &self.config, piece_data.piece, piece_data.fall_or_lock_time, &mut feedback_msgs);
                             self.state.time = piece_data.fall_or_lock_time;
                             
-                            self.run_mods(UpdatePoint::PieceLock, true, &mut feedback_msgs);
-                            new_phase
+                            self.run_mods(UpdatePoint::PieceLocked, &mut feedback_msgs);
                         }
                     }
                 }
 
                 (Phase::PieceInPlay { piece_data }, Some(button_change)) => {
                     button_changes.take();
-                    self.run_mods(UpdatePoint::PiecePlay(button_change), false, &mut feedback_msgs);
-
 let/*TODO:dbg*/s=format!("INTO do_player_button_update ({target_time:?})\n");if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
-                    let new_phase = do_player_button_update(&mut self.state, &self.config, piece_data, button_change, new_state_buttons_pressed, target_time, &mut feedback_msgs);
-                    self.state.buttons_pressed = new_state_buttons_pressed;
+                    self.phase = do_player_button_update(&mut self.state, &self.config, piece_data, button_change, new_state_buttons_pressed, target_time, &mut feedback_msgs);
                     self.state.time = target_time;
+                    self.state.buttons_pressed = new_state_buttons_pressed;
 
-                    self.run_mods(UpdatePoint::PiecePlay(button_change), true, &mut feedback_msgs);
-                    new_phase
+                    self.run_mods(UpdatePoint::PiecePlayed(button_change), &mut feedback_msgs);
                 }
 
                 // No actions within update target horizon, stop updating.
                 _ => {
                     // Ensure states are updated.
                     // NOTE: This *might* be redundant in some cases.
+                    
+                    // NOTE: Ensure time is updated as requested, even when none of above cases triggered.
+                    self.state.time = target_time;
 
                     // NOTE: Ensure button state is updated as requested, even when `PieceInPlay` case is not triggered.
                     self.state.buttons_pressed = new_state_buttons_pressed;
                     
-                    // NOTE: Ensure time is updated as requested, even when none of above cases triggered.
-                    self.state.time = target_time;
-                    
 let/*TODO:dbg*/s=format!("# OUTOF update {target_time:?}, {button_changes:?}, {:?} {:?}\n", self.phase, self.state);if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
                     return Ok(feedback_msgs)
                 }
-            };
+            }
         }
     }
 
@@ -186,26 +171,24 @@ let/*TODO:dbg*/s=format!("# OUTOF update {target_time:?}, {button_changes:?}, {:
     fn run_mods(
         &mut self,
         mut update_point: UpdatePoint<&mut Option<ButtonChange>>,
-        is_called_after: bool,
         feedback_msgs: &mut FeedbackMessages,
     ) {
-        if self.config.feedback_verbosity == FeedbackVerbosity::Debug && is_called_after {
+        if self.config.feedback_verbosity == FeedbackVerbosity::Debug {
             use UpdatePoint as UP;
             let update_point = match &update_point {
-                UP::MainLoop(x) => UP::MainLoop(format!("{x:?}")),
-                UP::PiecePlay(b) => UP::PiecePlay(*b),
-                UP::LinesClear => UP::LinesClear,
-                UP::PieceSpawn => UP::PieceSpawn,
-                UP::PieceAutoMove => UP::PieceAutoMove,
-                UP::PieceFall => UP::PieceFall,
-                UP::PieceLock => UP::PieceLock,
+                UP::MainLoopHead(x) => UP::MainLoopHead(format!("{x:?}")),
+                UP::PiecePlayed(b) => UP::PiecePlayed(*b),
+                UP::LinesCleared => UP::LinesCleared,
+                UP::PieceSpawned => UP::PieceSpawned,
+                UP::PieceAutoMoved => UP::PieceAutoMoved,
+                UP::PieceFell => UP::PieceFell,
+                UP::PieceLocked => UP::PieceLocked,
             };
             feedback_msgs.push((self.state.time, Feedback::Debug(update_point)));
         }
         for modifier in &mut self.modifiers {
             (modifier.mod_function)(
                 &mut update_point,
-                is_called_after,
                 &mut self.config,
                 &mut self.init_vals,
                 &mut self.state,
@@ -256,7 +239,7 @@ let/*TODO:dbg*/s=format!("IN do_spawn\n");if let Ok(f)=&mut std::fs::OpenOptions
 
     // 'Raw' spawn piece, before remaining prespawn_actions are applied.
     let raw_spawn_piece = Piece {
-        shape: spawn_tet,
+        tetromino: spawn_tet,
         orientation: Orientation::N,
         position: raw_pos,
     };
@@ -570,7 +553,7 @@ fn do_player_button_update(
         // - If succeeds, changes game action state to spawn different piece.
         // - Otherwise does nothing.
         BC::Press(B::HoldPiece) => {
-            if let Some(new_phase) = try_hold(state, new_piece.shape, button_update_time) {
+            if let Some(new_phase) = try_hold(state, new_piece.tetromino, button_update_time) {
                 return new_phase;
             }
         },
@@ -745,19 +728,19 @@ fn calc_move_dx_and_next_move_time(buttons_pressed: &[Option<GameTime>; Button::
         buttons_pressed[Button::MoveLeft],
         buttons_pressed[Button::MoveRight],
     ) {
-        (Some(t_left), Some(t_right)) =>
-            match t_left.cmp(&t_right) {
+        (Some(time_prsd_left), Some(time_prsd_right)) =>
+            match time_prsd_left.cmp(&time_prsd_right) {
                 // 'Right' was pressed more recently, go right.
-                std::cmp::Ordering::Less => (1, move_time.saturating_sub(t_right)),
+                std::cmp::Ordering::Less => (1, move_time.saturating_sub(time_prsd_right)),
                 // Both pressed at exact same time, don't move.
                 std::cmp::Ordering::Equal => (0, Duration::ZERO),
                 // 'Left' was pressed more recently, go left.
-                std::cmp::Ordering::Greater => (-1, move_time.saturating_sub(t_left)),
+                std::cmp::Ordering::Greater => (-1, move_time.saturating_sub(time_prsd_left)),
             }
         // Only 'left' pressed.
-        (Some(t_left), None) => (-1, move_time.saturating_sub(t_left)),
+        (Some(time_prsd_left), None) => (-1, move_time.saturating_sub(time_prsd_left)),
         // Only 'right' pressed.
-        (None, Some(t_right)) => (1, move_time.saturating_sub(t_right)),
+        (None, Some(time_prsd_right)) => (1, move_time.saturating_sub(time_prsd_right)),
         // None pressed. No movement.
         (None, None) => (0, Duration::ZERO),
     };
@@ -841,7 +824,7 @@ fn do_lock(state: &mut State, config: &Configuration, piece: Piece, lock_time: G
     }
 
     // Update tally of pieces_locked.
-    state.pieces_locked[piece.shape as usize] += 1;
+    state.pieces_locked[piece.tetromino as usize] += 1;
 
     // Score bonus calculation.
     
@@ -889,7 +872,7 @@ fn do_lock(state: &mut State, config: &Configuration, piece: Piece, lock_time: G
                 lock_time,
                 Feedback::Accolade {
                     score_bonus,
-                    tetromino: piece.shape,
+                    tetromino: piece.tetromino,
                     is_spin,
                     lines_cleared: n_lines_cleared,
                     is_perfect_clear,

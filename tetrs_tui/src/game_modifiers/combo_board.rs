@@ -24,7 +24,7 @@ pub fn modifier(initial_layout: u16) -> Modifier {
             "{MOD_ID}\n{}",
             serde_json::to_string(&initial_layout).unwrap()
         ),
-        mod_function: Box::new(move |point, called_after, _config, _init_vals, state, phase, _msgs| {
+        mod_function: Box::new(move |point, _config, _init_vals, state, phase, _msgs| {
             if !init {
                 for (line, four_well) in state
                     .board
@@ -36,10 +36,10 @@ pub fn modifier(initial_layout: u16) -> Modifier {
                 }
                 init_board(&mut state.board, initial_layout);
                 init = true;
-            } else if called_after && matches!(point, UpdatePoint::PieceLock) && !matches!(phase, Phase::LinesClearing { .. }) {
+            } else if matches!(point, UpdatePoint::PieceLocked) && !matches!(phase, Phase::LinesClearing { .. }) {
                 *phase = Phase::GameEnded(Err(GameOver::Limit));
             // Combo continues, prepare new line.
-            } else if called_after && matches!(point, UpdatePoint::LinesClear) {
+            } else if matches!(point, UpdatePoint::LinesCleared) {
                 state.board[Game::HEIGHT - 1] = line_source.next().unwrap();
             }
         }),
