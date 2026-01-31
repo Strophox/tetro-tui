@@ -8,7 +8,7 @@ pub mod custom_start_board {
         let mut init = false;
         Modifier {
             descriptor: format!("{MOD_ID}\n{}", serde_json::to_string(&encoded_board).unwrap()),
-            mod_function: Box::new(move |_point, _called_after, _config, _init_vals, state, _phase, _msgs| {
+            mod_function: Box::new(move |_point, _config, _init_vals, state, _phase, _msgs| {
                 if !init {
                     state.board.clone_from(&board);
                     init = true;
@@ -31,8 +31,8 @@ pub mod print_recency_tet_gen_stats {
     pub fn modifier() -> Modifier {
         Modifier {
             descriptor: MOD_ID.to_owned(),
-            mod_function: Box::new(|point, _called_after, _config, _init_vals, state, _phase, msgs| {
-                if !matches!(point, UpdatePoint::PieceSpawn) {
+            mod_function: Box::new(|point, _config, _init_vals, state, _phase, msgs| {
+                if !matches!(point, UpdatePoint::PieceSpawned) {
                     return;
                 }
                 let TetrominoGenerator::Recency {

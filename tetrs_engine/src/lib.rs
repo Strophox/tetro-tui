@@ -76,7 +76,6 @@ pub type GameRng = ChaCha12Rng;
 /// Type of underlying functions at the heart of a [`GameModifier`].
 pub type GameModFn = dyn FnMut(
     &mut UpdatePoint<&mut Option<ButtonChange>>,
-    bool,
     &mut Configuration,
     &mut InitialValues,
     &mut State,
@@ -135,7 +134,7 @@ pub enum Orientation {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Piece {
     /// Type of tetromino the active piece is.
-    pub shape: Tetromino,
+    pub tetromino: Tetromino,
     /// In which way the tetromino is re-oriented.
     pub orientation: Orientation,
     /// The position of the active piece on a playing grid.
@@ -371,22 +370,22 @@ pub struct State {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum UpdatePoint<T> {
     /// Represents a `Game::update` call handling [`ActionState::LinesClearing`].
-    LinesClear,
+    LinesCleared,
     /// Represents a `Game::update` call handling [`ActionState::Spawning`].
-    PieceSpawn,
+    PieceSpawned,
     /// Represents a `Game::update` call handling [`ActionState::PieceInPlay`], specifically a piece moving autonomously (DAS/ARR).
-    PieceAutoMove,
+    PieceAutoMoved,
     /// Represents a `Game::update` call handling [`ActionState::PieceInPlay`], specifically a piece falling autonomously.
-    PieceFall,
+    PieceFell,
     /// Represents a `Game::update` call handling [`ActionState::PieceInPlay`], specifically a piece locking down.
-    PieceLock,
+    PieceLocked,
     /// Represents a `Game::update` call handling [`ActionState::PieceInPlay`], specifically an update ([`ButtonChange`]) to the state of [`Button`]s by the player.
-    PiecePlay(ButtonChange),
+    PiecePlayed(ButtonChange),
     /// Represents a `Game::update` call at a general point at the head of the main loop.
     /// Typically:
     /// * `T = &mut &[ButtonChange]` for [`GameModFn`] purposes, or
     /// * `T = String` for [`Feedback`] purposes.
-    MainLoop(T),
+    MainLoopHead(T),
 }
 
 /// Type of named modifiers that can be used to mod a game, c.f. [`GameBuilder::build_modified`].
@@ -597,12 +596,12 @@ impl Piece {
     /// Returns the coordinates and tile types for he piece on the board.
     pub fn tiles(&self) -> [(Coord, TileTypeID); 4] {
         let Self {
-            shape,
+            tetromino,
             orientation,
             position: (x, y),
         } = self;
-        let tile_type_id = shape.tiletypeid();
-        shape
+        let tile_type_id = tetromino.tiletypeid();
+        tetromino
             .minos(*orientation)
             .map(|(dx, dy)| ((x + dx, y + dy), tile_type_id))
     }

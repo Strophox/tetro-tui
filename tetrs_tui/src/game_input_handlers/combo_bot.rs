@@ -124,7 +124,7 @@ impl ComboBotInputHandler {
         };
         Ok(ComboState {
             layout: (pattern, flipped),
-            active: Some(piece.shape),
+            active: Some(piece.tetromino),
             hold: game.state().hold_piece,
             next_pieces: Self::encode_next_queue(
                 game.state().next_pieces.iter().take(MAX_LOOKAHEAD),
@@ -424,10 +424,10 @@ fn neighbors(
 }
 
 #[rustfmt::skip]
-fn reachable_with((pattern, flip): Layout, mut shape: Tetromino) -> Vec<(Layout, ButtonInstructions)> {
+fn reachable_with((pattern, flip): Layout, mut tetromino: Tetromino) -> Vec<(Layout, ButtonInstructions)> {
     use Tetromino::*;
     if flip {
-        shape = match shape {
+        tetromino = match tetromino {
             O => O,
             I => I,
             S => Z,
@@ -440,7 +440,7 @@ fn reachable_with((pattern, flip): Layout, mut shape: Tetromino) -> Vec<(Layout,
     use Button::*;
     match pattern {
         // "█▀  "
-        Pat::_200 => match shape {
+        Pat::_200 => match tetromino {
             T => vec![((Pat::_137, !flip), &[RotateLeft, MoveRight, MoveRight, DropHard][..]),
                       ((Pat::_14, flip), &[RotateLeft, MoveRight, MoveRight, TeleDown, RotateRight, DropSoft][..])],
             L => vec![((Pat::_13, flip), &[RotateLeft, MoveRight, MoveRight, TeleDown, RotateRight, DropSoft][..])],
@@ -453,7 +453,7 @@ fn reachable_with((pattern, flip): Layout, mut shape: Tetromino) -> Vec<(Layout,
             _ => vec![],
         },
         // "█  ▄"
-        Pat::_137 => match shape {
+        Pat::_137 => match tetromino {
             T => vec![((Pat::_13, !flip), &[RotateRight, RotateRight, MoveRight, DropHard][..]),
                       ((Pat::_73, !flip), &[MoveRight, DropHard][..])],
             L => vec![((Pat::_137, !flip), &[MoveRight, DropHard][..]),
@@ -466,7 +466,7 @@ fn reachable_with((pattern, flip): Layout, mut shape: Tetromino) -> Vec<(Layout,
             _ => vec![],
         },
         // "█▄  "
-        Pat::_140 => match shape {
+        Pat::_140 => match tetromino {
             T => vec![((Pat::_14, flip), &[RotateRight, RotateRight, MoveRight, DropHard][..])],
             L => vec![((Pat::_28, flip), &[MoveRight, DropHard][..])],
             J => vec![((Pat::_137, !flip), &[RotateLeft, MoveRight, MoveRight, DropHard][..]),
@@ -478,7 +478,7 @@ fn reachable_with((pattern, flip): Layout, mut shape: Tetromino) -> Vec<(Layout,
             _ => vec![],
         },
         // "▄▄▄ "
-        Pat::_14 => match shape {
+        Pat::_14 => match tetromino {
             T => vec![((Pat::_140, !flip), &[RotateLeft, MoveRight, MoveRight, DropHard][..])],
             L => vec![((Pat::_200, !flip), &[RotateLeft, MoveRight, MoveRight, DropHard][..])],
             J => vec![((Pat::_14, !flip), &[RotateRight, RotateRight, MoveRight, DropHard][..])],
@@ -488,7 +488,7 @@ fn reachable_with((pattern, flip): Layout, mut shape: Tetromino) -> Vec<(Layout,
             _ => vec![],
         },
         // "▄ "++"█   "
-        Pat::_2184 => match shape {
+        Pat::_2184 => match tetromino {
             T => vec![((Pat::_138, flip), &[MoveRight, DropHard][..])],
             L => vec![((Pat::_137, flip), &[MoveRight, DropHard][..]),
                       ((Pat::_140, flip), &[RotateRight, RotateRight, MoveRight, DropHard][..])],
@@ -498,7 +498,7 @@ fn reachable_with((pattern, flip): Layout, mut shape: Tetromino) -> Vec<(Layout,
             _ => vec![],
         },
         // "▄▄ ▄"
-        Pat::_13 => match shape {
+        Pat::_13 => match tetromino {
             T => vec![((Pat::_14, !flip), &[RotateRight, RotateRight, MoveRight, DropHard][..]),
                       ((Pat::_76, !flip), &[RotateRight, MoveRight, DropHard][..])],
             J => vec![((Pat::_14, flip), &[RotateRight, RotateRight, MoveLeft/***/, DropHard][..]),
@@ -508,7 +508,7 @@ fn reachable_with((pattern, flip): Layout, mut shape: Tetromino) -> Vec<(Layout,
             _ => vec![],
         },
         // "▄▄ ▀"
-        Pat::_28 => match shape {
+        Pat::_28 => match tetromino {
             T => vec![((Pat::_76, flip), &[MoveLeft/***/, DropHard][..])],
             L => vec![((Pat::_76, !flip), &[RotateLeft, MoveRight, MoveRight, MoveLeft, TeleDown, RotateAround, DropSoft][..])], // SPECIAL: 180°
             J => vec![((Pat::_140, flip), &[MoveLeft/***/, DropHard][..]),
@@ -518,7 +518,7 @@ fn reachable_with((pattern, flip): Layout, mut shape: Tetromino) -> Vec<(Layout,
             _ => vec![],
         },
         // "▀█  "
-        Pat::_196 => match shape {
+        Pat::_196 => match tetromino {
             T => vec![((Pat::_138, !flip), &[RotateLeft, MoveRight, MoveRight, DropHard][..])],
             Z => vec![((Pat::_134, !flip), &[RotateRight, MoveRight, DropHard][..])],
             O => vec![((Pat::_14, !flip), &[MoveRight, DropHard][..])],
@@ -526,7 +526,7 @@ fn reachable_with((pattern, flip): Layout, mut shape: Tetromino) -> Vec<(Layout,
             _ => vec![],  
         },
         // "█ ▄ "
-        Pat::_138 => match shape {
+        Pat::_138 => match tetromino {
             L => vec![((Pat::_14, flip), &[RotateRight, RotateRight, MoveRight, DropHard][..]),
                       ((Pat::_133, !flip), &[MoveRight, DropHard][..])],
             J => vec![((Pat::_13, !flip), &[RotateRight, RotateRight, MoveRight, DropHard][..])],
@@ -534,34 +534,34 @@ fn reachable_with((pattern, flip): Layout, mut shape: Tetromino) -> Vec<(Layout,
             _ => vec![], 
         },
         // "▄█  "
-        Pat::_76 => match shape {
+        Pat::_76 => match tetromino {
             J => vec![((Pat::_138, !flip), &[RotateLeft, MoveRight, MoveRight, DropHard][..])],
             O => vec![((Pat::_14, !flip), &[MoveRight, DropHard][..])],
             I => vec![((Pat::_76, flip), &[DropHard][..])],
             _ => vec![],
         },
         // "▀▄▄ "
-        Pat::_134 => match shape {
+        Pat::_134 => match tetromino {
             L => vec![((Pat::_134, !flip), &[MoveRight, DropHard][..])],
             J => vec![((Pat::_14, !flip), &[RotateRight, RotateRight, MoveRight, DropHard][..])],
             I => vec![((Pat::_134, flip), &[DropHard][..])],
             _ => vec![],
         },
         // "▀▄ ▄"
-        Pat::_133 => match shape {
+        Pat::_133 => match tetromino {
             T => vec![((Pat::_14, !flip), &[RotateRight, RotateRight, MoveRight, DropHard][..])],
             L => vec![((Pat::_138, !flip), &[MoveRight, DropHard][..])],
             I => vec![((Pat::_133, flip), &[DropHard][..])],
             _ => vec![],
         },
         // "▄▀ ▄"
-        Pat::_73 => match shape {
+        Pat::_73 => match tetromino {
             S => vec![((Pat::_14, !flip), &[RotateRight, MoveRight, MoveLeft, TeleDown, RotateRight, DropSoft][..])],
             I => vec![((Pat::_73, flip), &[DropHard][..])],
             _ => vec![],
         },
         // "▄▀▀ "
-        Pat::_104 => match shape {
+        Pat::_104 => match tetromino {
             L => vec![((Pat::_14, !flip), &[RotateLeft, MoveRight, MoveRight, TeleDown, RotateRight, DropHard][..])],
             I => vec![((Pat::_104, flip), &[DropHard][..])],
             _ => vec![],

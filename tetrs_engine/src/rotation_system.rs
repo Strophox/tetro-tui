@@ -73,14 +73,14 @@ fn ocular_rotate(piece: &Piece, board: &Board, right_turns: i8) -> Option<Piece>
 
         // 180° - Rotate 'around'.
         2 => {
-            let mut lookup_shape = piece.shape;
+            let mut lookup_tetromino = piece.tetromino;
             let mut lookup_orientation = piece.orientation;
             let mut apply_mirror = false;
             // Precompute mirror / horizontal reorientation to possibly change lookup_orientation once (see T, J).
             let reorient_horizontally = match piece.orientation { N => N, E => W, S => S, W => E };
 
             let kick_table = 'lookup: loop {
-                break match lookup_shape {
+                break match lookup_tetromino {
                     
                     // Note: O and I have a default, successful 180° rotation due to 180° symmetry.
                     Tetromino::O | Tetromino::I => &[( 0, 0)][..],
@@ -94,7 +94,7 @@ fn ocular_rotate(piece: &Piece, board: &Board, right_turns: i8) -> Option<Piece>
 
                     Tetromino::Z => {
                         // Symmetry: Z's 180° rotation is a mirrored version of S'.
-                        lookup_shape = Tetromino::S;
+                        lookup_tetromino = Tetromino::S;
                         apply_mirror = true;
                         continue 'lookup;
                     },
@@ -120,7 +120,7 @@ fn ocular_rotate(piece: &Piece, board: &Board, right_turns: i8) -> Option<Piece>
                     
                     Tetromino::J => {
                         // Symmetry: J's 180° rotation is a mirrored version of L's.
-                        lookup_shape = Tetromino::L;
+                        lookup_tetromino = Tetromino::L;
                         lookup_orientation = reorient_horizontally;
                         apply_mirror = true;
                         continue 'lookup;
@@ -138,7 +138,7 @@ fn ocular_rotate(piece: &Piece, board: &Board, right_turns: i8) -> Option<Piece>
         rot => {
             // `rot` at this point can only be 1 ('right') or 3 ('left').
             let mut lookup_leftrot = rot == 3;
-            let mut lookup_shape = piece.shape;
+            let mut lookup_tetromino = piece.tetromino;
             let mut lookup_orientation = piece.orientation;
             // Unlike 180°, mirroring a piece may involve adding a manual offset to make it look symmetric as desired.
             let mut apply_mirror = None;
@@ -146,7 +146,7 @@ fn ocular_rotate(piece: &Piece, board: &Board, right_turns: i8) -> Option<Piece>
             let reorient_horizontally = match lookup_orientation { N => N, E => W, S => S, W => E };
 
             let kick_table = 'lookup: loop {
-                match lookup_shape {
+                match lookup_tetromino {
                     Tetromino::O => {
                         if lookup_leftrot {
                             break 'lookup &[(-1, 0), (-1,-1), (-1, 1), ( 0, 0)][..];
@@ -186,7 +186,7 @@ fn ocular_rotate(piece: &Piece, board: &Board, right_turns: i8) -> Option<Piece>
                         // (Manual x offset due to how engine naïvely positions base shapes.)
                         let dx = match lookup_orientation { N | S => 1, E | W => -1 };
                         apply_mirror = Some(dx);
-                        lookup_shape = Tetromino::S;
+                        lookup_tetromino = Tetromino::S;
                         lookup_leftrot = !lookup_leftrot;
                         continue 'lookup;
                     },
@@ -224,7 +224,7 @@ fn ocular_rotate(piece: &Piece, board: &Board, right_turns: i8) -> Option<Piece>
                         // Symmetry: J's left/right rotation is a mirrored version of L's right/left rotation if reoriented.
                         let dx = match lookup_orientation { N | S => 1, E | W => -1 };
                         apply_mirror = Some(dx);
-                        lookup_shape = Tetromino::L;
+                        lookup_tetromino = Tetromino::L;
                         lookup_orientation = reorient_horizontally;
                         lookup_leftrot = !lookup_leftrot;
                         continue 'lookup;
@@ -249,7 +249,7 @@ fn super_rotate(piece: &Piece, board: &Board, right_turns: i8) -> Option<Piece> 
         // Some basic 180 rotation I came up with.
         2 => {
             #[rustfmt::skip]
-            let kick_table = match piece.shape {
+            let kick_table = match piece.tetromino {
                 Tetromino::O | Tetromino::I | Tetromino::S | Tetromino::Z => &[(0, 0)][..],
                 Tetromino::T | Tetromino::L | Tetromino::J => match piece.orientation {
                     N => &[( 0,-1), ( 0, 0)][..],
@@ -266,7 +266,7 @@ fn super_rotate(piece: &Piece, board: &Board, right_turns: i8) -> Option<Piece> 
     };
     use Orientation::*;
     #[rustfmt::skip]
-    let kick_table = match piece.shape {
+    let kick_table = match piece.tetromino {
         Tetromino::O => &[(0, 0)][..],
         Tetromino::I => match piece.orientation {
             N => if left { &[( 1,-2), ( 0,-2), ( 3,-2), ( 0, 0), ( 3,-3)][..] }
@@ -308,7 +308,7 @@ fn classic_rotate(piece: &Piece, board: &Board, right_turns: i8) -> Option<Piece
     };
     use Orientation::*;
     #[rustfmt::skip]
-    let kick = match piece.shape {
+    let kick = match piece.tetromino {
         Tetromino::O => (0, 0), // ⠶
         Tetromino::I => match piece.orientation {
             N | S => (2, -1), // ⠤⠤ -> ⡇

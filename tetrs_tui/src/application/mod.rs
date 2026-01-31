@@ -60,20 +60,20 @@ impl ButtonInputs {
          ↝ 196780933376,434373048320,528447540228,618951716352, ...
     */
 
-    pub const BUTTON_CHANGE_BITS: usize = 5; 
+    pub const BUTTON_CHANGE_BITSIZE: usize = 5; 
 
     pub fn encode(update_target_time: GameTime, button_change: ButtonChange) -> u128 {
         // Encode `GameTime = std::time::Duration` using `std::time::Duration::as_nanos`.
         let nanos: u128 = update_target_time.as_nanos();
         // Encode `tetrs_engine::ButtonChange` using `Self::encode_button_change`.
         let bc_bits: u8 = Self::encode_button_change(&button_change);
-        (nanos << Self::BUTTON_CHANGE_BITS) | u128::from(bc_bits)
+        (nanos << Self::BUTTON_CHANGE_BITSIZE) | u128::from(bc_bits)
     }
 
     pub fn decode(num: u128) -> (GameTime, ButtonChange) {
-        let mask = u128::MAX >> (128 - Self::BUTTON_CHANGE_BITS);
+        let mask = u128::MAX >> (128 - Self::BUTTON_CHANGE_BITSIZE);
         let bc_bits = u8::try_from(num & mask).unwrap();
-        let nanos = u64::try_from(num >> Self::BUTTON_CHANGE_BITS).unwrap();
+        let nanos = u64::try_from(num >> Self::BUTTON_CHANGE_BITSIZE).unwrap();
         (
             std::time::Duration::from_nanos(nanos),
             Self::decode_button_change(bc_bits),
@@ -82,8 +82,8 @@ impl ButtonInputs {
 
     pub fn encode_button_change(button_change: &ButtonChange) -> u8 {
         match button_change {
-            ButtonChange::Press(button) => ((*button as u8) << 1) | 1,
             ButtonChange::Release(button) => (*button as u8) << 1,
+            ButtonChange::Press(button) => ((*button as u8) << 1) | 1,
         }
     }
 
@@ -130,7 +130,7 @@ impl GameRestorationData {
                     let print_error_msg_mod = Modifier {
                         descriptor: "print_error_msg_mod".to_owned(),
                         mod_function: Box::new({ let mut init = false;
-                            move |_point, _called_after, _config, _init_vals, state, _phase, msgs| {
+                            move |_point, _config, _init_vals, state, _phase, msgs| {
                                 if init { return; } init = true;
                                 msgs.push((state.time, Feedback::Text(format!("ERROR: {msg:?}"))));
                             }

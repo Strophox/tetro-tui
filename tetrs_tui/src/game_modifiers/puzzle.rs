@@ -60,14 +60,15 @@ pub fn build(builder: &GameBuilder) -> Game {
     let mut current_puzzle_idx = 0;
     let mut current_puzzle_attempt = 1;
     let mut current_puzzle_piececnt_limit = 0;
-    let mod_function: Box<GameModFn> = Box::new(move |point, called_after, _config, _init_vals, state, phase, msgs| {
+    let mod_function: Box<GameModFn> = Box::new(move |point, _config, _init_vals, state, phase, msgs| {
         let game_piececnt = usize::try_from(state.pieces_locked.iter().sum::<u32>()).unwrap();
         if !init {
             init = true;
             let piececnt = load_puzzle(state, current_puzzle_attempt, current_puzzle_idx, msgs);
             current_puzzle_piececnt_limit = game_piececnt + piececnt;
 
-        } else if !called_after && matches!(point, UpdatePoint::PieceSpawn)
+        } else if matches!(point, UpdatePoint::MainLoopHead(_))
+            && matches!(phase, Phase::Spawning { .. })
             && game_piececnt == current_puzzle_piececnt_limit
         {
             let puzzle_done = state
@@ -101,7 +102,7 @@ let/*TODO:dbg*/s=format!("PUZZLES DONE\n");if let Ok(f)=&mut std::fs::OpenOption
         msgs.retain(|evt| !matches!(evt, (_, Feedback::Accolade { .. })));
         
         // Remove ability to hold.
-        if let UpdatePoint::MainLoop(button_changes) = point {
+        if let UpdatePoint::MainLoopHead(button_changes) = point {
             if matches!(button_changes, Some(ButtonChange::Press(Button::HoldPiece))) {
                 // Remove hold input to stop engine from processing it.
                 button_changes.take();
