@@ -120,7 +120,7 @@ impl GameRestorationData {
         let mut game = if self.mod_descriptors.is_empty() {
             builder.build()
         } else {
-            match game_modifiers::reconstruct_modified(
+            match game_modifiers::reconstruct_modded(
                 &builder,
                 self.mod_descriptors.iter().map(String::as_str),
             ) {
@@ -136,7 +136,7 @@ impl GameRestorationData {
                             }
                         }),
                     };
-                    builder.build_modified([print_error_msg_mod])
+                    builder.build_modded([print_error_msg_mod])
                 }
             }
         };

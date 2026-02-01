@@ -160,7 +160,7 @@ impl<T: Write> Application<T> {
                                     Some(c) => vec![(Stat::LinesCleared(c.get()), true)],
                                     None => vec![],
                                 })
-                                .build_modified([game_modifiers::combo_board::modifier(
+                                .build_modded([game_modifiers::combo_board::modifier(
                                     start_layout,
                                 )])
                         }
@@ -624,7 +624,7 @@ impl<T: Write> Application<T> {
                     }
                     // Optionally load custom board.
                     let custom_game = if let Some(board) = &n.custom_board {
-                        builder.build_modified([
+                        builder.build_modded([
                             game_modifiers::misc_modifiers::custom_start_board::modifier(board),
                         ])
                     // Otherwise just build a normal custom game.

@@ -762,11 +762,11 @@ impl GameBuilder {
 
     /// Creates a [`Game`] with the information specified by `self`.
     pub fn build(&self) -> Game {
-        self.build_modified([])
+        self.build_modded([])
     }
 
     /// Creates a [`Game`] with the information specified by `self` and some one-time `modifiers`.
-    pub fn build_modified(&self, modifiers: impl IntoIterator<Item = Modifier>) -> Game {
+    pub fn build_modded(&self, modifiers: impl IntoIterator<Item = Modifier>) -> Game {
         let init_vals = InitialValues {
             initial_gravity: self.initial_gravity.unwrap_or(1),
             start_generator: self.start_generator.clone().unwrap_or_default(),

@@ -88,7 +88,6 @@ pub fn build(builder: &GameBuilder) -> Game {
                 if current_puzzle_idx == puzzles_len {
                     // Done with all puzzles, game completed.
                     *phase = Phase::GameEnded(Ok(())); // TODO: Fix.
-let/*TODO:dbg*/s=format!("PUZZLES DONE\n");if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
                 } else {
                     // Load in new puzzle.
                     let piececnt =
@@ -114,7 +113,7 @@ let/*TODO:dbg*/s=format!("PUZZLES DONE\n");if let Ok(f)=&mut std::fs::OpenOption
         .initial_gravity(2)
         .progressive_gravity(false)
         .piece_preview_count(0)
-        .build_modified([Modifier {
+        .build_modded([Modifier {
             descriptor: MOD_ID.to_owned(),
             mod_function,
         }])
