@@ -18,15 +18,17 @@ use super::InputSignal;
 pub type Keybinds = HashMap<(KeyCode, KeyModifiers), Button>;
 
 pub fn tetrs_default_keybinds() -> Keybinds {
-    let keybinds_tetrs: [((KeyCode, KeyModifiers), Button); 8] = [
+    let keybinds_tetrs: [((KeyCode, KeyModifiers), Button); 7] = [
         (KeyCode::Left, Button::MoveLeft),
         (KeyCode::Right, Button::MoveRight),
         (KeyCode::Char('a'), Button::RotateLeft),
         (KeyCode::Char('d'), Button::RotateRight),
-        (KeyCode::Char('s'), Button::RotateAround),
+        //(KeyCode::Char('s'), Button::RotateAround),
         (KeyCode::Down, Button::DropSoft),
         (KeyCode::Up, Button::DropHard),
-        //(KeyCode::Char('w'), Button::DropSonic),
+        //(KeyCode::Char('w'), Button::TeleDown),
+        //(KeyCode::Char('q'), Button::TeleLeft),
+        //(KeyCode::Char('e'), Button::TeleRight),
         (KeyCode::Char(' '), Button::HoldPiece),
     ]
     .map(|(k, b)| ((k, KeyModifiers::NONE), b));
@@ -39,10 +41,8 @@ pub fn vim_keybinds() -> Keybinds {
         (KeyCode::Char('l'), Button::MoveRight),
         (KeyCode::Char('a'), Button::RotateLeft),
         (KeyCode::Char('d'), Button::RotateRight),
-        //(KeyCode::Char('s'), Button::RotateAround),
         (KeyCode::Char('j'), Button::DropSoft),
         (KeyCode::Char('k'), Button::DropHard),
-        //(KeyCode::Char('w'), Button::DropSonic),
         (KeyCode::Char(' '), Button::HoldPiece),
     ]
     .map(|(k, b)| ((k, KeyModifiers::NONE), b));
