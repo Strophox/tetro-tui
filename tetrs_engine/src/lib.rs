@@ -82,8 +82,6 @@ pub type GameModFn = dyn FnMut(
     &mut Phase,
     &mut FeedbackMessages,
 );
-/// A set of conditions to determine how a game specially ends and whether it results in a win (otherwise loss).
-pub type EndConditions = Vec<(Stat, bool)>;
 /// The result of a game that ended.
 pub type GameResult = Result<(), GameOver>;
 /// Convenient type alias to denote a collection of [`Feedback`]s associated with some [`GameTime`].
@@ -383,8 +381,12 @@ pub enum UpdatePoint<T> {
     PiecePlayed(ButtonChange),
     /// Represents a `Game::update` call at a general point at the head of the main loop.
     /// Typically:
-    /// * `T = &mut &[ButtonChange]` for [`GameModFn`] purposes, or
+    /// * `T = &mut Option<ButtonChange>` for [`GameModFn`] purposes, or
     /// * `T = String` for [`Feedback`] purposes.
+    /// 
+    /// # Reproducibility
+    /// Note that this update point is called every time [`Game::update`] is called.
+    /// Unlike other update points, this makes a modifier not reproducible if its behavior depends on the number of times it processes this update point.
     MainLoopHead(T),
 }
 
@@ -418,8 +420,10 @@ pub struct Modifier {
     pub descriptor: String,
     /// The function object which will be called at runtime.
     /// ```rust
-    /// mod_function = |point, called_after, config, init_vals, state, phase, msgs| { /* ... */ };
+    /// mod_function = |point, config, init_vals, state, phase, msgs| { /* ... */ };
     /// ```
+    /// 
+    /// See documentation of [`UpdatePoint`].
     pub mod_function: Box<GameModFn>,
 }
 
@@ -712,7 +716,7 @@ impl Default for Configuration {
             line_clear_delay: Duration::from_millis(200),
             appearance_delay: Duration::from_millis(50),
             progressive_gravity: true,
-            end_conditions: EndConditions::default(),
+            end_conditions: Default::default(),
             feedback_verbosity: FeedbackVerbosity::default(),
         }
     }
@@ -928,6 +932,10 @@ impl Game {
 
     /// Retrieve the when the next *autonomous* in-game update is scheduled.
     /// I.e., compute the next time the game would change state assuming no button updates
+    /// 
+    /// # Modifiers
+    /// Note that this only predicts what an unmodded game would do;
+    /// [`Modifier`]s may arbitrarily change game state and change or prevent precise update predictions. 
     pub fn peek_update_time(&self) -> Option<GameTime> {
         let action_time = match self.phase {
             Phase::GameEnded(_) => return None,
@@ -1007,17 +1015,18 @@ impl Game {
     /// Tries to create an identical, independent copy of the current game.
     ///
     /// This function fails if the [`Game`] has any modifiers attached to it.
-    pub fn try_clone(&self) -> Option<Self> {
-        if self.modifiers.is_empty() {
-            None
-        } else {
-            Some(Game {
+    pub fn try_clone(&self) -> Result<Self, Self> {
+        let cloned = Game {
                 config: self.config.clone(),
                 init_vals: self.init_vals.clone(),
                 state: self.state.clone(),
                 phase: self.phase.clone(),
                 modifiers: Vec::new(),
-            })
+            };
+        if self.modifiers.is_empty() {
+            Ok(cloned)
+        } else {
+            Err(cloned)
         }
     }
 }

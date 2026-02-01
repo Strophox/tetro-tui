@@ -1,7 +1,7 @@
 use std::{collections::VecDeque, num::NonZeroU8};
 
 use tetrs_engine::{
-    Button, ButtonChange, EndConditions, Feedback, FeedbackMessages, Game, GameBuilder, GameModFn, GameOver, Line, Modifier, Phase, State, Tetromino, UpdatePoint
+    Button, ButtonChange, Feedback, FeedbackMessages, Game, GameBuilder, GameModFn, GameOver, Line, Modifier, Phase, State, Tetromino, UpdatePoint
 };
 
 pub const MOD_ID: &str = "puzzle";
@@ -113,7 +113,6 @@ let/*TODO:dbg*/s=format!("PUZZLES DONE\n");if let Ok(f)=&mut std::fs::OpenOption
         .clone()
         .initial_gravity(2)
         .progressive_gravity(false)
-        .end_conditions(EndConditions::default())
         .piece_preview_count(0)
         .build_modified([Modifier {
             descriptor: MOD_ID.to_owned(),

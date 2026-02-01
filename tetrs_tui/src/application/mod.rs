@@ -245,10 +245,10 @@ impl Default for NewGameSettings {
             custom_win_condition: None,
             custom_seed: None,
             custom_board: None,
-            cheese_linelimit: Some(NonZeroUsize::try_from(50).unwrap()),
+            cheese_linelimit: Some(NonZeroUsize::try_from(20).unwrap()),
             cheese_gravity: 0,
             cheese_gapsize: 1,
-            combo_linelimit: Some(NonZeroUsize::try_from(25).unwrap()),
+            combo_linelimit: Some(NonZeroUsize::try_from(30).unwrap()),
             combo_startlayout: game_modifiers::combo_board::LAYOUTS[0],
             experimental_mode_unlocked: false,
         }
@@ -272,17 +272,30 @@ impl NewGameSettings {
 
     pub fn decode_board(board_str: &str) -> Board {
         let grey_tile = Some(std::num::NonZeroU8::try_from(254).unwrap());
-        let mut chars = board_str.chars();
+
         let mut new_board = Board::default();
+
+        let mut chars = board_str.chars();
+
         for line in &mut new_board {
-            for tile in line {
-                if let Some(char) = chars.next() {
-                    *tile = if char != ' ' { grey_tile } else { None };
-                } else {
-                    break;
+            for tile in line {  
+                while let Some(char) = chars.next() {
+                    if char == ' ' {
+                        // Space = empty tile.
+                        *tile = None;
+                        break;
+                    } else if char == '\n' {
+                        // Newline = ignore, stay at tile but move on to next char.
+                        continue;
+                    } else {
+                        // Otherwise = filled tile.
+                        *tile = grey_tile;
+                        break;
+                    }
                 }
             }
         }
+
         new_board
     }
 }
