@@ -797,14 +797,21 @@ fn do_player_button_update(
     let new_fall_or_lock_time = if new_is_fall_not_lock {
         // Calculate scheduled fall time.
         // This implements (¹).
-        let was_airborne = previous_piece_data
+        let was_grounded = previous_piece_data
             .piece
             .fits_at(&state.board, (0, -1))
-            .is_some();
-        if !was_airborne || matches!(button_change, BC::Press(B::DropSoft | B::DropHard)) {
+            .is_none();
+        if was_grounded
+            || matches!(
+                button_change,
+                BC::Press(B::DropSoft) | BC::Release(B::DropSoft)
+            )
+        {
             // Refresh fall timer if we *started* falling, or soft drop just pressed, or soft drop just released.
-            let soft_drop_factor =
-                matches!(button_change, BC::Press(B::DropSoft)).then_some(config.soft_drop_factor);
+            let soft_drop_factor = new_state_buttons_pressed[B::DropSoft]
+                .is_some()
+                .then_some(config.soft_drop_factor);
+            //let/*TODO:dbg*/s=format!("YEA\n");if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
             button_update_time + fall_delay(state.gravity, soft_drop_factor)
         } else {
             // Falling as before.
@@ -824,6 +831,7 @@ fn do_player_button_update(
             previous_piece_data.fall_or_lock_time
         }
     };
+    //let/*TODO:dbg*/s=format!("THEN: {new_fall_or_lock_time:?}\n");if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
 
     // 'Update' ActionState;
     // Return it to the main state machine with the latest acquired piece data.
@@ -1019,9 +1027,9 @@ fn do_lock(
     }
 
     // Update ability to hold piece.
-    state.hold_piece = state
-        .hold_piece
-        .map(|(held_piece, _swap_allowed)| (held_piece, true));
+    if let Some((_held_piece, swap_allowed)) = &mut state.hold_piece {
+        *swap_allowed = true;
+    }
 
     // 'Update' ActionState;
     // Return it to the main state machine with all newly acquired piece data.
