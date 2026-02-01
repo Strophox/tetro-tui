@@ -12,7 +12,8 @@ use std::{
 use crossterm::{cursor, style, terminal, ExecutableCommand};
 
 use tetrs_engine::{
-    Board, Button, ButtonChange, Configuration, Feedback, FeedbackVerbosity, Game, GameBuilder, GameOver, GameResult, GameTime, Modifier, RotationSystem, Stat, Tetromino, TetrominoGenerator
+    Board, Button, ButtonChange, Configuration, Feedback, FeedbackVerbosity, Game, GameBuilder,
+    GameOver, GameResult, GameTime, Modifier, RotationSystem, Stat, Tetromino, TetrominoGenerator,
 };
 
 use crate::{
@@ -43,7 +44,7 @@ pub type Slots<T> = Vec<(String, T)>;
 pub struct ButtonInputs(Vec<u128>);
 
 impl ButtonInputs {
-    pub const BUTTON_CHANGE_BITSIZE: usize = 5; 
+    pub const BUTTON_CHANGE_BITSIZE: usize = 5;
 
     // For serialization reasons, we encode a single user input as `u128` instead of
     // `(GameTime, ButtonChange)`, which would have a more verbose string representation.
@@ -263,7 +264,7 @@ impl NewGameSettings {
         let mut chars = board_str.chars();
 
         for line in &mut new_board {
-            for tile in line {  
+            for tile in line {
                 while let Some(char) = chars.next() {
                     if char == ' ' {
                         // Space = empty tile.

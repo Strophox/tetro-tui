@@ -18,7 +18,9 @@ use crossterm::{
 use tetrs_engine::{Game, GameBuilder, Stat};
 
 use crate::{
-    application::{Application, ButtonInputs, GameMetaData, GameRestorationData, Menu, MenuUpdate}, fmt_utils::{fmt_button_change, fmt_duration}, game_modifiers
+    application::{Application, ButtonInputs, GameMetaData, GameRestorationData, Menu, MenuUpdate},
+    fmt_utils::{fmt_button_change, fmt_duration},
+    game_modifiers,
 };
 
 impl<T: Write> Application<T> {
@@ -160,9 +162,7 @@ impl<T: Write> Application<T> {
                                     Some(c) => vec![(Stat::LinesCleared(c.get()), true)],
                                     None => vec![],
                                 })
-                                .build_modded([game_modifiers::combo_board::modifier(
-                                    start_layout,
-                                )])
+                                .build_modded([game_modifiers::combo_board::modifier(start_layout)])
                         }
                     }),
                 ),
@@ -213,7 +213,9 @@ impl<T: Write> Application<T> {
                     )))?;
             }
             // Render load savepoint option.
-            if let Some((game_meta_data, GameRestorationData { button_inputs, .. }, load_offset)) = &self.game_savepoint {
+            if let Some((game_meta_data, GameRestorationData { button_inputs, .. }, load_offset)) =
+                &self.game_savepoint
+            {
                 let load_title = &game_meta_data.title;
                 let load_offset_max = button_inputs.0.len();
                 self.term
@@ -453,7 +455,9 @@ impl<T: Write> Application<T> {
                             self.settings.new_game.combo_linelimit =
                                 NonZeroUsize::try_from(limit.get() - 1).ok();
                         }
-                    } else if let Some((_game_meta_data, game_restoration_data, load_offset)) = &mut self.game_savepoint {
+                    } else if let Some((_game_meta_data, game_restoration_data, load_offset)) =
+                        &mut self.game_savepoint
+                    {
                         if selected == selection_len - 2 {
                             *load_offset += game_restoration_data.button_inputs.0.len()
                                 * if modifiers.contains(KeyModifiers::SHIFT) {
@@ -503,7 +507,9 @@ impl<T: Write> Application<T> {
                             } else {
                                 Some(NonZeroUsize::MIN)
                             };
-                    } else if let Some((_game_meta_data, game_restoration_data, load_offset)) = &mut self.game_savepoint {
+                    } else if let Some((_game_meta_data, game_restoration_data, load_offset)) =
+                        &mut self.game_savepoint
+                    {
                         if selected == selection_len - 2 {
                             *load_offset += if modifiers.contains(KeyModifiers::SHIFT) {
                                 20
@@ -592,13 +598,8 @@ impl<T: Write> Application<T> {
                     let mut restored_meta_data = game_meta_data.clone();
                     // Mark restored game as such.
                     restored_meta_data.title.push('\'');
-                    let button_inputs =
-                        game_restoration_data.button_inputs.clone();
-                    (
-                        restored_meta_data,
-                        restored_game,
-                        button_inputs,
-                    )
+                    let button_inputs = game_restoration_data.button_inputs.clone();
+                    (restored_meta_data, restored_game, button_inputs)
                 // Build custom game.
                 } else {
                     let n = &self.settings.new_game;

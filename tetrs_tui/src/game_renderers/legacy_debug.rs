@@ -40,7 +40,11 @@ impl Renderer for DebugRenderer {
             ..
         } = game.state();
         let mut board = *board;
-        if let tetrs_engine::Phase::PieceInPlay { piece_data: tetrs_engine::PieceData { piece, .. }, .. } = game.phase() {
+        if let tetrs_engine::Phase::PieceInPlay {
+            piece_data: tetrs_engine::PieceData { piece, .. },
+            ..
+        } = game.phase()
+        {
             for ((x, y), tile_type_id) in piece.tiles() {
                 board[y][x] = Some(tile_type_id);
             }

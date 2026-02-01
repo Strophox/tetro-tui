@@ -17,8 +17,8 @@ use tetrs_engine::{
 
 use crate::{
     application::{Application, GameMetaData, Glyphset},
+    fmt_utils::{fmt_duration, fmt_keybinds_of, fmt_tet_mini, fmt_tet_small},
     game_renderers::Renderer,
-    fmt_utils::{fmt_duration, fmt_keybinds_of, fmt_tet_small, fmt_tet_mini},
 };
 
 #[derive(Clone, Default, Debug)]
@@ -463,10 +463,14 @@ impl Renderer for DiffPrintRenderer {
         }
 
         // If a piece is in play.
-        if let tetrs_engine::Phase::PieceInPlay { piece_data: tetrs_engine::PieceData { piece, .. }, .. } = game.phase() {
+        if let tetrs_engine::Phase::PieceInPlay {
+            piece_data: tetrs_engine::PieceData { piece, .. },
+            ..
+        } = game.phase()
+        {
             // Draw ghost piece.
             if app.settings().graphics().show_ghost_piece {
-                for (tile_pos, tile_type_id) in piece.teleported(board, (0,-1)).tiles() {
+                for (tile_pos, tile_type_id) in piece.teleported(board, (0, -1)).tiles() {
                     if tile_pos.1 <= Game::SKYLINE {
                         self.screen.buffer_str(
                             tile_ghost,

@@ -15,7 +15,7 @@ use tetrs_engine::{Feedback, Game, UpdateGameError};
 
 use crate::{
     application::{
-        Application, GameMetaData, GameRestorationData, Menu, MenuUpdate, ButtonInputs,
+        Application, ButtonInputs, GameMetaData, GameRestorationData, Menu, MenuUpdate,
         ScoreboardEntry,
     },
     game_input_handlers::{live_terminal::LiveTerminalInputHandler, InputSignal},
@@ -124,7 +124,9 @@ impl<T: Write> Application<T> {
                         self.scoreboard
                             .entries
                             .push((scoreboard_entry.clone(), Some(game_restoration_data)));
-                        break 'play_game MenuUpdate::Push(Menu::GameOver(Box::new(scoreboard_entry)));
+                        break 'play_game MenuUpdate::Push(Menu::GameOver(Box::new(
+                            scoreboard_entry,
+                        )));
                     }
 
                     Ok(InputSignal::Pause) => {
@@ -180,8 +182,9 @@ impl<T: Write> Application<T> {
                         let game_time_userinput = instant.saturating_duration_since(*time_started)
                             - *duration_paused_total;
                         // Guarantee update cannot fail because of past input; input user as quickly as possible if it *was* in the (hopefully not so distant) past.
-                        let update_target_time = std::cmp::max(game_time_userinput, game.state().time);
-                        
+                        let update_target_time =
+                            std::cmp::max(game_time_userinput, game.state().time);
+
                         let result = game.update(update_target_time, Some(button_change));
 
                         recorded_button_inputs
@@ -199,9 +202,10 @@ impl<T: Write> Application<T> {
                     }
 
                     Err(mpsc::RecvTimeoutError::Timeout) => {
-                        let update_target_time = Instant::now().saturating_duration_since(*time_started)
+                        let update_target_time = Instant::now()
+                            .saturating_duration_since(*time_started)
                             - *duration_paused_total;
-                            
+
                         let result = game.update(update_target_time, None);
 
                         // FIXME: Combo Bot.

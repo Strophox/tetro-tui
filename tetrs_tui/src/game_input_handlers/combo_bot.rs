@@ -190,9 +190,10 @@ impl ComboBotInputHandler {
                                 };
                             }
                             let now = Instant::now();
-                            let _ = button_sender.send(InputSignal::ButtonInput(ButtonChange::Press(button), now));
-                            let _ =
-                                button_sender.send(InputSignal::ButtonInput(ButtonChange::Release(button), now));
+                            let _ = button_sender
+                                .send(InputSignal::ButtonInput(ButtonChange::Press(button), now));
+                            let _ = button_sender
+                                .send(InputSignal::ButtonInput(ButtonChange::Release(button), now));
                             /*TBD: Remove debug: let s=format!("[ main4 SENT button = {button:?} ]\n");let _=std::io::Write::write(&mut std::fs::OpenOptions::new().append(true).open("tetrs_tui_error_message_COMBO.txt").unwrap(), s.as_bytes());*/
                             thread::sleep(idle_time);
                         }

@@ -38,7 +38,8 @@ impl<T: Write> Application<T> {
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
                 .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
 
-            let fmt_comparison_stat = |p: &ScoreboardEntry| match p.game_meta_data.comparison_stat.0 {
+            let fmt_comparison_stat = |p: &ScoreboardEntry| match p.game_meta_data.comparison_stat.0
+            {
                 Stat::TimeElapsed(_) => format!("time: {}", fmt_duration(&p.time_elapsed)),
                 Stat::PiecesLocked(_) => format!("pieces: {}", p.pieces_locked.iter().sum::<u32>()),
                 Stat::LinesCleared(_) => format!("lines: {}", p.lines_cleared),
@@ -214,8 +215,14 @@ impl<T: Write> Application<T> {
                     kind: Press | Repeat,
                     ..
                 }) if self.scoreboard.entries.len() > 0 => {
-                    if let (ScoreboardEntry { game_meta_data, .. }, Some(game_restoration_data)) = &self.scoreboard.entries[cursor_pos] {
-                        let _ = self.game_savepoint.insert((game_meta_data.clone(), game_restoration_data.clone(), game_restoration_data.button_inputs.0.len()));
+                    if let (ScoreboardEntry { game_meta_data, .. }, Some(game_restoration_data)) =
+                        &self.scoreboard.entries[cursor_pos]
+                    {
+                        let _ = self.game_savepoint.insert((
+                            game_meta_data.clone(),
+                            game_restoration_data.clone(),
+                            game_restoration_data.button_inputs.0.len(),
+                        ));
                     }
                 }
 

@@ -14,7 +14,8 @@ use crossterm::{
 use tetrs_engine::Tetromino;
 
 use crate::{
-    application::{Application, Glyphset, Menu, MenuUpdate, Settings}, fmt_utils::fmt_tet_small,
+    application::{Application, Glyphset, Menu, MenuUpdate, Settings},
+    fmt_utils::fmt_tet_small,
 };
 
 impl<T: Write> Application<T> {

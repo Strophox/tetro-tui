@@ -1,7 +1,8 @@
 use std::{collections::VecDeque, num::NonZeroU8};
 
 use tetrs_engine::{
-    Button, ButtonChange, Feedback, FeedbackMessages, Game, GameBuilder, GameModFn, GameOver, Line, Modifier, Phase, State, Tetromino, UpdatePoint
+    Button, ButtonChange, Feedback, FeedbackMessages, Game, GameBuilder, GameModFn, GameOver, Line,
+    Modifier, Phase, State, Tetromino, UpdatePoint,
 };
 
 pub const MOD_ID: &str = "puzzle";
@@ -60,54 +61,54 @@ pub fn build(builder: &GameBuilder) -> Game {
     let mut current_puzzle_idx = 0;
     let mut current_puzzle_attempt = 1;
     let mut current_puzzle_piececnt_limit = 0;
-    let mod_function: Box<GameModFn> = Box::new(move |point, _config, _init_vals, state, phase, msgs| {
-        let game_piececnt = usize::try_from(state.pieces_locked.iter().sum::<u32>()).unwrap();
-        if !init {
-            init = true;
-            let piececnt = load_puzzle(state, current_puzzle_attempt, current_puzzle_idx, msgs);
-            current_puzzle_piececnt_limit = game_piececnt + piececnt;
-
-        } else if matches!(point, UpdatePoint::MainLoopHead(_))
-            && matches!(phase, Phase::Spawning { .. })
-            && game_piececnt == current_puzzle_piececnt_limit
-        {
-            let puzzle_done = state
-                .board
-                .iter()
-                .all(|line| line.iter().all(|cell| cell.is_none()));
-            // Run out of attempts, game over.
-            if !puzzle_done && current_puzzle_attempt == MAX_STAGE_ATTEMPTS {
-                *phase = Phase::GameEnded(Err(GameOver::Limit));
-            } else {
-                if puzzle_done {
-                    current_puzzle_idx += 1;
-                    current_puzzle_attempt = 1;
+    let mod_function: Box<GameModFn> =
+        Box::new(move |point, _config, _init_vals, state, phase, msgs| {
+            let game_piececnt = usize::try_from(state.pieces_locked.iter().sum::<u32>()).unwrap();
+            if !init {
+                init = true;
+                let piececnt = load_puzzle(state, current_puzzle_attempt, current_puzzle_idx, msgs);
+                current_puzzle_piececnt_limit = game_piececnt + piececnt;
+            } else if matches!(point, UpdatePoint::MainLoopHead(_))
+                && matches!(phase, Phase::Spawning { .. })
+                && game_piececnt == current_puzzle_piececnt_limit
+            {
+                let puzzle_done = state
+                    .board
+                    .iter()
+                    .all(|line| line.iter().all(|cell| cell.is_none()));
+                // Run out of attempts, game over.
+                if !puzzle_done && current_puzzle_attempt == MAX_STAGE_ATTEMPTS {
+                    *phase = Phase::GameEnded(Err(GameOver::Limit));
                 } else {
-                    current_puzzle_attempt += 1;
-                }
-                if current_puzzle_idx == puzzles_len {
-                    // Done with all puzzles, game completed.
-                    *phase = Phase::GameEnded(Ok(()));
-                } else {
-                    // Load in new puzzle.
-                    let piececnt =
-                        load_puzzle(state, current_puzzle_attempt, current_puzzle_idx, msgs);
-                    current_puzzle_piececnt_limit = game_piececnt + piececnt;
+                    if puzzle_done {
+                        current_puzzle_idx += 1;
+                        current_puzzle_attempt = 1;
+                    } else {
+                        current_puzzle_attempt += 1;
+                    }
+                    if current_puzzle_idx == puzzles_len {
+                        // Done with all puzzles, game completed.
+                        *phase = Phase::GameEnded(Ok(()));
+                    } else {
+                        // Load in new puzzle.
+                        let piececnt =
+                            load_puzzle(state, current_puzzle_attempt, current_puzzle_idx, msgs);
+                        current_puzzle_piececnt_limit = game_piececnt + piececnt;
+                    }
                 }
             }
-        }
 
-        // Delete accolades.
-        msgs.retain(|evt| !matches!(evt, (_, Feedback::Accolade { .. })));
-        
-        // Remove ability to hold.
-        if let UpdatePoint::MainLoopHead(button_changes) = point {
-            if matches!(button_changes, Some(ButtonChange::Press(Button::HoldPiece))) {
-                // Remove hold input to stop engine from processing it.
-                button_changes.take();
+            // Delete accolades.
+            msgs.retain(|evt| !matches!(evt, (_, Feedback::Accolade { .. })));
+
+            // Remove ability to hold.
+            if let UpdatePoint::MainLoopHead(button_changes) = point {
+                if matches!(button_changes, Some(ButtonChange::Press(Button::HoldPiece))) {
+                    // Remove hold input to stop engine from processing it.
+                    button_changes.take();
+                }
             }
-        }
-    });
+        });
     builder
         .clone()
         .initial_gravity(2)

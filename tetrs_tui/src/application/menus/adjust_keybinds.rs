@@ -185,13 +185,18 @@ impl<T: Write> Application<T> {
                         }
                         loop {
                             if let Event::Key(KeyEvent {
-                                code, modifiers, kind: Press, ..
+                                code,
+                                modifiers,
+                                kind: Press,
+                                ..
                             }) = event::read()?
                             {
                                 // Add key pressed unless it's `Esc`.
                                 if code != KeyCode::Esc {
                                     if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                                    self.settings.keybinds_mut().insert((code, modifiers), current_button);
+                                    self.settings
+                                        .keybinds_mut()
+                                        .insert((code, modifiers), current_button);
                                 }
                                 break;
                             }

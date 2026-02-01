@@ -28,7 +28,8 @@ pub fn tetrs_default_keybinds() -> Keybinds {
         (KeyCode::Up, Button::DropHard),
         //(KeyCode::Char('w'), Button::DropSonic),
         (KeyCode::Char(' '), Button::HoldPiece),
-    ].map(|(k,b)| ((k, KeyModifiers::NONE), b));
+    ]
+    .map(|(k, b)| ((k, KeyModifiers::NONE), b));
     HashMap::from(keybinds_tetrs)
 }
 
@@ -43,7 +44,8 @@ pub fn vim_keybinds() -> Keybinds {
         (KeyCode::Char('k'), Button::DropHard),
         //(KeyCode::Char('w'), Button::DropSonic),
         (KeyCode::Char(' '), Button::HoldPiece),
-    ].map(|(k,b)| ((k, KeyModifiers::NONE), b));
+    ]
+    .map(|(k, b)| ((k, KeyModifiers::NONE), b));
     HashMap::from(keybinds_vim)
 }
 
@@ -63,7 +65,8 @@ pub fn guideline_keybinds() -> Keybinds {
         (KeyCode::Char('c'), Button::HoldPiece),
         (KeyCode::Modifier(M::LeftShift), Button::HoldPiece),
         (KeyCode::Modifier(M::RightShift), Button::HoldPiece),
-    ].map(|(k,b)| ((k, KeyModifiers::NONE), b));
+    ]
+    .map(|(k, b)| ((k, KeyModifiers::NONE), b));
     HashMap::from(keybinds_guidelinle)
 }
 
@@ -182,8 +185,10 @@ impl LiveTerminalInputHandler {
                         if let Some(&button) = keybinds.get(&(code, modifiers)) {
                             // Binding found: send button press.
                             let now = Instant::now();
-                            let _ = input_sender.send(InputSignal::ButtonInput(ButtonChange::Press(button), now));
-                            let _ = input_sender.send(InputSignal::ButtonInput(ButtonChange::Release(button), now));
+                            let _ = input_sender
+                                .send(InputSignal::ButtonInput(ButtonChange::Press(button), now));
+                            let _ = input_sender
+                                .send(InputSignal::ButtonInput(ButtonChange::Release(button), now));
                         }
                     }
                     // Don't care about other events: ignore.
@@ -275,17 +280,24 @@ impl LiveTerminalInputHandler {
                         ..
                     })) => {}
 
-                    Ok(Event::Key(KeyEvent { code, modifiers, kind, .. })) => match keybinds.get(&(code, modifiers)) {
+                    Ok(Event::Key(KeyEvent {
+                        code,
+                        modifiers,
+                        kind,
+                        ..
+                    })) => match keybinds.get(&(code, modifiers)) {
                         // No binding: ignore.
                         None => {}
                         // Binding found: send button un-/press.
                         Some(&button) => {
-                            let wrap = if kind == KeyEventKind::Press { ButtonChange::Press } else { ButtonChange::Release };
+                            let wrap = if kind == KeyEventKind::Press {
+                                ButtonChange::Press
+                            } else {
+                                ButtonChange::Release
+                            };
                             // FIXME: This module could be refactored by handling all the `let _ = input_sender.send(..)` lines and automatically stopping the thread, possibly removing the need for a synchronized run_thread flag in the first place.
-                            let _ = input_sender.send(InputSignal::ButtonInput(
-                                wrap(button),
-                                Instant::now(),
-                            ));
+                            let _ = input_sender
+                                .send(InputSignal::ButtonInput(wrap(button), Instant::now()));
                         }
                     },
                     // Don't care about other events: ignore.
