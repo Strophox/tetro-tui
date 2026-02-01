@@ -143,10 +143,10 @@ impl<T: Write> Application<T> {
                                     button_inputs.0[(load_offset - 1) % button_inputs.0.len()]);
                                 let load_time = fmt_duration(&load_time);
                                 let load_input = fmt_button_change(&load_input);
-                                format!(">> Load {load_title} from {load_offset}/{load_offset_max} ({load_input} @{load_time}) [Del] <<")
+                                format!(">> Load {load_title} from: {load_offset}/{load_offset_max} ({load_input} @{load_time}) [Del] <<")
                             }
                         } else {
-                            format!("Savepoint - load {load_title} run...")
+                            format!("Savepoint - {load_title} run...")
                         },
                     )))?;
             }
