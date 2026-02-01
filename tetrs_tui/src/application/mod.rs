@@ -20,7 +20,7 @@ use crate::{
     game_input_handlers::live_terminal::{
         guideline_keybinds, tetrs_default_keybinds, vim_keybinds, Keybinds,
     },
-    game_modifiers,
+    game_mode_presets,
     game_renderers::{
         self, color16_palette, empty_palette, fullcolor_palette, gruvbox_light_palette,
         gruvbox_palette, oklch2_palette, the_matrix_palette, Palette,
@@ -106,7 +106,7 @@ impl GameRestorationData {
         let mut game = if self.mod_descriptors.is_empty() {
             builder.build()
         } else {
-            match game_modifiers::reconstruct_modded(
+            match game_mode_presets::mods::reconstruct_modded(
                 &builder,
                 self.mod_descriptors.iter().map(String::as_str),
             ) {
@@ -235,7 +235,7 @@ impl Default for NewGameSettings {
             cheese_gravity: 0,
             cheese_gapsize: 1,
             combo_linelimit: Some(NonZeroUsize::try_from(30).unwrap()),
-            combo_startlayout: game_modifiers::combo_board::LAYOUTS[0],
+            combo_startlayout: game_mode_presets::mods::combo_board::LAYOUTS[0],
             experimental_mode_unlocked: false,
         }
     }
