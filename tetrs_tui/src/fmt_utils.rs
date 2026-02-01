@@ -40,7 +40,6 @@ pub fn fmt_tet_mini(t: &Tetromino) -> &'static str {
     }
 }
 
-#[allow(dead_code)]
 pub fn fmt_button(b: &Button) -> &'static str {
     use Button as B;
     match b {

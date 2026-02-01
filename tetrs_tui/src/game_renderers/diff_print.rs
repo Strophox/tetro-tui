@@ -275,12 +275,7 @@ impl Renderer for DiffPrintRenderer {
             f(Button::RotateAround),
             f(Button::RotateRight)
         );
-        let mut icons_drop = format!(
-            "{}{}{}",
-            f(Button::DropSoft),
-            f(Button::TeleDown),
-            f(Button::DropHard)
-        );
+        let mut icons_drop = format!("{}{}", f(Button::DropSoft), f(Button::DropHard));
         let mut icons_hold = f(Button::HoldPiece);
         // FAIR enough https://users.rust-lang.org/t/truncating-a-string/77903/9 :
         let eleven = icons_move
@@ -326,11 +321,11 @@ impl Renderer for DiffPrintRenderer {
                 format!("                      <! . . . . . . . . . .!>              ", ),
                 format!("                      <! . . . . . . . . . .!>              ", ),
                 format!("                      <! . . . . . . . . . .!>              ", ),
+                format!("                      <! . . . . . . . . . .!>              ", ),
                 format!("   KEYBINDS           <! . . . . . . . . . .!>              ", ),
                 format!("   ---------          <! . . . . . . . . . .!>              ", ),
                 format!("   Move    {:<11     }<! . . . . . . . . . .!>              ", icons_move),
                 format!("   Rotate  {:<11     }<! . . . . . . . . . .!>              ", icons_rotate),
-                format!("                      <! . . . . . . . . . .!>              ", ),
                 format!("   Drop    {:<11     }<! . . . . . . . . . .!>              ", icons_drop),
                 format!("   Hold    {:<11     }<! . . . . . . . . . .!>              ", icons_hold),
                 format!("   Pause   [Esc]      <! . . . . . . . . . .!>              ", ),
@@ -352,11 +347,11 @@ impl Renderer for DiffPrintRenderer {
                 format!("                       |                    |             {}", if !next_pieces.is_empty() { " |" } else {"  "}),
                 format!("                       |                    |{             }", if !next_pieces.is_empty() { "--------------+" } else {"               "}),
                 format!("                       |                    |               ", ),
+                format!("                       |                    |               ", ),
                 format!("   KEYBINDS            |                    |               ", ),
                 format!("   ---------           |                    |               ", ),
                 format!("   Move    {:<12      }|                    |               ", icons_move),
                 format!("   Rotate  {:<12      }|                    |               ", icons_rotate),
-                format!("                       |                    |               ", ),
                 format!("   Drop    {:<12      }|                    |               ", icons_drop),
                 format!("   Hold    {:<12      }|                    |               ", icons_hold),
                 format!("   Pause   [Esc]       |                    |               ", ),
@@ -378,11 +373,11 @@ impl Renderer for DiffPrintRenderer {
                 format!("                       ║                    ║             {}", if !next_pieces.is_empty() { " │" } else {"  "}),
                 format!("                       ║                    ║{             }", if !next_pieces.is_empty() { "──────────────┘" } else {"               "}),
                 format!("                       ║                    ║               ", ),
+                format!("                       ║                    ║               ", ),
                 format!("   KEYBINDS            ║                    ║               ", ),
                 format!("   ────────╴           ║                    ║               ", ),
                 format!("   Move    {:<12      }║                    ║               ", icons_move),
                 format!("   Rotate  {:<12      }║                    ║               ", icons_rotate),
-                format!("                       ║                    ║               ", ),
                 format!("   Drop    {:<12      }║                    ║               ", icons_drop),
                 format!("   Hold    {:<12      }║                    ║               ", icons_hold),
                 format!("   Pause   [Esc]       ║                    ║               ", ),
