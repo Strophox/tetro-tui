@@ -38,7 +38,6 @@ impl<T: Write> Application<T> {
             // FIXME: Kinda iffy. Do we need all flags? What undesirable effects might there be?
             let _ = self.term.execute(event::PushKeyboardEnhancementFlags(
                 event::KeyboardEnhancementFlags::all(),
-                // event::KeyboardEnhancementFlags::REPORT_EVENT_TYPES,
             ));
         }
 
