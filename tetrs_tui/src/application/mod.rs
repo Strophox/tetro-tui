@@ -265,7 +265,7 @@ impl NewGameSettings {
 
         for line in &mut new_board {
             for tile in line {
-                while let Some(char) = chars.next() {
+                for char in chars.by_ref() {
                     if char == ' ' {
                         // Space = empty tile.
                         *tile = None;

@@ -189,14 +189,19 @@ impl Game {
         if self.result().is_some() {
             None
 
-        // Not ended yet, so check whether any end conditions have been met now.
-        } else if let Some(game_result) = self.config.end_conditions.iter().find_map(|(c, good)| {
-            self.check_stat_met(c)
-                .then_some(if *good { Ok(()) } else { Err(GameOver::Limit) })
-        }) {
-            Some(Phase::GameEnded(game_result))
+        // Not ended yet, so check whether any end conditions have been met now and return appropriate phase if yes.
         } else {
-            None
+            self.config
+                .end_conditions
+                .iter()
+                .find_map(|(c, good)| {
+                    self.check_stat_met(c).then_some(if *good {
+                        Ok(())
+                    } else {
+                        Err(GameOver::Limit)
+                    })
+                })
+                .map(Phase::GameEnded)
         }
     }
 
