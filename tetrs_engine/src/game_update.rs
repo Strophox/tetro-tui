@@ -576,7 +576,7 @@ fn do_player_button_update(
     // ## Locking
     //
     // The lock timer is influenced as follows²:
-    // - zero locktimer  if  (_ ~> grounded) + soft drop just pressed
+    // - zero locktimer  if  (grounded ~> grounded) + soft drop just pressed
     // - zero locktimer  if  (_ ~> grounded) + hard drop just pressed
     // - refreshed locktimer  if  (_ ~> grounded) + (position|orientation) just changedᵇ
     // - [old locktimer  if  (grounded ~> grounded) = not in above cases, c.f. (ᵇ)]
@@ -792,15 +792,16 @@ fn do_player_button_update(
     // `new_is_fall_not_lock` is needed below.
     let new_is_fall_not_lock = new_piece.fits_at(&state.board, (0, -1)).is_some();
 
+    let was_grounded = previous_piece_data
+        .piece
+        .fits_at(&state.board, (0, -1))
+        .is_none();
+
     // Update falltimer and locktimer.
     // See also (¹) and (²).
     let new_fall_or_lock_time = if new_is_fall_not_lock {
         // Calculate scheduled fall time.
         // This implements (¹).
-        let was_grounded = previous_piece_data
-            .piece
-            .fits_at(&state.board, (0, -1))
-            .is_none();
         if was_grounded
             || matches!(
                 button_change,
@@ -820,8 +821,10 @@ fn do_player_button_update(
     } else {
         // Calculate scheduled lock time.
         // This implements (²).
-        if matches!(button_change, BC::Press(B::DropSoft | B::DropHard)) {
-            // We are on the ground - if soft drop or hard drop pressed, lock immediately.
+        if matches!(button_change, BC::Press(B::DropHard))
+            || (was_grounded && matches!(button_change, BC::Press(B::DropSoft)))
+        {
+            // We are on the ground - if hard drop pressed or soft drop when ground is touched, lock immediately.
             button_update_time
         } else if new_piece != previous_piece_data.piece {
             // On the ground - Refresh lock time if piece moved.
