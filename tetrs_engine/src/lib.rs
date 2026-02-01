@@ -1016,21 +1016,14 @@ impl Game {
         (builder, mod_descriptors)
     }
 
-    /// Tries to create an identical, independent copy of the current game.
-    ///
-    /// This function fails if the [`Game`] has any modifiers attached to it.
-    pub fn try_clone(&self) -> Result<Self, Self> {
-        let cloned = Game {
+    /// Creates an identical, independent copy of the game but without any modifiers.
+    pub fn clone_unmodded(&self) -> Self {
+        Self {
             config: self.config.clone(),
             init_vals: self.init_vals.clone(),
             state: self.state.clone(),
-            phase: self.phase.clone(),
+            phase: self.phase,
             modifiers: Vec::new(),
-        };
-        if self.modifiers.is_empty() {
-            Ok(cloned)
-        } else {
-            Err(cloned)
         }
     }
 }

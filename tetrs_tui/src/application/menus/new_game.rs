@@ -617,7 +617,7 @@ impl<T: Write> Application<T> {
                     // Optionally load custom board.
                     let custom_game = if let Some(board) = &n.custom_board {
                         builder.build_modded([
-                            game_modifiers::misc_modifiers::custom_start_board::modifier(board),
+                            game_modifiers::miscellany::custom_start_board::modifier(board),
                         ])
                     // Otherwise just build a normal custom game.
                     } else {
