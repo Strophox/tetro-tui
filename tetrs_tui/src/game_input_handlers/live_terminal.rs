@@ -250,10 +250,10 @@ impl LiveTerminalInputHandler {
 
                     Ok(Event::Key(KeyEvent {
                         code: KeyCode::Char('b'),
-                        modifiers: KeyModifiers::CONTROL,
+                        modifiers,
                         kind: KeyEventKind::Press | KeyEventKind::Repeat,
                         ..
-                    })) => {
+                    })) if modifiers.contains(KeyModifiers::CONTROL.union(KeyModifiers::SHIFT)) => {
                         let _ = input_sender.send(InputSignal::Blindfold);
                     }
 

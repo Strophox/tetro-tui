@@ -164,15 +164,14 @@ impl<T: Write> Application<T> {
                     Ok(InputSignal::Blindfold) => {
                         self.settings.graphics_mut().blindfolded ^= true;
                         if self.settings.graphics().blindfolded {
-                            // TODO: make this more visible to user in frontend.
                             new_feedback_msgs.push((
                                 game.state().time,
-                                Feedback::Text("Blindfolded! [Ctrl+B]".to_owned()),
+                                Feedback::Text("Blindfolded! [Ctrl+Shift+B]".to_owned()),
                             ));
                         } else {
                             new_feedback_msgs.push((
                                 game.state().time,
-                                Feedback::Text("Blindfolds removed! [Ctrl+B]".to_owned()),
+                                Feedback::Text("Blindfolds removed! [Ctrl+Shift+B]".to_owned()),
                             ));
                         }
                     }

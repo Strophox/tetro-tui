@@ -225,7 +225,7 @@ impl<T: Write> Application<T> {
                         "{:^w_main$}",
                         if selected == selection_len - 2 {
                             if *load_offset == 0 {
-                                format!(">> Load {load_title:?} run from scratch [Del] <<")
+                                format!(">> Load {load_title:?} run from start [Del] <<")
                             } else {
                                 let (load_time, load_input) = ButtonInputs::decode(
                                     button_inputs.0[(load_offset - 1) % button_inputs.0.len()]);
@@ -457,12 +457,7 @@ impl<T: Write> Application<T> {
                         if selected == selection_len - 2 {
                             *load_offset += game_restoration_data.button_inputs.0.len()
                                 * if modifiers.contains(KeyModifiers::SHIFT) {
-                                    10
-                                } else {
-                                    1
-                                }
-                                * if modifiers.contains(KeyModifiers::CONTROL) {
-                                    100
+                                    20
                                 } else {
                                     1
                                 };
@@ -511,11 +506,7 @@ impl<T: Write> Application<T> {
                     } else if let Some((_game_meta_data, game_restoration_data, load_offset)) = &mut self.game_savepoint {
                         if selected == selection_len - 2 {
                             *load_offset += if modifiers.contains(KeyModifiers::SHIFT) {
-                                10
-                            } else {
-                                1
-                            } * if modifiers.contains(KeyModifiers::CONTROL) {
-                                100
+                                20
                             } else {
                                 1
                             };
