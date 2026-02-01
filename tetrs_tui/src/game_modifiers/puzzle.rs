@@ -87,7 +87,7 @@ pub fn build(builder: &GameBuilder) -> Game {
                 }
                 if current_puzzle_idx == puzzles_len {
                     // Done with all puzzles, game completed.
-                    *phase = Phase::GameEnded(Ok(())); // TODO: Fix.
+                    *phase = Phase::GameEnded(Ok(()));
                 } else {
                     // Load in new puzzle.
                     let piececnt =

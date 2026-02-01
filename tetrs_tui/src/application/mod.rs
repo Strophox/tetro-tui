@@ -43,25 +43,10 @@ pub type Slots<T> = Vec<(String, T)>;
 pub struct ButtonInputs(Vec<u128>);
 
 impl ButtonInputs {
-    /*
-    For serialization reasons, we encode a single user input as a u128 instead of
-    (GameTime, PressedButtons), which would have a verbose string representation:
-
-        ButtonInputs(Vec<(GameTime,ButtonChange)>) TODO
-         ↝ [{"secs":0,"nanos":908203743},[true,false,false,false,false,false,false,false,false]],
-           [{"secs":1,"nanos":233015063},[true,false,true,false,false,false,false,false,false]],
-           [{"secs":1,"nanos":365309796},[true,false,false,false,false,false,false,false,false]],
-           [{"secs":1,"nanos":388531761},[false,false,false,false,false,false,false,false,false]],
-           ...
-
-    Instead one can do manual encoding as numbers (&bit-fiddling) to try and save json formatting/punctuation:
-
-        ButtonInputs ≈ Vec<u128> ≃ "nanos|buttonchangebits" (optimal bit shifting)
-         ↝ 196780933376,434373048320,528447540228,618951716352, ...
-    */
-
     pub const BUTTON_CHANGE_BITSIZE: usize = 5; 
 
+    // For serialization reasons, we encode a single user input as `u128` instead of
+    // `(GameTime, ButtonChange)`, which would have a more verbose string representation.
     pub fn encode(update_target_time: GameTime, button_change: ButtonChange) -> u128 {
         // Encode `GameTime = std::time::Duration` using `std::time::Duration::as_nanos`.
         let nanos: u128 = update_target_time.as_nanos();
