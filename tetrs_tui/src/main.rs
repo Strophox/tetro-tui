@@ -1,8 +1,8 @@
 mod application;
+mod fmt_utils;
 mod game_input_handlers;
 mod game_modifiers;
 mod game_renderers;
-mod fmt_utils;
 
 use std::io::{self, Write};
 
@@ -44,7 +44,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         if let Ok(mut file) = std::fs::File::create(crash_file_name) {
             let _ = file.write(panic_info.to_string().as_bytes());
             let _ = file.write(b"\n\n\n");
-            let _ = file.write(std::backtrace::Backtrace::force_capture().to_string().as_bytes());
+            let _ = file.write(
+                std::backtrace::Backtrace::force_capture()
+                    .to_string()
+                    .as_bytes(),
+            );
         }
     }));
 

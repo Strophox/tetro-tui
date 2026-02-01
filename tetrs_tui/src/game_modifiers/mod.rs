@@ -5,7 +5,7 @@ use tetrs_engine::{Game, GameBuilder, Modifier};
 pub mod ascent;
 pub mod cheese;
 pub mod combo_board;
-pub mod misc_modifiers;
+pub mod miscellany;
 pub mod puzzle;
 
 pub fn reconstruct_modded<'a>(
@@ -45,42 +45,35 @@ pub fn reconstruct_modded<'a>(
         if mod_id == puzzle::MOD_ID {
             let build = Box::new(puzzle::build);
             store_building_mod(mod_id, build)?;
-
         } else if mod_id == ascent::MOD_ID {
             let build = Box::new(ascent::build);
             store_building_mod(mod_id, build)?;
-
         } else if mod_id == cheese::MOD_ID {
-            let (linelimit, gapsize, gravity) = get_mod_args::<(Option<NonZero<usize>>, usize, u32)>(&mut lines, mod_id)?;
+            let (linelimit, gapsize, gravity) =
+                get_mod_args::<(Option<NonZero<usize>>, usize, u32)>(&mut lines, mod_id)?;
             let build =
                 Box::new(move |builder| cheese::build(builder, linelimit, gapsize, gravity));
             store_building_mod(mod_id, build)?;
-
         } else if mod_id == combo_board::MOD_ID {
             let linelimit = get_mod_args::<u16>(&mut lines, mod_id)?;
             let modifier = combo_board::modifier(linelimit);
             compounding_mod.push(modifier);
-
-        } else if mod_id == misc_modifiers::print_recency_tet_gen_stats::MOD_ID {
-            let modifier = misc_modifiers::print_recency_tet_gen_stats::modifier();
+        } else if mod_id == miscellany::print_recency_tet_gen_stats::MOD_ID {
+            let modifier = miscellany::print_recency_tet_gen_stats::modifier();
             compounding_mod.push(modifier);
-
-        } else if mod_id == misc_modifiers::custom_start_board::MOD_ID {
+        } else if mod_id == miscellany::custom_start_board::MOD_ID {
             let encoded_board = get_mod_args::<String>(&mut lines, mod_id)?;
-            let modifier = misc_modifiers::custom_start_board::modifier(&encoded_board);
+            let modifier = miscellany::custom_start_board::modifier(&encoded_board);
             compounding_mod.push(modifier);
-
         } else {
             return Err(format!("unrecognized mod {mod_id:?}"));
         }
-
     }
 
     Ok(if let Some((_, build)) = building_mod {
         let mut game = build(builder);
         game.modifiers.extend(compounding_mod);
         game
-
     } else {
         builder.build_modded(compounding_mod)
     })

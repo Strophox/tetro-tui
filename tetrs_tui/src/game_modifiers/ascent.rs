@@ -3,7 +3,8 @@ use std::{num::NonZeroU8, time::Duration};
 use rand::Rng;
 
 use tetrs_engine::{
-    Button, ButtonChange, Game, GameBuilder, GameModFn, GameRng, GameTime, Line, Modifier, Phase, Piece, PieceData, Stat, Tetromino, UpdatePoint
+    Button, ButtonChange, Game, GameBuilder, GameModFn, GameRng, GameTime, Line, Modifier, Phase,
+    Piece, PieceData, Stat, Tetromino, UpdatePoint,
 };
 
 pub const MOD_ID: &str = "ascent";
@@ -42,7 +43,7 @@ pub fn build(builder: &GameBuilder) -> Game {
                         lowest_y: 0,
                         binding_lock_time: Duration::MAX,
                         auto_move_scheduled: None,
-                    }
+                    },
                 };
                 state.hold_piece = Some((asc_tet_02, true));
                 // No further pieces required.
@@ -70,7 +71,12 @@ pub fn build(builder: &GameBuilder) -> Game {
 
             // Update state after each piece rotation, for gem scorekeeping.
             // Also change colors for fun after each rotation.
-            if matches!(point, UpdatePoint::PiecePlayed(ButtonChange::Press(Button::RotateLeft | Button::RotateAround | Button::RotateRight))) {
+            if matches!(
+                point,
+                UpdatePoint::PiecePlayed(ButtonChange::Press(
+                    Button::RotateLeft | Button::RotateAround | Button::RotateRight
+                ))
+            ) {
                 let piece_tiles_coords = piece.tiles().map(|(coord, _)| coord);
 
                 for (y, line) in state.board.iter_mut().enumerate() {
@@ -115,7 +121,10 @@ pub fn build(builder: &GameBuilder) -> Game {
                         &mut state.hold_piece.as_mut().unwrap().0,
                     );
                     (*tet1, *tet2) = (*tet2, *tet1);
-                } else if matches!(button_changes, Some(ButtonChange::Press(Button::DropSoft | Button::DropHard))) {
+                } else if matches!(
+                    button_changes,
+                    Some(ButtonChange::Press(Button::DropSoft | Button::DropHard))
+                ) {
                     button_changes.take();
                 }
             }

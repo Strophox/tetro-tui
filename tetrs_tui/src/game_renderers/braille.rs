@@ -33,10 +33,7 @@ impl Renderer for BrailleRenderer {
         _new_feedback_msgs: FeedbackMessages,
         _screen_resized: bool,
     ) -> io::Result<()> {
-        let State {
-            board,
-            ..
-        } = game.state();
+        let State { board, .. } = game.state();
 
         let mut board = *board;
         if let Some(piece) = game.phase().piece() {

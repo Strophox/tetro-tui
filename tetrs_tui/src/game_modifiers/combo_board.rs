@@ -36,7 +36,9 @@ pub fn modifier(initial_layout: u16) -> Modifier {
                 }
                 init_board(&mut state.board, initial_layout);
                 init = true;
-            } else if matches!(point, UpdatePoint::PieceLocked) && !matches!(phase, Phase::LinesClearing { .. }) {
+            } else if matches!(point, UpdatePoint::PieceLocked)
+                && !matches!(phase, Phase::LinesClearing { .. })
+            {
                 *phase = Phase::GameEnded(Err(GameOver::Limit));
             // Combo continues, prepare new line.
             } else if matches!(point, UpdatePoint::LinesCleared) {

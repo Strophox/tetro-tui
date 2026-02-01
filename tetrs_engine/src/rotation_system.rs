@@ -2,7 +2,7 @@
 This module handles rotation of [`ActivePiece`]s.
 */
 
-use crate::{Piece, Board, Orientation, Tetromino};
+use crate::{Board, Orientation, Piece, Tetromino};
 
 /// Handles the logic of how to rotate a tetromino in play.
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
@@ -21,12 +21,7 @@ impl RotationSystem {
     ///
     /// This will return `None` if the rotation is not possible, and `Some(p)` if the rotation
     /// succeeded with `p` as the new state of the piece.
-    pub fn rotate(
-        &self,
-        piece: &Piece,
-        board: &Board,
-        right_turns: i8,
-    ) -> Option<Piece> {
+    pub fn rotate(&self, piece: &Piece, board: &Board, right_turns: i8) -> Option<Piece> {
         match self {
             RotationSystem::Ocular => ocular_rotate(piece, board, right_turns),
             RotationSystem::Classic => classic_rotate(piece, board, right_turns),

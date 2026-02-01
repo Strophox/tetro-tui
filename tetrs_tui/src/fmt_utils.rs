@@ -68,13 +68,13 @@ pub fn fmt_button_change(button_change: &ButtonChange) -> String {
 #[allow(dead_code)]
 pub fn fmt_button_state(button_state: &[bool; Button::VARIANTS.len()]) -> String {
     let s = button_state
-            .iter()
-            .zip(Button::VARIANTS)
-            .filter(|(p, _)| **p)
-            .map(|(_, b)| fmt_button(&b))
-            .collect::<Vec<_>>()
-            .join(" ");
-        
+        .iter()
+        .zip(Button::VARIANTS)
+        .filter(|(p, _)| **p)
+        .map(|(_, b)| fmt_button(&b))
+        .collect::<Vec<_>>()
+        .join(" ");
+
     format!("[{s}]")
 }
 
@@ -129,19 +129,23 @@ pub fn fmt_keymods(keymod: KeyModifiers) -> String {
         keymod.contains(KMs::SUPER).then_some("Super"),
         keymod.contains(KMs::HYPER).then_some("Hyper"),
         keymod.contains(KMs::META).then_some("Meta"),
-    ].into_iter().flatten().collect::<Vec<_>>().join("+")
+    ]
+    .into_iter()
+    .flatten()
+    .collect::<Vec<_>>()
+    .join("+")
 }
 
 pub fn fmt_keybinds_of(button: Button, keybinds: &Keybinds) -> String {
     keybinds
         .iter()
-        .filter_map(|(&(k, kms), &b)| (b == button).then_some(
-            if kms.is_empty() {
+        .filter_map(|(&(k, kms), &b)| {
+            (b == button).then_some(if kms.is_empty() {
                 format!("[{}]", fmt_key(k))
             } else {
                 format!("[{}+{}]", fmt_keymods(kms), fmt_key(k))
-            }
-        ))
+            })
+        })
         .collect::<Vec<_>>()
         .join("")
 }

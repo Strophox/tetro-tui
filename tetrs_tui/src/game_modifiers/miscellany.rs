@@ -7,7 +7,10 @@ pub mod custom_start_board {
         let board = crate::application::NewGameSettings::decode_board(encoded_board);
         let mut init = false;
         Modifier {
-            descriptor: format!("{MOD_ID}\n{}", serde_json::to_string(&encoded_board).unwrap()),
+            descriptor: format!(
+                "{MOD_ID}\n{}",
+                serde_json::to_string(&encoded_board).unwrap()
+            ),
             mod_function: Box::new(move |_point, _config, _init_vals, state, _phase, _msgs| {
                 if !init {
                     state.board.clone_from(&board);
@@ -22,8 +25,7 @@ pub mod custom_start_board {
 #[allow(dead_code)]
 pub mod print_recency_tet_gen_stats {
     use tetrs_engine::{
-        tetromino_generator::TetrominoGenerator, Feedback, Modifier, Tetromino,
-        UpdatePoint,
+        tetromino_generator::TetrominoGenerator, Feedback, Modifier, Tetromino, UpdatePoint,
     };
 
     pub const MOD_ID: &str = "print_recency_tet_gen_stats";
@@ -53,9 +55,15 @@ pub mod print_recency_tet_gen_stats {
                             "{tet:?}{}{}{}",
                             last_generated[tet as usize],
                             // "█".repeat(lg[t] as usize),
-                            "█".repeat((last_generated[tet as usize] * last_generated[tet as usize]) as usize / 8),
-                            [" ", "▏", "▎", "▍", "▌", "▋", "▊", "▉"]
-                                [(last_generated[tet as usize] * last_generated[tet as usize]) as usize % 8]
+                            "█".repeat(
+                                (last_generated[tet as usize] * last_generated[tet as usize])
+                                    as usize
+                                    / 8
+                            ),
+                            [" ", "▏", "▎", "▍", "▌", "▋", "▊", "▉"][(last_generated[tet as usize]
+                                * last_generated[tet as usize])
+                                as usize
+                                % 8]
                         )
                         .to_ascii_lowercase()
                     })

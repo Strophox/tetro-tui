@@ -43,13 +43,7 @@ pub mod game_update;
 pub mod rotation_system;
 pub mod tetromino_generator;
 
-use std::{
-    collections::VecDeque,
-    fmt,
-    num::NonZeroU8,
-    ops,
-    time::Duration,
-};
+use std::{collections::VecDeque, fmt, num::NonZeroU8, ops, time::Duration};
 
 use rand_chacha::{
     rand_core::{RngCore, SeedableRng},
@@ -315,21 +309,21 @@ pub enum Phase {
     /// The state of the game "taking its time" to clear out lines.
     /// In this state the board is as it was at the time of the piece locking down,
     /// i.e. with some horizontally completed lines.
-    /// After exiting this state, the 
+    /// After exiting this state, the
     LinesClearing {
         /// The in-game time at which the game moves on to the next `ActionState.`
-        lines_cleared_time: GameTime
+        lines_cleared_time: GameTime,
     },
     /// The state of the game "taking its time" to spawn a piece.
     /// This is the state the board will have right before attempting to spawn a new piece.
     Spawning {
         /// The in-game time at which the game moves on to the next `ActionState.`
-        spawn_time: GameTime
+        spawn_time: GameTime,
     },
     /// The state of the game having an active piece in-play, which can be controlled by a player.
     PieceInPlay {
         /// The data required to play a piece in this `ActionState.`
-        piece_data: PieceData
+        piece_data: PieceData,
     },
 }
 
@@ -383,7 +377,7 @@ pub enum UpdatePoint<T> {
     /// Typically:
     /// * `T = &mut Option<ButtonChange>` for [`GameModFn`] purposes, or
     /// * `T = String` for [`Feedback`] purposes.
-    /// 
+    ///
     /// # Reproducibility
     /// Note that this update point is called every time [`Game::update`] is called.
     /// Unlike other update points, this makes a modifier not reproducible if its behavior depends on the number of times it processes this update point.
@@ -422,7 +416,7 @@ pub struct Modifier {
     /// ```rust
     /// mod_function = |point, config, init_vals, state, phase, msgs| { /* ... */ };
     /// ```
-    /// 
+    ///
     /// See documentation of [`UpdatePoint`].
     pub mod_function: Box<GameModFn>,
 }
@@ -451,7 +445,7 @@ pub struct GameBuilder {
 #[derive(Debug)]
 pub struct Game {
     /// Some internal configuration options of the `Game`.
-    /// 
+    ///
     /// # Reproducibility
     /// Modifying a `Game`'s configuration after it was created might not make it easily
     /// reproducible anymore.
@@ -460,7 +454,7 @@ pub struct Game {
     state: State,
     phase: Phase,
     /// A list of special modifiers that apply to the `Game`.
-    /// 
+    ///
     /// # Reproducibility
     /// Modifying a `Game`'s modifiers after it was created might not make it easily
     /// reproducible anymore.
@@ -659,7 +653,7 @@ impl Piece {
     /// For offset `(0,0)` this function return immediately.
     pub fn teleported(&self, board: &Board, offset: Offset) -> Piece {
         let mut piece = *self;
-        if offset != (0,0) {
+        if offset != (0, 0) {
             // Move piece as far as possible.
             while let Some(new_piece) = piece.fits_at(board, offset) {
                 piece = new_piece;
@@ -725,7 +719,11 @@ impl Default for Configuration {
 impl Phase {
     /// Read accessor to a `Phase`'s possible [`Piece`].
     pub fn piece(&self) -> Option<&Piece> {
-        if let Phase::PieceInPlay { piece_data: PieceData { piece, ..}, .. } = self {
+        if let Phase::PieceInPlay {
+            piece_data: PieceData { piece, .. },
+            ..
+        } = self
+        {
             Some(piece)
         } else {
             None
@@ -734,7 +732,11 @@ impl Phase {
 
     /// Mutable accessor to a `Phase`'s possible [`Piece`].
     pub fn piece_mut(&mut self) -> Option<&mut Piece> {
-        if let Phase::PieceInPlay { piece_data: PieceData { piece, ..}, .. } = self {
+        if let Phase::PieceInPlay {
+            piece_data: PieceData { piece, .. },
+            ..
+        } = self
+        {
             Some(piece)
         } else {
             None
@@ -788,7 +790,9 @@ impl GameBuilder {
                 consecutive_line_clears: 0,
                 rng: GameRng::seed_from_u64(init_vals.seed),
             },
-            phase: Phase::Spawning { spawn_time: Duration::ZERO },
+            phase: Phase::Spawning {
+                spawn_time: Duration::ZERO,
+            },
             init_vals,
             modifiers: modifiers.into_iter().collect(),
         }
@@ -932,10 +936,10 @@ impl Game {
 
     /// Retrieve the when the next *autonomous* in-game update is scheduled.
     /// I.e., compute the next time the game would change state assuming no button updates
-    /// 
+    ///
     /// # Modifiers
     /// Note that this only predicts what an unmodded game would do;
-    /// [`Modifier`]s may arbitrarily change game state and change or prevent precise update predictions. 
+    /// [`Modifier`]s may arbitrarily change game state and change or prevent precise update predictions.
     pub fn peek_update_time(&self) -> Option<GameTime> {
         let action_time = match self.phase {
             Phase::GameEnded(_) => return None,
@@ -951,17 +955,17 @@ impl Game {
                 } else {
                     piece_data.fall_or_lock_time
                 }
-            },
+            }
         };
 
-        let time_limit =
-            self.config
-                .end_conditions
-                .iter()
-                .find_map(|(stat, _)|
-                    if let Stat::TimeElapsed(cap_time) = stat { Some(*cap_time) } else { None }
-                );
-                
+        let time_limit = self.config.end_conditions.iter().find_map(|(stat, _)| {
+            if let Stat::TimeElapsed(cap_time) = stat {
+                Some(*cap_time)
+            } else {
+                None
+            }
+        });
+
         Some(if let Some(cap_time) = time_limit {
             if cap_time < action_time {
                 cap_time
@@ -1017,12 +1021,12 @@ impl Game {
     /// This function fails if the [`Game`] has any modifiers attached to it.
     pub fn try_clone(&self) -> Result<Self, Self> {
         let cloned = Game {
-                config: self.config.clone(),
-                init_vals: self.init_vals.clone(),
-                state: self.state.clone(),
-                phase: self.phase.clone(),
-                modifiers: Vec::new(),
-            };
+            config: self.config.clone(),
+            init_vals: self.init_vals.clone(),
+            state: self.state.clone(),
+            phase: self.phase.clone(),
+            modifiers: Vec::new(),
+        };
         if self.modifiers.is_empty() {
             Ok(cloned)
         } else {
