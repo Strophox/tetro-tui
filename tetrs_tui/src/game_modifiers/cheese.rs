@@ -57,7 +57,7 @@ pub fn build(
             Some(c) => vec![(Stat::LinesCleared(c.get()), true)],
             None => vec![],
         })
-        .build_modified([Modifier {
+        .build_modded([Modifier {
             descriptor: format!(
                 "{MOD_ID}\n{}",
                 serde_json::to_string(&(linelimit, gapsize, gravity)).unwrap()

@@ -129,7 +129,7 @@ pub fn build(builder: &GameBuilder) -> Game {
         .initial_gravity(0)
         .progressive_gravity(false)
         .end_conditions(vec![(Stat::TimeElapsed(Duration::from_secs(2 * 60)), true)])
-        .build_modified([Modifier {
+        .build_modded([Modifier {
             descriptor: MOD_ID.to_owned(),
             mod_function,
         }])

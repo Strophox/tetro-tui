@@ -332,14 +332,12 @@ fn do_autonomous_move (
     let (dx, next_move_time) = calc_move_dx_and_next_move_time(&state.buttons_pressed, auto_move_time, config);
 
     let mut new_piece = previous_piece_data.piece;
-    let new_move_scheduled = if let Some(moved_piece) = previous_piece_data.piece.fits_at(&state.board, (dx, 0)) {
+    let new_auto_move_scheduled = if let Some(moved_piece) = previous_piece_data.piece.fits_at(&state.board, (dx, 0)) {
         new_piece = moved_piece;
         Some(next_move_time) // Able to do relevant move; Insert autonomous movement.
     } else {
         None // Unable to move; Remove autonomous movement.
     };
-
-    let new_is_fall_not_lock = new_piece.fits_at(&state.board, (0, -1)).is_some();
 
     let (new_lowest_y, new_binding_lock_time) = if new_piece.position.1 < previous_piece_data.lowest_y {
         (new_piece.position.1, auto_move_time + lock_delay(state.gravity, Some(config.lock_time_max_factor)))
@@ -347,8 +345,21 @@ fn do_autonomous_move (
         (previous_piece_data.lowest_y, previous_piece_data.binding_lock_time)
     };
 
+    let new_is_fall_not_lock = new_piece.fits_at(&state.board, (0, -1)).is_some();
+
     let new_fall_or_lock_time =  if new_is_fall_not_lock {
-        previous_piece_data.fall_or_lock_time
+        // Calculate scheduled fall time.
+        // This implements (¹).
+        let was_airborne = previous_piece_data.piece.fits_at(&state.board, (0,-1)).is_some();
+        if !was_airborne {
+            // Refresh fall timer if we *started* falling.
+            let soft_drop_factor = state.buttons_pressed[Button::DropSoft].is_some().then_some(config.soft_drop_factor);
+            auto_move_time + fall_delay(state.gravity, soft_drop_factor)
+
+        } else {
+            // Falling as before.
+            previous_piece_data.fall_or_lock_time
+        }
     } else {
         (auto_move_time + lock_delay(state.gravity, None)).min(new_binding_lock_time)
     };
@@ -360,7 +371,7 @@ fn do_autonomous_move (
             piece: new_piece,
             fall_or_lock_time: new_fall_or_lock_time,
             is_fall_not_lock: new_is_fall_not_lock,
-            auto_move_scheduled: new_move_scheduled,
+            auto_move_scheduled: new_auto_move_scheduled,
             lowest_y: new_lowest_y,
             binding_lock_time: new_binding_lock_time,
         }
@@ -428,13 +439,13 @@ fn do_fall(
         previous_piece_data.auto_move_scheduled
     };
 
-    let new_is_fall_not_lock = new_piece.fits_at(&state.board, (0, -1)).is_some();
-
     let (new_lowest_y, new_binding_lock_time) = if new_piece.position.1 < previous_piece_data.lowest_y {
         (new_piece.position.1, fall_time + lock_delay(state.gravity, Some(config.lock_time_max_factor)))
     } else {
         (previous_piece_data.lowest_y, previous_piece_data.binding_lock_time)
     };
+
+    let new_is_fall_not_lock = new_piece.fits_at(&state.board, (0, -1)).is_some();
 
     let new_fall_or_lock_time =  if new_is_fall_not_lock {
         let soft_drop_factor = state.buttons_pressed[Button::DropSoft].is_some().then_some(config.soft_drop_factor);
@@ -651,13 +662,13 @@ fn do_player_button_update(
         // This implements (³).
         move_scheduled
 
-    } else if let Some((moved_piece, new_move_scheduled)) = check_piece_became_movable_get_moved_piece_and_move_scheduled(previous_piece_data.piece, new_piece, &state.board, (dx, next_move_time)) {
+    } else if let Some((moved_piece, new_auto_move_scheduled)) = check_piece_became_movable_get_moved_piece_and_move_scheduled(previous_piece_data.piece, new_piece, &state.board, (dx, next_move_time)) {
         // Naïvely, movement direction should be kept;
         // But due to the system mentioned in (⁴), we do need to check
         // if the piece was stuck and became unstuck, and manually do a move in this case! 
         // (Also note: We use `(dx, next_move_time)` as computed from the *new* button state - but should not change, since this route is only triggered if the piece is able to move again and NOT because of a player move (`maybe_override_auto_move` is `None`).)
         new_piece = moved_piece;
-        new_move_scheduled
+        new_auto_move_scheduled
 
     } else {
         // All checks passed, no changes need to be made.
@@ -681,9 +692,9 @@ fn do_player_button_update(
     let new_fall_or_lock_time = if new_is_fall_not_lock {
         // Calculate scheduled fall time.
         // This implements (¹).
-        let was_falling = previous_piece_data.piece.fits_at(&state.board, (0,-1)).is_some();
-        if !was_falling || matches!(button_change, BC::Press(B::DropSoft | B::DropHard)) {
-            // If we *started* falling, or soft drop just pressed, or soft drop just released.
+        let was_airborne = previous_piece_data.piece.fits_at(&state.board, (0,-1)).is_some();
+        if !was_airborne || matches!(button_change, BC::Press(B::DropSoft | B::DropHard)) {
+            // Refresh fall timer if we *started* falling, or soft drop just pressed, or soft drop just released.
             let soft_drop_factor = matches!(button_change, BC::Press(B::DropSoft)).then_some(config.soft_drop_factor);
             button_update_time + fall_delay(state.gravity, soft_drop_factor)
 

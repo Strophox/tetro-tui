@@ -1,3 +1,5 @@
+use std::num::NonZero;
+
 use tetrs_engine::{Game, GameBuilder, Modifier};
 
 pub mod ascent;
@@ -6,22 +8,23 @@ pub mod combo_board;
 pub mod misc_modifiers;
 pub mod puzzle;
 
-pub fn reconstruct_modified<'a>(
+pub fn reconstruct_modded<'a>(
     builder: &'a GameBuilder,
     mod_descriptors: impl IntoIterator<Item = &'a str>,
 ) -> Result<Game, String> {
-    let mut compounding_modifiers: Vec<Modifier> = Vec::new();
+    let mut compounding_mod: Vec<Modifier> = Vec::new();
     #[allow(clippy::type_complexity)]
-    let mut building_modifier: Option<(&str, Box<dyn Fn(&'a GameBuilder) -> Game>)> = None;
+    let mut building_mod: Option<(&str, Box<dyn Fn(&'a GameBuilder) -> Game>)> = None;
 
-    let mut set_building_modifier = |mod_id, build| {
-        if let Some((other_id, _)) = building_modifier {
+    let mut store_building_mod = |mod_id, build| {
+        if let Some((other_id, _)) = building_mod {
             return Err(format!("incompatible mods: {other_id:?} + {mod_id:?}"));
         }
-        building_modifier.replace((mod_id, build));
+        building_mod.replace((mod_id, build));
         Ok(())
     };
 
+    // NOTE: We can actually only deserialize to owned types, so if a mod accepts `&str` in args, we need to instead parse `String`.
     fn get_mod_args<'de, T: serde::Deserialize<'de>>(
         lines: &mut std::str::Lines<'de>,
         mod_id: &str,
@@ -41,35 +44,44 @@ pub fn reconstruct_modified<'a>(
 
         if mod_id == puzzle::MOD_ID {
             let build = Box::new(puzzle::build);
-            set_building_modifier(mod_id, build)?;
+            store_building_mod(mod_id, build)?;
+
         } else if mod_id == ascent::MOD_ID {
             let build = Box::new(ascent::build);
-            set_building_modifier(mod_id, build)?;
+            store_building_mod(mod_id, build)?;
+
         } else if mod_id == cheese::MOD_ID {
-            let (linelimit, gapsize, gravity) = get_mod_args(&mut lines, mod_id)?;
+            let (linelimit, gapsize, gravity) = get_mod_args::<(Option<NonZero<usize>>, usize, u32)>(&mut lines, mod_id)?;
             let build =
                 Box::new(move |builder| cheese::build(builder, linelimit, gapsize, gravity));
-            set_building_modifier(mod_id, build)?;
+            store_building_mod(mod_id, build)?;
+
         } else if mod_id == combo_board::MOD_ID {
-            let linelimit = get_mod_args(&mut lines, mod_id)?;
+            let linelimit = get_mod_args::<u16>(&mut lines, mod_id)?;
             let modifier = combo_board::modifier(linelimit);
-            compounding_modifiers.push(modifier);
+            compounding_mod.push(modifier);
+
         } else if mod_id == misc_modifiers::print_recency_tet_gen_stats::MOD_ID {
             let modifier = misc_modifiers::print_recency_tet_gen_stats::modifier();
-            compounding_modifiers.push(modifier);
+            compounding_mod.push(modifier);
+
         } else if mod_id == misc_modifiers::custom_start_board::MOD_ID {
-            let encoded_board = get_mod_args(&mut lines, mod_id)?;
-            let modifier = misc_modifiers::custom_start_board::modifier(encoded_board);
-            compounding_modifiers.push(modifier);
+            let encoded_board = get_mod_args::<String>(&mut lines, mod_id)?;
+            let modifier = misc_modifiers::custom_start_board::modifier(&encoded_board);
+            compounding_mod.push(modifier);
+
         } else {
             return Err(format!("unrecognized mod {mod_id:?}"));
         }
+
     }
-    Ok(if let Some((_, build)) = building_modifier {
+
+    Ok(if let Some((_, build)) = building_mod {
         let mut game = build(builder);
-        game.modifiers.extend(compounding_modifiers);
+        game.modifiers.extend(compounding_mod);
         game
+
     } else {
-        builder.build_modified(compounding_modifiers)
+        builder.build_modded(compounding_mod)
     })
 }
