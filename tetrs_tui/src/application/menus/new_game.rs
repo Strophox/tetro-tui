@@ -15,12 +15,12 @@ use crossterm::{
     terminal::{Clear, ClearType},
     QueueableCommand,
 };
-use tetrs_engine::{Game, GameBuilder, Stat};
+use tetrs_engine::{Game, Stat};
 
 use crate::{
     application::{Application, ButtonInputs, GameMetaData, GameRestorationData, Menu, MenuUpdate},
     fmt_utils::{fmt_button_change, fmt_duration},
-    game_modifiers,
+    game_mode_presets::{self, mods::combo_board::LAYOUTS as COMBO_STARTLAYOUTS, GameModePreset},
 };
 
 impl<T: Write> Application<T> {
@@ -31,148 +31,58 @@ impl<T: Write> Application<T> {
             (Duration::from_secs(5), 100, 1, 1, 1);
         loop {
             #[allow(clippy::type_complexity)]
-            let mut game_presets: Vec<(
-                String,
-                (Stat, bool),
-                String,
-                Box<dyn Fn(&GameBuilder) -> Game>,
-            )> = vec![
+            let mut game_presets: Vec<(GameModePreset, String)> = vec![
                 (
-                    "40-Lines".to_owned(),
-                    (Stat::TimeElapsed(Duration::ZERO), true),
+                    game_mode_presets::forty_lines(),
                     "How fast can you clear forty lines?".to_owned(),
-                    Box::new(|builder: &GameBuilder| {
-                        builder
-                            .clone()
-                            .initial_gravity(3)
-                            .progressive_gravity(false)
-                            .end_conditions(vec![(Stat::LinesCleared(40), true)])
-                            .build()
-                    }),
                 ),
                 (
-                    "Marathon".to_owned(),
-                    (Stat::PointsScored(0), false),
+                    game_mode_presets::marathon(),
                     "Can you make it to level 16?".to_owned(),
-                    Box::new(|builder: &GameBuilder| {
-                        builder
-                            .clone()
-                            .initial_gravity(1)
-                            .progressive_gravity(true)
-                            .end_conditions(vec![(Stat::GravityReached(16), true)])
-                            .build()
-                    }),
                 ),
                 (
-                    "Time Trial".to_owned(),
-                    (Stat::PointsScored(0), false),
+                    game_mode_presets::time_trial(),
                     "What highscore can you get in 3 minutes?".to_owned(),
-                    Box::new(|builder: &GameBuilder| {
-                        builder
-                            .clone()
-                            .initial_gravity(3)
-                            .progressive_gravity(false)
-                            .end_conditions(vec![(
-                                Stat::TimeElapsed(Duration::from_secs(3 * 60)),
-                                true,
-                            )])
-                            .build()
-                    }),
                 ),
                 (
-                    "Master".to_owned(),
-                    (Stat::PointsScored(0), false),
+                    game_mode_presets::master(),
                     "Can you clear 15 levels at instant gravity?".to_owned(),
-                    Box::new(|builder: &GameBuilder| {
-                        builder
-                            .clone()
-                            .initial_gravity(Game::INSTANT_GRAVITY)
-                            .progressive_gravity(true)
-                            .end_conditions(vec![(
-                                Stat::GravityReached(Game::INSTANT_GRAVITY + 16),
-                                true,
-                            )])
-                            .build()
-                    }),
                 ),
                 (
-                    "Puzzle".to_owned(),
-                    (Stat::TimeElapsed(Duration::ZERO), true),
+                    game_mode_presets::puzzle(),
                     "Get perfect clears in all 24 puzzle levels.".to_owned(),
-                    Box::new(game_modifiers::puzzle::build),
                 ),
                 (
-                    format!(
-                        "{}Cheese",
-                        if let Some(limit) = self.settings.new_game.cheese_linelimit {
-                            format!("{limit}-")
-                        } else {
-                            "".to_owned()
-                        }
+                    game_mode_presets::n_cheese(
+                        self.settings.new_game.cheese_linelimit,
+                        self.settings.new_game.cheese_gapsize,
+                        self.settings.new_game.cheese_gravity,
                     ),
-                    (Stat::PiecesLocked(0), true),
                     format!(
                         "Eat through lines like Swiss cheese. Limit: {:?}",
                         self.settings.new_game.cheese_linelimit
                     ),
-                    Box::new({
-                        let cheese_limit = self.settings.new_game.cheese_linelimit;
-                        let cheese_gap_size = self.settings.new_game.cheese_gapsize;
-                        let cheese_gravity = self.settings.new_game.cheese_gravity;
-                        move |builder: &GameBuilder| {
-                            game_modifiers::cheese::build(
-                                builder,
-                                cheese_limit,
-                                cheese_gap_size,
-                                cheese_gravity,
-                            )
-                        }
-                    }),
                 ),
                 (
-                    format!(
-                        "{}Combo",
-                        if let Some(limit) = self.settings.new_game.combo_linelimit {
-                            format!("{limit}-")
-                        } else {
-                            "".to_owned()
-                        }
+                    game_mode_presets::n_combo(
+                        self.settings.new_game.combo_linelimit,
+                        self.settings.new_game.combo_startlayout,
                     ),
-                    (Stat::TimeElapsed(Duration::ZERO), true),
                     format!(
                         "Get consecutive line clears. Limit: {:?}{}",
                         self.settings.new_game.combo_linelimit,
-                        if self.settings.new_game.combo_startlayout
-                            != game_modifiers::combo_board::LAYOUTS[0]
-                        {
+                        if self.settings.new_game.combo_startlayout != COMBO_STARTLAYOUTS[0] {
                             format!(", Layout={:b}", self.settings.new_game.combo_startlayout)
                         } else {
                             "".to_owned()
                         }
                     ),
-                    Box::new({
-                        let linelimit = self.settings.new_game.combo_linelimit;
-                        let start_layout = self.settings.new_game.combo_startlayout;
-                        move |builder: &GameBuilder| {
-                            builder
-                                .clone()
-                                .initial_gravity(1)
-                                .progressive_gravity(false)
-                                .end_conditions(match linelimit {
-                                    Some(c) => vec![(Stat::LinesCleared(c.get()), true)],
-                                    None => vec![],
-                                })
-                                .build_modded([game_modifiers::combo_board::modifier(start_layout)])
-                        }
-                    }),
                 ),
             ];
             if self.settings.new_game.experimental_mode_unlocked {
                 game_presets.push((
-                    "*Ascent".to_owned(),
-                    (Stat::PointsScored(0), false),
-                    "(Experimental) per aspera ad astra".to_owned(),
-                    Box::new(game_modifiers::ascent::build),
+                    game_mode_presets::ascent(),
+                    "(Experimental; needs 180° rot.) per aspera ad astra".to_owned(),
                 ))
             }
             // First part: rendering the menu.
@@ -194,7 +104,7 @@ impl<T: Write> Application<T> {
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
                 .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
             // Render normal and special gamemodes.
-            for (i, (title, _cmp_stat, description, _build)) in game_presets.iter().enumerate() {
+            for (i, ((title, _cmp_stat, _build), description)) in game_presets.iter().enumerate() {
                 self.term
                     .queue(MoveTo(
                         x_main,
@@ -536,17 +446,17 @@ impl<T: Write> Application<T> {
                     } else if selected == selection_len - 2 {
                         self.game_savepoint = None;
                     } else if selected == 6 {
-                        let new_layout_idx = if let Some(i) = game_modifiers::combo_board::LAYOUTS
+                        let new_layout_idx = if let Some(i) = COMBO_STARTLAYOUTS
                             .iter()
                             .position(|lay| *lay == self.settings.new_game.combo_startlayout)
                         {
-                            let layout_cnt = game_modifiers::combo_board::LAYOUTS.len();
+                            let layout_cnt = COMBO_STARTLAYOUTS.len();
                             (i + 1) % layout_cnt
                         } else {
                             0
                         };
                         self.settings.new_game.combo_startlayout =
-                            game_modifiers::combo_board::LAYOUTS[new_layout_idx];
+                            COMBO_STARTLAYOUTS[new_layout_idx];
                     }
                 }
 
@@ -581,7 +491,7 @@ impl<T: Write> Application<T> {
                     .appearance_delay(g.appearance_delay);
                 // Build one of the selected game modes.
                 let (meta_data, game, button_inputs) = if selected < game_presets.len() {
-                    let (title, comparison_stat, _desc, build) = &game_presets[selected];
+                    let ((title, comparison_stat, build), _desc) = &game_presets[selected];
                     let preset_game = build(&builder);
                     let new_meta_data = GameMetaData {
                         datetime: chrono::Utc::now().format("%Y-%m-%d_%H:%M").to_string(),
@@ -617,7 +527,9 @@ impl<T: Write> Application<T> {
                     // Optionally load custom board.
                     let custom_game = if let Some(board) = &n.custom_board {
                         builder.build_modded([
-                            game_modifiers::miscellany::custom_start_board::modifier(board),
+                            game_mode_presets::mods::miscellany::custom_start_board::modifier(
+                                board,
+                            ),
                         ])
                     // Otherwise just build a normal custom game.
                     } else {

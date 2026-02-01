@@ -1,7 +1,7 @@
 mod application;
 mod fmt_utils;
 mod game_input_handlers;
-mod game_modifiers;
+mod game_mode_presets;
 mod game_renderers;
 
 use std::io::{self, Write};
