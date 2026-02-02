@@ -316,17 +316,18 @@ fn do_spawn(state: &mut State, config: &Configuration, spawn_time: GameTime) -> 
         // We're falling if piece could move down.
         let is_fall_not_lock = piece.fits_at(&state.board, (0, -1)).is_some();
         // Standard fall or lock delay.
-        let fall_or_lock_time = spawn_time
-            + if is_fall_not_lock {
-                fall_delay(state.gravity, button_ds.then_some(config.soft_drop_factor))
-            } else {
-                lock_delay(state.gravity, None)
-            };
+        let fall_or_lock_time = spawn_time.saturating_add(if is_fall_not_lock {
+            fall_delay(state.gravity, button_ds.then_some(config.soft_drop_factor))
+        } else {
+            lock_delay(state.gravity, None)
+        });
         // Piece just spawned, lowest y = initial y.
         let lowest_y = piece.position.1;
         // Piece just spawned, standard full lock time max.
-        let binding_lock_time =
-            spawn_time + lock_delay(state.gravity, Some(config.lock_time_max_factor));
+        let capped_lock_time = spawn_time.saturating_add(lock_delay(
+            state.gravity,
+            Some(config.capped_lock_time_factor),
+        ));
         // Schedule immediate move after spawning, if any move button held.
         // NOTE: We have no Initial Move System for (mechanics, code) simplicity reasons.
         let auto_move_scheduled = if button_ml || button_mr {
@@ -342,7 +343,7 @@ fn do_spawn(state: &mut State, config: &Configuration, spawn_time: GameTime) -> 
                 is_fall_not_lock,
                 auto_move_scheduled,
                 lowest_y,
-                binding_lock_time,
+                capped_lock_time,
             },
         }
     } else {
@@ -369,7 +370,7 @@ fn do_line_clearing(
         }
     }
     Phase::Spawning {
-        spawn_time: lines_cleared_time + config.appearance_delay,
+        spawn_time: lines_cleared_time.saturating_add(config.appearance_delay),
     }
 }
 
@@ -393,18 +394,20 @@ fn do_autonomous_move(
             None // Unable to move; Remove autonomous movement.
         };
 
-    let (new_lowest_y, new_binding_lock_time) =
-        if new_piece.position.1 < previous_piece_data.lowest_y {
-            (
-                new_piece.position.1,
-                auto_move_time + lock_delay(state.gravity, Some(config.lock_time_max_factor)),
-            )
-        } else {
-            (
-                previous_piece_data.lowest_y,
-                previous_piece_data.binding_lock_time,
-            )
-        };
+    let (new_lowest_y, new_lock_cap_time) = if new_piece.position.1 < previous_piece_data.lowest_y {
+        (
+            new_piece.position.1,
+            auto_move_time.saturating_add(lock_delay(
+                state.gravity,
+                Some(config.capped_lock_time_factor),
+            )),
+        )
+    } else {
+        (
+            previous_piece_data.lowest_y,
+            previous_piece_data.capped_lock_time,
+        )
+    };
 
     let new_is_fall_not_lock = new_piece.fits_at(&state.board, (0, -1)).is_some();
 
@@ -420,13 +423,13 @@ fn do_autonomous_move(
             let soft_drop_factor = state.buttons_pressed[Button::DropSoft]
                 .is_some()
                 .then_some(config.soft_drop_factor);
-            auto_move_time + fall_delay(state.gravity, soft_drop_factor)
+            auto_move_time.saturating_add(fall_delay(state.gravity, soft_drop_factor))
         } else {
             // Falling as before.
             previous_piece_data.fall_or_lock_time
         }
     } else {
-        new_binding_lock_time.min(auto_move_time + lock_delay(state.gravity, None))
+        new_lock_cap_time.min(auto_move_time.saturating_add(lock_delay(state.gravity, None)))
     };
 
     // Update 'ActionState';
@@ -438,7 +441,7 @@ fn do_autonomous_move(
             is_fall_not_lock: new_is_fall_not_lock,
             auto_move_scheduled: new_auto_move_scheduled,
             lowest_y: new_lowest_y,
-            binding_lock_time: new_binding_lock_time,
+            capped_lock_time: new_lock_cap_time,
         },
     }
 }
@@ -509,16 +512,19 @@ fn do_fall(
         previous_piece_data.auto_move_scheduled
     };
 
-    let (new_lowest_y, new_binding_lock_time) =
+    let (new_lowest_y, new_capped_lock_time) =
         if new_piece.position.1 < previous_piece_data.lowest_y {
             (
                 new_piece.position.1,
-                fall_time + lock_delay(state.gravity, Some(config.lock_time_max_factor)),
+                fall_time.saturating_add(lock_delay(
+                    state.gravity,
+                    Some(config.capped_lock_time_factor),
+                )),
             )
         } else {
             (
                 previous_piece_data.lowest_y,
-                previous_piece_data.binding_lock_time,
+                previous_piece_data.capped_lock_time,
             )
         };
 
@@ -528,9 +534,9 @@ fn do_fall(
         let soft_drop_factor = state.buttons_pressed[Button::DropSoft]
             .is_some()
             .then_some(config.soft_drop_factor);
-        fall_time + fall_delay(state.gravity, soft_drop_factor)
+        fall_time.saturating_add(fall_delay(state.gravity, soft_drop_factor))
     } else {
-        new_binding_lock_time.min(fall_time + lock_delay(state.gravity, None))
+        new_capped_lock_time.min(fall_time.saturating_add(lock_delay(state.gravity, None)))
     };
 
     // 'Update' ActionState;
@@ -542,7 +548,7 @@ fn do_fall(
             is_fall_not_lock: new_is_fall_not_lock,
             auto_move_scheduled: new_auto_move_scheduled,
             lowest_y: new_lowest_y,
-            binding_lock_time: new_binding_lock_time,
+            capped_lock_time: new_capped_lock_time,
         },
     }
 }
@@ -774,17 +780,20 @@ fn do_player_button_update(
         previous_piece_data.auto_move_scheduled
     };
 
-    // Update `lowest_y`, re-set `binding_lock_time` if applicable.
-    let (new_lowest_y, new_binding_lock_time) =
+    // Update `lowest_y`, re-set `capped_lock_time` if applicable.
+    let (new_lowest_y, new_capped_lock_time) =
         if new_piece.position.1 < previous_piece_data.lowest_y {
             (
                 new_piece.position.1,
-                button_update_time + lock_delay(state.gravity, Some(config.lock_time_max_factor)),
+                button_update_time.saturating_add(lock_delay(
+                    state.gravity,
+                    Some(config.capped_lock_time_factor),
+                )),
             )
         } else {
             (
                 previous_piece_data.lowest_y,
-                previous_piece_data.binding_lock_time,
+                previous_piece_data.capped_lock_time,
             )
         };
 
@@ -813,7 +822,7 @@ fn do_player_button_update(
                 .is_some()
                 .then_some(config.soft_drop_factor);
             //let/*TODO:dbg*/s=format!("YEA\n");if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
-            button_update_time + fall_delay(state.gravity, soft_drop_factor)
+            button_update_time.saturating_add(fall_delay(state.gravity, soft_drop_factor))
         } else {
             // Falling as before.
             previous_piece_data.fall_or_lock_time
@@ -828,7 +837,8 @@ fn do_player_button_update(
             button_update_time
         } else if new_piece != previous_piece_data.piece {
             // On the ground - Refresh lock time if piece moved.
-            new_binding_lock_time.min(button_update_time + lock_delay(state.gravity, None))
+            new_capped_lock_time
+                .min(button_update_time.saturating_add(lock_delay(state.gravity, None)))
         } else {
             // Previous lock time.
             previous_piece_data.fall_or_lock_time
@@ -845,7 +855,7 @@ fn do_player_button_update(
             is_fall_not_lock: new_is_fall_not_lock,
             auto_move_scheduled: new_auto_move_scheduled,
             lowest_y: new_lowest_y,
-            binding_lock_time: new_binding_lock_time,
+            capped_lock_time: new_capped_lock_time,
         },
     }
 }
@@ -876,12 +886,13 @@ fn calc_move_dx_and_next_move_time(
         (None, None) => (0, Duration::ZERO),
     };
 
-    let next_move_scheduled = move_time
-        + if how_long_relevant_direction_pressed >= config.delayed_auto_shift {
+    let next_move_scheduled = move_time.saturating_add(
+        if how_long_relevant_direction_pressed >= config.delayed_auto_shift {
             config.auto_repeat_rate
         } else {
             config.delayed_auto_shift
-        };
+        },
+    );
 
     //let/*TODO:dbg*/s=format!("OUTOF calc_move_dx_and_next_move_time ({dx:?}, {next_move_scheduled:?})\n");if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
     (dx, next_move_scheduled)
@@ -1004,7 +1015,7 @@ fn do_lock(
             * if is_perfect_clear { 4 } else { 1 }
             * 2
             - 1
-            + (state.consecutive_line_clears - 1);
+            + (n_combo - 1);
 
         // Update score.
         state.score += u64::from(score_bonus);
@@ -1040,12 +1051,12 @@ fn do_lock(
         //let/*TODO:dbg*/s=format!("OUTOF do_lock {:?}\n", lock_time + config.appearance_delay);if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
         // No lines cleared, directly proceed to spawn.
         Phase::Spawning {
-            spawn_time: lock_time + config.appearance_delay,
+            spawn_time: lock_time.saturating_add(config.appearance_delay),
         }
     } else {
         // Lines cleared, enter line clearing state.
         Phase::LinesClearing {
-            lines_cleared_time: lock_time + config.line_clear_delay,
+            lines_cleared_time: lock_time.saturating_add(config.line_clear_delay),
         }
     }
 }
@@ -1080,8 +1091,19 @@ fn fall_delay(gravity: u32, soft_drop_factor: Option<f64>) -> Duration {
     });
 
     if let Some(factor) = soft_drop_factor {
-        if 0.1e-10 < factor {
-            return raw_drop_delay.div_f64(factor)
+        const CUTOFF: f64 = 0.1e-9;
+
+        if (0.0..CUTOFF).contains(&factor) {
+            // Factor is very close to zero, return max fall delay.
+            return Duration::MAX / 2;
+
+        } else if CUTOFF <= factor && factor.is_finite() {
+            // Factor is a 'reasonable' positive value, apply it.
+            return raw_drop_delay.div_f64(factor);
+
+        } else if factor == f64::INFINITY {
+            // Factor is +infinity, return zero fall delay.
+            return Duration::ZERO;
         }
     }
 
@@ -1091,7 +1113,7 @@ fn fall_delay(gravity: u32, soft_drop_factor: Option<f64>) -> Duration {
 // FIXME: Make this more parametric instead of hardcoded?
 /// The amount of time left for an common ground lock timer, purely dependent on level.
 #[rustfmt::skip]
-fn lock_delay(gravity: u32, lock_time_max_factor: Option<f64>) -> Duration {
+fn lock_delay(gravity: u32, capped_lock_time_factor: Option<f64>) -> Duration {
     let raw_lock_delay = Duration::from_millis(match gravity {
         0 => return Duration::MAX / 2,
         1..=29 => 500,
@@ -1112,9 +1134,14 @@ fn lock_delay(gravity: u32, lock_time_max_factor: Option<f64>) -> Duration {
             _  => 200,
     });
 
-    if let Some(factor) = lock_time_max_factor {
+    if let Some(factor) = capped_lock_time_factor {
         if 0.0 <= factor && factor.is_finite() {
-            return raw_lock_delay.mul_f64(factor)
+            // Factor is a 'reasonable' positive value, apply it.
+            return raw_lock_delay.mul_f64(factor);
+
+        } else if factor == f64::INFINITY {
+            // Factor is +infinity, return max lock time cap.
+            return Duration::MAX / 2;
         }
     }
 

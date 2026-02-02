@@ -231,10 +231,14 @@ pub struct Configuration {
     /// How long it takes for automatic side movement to repeat once it has started.
     pub auto_repeat_rate: Duration,
     /// How much faster than normal drop speed a piece should fall while 'soft drop' is being held.
+    ///
+    /// Should be `0 ≤ .. ≤ ∞`.
     pub soft_drop_factor: f64,
     /// How long each spawned active piece may touch the ground in total until it should lock down
     /// immediately.
-    pub lock_time_max_factor: f64,
+    ///
+    /// Should be `0 ≤ .. < ∞`.
+    pub capped_lock_time_factor: f64,
     /// How long the game should wait after clearing a line.
     pub line_clear_delay: Duration,
     /// How long the game should wait *additionally* before spawning a new piece.
@@ -279,7 +283,7 @@ pub struct PieceData {
     /// The lowest recorded vertical position of the main piece.
     pub lowest_y: usize,
     /// The total duration the main piece is allowed until it should immediately lock down.
-    pub binding_lock_time: GameTime,
+    pub capped_lock_time: GameTime,
     /// Optional time of the next move event.
     pub auto_move_scheduled: Option<GameTime>,
 }
@@ -706,7 +710,7 @@ impl Default for Configuration {
             delayed_auto_shift: Duration::from_millis(167),
             auto_repeat_rate: Duration::from_millis(33),
             soft_drop_factor: 10.0,
-            lock_time_max_factor: 10.0,
+            capped_lock_time_factor: 10.0,
             line_clear_delay: Duration::from_millis(200),
             appearance_delay: Duration::from_millis(50),
             progressive_gravity: true,
@@ -863,7 +867,7 @@ impl GameBuilder {
     /// How long each spawned active piece may touch the ground in total until it should lock down
     /// immediately.
     pub fn lock_time_cap_factor(&mut self, x: f64) -> &mut Self {
-        self.config.lock_time_max_factor = x;
+        self.config.capped_lock_time_factor = x;
         self
     }
     /// How long the game should wait after clearing a line.

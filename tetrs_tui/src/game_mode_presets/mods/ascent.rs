@@ -41,7 +41,7 @@ pub fn build(builder: &GameBuilder) -> Game {
                         fall_or_lock_time: Duration::MAX,
                         is_fall_not_lock: false,
                         lowest_y: 0,
-                        binding_lock_time: Duration::MAX,
+                        capped_lock_time: Duration::MAX,
                         auto_move_scheduled: None,
                     },
                 };
