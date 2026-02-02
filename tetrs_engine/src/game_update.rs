@@ -426,7 +426,7 @@ fn do_autonomous_move(
             previous_piece_data.fall_or_lock_time
         }
     } else {
-        (auto_move_time + lock_delay(state.gravity, None)).min(new_binding_lock_time)
+        new_binding_lock_time.min(auto_move_time + lock_delay(state.gravity, None))
     };
 
     // Update 'ActionState';
@@ -530,7 +530,7 @@ fn do_fall(
             .then_some(config.soft_drop_factor);
         fall_time + fall_delay(state.gravity, soft_drop_factor)
     } else {
-        (fall_time + lock_delay(state.gravity, None)).min(new_binding_lock_time)
+        new_binding_lock_time.min(fall_time + lock_delay(state.gravity, None))
     };
 
     // 'Update' ActionState;
@@ -828,7 +828,7 @@ fn do_player_button_update(
             button_update_time
         } else if new_piece != previous_piece_data.piece {
             // On the ground - Refresh lock time if piece moved.
-            (button_update_time + lock_delay(state.gravity, None)).min(new_binding_lock_time)
+            new_binding_lock_time.min(button_update_time + lock_delay(state.gravity, None))
         } else {
             // Previous lock time.
             previous_piece_data.fall_or_lock_time
