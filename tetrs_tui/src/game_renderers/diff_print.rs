@@ -392,7 +392,7 @@ impl Renderer for DiffPrintRenderer {
         let (x_preview_small, y_preview_small) = (48, 14);
         let (x_preview_minuscule, y_preview_minuscule) = (50, 16);
         let (x_messages, y_messages) = (47, 18);
-        let pos_board = |(x, y)| (x_board + 2 * x, y_board + Game::SKYLINE - y);
+        let pos_board = |(x, y)| (x_board + 2 * x, y_board + Game::SKYLINE_HEIGHT - y);
         // Color helpers.
         let get_color =
             |tile_type_id: &TileTypeID| app.settings().palette().get(&tile_type_id.get()).copied();
@@ -466,7 +466,7 @@ impl Renderer for DiffPrintRenderer {
             // Draw ghost piece.
             if app.settings().graphics().show_ghost_piece {
                 for (tile_pos, tile_type_id) in piece.teleported(board, (0, -1)).tiles() {
-                    if tile_pos.1 <= Game::SKYLINE {
+                    if tile_pos.1 <= Game::SKYLINE_HEIGHT {
                         self.screen.buffer_str(
                             tile_ghost,
                             get_color(&tile_type_id),
@@ -478,7 +478,7 @@ impl Renderer for DiffPrintRenderer {
 
             // Draw active piece.
             for (tile_pos, tile_type_id) in piece.tiles() {
-                if tile_pos.1 <= Game::SKYLINE {
+                if tile_pos.1 <= Game::SKYLINE_HEIGHT {
                     self.screen.buffer_str(
                         tile_active,
                         get_color(&tile_type_id),
@@ -584,7 +584,7 @@ impl Renderer for DiffPrintRenderer {
                         continue;
                     };
                     for (tile_pos, _tile_type_id) in piece.tiles() {
-                        if tile_pos.1 <= Game::SKYLINE {
+                        if tile_pos.1 <= Game::SKYLINE_HEIGHT {
                             self.screen
                                 .buffer_str(tile, color_locking, pos_board(tile_pos));
                         }
@@ -644,7 +644,7 @@ impl Renderer for DiffPrintRenderer {
                         continue;
                     };
                     for y_line in lines_cleared {
-                        let pos = (x_board, y_board + Game::SKYLINE - *y_line);
+                        let pos = (x_board, y_board + Game::SKYLINE_HEIGHT - *y_line);
                         self.screen
                             .buffer_str(animation_lineclear[idx], color_lineclear, pos);
                     }
@@ -655,7 +655,7 @@ impl Renderer for DiffPrintRenderer {
                         continue;
                     }
                     for ((x_tile, y_tile), tile_type_id) in bottom_piece.tiles() {
-                        for y in y_tile..Game::SKYLINE {
+                        for y in y_tile..Game::SKYLINE_HEIGHT {
                             self.hard_drop_tiles.push((
                                 HardDropTile {
                                     creation_time: *feedback_time,

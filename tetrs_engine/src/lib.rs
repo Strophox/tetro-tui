@@ -15,19 +15,15 @@ let mut game = Game::builder()
     /* ...Further optional configuration possible... */
     .build();
 
-// Receive the information from I/O that 'left' was pressed.
-let mut button_state = PressedButtons::default();
-button_state[Button::MoveLeft] = true;
-
 // Updating the game with the info that 'left' should be pressed at second 5.0;
 // If a piece is in the game, it will try to move left.
-game.update(Some(button_state), GameTime::from_secs(5.0));
+game.update(GameTime::from_secs(5.0), Some(ButtonChange::Press(Button::MoveLeft)));
 
 // ...
 
 // Updating the game with the info that no input change has occurred up to second 7.0;
 // This updates the game, e.g., pieces fall.
-game.update(None, GameTime::from_secs(7.0));
+game.update(GameTime::from_secs(7.0), None);
 
 // Read most recent game state;
 // This is how a UI can know how to render the board, etc.
@@ -77,7 +73,7 @@ pub type GameModFn = dyn FnMut(
     &mut FeedbackMessages,
 );
 /// The result of a game that ended.
-pub type GameResult = Result<(), GameOver>;
+pub type GameResult = Result<Stat, GameOver>;
 /// Convenient type alias to denote a collection of [`Feedback`]s associated with some [`GameTime`].
 pub type FeedbackMessages = Vec<(GameTime, Feedback)>;
 
@@ -299,7 +295,7 @@ pub enum GameOver {
     /// blocking one or several of the spawn cells.
     BlockOut,
     /// Generic game over by having reached a (negative) game limit.
-    Limit,
+    Limit(Stat),
     /// Generic game over by player forfeit.
     Forfeit,
 }
@@ -309,7 +305,10 @@ pub enum GameOver {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Phase {
     /// The state of the game being irreversibly over, and not playable anymore.
-    GameEnded(GameResult),
+    GameEnded {
+        /// The result of how the game ended.
+        result: GameResult,
+    },
     /// The state of the game "taking its time" to clear out lines.
     /// In this state the board is as it was at the time of the piece locking down,
     /// i.e. with some horizontally completed lines.
@@ -905,11 +904,12 @@ impl GameBuilder {
 
 impl Game {
     /// The maximum height *any* piece tile could reach before [`GameOver::LockOut`] occurs.
-    pub const HEIGHT: usize = Self::SKYLINE + 7;
+    pub const HEIGHT: usize = Self::SKYLINE_HEIGHT + 7;
     /// The game field width.
     pub const WIDTH: usize = 10;
-    /// The maximal height of the (conventionally visible) playing grid that can be played in.
-    pub const SKYLINE: usize = 20;
+    /// The height of the (conventionally visible) playing grid that can be played in.
+    /// No piece may be locked entirely above the `SKYLINE`, although it may do so partially.
+    pub const SKYLINE_HEIGHT: usize = 20;
     /// This is the gravity level at which blocks instantly hit the floor ("20G").
     pub const INSTANT_GRAVITY: u32 = 20;
 
@@ -946,7 +946,7 @@ impl Game {
     /// [`Modifier`]s may arbitrarily change game state and change or prevent precise update predictions.
     pub fn peek_update_time(&self) -> Option<GameTime> {
         let action_time = match self.phase {
-            Phase::GameEnded(_) => return None,
+            Phase::GameEnded { .. } => return None,
             Phase::LinesClearing { lines_cleared_time } => lines_cleared_time,
             Phase::Spawning { spawn_time } => spawn_time,
             Phase::PieceInPlay { piece_data } => {
@@ -997,13 +997,15 @@ impl Game {
     /// This can be used so `game.ended()` returns true and prevents future
     /// calls to `update` from continuing to advance the game.
     pub const fn forfeit(&mut self) {
-        self.phase = Phase::GameEnded(Err(GameOver::Forfeit))
+        self.phase = Phase::GameEnded {
+            result: Err(GameOver::Forfeit),
+        };
     }
 
     /// Whether the game has ended, and whether it can continue to update.
     pub const fn result(&self) -> Option<GameResult> {
         match self.phase {
-            Phase::GameEnded(game_result) => Some(game_result),
+            Phase::GameEnded { result } => Some(result),
             _ => None,
         }
     }

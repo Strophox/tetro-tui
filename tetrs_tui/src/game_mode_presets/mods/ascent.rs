@@ -57,7 +57,7 @@ pub fn build(builder: &GameBuilder) -> Game {
 
             let has_camera_adjust_period_elapsed =
                 state.time.saturating_sub(timepoint_camera_adjusted) >= timeperiod_camera_adjust;
-            let hit_camera_top = Game::SKYLINE - 5 <= piece.position.1;
+            let hit_camera_top = Game::SKYLINE_HEIGHT - 5 <= piece.position.1;
 
             // Ascending virtual infinite board.
             if hit_camera_top && has_camera_adjust_period_elapsed {

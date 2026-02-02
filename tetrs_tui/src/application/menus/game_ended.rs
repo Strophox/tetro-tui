@@ -52,11 +52,9 @@ impl<T: Write> Application<T> {
                 .queue(Print(format!(
                     "{:^w_main$}",
                     match result {
-                        Ok(()) => format!("++ Game Completed ({}) ++", meta_data.title),
-                        Err(game_over_cause) => format!(
-                            "-- Game Over ({}) by: {game_over_cause:?} --",
-                            meta_data.title
-                        ),
+                        Ok(_stat) => format!("++ Game Completed ({}) ++", meta_data.title),
+                        Err(cause) =>
+                            format!("-- Game Over ({}) by: {cause:?} --", meta_data.title),
                     }
                 )))?
                 /*.queue(MoveTo(0, y_main + y_selection + 2))?

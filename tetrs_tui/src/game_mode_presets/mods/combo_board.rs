@@ -1,6 +1,6 @@
 use std::num::NonZeroU8;
 
-use tetrs_engine::{Board, Game, GameOver, Line, Modifier, Phase, Tetromino, UpdatePoint};
+use tetrs_engine::{Board, Game, GameOver, Line, Modifier, Phase, Stat, Tetromino, UpdatePoint};
 
 pub const MOD_ID: &str = "combo_board";
 
@@ -39,7 +39,9 @@ pub fn modifier(initial_layout: u16) -> Modifier {
             } else if matches!(point, UpdatePoint::PieceLocked)
                 && !matches!(phase, Phase::LinesClearing { .. })
             {
-                *phase = Phase::GameEnded(Err(GameOver::Limit));
+                *phase = Phase::GameEnded {
+                    result: Err(GameOver::Limit(Stat::LinesCleared(0))),
+                };
             // Combo continues, prepare new line.
             } else if matches!(point, UpdatePoint::LinesCleared) {
                 state.board[Game::HEIGHT - 1] = line_source.next().unwrap();

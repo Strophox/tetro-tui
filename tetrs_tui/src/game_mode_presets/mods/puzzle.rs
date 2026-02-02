@@ -2,7 +2,7 @@ use std::{collections::VecDeque, num::NonZeroU8};
 
 use tetrs_engine::{
     Button, ButtonChange, Feedback, FeedbackMessages, Game, GameBuilder, GameModFn, GameOver, Line,
-    Modifier, Phase, State, Tetromino, UpdatePoint,
+    Modifier, Phase, Stat, State, Tetromino, UpdatePoint,
 };
 
 pub const MOD_ID: &str = "puzzle";
@@ -78,7 +78,9 @@ pub fn build(builder: &GameBuilder) -> Game {
                     .all(|line| line.iter().all(|cell| cell.is_none()));
                 // Run out of attempts, game over.
                 if !puzzle_done && current_puzzle_attempt == MAX_STAGE_ATTEMPTS {
-                    *phase = Phase::GameEnded(Err(GameOver::Limit));
+                    *phase = Phase::GameEnded {
+                        result: Err(GameOver::Limit(Stat::LinesCleared(0))),
+                    };
                 } else {
                     if puzzle_done {
                         current_puzzle_idx += 1;
@@ -88,7 +90,9 @@ pub fn build(builder: &GameBuilder) -> Game {
                     }
                     if current_puzzle_idx == puzzles_len {
                         // Done with all puzzles, game completed.
-                        *phase = Phase::GameEnded(Ok(()));
+                        *phase = Phase::GameEnded {
+                            result: Ok(Stat::PointsScored(puzzles_len.try_into().unwrap())),
+                        };
                     } else {
                         // Load in new puzzle.
                         let piececnt =

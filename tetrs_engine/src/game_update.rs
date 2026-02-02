@@ -61,17 +61,17 @@ impl Game {
                 &mut feedback_msgs,
             );
 
-            match (self.phase, button_changes) {
+            match self.phase {
                 // Game ended by now.
                 // Return accumulated messages.
-                (Phase::GameEnded(_), _) => {
+                Phase::GameEnded { .. } => {
                     //let/*TODO:dbg*/s=format!("# OUTOF update {target_time:?}, {button_changes:?}, {:?} {:?}\n", self.phase, self.state);if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
                     return Ok(feedback_msgs);
                 }
 
                 // Lines clearing.
                 // Move on to spawning.
-                (Phase::LinesClearing { lines_cleared_time }, _)
+                Phase::LinesClearing { lines_cleared_time }
                     if lines_cleared_time <= target_time =>
                 {
                     //let/*TODO:dbg*/s=format!("INTO do_line_clearing ({lines_cleared_time:?})\n");if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
@@ -85,7 +85,7 @@ impl Game {
                 // Piece spawning.
                 // - May move on to game over (BlockOut).
                 // - Normally: Move on to piece-in-play.
-                (Phase::Spawning { spawn_time }, _) if spawn_time <= target_time => {
+                Phase::Spawning { spawn_time } if spawn_time <= target_time => {
                     self.phase = do_spawn(&mut self.state, &self.config, spawn_time);
                     self.state.time = spawn_time;
 
@@ -94,7 +94,7 @@ impl Game {
 
                 // Piece autonomously moving / falling / locking.
                 // - Locking may move on to game over (LockOut).
-                (Phase::PieceInPlay { piece_data }, _)
+                Phase::PieceInPlay { piece_data }
                     if (piece_data.fall_or_lock_time <= target_time
                         || piece_data
                             .auto_move_scheduled
@@ -147,8 +147,10 @@ impl Game {
                     }
                 }
 
-                (Phase::PieceInPlay { piece_data }, Some(button_change)) => {
-                    button_changes.take();
+                Phase::PieceInPlay { piece_data } if button_changes.is_some() => {
+                    let Some(button_change) = button_changes.take() else {
+                        unreachable!()
+                    };
                     //let/*TODO:dbg*/s=format!("INTO do_player_button_update ({target_time:?})\n");if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
                     self.phase = do_player_button_update(
                         &mut self.state,
@@ -184,24 +186,23 @@ impl Game {
     }
 
     /// Updates the internal `self.state.end` state, checking whether any [`Limits`] have been reached.
+    #[allow(clippy::manual_map)]
     fn try_end_game_if_end_condition_met(&self) -> Option<Phase> {
         // Game already ended.
         if self.result().is_some() {
             None
 
         // Not ended yet, so check whether any end conditions have been met now and return appropriate phase if yes.
+        } else if let Some(result) = self.config.end_conditions.iter().find_map(|(stat, good)| {
+            self.check_stat_met(stat).then_some(if *good {
+                Ok(*stat)
+            } else {
+                Err(GameOver::Limit(*stat))
+            })
+        }) {
+            Some(Phase::GameEnded { result })
         } else {
-            self.config
-                .end_conditions
-                .iter()
-                .find_map(|(c, good)| {
-                    self.check_stat_met(c).then_some(if *good {
-                        Ok(())
-                    } else {
-                        Err(GameOver::Limit)
-                    })
-                })
-                .map(Phase::GameEnded)
+            None
         }
     }
 
@@ -347,7 +348,9 @@ fn do_spawn(state: &mut State, config: &Configuration, spawn_time: GameTime) -> 
             },
         }
     } else {
-        Phase::GameEnded(Err(GameOver::BlockOut))
+        Phase::GameEnded {
+            result: Err(GameOver::BlockOut),
+        }
     }
 }
 
@@ -971,14 +974,21 @@ fn do_lock(
     let is_spin = piece.fits_at(&state.board, (0, 1)).is_none();
 
     // Locking.
+    let mut entirely_above_skyline = true;
     for ((x, y), tile_type_id) in piece.tiles() {
-        // Tiles are not allowed above `SKYLINE`, leading to a possible early `LockOut`.
-        if y >= Game::SKYLINE {
-            return Phase::GameEnded(Err(GameOver::LockOut));
+        if y < Game::SKYLINE_HEIGHT {
+            entirely_above_skyline = false;
         }
 
         // Set tile into board.
         state.board[y][x] = Some(tile_type_id);
+    }
+
+    // If all minos of the tetromino were locked entirely outside the `SKYLINE` bounding height, it's game over.
+    if entirely_above_skyline {
+        return Phase::GameEnded {
+            result: Err(GameOver::LockOut),
+        };
     }
 
     // Update tally of pieces_locked.
