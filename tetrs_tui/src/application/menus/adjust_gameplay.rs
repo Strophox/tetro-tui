@@ -107,8 +107,8 @@ impl<T: Write> Application<T> {
                     }
                 ),
                 format!(
-                    "Piece preview count: {}",
-                    self.settings.gameplay().piece_preview_count
+                    "Piece preview size: {}",
+                    self.settings.gameplay().piece_preview_size
                 ),
                 format!(
                     "Delayed auto shift (DAS): {:?} *",
@@ -261,7 +261,7 @@ impl<T: Write> Application<T> {
                     }
                     3 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                        self.settings.gameplay_mut().piece_preview_count += 1;
+                        self.settings.gameplay_mut().piece_preview_size += 1;
                     }
                     4 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
@@ -328,10 +328,10 @@ impl<T: Write> Application<T> {
                     }
                     3 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                        self.settings.gameplay_mut().piece_preview_count = self
+                        self.settings.gameplay_mut().piece_preview_size = self
                             .settings
                             .gameplay()
-                            .piece_preview_count
+                            .piece_preview_size
                             .saturating_sub(1);
                     }
                     4 => {

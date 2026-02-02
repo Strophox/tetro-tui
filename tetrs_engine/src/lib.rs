@@ -216,7 +216,7 @@ pub enum FeedbackVerbosity {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Configuration {
     /// How many pieces should be pre-generated and accessible/visible in the game state.
-    pub piece_preview_count: usize,
+    pub piece_preview_size: usize,
     /// Whether holding a rotation button lets a piece be smoothly spawned in a rotated state.
     pub allow_prespawn_actions: bool,
     /// The method of tetromino rotation used.
@@ -343,7 +343,7 @@ pub struct State {
     /// The method (and internal state) of tetromino generation used.
     pub piece_generator: TetrominoGenerator,
     /// Upcoming pieces to be played.
-    pub next_pieces: VecDeque<Tetromino>,
+    pub piece_preview: VecDeque<Tetromino>,
     /// Data about the piece being held. `true` denotes that the held piece can be swapped back in.
     pub hold_piece: Option<(Tetromino, bool)>,
     /// The main playing grid storing empty (`None`) and filled, fixed tiles (`Some(nz_u32)`).
@@ -703,7 +703,7 @@ impl<T> ops::IndexMut<Button> for [T; Button::VARIANTS.len()] {
 impl Default for Configuration {
     fn default() -> Self {
         Self {
-            piece_preview_count: 4,
+            piece_preview_size: 4,
             allow_prespawn_actions: true,
             rotation_system: RotationSystem::Ocular,
             delayed_auto_shift: Duration::from_millis(167),
@@ -784,7 +784,7 @@ impl GameBuilder {
                 buttons_pressed: Default::default(),
                 board: Board::default(),
                 hold_piece: None,
-                next_pieces: VecDeque::default(),
+                piece_preview: VecDeque::default(),
                 piece_generator: init_vals.start_generator.clone(),
                 pieces_locked: [0; 7],
                 lines_cleared: 0,
@@ -833,8 +833,8 @@ impl GameBuilder {
     }
 
     /// How many pieces should be pre-generated and accessible/visible in the game state.
-    pub fn piece_preview_count(&mut self, x: usize) -> &mut Self {
-        self.config.piece_preview_count = x;
+    pub fn piece_preview_size(&mut self, x: usize) -> &mut Self {
+        self.config.piece_preview_size = x;
         self
     }
     /// Whether holding a rotation button lets a piece be smoothly spawned in a rotated state.

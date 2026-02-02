@@ -240,13 +240,13 @@ impl Game {
 
 fn do_spawn(state: &mut State, config: &Configuration, spawn_time: GameTime) -> Phase {
     //let/*TODO:dbg*/s=format!("IN do_spawn\n");if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
-    let [button_ml, button_mr, button_rl, button_rr, button_ra, button_ds, _dh, _td, _tl, _tr, button_h] =
+    let [button_ml, button_mr, button_rl, button_rr, button_ra, _ds, _dh, _td, _tl, _tr, button_h] =
         state
             .buttons_pressed
             .map(|keydowntime| keydowntime.is_some());
 
     // Take a tetromino.
-    let spawn_tet = state.next_pieces.pop_front().unwrap_or_else(|| {
+    let spawn_tet = state.piece_preview.pop_front().unwrap_or_else(|| {
         state
             .piece_generator
             .with_rng(&mut state.rng)
@@ -255,11 +255,11 @@ fn do_spawn(state: &mut State, config: &Configuration, spawn_time: GameTime) -> 
     });
 
     // Only put back in if necessary (e.g. if piece_preview_count < next_pieces.len()).
-    state.next_pieces.extend(
+    state.piece_preview.extend(
         state.piece_generator.with_rng(&mut state.rng).take(
             config
-                .piece_preview_count
-                .saturating_sub(state.next_pieces.len()),
+                .piece_preview_size
+                .saturating_sub(state.piece_preview.len()),
         ),
     );
 
@@ -272,8 +272,8 @@ fn do_spawn(state: &mut State, config: &Configuration, spawn_time: GameTime) -> 
 
     // Prepare data of spawned piece.
     let raw_pos = match spawn_tet {
-        Tetromino::O => (4, 20),
-        _ => (3, 20),
+        Tetromino::O => (4, Game::SKYLINE_HEIGHT),
+        _ => (3, Game::SKYLINE_HEIGHT),
     };
 
     // 'Raw' spawn piece, before remaining prespawn_actions are applied.
@@ -318,7 +318,7 @@ fn do_spawn(state: &mut State, config: &Configuration, spawn_time: GameTime) -> 
         let is_fall_not_lock = piece.fits_at(&state.board, (0, -1)).is_some();
         // Standard fall or lock delay.
         let fall_or_lock_time = spawn_time.saturating_add(if is_fall_not_lock {
-            fall_delay(state.gravity, button_ds.then_some(config.soft_drop_factor))
+            Duration::ZERO
         } else {
             lock_delay(state.gravity, None)
         });
@@ -943,7 +943,7 @@ fn try_hold(state: &mut State, tetromino: Tetromino, hold_spawn_time: GameTime) 
             //let/*TODO:dbg*/s=format!(" - success\n");if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
             state.hold_piece = Some((tetromino, false));
             // Cause the next spawn to specially be the piece we held.
-            state.next_pieces.push_front(held_tet);
+            state.piece_preview.push_front(held_tet);
             // Issue a spawn.
             Some(Phase::Spawning {
                 spawn_time: hold_spawn_time,

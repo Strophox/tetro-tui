@@ -112,10 +112,10 @@ impl ComboBotInputHandler {
         ]
         .contains(&pattern_bits);
         const MAX_LOOKAHEAD: usize = 42;
-        if game.state().next_pieces.len() > MAX_LOOKAHEAD {
+        if game.state().piece_preview.len() > MAX_LOOKAHEAD {
             return Err(format!(
                 "game.state().next_pieces.len()={} > MAX_LOOKAHEAD={}",
-                game.state().next_pieces.len(),
+                game.state().piece_preview.len(),
                 MAX_LOOKAHEAD
             ));
         }
@@ -127,7 +127,7 @@ impl ComboBotInputHandler {
             active: Some(piece.tetromino),
             hold: game.state().hold_piece,
             next_pieces: Self::encode_next_queue(
-                game.state().next_pieces.iter().take(MAX_LOOKAHEAD),
+                game.state().piece_preview.iter().take(MAX_LOOKAHEAD),
             ),
             depth: 0,
         })

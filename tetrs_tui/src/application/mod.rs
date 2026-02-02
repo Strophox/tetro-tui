@@ -327,7 +327,7 @@ impl Default for GraphicsSettings {
 pub struct GameplaySettings {
     rotation_system: RotationSystem,
     tetromino_generator: TetrominoGenerator,
-    piece_preview_count: usize,
+    piece_preview_size: usize,
     delayed_auto_shift: Duration,
     auto_repeat_rate: Duration,
     soft_drop_factor: f64,
@@ -342,7 +342,7 @@ impl Default for GameplaySettings {
         Self {
             rotation_system: c.rotation_system,
             tetromino_generator: TetrominoGenerator::default(),
-            piece_preview_count: c.piece_preview_count,
+            piece_preview_size: c.piece_preview_size,
             delayed_auto_shift: c.delayed_auto_shift,
             auto_repeat_rate: c.auto_repeat_rate,
             soft_drop_factor: c.soft_drop_factor,
@@ -418,7 +418,7 @@ impl Default for Settings {
                 GameplaySettings {
                     delayed_auto_shift: Duration::from_millis(110),
                     auto_repeat_rate: Duration::from_millis(0),
-                    piece_preview_count: 9,
+                    piece_preview_size: 9,
                     ..GameplaySettings::default()
                 },
             ),

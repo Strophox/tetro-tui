@@ -234,7 +234,7 @@ impl Renderer for DiffPrintRenderer {
             buttons_pressed: _,
             board,
             hold_piece,
-            next_pieces,
+            piece_preview: next_pieces,
             piece_generator: _,
             pieces_locked: pieces_played,
             lines_cleared,

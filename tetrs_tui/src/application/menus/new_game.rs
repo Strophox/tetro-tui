@@ -482,7 +482,7 @@ impl<T: Write> Application<T> {
                 builder
                     .rotation_system(g.rotation_system)
                     .start_generator(g.tetromino_generator.clone())
-                    .piece_preview_count(g.piece_preview_count)
+                    .piece_preview_size(g.piece_preview_size)
                     .allow_prespawn_actions(g.allow_prespawn_actions)
                     .delayed_auto_shift(g.delayed_auto_shift)
                     .auto_repeat_rate(g.auto_repeat_rate)

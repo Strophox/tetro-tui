@@ -35,7 +35,7 @@ pub fn build(builder: &GameBuilder) -> Game {
                 )
             }),
         ));
-        state.next_pieces.clone_from(puzzle_pieces);
+        state.piece_preview.clone_from(puzzle_pieces);
         for (load_line, board_line) in puzzle_lines
             .iter()
             .rev()
@@ -117,7 +117,7 @@ pub fn build(builder: &GameBuilder) -> Game {
         .clone()
         .initial_gravity(2)
         .progressive_gravity(false)
-        .piece_preview_count(0)
+        .piece_preview_size(0)
         .build_modded([Modifier {
             descriptor: MOD_ID.to_owned(),
             mod_function,
