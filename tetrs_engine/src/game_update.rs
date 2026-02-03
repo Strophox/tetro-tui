@@ -366,6 +366,7 @@ fn do_line_clearing(
             state.board[y..].rotate_left(1);
             state.board[Game::HEIGHT - 1] = Line::default();
             state.lines_cleared += 1;
+
             // Increment level if 10 lines cleared.
             if config.progressive_gravity && state.lines_cleared % 10 == 0 {
                 state.gravity = state.gravity.saturating_add(1);
@@ -397,20 +398,9 @@ fn do_autonomous_move(
             None // Unable to move; Remove autonomous movement.
         };
 
-    let (new_lowest_y, new_lock_cap_time) = if new_piece.position.1 < previous_piece_data.lowest_y {
-        (
-            new_piece.position.1,
-            auto_move_time.saturating_add(lock_delay(
-                state.gravity,
-                Some(config.capped_lock_time_factor),
-            )),
-        )
-    } else {
-        (
-            previous_piece_data.lowest_y,
-            previous_piece_data.capped_lock_time,
-        )
-    };
+    // Horizontal move could not have affected height, so it stays the same!
+    let new_lowest_y = previous_piece_data.lowest_y;
+    let new_capped_lock_time = previous_piece_data.capped_lock_time;
 
     let new_is_fall_not_lock = new_piece.fits_at(&state.board, (0, -1)).is_some();
 
@@ -432,7 +422,10 @@ fn do_autonomous_move(
             previous_piece_data.fall_or_lock_time
         }
     } else {
-        new_lock_cap_time.min(auto_move_time.saturating_add(lock_delay(state.gravity, None)))
+        // NOTE: capped_lock_time may actually lie in the past, so we first need to cap *it* from below (current time)!
+        auto_move_time
+            .max(new_capped_lock_time)
+            .min(auto_move_time.saturating_add(lock_delay(state.gravity, None)))
     };
 
     // Update 'ActionState';
@@ -444,7 +437,7 @@ fn do_autonomous_move(
             is_fall_not_lock: new_is_fall_not_lock,
             auto_move_scheduled: new_auto_move_scheduled,
             lowest_y: new_lowest_y,
-            capped_lock_time: new_lock_cap_time,
+            capped_lock_time: new_capped_lock_time,
         },
     }
 }
@@ -539,7 +532,10 @@ fn do_fall(
             .then_some(config.soft_drop_factor);
         fall_time.saturating_add(fall_delay(state.gravity, soft_drop_factor))
     } else {
-        new_capped_lock_time.min(fall_time.saturating_add(lock_delay(state.gravity, None)))
+        // NOTE: capped_lock_time may actually lie in the past, so we first need to cap *it* from below (current time)!
+        fall_time
+            .max(new_capped_lock_time)
+            .min(fall_time.saturating_add(lock_delay(state.gravity, None)))
     };
 
     // 'Update' ActionState;
@@ -840,7 +836,9 @@ fn do_player_button_update(
             button_update_time
         } else if new_piece != previous_piece_data.piece {
             // On the ground - Refresh lock time if piece moved.
-            new_capped_lock_time
+            // NOTE: capped_lock_time may actually lie in the past, so we first need to cap *it* from below (current time)!
+            button_update_time
+                .max(new_capped_lock_time)
                 .min(button_update_time.saturating_add(lock_delay(state.gravity, None)))
         } else {
             // Previous lock time.
@@ -926,7 +924,11 @@ fn check_piece_became_movable_get_moved_piece_and_move_scheduled(
     }
 }
 
-fn try_hold(state: &mut State, tetromino: Tetromino, hold_spawn_time: GameTime) -> Option<Phase> {
+fn try_hold(
+    state: &mut State,
+    tetromino: Tetromino,
+    new_piece_spawn_time: GameTime,
+) -> Option<Phase> {
     //let/*TODO:dbg*/s=format!("IN try_hold\n");if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
     match state.hold_piece {
         // Nothing held yet, just hold spawned tetromino.
@@ -935,7 +937,7 @@ fn try_hold(state: &mut State, tetromino: Tetromino, hold_spawn_time: GameTime) 
             state.hold_piece = Some((tetromino, false));
             // Issue a spawn.
             Some(Phase::Spawning {
-                spawn_time: hold_spawn_time,
+                spawn_time: new_piece_spawn_time,
             })
         }
         // Swap spawned tetromino, push held back into next pieces queue.
@@ -946,7 +948,7 @@ fn try_hold(state: &mut State, tetromino: Tetromino, hold_spawn_time: GameTime) 
             state.piece_preview.push_front(held_tet);
             // Issue a spawn.
             Some(Phase::Spawning {
-                spawn_time: hold_spawn_time,
+                spawn_time: new_piece_spawn_time,
             })
         }
         // Else can't hold, don't do anything.
