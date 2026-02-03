@@ -1014,6 +1014,7 @@ On the Rust side of things I read / learned about:
 - super handy multithreading with [`std::sync::mpsc`](https://doc.rust-lang.org/std/sync/mpsc/)
 - [cargo workspaces](https://doc.rust-lang.org/book/ch14-03-cargo-workspaces.html) (to fully separate frontend and backend),
 - how [cargo git dependencies](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#specifying-dependencies-from-git-repositories) work (so one could reuse the backend from this repository),
+- looking at dependencies using [`cargo tree`](<https://doc.rust-lang.org/cargo/commands/cargo-tree.html>),
 - and [cross](https://blog.logrocket.com/guide-cross-compilation-rust/#how-rust-represents-platforms)-[compilation](https://github.com/cross-rs/cross) (for releases).
 
 All in all, Rust (known for its safety and performance while still providing ADTs) - proved to be an excellent choice for this project!
