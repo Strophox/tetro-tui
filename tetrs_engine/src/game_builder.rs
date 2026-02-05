@@ -19,7 +19,7 @@ pub struct GameBuilder {
     /// The gravity at which a game should start.
     pub initial_gravity: Option<u32>,
     /// The method (and internal state) of tetromino generation used.
-    pub start_generator: Option<TetrominoGenerator>,
+    pub initial_tetromino_generator: Option<TetrominoGenerator>,
     /// The value to seed the game's PRNG with.
     pub seed: Option<u64>,
 }
@@ -39,7 +39,10 @@ impl GameBuilder {
     pub fn build_modded(&self, modifiers: impl IntoIterator<Item = Modifier>) -> Game {
         let init_vals = InitialValues {
             initial_gravity: self.initial_gravity.unwrap_or(1),
-            start_generator: self.start_generator.clone().unwrap_or_default(),
+            initial_tetromino_generator: self
+                .initial_tetromino_generator
+                .clone()
+                .unwrap_or_default(),
             seed: self.seed.unwrap_or_else(|| rand::rng().next_u64()),
         };
         Game {
@@ -50,7 +53,7 @@ impl GameBuilder {
                 board: Board::default(),
                 hold_piece: None,
                 piece_preview: VecDeque::default(),
-                piece_generator: init_vals.start_generator.clone(),
+                piece_generator: init_vals.initial_tetromino_generator.clone(),
                 pieces_locked: [0; 7],
                 lines_cleared: 0,
                 gravity: init_vals.initial_gravity,
@@ -76,7 +79,7 @@ impl GameBuilder {
     pub fn init_vals(&mut self, x: InitialValues) -> &mut Self {
         self.seed(x.seed)
             .initial_gravity(x.initial_gravity)
-            .start_generator(x.start_generator)
+            .initial_tetromino_generator(x.initial_tetromino_generator)
     }
 
     /// The value to seed the game's PRNG with.
@@ -92,8 +95,8 @@ impl GameBuilder {
     }
 
     /// The method (and internal state) of tetromino generation used.
-    pub fn start_generator(&mut self, x: TetrominoGenerator) -> &mut Self {
-        self.start_generator = Some(x);
+    pub fn initial_tetromino_generator(&mut self, x: TetrominoGenerator) -> &mut Self {
+        self.initial_tetromino_generator = Some(x);
         self
     }
 

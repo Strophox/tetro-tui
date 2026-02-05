@@ -485,7 +485,7 @@ impl<T: Write> Application<T> {
                 let mut builder = Game::builder();
                 builder
                     .rotation_system(g.rotation_system)
-                    .start_generator(g.tetromino_generator.clone())
+                    .initial_tetromino_generator(g.tetromino_generator.clone())
                     .piece_preview_size(g.piece_preview_size)
                     .allow_prespawn_actions(g.allow_prespawn_actions)
                     .delayed_auto_shift(g.delayed_auto_shift)

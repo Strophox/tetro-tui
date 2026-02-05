@@ -16,6 +16,12 @@ pub enum RotationSystem {
     Super,
 }
 
+impl Default for RotationSystem {
+    fn default() -> Self {
+        RotationSystem::Ocular
+    }
+}
+
 impl RotationSystem {
     /// Tries to rotate a piece with the chosen `RotationSystem`.
     ///

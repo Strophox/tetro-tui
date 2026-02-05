@@ -242,7 +242,7 @@ pub struct InitialValues {
     /// The gravity at which a game should start.
     pub initial_gravity: u32,
     /// The method (and internal state) of tetromino generation used.
-    pub start_generator: TetrominoGenerator,
+    pub initial_tetromino_generator: TetrominoGenerator,
     /// The value to seed the game's PRNG with.
     pub seed: u64,
 }
@@ -731,7 +731,7 @@ impl Default for Configuration {
         Self {
             piece_preview_size: 4,
             allow_prespawn_actions: true,
-            rotation_system: RotationSystem::Ocular,
+            rotation_system: RotationSystem::default(),
             delayed_auto_shift: Duration::from_millis(167),
             auto_repeat_rate: Duration::from_millis(33),
             soft_drop_factor: 10.0,
@@ -907,7 +907,7 @@ impl Game {
         let builder = GameBuilder {
             config: self.config.clone(),
             initial_gravity: Some(self.init_vals.initial_gravity),
-            start_generator: Some(self.init_vals.start_generator.clone()),
+            initial_tetromino_generator: Some(self.init_vals.initial_tetromino_generator.clone()),
             seed: Some(self.init_vals.seed),
         };
         let mod_descriptors = self.modifiers.iter().map(|m| m.descriptor.as_str());
