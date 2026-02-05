@@ -39,7 +39,7 @@ pub fn modifier(initial_layout: u16) -> Modifier {
             } else if matches!(point, UpdatePoint::PieceLocked)
                 && !matches!(phase, Phase::LinesClearing { .. })
             {
-                *phase = Phase::GameEnded {
+                *phase = Phase::GameEnd {
                     result: Err(GameOver::Limit(Stat::LinesCleared(0))),
                 };
             // Combo continues, prepare new line.

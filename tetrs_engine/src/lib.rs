@@ -82,27 +82,48 @@ pub type GameResult = Result<Stat, GameOver>;
 /// Convenient type alias to denote a collection of [`Feedback`]s associated with some [`GameTime`].
 pub type FeedbackMessages = Vec<(GameTime, Feedback)>;
 
-/// Represents one of the seven playable piece shapes.
+/// Represents one of the seven "Tetrominos";
 ///
-/// A "Tetromino" is a two-dimensional shape made from connecting exactly
-/// four square tiles into one rigid piece.
+/// A *tetromino* is a two-dimensional, geometric shape made by
+/// connecting four squares (orthogonally / at along the edges).
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Tetromino {
-    /// 'O'-Tetromino: Four tiles arranged in one big square; '⠶', `██`.
+    /// 'O'-Tetromino.
+    /// Four squares connected as one big square; `⠶`, `██`.
+    ///
+    /// 'O' has 90° rotational symmetry + 2 axes of mirror symmetry.
     O = 0,
-    /// 'I'-Tetromino: Four tiles arranged in one straight line; '⡇', `▄▄▄▄`.
-    I,
-    /// 'S'-Tetromino: Four tiles arranged in a left-snaking manner; '⠳', `▄█▀`.
-    S,
-    /// 'Z'-Tetromino: Four tiles arranged in a right-snaking manner; '⠞', `▀█▄`.
-    Z,
-    /// 'T'-Tetromino: Four tiles arranged in a 'T'-shape; '⠗', `▄█▄`.
-    T,
-    /// 'L'-Tetromino: Four tiles arranged in a 'L'-shape; '⠧', `▄▄█`.
-    L,
-    /// 'J'-Tetromino: Four tiles arranged in a 'J'-shape; '⠼', `█▄▄`.
-    J,
+    /// 'I'-Tetromino.
+    /// Four squares connected as one straight line; `⡇`, `▄▄▄▄`.
+    ///
+    /// 'I' has 180° rotational symmetry + 2 axes of mirror symmetry.
+    I = 1,
+    /// 'S'-Tetromino.
+    /// Four squares connected in an 'S'-snaking manner; `⠳`, `▄█▀`.
+    ///
+    /// 'S' has 180° rotational symmetry + 0 axes of mirror symmetry.
+    S = 2,
+    /// 'Z'-Tetromino:
+    /// Four squares connected in a 'Z'-snaking manner; `⠞`, `▀█▄`.
+    ///
+    /// 'Z' has 180° rotational symmetry + 0 axes of mirror symmetry.
+    Z = 3,
+    /// 'T'-Tetromino:
+    /// Four squares connected in a 'T'-junction shape; `⠗`, `▄█▄`.
+    ///
+    /// 'T' has 360° rotational symmetry + 1 axis of mirror symmetry.
+    T = 4,
+    /// 'L'-Tetromino:
+    /// Four squares connected in an 'L'-shape; `⠧`, `▄▄█`.
+    ///
+    /// 'L' has 360° rotational symmetry + 0 axes of mirror symmetry.
+    L = 5,
+    /// 'J'-Tetromino:
+    /// Four squares connected in a 'J'-shape; `⠼`, `█▄▄`.
+    ///
+    /// 'J' has 360° rotational symmetry + 0 axes of mirror symmetry.
+    J = 6,
 }
 
 /// Represents the orientation an active piece can be in.
@@ -339,29 +360,29 @@ pub struct PieceData {
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Phase {
-    /// The state of the game being irreversibly over, and not playable anymore.
-    GameEnded {
-        /// The result of how the game ended.
-        result: GameResult,
+    /// The state of the game "taking its time" to spawn a piece.
+    /// This is the state the board will have right before attempting to spawn a new piece.
+    Spawning {
+        /// The in-game time at which the game moves on to the next `Phase.`
+        spawn_time: GameTime,
+    },
+    /// The state of the game having an active piece in-play, which can be controlled by a player.
+    PieceInPlay {
+        /// The data required to play a piece in this `Phase.`
+        piece_data: PieceData,
     },
     /// The state of the game "taking its time" to clear out lines.
     /// In this state the board is as it was at the time of the piece locking down,
     /// i.e. with some horizontally completed lines.
     /// After exiting this state, the
     LinesClearing {
-        /// The in-game time at which the game moves on to the next `ActionState.`
-        lines_cleared_time: GameTime,
+        /// The in-game time at which the game moves on to the next `Phase.`
+        line_clears_finish_time: GameTime,
     },
-    /// The state of the game "taking its time" to spawn a piece.
-    /// This is the state the board will have right before attempting to spawn a new piece.
-    Spawning {
-        /// The in-game time at which the game moves on to the next `ActionState.`
-        spawn_time: GameTime,
-    },
-    /// The state of the game having an active piece in-play, which can be controlled by a player.
-    PieceInPlay {
-        /// The data required to play a piece in this `ActionState.`
-        piece_data: PieceData,
+    /// The state of the game being irreversibly over, and not playable anymore.
+    GameEnd {
+        /// The result of how the game ended.
+        result: GameResult,
     },
 }
 
@@ -369,18 +390,18 @@ pub enum Phase {
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum UpdatePoint<T> {
-    /// Represents a `Game::update` call handling [`ActionState::LinesClearing`].
-    LinesCleared,
-    /// Represents a `Game::update` call handling [`ActionState::Spawning`].
+    /// Represents a `Game::update` call handling [`Phase::Spawning`].
     PieceSpawned,
-    /// Represents a `Game::update` call handling [`ActionState::PieceInPlay`], specifically a piece moving autonomously (DAS/ARR).
+    /// Represents a `Game::update` call handling [`Phase::PieceInPlay`], specifically a piece moving autonomously (DAS/ARR).
     PieceAutoMoved,
-    /// Represents a `Game::update` call handling [`ActionState::PieceInPlay`], specifically a piece falling autonomously.
+    /// Represents a `Game::update` call handling [`Phase::PieceInPlay`], specifically a piece falling autonomously.
     PieceFell,
-    /// Represents a `Game::update` call handling [`ActionState::PieceInPlay`], specifically a piece locking down.
+    /// Represents a `Game::update` call handling [`Phase::PieceInPlay`], specifically a piece locking down.
     PieceLocked,
-    /// Represents a `Game::update` call handling [`ActionState::PieceInPlay`], specifically an update ([`ButtonChange`]) to the state of [`Button`]s by the player.
+    /// Represents a `Game::update` call handling [`Phase::PieceInPlay`], specifically an update ([`ButtonChange`]) to the state of [`Button`]s by the player.
     PiecePlayed(ButtonChange),
+    /// Represents a `Game::update` call handling [`Phase::LinesClearing`].
+    LinesCleared,
     /// Represents a `Game::update` call at a general point at the head of the main loop.
     /// Typically:
     /// * `T = &mut Option<ButtonChange>` for [`GameModFn`] purposes, or
@@ -815,8 +836,10 @@ impl Game {
     /// [`Modifier`]s may arbitrarily change game state and change or prevent precise update predictions.
     pub fn peek_update_time(&self) -> Option<GameTime> {
         let action_time = match self.phase {
-            Phase::GameEnded { .. } => return None,
-            Phase::LinesClearing { lines_cleared_time } => lines_cleared_time,
+            Phase::GameEnd { .. } => return None,
+            Phase::LinesClearing {
+                line_clears_finish_time,
+            } => line_clears_finish_time,
             Phase::Spawning { spawn_time } => spawn_time,
             Phase::PieceInPlay { piece_data } => {
                 if let Some(move_time) = piece_data.auto_move_scheduled {
@@ -866,7 +889,7 @@ impl Game {
     /// This can be used so `game.ended()` returns true and prevents future
     /// calls to `update` from continuing to advance the game.
     pub const fn forfeit(&mut self) {
-        self.phase = Phase::GameEnded {
+        self.phase = Phase::GameEnd {
             result: Err(GameOver::Forfeit),
         };
     }
@@ -874,7 +897,7 @@ impl Game {
     /// Whether the game has ended, and whether it can continue to update.
     pub const fn result(&self) -> Option<GameResult> {
         match self.phase {
-            Phase::GameEnded { result } => Some(result),
+            Phase::GameEnd { result } => Some(result),
             _ => None,
         }
     }

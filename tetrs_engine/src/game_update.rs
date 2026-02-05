@@ -64,16 +64,16 @@ impl Game {
             match self.phase {
                 // Game ended by now.
                 // Return accumulated messages.
-                Phase::GameEnded { .. } => {
+                Phase::GameEnd { .. } => {
                     //let/*TODO:dbg*/s=format!("# OUTOF update {target_time:?}, {button_changes:?}, {:?} {:?}\n", self.phase, self.state);if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
                     return Ok(feedback_msgs);
                 }
 
                 // Lines clearing.
                 // Move on to spawning.
-                Phase::LinesClearing { lines_cleared_time }
-                    if lines_cleared_time <= target_time =>
-                {
+                Phase::LinesClearing {
+                    line_clears_finish_time: lines_cleared_time,
+                } if lines_cleared_time <= target_time => {
                     //let/*TODO:dbg*/s=format!("INTO do_line_clearing ({lines_cleared_time:?})\n");if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
                     self.phase =
                         do_line_clearing(&mut self.state, &self.config, lines_cleared_time);
@@ -200,7 +200,7 @@ impl Game {
                 Err(GameOver::Limit(*stat))
             })
         }) {
-            Some(Phase::GameEnded { result })
+            Some(Phase::GameEnd { result })
         } else {
             None
         }
@@ -348,7 +348,7 @@ fn do_spawn(state: &mut State, config: &Configuration, spawn_time: GameTime) -> 
             },
         }
     } else {
-        Phase::GameEnded {
+        Phase::GameEnd {
             result: Err(GameOver::BlockOut),
         }
     }
@@ -991,7 +991,7 @@ fn do_lock(
 
     // If all minos of the tetromino were locked entirely outside the `SKYLINE` bounding height, it's game over.
     if entirely_above_skyline {
-        return Phase::GameEnded {
+        return Phase::GameEnd {
             result: Err(GameOver::LockOut),
         };
     }
@@ -1002,35 +1002,33 @@ fn do_lock(
     // Score bonus calculation.
 
     // Find lines which might get cleared by piece locking. (actual clearing done later).
-    let mut lines_cleared = Vec::<usize>::with_capacity(4);
+    let mut cleared_y_coords = Vec::<usize>::with_capacity(4);
     for y in (0..Game::HEIGHT).rev() {
         if state.board[y].iter().all(|mino| mino.is_some()) {
-            lines_cleared.push(y);
+            cleared_y_coords.push(y);
         }
     }
 
-    let n_lines_cleared = u32::try_from(lines_cleared.len()).unwrap();
+    let lines_cleared = u32::try_from(cleared_y_coords.len()).unwrap();
 
-    if n_lines_cleared == 0 {
+    if lines_cleared == 0 {
         // If no lines cleared, no score bonus and combo is reset.
         state.consecutive_line_clears = 0;
     } else {
         // Increase combo.
         state.consecutive_line_clears += 1;
 
-        let n_combo = state.consecutive_line_clears;
+        let combo = state.consecutive_line_clears;
 
         let is_perfect_clear = state.board.iter().all(|line| {
             line.iter().all(|tile| tile.is_none()) || line.iter().all(|tile| tile.is_some())
         });
 
         // Compute main Score Bonus.
-        let score_bonus = n_lines_cleared
-            * if is_spin { 2 } else { 1 }
-            * if is_perfect_clear { 4 } else { 1 }
-            * 2
-            - 1
-            + (n_combo - 1);
+        let score_bonus =
+            lines_cleared * if is_spin { 2 } else { 1 } * if is_perfect_clear { 4 } else { 1 } * 2
+                - 1
+                + (combo - 1);
 
         // Update score.
         state.score += u64::from(score_bonus);
@@ -1039,7 +1037,7 @@ fn do_lock(
             feedback_msgs.push((
                 lock_time,
                 Feedback::LinesClearing {
-                    y_coords: lines_cleared,
+                    y_coords: cleared_y_coords,
                     line_clear_duration: config.line_clear_duration,
                 },
             ));
@@ -1050,22 +1048,22 @@ fn do_lock(
                     score_bonus,
                     tetromino: piece.tetromino,
                     is_spin,
-                    lines_cleared: n_lines_cleared,
+                    lines_cleared,
                     is_perfect_clear,
-                    combo: n_combo,
+                    combo,
                 },
             ));
         }
     }
 
     // Update ability to hold piece.
-    if let Some((_held_piece, swap_allowed)) = &mut state.hold_piece {
+    if let Some((_held_tet, swap_allowed)) = &mut state.hold_piece {
         *swap_allowed = true;
     }
 
     // 'Update' ActionState;
     // Return it to the main state machine with all newly acquired piece data.
-    if n_lines_cleared == 0 {
+    if lines_cleared == 0 {
         //let/*TODO:dbg*/s=format!("OUTOF do_lock {:?}\n", lock_time + config.spawn_delay);if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
         // No lines cleared, directly proceed to spawn.
         Phase::Spawning {
@@ -1074,7 +1072,7 @@ fn do_lock(
     } else {
         // Lines cleared, enter line clearing state.
         Phase::LinesClearing {
-            lines_cleared_time: lock_time.saturating_add(config.line_clear_duration),
+            line_clears_finish_time: lock_time.saturating_add(config.line_clear_duration),
         }
     }
 }

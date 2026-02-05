@@ -78,7 +78,7 @@ pub fn build(builder: &GameBuilder) -> Game {
                     .all(|line| line.iter().all(|cell| cell.is_none()));
                 // Run out of attempts, game over.
                 if !puzzle_done && current_puzzle_attempt == MAX_STAGE_ATTEMPTS {
-                    *phase = Phase::GameEnded {
+                    *phase = Phase::GameEnd {
                         result: Err(GameOver::Limit(Stat::LinesCleared(0))),
                     };
                 } else {
@@ -90,7 +90,7 @@ pub fn build(builder: &GameBuilder) -> Game {
                     }
                     if current_puzzle_idx == puzzles_len {
                         // Done with all puzzles, game completed.
-                        *phase = Phase::GameEnded {
+                        *phase = Phase::GameEnd {
                             result: Ok(Stat::PointsScored(puzzles_len.try_into().unwrap())),
                         };
                     } else {
