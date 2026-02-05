@@ -7,7 +7,7 @@ pub mod cheese;
 pub mod combo_board;
 pub mod puzzle;
 
-pub fn reconstruct_modded<'a>(
+pub fn reconstruct_build_modded<'a>(
     builder: &'a GameBuilder,
     mod_descriptors: impl IntoIterator<Item = &'a str>,
 ) -> Result<Game, String> {

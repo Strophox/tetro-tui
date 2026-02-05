@@ -15,7 +15,7 @@ use tetrs_engine::{Feedback, Game, UpdateGameError};
 
 use crate::{
     application::{
-        Application, ButtonInputs, GameMetaData, GameRestorationData, Menu, MenuUpdate,
+        Application, ButtonInputHistory, GameMetaData, GameRestorationData, Menu, MenuUpdate,
         ScoreboardEntry,
     },
     game_input_handlers::{live_terminal::LiveTerminalInputHandler, InputSignal},
@@ -31,7 +31,7 @@ impl<T: Write> Application<T> {
         time_started: &Instant,
         time_last_paused: &mut Instant,
         duration_paused_total: &mut Duration,
-        recorded_button_inputs: &mut ButtonInputs,
+        button_input_history: &mut ButtonInputHistory,
         game_renderer: &mut impl Renderer,
     ) -> io::Result<MenuUpdate> {
         if self.runtime_data.kitty_assumed {
@@ -79,7 +79,7 @@ impl<T: Write> Application<T> {
             // Exit if game ended
             if let Some(game_result) = game.result() {
                 let scoreboard_entry = ScoreboardEntry::new(game, game_meta_data);
-                let game_restoration_data = GameRestorationData::new(game, recorded_button_inputs);
+                let game_restoration_data = GameRestorationData::new(game, button_input_history);
                 self.scoreboard
                     .entries
                     .push((scoreboard_entry.clone(), Some(game_restoration_data)));
@@ -120,7 +120,7 @@ impl<T: Write> Application<T> {
                         game.forfeit();
                         let scoreboard_entry = ScoreboardEntry::new(game, game_meta_data);
                         let game_restoration_data =
-                            GameRestorationData::new(game, recorded_button_inputs);
+                            GameRestorationData::new(game, button_input_history);
                         self.scoreboard
                             .entries
                             .push((scoreboard_entry.clone(), Some(game_restoration_data)));
@@ -142,8 +142,8 @@ impl<T: Write> Application<T> {
                     Ok(InputSignal::StoreSavepoint) => {
                         let _ = self.game_savepoint.insert((
                             game_meta_data.clone(),
-                            GameRestorationData::new(game, recorded_button_inputs),
-                            recorded_button_inputs.0.len(),
+                            GameRestorationData::new(game, button_input_history),
+                            button_input_history.0.len(),
                         ));
                         new_feedback_msgs.push((
                             game.state().time,
@@ -187,9 +187,10 @@ impl<T: Write> Application<T> {
 
                         let result = game.update(update_target_time, Some(button_change));
 
-                        recorded_button_inputs
-                            .0
-                            .push(ButtonInputs::encode(update_target_time, button_change));
+                        button_input_history.0.push(ButtonInputHistory::encode(
+                            update_target_time,
+                            button_change,
+                        ));
 
                         // FIXME: Combo Bot.
                         // inform_combo_bot(game, &evts);

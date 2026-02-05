@@ -18,7 +18,9 @@ use crossterm::{
 use tetrs_engine::{Game, Stat};
 
 use crate::{
-    application::{Application, ButtonInputs, GameMetaData, GameRestorationData, Menu, MenuUpdate},
+    application::{
+        Application, ButtonInputHistory, GameMetaData, GameRestorationData, Menu, MenuUpdate,
+    },
     fmt_helpers::{fmt_button_change, fmt_duration},
     game_mode_presets::{
         self, game_modifiers::combo_board::LAYOUTS as COMBO_STARTLAYOUTS, GameModePreset,
@@ -125,11 +127,11 @@ impl<T: Write> Application<T> {
                     )))?;
             }
             // Render load savepoint option.
-            if let Some((game_meta_data, GameRestorationData { button_inputs, .. }, load_offset)) =
+            if let Some((game_meta_data, GameRestorationData { input_history, .. }, load_offset)) =
                 &self.game_savepoint
             {
                 let load_title = &game_meta_data.title;
-                let load_offset_max = button_inputs.0.len();
+                let load_offset_max = input_history.0.len();
                 self.term
                     .queue(MoveTo(
                         x_main,
@@ -141,8 +143,8 @@ impl<T: Write> Application<T> {
                             if *load_offset == 0 {
                                 format!(">> Load {load_title:?} run from start [Del] <<")
                             } else {
-                                let (load_time, load_input) = ButtonInputs::decode(
-                                    button_inputs.0[(load_offset - 1) % button_inputs.0.len()]);
+                                let (load_time, load_input) = ButtonInputHistory::decode(
+                                    input_history.0[(load_offset - 1) % input_history.0.len()]);
                                 let load_time = fmt_duration(&load_time);
                                 let load_input = fmt_button_change(&load_input);
                                 format!(">> Load {load_title} from: {load_offset}/{load_offset_max} ({load_input} @{load_time}) [Del] <<")
@@ -371,13 +373,13 @@ impl<T: Write> Application<T> {
                         &mut self.game_savepoint
                     {
                         if selected == selection_len - 2 {
-                            *load_offset += game_restoration_data.button_inputs.0.len()
+                            *load_offset += game_restoration_data.input_history.0.len()
                                 * if modifiers.contains(KeyModifiers::SHIFT) {
                                     20
                                 } else {
                                     1
                                 };
-                            *load_offset %= game_restoration_data.button_inputs.0.len() + 1;
+                            *load_offset %= game_restoration_data.input_history.0.len() + 1;
                         }
                     }
                 }
@@ -428,7 +430,7 @@ impl<T: Write> Application<T> {
                             } else {
                                 1
                             };
-                            *load_offset %= game_restoration_data.button_inputs.0.len() + 1;
+                            *load_offset %= game_restoration_data.input_history.0.len() + 1;
                         }
                     }
                 }
@@ -492,16 +494,16 @@ impl<T: Write> Application<T> {
                     .line_clear_delay(g.line_clear_delay)
                     .appearance_delay(g.appearance_delay);
                 // Build one of the selected game modes.
-                let (meta_data, game, button_inputs) = if selected < game_presets.len() {
+                let (meta_data, game, button_input_history) = if selected < game_presets.len() {
                     let ((title, comparison_stat, build), _desc) = &game_presets[selected];
-                    let preset_game = build(&builder);
+                    let new_game = build(&builder);
                     let new_meta_data = GameMetaData {
                         datetime: chrono::Utc::now().format("%Y-%m-%d_%H:%M").to_string(),
                         title: title.to_owned(),
                         comparison_stat: comparison_stat.to_owned(),
                     };
-                    let no_previous_button_inputs = ButtonInputs::default();
-                    (new_meta_data, preset_game, no_previous_button_inputs)
+                    let new_input_history = ButtonInputHistory::default();
+                    (new_meta_data, new_game, new_input_history)
                 // Load saved game.
                 } else if selected == selection_len - 2 {
                     let (game_meta_data, game_restoration_data, load_offset) =
@@ -510,8 +512,8 @@ impl<T: Write> Application<T> {
                     let mut restored_meta_data = game_meta_data.clone();
                     // Mark restored game as such.
                     restored_meta_data.title.push('\'');
-                    let button_inputs = game_restoration_data.button_inputs.clone();
-                    (restored_meta_data, restored_game, button_inputs)
+                    let restored_input_history = game_restoration_data.input_history.clone();
+                    (restored_meta_data, restored_game, restored_input_history)
                 // Build custom game.
                 } else {
                     let n = &self.settings.new_game;
@@ -527,7 +529,7 @@ impl<T: Write> Application<T> {
                         builder.seed = n.custom_seed;
                     }
                     // Optionally load custom board.
-                    let custom_game = if let Some(board) = &n.custom_board {
+                    let new_custom_game = if let Some(board) = &n.custom_board {
                         builder.build_modded([
                             game_mode_presets::game_modifiers::custom_start_board::modifier(board),
                         ])
@@ -540,8 +542,8 @@ impl<T: Write> Application<T> {
                         title: "Custom".to_owned(),
                         comparison_stat: (Stat::PointsScored(0), false),
                     };
-                    let no_previous_button_inputs = ButtonInputs::default();
-                    (new_meta_data, custom_game, no_previous_button_inputs)
+                    let new_input_history = ButtonInputHistory::default();
+                    (new_meta_data, new_custom_game, new_input_history)
                 };
                 // FIXME: Remove or implement as feature/toggle.
                 // game.modifiers_mut()
@@ -557,7 +559,7 @@ impl<T: Write> Application<T> {
                     time_started,
                     last_paused: now,
                     total_pause_duration: Duration::ZERO,
-                    recorded_button_inputs: button_inputs,
+                    button_input_history,
                     game_renderer: Default::default(),
                 }));
             }

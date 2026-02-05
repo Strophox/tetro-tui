@@ -39,9 +39,9 @@ pub type Slots<T> = Vec<(String, T)>;
     serde::Serialize,
     serde::Deserialize,
 )]
-pub struct ButtonInputs(Vec<u128>);
+pub struct ButtonInputHistory(Vec<u128>);
 
-impl ButtonInputs {
+impl ButtonInputHistory {
     pub const BUTTON_CHANGE_BITSIZE: usize = 5;
 
     // For serialization reasons, we encode a single user input as `u128` instead of
@@ -84,16 +84,16 @@ impl ButtonInputs {
 pub struct GameRestorationData {
     builder: GameBuilder,
     mod_descriptors: Vec<String>,
-    button_inputs: ButtonInputs,
+    input_history: ButtonInputHistory,
 }
 
 impl GameRestorationData {
-    fn new(game: &Game, button_inputs: &ButtonInputs) -> GameRestorationData {
+    fn new(game: &Game, input_history: &ButtonInputHistory) -> GameRestorationData {
         let (builder, mod_descriptors) = game.blueprint();
         GameRestorationData {
             builder,
             mod_descriptors: mod_descriptors.map(str::to_owned).collect(),
-            button_inputs: button_inputs.clone(),
+            input_history: input_history.clone(),
         }
     }
 
@@ -104,7 +104,7 @@ impl GameRestorationData {
         let mut game = if self.mod_descriptors.is_empty() {
             builder.build()
         } else {
-            match game_mode_presets::game_modifiers::reconstruct_modded(
+            match game_mode_presets::game_modifiers::reconstruct_build_modded(
                 &builder,
                 self.mod_descriptors.iter().map(String::as_str),
             ) {
@@ -129,8 +129,8 @@ impl GameRestorationData {
         let restore_feedback_verbosity = game.config.feedback_verbosity;
 
         game.config.feedback_verbosity = FeedbackVerbosity::Silent;
-        for bits in self.button_inputs.0.iter().take(input_index) {
-            let (update_time, button_change) = ButtonInputs::decode(*bits);
+        for bits in self.input_history.0.iter().take(input_index) {
+            let (update_time, button_change) = ButtonInputHistory::decode(*bits);
             // FIXME: Error handling?
             let _ = game.update(update_time, Some(button_change));
         }
@@ -484,7 +484,7 @@ enum Menu {
         time_started: Instant,
         last_paused: Instant,
         total_pause_duration: Duration,
-        recorded_button_inputs: ButtonInputs,
+        button_input_history: ButtonInputHistory,
         game_renderer: Box<game_renderers::diff_print::DiffPrintRenderer>,
     },
     GameOver(Box<ScoreboardEntry>),
@@ -719,7 +719,7 @@ impl<T: Write> Application<T> {
                     time_started,
                     total_pause_duration,
                     last_paused,
-                    recorded_button_inputs,
+                    button_input_history,
                     game_renderer,
                 } => self.menu_play_game(
                     game,
@@ -727,7 +727,7 @@ impl<T: Write> Application<T> {
                     time_started,
                     last_paused,
                     total_pause_duration,
-                    recorded_button_inputs,
+                    button_input_history,
                     game_renderer.as_mut(),
                 ),
                 Menu::Pause => self.menu_pause(),

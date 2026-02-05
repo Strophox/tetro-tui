@@ -221,7 +221,7 @@ impl<T: Write> Application<T> {
                         let _ = self.game_savepoint.insert((
                             game_meta_data.clone(),
                             game_restoration_data.clone(),
-                            game_restoration_data.button_inputs.0.len(),
+                            game_restoration_data.input_history.0.len(),
                         ));
                     }
                 }
