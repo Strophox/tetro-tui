@@ -21,7 +21,7 @@ use crate::{
     keybinds_presets::{guideline_keybinds, tetrs_default_keybinds, vim_keybinds, Keybinds},
     palette_presets::{
         color16_palette, fullcolor_palette, gruvbox_light_palette, gruvbox_palette,
-        monochrome_palette, oklch2_palette, the_matrix_palette, Palette,
+        monochrome_palette, oklch_palette, the_matrix_palette, Palette,
     },
 };
 
@@ -399,7 +399,7 @@ impl Default for Settings {
             ("Monochrome".to_owned(), monochrome_palette()), // NOTE: The slot at index 0 is the special 'monochrome'/no palette slot.
             ("16-color".to_owned(), color16_palette()),
             ("Fullcolor".to_owned(), fullcolor_palette()),
-            ("Okpalette".to_owned(), oklch2_palette()),
+            ("Okpalette".to_owned(), oklch_palette()),
             ("Gruvbox (light)".to_owned(), gruvbox_light_palette()),
             ("Gruvbox".to_owned(), gruvbox_palette()),
             ("The Matrix".to_owned(), the_matrix_palette()),
