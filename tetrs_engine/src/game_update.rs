@@ -298,9 +298,13 @@ fn do_spawn(state: &mut State, config: &Configuration, spawn_time: GameTime) -> 
     }
 
     // Rotation of 'raw' spawn piece.
-    let rotated_spawn_piece = config
-        .rotation_system
-        .rotate(&raw_spawn_piece, &state.board, turns);
+    let rotated_spawn_piece = if turns != 0 {
+        config
+            .rotation_system
+            .rotate(&raw_spawn_piece, &state.board, turns)
+    } else {
+        None
+    };
 
     // Try finding `Some` valid spawn piece from the provided options in order.
     let spawn_piece = [
