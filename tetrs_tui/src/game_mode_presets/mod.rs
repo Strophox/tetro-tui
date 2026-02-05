@@ -2,7 +2,7 @@ use std::{num::NonZeroUsize, time::Duration};
 
 use tetrs_engine::{Game, GameBuilder, Stat};
 
-pub mod mods;
+pub mod game_modifiers;
 
 pub type GameModePreset = (String, (Stat, bool), Box<dyn Fn(&GameBuilder) -> Game>);
 
@@ -73,7 +73,7 @@ pub fn puzzle() -> GameModePreset {
     (
         "Puzzle".to_owned(),
         (Stat::TimeElapsed(Duration::ZERO), true),
-        Box::new(mods::puzzle::build),
+        Box::new(game_modifiers::puzzle::build),
     )
 }
 
@@ -89,7 +89,9 @@ pub fn n_cheese(linelimit: Option<NonZeroUsize>, gapsize: usize, gravity: u32) -
         ),
         (Stat::PiecesLocked(0), true),
         Box::new({
-            move |builder: &GameBuilder| mods::cheese::build(builder, linelimit, gapsize, gravity)
+            move |builder: &GameBuilder| {
+                game_modifiers::cheese::build(builder, linelimit, gapsize, gravity)
+            }
         }),
     )
 }
@@ -115,7 +117,7 @@ pub fn n_combo(linelimit: Option<NonZeroUsize>, startlayout: u16) -> GameModePre
                         Some(c) => vec![(Stat::LinesCleared(c.get()), true)],
                         None => vec![],
                     })
-                    .build_modded([mods::combo_board::modifier(startlayout)])
+                    .build_modded([game_modifiers::combo_board::modifier(startlayout)])
             }
         }),
     )
@@ -125,6 +127,6 @@ pub fn ascent() -> GameModePreset {
     (
         "*Ascent".to_owned(),
         (Stat::PointsScored(0), false),
-        Box::new(mods::ascent::build),
+        Box::new(game_modifiers::ascent::build),
     )
 }

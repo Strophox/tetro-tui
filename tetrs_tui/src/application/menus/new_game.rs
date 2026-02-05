@@ -19,8 +19,10 @@ use tetrs_engine::{Game, Stat};
 
 use crate::{
     application::{Application, ButtonInputs, GameMetaData, GameRestorationData, Menu, MenuUpdate},
-    fmt_utils::{fmt_button_change, fmt_duration},
-    game_mode_presets::{self, mods::combo_board::LAYOUTS as COMBO_STARTLAYOUTS, GameModePreset},
+    fmt_helpers::{fmt_button_change, fmt_duration},
+    game_mode_presets::{
+        self, game_modifiers::combo_board::LAYOUTS as COMBO_STARTLAYOUTS, GameModePreset,
+    },
 };
 
 impl<T: Write> Application<T> {
@@ -527,9 +529,7 @@ impl<T: Write> Application<T> {
                     // Optionally load custom board.
                     let custom_game = if let Some(board) = &n.custom_board {
                         builder.build_modded([
-                            game_mode_presets::mods::miscellany::custom_start_board::modifier(
-                                board,
-                            ),
+                            game_mode_presets::game_modifiers::custom_start_board::modifier(board),
                         ])
                     // Otherwise just build a normal custom game.
                     } else {

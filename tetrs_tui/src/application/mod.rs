@@ -17,13 +17,11 @@ use tetrs_engine::{
 };
 
 use crate::{
-    game_input_handlers::live_terminal::{
-        guideline_keybinds, tetrs_default_keybinds, vim_keybinds, Keybinds,
-    },
-    game_mode_presets,
-    game_renderers::{
-        self, color16_palette, empty_palette, fullcolor_palette, gruvbox_light_palette,
-        gruvbox_palette, oklch2_palette, the_matrix_palette, Palette,
+    game_mode_presets, game_renderers,
+    keybinds_presets::{guideline_keybinds, tetrs_default_keybinds, vim_keybinds, Keybinds},
+    palette_presets::{
+        color16_palette, fullcolor_palette, gruvbox_light_palette, gruvbox_palette,
+        monochrome_palette, oklch2_palette, the_matrix_palette, Palette,
     },
 };
 
@@ -106,7 +104,7 @@ impl GameRestorationData {
         let mut game = if self.mod_descriptors.is_empty() {
             builder.build()
         } else {
-            match game_mode_presets::mods::reconstruct_modded(
+            match game_mode_presets::game_modifiers::reconstruct_modded(
                 &builder,
                 self.mod_descriptors.iter().map(String::as_str),
             ) {
@@ -235,7 +233,7 @@ impl Default for NewGameSettings {
             cheese_gravity: 0,
             cheese_gapsize: 1,
             combo_linelimit: Some(NonZeroUsize::try_from(30).unwrap()),
-            combo_startlayout: game_mode_presets::mods::combo_board::LAYOUTS[0],
+            combo_startlayout: game_mode_presets::game_modifiers::combo_board::LAYOUTS[0],
             experimental_mode_unlocked: false,
         }
     }
@@ -398,7 +396,7 @@ impl Default for Settings {
             ),
         ];
         let palette_slots = vec![
-            ("Monochrome".to_owned(), empty_palette()), // NOTE: The slot at index 0 is the special 'monochrome'/no palette slot.
+            ("Monochrome".to_owned(), monochrome_palette()), // NOTE: The slot at index 0 is the special 'monochrome'/no palette slot.
             ("16-color".to_owned(), color16_palette()),
             ("Fullcolor".to_owned(), fullcolor_palette()),
             ("Okpalette".to_owned(), oklch2_palette()),

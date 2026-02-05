@@ -17,7 +17,7 @@ use tetrs_engine::{
 
 use crate::{
     application::{Application, GameMetaData, Glyphset},
-    fmt_utils::{fmt_duration, fmt_keybinds_of, fmt_tet_mini, fmt_tet_small},
+    fmt_helpers::{fmt_duration, fmt_keybinds_of, fmt_tet_mini, fmt_tet_small},
     game_renderers::Renderer,
 };
 

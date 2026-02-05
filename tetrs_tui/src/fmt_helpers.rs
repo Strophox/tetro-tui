@@ -3,7 +3,7 @@ use std::time::Duration;
 use crossterm::event::{KeyCode, KeyModifiers};
 use tetrs_engine::{Button, ButtonChange, Tetromino};
 
-use crate::game_input_handlers::live_terminal::Keybinds;
+use crate::keybinds_presets::Keybinds;
 
 pub fn fmt_duration(dur: &Duration) -> String {
     format!(

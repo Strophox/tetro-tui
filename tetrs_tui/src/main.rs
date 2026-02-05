@@ -1,8 +1,10 @@
 mod application;
-mod fmt_utils;
+mod fmt_helpers;
 mod game_input_handlers;
 mod game_mode_presets;
 mod game_renderers;
+mod keybinds_presets;
+mod palette_presets;
 
 use std::io::{self, Write};
 

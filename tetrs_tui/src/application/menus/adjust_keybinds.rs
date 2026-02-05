@@ -15,7 +15,7 @@ use tetrs_engine::Button;
 
 use crate::{
     application::{Application, Menu, MenuUpdate, Settings},
-    fmt_utils::fmt_keybinds_of,
+    fmt_helpers::fmt_keybinds_of,
 };
 
 impl<T: Write> Application<T> {
