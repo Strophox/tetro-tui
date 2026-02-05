@@ -491,8 +491,8 @@ impl<T: Write> Application<T> {
                     .delayed_auto_shift(g.delayed_auto_shift)
                     .auto_repeat_rate(g.auto_repeat_rate)
                     .soft_drop_factor(g.soft_drop_factor)
-                    .line_clear_delay(g.line_clear_delay)
-                    .appearance_delay(g.appearance_delay);
+                    .line_clear_duration(g.line_clear_duration)
+                    .spawn_delay(g.spawn_delay);
                 // Build one of the selected game modes.
                 let (meta_data, game, button_input_history) = if selected < game_presets.len() {
                     let ((title, comparison_stat, build), _desc) = &game_presets[selected];

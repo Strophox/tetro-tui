@@ -329,8 +329,8 @@ pub struct GameplaySettings {
     delayed_auto_shift: Duration,
     auto_repeat_rate: Duration,
     soft_drop_factor: f64,
-    line_clear_delay: Duration,
-    appearance_delay: Duration,
+    line_clear_duration: Duration,
+    spawn_delay: Duration,
     allow_prespawn_actions: bool,
 }
 
@@ -344,8 +344,8 @@ impl Default for GameplaySettings {
             delayed_auto_shift: c.delayed_auto_shift,
             auto_repeat_rate: c.auto_repeat_rate,
             soft_drop_factor: c.soft_drop_factor,
-            line_clear_delay: c.line_clear_delay,
-            appearance_delay: c.appearance_delay,
+            line_clear_duration: c.line_clear_duration,
+            spawn_delay: c.spawn_delay,
             allow_prespawn_actions: c.allow_prespawn_actions,
         }
     }

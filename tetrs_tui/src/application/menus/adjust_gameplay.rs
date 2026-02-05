@@ -123,15 +123,15 @@ impl<T: Write> Application<T> {
                     self.settings.gameplay().soft_drop_factor
                 ),
                 format!(
-                    "Line clear delay (LCD): {:?}",
-                    self.settings.gameplay().line_clear_delay
+                    "Line clear duration (LCD): {:?}",
+                    self.settings.gameplay().line_clear_duration
                 ),
                 format!(
-                    "Appearance delay (ARE): {:?}",
-                    self.settings.gameplay().appearance_delay
+                    "Spawn delay (ARE): {:?}",
+                    self.settings.gameplay().spawn_delay
                 ),
                 format!(
-                    "Allow pre-spawn rotate/hold (IRS/IHS): {:?} *",
+                    "Allow pre-spawn rotation/hold (IRS/IHS): {:?} *",
                     self.settings.gameplay().allow_prespawn_actions
                 ),
                 format!(
@@ -277,11 +277,12 @@ impl<T: Write> Application<T> {
                     }
                     7 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                        self.settings.gameplay_mut().line_clear_delay += Duration::from_millis(10);
+                        self.settings.gameplay_mut().line_clear_duration +=
+                            Duration::from_millis(10);
                     }
                     8 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                        self.settings.gameplay_mut().appearance_delay += Duration::from_millis(10);
+                        self.settings.gameplay_mut().spawn_delay += Duration::from_millis(10);
                     }
                     9 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
@@ -358,18 +359,18 @@ impl<T: Write> Application<T> {
                     }
                     7 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                        self.settings.gameplay_mut().line_clear_delay = self
+                        self.settings.gameplay_mut().line_clear_duration = self
                             .settings
                             .gameplay()
-                            .line_clear_delay
+                            .line_clear_duration
                             .saturating_sub(Duration::from_millis(10));
                     }
                     8 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                        self.settings.gameplay_mut().appearance_delay = self
+                        self.settings.gameplay_mut().spawn_delay = self
                             .settings
                             .gameplay()
-                            .appearance_delay
+                            .spawn_delay
                             .saturating_sub(Duration::from_millis(10));
                     }
                     9 => {

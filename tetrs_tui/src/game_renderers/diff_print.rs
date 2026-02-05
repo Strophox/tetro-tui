@@ -543,7 +543,7 @@ impl Renderer for DiffPrintRenderer {
         for (feedback_time, feedback, active) in self.active_feedback.iter_mut() {
             let elapsed = game_time.saturating_sub(*feedback_time);
             match feedback {
-                Feedback::PieceLocked(piece) => {
+                Feedback::PieceLocked { piece } => {
                     if !app.settings().graphics().render_effects {
                         *active = false;
                         continue;
@@ -590,8 +590,11 @@ impl Renderer for DiffPrintRenderer {
                         }
                     }
                 }
-                Feedback::LinesClearing(lines_cleared, line_clear_delay) => {
-                    if !app.settings().graphics().render_effects || line_clear_delay.is_zero() {
+                Feedback::LinesClearing {
+                    y_coords,
+                    line_clear_duration,
+                } => {
+                    if !app.settings().graphics().render_effects || line_clear_duration.is_zero() {
                         *active = false;
                         continue;
                     }
@@ -634,7 +637,7 @@ impl Renderer for DiffPrintRenderer {
                         ],
                     };
                     let color_lineclear = get_color(&NonZeroU8::try_from(255).unwrap());
-                    let percent = elapsed.as_secs_f64() / line_clear_delay.as_secs_f64();
+                    let percent = elapsed.as_secs_f64() / line_clear_duration.as_secs_f64();
                     let max_idx = f64::from(i32::try_from(animation_lineclear.len() - 1).unwrap());
                     // SAFETY: `0.0 <= percent && percent <= 1.0`.
                     let idx = if (0.0..=1.0).contains(&percent) {
@@ -643,18 +646,21 @@ impl Renderer for DiffPrintRenderer {
                         *active = false;
                         continue;
                     };
-                    for y_line in lines_cleared {
+                    for y_line in y_coords {
                         let pos = (x_board, y_board + Game::SKYLINE_HEIGHT - *y_line);
                         self.screen
                             .buffer_str(animation_lineclear[idx], color_lineclear, pos);
                     }
                 }
-                Feedback::HardDrop(_top_piece, bottom_piece) => {
+                Feedback::HardDrop {
+                    old_piece: _,
+                    new_piece,
+                } => {
                     if !app.settings().graphics().render_effects {
                         *active = false;
                         continue;
                     }
-                    for ((x_tile, y_tile), tile_type_id) in bottom_piece.tiles() {
+                    for ((x_tile, y_tile), tile_type_id) in new_piece.tiles() {
                         for y in y_tile..Game::SKYLINE_HEIGHT {
                             self.hard_drop_tiles.push((
                                 HardDropTile {

@@ -374,7 +374,7 @@ fn do_line_clearing(
         }
     }
     Phase::Spawning {
-        spawn_time: lines_cleared_time.saturating_add(config.appearance_delay),
+        spawn_time: lines_cleared_time.saturating_add(config.spawn_delay),
     }
 }
 
@@ -692,7 +692,10 @@ fn do_player_button_update(
             if config.feedback_verbosity != FeedbackVerbosity::Silent {
                 feedback_msgs.push((
                     button_update_time,
-                    Feedback::HardDrop(previous_piece_data.piece, new_piece),
+                    Feedback::HardDrop {
+                        old_piece: previous_piece_data.piece,
+                        new_piece,
+                    },
                 ));
             }
         }
@@ -964,7 +967,7 @@ fn do_lock(
     feedback_msgs: &mut FeedbackMessages,
 ) -> Phase {
     if config.feedback_verbosity != FeedbackVerbosity::Silent {
-        feedback_msgs.push((lock_time, Feedback::PieceLocked(piece)));
+        feedback_msgs.push((lock_time, Feedback::PieceLocked { piece }));
     }
 
     // Before board is changed, precompute whether a piece was 'spun' into position;
@@ -1035,7 +1038,10 @@ fn do_lock(
         if config.feedback_verbosity != FeedbackVerbosity::Silent {
             feedback_msgs.push((
                 lock_time,
-                Feedback::LinesClearing(lines_cleared, config.line_clear_delay),
+                Feedback::LinesClearing {
+                    y_coords: lines_cleared,
+                    line_clear_duration: config.line_clear_duration,
+                },
             ));
 
             feedback_msgs.push((
@@ -1060,15 +1066,15 @@ fn do_lock(
     // 'Update' ActionState;
     // Return it to the main state machine with all newly acquired piece data.
     if n_lines_cleared == 0 {
-        //let/*TODO:dbg*/s=format!("OUTOF do_lock {:?}\n", lock_time + config.appearance_delay);if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
+        //let/*TODO:dbg*/s=format!("OUTOF do_lock {:?}\n", lock_time + config.spawn_delay);if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
         // No lines cleared, directly proceed to spawn.
         Phase::Spawning {
-            spawn_time: lock_time.saturating_add(config.appearance_delay),
+            spawn_time: lock_time.saturating_add(config.spawn_delay),
         }
     } else {
         // Lines cleared, enter line clearing state.
         Phase::LinesClearing {
-            lines_cleared_time: lock_time.saturating_add(config.line_clear_delay),
+            lines_cleared_time: lock_time.saturating_add(config.line_clear_duration),
         }
     }
 }

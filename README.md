@@ -165,7 +165,7 @@ For more technical gameplay discussion see [Features of the Tetrs Engine](#featu
   - Rotation systems: 'Ocular', 'Classic', 'Super'
   - Piece generation: 'Recency', 'Balance relative counts', 'Uniformly random', 'Bag'
   - Preview count: default=4, possible values: 0 – "how wide is your terminal"
-  - Various timings: 'Delayed auto shift' (DAS), 'Auto repeat rate' (ARR), 'Soft drop factor' (SDF), 'Line clear delay', 'Appearance delay'
+  - Various timings: 'Delayed auto shift' (DAS), 'Auto repeat rate' (ARR), 'Soft drop factor' (SDF), 'Line clear duration' (LCD), 'Spawn delay' (ARE)
 - **Keep Save File**: The TUI will not store any additional data by default where you run it. You can **explicitly toggle on save data** to have it remember things - at various granularities:
   - *OFF* - This will delete any existing save file upon program exit.
   - Remember *Settings* - This will only remember what you have stored in settings (including New Game settings).
@@ -280,8 +280,8 @@ struct Configuration {
     soft_drop_factor: f64,
     hard_drop_delay: Duration,
     ground_time_max: Duration,
-    line_clear_delay: Duration,
-    appearance_delay: Duration,
+    line_clear_duration: Duration,
+    spawn_delay: Duration,
     progressive_gravity: bool,
     end_conditions: Vec<(Stat, bool)>,
     feedback_verbosity: FeedbackVerbosity,

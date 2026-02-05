@@ -139,9 +139,9 @@ impl Renderer for DebugRenderer {
                     }
                     msg.join(" ")
                 }
-                Feedback::PieceLocked(_) => continue,
-                Feedback::LinesClearing(..) => continue,
-                Feedback::HardDrop(_, _) => continue,
+                Feedback::PieceLocked { .. } => continue,
+                Feedback::LinesClearing { .. } => continue,
+                Feedback::HardDrop { .. } => continue,
                 Feedback::Debug(update_point) => format!("{update_point:?}"),
                 Feedback::Text(s) => s.clone(),
             });

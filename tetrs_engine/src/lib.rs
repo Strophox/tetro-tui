@@ -35,6 +35,7 @@ TASK: Document all features (including IRS, etc. - cargo feature `serde`).
 
 #![warn(missing_docs)]
 
+pub mod game_builder;
 pub mod game_update;
 pub mod rotation_system;
 pub mod tetromino_generator;
@@ -45,6 +46,8 @@ use rand_chacha::{
     rand_core::{RngCore, SeedableRng},
     ChaCha12Rng,
 };
+
+pub use game_builder::GameBuilder;
 pub use rotation_system::RotationSystem;
 pub use tetromino_generator::TetrominoGenerator;
 
@@ -59,6 +62,7 @@ pub type Board = [Line; Game::HEIGHT];
 pub type Coord = (usize, usize);
 /// Coordinates offsets that can be [`add`]ed to [`Coord`]inates.
 pub type Offset = (isize, isize);
+
 /// The type used to identify points in time in a game's internal timeline.
 pub type GameTime = Duration;
 /// The internal RNG used by a game.
@@ -74,6 +78,7 @@ pub type GameModFn = dyn FnMut(
 );
 /// The result of a game that ended.
 pub type GameResult = Result<Stat, GameOver>;
+
 /// Convenient type alias to denote a collection of [`Feedback`]s associated with some [`GameTime`].
 pub type FeedbackMessages = Vec<(GameTime, Feedback)>;
 
@@ -127,51 +132,6 @@ pub struct Piece {
     pub orientation: Orientation,
     /// The position of the active piece on a playing grid.
     pub position: Coord,
-}
-
-/// Represents an abstract game input.
-// NOTE: We could consider calling this `Action` judging from its variants, however the Game stores a mapping of whether a given `Button` is active over a period of time. `Intents` could work but `Button` is less abstract and often corresponds directly to IRL player inputs.
-#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum Button {
-    /// Moves the piece once to the left.
-    MoveLeft = 0,
-    /// Moves the piece once to the right.
-    MoveRight,
-    /// Rotate the piece by +90° (clockwise).
-    RotateLeft,
-    /// Rotate the piece by -90° (counter-clockwise).
-    RotateRight,
-    /// Rotate the piece by 180° (flip around).
-    RotateAround,
-    /// "Soft" dropping.
-    /// This drops a piece down by one, locking it immediately if it hit a surface,
-    /// Otherwise holding this button decreases fall speed by the game [`Configuration`]'s `soft_drop_factor`.
-    DropSoft,
-    /// "Hard" dropping.
-    /// This immediately drops a piece all the way down until it hits a surface,
-    /// locking it there (almost) instantly, too.
-    DropHard,
-    /// Teleport the piece down, also known as "Sonic" dropping.
-    /// This immediately drops a piece all the way down until it hits a surface,
-    /// but without locking it (unlike [`Button::DropHard`]).
-    TeleDown,
-    /// Instantly 'teleports' (moves) a piece left until it hits a surface.
-    TeleLeft,
-    /// Instantly 'teleports' (moves) a piece right until it hits a surface.
-    TeleRight,
-    /// Holding the current piece; and swapping in a new piece if one was held previously.
-    HoldPiece,
-}
-
-/// A change in button state, between being held down or unpressed.
-#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum ButtonChange {
-    /// The signal of a button now being active / 'pressed down'.
-    Press(Button),
-    /// The signal of a button now being inactive / 'not pressed down'.
-    Release(Button),
 }
 
 /// Certain statistics for which an instance of [`Game`] can be checked against.
@@ -235,10 +195,10 @@ pub struct Configuration {
     ///
     /// Should be `0 ≤ .. < ∞`.
     pub capped_lock_time_factor: f64,
-    /// How long the game should wait after clearing a line.
-    pub line_clear_delay: Duration,
-    /// How long the game should wait *additionally* before spawning a new piece.
-    pub appearance_delay: Duration,
+    /// How long the game should take to clear a line.
+    pub line_clear_duration: Duration,
+    /// How long the game should take to spawn a new piece.
+    pub spawn_delay: Duration,
     /// Whether the gravity should be automatically incremented while the game plays.
     pub progressive_gravity: bool,
     /// Stores the ways in which a round of the game should be limited.
@@ -266,68 +226,49 @@ pub struct InitialValues {
     pub seed: u64,
 }
 
-/// Locking details stored about an active piece in play.
+/// Represents an abstract game input.
+// NOTE: We could consider calling this `Action` judging from its variants, however the Game stores a mapping of whether a given `Button` is active over a period of time. `Intents` could work but `Button` is less abstract and often corresponds directly to IRL player inputs.
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct PieceData {
-    /// The tetromino game piece itself.
-    pub piece: Piece,
-    /// The time of the next fall or lock event.
-    pub fall_or_lock_time: GameTime,
-    /// Whether `fall_or_lock_time` refers to a fall or lock event.
-    pub is_fall_not_lock: bool,
-    /// The lowest recorded vertical position of the main piece.
-    pub lowest_y: usize,
-    /// The total duration the main piece is allowed until it should immediately lock down.
-    pub capped_lock_time: GameTime,
-    /// Optional time of the next move event.
-    pub auto_move_scheduled: Option<GameTime>,
+pub enum Button {
+    /// Moves the piece once to the left.
+    MoveLeft = 0,
+    /// Moves the piece once to the right.
+    MoveRight,
+    /// Rotate the piece by +90° (clockwise).
+    RotateLeft,
+    /// Rotate the piece by -90° (counter-clockwise).
+    RotateRight,
+    /// Rotate the piece by 180° (flip around).
+    RotateAround,
+    /// "Soft" dropping.
+    /// This drops a piece down by one, locking it immediately if it hit a surface,
+    /// Otherwise holding this button decreases fall speed by the game [`Configuration`]'s `soft_drop_factor`.
+    DropSoft,
+    /// "Hard" dropping.
+    /// This immediately drops a piece all the way down until it hits a surface,
+    /// locking it there (almost) instantly, too.
+    DropHard,
+    /// Teleport the piece down, also known as "Sonic" dropping.
+    /// This immediately drops a piece all the way down until it hits a surface,
+    /// but without locking it (unlike [`Button::DropHard`]).
+    TeleDown,
+    /// Instantly 'teleports' (moves) a piece left until it hits a surface.
+    TeleLeft,
+    /// Instantly 'teleports' (moves) a piece right until it hits a surface.
+    TeleRight,
+    /// Holding the current piece; and swapping in a new piece if one was held previously.
+    HoldPiece,
 }
 
-/// Represents how a game can end.
+/// A change in button state, between being held down or unpressed.
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum GameOver {
-    /// 'Lock out' denotes the most recent piece being completely locked down at
-    /// or above the [`Game::SKYLINE`].
-    LockOut,
-    /// 'Block out' denotes a new piece being unable to spawn due to pre-existing board tile
-    /// blocking one or several of the spawn cells.
-    BlockOut,
-    /// Generic game over by having reached a (negative) game limit.
-    Limit(Stat),
-    /// Generic game over by player forfeit.
-    Forfeit,
-}
-
-/// An event that is scheduled by the game engine to execute some action.
-#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum Phase {
-    /// The state of the game being irreversibly over, and not playable anymore.
-    GameEnded {
-        /// The result of how the game ended.
-        result: GameResult,
-    },
-    /// The state of the game "taking its time" to clear out lines.
-    /// In this state the board is as it was at the time of the piece locking down,
-    /// i.e. with some horizontally completed lines.
-    /// After exiting this state, the
-    LinesClearing {
-        /// The in-game time at which the game moves on to the next `ActionState.`
-        lines_cleared_time: GameTime,
-    },
-    /// The state of the game "taking its time" to spawn a piece.
-    /// This is the state the board will have right before attempting to spawn a new piece.
-    Spawning {
-        /// The in-game time at which the game moves on to the next `ActionState.`
-        spawn_time: GameTime,
-    },
-    /// The state of the game having an active piece in-play, which can be controlled by a player.
-    PieceInPlay {
-        /// The data required to play a piece in this `ActionState.`
-        piece_data: PieceData,
-    },
+pub enum ButtonChange {
+    /// The signal of a button now being active / 'pressed down'.
+    Press(Button),
+    /// The signal of a button now being inactive / 'not pressed down'.
+    Release(Button),
 }
 
 /// Struct storing internal game state that changes over the course of play.
@@ -358,6 +299,70 @@ pub struct State {
     pub score: u64,
     /// The number of consecutive pieces that have been played and caused a line clear.
     pub consecutive_line_clears: u32,
+}
+
+/// Represents how a game can end.
+#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub enum GameOver {
+    /// 'Lock out' denotes the most recent piece being completely locked down at
+    /// or above the [`Game::SKYLINE`].
+    LockOut,
+    /// 'Block out' denotes a new piece being unable to spawn due to pre-existing board tile
+    /// blocking one or several of the spawn cells.
+    BlockOut,
+    /// Generic game over by having reached a (negative) game limit.
+    Limit(Stat),
+    /// Generic game over by player forfeit.
+    Forfeit,
+}
+
+/// Locking details stored about an active piece in play.
+#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct PieceData {
+    /// The tetromino game piece itself.
+    pub piece: Piece,
+    /// The time of the next fall or lock event.
+    pub fall_or_lock_time: GameTime,
+    /// Whether `fall_or_lock_time` refers to a fall or lock event.
+    pub is_fall_not_lock: bool,
+    /// The lowest recorded vertical position of the main piece.
+    pub lowest_y: usize,
+    /// The total duration the main piece is allowed until it should immediately lock down.
+    pub capped_lock_time: GameTime,
+    /// Optional time of the next move event.
+    pub auto_move_scheduled: Option<GameTime>,
+}
+
+/// An event that is scheduled by the game engine to execute some action.
+#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub enum Phase {
+    /// The state of the game being irreversibly over, and not playable anymore.
+    GameEnded {
+        /// The result of how the game ended.
+        result: GameResult,
+    },
+    /// The state of the game "taking its time" to clear out lines.
+    /// In this state the board is as it was at the time of the piece locking down,
+    /// i.e. with some horizontally completed lines.
+    /// After exiting this state, the
+    LinesClearing {
+        /// The in-game time at which the game moves on to the next `ActionState.`
+        lines_cleared_time: GameTime,
+    },
+    /// The state of the game "taking its time" to spawn a piece.
+    /// This is the state the board will have right before attempting to spawn a new piece.
+    Spawning {
+        /// The in-game time at which the game moves on to the next `ActionState.`
+        spawn_time: GameTime,
+    },
+    /// The state of the game having an active piece in-play, which can be controlled by a player.
+    PieceInPlay {
+        /// The data required to play a piece in this `ActionState.`
+        piece_data: PieceData,
+    },
 }
 
 /// Represents a specific point which was reached in a call to [`Game::update`].
@@ -424,27 +429,7 @@ pub struct Modifier {
     pub mod_function: Box<GameModFn>,
 }
 
-/// This builder exposes the ability to configure a new [`Game`] to varying degrees.
-///
-/// Generally speaking, when using `GameBuilder`, you’ll first call [`GameBuilder::new`] or
-/// [`Game::builder`], then chain calls to methods to set each field, then call
-/// [`GameBuilder::build`] or [`GameBuilder::build_modified`].
-/// This will give you a [`Game`] as specified that you can then use as normal.
-/// The `GameBuilder` is not used up and its configuration can be re-used to initialize more [`Game`]s.
-#[derive(PartialEq, PartialOrd, Clone, Default, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct GameBuilder {
-    /// Many of the configuration options that will be set for the game.
-    pub config: Configuration,
-    /// The gravity at which a game should start.
-    pub initial_gravity: Option<u32>,
-    /// The method (and internal state) of tetromino generation used.
-    pub start_generator: Option<TetrominoGenerator>,
-    /// The value to seed the game's PRNG with.
-    pub seed: Option<u64>,
-}
-
-/// Main game struct representing one round of play.
+/// Main game struct representing a round of play.
 #[derive(Debug)]
 pub struct Game {
     /// Some internal configuration options of the `Game`.
@@ -474,13 +459,28 @@ pub struct Game {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Feedback {
     /// A piece was locked down in a certain configuration.
-    PieceLocked(Piece),
+    PieceLocked {
+        /// Information about the [`Piece`] that was locked.
+        piece: Piece,
+    },
     /// A number of lines were cleared.
     ///
     /// The duration indicates the line clear delay the game was configured with at the time.
-    LinesClearing(Vec<usize>, Duration),
+    LinesClearing {
+        /// A list of height coordinates/indices signifying where lines where cleared.
+        y_coords: Vec<usize>,
+        /// Game time where lines started clearing.
+        /// Starts simultaneously to when a piece was locked and successfully completed some horizontal [`Line`]s,
+        /// therefore this will coincide with the time same value in a nearby [`Feedback::PieceLocked`].
+        line_clear_duration: GameTime,
+    },
     /// A piece was quickly dropped from its original position to a new one.
-    HardDrop(Piece, Piece),
+    HardDrop {
+        /// Information about the old state of the hard-dropped piece.
+        old_piece: Piece,
+        /// Information about the new state of the hard-dropped piece.
+        new_piece: Piece,
+    },
     /// The player cleared some lines with a number of other stats that might have increased their
     /// score bonus.
     Accolade {
@@ -516,7 +516,9 @@ pub enum UpdateGameError {
 }
 
 impl Tetromino {
-    /// The Tetromino variants.
+    /// All `Tetromino` enum variants in order.
+    ///
+    /// Note that `Tetromino::VARIANTS[t as usize] == t` always holds.
     pub const VARIANTS: [Self; 7] = {
         use Tetromino::*;
         [O, I, S, Z, T, L, J]
@@ -578,18 +580,19 @@ impl Tetromino {
 }
 
 impl Orientation {
+    /// All `Orientation` enum variants in order.
+    ///
+    /// Note that `Orientation::VARIANTS[o as usize] == o` always holds.
+    pub const VARIANTS: [Self; 4] = {
+        use Orientation::*;
+        [N, E, S, W]
+    };
+
     /// Find a new direction by turning right some number of times.
     ///
     /// This accepts `i32` to allow for left rotation.
     pub const fn reorient_right(&self, right_turns: i8) -> Self {
-        use Orientation::*;
-        match (*self as i8 + right_turns).rem_euclid(4) {
-            0 => N,
-            1 => E,
-            2 => S,
-            3 => W,
-            _ => unreachable!(),
-        }
+        Orientation::VARIANTS[((*self as i8 + right_turns) as usize).rem_euclid(4)]
     }
 }
 
@@ -667,7 +670,9 @@ impl Piece {
 }
 
 impl Button {
-    /// All button variants.
+    /// All `Button` enum variants.
+    ///
+    /// Note that `Button::VARIANTS[b as usize] == b` always holds.
     pub const VARIANTS: [Self; 11] = {
         use Button as B;
         [
@@ -710,8 +715,8 @@ impl Default for Configuration {
             auto_repeat_rate: Duration::from_millis(33),
             soft_drop_factor: 10.0,
             capped_lock_time_factor: 10.0,
-            line_clear_delay: Duration::from_millis(200),
-            appearance_delay: Duration::from_millis(50),
+            line_clear_duration: Duration::from_millis(200),
+            spawn_delay: Duration::from_millis(50),
             progressive_gravity: true,
             end_conditions: Default::default(),
             feedback_verbosity: FeedbackVerbosity::default(),
@@ -759,146 +764,10 @@ impl fmt::Debug for Modifier {
     }
 }
 
-impl GameBuilder {
-    /// Creates a blank new template representing a yet-to-be-started [`Game`] ready for configuration.
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    /// Creates a [`Game`] with the information specified by `self`.
-    pub fn build(&self) -> Game {
-        self.build_modded([])
-    }
-
-    /// Creates a [`Game`] with the information specified by `self` and some one-time `modifiers`.
-    pub fn build_modded(&self, modifiers: impl IntoIterator<Item = Modifier>) -> Game {
-        let init_vals = InitialValues {
-            initial_gravity: self.initial_gravity.unwrap_or(1),
-            start_generator: self.start_generator.clone().unwrap_or_default(),
-            seed: self.seed.unwrap_or_else(|| rand::rng().next_u64()),
-        };
-        Game {
-            config: self.config.clone(),
-            state: State {
-                time: Duration::ZERO,
-                buttons_pressed: Default::default(),
-                board: Board::default(),
-                hold_piece: None,
-                piece_preview: VecDeque::default(),
-                piece_generator: init_vals.start_generator.clone(),
-                pieces_locked: [0; 7],
-                lines_cleared: 0,
-                gravity: init_vals.initial_gravity,
-                score: 0,
-                consecutive_line_clears: 0,
-                rng: GameRng::seed_from_u64(init_vals.seed),
-            },
-            phase: Phase::Spawning {
-                spawn_time: Duration::ZERO,
-            },
-            init_vals,
-            modifiers: modifiers.into_iter().collect(),
-        }
-    }
-
-    /// Sets the [`Configuration`] that will be used by [`Game`].
-    pub fn config(&mut self, x: Configuration) -> &mut Self {
-        self.config = x;
-        self
-    }
-
-    /// Sets the [`InitialValues`] that will be used by [`Game`].
-    pub fn init_vals(&mut self, x: InitialValues) -> &mut Self {
-        self.seed(x.seed)
-            .initial_gravity(x.initial_gravity)
-            .start_generator(x.start_generator)
-    }
-
-    /// The value to seed the game's PRNG with.
-    pub fn seed(&mut self, x: u64) -> &mut Self {
-        self.seed = Some(x);
-        self
-    }
-
-    /// The gravity at which a game should start.
-    pub fn initial_gravity(&mut self, x: u32) -> &mut Self {
-        self.initial_gravity = Some(x);
-        self
-    }
-
-    /// The method (and internal state) of tetromino generation used.
-    pub fn start_generator(&mut self, x: TetrominoGenerator) -> &mut Self {
-        self.start_generator = Some(x);
-        self
-    }
-
-    /// How many pieces should be pre-generated and accessible/visible in the game state.
-    pub fn piece_preview_size(&mut self, x: usize) -> &mut Self {
-        self.config.piece_preview_size = x;
-        self
-    }
-    /// Whether holding a rotation button lets a piece be smoothly spawned in a rotated state.
-    pub fn allow_prespawn_actions(&mut self, x: bool) -> &mut Self {
-        self.config.allow_prespawn_actions = x;
-        self
-    }
-    /// The method of tetromino rotation used.
-    pub fn rotation_system(&mut self, x: RotationSystem) -> &mut Self {
-        self.config.rotation_system = x;
-        self
-    }
-    /// How long it takes for the active piece to start automatically shifting more to the side
-    /// after the initial time a 'move' button has been pressed.
-    pub fn delayed_auto_shift(&mut self, x: Duration) -> &mut Self {
-        self.config.delayed_auto_shift = x;
-        self
-    }
-    /// How long it takes for automatic side movement to repeat once it has started.
-    pub fn auto_repeat_rate(&mut self, x: Duration) -> &mut Self {
-        self.config.auto_repeat_rate = x;
-        self
-    }
-    /// How much faster than normal drop speed a piece should fall while 'soft drop' is being held.
-    pub fn soft_drop_factor(&mut self, x: f64) -> &mut Self {
-        self.config.soft_drop_factor = x;
-        self
-    }
-    /// How long each spawned active piece may touch the ground in total until it should lock down
-    /// immediately.
-    pub fn lock_time_cap_factor(&mut self, x: f64) -> &mut Self {
-        self.config.capped_lock_time_factor = x;
-        self
-    }
-    /// How long the game should wait after clearing a line.
-    pub fn line_clear_delay(&mut self, x: Duration) -> &mut Self {
-        self.config.line_clear_delay = x;
-        self
-    }
-    /// How long the game should wait *additionally* before spawning a new piece.
-    pub fn appearance_delay(&mut self, x: Duration) -> &mut Self {
-        self.config.appearance_delay = x;
-        self
-    }
-    /// Whether the gravity should be automatically incremented while the game plays.
-    pub fn progressive_gravity(&mut self, x: bool) -> &mut Self {
-        self.config.progressive_gravity = x;
-        self
-    }
-    /// Stores the ways in which a round of the game should be limited.
-    ///
-    /// Each limitation may be either of positive ('game completed') or negative ('game over'), as
-    /// designated by the `bool` stored with it.
-    ///
-    /// No limitations may allow for endless games.
-    pub fn end_conditions(&mut self, x: Vec<(Stat, bool)>) -> &mut Self {
-        self.config.end_conditions = x;
-        self
-    }
-
-    /// The amount of feedback information that is to be generated.
-    pub fn feedback_verbosity(&mut self, x: FeedbackVerbosity) -> &mut Self {
-        self.config.feedback_verbosity = x;
-        self
+// The only (most default) way to create a new `Game` without first having to use [`GameBuilder`].
+impl Default for Game {
+    fn default() -> Self {
+        Game::builder().build()
     }
 }
 

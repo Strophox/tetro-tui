@@ -151,8 +151,8 @@ pub mod print_recency_tet_gen_stats {
                 msgs.push((state.time, Feedback::Text("".to_owned())));
                 msgs.push((state.time, Feedback::Text(str_piece_likelihood)));
                 msgs.push((state.time, Feedback::Text(str_piece_tallies)));
-                // config.line_clear_delay = Duration::ZERO;
-                // config.appearance_delay = Duration::ZERO;
+                // config.line_clear_duration = Duration::ZERO;
+                // config.spawn_delay = Duration::ZERO;
                 // state.board.remove(0);
                 // state.board.push(Default::default());
                 // state.board.remove(0);
