@@ -11,7 +11,7 @@ use crossterm::{
     terminal::{self, Clear, ClearType},
     ExecutableCommand,
 };
-use tetrs_engine::{Feedback, Game, UpdateGameError};
+use tetrs_engine::{Button, ButtonChange, Feedback, Game, UpdateGameError};
 
 use crate::{
     application::{
@@ -239,10 +239,12 @@ impl<T: Write> Application<T> {
                 }
             }
         };
+
         // Console epilogue: De-initialization.
         if self.runtime_data.kitty_assumed {
             let _ = self.term.execute(event::PopKeyboardEnhancementFlags);
         }
+
         if let Some(game_result) = game.result() {
             let h_console = terminal::size()?.1;
             if game_result.is_ok() {
@@ -260,7 +262,20 @@ impl<T: Write> Application<T> {
                     std::thread::sleep(Duration::from_secs_f32(0.01));
                 }
             };
+        } else {
+            // Game not done = we're pausing.
+            // Manually release any pressed buttons for safety when pausing.
+            let mut to_unpress = Vec::new();
+            for (is_pressed, button) in game.state().buttons_pressed.iter().zip(Button::VARIANTS) {
+                if is_pressed.is_some() {
+                    to_unpress.push(button);
+                }
+            }
+            for button in to_unpress {
+                let _ = game.update(game.state().time, Some(ButtonChange::Release(button)));
+            }
         }
+
         Ok(menu_update)
     }
 }
