@@ -251,7 +251,7 @@ impl<T: Write> Application<T> {
 
                 // Exit menu.
                 Event::Key(KeyEvent {
-                    code: KeyCode::Esc | KeyCode::Char('q'),
+                    code: KeyCode::Esc | KeyCode::Char('q') | KeyCode::Backspace,
                     kind: Press,
                     ..
                 }) => break Ok(MenuUpdate::Pop),
@@ -486,7 +486,7 @@ impl<T: Write> Application<T> {
                 builder
                     .rotation_system(g.rotation_system)
                     .initial_tetromino_generator(g.tetromino_generator.clone())
-                    .piece_preview_size(g.piece_preview_size)
+                    .piece_preview_count(g.piece_preview_count)
                     .allow_prespawn_actions(g.allow_prespawn_actions)
                     .delayed_auto_shift(g.delayed_auto_shift)
                     .auto_repeat_rate(g.auto_repeat_rate)

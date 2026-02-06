@@ -197,7 +197,7 @@ pub enum FeedbackVerbosity {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Configuration {
     /// How many pieces should be pre-generated and accessible/visible in the game state.
-    pub piece_preview_size: usize,
+    pub piece_preview_count: usize,
     /// Whether holding a rotation button lets a piece be smoothly spawned in a rotated state.
     pub allow_prespawn_actions: bool,
     /// The method of tetromino rotation used.
@@ -729,7 +729,7 @@ impl<T> ops::IndexMut<Button> for [T; Button::VARIANTS.len()] {
 impl Default for Configuration {
     fn default() -> Self {
         Self {
-            piece_preview_size: 4,
+            piece_preview_count: 4,
             allow_prespawn_actions: true,
             rotation_system: RotationSystem::default(),
             delayed_auto_shift: Duration::from_millis(167),

@@ -117,7 +117,7 @@ pub fn build(builder: &GameBuilder) -> Game {
         .clone()
         .initial_gravity(2)
         .progressive_gravity(false)
-        .piece_preview_size(0)
+        .piece_preview_count(0)
         .build_modded([Modifier {
             descriptor: MOD_ID.to_owned(),
             mod_function,

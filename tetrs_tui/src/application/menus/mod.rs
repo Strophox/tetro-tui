@@ -118,7 +118,7 @@ impl<T: Write> Application<T> {
                     )))
                 }
                 Event::Key(KeyEvent {
-                    code: KeyCode::Esc | KeyCode::Char('q'),
+                    code: KeyCode::Esc | KeyCode::Char('q') | KeyCode::Backspace,
                     kind: Press,
                     ..
                 }) => break Ok(MenuUpdate::Pop),

@@ -107,8 +107,8 @@ impl<T: Write> Application<T> {
                     }
                 ),
                 format!(
-                    "Piece preview size: {}",
-                    self.settings.gameplay().piece_preview_size
+                    "Piece preview count: {}",
+                    self.settings.gameplay().piece_preview_count
                 ),
                 format!(
                     "Delayed auto shift (DAS): {:?} *",
@@ -186,7 +186,7 @@ impl<T: Write> Application<T> {
                     )))
                 }
                 Event::Key(KeyEvent {
-                    code: KeyCode::Esc | KeyCode::Char('q'),
+                    code: KeyCode::Esc | KeyCode::Char('q') | KeyCode::Backspace,
                     kind: Press,
                     ..
                 }) => break Ok(MenuUpdate::Pop),
@@ -261,7 +261,7 @@ impl<T: Write> Application<T> {
                     }
                     3 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                        self.settings.gameplay_mut().piece_preview_size += 1;
+                        self.settings.gameplay_mut().piece_preview_count += 1;
                     }
                     4 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
@@ -329,10 +329,10 @@ impl<T: Write> Application<T> {
                     }
                     3 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                        self.settings.gameplay_mut().piece_preview_size = self
+                        self.settings.gameplay_mut().piece_preview_count = self
                             .settings
                             .gameplay()
-                            .piece_preview_size
+                            .piece_preview_count
                             .saturating_sub(1);
                     }
                     4 => {

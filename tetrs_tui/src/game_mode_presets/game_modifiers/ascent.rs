@@ -47,7 +47,7 @@ pub fn build(builder: &GameBuilder) -> Game {
                 };
                 state.hold_piece = Some((asc_tet_02, true));
                 // No further pieces required.
-                config.piece_preview_size = 0;
+                config.piece_preview_count = 0;
             }
 
             // We can only do things if a piece exists.

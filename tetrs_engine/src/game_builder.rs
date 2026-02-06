@@ -101,8 +101,8 @@ impl GameBuilder {
     }
 
     /// How many pieces should be pre-generated and accessible/visible in the game state.
-    pub fn piece_preview_size(&mut self, x: usize) -> &mut Self {
-        self.config.piece_preview_size = x;
+    pub fn piece_preview_count(&mut self, x: usize) -> &mut Self {
+        self.config.piece_preview_count = x;
         self
     }
     /// Whether holding a rotation button lets a piece be smoothly spawned in a rotated state.

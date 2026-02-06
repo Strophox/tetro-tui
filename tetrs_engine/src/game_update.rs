@@ -258,7 +258,7 @@ fn do_spawn(state: &mut State, config: &Configuration, spawn_time: GameTime) -> 
     state.piece_preview.extend(
         state.piece_generator.with_rng(&mut state.rng).take(
             config
-                .piece_preview_size
+                .piece_preview_count
                 .saturating_sub(state.piece_preview.len()),
         ),
     );
