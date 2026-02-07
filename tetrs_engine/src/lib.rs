@@ -823,11 +823,6 @@ impl Game {
         &self.phase
     }
 
-    /// Read accessor for the game's list of modifiers.
-    pub const fn modifiers(&self) -> &Vec<Modifier> {
-        &self.modifiers
-    }
-
     /// Retrieve the when the next *autonomous* in-game update is scheduled.
     /// I.e., compute the next time the game would change state assuming no button updates
     ///

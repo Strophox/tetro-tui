@@ -161,3 +161,55 @@ pub mod print_recency_tet_gen_stats {
         }
     }
 }
+
+// NOTE: Can be / was used for debugging.
+#[allow(dead_code)]
+pub mod print_fall_delay {
+    use std::time::Duration;
+
+    use tetrs_engine::{Feedback, Modifier, UpdatePoint};
+
+    pub const MOD_ID: &str = "print_fall_delay";
+
+    pub fn modifier() -> Modifier {
+        Modifier {
+            descriptor: MOD_ID.to_owned(),
+            mod_function: Box::new(|point, _config, _init_vals, state, _phase, msgs| {
+                if !matches!(point, UpdatePoint::LinesCleared) {
+                    return;
+                }
+
+                let raw_drop_delay = 'early_return_value: {
+                    Duration::from_nanos(match state.gravity {
+                        0 => break 'early_return_value Duration::MAX,
+                        1 => 1_000_000_000,
+                        2 => 793_000_000,
+                        3 => 617_796_000,
+                        4 => 472_729_139,
+                        5 => 355_196_928,
+                        6 => 262_003_550,
+                        7 => 189_677_245,
+                        8 => 134_734_731,
+                        9 => 93_882_249,
+                        10 => 64_151_585,
+                        11 => 42_976_258,
+                        12 => 28_217_678,
+                        13 => 18_153_329,
+                        14 => 11_439_342,
+                        15 => 7_058_616,
+                        16 => 4_263_557,
+                        17 => 2_520_084,
+                        18 => 1_457_139,
+                        19 => 823_907,
+                        20.. => 0,
+                    })
+                };
+                // msgs.push((state.time, Feedback::Text("".to_owned())));
+                msgs.push((
+                    state.time,
+                    Feedback::Text(format!("fall = {raw_drop_delay:?}")),
+                ));
+            }),
+        }
+    }
+}
