@@ -236,14 +236,14 @@ impl Renderer for DiffPrintRenderer {
             hold_piece,
             piece_preview: next_pieces,
             piece_generator: _,
-            pieces_locked: pieces_played,
+            pieces_locked,
             lines_cleared,
             gravity,
             score,
             consecutive_line_clears: _,
             rng: _,
         } = game.state();
-        let pieces = pieces_played.iter().sum::<u32>();
+        let pieces = pieces_locked.iter().sum::<u32>();
         // Screen: some titles.
         let mode_name_space = meta_data.title.len().max(14);
         let (endcond_title, endcond_value) = if let Some((c, _)) = game
