@@ -796,12 +796,12 @@ impl DelayEquation {
 
     /// Delay equation which implements guideline-like lock delays:
     /// * Assume `initial_lock_delay == 500 ms`.
-    /// * decrease lock_delay by 20 ms every 10 lineclears.
+    /// * decrease lock_delay by 20 ms every 10 lineclears (= 0.004 / 0.4% every lineclear).
     /// * Assume `lock_delay_lowerbound == 200 ms`
     pub fn guidelinelike_lock_delays() -> Self {
         Self {
             mul: ExtNonNegF64::ONE,
-            sub: ExtNonNegF64::new(0.04).unwrap(),
+            sub: ExtNonNegF64::new(0.004).unwrap(),
         }
     }
 }

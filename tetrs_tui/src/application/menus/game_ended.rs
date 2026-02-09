@@ -74,12 +74,12 @@ impl<T: Write> Application<T> {
                 .queue(MoveTo(x_main, y_main + y_selection + 5))?
                 .queue(Print(format!(
                     "{:^w_main$}",
-                    format!("Tetrominos locked: {}", fmt_tetromino_counts(pieces_locked))
+                    format!("Pieces: {}", fmt_tetromino_counts(pieces_locked))
                 )))?
                 .queue(MoveTo(x_main, y_main + y_selection + 6))?
                 .queue(Print(format!(
                     "{:^w_main$}",
-                    format!("Gravity reached: {}", fmt_hertz(*gravity_reached))
+                    format!("Gravity: {}", fmt_hertz(*gravity_reached))
                 )))?
                 .queue(MoveTo(x_main, y_main + y_selection + 7))?
                 .queue(Print(format!(

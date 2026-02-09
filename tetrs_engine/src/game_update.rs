@@ -384,13 +384,18 @@ fn do_line_clearing(
 
             // Increment level if update requested.
             if state.lineclears % config.update_delays_every_n_lineclears == 0 {
+                // Calculate new fall- and lock delay for game state.
                 (state.fall_delay, state.lock_delay) = calc_fall_and_lock_delay(
                     config,
                     init_vals,
                     state.fall_delay_hit_zero_at_n_lineclears,
                     state.lineclears,
                 );
-                if state.fall_delay == ExtDuration::ZERO {
+
+                // Remember the first time fall delay hit zero.
+                if state.fall_delay == ExtDuration::ZERO
+                    && state.fall_delay_hit_zero_at_n_lineclears.is_none()
+                {
                     state.fall_delay_hit_zero_at_n_lineclears = Some(state.lineclears);
                 }
             }
@@ -1126,6 +1131,10 @@ fn calc_fall_and_lock_delay(
     fall_delay_hit_zero_at_n_lineclears: Option<u32>,
     lineclears: u32,
 ) -> (ExtDuration, ExtDuration) {
+    let/*TODO:dbg*/s=format!("calc_ lineclears={lineclears:?}\n");
+    if let Ok(f) = &mut std::fs::OpenOptions::new().append(true).open("dbg.txt") {
+        let _ = std::io::Write::write(f, s.as_bytes());
+    }
     let Configuration {
         fall_delay_equation: fall_delay_progression,
         lock_delay_equation: lock_delay_progression,
@@ -1142,17 +1151,17 @@ fn calc_fall_and_lock_delay(
         // Fall delay zero was hit at some point, only decrease lock delay now.
         let lock_lineclears = f64::from(lineclears - lineclears_sentinel);
         let DelayEquation { mul, sub } = lock_delay_progression;
-        let factor = mul.get().powf(lock_lineclears) - sub.get() * lock_lineclears;
+        let lock_delay_factor = mul.get().powf(lock_lineclears) - sub.get() * lock_lineclears;
         let lock_delay = initial_lock_delay
-            .saturating_mul_ennf64(ExtNonNegF64::new(0.0f64.max(factor)).unwrap());
+            .saturating_mul_ennf64(ExtNonNegF64::new(0.0f64.max(lock_delay_factor)).unwrap());
         (ExtDuration::ZERO, (*lock_delay_lowerbound).max(lock_delay))
     } else {
         // Normally decrease fall delay.
         let DelayEquation { mul, sub } = fall_delay_progression;
         let lineclears = f64::from(lineclears);
-        let factor = mul.get().powf(lineclears) - sub.get() * lineclears;
+        let fall_delay_factor = mul.get().powf(lineclears) - sub.get() * lineclears;
         let fall_delay = initial_fall_delay
-            .saturating_mul_ennf64(ExtNonNegF64::new(0.0f64.max(factor)).unwrap());
-        (ExtDuration::ZERO.min(fall_delay), *initial_lock_delay)
+            .saturating_mul_ennf64(ExtNonNegF64::new(0.0f64.max(fall_delay_factor)).unwrap());
+        (ExtDuration::ZERO.max(fall_delay), *initial_lock_delay)
     }
 }

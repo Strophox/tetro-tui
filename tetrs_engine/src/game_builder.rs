@@ -56,16 +56,20 @@ impl GameBuilder {
             config: self.config.clone(),
             state: State {
                 time: Duration::ZERO,
-                buttons_pressed: Default::default(),
+                buttons_pressed: [None; Button::VARIANTS.len()],
                 rng: GameRng::seed_from_u64(init_vals.seed),
                 piece_generator: init_vals.initial_tetromino_generator,
-                piece_preview: VecDeque::default(),
+                piece_preview: VecDeque::new(),
                 hold_piece: None,
-                board: Board::default(),
+                board: [Line::default(); Game::HEIGHT],
                 fall_delay: init_vals.initial_fall_delay,
-                fall_delay_hit_zero_at_n_lineclears: None,
+                fall_delay_hit_zero_at_n_lineclears: init_vals
+                    .initial_fall_delay
+                    .saturating_duration()
+                    .is_zero()
+                    .then_some(0),
                 lock_delay: init_vals.initial_lock_delay,
-                pieces_locked: [0; 7],
+                pieces_locked: [0; Tetromino::VARIANTS.len()],
                 lineclears: 0,
                 consecutive_line_clears: 0,
                 score: 0,
