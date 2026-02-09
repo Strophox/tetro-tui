@@ -230,7 +230,7 @@ pub struct NewGameSettings {
 impl Default for NewGameSettings {
     fn default() -> Self {
         Self {
-            custom_initial_fall_delay: InitialValues::new().initial_fall_delay,
+            custom_initial_fall_delay: InitialValues::default_seeded().initial_fall_delay,
             custom_fall_delay_equation: Configuration::default().fall_delay_equation,
             custom_win_condition: None,
             custom_seed: None,
@@ -346,7 +346,7 @@ pub struct GameplaySettings {
 impl Default for GameplaySettings {
     fn default() -> Self {
         let c = Configuration::default();
-        let i = InitialValues::new();
+        let i = InitialValues::default_seeded();
         Self {
             rotation_system: c.rotation_system,
             tetromino_generator: i.initial_tetromino_generator,

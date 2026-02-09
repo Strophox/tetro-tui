@@ -9,7 +9,7 @@ license = "MIT"
 # keywords = [...]
 readme = "README.md"
 edition = "2021"
-rust-version = "1.83.0"
+rust-version = "1.85.0"
 # categories = [...]
 
 [lib]

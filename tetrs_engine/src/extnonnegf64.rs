@@ -7,11 +7,17 @@ A module that implements a minimalistic wrapper around `f64`, asserting that it 
 /// In precise terms, an extended non-negative `f64` consists of all `value: f64`s that fulfil `0.0f64.total_cmp(&value).is_le() && !value.is_nan()`.
 ///
 /// Unlike `f64`, `ExNonNegF64` does implement [`Eq`], [`Ord`], [`std::hash::Hash`].
-#[derive(PartialEq, PartialOrd, Clone, Copy, Debug, Default)]
+#[derive(PartialEq, Clone, Copy, Debug, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ExtNonNegF64(f64);
 
 impl Eq for ExtNonNegF64 {}
+
+impl PartialOrd for ExtNonNegF64 {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
 
 impl Ord for ExtNonNegF64 {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {

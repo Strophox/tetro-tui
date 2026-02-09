@@ -5,21 +5,16 @@ This module handles rotation of [`ActivePiece`]s.
 use crate::{Board, Orientation, Piece, Tetromino};
 
 /// Handles the logic of how to rotate a tetromino in play.
-#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
+#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum RotationSystem {
     /// The self-developed 'Ocular' rotation system.
+    #[default]
     Ocular,
     /// The right-handed variant of the classic, kick-less rotation system used in NES Tetris.
     Classic,
     /// The Super Rotation System.
     Super,
-}
-
-impl Default for RotationSystem {
-    fn default() -> Self {
-        RotationSystem::Ocular
-    }
 }
 
 impl RotationSystem {

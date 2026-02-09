@@ -833,7 +833,7 @@ impl InitialValues {
     /// Generates a new set of initial values.
     ///
     /// This can be seen as a 'default' of `InitialValues`, except that the `seed` field is correctly randomized.
-    pub fn new() -> Self {
+    pub fn default_seeded() -> Self {
         Self {
             initial_fall_delay: Duration::from_millis(1000).into(),
             initial_lock_delay: Duration::from_millis(500).into(),
@@ -995,7 +995,7 @@ impl Game {
 
     /// Creates a blueprint [`GameBuilder`] and an iterator over current modifier identifiers ([`&str`]s) from which the exact game can potentially be rebuilt.
     pub fn blueprint(&self) -> (GameBuilder, impl Iterator<Item = &str>) {
-        let init_vals = self.init_vals.clone();
+        let init_vals = self.init_vals;
         let builder = GameBuilder {
             config: self.config.clone(),
             seed: Some(self.init_vals.seed),
@@ -1011,7 +1011,7 @@ impl Game {
     pub fn clone_unmodded(&self) -> Self {
         Self {
             config: self.config.clone(),
-            init_vals: self.init_vals.clone(),
+            init_vals: self.init_vals,
             state: self.state.clone(),
             phase: self.phase,
             modifiers: Vec::new(),

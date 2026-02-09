@@ -39,12 +39,11 @@ impl GameBuilder {
 
     /// Creates a [`Game`] with the information specified by `self` and some one-time `modifiers`.
     pub fn build_modded(&self, modifiers: impl IntoIterator<Item = Modifier>) -> Game {
-        let default_init_vals = InitialValues::new();
+        let default_init_vals = InitialValues::default_seeded();
         let init_vals = InitialValues {
             seed: self.seed.unwrap_or(default_init_vals.seed),
             initial_tetromino_generator: self
                 .initial_tetromino_generator
-                .clone()
                 .unwrap_or(default_init_vals.initial_tetromino_generator),
             initial_fall_delay: self
                 .initial_fall_delay
@@ -59,7 +58,7 @@ impl GameBuilder {
                 time: Duration::ZERO,
                 buttons_pressed: Default::default(),
                 rng: GameRng::seed_from_u64(init_vals.seed),
-                piece_generator: init_vals.initial_tetromino_generator.clone(),
+                piece_generator: init_vals.initial_tetromino_generator,
                 piece_preview: VecDeque::default(),
                 hold_piece: None,
                 board: Board::default(),

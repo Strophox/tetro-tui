@@ -37,7 +37,7 @@ impl<T: Write> Application<T> {
         let d_score = 100;
         let d_pieces = 1;
         let d_lines = 1;
-        let d_gravity = ExtNonNegF64::ONE;
+        let d_gravity = ExtNonNegF64::ONE; // TODO: adapt d_gravity <-> d_fall_delay discrepancy...
         let d_fall_delay = Duration::from_millis(10).into();
 
         loop {
@@ -477,7 +477,7 @@ impl<T: Write> Application<T> {
                         self.settings.new_game.custom_seed = None;
                         self.settings.new_game.custom_board = None;
                         self.settings.new_game.custom_initial_fall_delay =
-                            InitialValues::new().initial_fall_delay;
+                            InitialValues::default_seeded().initial_fall_delay;
                         self.settings.new_game.custom_fall_delay_equation =
                             DelayEquation::guidelinelike_fall_delays();
                         self.settings.new_game.custom_win_condition = None;
