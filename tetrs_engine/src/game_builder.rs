@@ -39,21 +39,23 @@ impl GameBuilder {
 
     /// Creates a [`Game`] with the information specified by `self` and some one-time `modifiers`.
     pub fn build_modded(&self, modifiers: impl IntoIterator<Item = Modifier>) -> Game {
-        let default_init_vals = InitialValues::default_seeded();
+        let config = self.config.clone();
+
+        let init_vals = InitialValues::default_seeded();
         let init_vals = InitialValues {
-            seed: self.seed.unwrap_or(default_init_vals.seed),
+            seed: self.seed.unwrap_or(init_vals.seed),
             initial_tetromino_generator: self
                 .initial_tetromino_generator
-                .unwrap_or(default_init_vals.initial_tetromino_generator),
+                .unwrap_or(init_vals.initial_tetromino_generator),
             initial_fall_delay: self
                 .initial_fall_delay
-                .unwrap_or(default_init_vals.initial_fall_delay),
+                .unwrap_or(init_vals.initial_fall_delay),
             initial_lock_delay: self
                 .initial_lock_delay
-                .unwrap_or(default_init_vals.initial_lock_delay),
+                .unwrap_or(init_vals.initial_lock_delay),
         };
+
         Game {
-            config: self.config.clone(),
             state: State {
                 time: Duration::ZERO,
                 buttons_pressed: [None; Button::VARIANTS.len()],
@@ -62,13 +64,16 @@ impl GameBuilder {
                 piece_preview: VecDeque::new(),
                 hold_piece: None,
                 board: [Line::default(); Game::HEIGHT],
-                fall_delay: init_vals.initial_fall_delay,
-                fall_delay_hit_zero_at_n_lineclears: init_vals
+                fall_delay: config
+                    .fall_delay_lowerbound
+                    .max(init_vals.initial_fall_delay),
+                fall_delay_lowerbound_hit_at_n_lineclears: init_vals
                     .initial_fall_delay
-                    .saturating_duration()
-                    .is_zero()
+                    .le(&config.fall_delay_lowerbound)
                     .then_some(0),
-                lock_delay: init_vals.initial_lock_delay,
+                lock_delay: config
+                    .lock_delay_lowerbound
+                    .max(init_vals.initial_lock_delay),
                 pieces_locked: [0; Tetromino::VARIANTS.len()],
                 lineclears: 0,
                 consecutive_line_clears: 0,
@@ -78,6 +83,7 @@ impl GameBuilder {
                 spawn_time: Duration::ZERO,
             },
             modifiers: modifiers.into_iter().collect(),
+            config,
             init_vals,
         }
     }

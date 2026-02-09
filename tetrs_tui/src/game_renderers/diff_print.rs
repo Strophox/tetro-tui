@@ -243,7 +243,7 @@ impl Renderer for DiffPrintRenderer {
             consecutive_line_clears: _,
             rng: _,
             fall_delay,
-            fall_delay_hit_zero_at_n_lineclears: _,
+            fall_delay_lowerbound_hit_at_n_lineclears: _,
             lock_delay: _,
         } = game.state();
         let pieces = pieces_locked.iter().sum::<u32>();

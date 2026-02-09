@@ -240,14 +240,16 @@ pub struct Configuration {
     pub capped_lock_time_factor: ExtNonNegF64,
     /// How long the game should take to clear a line.
     pub line_clear_duration: Duration,
-    /// When to update the fall and lock delays in [`State`].
-    pub update_delays_every_n_lineclears: u32,
     /// Specification of how fall delay gets calculated from the rest of the state.
     pub fall_delay_equation: DelayEquation,
+    /// Specification of where to stop decreasing fall delay and start decreasing lock delay.
+    pub fall_delay_lowerbound: ExtDuration,
     /// Specification of how fall delay gets calculated from the rest of the state.
     pub lock_delay_equation: DelayEquation,
     /// Specification of where to stop decreasing lock delay.
     pub lock_delay_lowerbound: ExtDuration,
+    /// When to update the fall and lock delays in [`State`].
+    pub update_delays_every_n_lineclears: u32,
     /// Stores the ways in which a round of the game should be limited.
     ///
     /// Each limitation may be either of positive ('game completed') or negative ('game over'), as
@@ -341,7 +343,7 @@ pub struct State {
     /// The current duration a piece takes to fall one unit.
     pub fall_delay: ExtDuration,
     /// The point (number of lines cleared) at which fall delay was updated to zero (possibly capped if formula yielded negative).
-    pub fall_delay_hit_zero_at_n_lineclears: Option<u32>,
+    pub fall_delay_lowerbound_hit_at_n_lineclears: Option<u32>,
     /// The current duration a piece takes to try and lock down.
     pub lock_delay: ExtDuration,
     /// Tallies of how many pieces of each type have been played so far.
@@ -820,9 +822,10 @@ impl Default for Configuration {
             spawn_delay: Duration::from_millis(50),
             // This approximates guideline.
             fall_delay_equation: DelayEquation::guidelinelike_fall_delays(),
-            update_delays_every_n_lineclears: 10,
+            fall_delay_lowerbound: Duration::ZERO.into(),
             lock_delay_equation: DelayEquation::guidelinelike_lock_delays(),
             lock_delay_lowerbound: Duration::from_millis(200).into(),
+            update_delays_every_n_lineclears: 10,
             end_conditions: Default::default(),
             feedback_verbosity: FeedbackVerbosity::default(),
         }
