@@ -35,6 +35,8 @@ TASK: Document all features (including IRS, etc. - cargo feature `serde`).
 
 #![warn(missing_docs)]
 
+pub mod extduration;
+pub mod extnonnegf64;
 pub mod game_builder;
 pub mod game_update;
 pub mod rotation_system;
@@ -47,6 +49,8 @@ use rand_chacha::{
     ChaCha12Rng,
 };
 
+pub use extduration::ExtDuration;
+pub use extnonnegf64::ExtNonNegF64;
 pub use game_builder::GameBuilder;
 pub use rotation_system::RotationSystem;
 pub use tetromino_generator::TetrominoGenerator;
@@ -64,7 +68,7 @@ pub type Coord = (usize, usize);
 pub type Offset = (isize, isize);
 
 /// The type used to identify points in time in a game's internal timeline.
-pub type GameTime = Duration;
+pub type InGameTime = Duration;
 /// The internal RNG used by a game.
 pub type GameRng = ChaCha12Rng;
 /// Type of underlying functions at the heart of a [`GameModifier`].
@@ -80,7 +84,7 @@ pub type GameModFn = dyn FnMut(
 pub type GameResult = Result<Stat, GameOver>;
 
 /// Convenient type alias to denote a collection of [`Feedback`]s associated with some [`GameTime`].
-pub type FeedbackMessages = Vec<(GameTime, Feedback)>;
+pub type FeedbackMessages = Vec<(InGameTime, Feedback)>;
 
 /// Represents one of the seven "Tetrominos";
 ///
@@ -156,17 +160,17 @@ pub struct Piece {
 }
 
 /// Certain statistics for which an instance of [`Game`] can be checked against.
-#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Stat {
     /// Whether a given amount of total time has elapsed in-game.
-    TimeElapsed(GameTime),
+    TimeElapsed(InGameTime),
     /// Whether a given number of [`Tetromino`]s have been locked/placed on the game's [`Board`].
     PiecesLocked(u32),
     /// Whether a given number of lines have been cleared from the [`Board`].
-    LinesCleared(usize),
+    LinesCleared(u32),
     /// Whether a certain level of gravity has been reached already.
-    GravityReached(u32),
+    GravityReached(ExtNonNegF64),
     /// Whether a given number of points has been scored already.
     PointsScored(u64),
 }
@@ -188,12 +192,32 @@ pub enum FeedbackVerbosity {
     Debug,
 }
 
+/// A struct holding information on how certain time 'delay' values progress.
+///
+/// # Example
+/// The formulation used for calculation of fall delay is:
+/// ```
+/// |lineclears| {
+///     initial_fall_delay.saturating_mul_ennf64(
+///         mul.get().powf(lineclears) - sub.get() * lineclears
+///     )
+/// }
+/// ```
+#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct DelayEquation {
+    /// The factor used for multiplication: used as base in exponentiation.
+    pub mul: ExtNonNegF64,
+    /// The subtrahend used for subtraction: used as factor in multiplication.
+    pub sub: ExtNonNegF64,
+}
+
 /// Configuration options of the game, which can be modified without hurting internal invariants.
 ///
 /// # Reproducibility
 /// Modifying a [`Game`]'s configuration after it was created might not make it easily
 /// reproducible anymore.
-#[derive(PartialEq, PartialOrd, Clone, Debug)]
+#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Hash, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Configuration {
     /// How many pieces should be pre-generated and accessible/visible in the game state.
@@ -202,26 +226,28 @@ pub struct Configuration {
     pub allow_prespawn_actions: bool,
     /// The method of tetromino rotation used.
     pub rotation_system: RotationSystem,
+    /// How long the game should take to spawn a new piece.
+    pub spawn_delay: Duration,
     /// How long it takes for the active piece to start automatically shifting more to the side
     /// after the initial time a 'move' button has been pressed.
     pub delayed_auto_shift: Duration,
     /// How long it takes for automatic side movement to repeat once it has started.
     pub auto_repeat_rate: Duration,
-    /// How much faster than normal drop speed a piece should fall while 'soft drop' is being held.
-    ///
-    /// Should be `0 ≤ .. ≤ ∞`.
-    pub soft_drop_factor: f64,
+    /// How many times faster than normal drop speed a piece should fall while 'soft drop' is being held.
+    pub soft_drop_divisor: ExtNonNegF64,
     /// How long each spawned active piece may touch the ground in total until it should lock down
     /// immediately.
-    ///
-    /// Should be `0 ≤ .. < ∞`.
-    pub capped_lock_time_factor: f64,
+    pub capped_lock_time_factor: ExtNonNegF64,
     /// How long the game should take to clear a line.
     pub line_clear_duration: Duration,
-    /// How long the game should take to spawn a new piece.
-    pub spawn_delay: Duration,
-    /// Whether the gravity should be automatically incremented while the game plays.
-    pub progressive_gravity: bool,
+    /// When to update the fall and lock delays in [`State`].
+    pub update_delays_every_n_lineclears: u32,
+    /// Specification of how fall delay gets calculated from the rest of the state.
+    pub fall_delay_equation: DelayEquation,
+    /// Specification of how fall delay gets calculated from the rest of the state.
+    pub lock_delay_equation: DelayEquation,
+    /// Specification of where to stop decreasing lock delay.
+    pub lock_delay_lowerbound: ExtDuration,
     /// Stores the ways in which a round of the game should be limited.
     ///
     /// Each limitation may be either of positive ('game completed') or negative ('game over'), as
@@ -236,15 +262,17 @@ pub struct Configuration {
 /// Some values that were used to help initialize the game.
 ///
 /// Used for game reproducibility.
-#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Hash, Debug)]
+#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct InitialValues {
-    /// The gravity at which a game should start.
-    pub initial_gravity: u32,
-    /// The method (and internal state) of tetromino generation used.
-    pub initial_tetromino_generator: TetrominoGenerator,
     /// The value to seed the game's PRNG with.
     pub seed: u64,
+    /// The method (and internal state) of tetromino generation used.
+    pub initial_tetromino_generator: TetrominoGenerator,
+    /// The fall delay at the beginning of the game.
+    pub initial_fall_delay: ExtDuration,
+    /// The lock delay at the beginning of the game.
+    pub initial_lock_delay: ExtDuration,
 }
 
 /// Represents an abstract game input.
@@ -297,9 +325,9 @@ pub enum ButtonChange {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct State {
     /// Current in-game time.
-    pub time: GameTime,
+    pub time: InGameTime,
     /// The current state of buttons being pressed in the game.
-    pub buttons_pressed: [Option<GameTime>; Button::VARIANTS.len()],
+    pub buttons_pressed: [Option<InGameTime>; Button::VARIANTS.len()],
     /// The internal pseudo random number generator used.
     pub rng: GameRng,
     /// The method (and internal state) of tetromino generation used.
@@ -310,16 +338,20 @@ pub struct State {
     pub hold_piece: Option<(Tetromino, bool)>,
     /// The main playing grid storing empty (`None`) and filled, fixed tiles (`Some(nz_u32)`).
     pub board: Board,
+    /// The current duration a piece takes to fall one unit.
+    pub fall_delay: ExtDuration,
+    /// The point (number of lines cleared) at which fall delay was updated to zero (possibly capped if formula yielded negative).
+    pub fall_delay_hit_zero_at_n_lineclears: Option<u32>,
+    /// The current duration a piece takes to try and lock down.
+    pub lock_delay: ExtDuration,
     /// Tallies of how many pieces of each type have been played so far.
     pub pieces_locked: [u32; Tetromino::VARIANTS.len()],
     /// The total number of lines that have been cleared.
-    pub lines_cleared: usize,
-    /// The current gravity/speed level the game is letting the pieces fall sat.
-    pub gravity: u32,
-    /// The current total score the player has achieved in this round of play.
-    pub score: u64,
+    pub lineclears: u32,
     /// The number of consecutive pieces that have been played and caused a line clear.
     pub consecutive_line_clears: u32,
+    /// The current total score the player has achieved in this round of play.
+    pub score: u64,
 }
 
 /// Represents how a game can end.
@@ -345,15 +377,15 @@ pub struct PieceData {
     /// The tetromino game piece itself.
     pub piece: Piece,
     /// The time of the next fall or lock event.
-    pub fall_or_lock_time: GameTime,
+    pub fall_or_lock_time: InGameTime,
     /// Whether `fall_or_lock_time` refers to a fall or lock event.
     pub is_fall_not_lock: bool,
     /// The lowest recorded vertical position of the main piece.
     pub lowest_y: usize,
-    /// The total duration the main piece is allowed until it should immediately lock down.
-    pub capped_lock_time: GameTime,
+    /// The time after which the active piece will immediately lock upon touching ground.
+    pub capped_lock_time: InGameTime,
     /// Optional time of the next move event.
-    pub auto_move_scheduled: Option<GameTime>,
+    pub auto_move_scheduled: Option<InGameTime>,
 }
 
 /// An event that is scheduled by the game engine to execute some action.
@@ -364,7 +396,7 @@ pub enum Phase {
     /// This is the state the board will have right before attempting to spawn a new piece.
     Spawning {
         /// The in-game time at which the game moves on to the next `Phase.`
-        spawn_time: GameTime,
+        spawn_time: InGameTime,
     },
     /// The state of the game having an active piece in-play, which can be controlled by a player.
     PieceInPlay {
@@ -377,7 +409,7 @@ pub enum Phase {
     /// After exiting this state, the
     LinesClearing {
         /// The in-game time at which the game moves on to the next `Phase.`
-        line_clears_finish_time: GameTime,
+        line_clears_finish_time: InGameTime,
     },
     /// The state of the game being irreversibly over, and not playable anymore.
     GameEnd {
@@ -493,7 +525,7 @@ pub enum Feedback {
         /// Game time where lines started clearing.
         /// Starts simultaneously to when a piece was locked and successfully completed some horizontal [`Line`]s,
         /// therefore this will coincide with the time same value in a nearby [`Feedback::PieceLocked`].
-        line_clear_duration: GameTime,
+        line_clear_start: InGameTime,
     },
     /// A piece was quickly dropped from its original position to a new one.
     HardDrop {
@@ -508,7 +540,7 @@ pub enum Feedback {
         /// The final computed score bonus caused by the action.
         score_bonus: u32,
         /// How many lines were cleared by the piece simultaneously
-        lines_cleared: u32,
+        lineclears: u32,
         /// The number of consecutive pieces played that caused a lineclear.
         combo: u32,
         /// Whether the piece was spun into place.
@@ -726,6 +758,54 @@ impl<T> ops::IndexMut<Button> for [T; Button::VARIANTS.len()] {
     }
 }
 
+impl DelayEquation {
+    /// Delay equation which does not change at all with number of linescleared.
+    pub const fn constant() -> Self {
+        Self {
+            mul: ExtNonNegF64::ONE,
+            sub: ExtNonNegF64::ZERO,
+        }
+    }
+
+    /// Delay equation which decreases linearly in number of linescleared.
+    pub const fn linear(sub: ExtNonNegF64) -> Self {
+        Self {
+            mul: ExtNonNegF64::ONE,
+            sub,
+        }
+    }
+
+    /// Delay equation which decreases/decays exponentially in number of linescleared.
+    pub const fn exponential(mul: ExtNonNegF64) -> Self {
+        Self {
+            mul,
+            sub: ExtNonNegF64::ZERO,
+        }
+    }
+
+    /// Delay equation which implements guideline-like fall delays:
+    /// * Assume `initial_fall_delay == 1.0s`.
+    /// * 100 lineclears ~> 2s to fall one whole skyline height.
+    /// * 210 lineclears ~> 0s to fall one whole skyline height.
+    pub fn guidelinelike_fall_delays() -> Self {
+        Self {
+            mul: ExtNonNegF64::new(0.9776880098709251).unwrap(),
+            sub: ExtNonNegF64::new(0.000042).unwrap(),
+        }
+    }
+
+    /// Delay equation which implements guideline-like lock delays:
+    /// * Assume `initial_lock_delay == 500 ms`.
+    /// * decrease lock_delay by 20 ms every 10 lineclears.
+    /// * Assume `lock_delay_lowerbound == 200 ms`
+    pub fn guidelinelike_lock_delays() -> Self {
+        Self {
+            mul: ExtNonNegF64::ONE,
+            sub: ExtNonNegF64::new(0.04).unwrap(),
+        }
+    }
+}
+
 impl Default for Configuration {
     fn default() -> Self {
         Self {
@@ -734,13 +814,31 @@ impl Default for Configuration {
             rotation_system: RotationSystem::default(),
             delayed_auto_shift: Duration::from_millis(167),
             auto_repeat_rate: Duration::from_millis(33),
-            soft_drop_factor: 10.0,
-            capped_lock_time_factor: 10.0,
+            soft_drop_divisor: ExtNonNegF64::new(10.0).unwrap(),
+            capped_lock_time_factor: ExtNonNegF64::new(10.0).unwrap(),
             line_clear_duration: Duration::from_millis(200),
             spawn_delay: Duration::from_millis(50),
-            progressive_gravity: true,
+            // This approximates guideline.
+            fall_delay_equation: DelayEquation::guidelinelike_fall_delays(),
+            update_delays_every_n_lineclears: 10,
+            lock_delay_equation: DelayEquation::guidelinelike_lock_delays(),
+            lock_delay_lowerbound: Duration::from_millis(200).into(),
             end_conditions: Default::default(),
             feedback_verbosity: FeedbackVerbosity::default(),
+        }
+    }
+}
+
+impl InitialValues {
+    /// Generates a new set of initial values.
+    ///
+    /// This can be seen as a 'default' of `InitialValues`, except that the `seed` field is correctly randomized.
+    pub fn new() -> Self {
+        Self {
+            initial_fall_delay: Duration::from_millis(1000).into(),
+            initial_lock_delay: Duration::from_millis(500).into(),
+            initial_tetromino_generator: TetrominoGenerator::recency(),
+            seed: rand::rng().next_u64(),
         }
     }
 }
@@ -800,8 +898,6 @@ impl Game {
     /// The height of the (conventionally visible) playing grid that can be played in.
     /// No piece may be locked entirely above the `SKYLINE`, although it may do so partially.
     pub const SKYLINE_HEIGHT: usize = 20;
-    /// This is the gravity level at which blocks instantly hit the floor ("20G").
-    pub const INSTANT_GRAVITY: u32 = 20;
 
     /// Creates a blank new template representing a yet-to-be-started [`Game`] ready for configuration.
     pub fn builder() -> GameBuilder {
@@ -823,13 +919,21 @@ impl Game {
         &self.phase
     }
 
+    /// Whether the game has ended, and whether it can continue to update.
+    pub const fn result(&self) -> Option<GameResult> {
+        match self.phase {
+            Phase::GameEnd { result } => Some(result),
+            _ => None,
+        }
+    }
+
     /// Retrieve the when the next *autonomous* in-game update is scheduled.
     /// I.e., compute the next time the game would change state assuming no button updates
     ///
     /// # Modifiers
     /// Note that this only predicts what an unmodded game would do;
     /// [`Modifier`]s may arbitrarily change game state and change or prevent precise update predictions.
-    pub fn peek_update_time(&self) -> Option<GameTime> {
+    pub fn peek_update_time(&self) -> Option<InGameTime> {
         let action_time = match self.phase {
             Phase::GameEnd { .. } => return None,
             Phase::LinesClearing {
@@ -873,8 +977,8 @@ impl Game {
         match stat {
             Stat::TimeElapsed(t) => *t <= self.state.time,
             Stat::PiecesLocked(p) => *p <= self.state.pieces_locked.iter().sum(),
-            Stat::LinesCleared(l) => *l <= self.state.lines_cleared,
-            Stat::GravityReached(g) => *g <= self.state.gravity,
+            Stat::LinesCleared(l) => *l <= self.state.lineclears,
+            Stat::GravityReached(g) => *g <= self.state.fall_delay.as_hertz(),
             Stat::PointsScored(s) => *s <= self.state.score,
         }
     }
@@ -889,21 +993,15 @@ impl Game {
         };
     }
 
-    /// Whether the game has ended, and whether it can continue to update.
-    pub const fn result(&self) -> Option<GameResult> {
-        match self.phase {
-            Phase::GameEnd { result } => Some(result),
-            _ => None,
-        }
-    }
-
     /// Creates a blueprint [`GameBuilder`] and an iterator over current modifier identifiers ([`&str`]s) from which the exact game can potentially be rebuilt.
     pub fn blueprint(&self) -> (GameBuilder, impl Iterator<Item = &str>) {
+        let init_vals = self.init_vals.clone();
         let builder = GameBuilder {
             config: self.config.clone(),
-            initial_gravity: Some(self.init_vals.initial_gravity),
-            initial_tetromino_generator: Some(self.init_vals.initial_tetromino_generator.clone()),
             seed: Some(self.init_vals.seed),
+            initial_tetromino_generator: Some(init_vals.initial_tetromino_generator),
+            initial_fall_delay: Some(init_vals.initial_fall_delay),
+            initial_lock_delay: Some(init_vals.initial_lock_delay),
         };
         let mod_descriptors = self.modifiers.iter().map(|m| m.descriptor.as_str());
         (builder, mod_descriptors)

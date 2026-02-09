@@ -14,7 +14,7 @@ use crossterm::{
     terminal::{Clear, ClearType},
     QueueableCommand,
 };
-use tetrs_engine::{RotationSystem, TetrominoGenerator};
+use tetrs_engine::{ExtNonNegF64, RotationSystem, TetrominoGenerator};
 
 use crate::application::{Application, Menu, MenuUpdate, Settings};
 
@@ -36,6 +36,13 @@ impl<T: Write> Application<T> {
                 settings.gameplay_slot_active = settings.gameplay_slots.len() - 1;
             }
         };
+
+        let d_das = Duration::from_millis(1);
+        let d_arr = Duration::from_millis(1);
+        let d_sdf = ExtNonNegF64::new(0.2).unwrap();
+        let d_lcd = Duration::from_millis(5);
+        let d_are = Duration::from_millis(5);
+
         let selection_len = 11;
         let mut selected = 1usize;
         loop {
@@ -102,8 +109,6 @@ impl<T: Write> Application<T> {
                         TetrominoGenerator::Recency { .. } => "Recency".to_owned(),
                         TetrominoGenerator::BalanceRelative { .. } =>
                             "Balance relative counts".to_owned(),
-                        TetrominoGenerator::Cycle { pattern, index: _ } =>
-                            format!("Cycling pattern {pattern:?}"),
                     }
                 ),
                 format!(
@@ -120,7 +125,7 @@ impl<T: Write> Application<T> {
                 ),
                 format!(
                     "Soft drop factor (SDF): {} *",
-                    self.settings.gameplay().soft_drop_factor
+                    self.settings.gameplay().soft_drop_factor.get()
                 ),
                 format!(
                     "Line clear duration (LCD): {:?}",
@@ -256,7 +261,6 @@ impl<T: Write> Application<T> {
                                 TetrominoGenerator::BalanceRelative { .. } => {
                                     TetrominoGenerator::uniform()
                                 }
-                                TetrominoGenerator::Cycle { .. } => TetrominoGenerator::uniform(),
                             };
                     }
                     3 => {
@@ -265,24 +269,23 @@ impl<T: Write> Application<T> {
                     }
                     4 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                        self.settings.gameplay_mut().delayed_auto_shift += Duration::from_millis(1);
+                        self.settings.gameplay_mut().delayed_auto_shift += d_das;
                     }
                     5 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                        self.settings.gameplay_mut().auto_repeat_rate += Duration::from_millis(1);
+                        self.settings.gameplay_mut().auto_repeat_rate += d_arr;
                     }
                     6 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                        self.settings.gameplay_mut().soft_drop_factor += 0.5;
+                        self.settings.gameplay_mut().soft_drop_factor += d_sdf;
                     }
                     7 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                        self.settings.gameplay_mut().line_clear_duration +=
-                            Duration::from_millis(10);
+                        self.settings.gameplay_mut().line_clear_duration += d_lcd;
                     }
                     8 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                        self.settings.gameplay_mut().spawn_delay += Duration::from_millis(10);
+                        self.settings.gameplay_mut().spawn_delay += d_are;
                     }
                     9 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
@@ -324,7 +327,6 @@ impl<T: Write> Application<T> {
                                 TetrominoGenerator::BalanceRelative { .. } => {
                                     TetrominoGenerator::recency()
                                 }
-                                TetrominoGenerator::Cycle { .. } => TetrominoGenerator::uniform(),
                             };
                     }
                     3 => {
@@ -341,7 +343,7 @@ impl<T: Write> Application<T> {
                             .settings
                             .gameplay()
                             .delayed_auto_shift
-                            .saturating_sub(Duration::from_millis(1));
+                            .saturating_sub(d_das);
                     }
                     5 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
@@ -349,13 +351,15 @@ impl<T: Write> Application<T> {
                             .settings
                             .gameplay()
                             .auto_repeat_rate
-                            .saturating_sub(Duration::from_millis(1));
+                            .saturating_sub(d_arr);
                     }
                     6 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                        if self.settings.gameplay().soft_drop_factor > 0.0 {
-                            self.settings.gameplay_mut().soft_drop_factor -= 0.5;
-                        }
+                        self.settings.gameplay_mut().soft_drop_factor = self
+                            .settings
+                            .gameplay_mut()
+                            .soft_drop_factor
+                            .saturating_sub(d_sdf)
                     }
                     7 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
@@ -363,15 +367,12 @@ impl<T: Write> Application<T> {
                             .settings
                             .gameplay()
                             .line_clear_duration
-                            .saturating_sub(Duration::from_millis(10));
+                            .saturating_sub(d_lcd);
                     }
                     8 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                        self.settings.gameplay_mut().spawn_delay = self
-                            .settings
-                            .gameplay()
-                            .spawn_delay
-                            .saturating_sub(Duration::from_millis(10));
+                        self.settings.gameplay_mut().spawn_delay =
+                            self.settings.gameplay().spawn_delay.saturating_sub(d_are);
                     }
                     9 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);

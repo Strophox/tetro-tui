@@ -639,7 +639,7 @@ mod tests {
     use std::{collections::HashMap, num::NonZeroU32};
 
     use super::*;
-    use tetrs_engine::tetromino_generator::TetrominoGenerator;
+    use tetrs_engine::{tetromino_generator::TetrominoGenerator, ExtNonNegF64};
 
     const COMBO_MAX: usize = 1_000_000;
 
@@ -681,16 +681,16 @@ mod tests {
             (TetrominoGenerator::stock(NonZeroU32::MIN.saturating_add(1), 7).unwrap(), "bag-2_restock-on-7"),
             (TetrominoGenerator::stock(NonZeroU32::MIN.saturating_add(1), 7).unwrap(), "bag-3_restock-on-7"),
             (TetrominoGenerator::recency(), "recency"),
-            (TetrominoGenerator::recency_with(0), "recency-0.0"),
-            (TetrominoGenerator::recency_with(50), "recency-0.5"),
-            (TetrominoGenerator::recency_with(100), "recency-1.0"),
-            (TetrominoGenerator::recency_with(150), "recency-1.5"),
-            (TetrominoGenerator::recency_with(200), "recency-2.0"),
-            (TetrominoGenerator::recency_with(250), "recency-2.5"),
-            (TetrominoGenerator::recency_with(300), "recency-3.0"),
-            (TetrominoGenerator::recency_with(800), "recency-8.0"),
-            (TetrominoGenerator::recency_with(1600), "recency-16.0"),
-            (TetrominoGenerator::recency_with(3200), "recency-32.0"),
+            (TetrominoGenerator::recency_with(ExtNonNegF64::new(0.).unwrap()), "recency-0.0"),
+            (TetrominoGenerator::recency_with(ExtNonNegF64::new(50.).unwrap()), "recency-0.5"),
+            (TetrominoGenerator::recency_with(ExtNonNegF64::new(100.).unwrap()), "recency-1.0"),
+            (TetrominoGenerator::recency_with(ExtNonNegF64::new(150.).unwrap()), "recency-1.5"),
+            (TetrominoGenerator::recency_with(ExtNonNegF64::new(200.).unwrap()), "recency-2.0"),
+            (TetrominoGenerator::recency_with(ExtNonNegF64::new(250.).unwrap()), "recency-2.5"),
+            (TetrominoGenerator::recency_with(ExtNonNegF64::new(300.).unwrap()), "recency-3.0"),
+            (TetrominoGenerator::recency_with(ExtNonNegF64::new(800.).unwrap()), "recency-8.0"),
+            (TetrominoGenerator::recency_with(ExtNonNegF64::new(1600.).unwrap()), "recency-16.0"),
+            (TetrominoGenerator::recency_with(ExtNonNegF64::new(3200.).unwrap()), "recency-32.0"),
         ];
         run_analyses_on(sample_count, std::iter::repeat(lookahead).zip(randomizers));
     }

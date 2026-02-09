@@ -125,7 +125,7 @@ impl<T: Write> Application<T> {
             ))?;
             for tet in Tetromino::VARIANTS {
                 self.term.queue(PrintStyledContent(
-                    fmt_tet_small(&tet).with(
+                    fmt_tet_small(tet).with(
                         *self
                             .settings
                             .palette()

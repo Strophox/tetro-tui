@@ -1,6 +1,9 @@
-use std::{num::NonZeroUsize, time::Duration};
+use std::{
+    num::{NonZeroU32, NonZeroUsize},
+    time::Duration,
+};
 
-use tetrs_engine::{Game, GameBuilder, Stat};
+use tetrs_engine::{DelayEquation, ExtDuration, Game, GameBuilder, Stat};
 
 pub mod game_modifiers;
 
@@ -13,8 +16,8 @@ pub fn forty_lines() -> GameModePreset {
         Box::new(|builder: &GameBuilder| {
             builder
                 .clone()
-                .initial_gravity(3)
-                .progressive_gravity(false)
+                .initial_fall_delay(ExtDuration::Finite(Duration::from_millis(500)))
+                .fall_delay_equation(DelayEquation::constant())
                 .end_conditions(vec![(Stat::LinesCleared(40), true)])
                 .build()
         }),
@@ -28,9 +31,7 @@ pub fn marathon() -> GameModePreset {
         Box::new(|builder: &GameBuilder| {
             builder
                 .clone()
-                .initial_gravity(1)
-                .progressive_gravity(true)
-                .end_conditions(vec![(Stat::GravityReached(16), true)])
+                .end_conditions(vec![(Stat::LinesCleared(150), true)])
                 .build()
         }),
     )
@@ -43,8 +44,8 @@ pub fn time_trial() -> GameModePreset {
         Box::new(|builder: &GameBuilder| {
             builder
                 .clone()
-                .initial_gravity(3)
-                .progressive_gravity(false)
+                .initial_fall_delay(ExtDuration::Finite(Duration::from_millis(500)))
+                .fall_delay_equation(DelayEquation::constant())
                 .end_conditions(vec![(Stat::TimeElapsed(Duration::from_secs(3 * 60)), true)])
                 .build()
         }),
@@ -58,12 +59,8 @@ pub fn master() -> GameModePreset {
         Box::new(|builder: &GameBuilder| {
             builder
                 .clone()
-                .initial_gravity(Game::INSTANT_GRAVITY)
-                .progressive_gravity(true)
-                .end_conditions(vec![(
-                    Stat::GravityReached(Game::INSTANT_GRAVITY + 16),
-                    true,
-                )])
+                .initial_fall_delay(ExtDuration::ZERO)
+                .end_conditions(vec![(Stat::LinesCleared(300), true)])
                 .build()
         }),
     )
@@ -77,7 +74,11 @@ pub fn puzzle() -> GameModePreset {
     )
 }
 
-pub fn n_cheese(linelimit: Option<NonZeroUsize>, gapsize: usize, gravity: u32) -> GameModePreset {
+pub fn n_cheese(
+    linelimit: Option<NonZeroU32>,
+    cheese_tiles_per_line: NonZeroUsize,
+    fall_delay: ExtDuration,
+) -> GameModePreset {
     (
         format!(
             "{}Cheese",
@@ -90,13 +91,13 @@ pub fn n_cheese(linelimit: Option<NonZeroUsize>, gapsize: usize, gravity: u32) -
         (Stat::PiecesLocked(0), true),
         Box::new({
             move |builder: &GameBuilder| {
-                game_modifiers::cheese::build(builder, linelimit, gapsize, gravity)
+                game_modifiers::cheese::build(builder, linelimit, cheese_tiles_per_line, fall_delay)
             }
         }),
     )
 }
 
-pub fn n_combo(linelimit: Option<NonZeroUsize>, startlayout: u16) -> GameModePreset {
+pub fn n_combo(linelimit: Option<NonZeroU32>, startlayout: u16) -> GameModePreset {
     (
         format!(
             "{}Combo",
@@ -111,10 +112,9 @@ pub fn n_combo(linelimit: Option<NonZeroUsize>, startlayout: u16) -> GameModePre
             move |builder: &GameBuilder| {
                 builder
                     .clone()
-                    .initial_gravity(1)
-                    .progressive_gravity(false)
+                    .fall_delay_equation(DelayEquation::constant())
                     .end_conditions(match linelimit {
-                        Some(c) => vec![(Stat::LinesCleared(c.get()), true)],
+                        Some(l) => vec![(Stat::LinesCleared(l.get()), true)],
                         None => vec![],
                     })
                     .build_modded([game_modifiers::combo_board::modifier(startlayout)])

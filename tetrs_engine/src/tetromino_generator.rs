@@ -11,13 +11,13 @@ use rand::{
     Rng,
 };
 
-use crate::Tetromino;
+use crate::{ExtNonNegF64, Tetromino};
 
 /// Handles the information of which pieces to spawn during a game.
 ///
 /// To actually generate [`Tetromino`]s, the [`TetrominoGenerator::with_rng`] method needs to be used to yield a
 /// [`TetrominoIterator`] that implements [`Iterator`].
-#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Hash, Debug)]
+#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum TetrominoGenerator {
     /// Uniformly random piece generator.
@@ -49,7 +49,7 @@ pub enum TetrominoGenerator {
         /// Determines how strongly it weighs pieces not generated in a while.
         ///
         ///
-        snap: u32,
+        snap: ExtNonNegF64,
     },
     /// Experimental generator based off of how many times each [`Tetromino`] type has been seen
     /// *in total so far*.
@@ -60,19 +60,6 @@ pub enum TetrominoGenerator {
         /// at least one is `0`.
         relative_counts: [u32; 7],
     },
-    /// Debug generator which repeats a certain pattern of [`Tetromino`]s forever.
-    Cycle {
-        /// The sequence of pieces that is repeated.
-        pattern: Vec<Tetromino>,
-        /// Index to the piece that will be yielded next.
-        index: usize,
-    },
-}
-
-impl Default for TetrominoGenerator {
-    fn default() -> Self {
-        Self::recency()
-    }
 }
 
 impl TetrominoGenerator {
@@ -107,13 +94,15 @@ impl TetrominoGenerator {
 
     /// Initialize a default instance of the [`TetrominoGenerator::Recency`] variant.
     pub const fn recency() -> Self {
-        Self::recency_with(250)
+        // SAFETY: `+0.0 <= 2.5`.
+        let default_snap = unsafe { ExtNonNegF64::new_unchecked(2.5) };
+        Self::recency_with(default_snap)
     }
 
     /// Initialize a custom instance of the [`TetrominoGenerator::Recency`] variant.
     ///
     /// This function returns `None` when `snap` is NaN (see [`f64::is_nan`]).
-    pub const fn recency_with(snap: u32) -> Self {
+    pub const fn recency_with(snap: ExtNonNegF64) -> Self {
         Self::Recency {
             last_generated: [1; 7],
             snap,
@@ -125,11 +114,6 @@ impl TetrominoGenerator {
         Self::BalanceRelative {
             relative_counts: [0; 7],
         }
-    }
-
-    /// Initialize a custom instance of the [`TetrominoGenerator::Cycle`] variant.
-    pub const fn cycle(pattern: Vec<Tetromino>) -> Self {
-        Self::Cycle { pattern, index: 0 }
     }
 
     /// Method that allows `TetrominoGenerator` to be used as [`Iterator`].
@@ -194,7 +178,7 @@ impl<'a, 'b, R: Rng> Iterator for WithRng<'a, 'b, R> {
                 last_generated,
                 snap,
             } => {
-                let weighing = |&x| f64::from(x).powf(f64::from(*snap) / 100.);
+                let weighing = |&x| f64::from(x).powf(snap.get());
                 let weights = last_generated.iter().map(weighing);
                 // SAFETY: `weights` will always be non-zero due to struct invarian.
                 let idx = WeightedIndex::new(weights).unwrap().sample(&mut self.rng);
@@ -205,14 +189,6 @@ impl<'a, 'b, R: Rng> Iterator for WithRng<'a, 'b, R> {
                 }
                 // SAFETY: 0 <= idx <= 6.
                 Some(Tetromino::VARIANTS[idx])
-            }
-            TetrominoGenerator::Cycle { pattern, index } => {
-                let tetromino = pattern[*index];
-                *index += 1;
-                if *index == pattern.len() {
-                    *index = 0;
-                }
-                Some(tetromino)
             }
         }
     }

@@ -303,7 +303,7 @@ pub struct State {
     next_pieces: VecDeque<Tetromino>,
     piece_generator: TetrominoGenerator,
     pieces_locked: [u32; Tetromino::VARIANTS.len()],
-    lines_cleared: usize,
+    lineclears: usize,
     gravity: u32,
     score: u64,
     consecutive_line_clears: u32,

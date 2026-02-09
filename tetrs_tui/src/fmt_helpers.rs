@@ -1,11 +1,11 @@
 use std::time::Duration;
 
 use crossterm::event::{KeyCode, KeyModifiers};
-use tetrs_engine::{Button, ButtonChange, Tetromino};
+use tetrs_engine::{Button, ButtonChange, ExtNonNegF64, Tetromino};
 
 use crate::keybinds_presets::Keybinds;
 
-pub fn fmt_duration(dur: &Duration) -> String {
+pub fn fmt_duration(dur: Duration) -> String {
     format!(
         "{}min {}.{:02}s",
         dur.as_secs() / 60,
@@ -14,7 +14,19 @@ pub fn fmt_duration(dur: &Duration) -> String {
     )
 }
 
-pub fn fmt_tet_small(t: &Tetromino) -> &'static str {
+pub fn fmt_hertz(f: ExtNonNegF64) -> String {
+    const LOWERBOUND: f64 = 0.1e-6;
+    const UPPERBOUND: f64 = 0.1e+6;
+    if f.get() <= LOWERBOUND {
+        "0 Hz".to_owned()
+    } else if UPPERBOUND <= f.get() {
+        "∞ Hz".to_owned()
+    } else {
+        format!("{:.01} Hz", f.get())
+    }
+}
+
+pub fn fmt_tet_small(t: Tetromino) -> &'static str {
     use Tetromino::*;
     match t {
         O => "██",
@@ -27,7 +39,7 @@ pub fn fmt_tet_small(t: &Tetromino) -> &'static str {
     }
 }
 
-pub fn fmt_tet_mini(t: &Tetromino) -> &'static str {
+pub fn fmt_tet_mini(t: Tetromino) -> &'static str {
     use Tetromino::*;
     match t {
         O => "⠶", //"⠶",
@@ -40,7 +52,16 @@ pub fn fmt_tet_mini(t: &Tetromino) -> &'static str {
     }
 }
 
-pub fn fmt_button(b: &Button) -> &'static str {
+pub fn fmt_tetromino_counts(counts: &[u32; Tetromino::VARIANTS.len()]) -> String {
+    counts
+        .iter()
+        .zip(Tetromino::VARIANTS)
+        .map(|(n, t)| format!("{n}{}", fmt_tet_mini(t)))
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+pub fn fmt_button(b: Button) -> &'static str {
     use Button as B;
     match b {
         B::MoveLeft => "←",
@@ -57,7 +78,7 @@ pub fn fmt_button(b: &Button) -> &'static str {
     }
 }
 
-pub fn fmt_button_change(button_change: &ButtonChange) -> String {
+pub fn fmt_button_change(button_change: ButtonChange) -> String {
     match button_change {
         ButtonChange::Press(b) => format!("++[{}]", fmt_button(b)),
         ButtonChange::Release(b) => format!("--[{}]", fmt_button(b)),
@@ -70,7 +91,7 @@ pub fn fmt_button_state(button_state: &[bool; Button::VARIANTS.len()]) -> String
         .iter()
         .zip(Button::VARIANTS)
         .filter(|(p, _)| **p)
-        .map(|(_, b)| fmt_button(&b))
+        .map(|(_, b)| fmt_button(b))
         .collect::<Vec<_>>()
         .join(" ");
 

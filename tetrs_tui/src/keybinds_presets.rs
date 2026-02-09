@@ -23,6 +23,24 @@ pub fn tetrs_default_keybinds() -> Keybinds {
     HashMap::from(keybinds_tetrs)
 }
 
+pub fn tetrs_finesse_keybinds() -> Keybinds {
+    let keybinds_tetrs: [((KeyCode, KeyModifiers), Button); 11] = [
+        (KeyCode::Left, Button::MoveLeft),
+        (KeyCode::Right, Button::MoveRight),
+        (KeyCode::Char('a'), Button::RotateLeft),
+        (KeyCode::Char('d'), Button::RotateRight),
+        (KeyCode::Char('s'), Button::RotateAround),
+        (KeyCode::Down, Button::DropSoft),
+        (KeyCode::Up, Button::DropHard),
+        (KeyCode::Char('w'), Button::TeleDown),
+        (KeyCode::Char('q'), Button::TeleLeft),
+        (KeyCode::Char('e'), Button::TeleRight),
+        (KeyCode::Char(' '), Button::HoldPiece),
+    ]
+    .map(|(k, b)| ((k, KeyModifiers::NONE), b));
+    HashMap::from(keybinds_tetrs)
+}
+
 pub fn vim_keybinds() -> Keybinds {
     let keybinds_vim: [((KeyCode, KeyModifiers), Button); 7] = [
         (KeyCode::Char('h'), Button::MoveLeft),

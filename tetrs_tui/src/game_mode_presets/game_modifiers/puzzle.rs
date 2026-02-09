@@ -1,8 +1,8 @@
 use std::{collections::VecDeque, num::NonZeroU8};
 
 use tetrs_engine::{
-    Button, ButtonChange, Feedback, FeedbackMessages, Game, GameBuilder, GameModFn, GameOver, Line,
-    Modifier, Phase, Stat, State, Tetromino, UpdatePoint,
+    Button, ButtonChange, DelayEquation, Feedback, FeedbackMessages, Game, GameBuilder, GameModFn,
+    GameOver, Line, Modifier, Phase, Stat, State, Tetromino, UpdatePoint,
 };
 
 pub const MOD_ID: &str = "puzzle";
@@ -115,8 +115,7 @@ pub fn build(builder: &GameBuilder) -> Game {
         });
     builder
         .clone()
-        .initial_gravity(2)
-        .progressive_gravity(false)
+        .fall_delay_equation(DelayEquation::constant())
         .piece_preview_count(0)
         .build_modded([Modifier {
             descriptor: MOD_ID.to_owned(),

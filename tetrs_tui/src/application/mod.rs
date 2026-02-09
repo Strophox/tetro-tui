@@ -4,7 +4,7 @@ use std::{
     fmt::Debug,
     fs::File,
     io::{self, Read, Write},
-    num::NonZeroUsize,
+    num::{NonZeroU32, NonZeroUsize},
     path::PathBuf,
     time::{Duration, Instant},
 };
@@ -12,13 +12,16 @@ use std::{
 use crossterm::{cursor, style, terminal, ExecutableCommand};
 
 use tetrs_engine::{
-    Board, Button, ButtonChange, Configuration, Feedback, FeedbackVerbosity, Game, GameBuilder,
-    GameOver, GameResult, GameTime, Modifier, RotationSystem, Stat, Tetromino, TetrominoGenerator,
+    Board, Button, ButtonChange, Configuration, DelayEquation, ExtDuration, ExtNonNegF64, Feedback,
+    FeedbackVerbosity, Game, GameBuilder, GameOver, GameResult, InGameTime, InitialValues,
+    Modifier, RotationSystem, Stat, Tetromino, TetrominoGenerator,
 };
 
 use crate::{
     game_mode_presets, game_renderers,
-    keybinds_presets::{guideline_keybinds, tetrs_default_keybinds, vim_keybinds, Keybinds},
+    keybinds_presets::{
+        guideline_keybinds, tetrs_default_keybinds, tetrs_finesse_keybinds, vim_keybinds, Keybinds,
+    },
     palette_presets::{
         color16_palette, fullcolor_palette, gruvbox_light_palette, gruvbox_palette,
         monochrome_palette, oklch_palette, the_matrix_palette, Palette,
@@ -46,7 +49,7 @@ impl ButtonInputHistory {
 
     // For serialization reasons, we encode a single user input as `u128` instead of
     // `(GameTime, ButtonChange)`, which would have a more verbose string representation.
-    pub fn encode(update_target_time: GameTime, button_change: ButtonChange) -> u128 {
+    pub fn encode(update_target_time: InGameTime, button_change: ButtonChange) -> u128 {
         // Encode `GameTime = std::time::Duration` using `std::time::Duration::as_nanos`.
         let nanos: u128 = update_target_time.as_nanos();
         // Encode `tetrs_engine::ButtonChange` using `Self::encode_button_change`.
@@ -54,7 +57,7 @@ impl ButtonInputHistory {
         (nanos << Self::BUTTON_CHANGE_BITSIZE) | u128::from(bc_bits)
     }
 
-    pub fn decode(num: u128) -> (GameTime, ButtonChange) {
+    pub fn decode(num: u128) -> (InGameTime, ButtonChange) {
         let mask = u128::MAX >> (128 - Self::BUTTON_CHANGE_BITSIZE);
         let bc_bits = u8::try_from(num & mask).unwrap();
         let nanos = u64::try_from(num >> Self::BUTTON_CHANGE_BITSIZE).unwrap();
@@ -156,10 +159,10 @@ pub struct GameMetaData {
 pub struct ScoreboardEntry {
     game_meta_data: GameMetaData,
     result: GameResult,
-    time_elapsed: GameTime,
+    time_elapsed: InGameTime,
     pieces_locked: [u32; Tetromino::VARIANTS.len()],
-    lines_cleared: usize,
-    gravity_reached: u32,
+    lineclears: u32,
+    gravity_reached: ExtNonNegF64,
     points_scored: u64,
 }
 
@@ -169,8 +172,8 @@ impl ScoreboardEntry {
             game_meta_data: game_meta_data.clone(),
             time_elapsed: game.state().time,
             pieces_locked: game.state().pieces_locked,
-            lines_cleared: game.state().lines_cleared,
-            gravity_reached: game.state().gravity,
+            lineclears: game.state().lineclears,
+            gravity_reached: game.state().fall_delay.as_hertz(),
             points_scored: game.state().score,
             result: game.result().unwrap_or(Err(GameOver::Forfeit)),
         }
@@ -206,34 +209,40 @@ pub struct Scoreboard {
     Eq, PartialEq, Ord, PartialOrd, Clone, Hash, Debug, serde::Serialize, serde::Deserialize,
 )]
 pub struct NewGameSettings {
-    custom_initial_gravity: u32,
-    custom_progressive_gravity: bool,
+    custom_initial_fall_delay: ExtDuration,
+    custom_fall_delay_equation: DelayEquation,
     custom_win_condition: Option<Stat>,
     custom_seed: Option<u64>,
     custom_board: Option<String>, // For more compact serialization of NewGameSettings, we store an encoded `Board` (see `encode_board`).
+
+    cheese_linelimit: Option<NonZeroU32>,
+    cheese_fall_delay: ExtDuration,
+    cheese_tiles_per_line: NonZeroUsize,
+
+    combo_linelimit: Option<NonZeroU32>,
     /// Custom starting layout when playing Combo mode (4-wide rows), encoded as binary.
     /// Example: '▀▄▄▀' => 0b_1001_0110 = 150
     combo_startlayout: u16,
-    combo_linelimit: Option<NonZeroUsize>,
-    cheese_gapsize: usize,
-    cheese_gravity: u32,
-    cheese_linelimit: Option<NonZeroUsize>,
+
     experimental_mode_unlocked: bool,
 }
 
 impl Default for NewGameSettings {
     fn default() -> Self {
         Self {
-            custom_initial_gravity: 1,
-            custom_progressive_gravity: true,
+            custom_initial_fall_delay: InitialValues::new().initial_fall_delay,
+            custom_fall_delay_equation: Configuration::default().fall_delay_equation,
             custom_win_condition: None,
             custom_seed: None,
             custom_board: None,
-            cheese_linelimit: Some(NonZeroUsize::try_from(20).unwrap()),
-            cheese_gravity: 0,
-            cheese_gapsize: 1,
-            combo_linelimit: Some(NonZeroUsize::try_from(30).unwrap()),
+
+            cheese_linelimit: Some(NonZeroU32::try_from(20).unwrap()),
+            cheese_fall_delay: ExtDuration::Infinite,
+            cheese_tiles_per_line: NonZeroUsize::MIN,
+
+            combo_linelimit: Some(NonZeroU32::try_from(30).unwrap()),
             combo_startlayout: game_mode_presets::game_modifiers::combo_board::LAYOUTS[0],
+
             experimental_mode_unlocked: false,
         }
     }
@@ -328,7 +337,7 @@ pub struct GameplaySettings {
     piece_preview_count: usize,
     delayed_auto_shift: Duration,
     auto_repeat_rate: Duration,
-    soft_drop_factor: f64,
+    soft_drop_factor: ExtNonNegF64,
     line_clear_duration: Duration,
     spawn_delay: Duration,
     allow_prespawn_actions: bool,
@@ -337,13 +346,14 @@ pub struct GameplaySettings {
 impl Default for GameplaySettings {
     fn default() -> Self {
         let c = Configuration::default();
+        let i = InitialValues::new();
         Self {
             rotation_system: c.rotation_system,
-            tetromino_generator: TetrominoGenerator::default(),
+            tetromino_generator: i.initial_tetromino_generator,
             piece_preview_count: c.piece_preview_count,
             delayed_auto_shift: c.delayed_auto_shift,
             auto_repeat_rate: c.auto_repeat_rate,
-            soft_drop_factor: c.soft_drop_factor,
+            soft_drop_factor: c.soft_drop_divisor,
             line_clear_duration: c.line_clear_duration,
             spawn_delay: c.spawn_delay,
             allow_prespawn_actions: c.allow_prespawn_actions,
@@ -385,7 +395,7 @@ impl Default for Settings {
         let graphics_slots = vec![
             ("default".to_owned(), GraphicsSettings::default()),
             (
-                "high focus".to_owned(),
+                "focused".to_owned(),
                 GraphicsSettings {
                     palette_active: 2,
                     palette_active_lockedtiles: 0,
@@ -405,14 +415,15 @@ impl Default for Settings {
             ("The Matrix".to_owned(), the_matrix_palette()),
         ];
         let keybinds_slots = vec![
-            ("tetrs default".to_owned(), tetrs_default_keybinds()),
+            ("Tetrs default".to_owned(), tetrs_default_keybinds()),
+            ("Tetrs finesse".to_owned(), tetrs_finesse_keybinds()),
             ("Vim-like".to_owned(), vim_keybinds()),
             ("TTC default".to_owned(), guideline_keybinds()),
         ];
         let gameplay_slots = vec![
             ("default".to_owned(), GameplaySettings::default()),
             (
-                "high finesse".to_owned(),
+                "finesse".to_owned(),
                 GameplaySettings {
                     delayed_auto_shift: Duration::from_millis(110),
                     auto_repeat_rate: Duration::from_millis(0),
@@ -686,7 +697,7 @@ impl<T: Write> Application<T> {
                 let o = match pg1.game_meta_data.comparison_stat.0 {
                     Stat::TimeElapsed(_)    => pg1.time_elapsed.cmp(&pg2.time_elapsed),
                     Stat::PiecesLocked(_)   => pg1.pieces_locked.cmp(&pg2.pieces_locked),
-                    Stat::LinesCleared(_)   => pg1.lines_cleared.cmp(&pg2.lines_cleared),
+                    Stat::LinesCleared(_)   => pg1.lineclears.cmp(&pg2.lineclears),
                     Stat::GravityReached(_) => pg1.gravity_reached.cmp(&pg2.gravity_reached),
                     Stat::PointsScored(_)   => pg1.points_scored.cmp(&pg2.points_scored),
                 };

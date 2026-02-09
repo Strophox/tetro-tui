@@ -1,6 +1,6 @@
 use std::{
     io::{self, Write},
-    num::NonZeroUsize,
+    num::NonZeroU32,
     time::{Duration, Instant},
 };
 
@@ -15,13 +15,14 @@ use crossterm::{
     terminal::{Clear, ClearType},
     QueueableCommand,
 };
-use tetrs_engine::{Game, Stat};
+use tetrs_engine::{DelayEquation, ExtNonNegF64, Game, InitialValues, Stat};
 
 use crate::{
     application::{
-        Application, ButtonInputHistory, GameMetaData, GameRestorationData, Menu, MenuUpdate,
+        Application, ButtonInputHistory, GameMetaData, GameRestorationData, GameplaySettings, Menu,
+        MenuUpdate,
     },
-    fmt_helpers::{fmt_button_change, fmt_duration},
+    fmt_helpers::{fmt_button_change, fmt_duration, fmt_hertz},
     game_mode_presets::{
         self, game_modifiers::combo_board::LAYOUTS as COMBO_STARTLAYOUTS, GameModePreset,
     },
@@ -31,8 +32,14 @@ impl<T: Write> Application<T> {
     pub(in crate::application) fn menu_new_game(&mut self) -> io::Result<MenuUpdate> {
         let mut selected = 0usize;
         let mut customization_selected = 0usize;
-        let (d_time, d_score, d_pieces, d_lines, d_gravity) =
-            (Duration::from_secs(5), 100, 1, 1, 1);
+
+        let d_time = Duration::from_secs(5);
+        let d_score = 100;
+        let d_pieces = 1;
+        let d_lines = 1;
+        let d_gravity = ExtNonNegF64::ONE;
+        let d_fall_delay = Duration::from_millis(10).into();
+
         loop {
             #[allow(clippy::type_complexity)]
             let mut game_presets: Vec<(GameModePreset, String)> = vec![
@@ -59,8 +66,8 @@ impl<T: Write> Application<T> {
                 (
                     game_mode_presets::n_cheese(
                         self.settings.new_game.cheese_linelimit,
-                        self.settings.new_game.cheese_gapsize,
-                        self.settings.new_game.cheese_gravity,
+                        self.settings.new_game.cheese_tiles_per_line,
+                        self.settings.new_game.cheese_fall_delay,
                     ),
                     format!(
                         "Eat through lines like Swiss cheese. Limit: {:?}",
@@ -145,8 +152,8 @@ impl<T: Write> Application<T> {
                             } else {
                                 let (load_time, load_input) = ButtonInputHistory::decode(
                                     input_history.0[(load_offset - 1) % input_history.0.len()]);
-                                let load_time = fmt_duration(&load_time);
-                                let load_input = fmt_button_change(&load_input);
+                                let load_time = fmt_duration(load_time);
+                                let load_input = fmt_button_change(load_input);
                                 format!(">> Load {load_title} from: {load_offset}/{load_offset_max} ({load_input} @{load_time}) [Del] <<")
                             }
                         } else {
@@ -195,12 +202,19 @@ impl<T: Write> Application<T> {
             if selected == selection_len - 1 {
                 let stats_strs = [
                     format!(
-                        "| Initial gravity: {}",
-                        self.settings.new_game.custom_initial_gravity
+                        "| Initial fall delay / gravity: {} / {}",
+                        fmt_duration(
+                            self.settings
+                                .new_game
+                                .custom_initial_fall_delay
+                                .saturating_duration()
+                        ),
+                        fmt_hertz(self.settings.new_game.custom_initial_fall_delay.as_hertz()),
                     ),
                     format!(
                         "| Increasing gravity: {}",
-                        self.settings.new_game.custom_progressive_gravity
+                        self.settings.new_game.custom_fall_delay_equation
+                            != DelayEquation::constant()
                     ),
                     format!(
                         "| Limit: {:?} [→]",
@@ -274,10 +288,21 @@ impl<T: Write> Application<T> {
                     if customization_selected > 0 {
                         match customization_selected {
                             1 => {
-                                self.settings.new_game.custom_initial_gravity += d_gravity;
+                                self.settings.new_game.custom_initial_fall_delay = self
+                                    .settings
+                                    .new_game
+                                    .custom_initial_fall_delay
+                                    .saturating_add(d_fall_delay);
                             }
                             2 => {
-                                self.settings.new_game.custom_progressive_gravity ^= true;
+                                self.settings.new_game.custom_fall_delay_equation =
+                                    if self.settings.new_game.custom_fall_delay_equation
+                                        == DelayEquation::constant()
+                                    {
+                                        DelayEquation::guidelinelike_fall_delays()
+                                    } else {
+                                        DelayEquation::constant()
+                                    };
                             }
                             3 => {
                                 match self.settings.new_game.custom_win_condition {
@@ -316,11 +341,16 @@ impl<T: Write> Application<T> {
                     if customization_selected > 0 {
                         match customization_selected {
                             1 => {
-                                let r = &mut self.settings.new_game.custom_initial_gravity;
-                                *r = r.saturating_sub(d_gravity);
+                                let r = &mut self.settings.new_game.custom_initial_fall_delay;
+                                *r = r.saturating_sub(d_fall_delay);
                             }
                             2 => {
-                                self.settings.new_game.custom_progressive_gravity ^= true;
+                                let e = &mut self.settings.new_game.custom_fall_delay_equation;
+                                *e = if *e == DelayEquation::constant() {
+                                    DelayEquation::guidelinelike_fall_delays()
+                                } else {
+                                    DelayEquation::constant()
+                                };
                             }
                             3 => {
                                 match self.settings.new_game.custom_win_condition {
@@ -362,12 +392,12 @@ impl<T: Write> Application<T> {
                     } else if selected == 5 {
                         if let Some(limit) = self.settings.new_game.cheese_linelimit {
                             self.settings.new_game.cheese_linelimit =
-                                NonZeroUsize::try_from(limit.get() - 1).ok();
+                                NonZeroU32::try_from(limit.get() - 1).ok();
                         }
                     } else if selected == 6 {
                         if let Some(limit) = self.settings.new_game.combo_linelimit {
                             self.settings.new_game.combo_linelimit =
-                                NonZeroUsize::try_from(limit.get() - 1).ok();
+                                NonZeroU32::try_from(limit.get() - 1).ok();
                         }
                     } else if let Some((_game_meta_data, game_restoration_data, load_offset)) =
                         &mut self.game_savepoint
@@ -400,7 +430,9 @@ impl<T: Write> Application<T> {
                                     Some(Stat::TimeElapsed(_)) => Some(Stat::PointsScored(9000)),
                                     Some(Stat::PointsScored(_)) => Some(Stat::PiecesLocked(100)),
                                     Some(Stat::PiecesLocked(_)) => Some(Stat::LinesCleared(40)),
-                                    Some(Stat::LinesCleared(_)) => Some(Stat::GravityReached(20)),
+                                    Some(Stat::LinesCleared(_)) => Some(Stat::GravityReached(
+                                        ExtNonNegF64::new(1200.).unwrap(),
+                                    )),
                                     Some(Stat::GravityReached(_)) => None,
                                     None => Some(Stat::TimeElapsed(Duration::from_secs(180))),
                                 };
@@ -412,14 +444,14 @@ impl<T: Write> Application<T> {
                             if let Some(limit) = self.settings.new_game.cheese_linelimit {
                                 limit.checked_add(1)
                             } else {
-                                Some(NonZeroUsize::MIN)
+                                Some(NonZeroU32::MIN)
                             };
                     } else if selected == 6 {
                         self.settings.new_game.combo_linelimit =
                             if let Some(limit) = self.settings.new_game.combo_linelimit {
                                 limit.checked_add(1)
                             } else {
-                                Some(NonZeroUsize::MIN)
+                                Some(NonZeroU32::MIN)
                             };
                     } else if let Some((_game_meta_data, game_restoration_data, load_offset)) =
                         &mut self.game_savepoint
@@ -444,8 +476,10 @@ impl<T: Write> Application<T> {
                     if selected == selection_len - 1 {
                         self.settings.new_game.custom_seed = None;
                         self.settings.new_game.custom_board = None;
-                        self.settings.new_game.custom_initial_gravity = 1;
-                        self.settings.new_game.custom_progressive_gravity = true;
+                        self.settings.new_game.custom_initial_fall_delay =
+                            InitialValues::new().initial_fall_delay;
+                        self.settings.new_game.custom_fall_delay_equation =
+                            DelayEquation::guidelinelike_fall_delays();
                         self.settings.new_game.custom_win_condition = None;
                     } else if selected == selection_len - 2 {
                         self.game_savepoint = None;
@@ -481,18 +515,28 @@ impl<T: Write> Application<T> {
             }
 
             if immediately_start_new_game {
-                let g = self.settings.gameplay();
+                let GameplaySettings {
+                    rotation_system,
+                    tetromino_generator,
+                    piece_preview_count,
+                    delayed_auto_shift,
+                    auto_repeat_rate,
+                    soft_drop_factor,
+                    line_clear_duration,
+                    spawn_delay,
+                    allow_prespawn_actions,
+                } = self.settings.gameplay().clone();
                 let mut builder = Game::builder();
                 builder
-                    .rotation_system(g.rotation_system)
-                    .initial_tetromino_generator(g.tetromino_generator.clone())
-                    .piece_preview_count(g.piece_preview_count)
-                    .allow_prespawn_actions(g.allow_prespawn_actions)
-                    .delayed_auto_shift(g.delayed_auto_shift)
-                    .auto_repeat_rate(g.auto_repeat_rate)
-                    .soft_drop_factor(g.soft_drop_factor)
-                    .line_clear_duration(g.line_clear_duration)
-                    .spawn_delay(g.spawn_delay);
+                    .rotation_system(rotation_system)
+                    .initial_tetromino_generator(tetromino_generator)
+                    .piece_preview_count(piece_preview_count)
+                    .delayed_auto_shift(delayed_auto_shift)
+                    .auto_repeat_rate(auto_repeat_rate)
+                    .soft_drop_divisor(soft_drop_factor)
+                    .line_clear_duration(line_clear_duration)
+                    .spawn_delay(spawn_delay)
+                    .allow_prespawn_actions(allow_prespawn_actions);
                 // Build one of the selected game modes.
                 let (meta_data, game, button_input_history) = if selected < game_presets.len() {
                     let ((title, comparison_stat, build), _desc) = &game_presets[selected];
@@ -518,8 +562,8 @@ impl<T: Write> Application<T> {
                 } else {
                     let n = &self.settings.new_game;
                     builder
-                        .initial_gravity(n.custom_initial_gravity)
-                        .progressive_gravity(n.custom_progressive_gravity)
+                        .initial_fall_delay(n.custom_initial_fall_delay)
+                        .fall_delay_equation(n.custom_fall_delay_equation)
                         .end_conditions(match n.custom_win_condition {
                             Some(stat) => vec![(stat, true)],
                             None => vec![],

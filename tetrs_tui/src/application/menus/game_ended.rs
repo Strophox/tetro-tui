@@ -14,7 +14,7 @@ use crossterm::{
 
 use crate::{
     application::{Application, Menu, MenuUpdate, ScoreboardEntry},
-    fmt_helpers::fmt_duration,
+    fmt_helpers::{fmt_duration, fmt_hertz, fmt_tetromino_counts},
 };
 
 impl<T: Write> Application<T> {
@@ -27,7 +27,7 @@ impl<T: Write> Application<T> {
             result,
             time_elapsed,
             pieces_locked,
-            lines_cleared,
+            lineclears,
             gravity_reached,
             points_scored,
         } = past_game;
@@ -69,22 +69,22 @@ impl<T: Write> Application<T> {
                 .queue(MoveTo(x_main, y_main + y_selection + 4))?
                 .queue(Print(format!(
                     "{:^w_main$}",
-                    format!("Lines: {}", lines_cleared)
+                    format!("Lines: {}", lineclears)
                 )))?
                 .queue(MoveTo(x_main, y_main + y_selection + 5))?
                 .queue(Print(format!(
                     "{:^w_main$}",
-                    format!("Tetrominos locked: {}", pieces_locked.iter().sum::<u32>())
+                    format!("Tetrominos locked: {}", fmt_tetromino_counts(pieces_locked))
                 )))?
                 .queue(MoveTo(x_main, y_main + y_selection + 6))?
                 .queue(Print(format!(
                     "{:^w_main$}",
-                    format!("Gravity reached: {gravity_reached}",)
+                    format!("Gravity reached: {}", fmt_hertz(*gravity_reached))
                 )))?
                 .queue(MoveTo(x_main, y_main + y_selection + 7))?
                 .queue(Print(format!(
                     "{:^w_main$}",
-                    format!("Time elapsed: {}", fmt_duration(time_elapsed))
+                    format!("Time elapsed: {}", fmt_duration(*time_elapsed))
                 )))?
                 .queue(MoveTo(x_main, y_main + y_selection + 8))?
                 .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;

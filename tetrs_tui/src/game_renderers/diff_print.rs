@@ -12,12 +12,13 @@ use crossterm::{
     terminal, QueueableCommand,
 };
 use tetrs_engine::{
-    Button, Coord, Feedback, FeedbackMessages, Game, GameTime, Orientation, Stat, State, TileTypeID,
+    Button, Coord, Feedback, FeedbackMessages, Game, InGameTime, Orientation, Stat, State,
+    TileTypeID,
 };
 
 use crate::{
     application::{Application, GameMetaData, Glyphset},
-    fmt_helpers::{fmt_duration, fmt_keybinds_of, fmt_tet_mini, fmt_tet_small},
+    fmt_helpers::{fmt_duration, fmt_hertz, fmt_keybinds_of, fmt_tet_mini, fmt_tet_small},
     game_renderers::Renderer,
 };
 
@@ -198,7 +199,7 @@ impl TerminalScreenBuffer {
 
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
 struct HardDropTile {
-    creation_time: GameTime,
+    creation_time: InGameTime,
     pos: Coord,
     y_offset: usize,
     tile_type_id: TileTypeID,
@@ -207,8 +208,8 @@ struct HardDropTile {
 #[derive(Clone, Default, Debug)]
 pub struct DiffPrintRenderer {
     screen: TerminalScreenBuffer,
-    active_feedback: Vec<(GameTime, Feedback, bool)>,
-    messages: Vec<(GameTime, String)>,
+    active_feedback: Vec<(InGameTime, Feedback, bool)>,
+    messages: Vec<(InGameTime, String)>,
     hard_drop_tiles: Vec<(HardDropTile, bool)>,
 }
 
@@ -237,13 +238,16 @@ impl Renderer for DiffPrintRenderer {
             piece_preview: next_pieces,
             piece_generator: _,
             pieces_locked,
-            lines_cleared,
-            gravity,
+            lineclears,
             score,
             consecutive_line_clears: _,
             rng: _,
+            fall_delay,
+            fall_delay_hit_zero_at_n_lineclears: _,
+            lock_delay: _,
         } = game.state();
         let pieces = pieces_locked.iter().sum::<u32>();
+        let gravity = fall_delay.as_hertz();
         // Screen: some titles.
         let mode_name_space = meta_data.title.len().max(14);
         let (endcond_title, endcond_value) = if let Some((c, _)) = game
@@ -253,15 +257,10 @@ impl Renderer for DiffPrintRenderer {
             .find(|(_stat, to_win)| *to_win)
         {
             match c {
-                Stat::TimeElapsed(t) => ("Time left:", fmt_duration(&t.saturating_sub(*game_time))),
+                Stat::TimeElapsed(t) => ("Time left:", fmt_duration(t.saturating_sub(*game_time))),
                 Stat::PiecesLocked(p) => ("Pieces left:", p.saturating_sub(pieces).to_string()),
-                Stat::LinesCleared(l) => {
-                    ("Lines left:", l.saturating_sub(*lines_cleared).to_string())
-                }
-                Stat::GravityReached(g) => (
-                    "Gravity levels left:",
-                    g.saturating_sub(*gravity).to_string(),
-                ),
+                Stat::LinesCleared(l) => ("Lines left:", l.saturating_sub(*lineclears).to_string()),
+                Stat::GravityReached(g) => ("Gravity goal:", fmt_hertz(*g)),
                 Stat::PointsScored(s) => ("Points left:", s.saturating_sub(*score).to_string()),
             }
         } else {
@@ -312,10 +311,10 @@ impl Renderer for DiffPrintRenderer {
                 format!("    STATS             <! . . . . . . . . . .!>{: ^w$      } ", meta_data.title, w=mode_name_space),
                 format!("                      <! . . . . . . . . . .!>{: ^w$      } ", "", w=mode_name_space),
                 format!("   Score: {:<12      }<! . . . . . . . . . .!>              ", score),
-                format!("   Lines: {:<12      }<! . . . . . . . . . .!> {           }", lines_cleared, endcond_title),
+                format!("   Lines: {:<12      }<! . . . . . . . . . .!> {           }", lineclears, endcond_title),
                 format!("                      <! . . . . . . . . . .!>   {         }", endcond_value),
-                format!("   Gravity: {:<10    }<! . . . . . . . . . .!>              ", gravity),
-                format!("   Time: {:<13       }<! . . . . . . . . . .!>              ", fmt_duration(game_time)),
+                format!("   Gravity: {:<10    }<! . . . . . . . . . .!>              ", fmt_hertz(gravity)),
+                format!("   Time: {:<13       }<! . . . . . . . . . .!>              ", fmt_duration(*game_time)),
                 format!("                      <! . . . . . . . . . .!>              ", ),
                 format!("                      <! . . . . . . . . . .!>              ", ),
                 format!("                      <! . . . . . . . . . .!>              ", ),
@@ -338,10 +337,10 @@ impl Renderer for DiffPrintRenderer {
                 format!("    STATS       {}     |                    |{: ^w$       }|", if hold_piece.is_some() { "| " } else {"  "}, meta_data.title, w=mode_name_space),
                 format!("   ----------   {     }|                    +{:-^w$       }+", if hold_piece.is_some() { "+------" } else {"       "}, "", w=mode_name_space),
                 format!("   Score: {:<13       }|                    |               ", score),
-                format!("   Lines: {:<13       }|                    |  {           }", lines_cleared, endcond_title),
+                format!("   Lines: {:<13       }|                    |  {           }", lineclears, endcond_title),
                 format!("                       |                    |    {         }", endcond_value),
-                format!("   Gravity: {:<11     }|                    |               ", gravity),
-                format!("   Time: {:<14        }|                    |               ", fmt_duration(game_time)),
+                format!("   Gravity: {:<11     }|                    |               ", fmt_hertz(gravity)),
+                format!("   Time: {:<14        }|                    |               ", fmt_duration(*game_time)),
                 format!("                       |                    |{             }", if !next_pieces.is_empty() { "-----next-----+" } else {"               "}),
                 format!("                       |                    |             {}", if !next_pieces.is_empty() { " |" } else {"  "}),
                 format!("                       |                    |             {}", if !next_pieces.is_empty() { " |" } else {"  "}),
@@ -364,10 +363,10 @@ impl Renderer for DiffPrintRenderer {
                 format!("    STATS       {}     ║                    ║{: ^w$       }│", if hold_piece.is_some() { "│ " } else {"  "}, meta_data.title, w=mode_name_space),
                 format!("   ─────────╴   {     }║                    ╟{:─^w$       }┘", if hold_piece.is_some() { "└──────" } else {"       "}, "", w=mode_name_space),
                 format!("   Score: {:<13       }║                    ║               ", score),
-                format!("   Lines: {:<13       }║                    ║  {           }", lines_cleared, endcond_title),
+                format!("   Lines: {:<13       }║                    ║  {           }", lineclears, endcond_title),
                 format!("                       ║                    ║    {         }", endcond_value),
-                format!("   Gravity: {:<11     }║                    ║               ", gravity),
-                format!("   Time: {:<14        }║                    ║               ", fmt_duration(game_time)),
+                format!("   Gravity: {:<11     }║                    ║               ", fmt_hertz(gravity)),
+                format!("   Time: {:<14        }║                    ║               ", fmt_duration(*game_time)),
                 format!("                       ║                    ║{             }", if !next_pieces.is_empty() { "─────next─────┐" } else {"               "}),
                 format!("                       ║                    ║             {}", if !next_pieces.is_empty() { " │" } else {"  "}),
                 format!("                       ║                    ║             {}", if !next_pieces.is_empty() { " │" } else {"  "}),
@@ -500,7 +499,7 @@ impl Renderer for DiffPrintRenderer {
         // Draw small preview pieces 2,3,4.
         let mut x_offset_small = 0;
         for tet in next_pieces.iter().skip(1).take(3) {
-            let str = fmt_tet_small(tet);
+            let str = fmt_tet_small(*tet);
             self.screen.buffer_str(
                 str,
                 get_color(&tet.tiletypeid()),
@@ -512,7 +511,7 @@ impl Renderer for DiffPrintRenderer {
         let mut x_offset_minuscule = 0;
         for tet in next_pieces.iter().skip(4) {
             //.take(5) {
-            let str = fmt_tet_mini(tet);
+            let str = fmt_tet_mini(*tet);
             self.screen.buffer_str(
                 str,
                 get_color(&tet.tiletypeid()),
@@ -525,7 +524,7 @@ impl Renderer for DiffPrintRenderer {
         }
         // Draw held piece.
         if let Some((tet, swap_allowed)) = hold_piece {
-            let str = fmt_tet_small(tet);
+            let str = fmt_tet_small(*tet);
             let color = get_color(&if *swap_allowed {
                 tet.tiletypeid()
             } else {
@@ -592,7 +591,7 @@ impl Renderer for DiffPrintRenderer {
                 }
                 Feedback::LinesClearing {
                     y_coords,
-                    line_clear_duration,
+                    line_clear_start: line_clear_duration,
                 } => {
                     if !app.settings().graphics().render_effects || line_clear_duration.is_zero() {
                         *active = false;
@@ -639,8 +638,8 @@ impl Renderer for DiffPrintRenderer {
                     let color_lineclear = get_color(&NonZeroU8::try_from(255).unwrap());
                     let percent = elapsed.as_secs_f64() / line_clear_duration.as_secs_f64();
                     let max_idx = f64::from(i32::try_from(animation_lineclear.len() - 1).unwrap());
-                    // SAFETY: `0.0 <= percent && percent <= 1.0`.
                     let idx = if (0.0..=1.0).contains(&percent) {
+                        // SAFETY: `0.0 <= percent && percent <= 1.0`.
                         unsafe { (percent * max_idx).round().to_int_unchecked::<usize>() }
                     } else {
                         *active = false;
@@ -679,7 +678,7 @@ impl Renderer for DiffPrintRenderer {
                     score_bonus,
                     tetromino,
                     is_spin: spin,
-                    lines_cleared: lineclears,
+                    lineclears,
                     is_perfect_clear: perfect_clear,
                     combo,
                 } => {

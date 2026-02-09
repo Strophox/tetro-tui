@@ -8,7 +8,7 @@ use crossterm::{
     style::Print,
     terminal, QueueableCommand,
 };
-use tetrs_engine::{Feedback, FeedbackMessages, Game, GameTime, State};
+use tetrs_engine::{Feedback, FeedbackMessages, Game, InGameTime, State};
 
 use crate::{
     application::{Application, GameMetaData},
@@ -21,7 +21,7 @@ const BRAILLE: &str = "⠀⠁⠂⠃⠄⠅⠆⠇⠈⠉⠊⠋⠌⠍⠎⠏⠐⠑⠒
 #[allow(dead_code)]
 #[derive(Clone, Default, Debug)]
 pub struct BrailleRenderer {
-    feedback_msgs_buffer: VecDeque<(GameTime, Feedback)>,
+    feedback_msgs_buffer: VecDeque<(InGameTime, Feedback)>,
 }
 
 impl Renderer for BrailleRenderer {

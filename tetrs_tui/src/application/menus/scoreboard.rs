@@ -17,7 +17,7 @@ use crate::{
     application::{
         Application, GameRestorationData, Menu, MenuUpdate, ScoreboardEntry, ScoreboardSorting,
     },
-    fmt_helpers::fmt_duration,
+    fmt_helpers::{fmt_duration, fmt_hertz},
 };
 
 impl<T: Write> Application<T> {
@@ -40,10 +40,10 @@ impl<T: Write> Application<T> {
 
             let fmt_comparison_stat = |p: &ScoreboardEntry| match p.game_meta_data.comparison_stat.0
             {
-                Stat::TimeElapsed(_) => format!("time: {}", fmt_duration(&p.time_elapsed)),
+                Stat::TimeElapsed(_) => format!("time: {}", fmt_duration(p.time_elapsed)),
                 Stat::PiecesLocked(_) => format!("pieces: {}", p.pieces_locked.iter().sum::<u32>()),
-                Stat::LinesCleared(_) => format!("lines: {}", p.lines_cleared),
-                Stat::GravityReached(_) => format!("gravity: {}", p.gravity_reached),
+                Stat::LinesCleared(_) => format!("lines: {}", p.lineclears),
+                Stat::GravityReached(_) => format!("gravity: {}", fmt_hertz(p.gravity_reached)),
                 Stat::PointsScored(_) => format!("score: {}", p.points_scored),
             };
 

@@ -3,8 +3,8 @@ use std::{num::NonZeroU8, time::Duration};
 use rand::Rng;
 
 use tetrs_engine::{
-    Button, ButtonChange, Game, GameBuilder, GameModFn, GameRng, GameTime, Line, Modifier, Phase,
-    Piece, PieceData, Stat, Tetromino, UpdatePoint,
+    Button, ButtonChange, DelayEquation, ExtDuration, Game, GameBuilder, GameModFn, GameRng,
+    InGameTime, Line, Modifier, Phase, Piece, PieceData, Stat, Tetromino, UpdatePoint,
 };
 
 pub const MOD_ID: &str = "ascent";
@@ -14,7 +14,7 @@ const PLAYABLE_WIDTH: usize = Game::WIDTH - (1 - Game::WIDTH % 2);
 
 pub fn build(builder: &GameBuilder) -> Game {
     let timeperiod_camera_adjust = Duration::from_millis(125);
-    let mut timepoint_camera_adjusted = GameTime::ZERO;
+    let mut timepoint_camera_adjusted = InGameTime::ZERO;
     let mut height_generated = 0usize;
     let mut init = false;
     let mod_function: Box<GameModFn> =
@@ -62,7 +62,7 @@ pub fn build(builder: &GameBuilder) -> Game {
             // Ascending virtual infinite board.
             if hit_camera_top && has_camera_adjust_period_elapsed {
                 piece.position.1 -= 1;
-                state.lines_cleared += 1;
+                state.lineclears += 1;
                 let mut line_source = random_ascent_lines(&mut state.rng, &mut height_generated);
                 state.board.rotate_left(1);
                 state.board[Game::HEIGHT - 1] = line_source.next().unwrap();
@@ -135,8 +135,8 @@ pub fn build(builder: &GameBuilder) -> Game {
 
     builder
         .clone()
-        .initial_gravity(0)
-        .progressive_gravity(false)
+        .initial_fall_delay(ExtDuration::Infinite)
+        .fall_delay_equation(DelayEquation::constant())
         .end_conditions(vec![(Stat::TimeElapsed(Duration::from_secs(2 * 60)), true)])
         .build_modded([Modifier {
             descriptor: MOD_ID.to_owned(),

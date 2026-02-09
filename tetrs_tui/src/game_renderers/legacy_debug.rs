@@ -8,7 +8,7 @@ use crossterm::{
     style::{self, Print},
     terminal, QueueableCommand,
 };
-use tetrs_engine::{Feedback, FeedbackMessages, Game, GameTime, State};
+use tetrs_engine::{Feedback, FeedbackMessages, Game, InGameTime, State};
 
 use crate::{
     application::{Application, GameMetaData},
@@ -18,7 +18,7 @@ use crate::{
 #[allow(dead_code)]
 #[derive(Clone, Default, Debug)]
 pub struct DebugRenderer {
-    feedback_msgs_buffer: VecDeque<(GameTime, Feedback)>,
+    feedback_msgs_buffer: VecDeque<(InGameTime, Feedback)>,
 }
 
 impl Renderer for DebugRenderer {
@@ -96,7 +96,7 @@ impl Renderer for DebugRenderer {
                     score_bonus,
                     tetromino,
                     is_spin: spin,
-                    lines_cleared: lineclears,
+                    lineclears,
                     is_perfect_clear: perfect_clear,
                     combo,
                 } => {

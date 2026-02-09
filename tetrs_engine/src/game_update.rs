@@ -26,7 +26,7 @@ impl Game {
     ///   the requested update lies in the past.
     pub fn update(
         &mut self,
-        target_time: GameTime,
+        target_time: InGameTime,
         mut button_changes: Option<ButtonChange>,
     ) -> Result<FeedbackMessages, UpdateGameError> {
         //let/*TODO:dbg*/s=format!("# IN___ update {target_time:?}, {button_changes:?}, {:?} {:?}\n", self.phase, self.state);if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
@@ -72,12 +72,16 @@ impl Game {
                 // Lines clearing.
                 // Move on to spawning.
                 Phase::LinesClearing {
-                    line_clears_finish_time: lines_cleared_time,
-                } if lines_cleared_time <= target_time => {
-                    //let/*TODO:dbg*/s=format!("INTO do_line_clearing ({lines_cleared_time:?})\n");if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
-                    self.phase =
-                        do_line_clearing(&mut self.state, &self.config, lines_cleared_time);
-                    self.state.time = lines_cleared_time;
+                    line_clears_finish_time,
+                } if line_clears_finish_time <= target_time => {
+                    //let/*TODO:dbg*/s=format!("INTO do_line_clearing ({line_clears_finish_time:?})\n");if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
+                    self.phase = do_line_clearing(
+                        &self.config,
+                        &self.init_vals,
+                        &mut self.state,
+                        line_clears_finish_time,
+                    );
+                    self.state.time = line_clears_finish_time;
 
                     self.run_mods(UpdatePoint::LinesCleared, &mut feedback_msgs);
                 }
@@ -86,7 +90,7 @@ impl Game {
                 // - May move on to game over (BlockOut).
                 // - Normally: Move on to piece-in-play.
                 Phase::Spawning { spawn_time } if spawn_time <= target_time => {
-                    self.phase = do_spawn(&mut self.state, &self.config, spawn_time);
+                    self.phase = do_spawn(&self.config, &mut self.state, spawn_time);
                     self.state.time = spawn_time;
 
                     self.run_mods(UpdatePoint::PieceSpawned, &mut feedback_msgs);
@@ -108,8 +112,8 @@ impl Game {
 
                             //let/*TODO:dbg*/s=format!("INTO do_autonomous_move ({move_time:?})\n");if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
                             self.phase = do_autonomous_move(
-                                &mut self.state,
                                 &self.config,
+                                &mut self.state,
                                 piece_data,
                                 move_time,
                             );
@@ -123,8 +127,8 @@ impl Game {
                         if piece_data.is_fall_not_lock {
                             //let/*TODO:dbg*/s=format!("INTO do_fall ({:?})\n", piece_data.fall_or_lock_time);if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
                             self.phase = do_fall(
-                                &mut self.state,
                                 &self.config,
+                                &mut self.state,
                                 piece_data,
                                 piece_data.fall_or_lock_time,
                             );
@@ -134,8 +138,8 @@ impl Game {
                         } else {
                             //let/*TODO:dbg*/s=format!("INTO do_lock ({:?})\n", piece_data.fall_or_lock_time);if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
                             self.phase = do_lock(
-                                &mut self.state,
                                 &self.config,
+                                &mut self.state,
                                 piece_data.piece,
                                 piece_data.fall_or_lock_time,
                                 &mut feedback_msgs,
@@ -153,8 +157,8 @@ impl Game {
                     };
                     //let/*TODO:dbg*/s=format!("INTO do_player_button_update ({target_time:?})\n");if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
                     self.phase = do_player_button_update(
-                        &mut self.state,
                         &self.config,
+                        &mut self.state,
                         piece_data,
                         button_change,
                         new_state_buttons_pressed,
@@ -238,7 +242,7 @@ impl Game {
     }
 }
 
-fn do_spawn(state: &mut State, config: &Configuration, spawn_time: GameTime) -> Phase {
+fn do_spawn(config: &Configuration, state: &mut State, spawn_time: InGameTime) -> Phase {
     //let/*TODO:dbg*/s=format!("IN do_spawn\n");if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
     let [button_ml, button_mr, button_rl, button_rr, button_ra, _ds, _dh, _td, _tl, _tr, button_h] =
         state
@@ -320,19 +324,25 @@ fn do_spawn(state: &mut State, config: &Configuration, spawn_time: GameTime) -> 
     if let Some(piece) = spawn_piece {
         // We're falling if piece could move down.
         let is_fall_not_lock = piece.fits_at(&state.board, (0, -1)).is_some();
-        // Standard fall or lock delay.
+
         let fall_or_lock_time = spawn_time.saturating_add(if is_fall_not_lock {
+            // Fall immediately.
             Duration::ZERO
         } else {
-            lock_delay(state.gravity, None)
+            state.lock_delay.saturating_duration()
         });
+
         // Piece just spawned, lowest y = initial y.
         let lowest_y = piece.position.1;
+
         // Piece just spawned, standard full lock time max.
-        let capped_lock_time = spawn_time.saturating_add(lock_delay(
-            state.gravity,
-            Some(config.capped_lock_time_factor),
-        ));
+        let capped_lock_time = spawn_time.saturating_add(
+            state
+                .lock_delay
+                .saturating_mul_ennf64(config.capped_lock_time_factor)
+                .saturating_duration(),
+        );
+
         // Schedule immediate move after spawning, if any move button held.
         // NOTE: We have no Initial Move System for (mechanics, code) simplicity reasons.
         let auto_move_scheduled = if button_ml || button_mr {
@@ -359,9 +369,10 @@ fn do_spawn(state: &mut State, config: &Configuration, spawn_time: GameTime) -> 
 }
 
 fn do_line_clearing(
-    state: &mut State,
     config: &Configuration,
-    lines_cleared_time: GameTime,
+    init_vals: &InitialValues,
+    state: &mut State,
+    line_clears_finish_time: InGameTime,
 ) -> Phase {
     for y in (0..Game::HEIGHT).rev() {
         // Full line: move it to the cleared lines storage and push an empty line to the board.
@@ -369,24 +380,57 @@ fn do_line_clearing(
             // Starting from the offending line, we move down all others, then default the uppermost.
             state.board[y..].rotate_left(1);
             state.board[Game::HEIGHT - 1] = Line::default();
-            state.lines_cleared += 1;
+            state.lineclears += 1;
 
-            // Increment level if 10 lines cleared.
-            if config.progressive_gravity && state.lines_cleared % 10 == 0 {
-                state.gravity = state.gravity.saturating_add(1);
+            // Increment level if update requested.
+            if state.lineclears % config.update_delays_every_n_lineclears == 0 {
+                (state.fall_delay, state.lock_delay) = calc_fall_and_lock_delay(
+                    config,
+                    init_vals,
+                    state.fall_delay_hit_zero_at_n_lineclears,
+                    state.lineclears,
+                );
+                if state.fall_delay == ExtDuration::ZERO {
+                    state.fall_delay_hit_zero_at_n_lineclears = Some(state.lineclears);
+                }
             }
         }
     }
     Phase::Spawning {
-        spawn_time: lines_cleared_time.saturating_add(config.spawn_delay),
+        spawn_time: line_clears_finish_time.saturating_add(config.spawn_delay),
+    }
+}
+
+fn check_piece_became_movable_get_moved_piece_and_move_scheduled(
+    old_piece: Piece,
+    new_piece: Piece,
+    board: &Board,
+    (dx, next_move_time): (isize, InGameTime),
+) -> Option<(Piece, Option<InGameTime>)> {
+    //let/*TODO:dbg*/s=format!("IN check_new_move_get_piece_and_move_scheduled ({next_move_time:?})\n");if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
+    // Do not check 'no movement'.
+    if dx == 0 {
+        return None;
+    }
+    let old_piece_moved = old_piece.fits_at(board, (dx, 0));
+    let new_piece_moved = new_piece.fits_at(board, (dx, 0));
+    if let (None, Some(moved_piece)) = (old_piece_moved, new_piece_moved) {
+        //let/*TODO:dbg*/s=format!(" - success\n");if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
+        Some((moved_piece, Some(next_move_time)))
+
+    // All checks passed, no changes need to be made.
+    // This is the case where neither (³) or (⁴) apply.
+    } else {
+        //let/*TODO:dbg*/s=format!(" - fail\n");if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
+        None
     }
 }
 
 fn do_autonomous_move(
-    state: &mut State,
     config: &Configuration,
+    state: &mut State,
     previous_piece_data: PieceData,
-    auto_move_time: GameTime,
+    auto_move_time: InGameTime,
 ) -> Phase {
     // Move piece and update all appropriate piece-related values.
     // NOTE: This should give non-zero `dx`.
@@ -411,16 +455,20 @@ fn do_autonomous_move(
     let new_fall_or_lock_time = if new_is_fall_not_lock {
         // Calculate scheduled fall time.
         // This implements (¹).
-        let was_airborne = previous_piece_data
+        let was_grounded = previous_piece_data
             .piece
             .fits_at(&state.board, (0, -1))
-            .is_some();
-        if !was_airborne {
+            .is_none();
+        if was_grounded {
             // Refresh fall timer if we *started* falling.
-            let soft_drop_factor = state.buttons_pressed[Button::DropSoft]
-                .is_some()
-                .then_some(config.soft_drop_factor);
-            auto_move_time.saturating_add(fall_delay(state.gravity, soft_drop_factor))
+            auto_move_time.saturating_add(if state.buttons_pressed[Button::DropSoft].is_some() {
+                state
+                    .fall_delay
+                    .saturating_div_ennf64(config.soft_drop_divisor)
+                    .saturating_duration()
+            } else {
+                state.fall_delay.saturating_duration()
+            })
         } else {
             // Falling as before.
             previous_piece_data.fall_or_lock_time
@@ -429,7 +477,7 @@ fn do_autonomous_move(
         // NOTE: capped_lock_time may actually lie in the past, so we first need to cap *it* from below (current time)!
         auto_move_time
             .max(new_capped_lock_time)
-            .min(auto_move_time.saturating_add(lock_delay(state.gravity, None)))
+            .min(auto_move_time.saturating_add(state.lock_delay.saturating_duration()))
     };
 
     // Update 'ActionState';
@@ -447,10 +495,10 @@ fn do_autonomous_move(
 }
 
 fn do_fall(
-    state: &mut State,
     config: &Configuration,
+    state: &mut State,
     previous_piece_data: PieceData,
-    fall_time: GameTime,
+    fall_time: InGameTime,
 ) -> Phase {
     // # Overview
     //
@@ -514,12 +562,15 @@ fn do_fall(
 
     let (new_lowest_y, new_capped_lock_time) =
         if new_piece.position.1 < previous_piece_data.lowest_y {
+            // Refresh position and capped_lock_time.
             (
                 new_piece.position.1,
-                fall_time.saturating_add(lock_delay(
-                    state.gravity,
-                    Some(config.capped_lock_time_factor),
-                )),
+                fall_time.saturating_add(
+                    state
+                        .lock_delay
+                        .saturating_mul_ennf64(config.capped_lock_time_factor)
+                        .saturating_duration(),
+                ),
             )
         } else {
             (
@@ -531,15 +582,19 @@ fn do_fall(
     let new_is_fall_not_lock = new_piece.fits_at(&state.board, (0, -1)).is_some();
 
     let new_fall_or_lock_time = if new_is_fall_not_lock {
-        let soft_drop_factor = state.buttons_pressed[Button::DropSoft]
-            .is_some()
-            .then_some(config.soft_drop_factor);
-        fall_time.saturating_add(fall_delay(state.gravity, soft_drop_factor))
+        fall_time.saturating_add(if state.buttons_pressed[Button::DropSoft].is_some() {
+            state
+                .fall_delay
+                .saturating_div_ennf64(config.soft_drop_divisor)
+                .saturating_duration()
+        } else {
+            state.fall_delay.saturating_duration()
+        })
     } else {
         // NOTE: capped_lock_time may actually lie in the past, so we first need to cap *it* from below (current time)!
         fall_time
             .max(new_capped_lock_time)
-            .min(fall_time.saturating_add(lock_delay(state.gravity, None)))
+            .min(fall_time.saturating_add(state.lock_delay.saturating_duration()))
     };
 
     // 'Update' ActionState;
@@ -557,12 +612,12 @@ fn do_fall(
 }
 
 fn do_player_button_update(
-    state: &mut State,
     config: &Configuration,
+    state: &mut State,
     previous_piece_data: PieceData,
     button_change: ButtonChange,
-    new_state_buttons_pressed: [Option<GameTime>; Button::VARIANTS.len()],
-    button_update_time: GameTime,
+    new_state_buttons_pressed: [Option<InGameTime>; Button::VARIANTS.len()],
+    button_update_time: InGameTime,
     feedback_msgs: &mut FeedbackMessages,
 ) -> Phase {
     // # Overview
@@ -643,7 +698,7 @@ fn do_player_button_update(
         calc_move_dx_and_next_move_time(&new_state_buttons_pressed, button_update_time, config);
 
     // Prepare to maybe change the move_scheduled.
-    let mut maybe_override_auto_move: Option<Option<GameTime>> = None;
+    let mut maybe_override_auto_move: Option<Option<InGameTime>> = None;
 
     let mut new_piece = previous_piece_data.piece;
     use {Button as B, ButtonChange as BC};
@@ -789,12 +844,15 @@ fn do_player_button_update(
     // Update `lowest_y`, re-set `capped_lock_time` if applicable.
     let (new_lowest_y, new_capped_lock_time) =
         if new_piece.position.1 < previous_piece_data.lowest_y {
+            // Refresh position and capped_lock_time.
             (
                 new_piece.position.1,
-                button_update_time.saturating_add(lock_delay(
-                    state.gravity,
-                    Some(config.capped_lock_time_factor),
-                )),
+                button_update_time.saturating_add(
+                    state
+                        .lock_delay
+                        .saturating_mul_ennf64(config.capped_lock_time_factor)
+                        .saturating_duration(),
+                ),
             )
         } else {
             (
@@ -824,11 +882,17 @@ fn do_player_button_update(
             )
         {
             // Refresh fall timer if we *started* falling, or soft drop just pressed, or soft drop just released.
-            let soft_drop_factor = new_state_buttons_pressed[B::DropSoft]
-                .is_some()
-                .then_some(config.soft_drop_factor);
             //let/*TODO:dbg*/s=format!("YEA\n");if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
-            button_update_time.saturating_add(fall_delay(state.gravity, soft_drop_factor))
+            button_update_time.saturating_add(
+                if state.buttons_pressed[Button::DropSoft].is_some() {
+                    state
+                        .fall_delay
+                        .saturating_div_ennf64(config.soft_drop_divisor)
+                        .saturating_duration()
+                } else {
+                    state.fall_delay.saturating_duration()
+                },
+            )
         } else {
             // Falling as before.
             previous_piece_data.fall_or_lock_time
@@ -846,7 +910,7 @@ fn do_player_button_update(
             // NOTE: capped_lock_time may actually lie in the past, so we first need to cap *it* from below (current time)!
             button_update_time
                 .max(new_capped_lock_time)
-                .min(button_update_time.saturating_add(lock_delay(state.gravity, None)))
+                .min(button_update_time.saturating_add(state.lock_delay.saturating_duration()))
         } else {
             // Previous lock time.
             previous_piece_data.fall_or_lock_time
@@ -868,73 +932,10 @@ fn do_player_button_update(
     }
 }
 
-fn calc_move_dx_and_next_move_time(
-    buttons_pressed: &[Option<GameTime>; Button::VARIANTS.len()],
-    move_time: GameTime,
-    config: &Configuration,
-) -> (isize, GameTime) {
-    let (dx, how_long_relevant_direction_pressed) = match (
-        buttons_pressed[Button::MoveLeft],
-        buttons_pressed[Button::MoveRight],
-    ) {
-        (Some(time_prsd_left), Some(time_prsd_right)) => match time_prsd_left.cmp(&time_prsd_right)
-        {
-            // 'Right' was pressed more recently, go right.
-            std::cmp::Ordering::Less => (1, move_time.saturating_sub(time_prsd_right)),
-            // Both pressed at exact same time, don't move.
-            std::cmp::Ordering::Equal => (0, Duration::ZERO),
-            // 'Left' was pressed more recently, go left.
-            std::cmp::Ordering::Greater => (-1, move_time.saturating_sub(time_prsd_left)),
-        },
-        // Only 'left' pressed.
-        (Some(time_prsd_left), None) => (-1, move_time.saturating_sub(time_prsd_left)),
-        // Only 'right' pressed.
-        (None, Some(time_prsd_right)) => (1, move_time.saturating_sub(time_prsd_right)),
-        // None pressed. No movement.
-        (None, None) => (0, Duration::ZERO),
-    };
-
-    let next_move_scheduled = move_time.saturating_add(
-        if how_long_relevant_direction_pressed >= config.delayed_auto_shift {
-            config.auto_repeat_rate
-        } else {
-            config.delayed_auto_shift
-        },
-    );
-
-    //let/*TODO:dbg*/s=format!("OUTOF calc_move_dx_and_next_move_time ({dx:?}, {next_move_scheduled:?})\n");if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
-    (dx, next_move_scheduled)
-}
-
-fn check_piece_became_movable_get_moved_piece_and_move_scheduled(
-    old_piece: Piece,
-    new_piece: Piece,
-    board: &Board,
-    (dx, next_move_time): (isize, GameTime),
-) -> Option<(Piece, Option<GameTime>)> {
-    //let/*TODO:dbg*/s=format!("IN check_new_move_get_piece_and_move_scheduled ({next_move_time:?})\n");if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
-    // Do not check 'no movement'.
-    if dx == 0 {
-        return None;
-    }
-    let old_piece_moved = old_piece.fits_at(board, (dx, 0));
-    let new_piece_moved = new_piece.fits_at(board, (dx, 0));
-    if let (None, Some(moved_piece)) = (old_piece_moved, new_piece_moved) {
-        //let/*TODO:dbg*/s=format!(" - success\n");if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
-        Some((moved_piece, Some(next_move_time)))
-
-    // All checks passed, no changes need to be made.
-    // This is the case where neither (³) or (⁴) apply.
-    } else {
-        //let/*TODO:dbg*/s=format!(" - fail\n");if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
-        None
-    }
-}
-
 fn try_hold(
     state: &mut State,
     tetromino: Tetromino,
-    new_piece_spawn_time: GameTime,
+    new_piece_spawn_time: InGameTime,
 ) -> Option<Phase> {
     //let/*TODO:dbg*/s=format!("IN try_hold\n");if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
     match state.hold_piece {
@@ -964,10 +965,10 @@ fn try_hold(
 }
 
 fn do_lock(
-    state: &mut State,
     config: &Configuration,
+    state: &mut State,
     piece: Piece,
-    lock_time: GameTime,
+    lock_time: InGameTime,
     feedback_msgs: &mut FeedbackMessages,
 ) -> Phase {
     if config.feedback_verbosity != FeedbackVerbosity::Silent {
@@ -1013,9 +1014,9 @@ fn do_lock(
         }
     }
 
-    let lines_cleared = u32::try_from(cleared_y_coords.len()).unwrap();
+    let lineclears = u32::try_from(cleared_y_coords.len()).unwrap();
 
-    if lines_cleared == 0 {
+    if lineclears == 0 {
         // If no lines cleared, no score bonus and combo is reset.
         state.consecutive_line_clears = 0;
     } else {
@@ -1030,8 +1031,7 @@ fn do_lock(
 
         // Compute main Score Bonus.
         let score_bonus =
-            lines_cleared * if is_spin { 2 } else { 1 } * if is_perfect_clear { 4 } else { 1 } * 2
-                - 1
+            lineclears * if is_spin { 2 } else { 1 } * if is_perfect_clear { 4 } else { 1 } * 2 - 1
                 + (combo - 1);
 
         // Update score.
@@ -1042,7 +1042,7 @@ fn do_lock(
                 lock_time,
                 Feedback::LinesClearing {
                     y_coords: cleared_y_coords,
-                    line_clear_duration: config.line_clear_duration,
+                    line_clear_start: config.line_clear_duration,
                 },
             ));
 
@@ -1052,7 +1052,7 @@ fn do_lock(
                     score_bonus,
                     tetromino: piece.tetromino,
                     is_spin,
-                    lines_cleared,
+                    lineclears,
                     is_perfect_clear,
                     combo,
                 },
@@ -1067,7 +1067,7 @@ fn do_lock(
 
     // 'Update' ActionState;
     // Return it to the main state machine with all newly acquired piece data.
-    if lines_cleared == 0 {
+    if lineclears == 0 {
         //let/*TODO:dbg*/s=format!("OUTOF do_lock {:?}\n", lock_time + config.spawn_delay);if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
         // No lines cleared, directly proceed to spawn.
         Phase::Spawning {
@@ -1081,89 +1081,78 @@ fn do_lock(
     }
 }
 
-// FIXME: Make this more parametric instead of hardcoded?
-/// The amount of time left for a piece to fall naturally, purely dependent on level
-/// and an optional soft-drop-factor.
-#[rustfmt::skip]
-fn fall_delay(gravity: u32, soft_drop_factor: Option<f64>) -> Duration {
-    let raw_drop_delay = Duration::from_nanos(match gravity {
-        0 => return Duration::MAX / 2,
-        1 => 1_000_000_000,
-        2 =>   793_000_000,
-        3 =>   617_796_000,
-        4 =>   472_729_139,
-        5 =>   355_196_928,
-        6 =>   262_003_550,
-        7 =>   189_677_245,
-        8 =>   134_734_731,
-        9 =>    93_882_249,
-       10 =>    64_151_585,
-       11 =>    42_976_258,
-       12 =>    28_217_678,
-       13 =>    18_153_329,
-       14 =>    11_439_342,
-       15 =>     7_058_616,
-       16 =>     4_263_557,
-       17 =>     2_520_084,
-       18 =>     1_457_139,
-       19 =>       823_907, // NOTE: Close to 833'333ns = 1/120 s.
-       20.. =>           0, // NOTE: We cap the formula here and call it INSTANT_GRAVITY.
-    });
+fn calc_move_dx_and_next_move_time(
+    buttons_pressed: &[Option<InGameTime>; Button::VARIANTS.len()],
+    move_time: InGameTime,
+    config: &Configuration,
+) -> (isize, InGameTime) {
+    let (dx, how_long_relevant_direction_pressed) = match (
+        buttons_pressed[Button::MoveLeft],
+        buttons_pressed[Button::MoveRight],
+    ) {
+        (Some(time_prsd_left), Some(time_prsd_right)) => match time_prsd_left.cmp(&time_prsd_right)
+        {
+            // 'Right' was pressed more recently, go right.
+            std::cmp::Ordering::Less => (1, move_time.saturating_sub(time_prsd_right)),
+            // Both pressed at exact same time, don't move.
+            std::cmp::Ordering::Equal => (0, Duration::ZERO),
+            // 'Left' was pressed more recently, go left.
+            std::cmp::Ordering::Greater => (-1, move_time.saturating_sub(time_prsd_left)),
+        },
+        // Only 'left' pressed.
+        (Some(time_prsd_left), None) => (-1, move_time.saturating_sub(time_prsd_left)),
+        // Only 'right' pressed.
+        (None, Some(time_prsd_right)) => (1, move_time.saturating_sub(time_prsd_right)),
+        // None pressed. No movement.
+        (None, None) => (0, Duration::ZERO),
+    };
 
-    if let Some(factor) = soft_drop_factor {
-        const CUTOFF: f64 = 0.1e-9;
+    let next_move_scheduled = move_time.saturating_add(
+        if how_long_relevant_direction_pressed >= config.delayed_auto_shift {
+            config.auto_repeat_rate
+        } else {
+            config.delayed_auto_shift
+        },
+    );
 
-        if (0.0..CUTOFF).contains(&factor) {
-            // Factor is very close to zero, return max fall delay.
-            return Duration::MAX / 2;
-
-        } else if CUTOFF <= factor && factor.is_finite() {
-            // Factor is a 'reasonable' positive value, apply it.
-            return raw_drop_delay.div_f64(factor);
-
-        } else if factor == f64::INFINITY {
-            // Factor is +infinity, return zero fall delay.
-            return Duration::ZERO;
-        }
-    }
-
-    raw_drop_delay
+    //let/*TODO:dbg*/s=format!("OUTOF calc_move_dx_and_next_move_time ({dx:?}, {next_move_scheduled:?})\n");if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
+    (dx, next_move_scheduled)
 }
 
-// FIXME: Make this more parametric instead of hardcoded?
-/// The amount of time left for an common ground lock timer, purely dependent on level.
-#[rustfmt::skip]
-fn lock_delay(gravity: u32, capped_lock_time_factor: Option<f64>) -> Duration {
-    let raw_lock_delay = Duration::from_millis(match gravity {
-        0 => return Duration::MAX / 2,
-        1..=29 => 500,
-            30 => 480,
-            31 => 460,
-            32 => 440,
-            33 => 420,
-            34 => 400,
-            35 => 380,
-            36 => 360,
-            37 => 340,
-            38 => 320,
-            39 => 300,
-            40 => 280,
-            41 => 260,
-            42 => 240,
-            43 => 220,
-            _  => 200,
-    });
+// Compute the fall and lock delay corresponding to the current lineclear progress.
+fn calc_fall_and_lock_delay(
+    config: &Configuration,
+    init_vals: &InitialValues,
+    fall_delay_hit_zero_at_n_lineclears: Option<u32>,
+    lineclears: u32,
+) -> (ExtDuration, ExtDuration) {
+    let Configuration {
+        fall_delay_equation: fall_delay_progression,
+        lock_delay_equation: lock_delay_progression,
+        lock_delay_lowerbound,
+        ..
+    } = config;
+    let InitialValues {
+        initial_fall_delay,
+        initial_lock_delay,
+        ..
+    } = init_vals;
 
-    if let Some(factor) = capped_lock_time_factor {
-        if 0.0 <= factor && factor.is_finite() {
-            // Factor is a 'reasonable' positive value, apply it.
-            return raw_lock_delay.mul_f64(factor);
-
-        } else if factor == f64::INFINITY {
-            // Factor is +infinity, return max lock time cap.
-            return Duration::MAX / 2;
-        }
+    if let Some(lineclears_sentinel) = fall_delay_hit_zero_at_n_lineclears {
+        // Fall delay zero was hit at some point, only decrease lock delay now.
+        let lock_lineclears = f64::from(lineclears - lineclears_sentinel);
+        let DelayEquation { mul, sub } = lock_delay_progression;
+        let factor = mul.get().powf(lock_lineclears) - sub.get() * lock_lineclears;
+        let lock_delay = initial_lock_delay
+            .saturating_mul_ennf64(ExtNonNegF64::new(0.0f64.max(factor)).unwrap());
+        (ExtDuration::ZERO, (*lock_delay_lowerbound).max(lock_delay))
+    } else {
+        // Normally decrease fall delay.
+        let DelayEquation { mul, sub } = fall_delay_progression;
+        let lineclears = f64::from(lineclears);
+        let factor = mul.get().powf(lineclears) - sub.get() * lineclears;
+        let fall_delay = initial_fall_delay
+            .saturating_mul_ennf64(ExtNonNegF64::new(0.0f64.max(factor)).unwrap());
+        (ExtDuration::ZERO.min(fall_delay), *initial_lock_delay)
     }
-
-    raw_lock_delay
 }
