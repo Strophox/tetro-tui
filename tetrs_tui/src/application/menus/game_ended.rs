@@ -23,13 +23,14 @@ impl<T: Write> Application<T> {
         past_game: &ScoreboardEntry,
     ) -> io::Result<MenuUpdate> {
         let ScoreboardEntry {
-            game_meta_data: meta_data,
+            game_meta_data,
             result,
             time_elapsed,
-            pieces_locked,
             lineclears,
-            gravity_reached,
             points_scored,
+            pieces_locked,
+            final_fall_delay,
+            final_lock_delay,
         } = past_game;
         let selection = vec![
             Menu::NewGame,
@@ -38,7 +39,7 @@ impl<T: Write> Application<T> {
             Menu::Quit("quit after game ended".to_owned()),
         ];
         // if gamemode.name.as_ref().map(String::as_str) == Some("Puzzle")
-        if result.is_ok() && meta_data.title == "Puzzle" {
+        if result.is_ok() && game_meta_data.title == "Puzzle" {
             self.settings.new_game.experimental_mode_unlocked = true;
         }
         let mut selected = 0usize;
@@ -52,51 +53,52 @@ impl<T: Write> Application<T> {
                 .queue(Print(format!(
                     "{:^w_main$}",
                     match result {
-                        Ok(_stat) => format!("++ Game Completed ({}) ++", meta_data.title),
+                        Ok(_stat) => format!("++ Game Completed ({}) ++", game_meta_data.title),
                         Err(cause) =>
-                            format!("-- Game Over ({}) by: {cause:?} --", meta_data.title),
+                            format!("-- Game Over ({}) by: {cause:?} --", game_meta_data.title),
                     }
                 )))?
-                /*.queue(MoveTo(0, y_main + y_selection + 2))?
-                .queue(Print(Self::produce_header()?))?*/
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
-                .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?
-                .queue(MoveTo(x_main, y_main + y_selection + 3))?
-                .queue(Print(format!(
-                    "{:^w_main$}",
-                    format!("Score: {points_scored}")
-                )))?
-                .queue(MoveTo(x_main, y_main + y_selection + 4))?
-                .queue(Print(format!(
-                    "{:^w_main$}",
-                    format!("Lines: {}", lineclears)
-                )))?
-                .queue(MoveTo(x_main, y_main + y_selection + 5))?
-                .queue(Print(format!(
-                    "{:^w_main$}",
-                    format!("Pieces: {}", fmt_tetromino_counts(pieces_locked))
-                )))?
-                .queue(MoveTo(x_main, y_main + y_selection + 6))?
-                .queue(Print(format!(
-                    "{:^w_main$}",
-                    format!("Gravity: {}", fmt_hertz(*gravity_reached))
-                )))?
-                .queue(MoveTo(x_main, y_main + y_selection + 7))?
-                .queue(Print(format!(
-                    "{:^w_main$}",
-                    format!("Time elapsed: {}", fmt_duration(*time_elapsed))
-                )))?
-                .queue(MoveTo(x_main, y_main + y_selection + 8))?
                 .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
+
+            let stats = [
+                format!("Time elapsed: {}", fmt_duration(*time_elapsed)),
+                format!("Lines: {}", lineclears),
+                format!("Score: {points_scored}"),
+                format!("Pieces: {}", fmt_tetromino_counts(pieces_locked)),
+                format!("Gravity: {}", fmt_hertz(final_fall_delay.as_hertz())),
+                format!(
+                    "Lock delay: {}ms",
+                    final_lock_delay.saturating_duration().as_millis()
+                ),
+            ];
+
+            for (i, s) in stats.iter().enumerate() {
+                self.term
+                    .queue(MoveTo(
+                        x_main,
+                        y_main + y_selection + 3 + u16::try_from(i).unwrap(),
+                    ))?
+                    .queue(Print(format!("{s:^w_main$}")))?;
+            }
+
+            self.term
+                .queue(MoveTo(
+                    x_main,
+                    y_main + y_selection + 3 + u16::try_from(stats.len()).unwrap(),
+                ))?
+                .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
+
             let names = selection
                 .iter()
                 .map(|menu| menu.to_string())
                 .collect::<Vec<_>>();
+
             for (i, name) in names.into_iter().enumerate() {
                 self.term
                     .queue(MoveTo(
                         x_main,
-                        y_main + y_selection + 10 + u16::try_from(i).unwrap(),
+                        y_main + y_selection + 3 + u16::try_from(stats.len() + 2 + i).unwrap(),
                     ))?
                     .queue(Print(format!(
                         "{:^w_main$}",

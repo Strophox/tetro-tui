@@ -160,10 +160,11 @@ pub struct ScoreboardEntry {
     game_meta_data: GameMetaData,
     result: GameResult,
     time_elapsed: InGameTime,
-    pieces_locked: [u32; Tetromino::VARIANTS.len()],
     lineclears: u32,
-    gravity_reached: ExtNonNegF64,
     points_scored: u64,
+    pieces_locked: [u32; Tetromino::VARIANTS.len()],
+    final_fall_delay: ExtDuration,
+    final_lock_delay: ExtDuration,
 }
 
 impl ScoreboardEntry {
@@ -173,7 +174,8 @@ impl ScoreboardEntry {
             time_elapsed: game.state().time,
             pieces_locked: game.state().pieces_locked,
             lineclears: game.state().lineclears,
-            gravity_reached: game.state().fall_delay.as_hertz(),
+            final_fall_delay: game.state().fall_delay,
+            final_lock_delay: game.state().lock_delay,
             points_scored: game.state().score,
             result: game.result().unwrap_or(Err(GameOver::Forfeit)),
         }

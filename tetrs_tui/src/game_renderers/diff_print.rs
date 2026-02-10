@@ -12,8 +12,7 @@ use crossterm::{
     terminal, QueueableCommand,
 };
 use tetrs_engine::{
-    Button, Coord, Feedback, FeedbackMessages, Game, InGameTime, Orientation, Stat, State,
-    TileTypeID,
+    Button, Coord, Feedback, FeedbackMessages, Game, InGameTime, Orientation, Stat, TileTypeID,
 };
 
 use crate::{
@@ -230,26 +229,10 @@ impl Renderer for DiffPrintRenderer {
             self.screen
                 .buffer_reset((usize::from(x_main), usize::from(y_main)));
         }
-        let State {
-            time: game_time,
-            buttons_pressed: _,
-            board,
-            hold_piece,
-            piece_preview: next_pieces,
-            piece_generator: _,
-            pieces_locked,
-            lineclears,
-            score,
-            consecutive_line_clears: _,
-            rng: _,
-            fall_delay,
-            fall_delay_lowerbound_hit_at_n_lineclears: _,
-            lock_delay: _,
-        } = game.state();
-        let pieces = pieces_locked.iter().sum::<u32>();
-        let gravity = fall_delay.as_hertz();
+        let pieces = game.state().pieces_locked.iter().sum::<u32>();
+        let gravity = game.state().fall_delay.as_hertz();
         // Screen: some titles.
-        let mode_name_space = meta_data.title.len().max(14);
+        let modename_len = meta_data.title.len().max(14);
         let (endcond_title, endcond_value) = if let Some((c, _)) = game
             .config
             .end_conditions
@@ -257,10 +240,19 @@ impl Renderer for DiffPrintRenderer {
             .find(|(_stat, to_win)| *to_win)
         {
             match c {
-                Stat::TimeElapsed(t) => ("Time left:", fmt_duration(t.saturating_sub(*game_time))),
+                Stat::TimeElapsed(t) => (
+                    "Time left:",
+                    fmt_duration(t.saturating_sub(game.state().time)),
+                ),
                 Stat::PiecesLocked(p) => ("Pieces left:", p.saturating_sub(pieces).to_string()),
-                Stat::LinesCleared(l) => ("Lines left:", l.saturating_sub(*lineclears).to_string()),
-                Stat::PointsScored(s) => ("Points left:", s.saturating_sub(*score).to_string()),
+                Stat::LinesCleared(l) => (
+                    "Lines left:",
+                    l.saturating_sub(game.state().lineclears).to_string(),
+                ),
+                Stat::PointsScored(s) => (
+                    "Points left:",
+                    s.saturating_sub(game.state().score).to_string(),
+                ),
             }
         } else {
             ("", "".to_owned())
@@ -300,21 +292,29 @@ impl Renderer for DiffPrintRenderer {
             .nth(11)
             .unwrap_or(icons_hold.len());
         icons_hold.truncate(eleven);
+
+        let show_hold = game.state().hold_piece.is_some();
+        let show_next = !game.state().piece_preview.is_empty();
+        let show_lockdelay = game
+            .state()
+            .fall_delay_lowerbound_hit_at_n_lineclears
+            .is_some();
+
         // Screen: draw.
         #[allow(clippy::useless_format)]
         #[rustfmt::skip]
         let base_screen = match app.settings().graphics().glyphset {
             Glyphset::Electronika60 => vec![
                 format!("                                                            ", ),
-                format!("                                              {: ^w$      } ", "mode:", w=mode_name_space),
-                format!("    STATS             <! . . . . . . . . . .!>{: ^w$      } ", meta_data.title, w=mode_name_space),
-                format!("                      <! . . . . . . . . . .!>{: ^w$      } ", "", w=mode_name_space),
-                format!("   Score: {:<12      }<! . . . . . . . . . .!>              ", score),
-                format!("   Lines: {:<12      }<! . . . . . . . . . .!> {           }", lineclears, endcond_title),
-                format!("                      <! . . . . . . . . . .!>   {         }", endcond_value),
-                format!("   Gravity: {:<10    }<! . . . . . . . . . .!>              ", fmt_hertz(gravity)),
-                format!("   Time: {:<13       }<! . . . . . . . . . .!>              ", fmt_duration(*game_time)),
+                format!("                                              {: ^w$      } ", "mode:", w=modename_len),
+                format!("    STATS             <! . . . . . . . . . .!>{: ^w$      } ", meta_data.title, w=modename_len),
+                format!("                      <! . . . . . . . . . .!>{: ^w$      } ", "", w=modename_len),
+                format!("   Time: {:<13       }<! . . . . . . . . . .!>              ", fmt_duration(game.state().time)),
+                format!("   Lines: {:<12      }<! . . . . . . . . . .!> {           }", game.state().lineclears, endcond_title),
+                format!("   Score: {:<12      }<! . . . . . . . . . .!>   {         }", game.state().score, endcond_value),
                 format!("                      <! . . . . . . . . . .!>              ", ),
+                format!("   Gravity: {:<10    }<! . . . . . . . . . .!>              ", fmt_hertz(gravity)),
+                format!("   {                 }<! . . . . . . . . . .!>              ", if show_lockdelay { format!("Lock delay: {:<7  }", format!("{}ms",game.state().lock_delay.saturating_duration().as_millis())) } else { "                   ".to_owned() }),
                 format!("                      <! . . . . . . . . . .!>              ", ),
                 format!("                      <! . . . . . . . . . .!>              ", ),
                 format!("                      <! . . . . . . . . . .!>              ", ),
@@ -332,18 +332,18 @@ impl Renderer for DiffPrintRenderer {
             ],
             Glyphset::ASCII => vec![
                 format!("                                                            ", ),
-                format!("                {     }|- - - - - - - - - - +{:-^w$       }+", if hold_piece.is_some() { "+-hold-" } else {"       "}, "mode", w=mode_name_space),
-                format!("    STATS       {}     |                    |{: ^w$       }|", if hold_piece.is_some() { "| " } else {"  "}, meta_data.title, w=mode_name_space),
-                format!("   ----------   {     }|                    +{:-^w$       }+", if hold_piece.is_some() { "+------" } else {"       "}, "", w=mode_name_space),
-                format!("   Score: {:<13       }|                    |               ", score),
-                format!("   Lines: {:<13       }|                    |  {           }", lineclears, endcond_title),
-                format!("                       |                    |    {         }", endcond_value),
+                format!("                {     }|- - - - - - - - - - +{:-^w$       }+", if show_hold { "+-hold-" } else {"       "}, "mode", w=modename_len),
+                format!("    STATS       {}     |                    |{: ^w$       }|", if show_hold { "| " } else {"  "}, meta_data.title, w=modename_len),
+                format!("   ----------   {     }|                    +{:-^w$       }+", if show_hold { "+------" } else {"       "}, "", w=modename_len),
+                format!("   Time: {:<14        }|                    |               ", fmt_duration(game.state().time)),
+                format!("   Lines: {:<13       }|                    |  {           }", game.state().lineclears, endcond_title),
+                format!("   Score: {:<13       }|                    |    {         }", game.state().score, endcond_value),
+                format!("                       |                    |               ", ),
                 format!("   Gravity: {:<11     }|                    |               ", fmt_hertz(gravity)),
-                format!("   Time: {:<14        }|                    |               ", fmt_duration(*game_time)),
-                format!("                       |                    |{             }", if !next_pieces.is_empty() { "-----next-----+" } else {"               "}),
-                format!("                       |                    |             {}", if !next_pieces.is_empty() { " |" } else {"  "}),
-                format!("                       |                    |             {}", if !next_pieces.is_empty() { " |" } else {"  "}),
-                format!("                       |                    |{             }", if !next_pieces.is_empty() { "--------------+" } else {"               "}),
+                format!("   {                  }|                    |{             }", if show_lockdelay { format!("Lock delay: {:<8   }", format!("{}ms",game.state().lock_delay.saturating_duration().as_millis())) } else { "                    ".to_owned() }, if show_next { "-----next-----+" } else {"               "}),
+                format!("                       |                    |             {}", if show_next { " |" } else {"  "}),
+                format!("                       |                    |             {}", if show_next { " |" } else {"  "}),
+                format!("                       |                    |{             }", if show_next { "--------------+" } else {"               "}),
                 format!("                       |                    |               ", ),
                 format!("                       |                    |               ", ),
                 format!("    KEYBINDS           |                    |               ", ),
@@ -358,18 +358,18 @@ impl Renderer for DiffPrintRenderer {
             ],
         Glyphset::Unicode => vec![
                 format!("                                                            ", ),
-                format!("                {     }╓╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╥{:─^w$       }┐", if hold_piece.is_some() { "┌─hold─" } else {"       "}, "mode", w=mode_name_space),
-                format!("    STATS       {}     ║                    ║{: ^w$       }│", if hold_piece.is_some() { "│ " } else {"  "}, meta_data.title, w=mode_name_space),
-                format!("   ─────────╴   {     }║                    ╟{:─^w$       }┘", if hold_piece.is_some() { "└──────" } else {"       "}, "", w=mode_name_space),
-                format!("   Score: {:<13       }║                    ║               ", score),
-                format!("   Lines: {:<13       }║                    ║  {           }", lineclears, endcond_title),
-                format!("                       ║                    ║    {         }", endcond_value),
+                format!("                {     }╓╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╥{:─^w$       }┐", if show_hold { "┌─hold─" } else {"       "}, "mode", w=modename_len),
+                format!("    STATS       {}     ║                    ║{: ^w$       }│", if show_hold { "│ " } else {"  "}, meta_data.title, w=modename_len),
+                format!("   ─────────╴   {     }║                    ╟{:─^w$       }┘", if show_hold { "└──────" } else {"       "}, "", w=modename_len),
+                format!("   Time: {:<14        }║                    ║               ", fmt_duration(game.state().time)),
+                format!("   Lines: {:<13       }║                    ║  {           }", game.state().lineclears, endcond_title),
+                format!("   Score: {:<13       }║                    ║    {         }", game.state().score, endcond_value),
+                format!("                       ║                    ║               ", ),
                 format!("   Gravity: {:<11     }║                    ║               ", fmt_hertz(gravity)),
-                format!("   Time: {:<14        }║                    ║               ", fmt_duration(*game_time)),
-                format!("                       ║                    ║{             }", if !next_pieces.is_empty() { "─────next─────┐" } else {"               "}),
-                format!("                       ║                    ║             {}", if !next_pieces.is_empty() { " │" } else {"  "}),
-                format!("                       ║                    ║             {}", if !next_pieces.is_empty() { " │" } else {"  "}),
-                format!("                       ║                    ║{             }", if !next_pieces.is_empty() { "──────────────┘" } else {"               "}),
+                format!("   {                  }║                    ║{             }", if show_lockdelay { format!("Lock delay: {:<8   }", format!("{}ms",game.state().lock_delay.saturating_duration().as_millis())) } else { "                    ".to_owned() }, if show_next { "─────next─────┐" } else {"               "}),
+                format!("                       ║                    ║             {}", if show_next { " │" } else {"  "}),
+                format!("                       ║                    ║             {}", if show_next { " │" } else {"  "}),
+                format!("                       ║                    ║{             }", if show_next { "──────────────┘" } else {"               "}),
                 format!("                       ║                    ║               ", ),
                 format!("                       ║                    ║               ", ),
                 format!("    KEYBINDS           ║                    ║               ", ),
@@ -412,7 +412,7 @@ impl Renderer for DiffPrintRenderer {
             active,
         ) in self.hard_drop_tiles.iter_mut()
         {
-            let elapsed = game_time.saturating_sub(*creation_time);
+            let elapsed = game.state().time.saturating_sub(*creation_time);
             let luminance_map = match app.settings().graphics().glyphset {
                 Glyphset::Electronika60 => [" .", " .", " .", " .", " .", " .", " .", " ."],
                 Glyphset::ASCII | Glyphset::Unicode => {
@@ -442,7 +442,7 @@ impl Renderer for DiffPrintRenderer {
             };
         // Board: draw locked tiles.
         if !app.settings().graphics().blindfolded {
-            for (y, line) in board.iter().enumerate().take(21).rev() {
+            for (y, line) in game.state().board.iter().enumerate().take(21).rev() {
                 for (x, cell) in line.iter().enumerate() {
                     if let Some(tile_type_id) = cell {
                         self.screen.buffer_str(
@@ -463,7 +463,9 @@ impl Renderer for DiffPrintRenderer {
         {
             // Draw ghost piece.
             if app.settings().graphics().show_ghost_piece {
-                for (tile_pos, tile_type_id) in piece.teleported(board, (0, -1)).tiles() {
+                for (tile_pos, tile_type_id) in
+                    piece.teleported(&game.state().board, (0, -1)).tiles()
+                {
                     if tile_pos.1 <= Game::SKYLINE_HEIGHT {
                         self.screen.buffer_str(
                             tile_ghost,
@@ -487,7 +489,7 @@ impl Renderer for DiffPrintRenderer {
         }
 
         // Draw preview.
-        if let Some(next_piece) = next_pieces.front() {
+        if let Some(next_piece) = game.state().piece_preview.front() {
             let color = get_color(&next_piece.tiletypeid());
             for (x, y) in next_piece.minos(Orientation::N) {
                 let pos = (x_preview + 2 * x, y_preview - y);
@@ -497,7 +499,7 @@ impl Renderer for DiffPrintRenderer {
 
         // Draw small preview pieces 2,3,4.
         let mut x_offset_small = 0;
-        for tet in next_pieces.iter().skip(1).take(3) {
+        for tet in game.state().piece_preview.iter().skip(1).take(3) {
             let str = fmt_tet_small(*tet);
             self.screen.buffer_str(
                 str,
@@ -508,7 +510,7 @@ impl Renderer for DiffPrintRenderer {
         }
         // Draw minuscule preview pieces 5,6,7,8...
         let mut x_offset_minuscule = 0;
-        for tet in next_pieces.iter().skip(4) {
+        for tet in game.state().piece_preview.iter().skip(4) {
             //.take(5) {
             let str = fmt_tet_mini(*tet);
             self.screen.buffer_str(
@@ -522,9 +524,9 @@ impl Renderer for DiffPrintRenderer {
             x_offset_minuscule += str.chars().count() + 1;
         }
         // Draw held piece.
-        if let Some((tet, swap_allowed)) = hold_piece {
-            let str = fmt_tet_small(*tet);
-            let color = get_color(&if *swap_allowed {
+        if let Some((tet, swap_allowed)) = game.state().hold_piece {
+            let str = fmt_tet_small(tet);
+            let color = get_color(&if swap_allowed {
                 tet.tiletypeid()
             } else {
                 NonZeroU8::try_from(254).unwrap()
@@ -539,7 +541,7 @@ impl Renderer for DiffPrintRenderer {
         );
         // Handle feedback.
         for (feedback_time, feedback, active) in self.active_feedback.iter_mut() {
-            let elapsed = game_time.saturating_sub(*feedback_time);
+            let elapsed = game.state().time.saturating_sub(*feedback_time);
             match feedback {
                 Feedback::PieceLocked { piece } => {
                     if !app.settings().graphics().render_effects {
@@ -739,7 +741,7 @@ impl Renderer for DiffPrintRenderer {
             self.screen.buffer_str(message, None, pos);
         }
         self.messages.retain(|(timestamp, _message)| {
-            game_time.saturating_sub(*timestamp) < Duration::from_millis(7000)
+            game.state().time.saturating_sub(*timestamp) < Duration::from_millis(5000)
         });
         self.screen.flush(&mut app.term)
     }
