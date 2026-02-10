@@ -401,6 +401,7 @@ fn do_line_clearing(
             }
         }
     }
+
     Phase::Spawning {
         spawn_time: line_clears_finish_time.saturating_add(config.spawn_delay),
     }
@@ -464,16 +465,17 @@ fn do_autonomous_move(
             .piece
             .fits_at(&state.board, (0, -1))
             .is_none();
+
         if was_grounded {
             // Refresh fall timer if we *started* falling.
-            auto_move_time.saturating_add(if state.buttons_pressed[Button::DropSoft].is_some() {
-                state
-                    .fall_delay
-                    .div_ennf64(config.soft_drop_divisor)
-                    .saturating_duration()
-            } else {
-                state.fall_delay.saturating_duration()
-            })
+            auto_move_time.saturating_add(
+                if state.buttons_pressed[Button::DropSoft].is_some() {
+                    state.fall_delay.div_ennf64(config.soft_drop_divisor)
+                } else {
+                    state.fall_delay
+                }
+                .saturating_duration(),
+            )
         } else {
             // Falling as before.
             previous_piece_data.fall_or_lock_time
@@ -587,14 +589,14 @@ fn do_fall(
     let new_is_fall_not_lock = new_piece.fits_at(&state.board, (0, -1)).is_some();
 
     let new_fall_or_lock_time = if new_is_fall_not_lock {
-        fall_time.saturating_add(if state.buttons_pressed[Button::DropSoft].is_some() {
-            state
-                .fall_delay
-                .div_ennf64(config.soft_drop_divisor)
-                .saturating_duration()
-        } else {
-            state.fall_delay.saturating_duration()
-        })
+        fall_time.saturating_add(
+            if state.buttons_pressed[Button::DropSoft].is_some() {
+                state.fall_delay.div_ennf64(config.soft_drop_divisor)
+            } else {
+                state.fall_delay
+            }
+            .saturating_duration(),
+        )
     } else {
         // NOTE: capped_lock_time may actually lie in the past, so we first need to cap *it* from below (current time)!
         fall_time
@@ -880,23 +882,21 @@ fn do_player_button_update(
     let new_fall_or_lock_time = if new_is_fall_not_lock {
         // Calculate scheduled fall time.
         // This implements (¹).
-        if was_grounded
+        let fall_reset = was_grounded
             || matches!(
                 button_change,
                 BC::Press(B::DropSoft) | BC::Release(B::DropSoft)
-            )
-        {
+            );
+        if fall_reset {
             // Refresh fall timer if we *started* falling, or soft drop just pressed, or soft drop just released.
             //let/*TODO:dbg*/s=format!("YEA\n");if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
             button_update_time.saturating_add(
                 if new_state_buttons_pressed[Button::DropSoft].is_some() {
-                    state
-                        .fall_delay
-                        .div_ennf64(config.soft_drop_divisor)
-                        .saturating_duration()
+                    state.fall_delay.div_ennf64(config.soft_drop_divisor)
                 } else {
-                    state.fall_delay.saturating_duration()
-                },
+                    state.fall_delay
+                }
+                .saturating_duration(),
             )
         } else {
             // Falling as before.
@@ -905,12 +905,21 @@ fn do_player_button_update(
     } else {
         // Calculate scheduled lock time.
         // This implements (²).
-        if matches!(button_change, BC::Press(B::DropHard))
-            || (was_grounded && matches!(button_change, BC::Press(B::DropSoft)))
-        {
+        let lock_immediately = matches!(button_change, BC::Press(B::DropHard))
+            || (was_grounded && matches!(button_change, BC::Press(B::DropSoft)));
+        let lock_reset_piecechange = new_piece != previous_piece_data.piece;
+        let lock_reset_lenience = config.lenient_lock_delay_reset
+            && matches!(
+                button_change,
+                BC::Press(
+                    B::MoveLeft | B::MoveRight | B::RotateLeft | B::RotateAround | B::RotateRight
+                )
+            );
+
+        if lock_immediately {
             // We are on the ground - if hard drop pressed or soft drop when ground is touched, lock immediately.
             button_update_time
-        } else if new_piece != previous_piece_data.piece {
+        } else if lock_reset_lenience || lock_reset_piecechange {
             // On the ground - Refresh lock time if piece moved.
             // NOTE: capped_lock_time may actually lie in the past, so we first need to cap *it* from below (current time)!
             button_update_time
@@ -1040,7 +1049,7 @@ fn do_lock(
                 + (combo - 1);
 
         // Update score.
-        state.score += u64::from(score_bonus);
+        state.score += score_bonus;
 
         if config.feedback_verbosity != FeedbackVerbosity::Silent {
             feedback_msgs.push((
@@ -1128,7 +1137,7 @@ fn calc_move_dx_and_next_move_time(
 fn calc_fall_and_lock_delay(
     config: &Configuration,
     init_vals: &InitialValues,
-    fall_delay_hit_zero_at_n_lineclears: Option<u32>,
+    fall_delay_lowerbound_hit_at_n_lineclears: Option<u32>,
     lineclears: u32,
 ) -> (ExtDuration, ExtDuration) {
     // Get some relevant values.
@@ -1145,13 +1154,17 @@ fn calc_fall_and_lock_delay(
         ..
     } = init_vals;
 
-    if let Some(lineclears_sentinel) = fall_delay_hit_zero_at_n_lineclears {
+    if let Some(hit_at_n_lineclears) = fall_delay_lowerbound_hit_at_n_lineclears {
         // Fall delay zero was hit at some point, only decrease lock delay now.
-        let lock_lineclears = f64::from(lineclears - lineclears_sentinel);
-        let DelayEquation { mul, sub } = lock_delay_equation;
+        let lock_lineclears = f64::from(lineclears - hit_at_n_lineclears);
+        let DelayEquation {
+            factor: multiplier,
+            subtrahend,
+        } = lock_delay_equation;
 
         // Actually compute factor from equation.
-        let lock_delay_factor = mul.get().powf(lock_lineclears) - sub.get() * lock_lineclears;
+        let lock_delay_factor =
+            multiplier.get().powf(lock_lineclears) - subtrahend.get() * lock_lineclears;
         let lock_delay = initial_lock_delay
             .mul_ennf64(ExtNonNegF64::new(0.0f64.max(lock_delay_factor)).unwrap());
 
@@ -1161,11 +1174,14 @@ fn calc_fall_and_lock_delay(
         )
     } else {
         // Normally decrease fall delay.
-        let DelayEquation { mul, sub } = fall_delay_equation;
+        let DelayEquation {
+            factor: multiplier,
+            subtrahend,
+        } = fall_delay_equation;
         let lineclears = f64::from(lineclears);
 
         // Actually compute factor from equation.
-        let fall_delay_factor = mul.get().powf(lineclears) - sub.get() * lineclears;
+        let fall_delay_factor = multiplier.get().powf(lineclears) - subtrahend.get() * lineclears;
         let fall_delay = initial_fall_delay
             .mul_ennf64(ExtNonNegF64::new(0.0f64.max(fall_delay_factor)).unwrap());
 

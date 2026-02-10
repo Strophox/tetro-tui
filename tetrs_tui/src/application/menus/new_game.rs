@@ -33,8 +33,8 @@ impl<T: Write> Application<T> {
         let mut selected = 0usize;
         let mut customization_selected = 0usize;
 
-        let d_time = Duration::from_secs(5);
-        let d_score = 100;
+        let d_time = Duration::from_secs(10);
+        let d_score = 10;
         let d_pieces = 1;
         let d_lines = 1;
 
@@ -50,19 +50,19 @@ impl<T: Write> Application<T> {
                 ),
                 (
                     game_mode_presets::marathon(),
-                    "Can you make it to level 16?".to_owned(),
+                    "Clear 150 lines at increasing gravity.".to_owned(),
                 ),
                 (
                     game_mode_presets::time_trial(),
-                    "What highscore can you get in 3 minutes?".to_owned(),
+                    "How high a score can you get in 3 min.?".to_owned(),
                 ),
                 (
                     game_mode_presets::master(),
-                    "Can you clear 15 levels at instant gravity?".to_owned(),
+                    "Clear 300 lines at instant gravity.".to_owned(),
                 ),
                 (
                     game_mode_presets::puzzle(),
-                    "Get perfect clears in all 24 puzzle levels.".to_owned(),
+                    "Clear 24 hand-crafted puzzles.".to_owned(),
                 ),
                 (
                     game_mode_presets::n_cheese(
@@ -94,7 +94,7 @@ impl<T: Write> Application<T> {
             if self.settings.new_game.experimental_mode_unlocked {
                 game_presets.push((
                     game_mode_presets::ascent(),
-                    "(Experimental; needs 180° rot.) per aspera ad astra".to_owned(),
+                    "(Experimental. Needs 180° rot.) Per aspera ad astra".to_owned(),
                 ))
             }
             // First part: rendering the menu.
@@ -429,7 +429,7 @@ impl<T: Write> Application<T> {
                         if customization_selected == customization_selection_size - 1 {
                             self.settings.new_game.custom_win_condition =
                                 match self.settings.new_game.custom_win_condition {
-                                    Some(Stat::TimeElapsed(_)) => Some(Stat::PointsScored(9000)),
+                                    Some(Stat::TimeElapsed(_)) => Some(Stat::PointsScored(200)),
                                     Some(Stat::PointsScored(_)) => Some(Stat::PiecesLocked(100)),
                                     Some(Stat::PiecesLocked(_)) => Some(Stat::LinesCleared(40)),
                                     Some(Stat::LinesCleared(_)) => None,
@@ -480,8 +480,6 @@ impl<T: Write> Application<T> {
                         self.settings.new_game.custom_fall_delay_equation =
                             DelayEquation::guidelinelike_fall_delays();
                         self.settings.new_game.custom_win_condition = None;
-                    } else if selected == selection_len - 2 {
-                        self.game_savepoint = None;
                     } else if selected == 6 {
                         let new_layout_idx = if let Some(i) = COMBO_STARTLAYOUTS
                             .iter()
@@ -494,6 +492,8 @@ impl<T: Write> Application<T> {
                         };
                         self.settings.new_game.combo_startlayout =
                             COMBO_STARTLAYOUTS[new_layout_idx];
+                    } else if selected == selection_len - 2 {
+                        self.game_savepoint = None;
                     }
                 }
 

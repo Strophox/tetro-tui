@@ -21,12 +21,19 @@ pub fn build(
     let mod_function: Box<GameModFn> =
         Box::new(move |point, _config, _init_vals, state, _phase, _msgs| {
             if !init {
+                let n_init_lines = usize::try_from(internal_remaining_lines.min(10)).unwrap();
                 let mut line_source = random_gap_lines(
                     cheese_tiles_per_line,
                     &mut state.rng,
                     &mut internal_remaining_lines,
                 );
-                for (line, cheese) in state.board.iter_mut().take(10).rev().zip(&mut line_source) {
+                for (line, cheese) in state
+                    .board
+                    .iter_mut()
+                    .take(n_init_lines)
+                    .rev()
+                    .zip(&mut line_source)
+                {
                     *line = cheese;
                 }
                 init = true;
@@ -63,6 +70,8 @@ pub fn build(
         .clone()
         .initial_fall_delay(fall_delay)
         .fall_delay_equation(DelayEquation::constant())
+        .initial_lock_delay(ExtDuration::Infinite) // TODO: depends on fall delay...
+        .lock_delay_equation(DelayEquation::constant())
         .end_conditions(match linelimit {
             Some(c) => vec![(Stat::LinesCleared(c.get()), true)],
             None => vec![],

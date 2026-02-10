@@ -35,12 +35,12 @@ impl<T: Write> Application<T> {
                 format!(
                     "Keep save file: {}",
                     match self.save_on_exit {
-                        SavefileGranularity::NoSavefile => "OFF*",
-                        SavefileGranularity::RememberSettings => "ON (save settings)",
+                        SavefileGranularity::NoSavefile => "No*",
+                        SavefileGranularity::RememberSettings => "Yes (only settings)",
                         SavefileGranularity::RememberSettingsScoreboard =>
-                            "ON (save settings, scores)",
+                            "Yes (only settings,scores)",
                         SavefileGranularity::RememberSettingsScoreboardGamerecords =>
-                            "ON (save settings, scores, game replays)",
+                            "Yes (save settings,scores,replays)",
                     }
                 ),
             ];

@@ -125,14 +125,40 @@ impl GameBuilder {
         self.config.auto_repeat_rate = x;
         self
     }
+    /// Specification of how fall delay gets calculated from the rest of the state.
+    pub fn fall_delay_equation(&mut self, x: DelayEquation) -> &mut Self {
+        self.config.fall_delay_equation = x;
+        self
+    }
+    /// Specification of where to stop decreasing fall delay and start decreasing lock delay.
+    pub fn fall_delay_lowerbound(&mut self, x: ExtDuration) -> &mut Self {
+        self.config.fall_delay_lowerbound = x;
+        self
+    }
     /// How many times faster than normal drop speed a piece should fall while 'soft drop' is being held.
     pub fn soft_drop_divisor(&mut self, x: ExtNonNegF64) -> &mut Self {
         self.config.soft_drop_divisor = x;
         self
     }
+    /// Specification of how fall delay gets calculated from the rest of the state.
+    pub fn lock_delay_equation(&mut self, x: DelayEquation) -> &mut Self {
+        self.config.lock_delay_equation = x;
+        self
+    }
+    /// Specification of where to stop decreasing lock delay.
+    pub fn lock_delay_lowerbound(&mut self, x: ExtDuration) -> &mut Self {
+        self.config.lock_delay_lowerbound = x;
+        self
+    }
+    /// Whether just pressing a rotation- or movement button is enough to refresh lock delay.
+    /// Normally, lock delay only resets if rotation or movement actually succeeds.
+    pub fn lenient_lock_delay_reset(&mut self, x: bool) -> &mut Self {
+        self.config.lenient_lock_delay_reset = x;
+        self
+    }
     /// How long each spawned active piece may touch the ground in total until it should lock down
     /// immediately.
-    pub fn lock_time_cap_factor(&mut self, x: ExtNonNegF64) -> &mut Self {
+    pub fn capped_lock_time_factor(&mut self, x: ExtNonNegF64) -> &mut Self {
         self.config.capped_lock_time_factor = x;
         self
     }
@@ -144,21 +170,6 @@ impl GameBuilder {
     /// When to update the fall and lock delays in [`State`].
     pub fn update_delays_every_n_lineclears(&mut self, x: u32) -> &mut Self {
         self.config.update_delays_every_n_lineclears = x;
-        self
-    }
-    /// Specification of how fall delay gets calculated from the rest of the state.
-    pub fn fall_delay_equation(&mut self, x: DelayEquation) -> &mut Self {
-        self.config.fall_delay_equation = x;
-        self
-    }
-    /// Specification of how fall delay gets calculated from the rest of the state.
-    pub fn lock_delay_equation(&mut self, x: DelayEquation) -> &mut Self {
-        self.config.lock_delay_equation = x;
-        self
-    }
-    /// Specification of where to stop decreasing lock delay.
-    pub fn lock_delay_lowerbound(&mut self, x: ExtDuration) -> &mut Self {
-        self.config.lock_delay_lowerbound = x;
         self
     }
     /// Stores the ways in which a round of the game should be limited.

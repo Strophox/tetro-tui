@@ -60,6 +60,7 @@ pub fn master() -> GameModePreset {
             builder
                 .clone()
                 .initial_fall_delay(ExtDuration::ZERO)
+                .fall_delay_lowerbound(ExtDuration::ZERO)
                 .end_conditions(vec![(Stat::LinesCleared(300), true)])
                 .build()
         }),

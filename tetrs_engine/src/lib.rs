@@ -170,7 +170,7 @@ pub enum Stat {
     /// Whether a given number of lines have been cleared from the [`Board`].
     LinesCleared(u32),
     /// Whether a given number of points has been scored already.
-    PointsScored(u64),
+    PointsScored(u32),
 }
 
 /// The amount of feedback information that is to be generated.
@@ -193,21 +193,33 @@ pub enum FeedbackVerbosity {
 /// A struct holding information on how certain time 'delay' values progress.
 ///
 /// # Example
-/// The formulation used for calculation of fall delay is:
+/// The formulation used for calculation of fall delay is conceptually:
 /// ```
-/// |lineclears| {
-///     initial_fall_delay.saturating_mul_ennf64(
-///         mul.get().powf(lineclears) - sub.get() * lineclears
+/// let fall_delay = |lineclears| {
+///     initial_fall_delay.mul_ennf64(
+///         multiplier.get().powf(lineclears) - subtrahend.get() * lineclears
 ///     )
 /// }
 /// ```
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct DelayEquation {
-    /// The factor used for multiplication: used as base in exponentiation.
-    pub mul: ExtNonNegF64,
-    /// The subtrahend used for subtraction: used as factor in multiplication.
-    pub sub: ExtNonNegF64,
+    /// The base factor that gets exponentiated by number of line clears;
+    /// `factor ^ lineclears ...`.
+    ///
+    /// Should be in the range `0.0 ≤ .. ≤ 1.0`, where
+    /// - `0.0` means 'zero-out initial delay at every line clear',
+    /// - `0.5` means 'halve initial delay for every line clear',
+    /// - `1.0` means 'keep initial delay at 100%'.
+    pub factor: ExtNonNegF64,
+    /// The base subtrahend that gets multiplied by number of line clears;
+    /// `... - subtrahend * lineclears`.
+    ///
+    /// Should be in the range `0.0 ≤ .. ≤ 1.0`, where
+    /// - `0.0` means 'subtract 0% of initial delay for every line clear',
+    /// - `0.5` means 'subtract 50% of initial delay for every line clear',
+    /// - `1.0` means 'subtract 100% of initial delay for every line clear'.
+    pub subtrahend: ExtNonNegF64,
 }
 
 /// Configuration options of the game, which can be modified without hurting internal invariants.
@@ -220,7 +232,8 @@ pub struct DelayEquation {
 pub struct Configuration {
     /// How many pieces should be pre-generated and accessible/visible in the game state.
     pub piece_preview_count: usize,
-    /// Whether holding a rotation button lets a piece be smoothly spawned in a rotated state.
+    /// Whether holding a 'rotate' button lets a piece be smoothly spawned in a rotated state,
+    /// or holding the 'hold' button lets a piece be swapped immediately before it evens spawns.
     pub allow_prespawn_actions: bool,
     /// The method of tetromino rotation used.
     pub rotation_system: RotationSystem,
@@ -231,21 +244,24 @@ pub struct Configuration {
     pub delayed_auto_shift: Duration,
     /// How long it takes for automatic side movement to repeat once it has started.
     pub auto_repeat_rate: Duration,
+    /// Specification of how fall delay gets calculated from the rest of the state.
+    pub fall_delay_equation: DelayEquation,
+    /// Specification of where to stop decreasing fall delay and start decreasing lock delay.
+    pub fall_delay_lowerbound: ExtDuration,
     /// How many times faster than normal drop speed a piece should fall while 'soft drop' is being held.
     pub soft_drop_divisor: ExtNonNegF64,
+    /// Specification of how fall delay gets calculated from the rest of the state.
+    pub lock_delay_equation: DelayEquation,
+    /// Specification of where to stop decreasing lock delay.
+    pub lock_delay_lowerbound: ExtDuration,
+    /// Whether just pressing a rotation- or movement button is enough to refresh lock delay.
+    /// Normally, lock delay only resets if rotation or movement actually succeeds.
+    pub lenient_lock_delay_reset: bool,
     /// How long each spawned active piece may touch the ground in total until it should lock down
     /// immediately.
     pub capped_lock_time_factor: ExtNonNegF64,
     /// How long the game should take to clear a line.
     pub line_clear_duration: Duration,
-    /// Specification of how fall delay gets calculated from the rest of the state.
-    pub fall_delay_equation: DelayEquation,
-    /// Specification of where to stop decreasing fall delay and start decreasing lock delay.
-    pub fall_delay_lowerbound: ExtDuration,
-    /// Specification of how fall delay gets calculated from the rest of the state.
-    pub lock_delay_equation: DelayEquation,
-    /// Specification of where to stop decreasing lock delay.
-    pub lock_delay_lowerbound: ExtDuration,
     /// When to update the fall and lock delays in [`State`].
     pub update_delays_every_n_lineclears: u32,
     /// Stores the ways in which a round of the game should be limited.
@@ -351,7 +367,7 @@ pub struct State {
     /// The number of consecutive pieces that have been played and caused a line clear.
     pub consecutive_line_clears: u32,
     /// The current total score the player has achieved in this round of play.
-    pub score: u64,
+    pub score: u32,
 }
 
 /// Represents how a game can end.
@@ -762,19 +778,25 @@ impl DelayEquation {
     /// Delay equation which does not change at all with number of linescleared.
     pub fn constant() -> Self {
         Self {
-            mul: 1.into(),
-            sub: 0.into(),
+            factor: 1.into(),
+            subtrahend: 0.into(),
         }
     }
 
     /// Delay equation which decreases linearly in number of linescleared.
-    pub fn linear(sub: ExtNonNegF64) -> Self {
-        Self { mul: 1.into(), sub }
+    pub fn linear(subtrahend: ExtNonNegF64) -> Self {
+        Self {
+            factor: 1.into(),
+            subtrahend,
+        }
     }
 
     /// Delay equation which decreases/decays exponentially in number of linescleared.
-    pub fn exponential(mul: ExtNonNegF64) -> Self {
-        Self { mul, sub: 0.into() }
+    pub fn exponential(factor: ExtNonNegF64) -> Self {
+        Self {
+            factor,
+            subtrahend: 0.into(),
+        }
     }
 
     /// Delay equation which implements guideline-like fall delays:
@@ -783,8 +805,8 @@ impl DelayEquation {
     /// * 210 lineclears ~> 0s to fall one whole skyline height.
     pub fn guidelinelike_fall_delays() -> Self {
         Self {
-            mul: ExtNonNegF64::new(0.9776880098709251).unwrap(),
-            sub: ExtNonNegF64::new(0.000042).unwrap(),
+            factor: ExtNonNegF64::new(0.9776880098709251).unwrap(),
+            subtrahend: ExtNonNegF64::new(0.000042).unwrap(),
         }
     }
 
@@ -794,8 +816,8 @@ impl DelayEquation {
     /// * Assume `lock_delay_lowerbound == 200 ms`
     pub fn guidelinelike_lock_delays() -> Self {
         Self {
-            mul: 1.into(),
-            sub: ExtNonNegF64::new(0.004).unwrap(),
+            factor: 1.into(),
+            subtrahend: ExtNonNegF64::new(0.004).unwrap(),
         }
     }
 }
@@ -818,6 +840,7 @@ impl Default for Configuration {
             lock_delay_equation: DelayEquation::guidelinelike_lock_delays(),
             lock_delay_lowerbound: Duration::from_millis(200).into(),
             update_delays_every_n_lineclears: 10,
+            lenient_lock_delay_reset: true,
             end_conditions: Default::default(),
             feedback_verbosity: FeedbackVerbosity::default(),
         }

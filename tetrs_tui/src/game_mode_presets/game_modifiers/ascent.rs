@@ -3,8 +3,8 @@ use std::{num::NonZeroU8, time::Duration};
 use rand::Rng;
 
 use tetrs_engine::{
-    Button, ButtonChange, DelayEquation, ExtDuration, Game, GameBuilder, GameModFn, GameRng,
-    InGameTime, Line, Modifier, Phase, Piece, PieceData, Stat, Tetromino, UpdatePoint,
+    Button, ButtonChange, ExtDuration, Game, GameBuilder, GameModFn, GameRng, InGameTime, Line,
+    Modifier, Phase, Piece, PieceData, Stat, Tetromino, UpdatePoint,
 };
 
 pub const MOD_ID: &str = "ascent";
@@ -135,8 +135,7 @@ pub fn build(builder: &GameBuilder) -> Game {
 
     builder
         .clone()
-        .initial_fall_delay(ExtDuration::Infinite)
-        .fall_delay_equation(DelayEquation::constant())
+        .initial_lock_delay(ExtDuration::Infinite)
         .end_conditions(vec![(Stat::TimeElapsed(Duration::from_secs(2 * 60)), true)])
         .build_modded([Modifier {
             descriptor: MOD_ID.to_owned(),

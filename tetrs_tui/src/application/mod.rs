@@ -161,7 +161,7 @@ pub struct ScoreboardEntry {
     result: GameResult,
     time_elapsed: InGameTime,
     lineclears: u32,
-    points_scored: u64,
+    points_scored: u32,
     pieces_locked: [u32; Tetromino::VARIANTS.len()],
     final_fall_delay: ExtDuration,
     final_lock_delay: ExtDuration,
@@ -240,7 +240,7 @@ impl Default for NewGameSettings {
 
             cheese_linelimit: Some(NonZeroU32::try_from(20).unwrap()),
             cheese_fall_delay: ExtDuration::Infinite,
-            cheese_tiles_per_line: NonZeroUsize::MIN,
+            cheese_tiles_per_line: NonZeroUsize::new(Game::WIDTH - 1).unwrap(),
 
             combo_linelimit: Some(NonZeroU32::try_from(30).unwrap()),
             combo_startlayout: game_mode_presets::game_modifiers::combo_board::LAYOUTS[0],
