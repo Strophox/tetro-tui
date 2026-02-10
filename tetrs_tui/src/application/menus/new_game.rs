@@ -15,7 +15,7 @@ use crossterm::{
     terminal::{Clear, ClearType},
     QueueableCommand,
 };
-use tetrs_engine::{DelayEquation, ExtNonNegF64, Game, InitialValues, Stat};
+use tetrs_engine::{DelayEquation, ExtDuration, ExtNonNegF64, Game, InitialValues, Stat};
 
 use crate::{
     application::{
@@ -37,8 +37,9 @@ impl<T: Write> Application<T> {
         let d_score = 100;
         let d_pieces = 1;
         let d_lines = 1;
-        let d_gravity = ExtNonNegF64::ONE; // TODO: adapt d_gravity <-> d_fall_delay discrepancy...
-        let d_fall_delay = Duration::from_millis(10).into();
+
+        let d_fall_delay = ExtDuration::from(Duration::from_millis(100));
+        let mult_fall_delay = ExtNonNegF64::from(10);
 
         loop {
             #[allow(clippy::type_complexity)]
@@ -202,13 +203,12 @@ impl<T: Write> Application<T> {
             if selected == selection_len - 1 {
                 let stats_strs = [
                     format!(
-                        "| Initial fall delay / gravity: {} / {}",
-                        fmt_duration(
-                            self.settings
-                                .new_game
-                                .custom_initial_fall_delay
-                                .saturating_duration()
-                        ),
+                        "| Initial fall delay: {:?}s | gravity: {}",
+                        self.settings
+                            .new_game
+                            .custom_initial_fall_delay
+                            .as_secs_ennf64()
+                            .get(),
                         fmt_hertz(self.settings.new_game.custom_initial_fall_delay.as_hertz()),
                     ),
                     format!(
@@ -265,7 +265,8 @@ impl<T: Write> Application<T> {
 
                 // Exit menu.
                 Event::Key(KeyEvent {
-                    code: KeyCode::Esc | KeyCode::Char('q') | KeyCode::Backspace,
+                    code:
+                        KeyCode::Esc | KeyCode::Char('q') | KeyCode::Backspace | KeyCode::Char('b'),
                     kind: Press,
                     ..
                 }) => break Ok(MenuUpdate::Pop),
@@ -283,16 +284,18 @@ impl<T: Write> Application<T> {
                 Event::Key(KeyEvent {
                     code: KeyCode::Up | KeyCode::Char('k'),
                     kind: Press | Repeat,
+                    modifiers,
                     ..
                 }) => {
                     if customization_selected > 0 {
                         match customization_selected {
                             1 => {
-                                self.settings.new_game.custom_initial_fall_delay = self
-                                    .settings
-                                    .new_game
-                                    .custom_initial_fall_delay
-                                    .saturating_add(d_fall_delay);
+                                let cifd = &mut self.settings.new_game.custom_initial_fall_delay;
+                                *cifd = if modifiers.contains(KeyModifiers::SHIFT) {
+                                    cifd.mul_ennf64(mult_fall_delay)
+                                } else {
+                                    *cifd + d_fall_delay
+                                };
                             }
                             2 => {
                                 self.settings.new_game.custom_fall_delay_equation =
@@ -315,9 +318,6 @@ impl<T: Write> Application<T> {
                                     Some(Stat::LinesCleared(ref mut l)) => {
                                         *l += d_lines;
                                     }
-                                    Some(Stat::GravityReached(ref mut g)) => {
-                                        *g += d_gravity;
-                                    }
                                     Some(Stat::PointsScored(ref mut s)) => {
                                         *s += d_score;
                                     }
@@ -335,14 +335,19 @@ impl<T: Write> Application<T> {
                 Event::Key(KeyEvent {
                     code: KeyCode::Down | KeyCode::Char('j'),
                     kind: Press | Repeat,
+                    modifiers,
                     ..
                 }) => {
                     // Selected custom stat; decrease it.
                     if customization_selected > 0 {
                         match customization_selected {
                             1 => {
-                                let r = &mut self.settings.new_game.custom_initial_fall_delay;
-                                *r = r.saturating_sub(d_fall_delay);
+                                let cifd = &mut self.settings.new_game.custom_initial_fall_delay;
+                                *cifd = if modifiers.contains(KeyModifiers::SHIFT) {
+                                    cifd.div_ennf64(mult_fall_delay)
+                                } else {
+                                    cifd.saturating_sub(d_fall_delay)
+                                };
                             }
                             2 => {
                                 let e = &mut self.settings.new_game.custom_fall_delay_equation;
@@ -362,9 +367,6 @@ impl<T: Write> Application<T> {
                                     }
                                     Some(Stat::LinesCleared(ref mut l)) => {
                                         *l = l.saturating_sub(d_lines);
-                                    }
-                                    Some(Stat::GravityReached(ref mut g)) => {
-                                        *g = g.saturating_sub(d_gravity);
                                     }
                                     Some(Stat::PointsScored(ref mut s)) => {
                                         *s = s.saturating_sub(d_score);
@@ -430,10 +432,7 @@ impl<T: Write> Application<T> {
                                     Some(Stat::TimeElapsed(_)) => Some(Stat::PointsScored(9000)),
                                     Some(Stat::PointsScored(_)) => Some(Stat::PiecesLocked(100)),
                                     Some(Stat::PiecesLocked(_)) => Some(Stat::LinesCleared(40)),
-                                    Some(Stat::LinesCleared(_)) => Some(Stat::GravityReached(
-                                        ExtNonNegF64::new(1200.).unwrap(),
-                                    )),
-                                    Some(Stat::GravityReached(_)) => None,
+                                    Some(Stat::LinesCleared(_)) => None,
                                     None => Some(Stat::TimeElapsed(Duration::from_secs(180))),
                                 };
                         } else {

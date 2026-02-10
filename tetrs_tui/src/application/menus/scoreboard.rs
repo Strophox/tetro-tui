@@ -17,7 +17,7 @@ use crate::{
     application::{
         Application, GameRestorationData, Menu, MenuUpdate, ScoreboardEntry, ScoreboardSorting,
     },
-    fmt_helpers::{fmt_duration, fmt_hertz},
+    fmt_helpers::fmt_duration,
 };
 
 impl<T: Write> Application<T> {
@@ -43,7 +43,6 @@ impl<T: Write> Application<T> {
                 Stat::TimeElapsed(_) => format!("time: {}", fmt_duration(p.time_elapsed)),
                 Stat::PiecesLocked(_) => format!("pieces: {}", p.pieces_locked.iter().sum::<u32>()),
                 Stat::LinesCleared(_) => format!("lines: {}", p.lineclears),
-                Stat::GravityReached(_) => format!("gravity: {}", fmt_hertz(p.gravity_reached)),
                 Stat::PointsScored(_) => format!("score: {}", p.points_scored),
             };
 
@@ -123,7 +122,8 @@ impl<T: Write> Application<T> {
                     )))
                 }
                 Event::Key(KeyEvent {
-                    code: KeyCode::Esc | KeyCode::Char('q') | KeyCode::Backspace,
+                    code:
+                        KeyCode::Esc | KeyCode::Char('q') | KeyCode::Backspace | KeyCode::Char('b'),
                     kind: Press,
                     ..
                 }) => break Ok(MenuUpdate::Pop),

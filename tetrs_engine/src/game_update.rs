@@ -339,7 +339,7 @@ fn do_spawn(config: &Configuration, state: &mut State, spawn_time: InGameTime) -
         let capped_lock_time = spawn_time.saturating_add(
             state
                 .lock_delay
-                .saturating_mul_ennf64(config.capped_lock_time_factor)
+                .mul_ennf64(config.capped_lock_time_factor)
                 .saturating_duration(),
         );
 
@@ -469,7 +469,7 @@ fn do_autonomous_move(
             auto_move_time.saturating_add(if state.buttons_pressed[Button::DropSoft].is_some() {
                 state
                     .fall_delay
-                    .saturating_div_ennf64(config.soft_drop_divisor)
+                    .div_ennf64(config.soft_drop_divisor)
                     .saturating_duration()
             } else {
                 state.fall_delay.saturating_duration()
@@ -573,7 +573,7 @@ fn do_fall(
                 fall_time.saturating_add(
                     state
                         .lock_delay
-                        .saturating_mul_ennf64(config.capped_lock_time_factor)
+                        .mul_ennf64(config.capped_lock_time_factor)
                         .saturating_duration(),
                 ),
             )
@@ -590,7 +590,7 @@ fn do_fall(
         fall_time.saturating_add(if state.buttons_pressed[Button::DropSoft].is_some() {
             state
                 .fall_delay
-                .saturating_div_ennf64(config.soft_drop_divisor)
+                .div_ennf64(config.soft_drop_divisor)
                 .saturating_duration()
         } else {
             state.fall_delay.saturating_duration()
@@ -778,16 +778,16 @@ fn do_player_button_update(
         // The logic implemented here is based on (³) and the Karnaugh map in (⁵)
         BC::Press(dir @ (B::MoveLeft | B::MoveRight))
         | BC::Release(dir @ (B::MoveLeft | B::MoveRight)) => {
-            let ml = state.buttons_pressed[B::MoveLeft].is_some();
-            let mr = state.buttons_pressed[B::MoveRight].is_some();
+            let old_ml = state.buttons_pressed[B::MoveLeft].is_some();
+            let old_mr = state.buttons_pressed[B::MoveRight].is_some();
             let is_prs = matches!(button_change, BC::Press(_));
             let is_ml = matches!(dir, B::MoveLeft);
 
-            let rel_one = ml && mr && !is_prs; // ⇆₋←₊ⁱ, ⇆₋→₊ⁱ
-            let prs_ml = !ml && is_prs && is_ml; // ←₊ⁱ; →₋←₊ⁱ
-            let prs_mr = !mr && is_prs && !is_ml; // →₊ⁱ; ←₋→₊ⁱ
-            let rel_ml = ml && !mr && !is_prs && is_ml; // ←₋ᵏ
-            let rel_mr = !ml && mr && !is_prs && !is_ml; // →₋ᵏ
+            let rel_one = old_ml && old_mr && !is_prs; // ⇆₋←₊ⁱ, ⇆₋→₊ⁱ
+            let prs_ml = !old_ml && is_prs && is_ml; // ←₊ⁱ; →₋←₊ⁱ
+            let prs_mr = !old_mr && is_prs && !is_ml; // →₊ⁱ; ←₋→₊ⁱ
+            let rel_ml = old_ml && !old_mr && !is_prs && is_ml; // ←₋ᵏ
+            let rel_mr = !old_ml && old_mr && !is_prs && !is_ml; // →₋ᵏ
             maybe_override_auto_move = if rel_one || prs_ml || prs_mr {
                 //let/*TODO:dbg*/s=format!(" - moving\n");if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
                 if let Some(moved_piece) = new_piece.fits_at(&state.board, (dx, 0)) {
@@ -855,7 +855,7 @@ fn do_player_button_update(
                 button_update_time.saturating_add(
                     state
                         .lock_delay
-                        .saturating_mul_ennf64(config.capped_lock_time_factor)
+                        .mul_ennf64(config.capped_lock_time_factor)
                         .saturating_duration(),
                 ),
             )
@@ -889,10 +889,10 @@ fn do_player_button_update(
             // Refresh fall timer if we *started* falling, or soft drop just pressed, or soft drop just released.
             //let/*TODO:dbg*/s=format!("YEA\n");if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
             button_update_time.saturating_add(
-                if state.buttons_pressed[Button::DropSoft].is_some() {
+                if new_state_buttons_pressed[Button::DropSoft].is_some() {
                     state
                         .fall_delay
-                        .saturating_div_ennf64(config.soft_drop_divisor)
+                        .div_ennf64(config.soft_drop_divisor)
                         .saturating_duration()
                 } else {
                     state.fall_delay.saturating_duration()
@@ -1153,7 +1153,7 @@ fn calc_fall_and_lock_delay(
         // Actually compute factor from equation.
         let lock_delay_factor = mul.get().powf(lock_lineclears) - sub.get() * lock_lineclears;
         let lock_delay = initial_lock_delay
-            .saturating_mul_ennf64(ExtNonNegF64::new(0.0f64.max(lock_delay_factor)).unwrap());
+            .mul_ennf64(ExtNonNegF64::new(0.0f64.max(lock_delay_factor)).unwrap());
 
         (
             (*fall_delay_lowerbound),
@@ -1167,7 +1167,7 @@ fn calc_fall_and_lock_delay(
         // Actually compute factor from equation.
         let fall_delay_factor = mul.get().powf(lineclears) - sub.get() * lineclears;
         let fall_delay = initial_fall_delay
-            .saturating_mul_ennf64(ExtNonNegF64::new(0.0f64.max(fall_delay_factor)).unwrap());
+            .mul_ennf64(ExtNonNegF64::new(0.0f64.max(fall_delay_factor)).unwrap());
 
         (
             (*fall_delay_lowerbound).max(fall_delay),

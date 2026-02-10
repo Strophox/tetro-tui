@@ -31,15 +31,18 @@ impl std::hash::Hash for ExtNonNegF64 {
     }
 }
 
+impl From<u32> for ExtNonNegF64 {
+    fn from(value: u32) -> Self {
+        Self(f64::from(value))
+    }
+}
+
 impl ExtNonNegF64 {
     /// Zero (+0.0).
-    pub const ZERO: Self = Self(0f64);
-
-    /// One (+1.0).
-    pub const ONE: Self = Self(1f64);
+    pub const MIN: Self = Self(0f64);
 
     /// Infinity (+∞)
-    pub const INFINITY: Self = Self(f64::INFINITY);
+    pub const MAX: Self = Self(f64::INFINITY);
 
     /// Creates an extended non-negative `f64` if `0.0 <= value`.
     pub fn new(value: f64) -> Option<Self> {
@@ -69,7 +72,7 @@ impl ExtNonNegF64 {
         if result.is_sign_positive() {
             Self(result)
         } else {
-            Self::ZERO
+            Self::MIN
         }
     }
 

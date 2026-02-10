@@ -698,7 +698,6 @@ impl<T: Write> Application<T> {
                     Stat::TimeElapsed(_)    => pg1.time_elapsed.cmp(&pg2.time_elapsed),
                     Stat::PiecesLocked(_)   => pg1.pieces_locked.cmp(&pg2.pieces_locked),
                     Stat::LinesCleared(_)   => pg1.lineclears.cmp(&pg2.lineclears),
-                    Stat::GravityReached(_) => pg1.gravity_reached.cmp(&pg2.gravity_reached),
                     Stat::PointsScored(_)   => pg1.points_scored.cmp(&pg2.points_scored),
                 };
                 // Comparison stat is used positively/negatively (minimize or maximize) depending on

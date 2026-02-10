@@ -169,8 +169,6 @@ pub enum Stat {
     PiecesLocked(u32),
     /// Whether a given number of lines have been cleared from the [`Board`].
     LinesCleared(u32),
-    /// Whether a certain level of gravity has been reached already.
-    GravityReached(ExtNonNegF64),
     /// Whether a given number of points has been scored already.
     PointsScored(u64),
 }
@@ -762,27 +760,21 @@ impl<T> ops::IndexMut<Button> for [T; Button::VARIANTS.len()] {
 
 impl DelayEquation {
     /// Delay equation which does not change at all with number of linescleared.
-    pub const fn constant() -> Self {
+    pub fn constant() -> Self {
         Self {
-            mul: ExtNonNegF64::ONE,
-            sub: ExtNonNegF64::ZERO,
+            mul: 1.into(),
+            sub: 0.into(),
         }
     }
 
     /// Delay equation which decreases linearly in number of linescleared.
-    pub const fn linear(sub: ExtNonNegF64) -> Self {
-        Self {
-            mul: ExtNonNegF64::ONE,
-            sub,
-        }
+    pub fn linear(sub: ExtNonNegF64) -> Self {
+        Self { mul: 1.into(), sub }
     }
 
     /// Delay equation which decreases/decays exponentially in number of linescleared.
-    pub const fn exponential(mul: ExtNonNegF64) -> Self {
-        Self {
-            mul,
-            sub: ExtNonNegF64::ZERO,
-        }
+    pub fn exponential(mul: ExtNonNegF64) -> Self {
+        Self { mul, sub: 0.into() }
     }
 
     /// Delay equation which implements guideline-like fall delays:
@@ -802,7 +794,7 @@ impl DelayEquation {
     /// * Assume `lock_delay_lowerbound == 200 ms`
     pub fn guidelinelike_lock_delays() -> Self {
         Self {
-            mul: ExtNonNegF64::ONE,
+            mul: 1.into(),
             sub: ExtNonNegF64::new(0.004).unwrap(),
         }
     }
@@ -981,7 +973,6 @@ impl Game {
             Stat::TimeElapsed(t) => *t <= self.state.time,
             Stat::PiecesLocked(p) => *p <= self.state.pieces_locked.iter().sum(),
             Stat::LinesCleared(l) => *l <= self.state.lineclears,
-            Stat::GravityReached(g) => *g <= self.state.fall_delay.as_hertz(),
             Stat::PointsScored(s) => *s <= self.state.score,
         }
     }

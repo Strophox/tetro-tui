@@ -260,7 +260,6 @@ impl Renderer for DiffPrintRenderer {
                 Stat::TimeElapsed(t) => ("Time left:", fmt_duration(t.saturating_sub(*game_time))),
                 Stat::PiecesLocked(p) => ("Pieces left:", p.saturating_sub(pieces).to_string()),
                 Stat::LinesCleared(l) => ("Lines left:", l.saturating_sub(*lineclears).to_string()),
-                Stat::GravityReached(g) => ("Gravity goal:", fmt_hertz(*g)),
                 Stat::PointsScored(s) => ("Points left:", s.saturating_sub(*score).to_string()),
             }
         } else {

@@ -143,7 +143,8 @@ impl<T: Write> Application<T> {
 
                 // Quit menu.
                 Event::Key(KeyEvent {
-                    code: KeyCode::Esc | KeyCode::Char('q') | KeyCode::Backspace,
+                    code:
+                        KeyCode::Esc | KeyCode::Char('q') | KeyCode::Backspace | KeyCode::Char('b'),
                     kind: Press,
                     ..
                 }) => break Ok(MenuUpdate::Pop),
