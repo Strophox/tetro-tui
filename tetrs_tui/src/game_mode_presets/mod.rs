@@ -58,7 +58,7 @@ pub fn master() -> GameModePreset {
             builder
                 .clone()
                 .fall_delay_params(DelayParameters::constant(ExtDuration::ZERO))
-                .end_conditions(vec![(Stat::LinesCleared(300), true)])
+                .end_conditions(vec![(Stat::LinesCleared(150), true)])
                 .build()
         }),
     )

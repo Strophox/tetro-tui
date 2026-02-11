@@ -58,7 +58,7 @@ impl<T: Write> Application<T> {
                 ),
                 (
                     game_mode_presets::master(),
-                    "Clear 300 lines at instant gravity.".to_owned(),
+                    "Clear 150 lines at instant gravity.".to_owned(),
                 ),
                 (
                     game_mode_presets::puzzle(),

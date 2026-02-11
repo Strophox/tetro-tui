@@ -437,7 +437,7 @@ fn do_autonomous_move(
     // Move piece and update all appropriate piece-related values.
     // NOTE: This should give non-zero `dx`.
     let (dx, next_move_time) =
-        calc_move_dx_and_next_move_time(&state.buttons_pressed, auto_move_time, config);
+        calc_move_dx_and_next_move_time(config, &state.buttons_pressed, auto_move_time);
 
     let mut new_piece = previous_piece_data.piece;
     let new_auto_move_scheduled =
@@ -551,7 +551,7 @@ fn do_fall(
             previous_piece_data.piece,
             new_piece,
             &state.board,
-            calc_move_dx_and_next_move_time(&state.buttons_pressed, fall_time, config),
+            calc_move_dx_and_next_move_time(config, &state.buttons_pressed, fall_time),
         ) {
         // Naïvely, movement direction should be kept;
         // But due to the system mentioned in (⁴), we do need to check
@@ -698,7 +698,7 @@ fn do_player_button_update(
 
     // Pre-compute new direction of movement and projected next movement time.
     let (dx, next_move_time) =
-        calc_move_dx_and_next_move_time(&new_state_buttons_pressed, button_update_time, config);
+        calc_move_dx_and_next_move_time(config, &new_state_buttons_pressed, button_update_time);
 
     // Prepare to maybe change the move_scheduled.
     let mut maybe_override_auto_move: Option<Option<InGameTime>> = None;
@@ -1092,13 +1092,13 @@ fn do_lock(
 }
 
 fn calc_move_dx_and_next_move_time(
-    buttons_pressed: &[Option<InGameTime>; Button::VARIANTS.len()],
-    move_time: InGameTime,
     config: &Configuration,
+    button_state: &[Option<InGameTime>; Button::VARIANTS.len()],
+    move_time: InGameTime,
 ) -> (isize, InGameTime) {
     let (dx, how_long_relevant_direction_pressed) = match (
-        buttons_pressed[Button::MoveLeft],
-        buttons_pressed[Button::MoveRight],
+        button_state[Button::MoveLeft],
+        button_state[Button::MoveRight],
     ) {
         (Some(time_prsd_left), Some(time_prsd_right)) => match time_prsd_left.cmp(&time_prsd_right)
         {
@@ -1137,16 +1137,22 @@ fn calc_fall_and_lock_delay(
     lineclears: u32,
 ) -> (ExtDuration, ExtDuration) {
     if let Some(hit_at_n_lineclears) = fall_delay_lowerbound_hit_at_n_lineclears {
-        // Fall delay zero was hit at some point, only decrease lock delay now.
+        // Fall delay zero was hit at some point, only possibly decrease lock delay now.
 
-        // Actually compute factor from equation.
-        let lock_delay = lock_delay_params.calculate(lineclears - hit_at_n_lineclears);
+        if fall_delay_params.is_constant() {
+            // Only push down lock delay if fall delay is putting pressure to do so.
+            // If fall delay is programmed constant, then assume that lock delay shouldn't become more intense.
+            (fall_delay_params.lowerbound, lock_delay_params.base_delay)
+        } else {
+            // Actually compute new delay from equation.
+            let lock_delay = lock_delay_params.calculate(lineclears - hit_at_n_lineclears);
 
-        (fall_delay_params.lowerbound, lock_delay)
+            (fall_delay_params.lowerbound, lock_delay)
+        }
     } else {
         // Normally decrease fall delay.
 
-        // Actually compute factor from equation.
+        // Actually compute new delay from equation.
         let fall_delay = fall_delay_params.calculate(lineclears);
 
         (fall_delay, lock_delay_params.base_delay)
