@@ -156,10 +156,10 @@ impl<T: Write> Application<T> {
                             .settings
                             .new_game
                             .custom_seed
-                            .insert(game.init_vals().seed);
+                            .insert(game.state_init().seed);
                         new_feedback_msgs.push((
                             game.state().time,
-                            Feedback::Text(format!("(Seed stored: {})", game.init_vals().seed)),
+                            Feedback::Text(format!("(Seed stored: {})", game.state_init().seed)),
                         ));
                     }
 

@@ -125,7 +125,7 @@ impl ComboBotInputHandler {
         Ok(ComboState {
             layout: (pattern, flipped),
             active: Some(piece.tetromino),
-            hold: game.state().hold_piece,
+            hold: game.state().piece_held,
             next_pieces: Self::encode_next_queue(
                 game.state().piece_preview.iter().take(MAX_LOOKAHEAD),
             ),

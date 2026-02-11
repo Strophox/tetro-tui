@@ -29,7 +29,7 @@ pub enum TetrominoGenerator {
     /// A multiplicity of `1` and restock threshold of `0` corresponds to the common 7-Bag.
     Stock {
         /// The number of each  piece type left in the bag.
-        pieces_left: [u32; 7],
+        pieces_left: [u32; Tetromino::VARIANTS.len()],
         /// How many of each piece type to refill with.
         multiplicity: NonZeroU32,
         /// Bag threshold upon which to restock.
@@ -45,7 +45,7 @@ pub enum TetrominoGenerator {
         /// The last time a piece was seen.
         ///
         /// `0` here denotes that it was the most recent piece generated.
-        last_generated: [u32; 7],
+        last_generated: [u32; Tetromino::VARIANTS.len()],
         /// Determines how strongly it weighs pieces not generated in a while.
         ///
         ///
@@ -58,8 +58,14 @@ pub enum TetrominoGenerator {
         ///
         /// Note that this is normalized, i.e. all entries are decremented simultaneously until
         /// at least one is `0`.
-        relative_counts: [u32; 7],
+        relative_counts: [u32; Tetromino::VARIANTS.len()],
     },
+}
+
+impl Default for TetrominoGenerator {
+    fn default() -> Self {
+        Self::recency()
+    }
 }
 
 impl TetrominoGenerator {
@@ -71,7 +77,7 @@ impl TetrominoGenerator {
     /// Initialize a 7-Bag instance of the [`TetrominoGenerator::Stock`] variant.
     pub const fn bag() -> Self {
         Self::Stock {
-            pieces_left: [1; 7],
+            pieces_left: [1; Tetromino::VARIANTS.len()],
             multiplicity: NonZeroU32::MIN,
             restock_threshold: 0,
         }
@@ -81,9 +87,9 @@ impl TetrominoGenerator {
     ///
     /// This function returns `None` when `refill_threshold < multiplicity * 7`.
     pub const fn stock(multiplicity: NonZeroU32, refill_threshold: u32) -> Option<Self> {
-        if refill_threshold < multiplicity.get() * 7 {
+        if refill_threshold < multiplicity.get() * (Tetromino::VARIANTS.len() as u32) {
             Some(Self::Stock {
-                pieces_left: [multiplicity.get(); 7],
+                pieces_left: [multiplicity.get(); Tetromino::VARIANTS.len()],
                 multiplicity,
                 restock_threshold: refill_threshold,
             })
@@ -104,7 +110,7 @@ impl TetrominoGenerator {
     /// This function returns `None` when `snap` is NaN (see [`f64::is_nan`]).
     pub const fn recency_with(snap: ExtNonNegF64) -> Self {
         Self::Recency {
-            last_generated: [1; 7],
+            last_generated: [1; Tetromino::VARIANTS.len()],
             snap,
         }
     }
@@ -112,7 +118,7 @@ impl TetrominoGenerator {
     /// Initialize an instance of the [`TetrominoGenerator::BalanceRelative`] variant.
     pub const fn balance_relative() -> Self {
         Self::BalanceRelative {
-            relative_counts: [0; 7],
+            relative_counts: [0; Tetromino::VARIANTS.len()],
         }
     }
 
@@ -139,14 +145,17 @@ impl<'a, 'b, R: Rng> Iterator for WithRng<'a, 'b, R> {
     fn next(&mut self) -> Option<Self::Item> {
         match &mut self.tetromino_generator {
             TetrominoGenerator::Uniform => Some(Tetromino::VARIANTS[self.rng.random_range(0..=6)]),
+
             TetrominoGenerator::Stock {
                 pieces_left,
                 multiplicity,
                 restock_threshold: refill_threshold,
             } => {
                 let weights = pieces_left.iter();
+
                 // SAFETY: Struct invariant.
                 let idx = WeightedIndex::new(weights).unwrap().sample(&mut self.rng);
+
                 // Update individual tetromino number and maybe replenish bag (ensuring invariant).
                 pieces_left[idx] -= 1;
                 if pieces_left.iter().sum::<u32>() == *refill_threshold {
@@ -154,16 +163,22 @@ impl<'a, 'b, R: Rng> Iterator for WithRng<'a, 'b, R> {
                         *cnt += multiplicity.get();
                     }
                 }
+
                 // SAFETY: 0 <= idx <= 6.
                 Some(Tetromino::VARIANTS[idx])
             }
+
             TetrominoGenerator::BalanceRelative { relative_counts } => {
-                let weighing = |&x| 1.0 / f64::from(x).exp(); // Alternative weighing function: `1.0 / (f64::from(x) + 1.0);`
-                let weights = relative_counts.iter().map(weighing);
-                // SAFETY: `weights` will always be non-zero due to `weighing`.
+                // Alternative weigh_fn's: `2.0f64.powf(f64::from(x)).recip()`, `f64::from(x + 1).recip()`
+                let weigh_fn = |&x| f64::from(x).exp().recip();
+                let weights = relative_counts.iter().map(weigh_fn);
+
+                // FIXME: SAFETY; `weights` will always be non-zero due to `weigh_fn`, but could they still `OverflowError` etc.?
                 let idx = WeightedIndex::new(weights).unwrap().sample(&mut self.rng);
+
                 // Update individual tetromino counter and maybe rebalance all relative counts
                 relative_counts[idx] += 1;
+
                 // SAFETY: `self.relative_counts` always has a minimum.
                 let min = *relative_counts.iter().min().unwrap();
                 if min > 0 {
@@ -171,22 +186,27 @@ impl<'a, 'b, R: Rng> Iterator for WithRng<'a, 'b, R> {
                         *x -= min;
                     }
                 }
+
                 // SAFETY: 0 <= idx <= 6.
                 Some(Tetromino::VARIANTS[idx])
             }
+
             TetrominoGenerator::Recency {
                 last_generated,
                 snap,
             } => {
                 let weighing = |&x| f64::from(x).powf(snap.get());
                 let weights = last_generated.iter().map(weighing);
-                // SAFETY: `weights` will always be non-zero due to struct invarian.
+
+                // FIXME: SAFETY; `weights` will always be non-zero due to `weigh_fn`, but could they still `OverflowError` etc.?: `tetrs_engine::TetrominoGenerator::recency_with(ExtNonNegF64::MAX)`
                 let idx = WeightedIndex::new(weights).unwrap().sample(&mut self.rng);
-                // Update all tetromino last_played values and maybe rebalance all relative counts..
+
+                // Update all tetromino last_played values.
                 last_generated[idx] = 0;
                 for x in last_generated.iter_mut() {
                     *x += 1;
                 }
+
                 // SAFETY: 0 <= idx <= 6.
                 Some(Tetromino::VARIANTS[idx])
             }

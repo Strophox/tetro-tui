@@ -8,22 +8,15 @@ use super::*;
 ///
 /// Generally speaking, when using `GameBuilder`, you’ll first call [`GameBuilder::new`] or
 /// [`Game::builder`], then chain calls to methods to set each field, then call
-/// [`GameBuilder::build`] or [`GameBuilder::build_modified`].
+/// [`GameBuilder::build`] or [`GameBuilder::build_modded`].
 /// This will give you a [`Game`] as specified that you can then use as normal.
 /// The `GameBuilder` is not used up and its configuration can be re-used to initialize more [`Game`]s.
-#[derive(PartialEq, PartialOrd, Clone, Default, Debug)]
+#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Hash, Debug, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct GameBuilder {
-    /// Many of the configuration options that will be set for the game.
-    pub config: Configuration,
-    /// The value to seed the game's PRNG with.
-    pub seed: Option<u64>,
-    /// The method (and internal state) of tetromino generation used.
-    pub initial_tetromino_generator: Option<TetrominoGenerator>,
-    /// The fall delay at the beginning of the game.
-    pub initial_fall_delay: Option<ExtDuration>,
-    /// The lock delay at the beginning of the game.
-    pub initial_lock_delay: Option<ExtDuration>,
+    seed: Option<u64>,
+    tetromino_generator: TetrominoGenerator,
+    config: Configuration,
 }
 
 impl GameBuilder {
@@ -39,53 +32,75 @@ impl GameBuilder {
 
     /// Creates a [`Game`] with the information specified by `self` and some one-time `modifiers`.
     pub fn build_modded(&self, modifiers: impl IntoIterator<Item = Modifier>) -> Game {
+        let seed = self
+            .seed
+            .unwrap_or_else(|| rand::RngCore::next_u64(&mut rand::rng()));
+        let tetromino_generator = self.tetromino_generator;
         let config = self.config.clone();
 
-        let init_vals = InitialValues::default_seeded();
-        let init_vals = InitialValues {
-            seed: self.seed.unwrap_or(init_vals.seed),
-            initial_tetromino_generator: self
-                .initial_tetromino_generator
-                .unwrap_or(init_vals.initial_tetromino_generator),
-            initial_fall_delay: self
-                .initial_fall_delay
-                .unwrap_or(init_vals.initial_fall_delay),
-            initial_lock_delay: self
-                .initial_lock_delay
-                .unwrap_or(init_vals.initial_lock_delay),
-        };
+        let fall_delay = config.fall_delay_params.calculate(0);
+        let lock_delay = config.lock_delay_params.calculate(0);
 
         Game {
+            modifiers: modifiers.into_iter().collect(),
+            phase: Phase::Spawning {
+                spawn_time: Duration::ZERO,
+            },
             state: State {
                 time: Duration::ZERO,
                 buttons_pressed: [None; Button::VARIANTS.len()],
-                rng: GameRng::seed_from_u64(init_vals.seed),
-                piece_generator: init_vals.initial_tetromino_generator,
+                rng: GameRng::seed_from_u64(seed),
+                piece_generator: tetromino_generator,
                 piece_preview: VecDeque::new(),
-                hold_piece: None,
+                piece_held: None,
                 board: [Line::default(); Game::HEIGHT],
-                fall_delay: config
-                    .fall_delay_lowerbound
-                    .max(init_vals.initial_fall_delay),
-                fall_delay_lowerbound_hit_at_n_lineclears: init_vals
-                    .initial_fall_delay
-                    .le(&config.fall_delay_lowerbound)
+                fall_delay,
+                fall_delay_lowerbound_hit_at_n_lineclears: fall_delay
+                    .le(&config.fall_delay_params.lowerbound)
                     .then_some(0),
-                lock_delay: config
-                    .lock_delay_lowerbound
-                    .max(init_vals.initial_lock_delay),
+                lock_delay,
                 pieces_locked: [0; Tetromino::VARIANTS.len()],
                 lineclears: 0,
                 consecutive_line_clears: 0,
                 score: 0,
             },
-            phase: Phase::Spawning {
-                spawn_time: Duration::ZERO,
+            state_init: StateInitialization {
+                seed,
+                tetromino_generator,
             },
-            modifiers: modifiers.into_iter().collect(),
             config,
-            init_vals,
         }
+    }
+}
+
+// Getting a `GameBuilder` blueprint back from an existing `Game`.
+impl Game {
+    /// Creates a blueprint [`GameBuilder`] and an iterator over current modifier identifiers ([`&str`]s) from which the exact game can potentially be rebuilt.
+    pub fn blueprint(&self) -> (GameBuilder, impl Iterator<Item = &str>) {
+        let builder = GameBuilder {
+            seed: Some(self.state_init.seed),
+            tetromino_generator: self.state_init.tetromino_generator,
+            config: self.config.clone(),
+        };
+
+        let mod_descriptors = self.modifiers.iter().map(|m| m.descriptor.as_str());
+
+        (builder, mod_descriptors)
+    }
+}
+
+// Gamebuilder: Setter methods.
+impl GameBuilder {
+    /// The value to seed the game's PRNG with.
+    pub fn seed(&mut self, x: u64) -> &mut Self {
+        self.seed = Some(x);
+        self
+    }
+
+    /// The method (and internal state) of tetromino generation used.
+    pub fn tetromino_generator(&mut self, x: TetrominoGenerator) -> &mut Self {
+        self.tetromino_generator = x;
+        self
     }
 
     /// Sets the [`Configuration`] that will be used by [`Game`].
@@ -99,7 +114,8 @@ impl GameBuilder {
         self.config.piece_preview_count = x;
         self
     }
-    /// Whether holding a rotation button lets a piece be smoothly spawned in a rotated state.
+    /// Whether holding a 'rotate' button lets a piece be smoothly spawned in a rotated state,
+    /// or holding the 'hold' button lets a piece be swapped immediately before it evens spawns.
     pub fn allow_prespawn_actions(&mut self, x: bool) -> &mut Self {
         self.config.allow_prespawn_actions = x;
         self
@@ -109,7 +125,7 @@ impl GameBuilder {
         self.config.rotation_system = x;
         self
     }
-    /// How long the game should wait *additionally* before spawning a new piece.
+    /// How long the game should take to spawn a new piece.
     pub fn spawn_delay(&mut self, x: Duration) -> &mut Self {
         self.config.spawn_delay = x;
         self
@@ -126,13 +142,8 @@ impl GameBuilder {
         self
     }
     /// Specification of how fall delay gets calculated from the rest of the state.
-    pub fn fall_delay_equation(&mut self, x: DelayEquation) -> &mut Self {
-        self.config.fall_delay_equation = x;
-        self
-    }
-    /// Specification of where to stop decreasing fall delay and start decreasing lock delay.
-    pub fn fall_delay_lowerbound(&mut self, x: ExtDuration) -> &mut Self {
-        self.config.fall_delay_lowerbound = x;
+    pub fn fall_delay_params(&mut self, x: DelayParameters) -> &mut Self {
+        self.config.fall_delay_params = x;
         self
     }
     /// How many times faster than normal drop speed a piece should fall while 'soft drop' is being held.
@@ -141,13 +152,8 @@ impl GameBuilder {
         self
     }
     /// Specification of how fall delay gets calculated from the rest of the state.
-    pub fn lock_delay_equation(&mut self, x: DelayEquation) -> &mut Self {
-        self.config.lock_delay_equation = x;
-        self
-    }
-    /// Specification of where to stop decreasing lock delay.
-    pub fn lock_delay_lowerbound(&mut self, x: ExtDuration) -> &mut Self {
-        self.config.lock_delay_lowerbound = x;
+    pub fn lock_delay_params(&mut self, x: DelayParameters) -> &mut Self {
+        self.config.lock_delay_params = x;
         self
     }
     /// Whether just pressing a rotation- or movement button is enough to refresh lock delay.
@@ -158,11 +164,11 @@ impl GameBuilder {
     }
     /// How long each spawned active piece may touch the ground in total until it should lock down
     /// immediately.
-    pub fn capped_lock_time_factor(&mut self, x: ExtNonNegF64) -> &mut Self {
-        self.config.capped_lock_time_factor = x;
+    pub fn lock_reset_cap_factor(&mut self, x: ExtNonNegF64) -> &mut Self {
+        self.config.lock_reset_cap_factor = x;
         self
     }
-    /// How long the game should wait after clearing a line.
+    /// How long the game should take to clear a line.
     pub fn line_clear_duration(&mut self, x: Duration) -> &mut Self {
         self.config.line_clear_duration = x;
         self
@@ -185,35 +191,6 @@ impl GameBuilder {
     /// The amount of feedback information that is to be generated.
     pub fn feedback_verbosity(&mut self, x: FeedbackVerbosity) -> &mut Self {
         self.config.feedback_verbosity = x;
-        self
-    }
-
-    /// Sets the [`InitialValues`] that will be used by [`Game`].
-    pub fn init_vals(&mut self, x: InitialValues) -> &mut Self {
-        self.seed(x.seed)
-            .initial_tetromino_generator(x.initial_tetromino_generator)
-            .initial_fall_delay(x.initial_fall_delay)
-            .initial_lock_delay(x.initial_lock_delay)
-    }
-
-    /// The value to seed the game's PRNG with.
-    pub fn seed(&mut self, x: u64) -> &mut Self {
-        self.seed = Some(x);
-        self
-    }
-    /// The method (and internal state) of tetromino generation used.
-    pub fn initial_tetromino_generator(&mut self, x: TetrominoGenerator) -> &mut Self {
-        self.initial_tetromino_generator = Some(x);
-        self
-    }
-    /// The fall delay at the beginning of the game.
-    pub fn initial_fall_delay(&mut self, x: ExtDuration) -> &mut Self {
-        self.initial_fall_delay = Some(x);
-        self
-    }
-    /// The lock delay at the beginning of the game.
-    pub fn initial_lock_delay(&mut self, x: ExtDuration) -> &mut Self {
-        self.initial_lock_delay = Some(x);
         self
     }
 }

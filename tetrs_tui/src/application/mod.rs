@@ -12,9 +12,9 @@ use std::{
 use crossterm::{cursor, style, terminal, ExecutableCommand};
 
 use tetrs_engine::{
-    Board, Button, ButtonChange, Configuration, DelayEquation, ExtDuration, ExtNonNegF64, Feedback,
-    FeedbackVerbosity, Game, GameBuilder, GameOver, GameResult, InGameTime, InitialValues,
-    Modifier, RotationSystem, Stat, Tetromino, TetrominoGenerator,
+    Board, Button, ButtonChange, Configuration, DelayParameters, ExtDuration, ExtNonNegF64,
+    Feedback, FeedbackVerbosity, Game, GameBuilder, GameOver, GameResult, InGameTime, Modifier,
+    RotationSystem, Stat, Tetromino, TetrominoGenerator,
 };
 
 use crate::{
@@ -211,8 +211,7 @@ pub struct Scoreboard {
     Eq, PartialEq, Ord, PartialOrd, Clone, Hash, Debug, serde::Serialize, serde::Deserialize,
 )]
 pub struct NewGameSettings {
-    custom_initial_fall_delay: ExtDuration,
-    custom_fall_delay_equation: DelayEquation,
+    custom_fall_delay_params: DelayParameters,
     custom_win_condition: Option<Stat>,
     custom_seed: Option<u64>,
     custom_board: Option<String>, // For more compact serialization of NewGameSettings, we store an encoded `Board` (see `encode_board`).
@@ -232,8 +231,7 @@ pub struct NewGameSettings {
 impl Default for NewGameSettings {
     fn default() -> Self {
         Self {
-            custom_initial_fall_delay: InitialValues::default_seeded().initial_fall_delay,
-            custom_fall_delay_equation: Configuration::default().fall_delay_equation,
+            custom_fall_delay_params: DelayParameters::default_fall(),
             custom_win_condition: None,
             custom_seed: None,
             custom_board: None,
@@ -348,10 +346,9 @@ pub struct GameplaySettings {
 impl Default for GameplaySettings {
     fn default() -> Self {
         let c = Configuration::default();
-        let i = InitialValues::default_seeded();
         Self {
             rotation_system: c.rotation_system,
-            tetromino_generator: i.initial_tetromino_generator,
+            tetromino_generator: TetrominoGenerator::default(),
             piece_preview_count: c.piece_preview_count,
             delayed_auto_shift: c.delayed_auto_shift,
             auto_repeat_rate: c.auto_repeat_rate,

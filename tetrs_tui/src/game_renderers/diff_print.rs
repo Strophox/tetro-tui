@@ -293,7 +293,7 @@ impl Renderer for DiffPrintRenderer {
             .unwrap_or(icons_hold.len());
         icons_hold.truncate(eleven);
 
-        let show_hold = game.state().hold_piece.is_some();
+        let show_hold = game.state().piece_held.is_some();
         let show_next = !game.state().piece_preview.is_empty();
         let show_lockdelay = game
             .state()
@@ -524,7 +524,7 @@ impl Renderer for DiffPrintRenderer {
             x_offset_minuscule += str.chars().count() + 1;
         }
         // Draw held piece.
-        if let Some((tet, swap_allowed)) = game.state().hold_piece {
+        if let Some((tet, swap_allowed)) = game.state().piece_held {
             let str = fmt_tet_small(tet);
             let color = get_color(&if swap_allowed {
                 tet.tiletypeid()

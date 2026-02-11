@@ -75,12 +75,8 @@ impl Game {
                     line_clears_finish_time,
                 } if line_clears_finish_time <= target_time => {
                     //let/*TODO:dbg*/s=format!("INTO do_line_clearing ({line_clears_finish_time:?})\n");if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
-                    self.phase = do_line_clearing(
-                        &self.config,
-                        &self.init_vals,
-                        &mut self.state,
-                        line_clears_finish_time,
-                    );
+                    self.phase =
+                        do_line_clearing(&self.config, &mut self.state, line_clears_finish_time);
                     self.state.time = line_clears_finish_time;
 
                     self.run_mods(UpdatePoint::LinesCleared, &mut feedback_msgs);
@@ -151,6 +147,7 @@ impl Game {
                     }
                 }
 
+                // Piece acted upon by player.
                 Phase::PieceInPlay { piece_data } if button_changes.is_some() => {
                     let Some(button_change) = button_changes.take() else {
                         unreachable!()
@@ -233,7 +230,7 @@ impl Game {
             (modifier.mod_function)(
                 &mut update_point,
                 &mut self.config,
-                &mut self.init_vals,
+                &mut self.state_init,
                 &mut self.state,
                 &mut self.phase,
                 feedback_msgs,
@@ -339,7 +336,7 @@ fn do_spawn(config: &Configuration, state: &mut State, spawn_time: InGameTime) -
         let capped_lock_time = spawn_time.saturating_add(
             state
                 .lock_delay
-                .mul_ennf64(config.capped_lock_time_factor)
+                .mul_ennf64(config.lock_reset_cap_factor)
                 .saturating_duration(),
         );
 
@@ -370,7 +367,6 @@ fn do_spawn(config: &Configuration, state: &mut State, spawn_time: InGameTime) -
 
 fn do_line_clearing(
     config: &Configuration,
-    init_vals: &InitialValues,
     state: &mut State,
     line_clears_finish_time: InGameTime,
 ) -> Phase {
@@ -386,14 +382,14 @@ fn do_line_clearing(
             if state.lineclears % config.update_delays_every_n_lineclears == 0 {
                 // Calculate new fall- and lock delay for game state.
                 (state.fall_delay, state.lock_delay) = calc_fall_and_lock_delay(
-                    config,
-                    init_vals,
+                    &config.fall_delay_params,
+                    &config.lock_delay_params,
                     state.fall_delay_lowerbound_hit_at_n_lineclears,
                     state.lineclears,
                 );
 
                 // Remember the first time fall delay hit zero.
-                if state.fall_delay == config.fall_delay_lowerbound
+                if state.fall_delay == config.fall_delay_params.lowerbound
                     && state.fall_delay_lowerbound_hit_at_n_lineclears.is_none()
                 {
                     state.fall_delay_lowerbound_hit_at_n_lineclears = Some(state.lineclears);
@@ -575,7 +571,7 @@ fn do_fall(
                 fall_time.saturating_add(
                     state
                         .lock_delay
-                        .mul_ennf64(config.capped_lock_time_factor)
+                        .mul_ennf64(config.lock_reset_cap_factor)
                         .saturating_duration(),
                 ),
             )
@@ -857,7 +853,7 @@ fn do_player_button_update(
                 button_update_time.saturating_add(
                     state
                         .lock_delay
-                        .mul_ennf64(config.capped_lock_time_factor)
+                        .mul_ennf64(config.lock_reset_cap_factor)
                         .saturating_duration(),
                 ),
             )
@@ -952,11 +948,11 @@ fn try_hold(
     new_piece_spawn_time: InGameTime,
 ) -> Option<Phase> {
     //let/*TODO:dbg*/s=format!("IN try_hold\n");if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
-    match state.hold_piece {
+    match state.piece_held {
         // Nothing held yet, just hold spawned tetromino.
         None => {
             //let/*TODO:dbg*/s=format!(" - success\n");if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
-            state.hold_piece = Some((tetromino, false));
+            state.piece_held = Some((tetromino, false));
             // Issue a spawn.
             Some(Phase::Spawning {
                 spawn_time: new_piece_spawn_time,
@@ -965,7 +961,7 @@ fn try_hold(
         // Swap spawned tetromino, push held back into next pieces queue.
         Some((held_tet, true)) => {
             //let/*TODO:dbg*/s=format!(" - success\n");if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
-            state.hold_piece = Some((tetromino, false));
+            state.piece_held = Some((tetromino, false));
             // Cause the next spawn to specially be the piece we held.
             state.piece_preview.push_front(held_tet);
             // Issue a spawn.
@@ -1075,7 +1071,7 @@ fn do_lock(
     }
 
     // Update ability to hold piece.
-    if let Some((_held_tet, swap_allowed)) = &mut state.hold_piece {
+    if let Some((_held_tet, swap_allowed)) = &mut state.piece_held {
         *swap_allowed = true;
     }
 
@@ -1135,59 +1131,24 @@ fn calc_move_dx_and_next_move_time(
 
 // Compute the fall and lock delay corresponding to the current lineclear progress.
 fn calc_fall_and_lock_delay(
-    config: &Configuration,
-    init_vals: &InitialValues,
+    fall_delay_params: &DelayParameters,
+    lock_delay_params: &DelayParameters,
     fall_delay_lowerbound_hit_at_n_lineclears: Option<u32>,
     lineclears: u32,
 ) -> (ExtDuration, ExtDuration) {
-    // Get some relevant values.
-    let Configuration {
-        fall_delay_equation,
-        fall_delay_lowerbound,
-        lock_delay_equation,
-        lock_delay_lowerbound,
-        ..
-    } = config;
-    let InitialValues {
-        initial_fall_delay,
-        initial_lock_delay,
-        ..
-    } = init_vals;
-
     if let Some(hit_at_n_lineclears) = fall_delay_lowerbound_hit_at_n_lineclears {
         // Fall delay zero was hit at some point, only decrease lock delay now.
-        let lock_lineclears = f64::from(lineclears - hit_at_n_lineclears);
-        let DelayEquation {
-            factor: multiplier,
-            subtrahend,
-        } = lock_delay_equation;
 
         // Actually compute factor from equation.
-        let lock_delay_factor =
-            multiplier.get().powf(lock_lineclears) - subtrahend.get() * lock_lineclears;
-        let lock_delay = initial_lock_delay
-            .mul_ennf64(ExtNonNegF64::new(0.0f64.max(lock_delay_factor)).unwrap());
+        let lock_delay = lock_delay_params.calculate(lineclears - hit_at_n_lineclears);
 
-        (
-            (*fall_delay_lowerbound),
-            (*lock_delay_lowerbound).max(lock_delay),
-        )
+        (fall_delay_params.lowerbound, lock_delay)
     } else {
         // Normally decrease fall delay.
-        let DelayEquation {
-            factor: multiplier,
-            subtrahend,
-        } = fall_delay_equation;
-        let lineclears = f64::from(lineclears);
 
         // Actually compute factor from equation.
-        let fall_delay_factor = multiplier.get().powf(lineclears) - subtrahend.get() * lineclears;
-        let fall_delay = initial_fall_delay
-            .mul_ennf64(ExtNonNegF64::new(0.0f64.max(fall_delay_factor)).unwrap());
+        let fall_delay = fall_delay_params.calculate(lineclears);
 
-        (
-            (*fall_delay_lowerbound).max(fall_delay),
-            (*initial_lock_delay),
-        )
+        (fall_delay, lock_delay_params.base_delay)
     }
 }

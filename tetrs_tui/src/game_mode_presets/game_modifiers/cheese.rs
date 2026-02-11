@@ -2,7 +2,7 @@ use std::num::{NonZeroU32, NonZeroU8, NonZeroUsize};
 
 use rand::seq::SliceRandom;
 use tetrs_engine::{
-    DelayEquation, ExtDuration, Game, GameBuilder, GameModFn, GameRng, Line, Modifier, Stat,
+    DelayParameters, ExtDuration, Game, GameBuilder, GameModFn, GameRng, Line, Modifier, Stat,
     UpdatePoint,
 };
 
@@ -12,7 +12,7 @@ pub fn build(
     builder: &GameBuilder,
     linelimit: Option<NonZeroU32>,
     cheese_tiles_per_line: NonZeroUsize,
-    fall_delay: ExtDuration,
+    fall_lock_delay: ExtDuration,
 ) -> Game {
     let mut temp_cheese_tally = 0;
     let mut temp_normal_tally = 0;
@@ -68,10 +68,8 @@ pub fn build(
         });
     builder
         .clone()
-        .initial_fall_delay(fall_delay)
-        .fall_delay_equation(DelayEquation::constant())
-        .initial_lock_delay(ExtDuration::Infinite) // TODO: depends on fall delay...
-        .lock_delay_equation(DelayEquation::constant())
+        .fall_delay_params(DelayParameters::constant(fall_lock_delay))
+        .lock_delay_params(DelayParameters::constant(fall_lock_delay))
         .end_conditions(match linelimit {
             Some(c) => vec![(Stat::LinesCleared(c.get()), true)],
             None => vec![],
@@ -79,7 +77,8 @@ pub fn build(
         .build_modded([Modifier {
             descriptor: format!(
                 "{MOD_ID}\n{}",
-                serde_json::to_string(&(linelimit, cheese_tiles_per_line, fall_delay)).unwrap()
+                serde_json::to_string(&(linelimit, cheese_tiles_per_line, fall_lock_delay))
+                    .unwrap()
             ),
             mod_function,
         }])

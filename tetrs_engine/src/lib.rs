@@ -44,10 +44,7 @@ pub mod tetromino_generator;
 
 use std::{collections::VecDeque, fmt, num::NonZeroU8, ops, time::Duration};
 
-use rand_chacha::{
-    rand_core::{RngCore, SeedableRng},
-    ChaCha12Rng,
-};
+use rand_chacha::{rand_core::SeedableRng, ChaCha12Rng};
 
 pub use extduration::ExtDuration;
 pub use extnonnegf64::ExtNonNegF64;
@@ -75,7 +72,7 @@ pub type GameRng = ChaCha12Rng;
 pub type GameModFn = dyn FnMut(
     &mut UpdatePoint<&mut Option<ButtonChange>>,
     &mut Configuration,
-    &mut InitialValues,
+    &StateInitialization,
     &mut State,
     &mut Phase,
     &mut FeedbackMessages,
@@ -159,6 +156,42 @@ pub struct Piece {
     pub position: Coord,
 }
 
+/// A struct holding information on how certain time 'delay' values progress.
+///
+/// # Example
+/// The formulation used for calculation of fall delay is conceptually:
+/// ```
+/// let fall_delay = |lineclears| {
+///     initial_fall_delay.mul_ennf64(
+///         multiplier.get().powf(lineclears) - subtrahend.get() * lineclears
+///     )
+/// }
+/// ```
+#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct DelayParameters {
+    /// The duration at which the delay starts.
+    base_delay: ExtDuration,
+    /// The base factor that gets exponentiated by number of line clears;
+    /// `factor ^ lineclears ...`.
+    ///
+    /// Should be in the range `0.0 ≤ .. ≤ 1.0`, where
+    /// - `0.0` means 'zero-out initial delay at every line clear',
+    /// - `0.5` means 'halve initial delay for every line clear',
+    /// - `1.0` means 'keep initial delay at 100%'.
+    factor: ExtNonNegF64,
+    /// The base subtrahend that gets multiplied by number of line clears;
+    /// `... - subtrahend * lineclears`.
+    ///
+    /// Should be in the range `0.0 ≤ .. ≤ 1.0`, where
+    /// - `0.0` means 'subtract 0% of initial delay for every line clear',
+    /// - `0.5` means 'subtract 50% of initial delay for every line clear',
+    /// - `1.0` means 'subtract 100% of initial delay for every line clear'.
+    subtrahend: ExtNonNegF64,
+    /// The duration below which delay cannot decrease.
+    lowerbound: ExtDuration,
+}
+
 /// Certain statistics for which an instance of [`Game`] can be checked against.
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -190,38 +223,6 @@ pub enum FeedbackVerbosity {
     Debug,
 }
 
-/// A struct holding information on how certain time 'delay' values progress.
-///
-/// # Example
-/// The formulation used for calculation of fall delay is conceptually:
-/// ```
-/// let fall_delay = |lineclears| {
-///     initial_fall_delay.mul_ennf64(
-///         multiplier.get().powf(lineclears) - subtrahend.get() * lineclears
-///     )
-/// }
-/// ```
-#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct DelayEquation {
-    /// The base factor that gets exponentiated by number of line clears;
-    /// `factor ^ lineclears ...`.
-    ///
-    /// Should be in the range `0.0 ≤ .. ≤ 1.0`, where
-    /// - `0.0` means 'zero-out initial delay at every line clear',
-    /// - `0.5` means 'halve initial delay for every line clear',
-    /// - `1.0` means 'keep initial delay at 100%'.
-    pub factor: ExtNonNegF64,
-    /// The base subtrahend that gets multiplied by number of line clears;
-    /// `... - subtrahend * lineclears`.
-    ///
-    /// Should be in the range `0.0 ≤ .. ≤ 1.0`, where
-    /// - `0.0` means 'subtract 0% of initial delay for every line clear',
-    /// - `0.5` means 'subtract 50% of initial delay for every line clear',
-    /// - `1.0` means 'subtract 100% of initial delay for every line clear'.
-    pub subtrahend: ExtNonNegF64,
-}
-
 /// Configuration options of the game, which can be modified without hurting internal invariants.
 ///
 /// # Reproducibility
@@ -245,21 +246,17 @@ pub struct Configuration {
     /// How long it takes for automatic side movement to repeat once it has started.
     pub auto_repeat_rate: Duration,
     /// Specification of how fall delay gets calculated from the rest of the state.
-    pub fall_delay_equation: DelayEquation,
-    /// Specification of where to stop decreasing fall delay and start decreasing lock delay.
-    pub fall_delay_lowerbound: ExtDuration,
+    pub fall_delay_params: DelayParameters,
     /// How many times faster than normal drop speed a piece should fall while 'soft drop' is being held.
     pub soft_drop_divisor: ExtNonNegF64,
     /// Specification of how fall delay gets calculated from the rest of the state.
-    pub lock_delay_equation: DelayEquation,
-    /// Specification of where to stop decreasing lock delay.
-    pub lock_delay_lowerbound: ExtDuration,
+    pub lock_delay_params: DelayParameters,
     /// Whether just pressing a rotation- or movement button is enough to refresh lock delay.
     /// Normally, lock delay only resets if rotation or movement actually succeeds.
     pub lenient_lock_delay_reset: bool,
     /// How long each spawned active piece may touch the ground in total until it should lock down
     /// immediately.
-    pub capped_lock_time_factor: ExtNonNegF64,
+    pub lock_reset_cap_factor: ExtNonNegF64,
     /// How long the game should take to clear a line.
     pub line_clear_duration: Duration,
     /// When to update the fall and lock delays in [`State`].
@@ -280,15 +277,11 @@ pub struct Configuration {
 /// Used for game reproducibility.
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct InitialValues {
+pub struct StateInitialization {
     /// The value to seed the game's PRNG with.
     pub seed: u64,
     /// The method (and internal state) of tetromino generation used.
-    pub initial_tetromino_generator: TetrominoGenerator,
-    /// The fall delay at the beginning of the game.
-    pub initial_fall_delay: ExtDuration,
-    /// The lock delay at the beginning of the game.
-    pub initial_lock_delay: ExtDuration,
+    pub tetromino_generator: TetrominoGenerator,
 }
 
 /// Represents an abstract game input.
@@ -351,7 +344,7 @@ pub struct State {
     /// Upcoming pieces to be played.
     pub piece_preview: VecDeque<Tetromino>,
     /// Data about the piece being held. `true` denotes that the held piece can be swapped back in.
-    pub hold_piece: Option<(Tetromino, bool)>,
+    pub piece_held: Option<(Tetromino, bool)>,
     /// The main playing grid storing empty (`None`) and filled, fixed tiles (`Some(nz_u32)`).
     pub board: Board,
     /// The current duration a piece takes to fall one unit.
@@ -507,7 +500,7 @@ pub struct Game {
     /// Modifying a `Game`'s configuration after it was created might not make it easily
     /// reproducible anymore.
     pub config: Configuration,
-    init_vals: InitialValues,
+    state_init: StateInitialization,
     state: State,
     phase: Phase,
     /// A list of special modifiers that apply to the `Game`.
@@ -738,6 +731,131 @@ impl Piece {
     }
 }
 
+impl DelayParameters {
+    /// The duration at which the delay starts.
+    pub fn base_delay(&self) -> ExtDuration {
+        self.base_delay
+    }
+
+    /// The base factor that gets exponentiated by number of line clears;
+    /// `factor ^ lineclears ...`.
+    ///
+    /// Should be in the range `0.0 ≤ .. ≤ 1.0`, where
+    /// - `0.0` means 'zero-out initial delay at every line clear',
+    /// - `0.5` means 'halve initial delay for every line clear',
+    /// - `1.0` means 'keep initial delay at 100%'.
+    pub fn factor(&self) -> ExtNonNegF64 {
+        self.factor
+    }
+
+    /// The base subtrahend that gets multiplied by number of line clears;
+    /// `... - subtrahend * lineclears`.
+    ///
+    /// Should be in the range `0.0 ≤ .. ≤ 1.0`, where
+    /// - `0.0` means 'subtract 0% of initial delay for every line clear',
+    /// - `0.5` means 'subtract 50% of initial delay for every line clear',
+    /// - `1.0` means 'subtract 100% of initial delay for every line clear'.
+    pub fn subtrahend(&self) -> ExtNonNegF64 {
+        self.subtrahend
+    }
+
+    /// The duration below which delay cannot decrease.
+    pub fn lowerbound(&self) -> ExtDuration {
+        self.lowerbound
+    }
+
+    /// Delay equation which decreases/decays exponentially in number of linescleared.
+    pub fn new(
+        base_delay: ExtDuration,
+        lowerbound: ExtDuration,
+        factor: ExtNonNegF64,
+        subtrahend: ExtNonNegF64,
+    ) -> Option<Self> {
+        Self::constant(Default::default())
+            .with_bounds(base_delay, lowerbound)?
+            .with_coefficients(factor, subtrahend)
+    }
+
+    /// Create a modified delay parameters where only the bounds are changed.
+    pub fn with_bounds(&self, base_delay: ExtDuration, lowerbound: ExtDuration) -> Option<Self> {
+        let correct_bounds = lowerbound <= base_delay;
+        correct_bounds.then_some(Self {
+            base_delay,
+            lowerbound,
+            ..*self
+        })
+    }
+
+    /// Create a modified delay parameters where only the coefficients are changed.
+    pub fn with_coefficients(
+        &self,
+        factor: ExtNonNegF64,
+        subtrahend: ExtNonNegF64,
+    ) -> Option<Self> {
+        let correct_coefficients = factor <= 1.into() && subtrahend <= 1.into();
+        correct_coefficients.then_some(Self {
+            factor,
+            subtrahend,
+            ..*self
+        })
+    }
+
+    /// Delay equation which does not change at all with number of linescleared.
+    pub fn constant(delay: ExtDuration) -> Self {
+        Self {
+            base_delay: delay,
+            factor: 1.into(),
+            subtrahend: 0.into(),
+            lowerbound: delay,
+        }
+    }
+
+    /// Whether the delay curve is invariant to number of lineclears.
+    pub fn is_constant(&self) -> bool {
+        self.factor == 1.into() && self.subtrahend == 0.into()
+    }
+
+    /// Delay equation which implements guideline-like fall delays:
+    /// * 0 lineclears ~> 1s to fall one unit / 20s whole skyline height.
+    /// * 100 lineclears ~> 2s to fall one whole skyline height.
+    /// * 210 lineclears ~> 0s / instant gravity.
+    pub fn default_fall() -> Self {
+        Self {
+            base_delay: Duration::from_millis(1000).into(),
+            factor: ExtNonNegF64::new(0.9776880098709251).unwrap(),
+            subtrahend: ExtNonNegF64::new(0.000042).unwrap(),
+            lowerbound: Duration::ZERO.into(),
+        }
+    }
+
+    /// Delay equation which implements guideline-like lock delays:
+    /// * 0 lineclears ~> 500ms lock delay.
+    /// * Decrease lock_delay by 20 ms every 10 lineclears (= 0.004 / 0.4% every lineclear).
+    /// * End at 200ms lock delay.
+    pub fn default_lock() -> Self {
+        Self {
+            base_delay: Duration::from_millis(500).into(),
+            factor: 1.into(),
+            subtrahend: ExtNonNegF64::new(0.004).unwrap(),
+            lowerbound: Duration::from_millis(200).into(),
+        }
+    }
+
+    /// Calculates an actual delay value given a number of lineclears to determine progression.
+    pub fn calculate(&self, lineclears: u32) -> ExtDuration {
+        let lineclears = f64::from(lineclears);
+        // Compute the intended multiplier resulting from the lineclears.
+        let raw_multiplier =
+            self.factor.get().powf(lineclears) - self.subtrahend.get() * lineclears;
+        // Adjust multiplier so it cannot be negative.
+        let enn_multiplier = ExtNonNegF64::new(0.0f64.max(raw_multiplier)).unwrap();
+        // Use multiplier to calculate intended delay.
+        let raw_delay = self.base_delay.mul_ennf64(enn_multiplier);
+        // Return delay capped by lower bound.
+        self.lowerbound.max(raw_delay)
+    }
+}
+
 impl Button {
     /// All `Button` enum variants.
     ///
@@ -774,54 +892,6 @@ impl<T> ops::IndexMut<Button> for [T; Button::VARIANTS.len()] {
     }
 }
 
-impl DelayEquation {
-    /// Delay equation which does not change at all with number of linescleared.
-    pub fn constant() -> Self {
-        Self {
-            factor: 1.into(),
-            subtrahend: 0.into(),
-        }
-    }
-
-    /// Delay equation which decreases linearly in number of linescleared.
-    pub fn linear(subtrahend: ExtNonNegF64) -> Self {
-        Self {
-            factor: 1.into(),
-            subtrahend,
-        }
-    }
-
-    /// Delay equation which decreases/decays exponentially in number of linescleared.
-    pub fn exponential(factor: ExtNonNegF64) -> Self {
-        Self {
-            factor,
-            subtrahend: 0.into(),
-        }
-    }
-
-    /// Delay equation which implements guideline-like fall delays:
-    /// * Assume `initial_fall_delay == 1.0s`.
-    /// * 100 lineclears ~> 2s to fall one whole skyline height.
-    /// * 210 lineclears ~> 0s to fall one whole skyline height.
-    pub fn guidelinelike_fall_delays() -> Self {
-        Self {
-            factor: ExtNonNegF64::new(0.9776880098709251).unwrap(),
-            subtrahend: ExtNonNegF64::new(0.000042).unwrap(),
-        }
-    }
-
-    /// Delay equation which implements guideline-like lock delays:
-    /// * Assume `initial_lock_delay == 500 ms`.
-    /// * decrease lock_delay by 20 ms every 10 lineclears (= 0.004 / 0.4% every lineclear).
-    /// * Assume `lock_delay_lowerbound == 200 ms`
-    pub fn guidelinelike_lock_delays() -> Self {
-        Self {
-            factor: 1.into(),
-            subtrahend: ExtNonNegF64::new(0.004).unwrap(),
-        }
-    }
-}
-
 impl Default for Configuration {
     fn default() -> Self {
         Self {
@@ -831,32 +901,16 @@ impl Default for Configuration {
             delayed_auto_shift: Duration::from_millis(167),
             auto_repeat_rate: Duration::from_millis(33),
             soft_drop_divisor: ExtNonNegF64::new(10.0).unwrap(),
-            capped_lock_time_factor: ExtNonNegF64::new(10.0).unwrap(),
+            lock_reset_cap_factor: ExtNonNegF64::new(8.0).unwrap(),
             line_clear_duration: Duration::from_millis(200),
             spawn_delay: Duration::from_millis(50),
             // This approximates guideline.
-            fall_delay_equation: DelayEquation::guidelinelike_fall_delays(),
-            fall_delay_lowerbound: Duration::ZERO.into(),
-            lock_delay_equation: DelayEquation::guidelinelike_lock_delays(),
-            lock_delay_lowerbound: Duration::from_millis(200).into(),
+            fall_delay_params: DelayParameters::default_fall(),
+            lock_delay_params: DelayParameters::default_lock(),
             update_delays_every_n_lineclears: 10,
             lenient_lock_delay_reset: true,
             end_conditions: Default::default(),
             feedback_verbosity: FeedbackVerbosity::default(),
-        }
-    }
-}
-
-impl InitialValues {
-    /// Generates a new set of initial values.
-    ///
-    /// This can be seen as a 'default' of `InitialValues`, except that the `seed` field is correctly randomized.
-    pub fn default_seeded() -> Self {
-        Self {
-            initial_fall_delay: Duration::from_millis(1000).into(),
-            initial_lock_delay: Duration::from_millis(500).into(),
-            initial_tetromino_generator: TetrominoGenerator::recency(),
-            seed: rand::rng().next_u64(),
         }
     }
 }
@@ -901,13 +955,6 @@ impl fmt::Debug for Modifier {
     }
 }
 
-// The only (most default) way to create a new `Game` without first having to use [`GameBuilder`].
-impl Default for Game {
-    fn default() -> Self {
-        Game::builder().build()
-    }
-}
-
 impl Game {
     /// The maximum height *any* piece tile could reach before [`GameOver::LockOut`] occurs.
     pub const HEIGHT: usize = Self::SKYLINE_HEIGHT + 7;
@@ -923,8 +970,8 @@ impl Game {
     }
 
     /// Read accessor for the game's initial values.
-    pub const fn init_vals(&self) -> &InitialValues {
-        &self.init_vals
+    pub const fn state_init(&self) -> &StateInitialization {
+        &self.state_init
     }
 
     /// Read accessor for the current game state.
@@ -952,6 +999,7 @@ impl Game {
     /// Note that this only predicts what an unmodded game would do;
     /// [`Modifier`]s may arbitrarily change game state and change or prevent precise update predictions.
     pub fn peek_update_time(&self) -> Option<InGameTime> {
+        // Find the next autonomous game update.
         let action_time = match self.phase {
             Phase::GameEnd { .. } => return None,
             Phase::LinesClearing {
@@ -971,23 +1019,23 @@ impl Game {
             }
         };
 
-        let time_limit = self.config.end_conditions.iter().find_map(|(stat, _)| {
+        // Find all time-related end conditions.
+        let time_limits = self.config.end_conditions.iter().filter_map(|(stat, _)| {
             if let Stat::TimeElapsed(cap_time) = stat {
-                Some(*cap_time)
+                Some(cap_time)
             } else {
                 None
             }
         });
 
-        Some(if let Some(cap_time) = time_limit {
-            if cap_time < action_time {
-                cap_time
-            } else {
-                action_time
+        let mut min_update_time = action_time;
+        for &time_limit in time_limits {
+            if min_update_time > time_limit {
+                min_update_time = time_limit;
             }
-        } else {
-            action_time
-        })
+        }
+
+        Some(min_update_time)
     }
 
     /// Check whether a certain stat value has been met or exceeded.
@@ -1010,25 +1058,11 @@ impl Game {
         };
     }
 
-    /// Creates a blueprint [`GameBuilder`] and an iterator over current modifier identifiers ([`&str`]s) from which the exact game can potentially be rebuilt.
-    pub fn blueprint(&self) -> (GameBuilder, impl Iterator<Item = &str>) {
-        let init_vals = self.init_vals;
-        let builder = GameBuilder {
-            config: self.config.clone(),
-            seed: Some(self.init_vals.seed),
-            initial_tetromino_generator: Some(init_vals.initial_tetromino_generator),
-            initial_fall_delay: Some(init_vals.initial_fall_delay),
-            initial_lock_delay: Some(init_vals.initial_lock_delay),
-        };
-        let mod_descriptors = self.modifiers.iter().map(|m| m.descriptor.as_str());
-        (builder, mod_descriptors)
-    }
-
     /// Creates an identical, independent copy of the game but without any modifiers.
     pub fn clone_unmodded(&self) -> Self {
         Self {
             config: self.config.clone(),
-            init_vals: self.init_vals,
+            state_init: self.state_init,
             state: self.state.clone(),
             phase: self.phase,
             modifiers: Vec::new(),

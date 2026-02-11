@@ -3,8 +3,8 @@ use std::{num::NonZeroU8, time::Duration};
 use rand::Rng;
 
 use tetrs_engine::{
-    Button, ButtonChange, ExtDuration, Game, GameBuilder, GameModFn, GameRng, InGameTime, Line,
-    Modifier, Phase, Piece, PieceData, Stat, Tetromino, UpdatePoint,
+    Button, ButtonChange, DelayParameters, ExtDuration, Game, GameBuilder, GameModFn, GameRng,
+    InGameTime, Line, Modifier, Phase, Piece, PieceData, Stat, Tetromino, UpdatePoint,
 };
 
 pub const MOD_ID: &str = "ascent";
@@ -45,7 +45,7 @@ pub fn build(builder: &GameBuilder) -> Game {
                         auto_move_scheduled: None,
                     },
                 };
-                state.hold_piece = Some((asc_tet_02, true));
+                state.piece_held = Some((asc_tet_02, true));
                 // No further pieces required.
                 config.piece_preview_count = 0;
             }
@@ -118,7 +118,7 @@ pub fn build(builder: &GameBuilder) -> Game {
                     // Manually swap pieces.
                     let (tet1, tet2) = (
                         &mut phase.piece_mut().unwrap().tetromino,
-                        &mut state.hold_piece.as_mut().unwrap().0,
+                        &mut state.piece_held.as_mut().unwrap().0,
                     );
                     (*tet1, *tet2) = (*tet2, *tet1);
                 } else if matches!(
@@ -130,12 +130,12 @@ pub fn build(builder: &GameBuilder) -> Game {
             }
 
             // Ensure we can always hold.
-            state.hold_piece.unwrap().1 = true;
+            state.piece_held.unwrap().1 = true;
         });
 
     builder
         .clone()
-        .initial_lock_delay(ExtDuration::Infinite)
+        .lock_delay_params(DelayParameters::constant(ExtDuration::Infinite))
         .end_conditions(vec![(Stat::TimeElapsed(Duration::from_secs(2 * 60)), true)])
         .build_modded([Modifier {
             descriptor: MOD_ID.to_owned(),

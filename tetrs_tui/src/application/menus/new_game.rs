@@ -15,7 +15,7 @@ use crossterm::{
     terminal::{Clear, ClearType},
     QueueableCommand,
 };
-use tetrs_engine::{DelayEquation, ExtDuration, ExtNonNegF64, Game, InitialValues, Stat};
+use tetrs_engine::{DelayParameters, ExtDuration, ExtNonNegF64, Game, Stat};
 
 use crate::{
     application::{
@@ -206,15 +206,25 @@ impl<T: Write> Application<T> {
                         "| Initial fall delay: {:?}s | gravity: {}",
                         self.settings
                             .new_game
-                            .custom_initial_fall_delay
+                            .custom_fall_delay_params
+                            .base_delay()
                             .as_secs_ennf64()
                             .get(),
-                        fmt_hertz(self.settings.new_game.custom_initial_fall_delay.as_hertz()),
+                        fmt_hertz(
+                            self.settings
+                                .new_game
+                                .custom_fall_delay_params
+                                .base_delay()
+                                .as_hertz()
+                        ),
                     ),
                     format!(
                         "| Increasing gravity: {}",
-                        self.settings.new_game.custom_fall_delay_equation
-                            != DelayEquation::constant()
+                        !self
+                            .settings
+                            .new_game
+                            .custom_fall_delay_params
+                            .is_constant()
                     ),
                     format!(
                         "| Limit: {:?} [→]",
@@ -290,22 +300,43 @@ impl<T: Write> Application<T> {
                     if customization_selected > 0 {
                         match customization_selected {
                             1 => {
-                                let cifd = &mut self.settings.new_game.custom_initial_fall_delay;
-                                *cifd = if modifiers.contains(KeyModifiers::SHIFT) {
-                                    cifd.mul_ennf64(mult_fall_delay)
+                                // Increase custom fall delay.
+                                let base_delay =
+                                    self.settings.new_game.custom_fall_delay_params.base_delay();
+                                let new_base_delay = if modifiers.contains(KeyModifiers::SHIFT) {
+                                    base_delay.mul_ennf64(mult_fall_delay)
                                 } else {
-                                    *cifd + d_fall_delay
+                                    base_delay + d_fall_delay
                                 };
+                                let lowerbound =
+                                    self.settings.new_game.custom_fall_delay_params.lowerbound();
+                                self.settings.new_game.custom_fall_delay_params = self
+                                    .settings
+                                    .new_game
+                                    .custom_fall_delay_params
+                                    .with_bounds(new_base_delay, lowerbound)
+                                    .unwrap();
                             }
                             2 => {
-                                self.settings.new_game.custom_fall_delay_equation =
-                                    if self.settings.new_game.custom_fall_delay_equation
-                                        == DelayEquation::constant()
-                                    {
-                                        DelayEquation::guidelinelike_fall_delays()
-                                    } else {
-                                        DelayEquation::constant()
-                                    };
+                                // Toggle increasing fall delay.
+                                let (new_factor, new_subtrahend) = if self
+                                    .settings
+                                    .new_game
+                                    .custom_fall_delay_params
+                                    .is_constant()
+                                {
+                                    let c = DelayParameters::constant(Default::default());
+                                    (c.factor(), c.subtrahend())
+                                } else {
+                                    let d = DelayParameters::default_fall();
+                                    (d.factor(), d.subtrahend())
+                                };
+                                self.settings.new_game.custom_fall_delay_params = self
+                                    .settings
+                                    .new_game
+                                    .custom_fall_delay_params
+                                    .with_coefficients(new_factor, new_subtrahend)
+                                    .unwrap();
                             }
                             3 => {
                                 match self.settings.new_game.custom_win_condition {
@@ -342,20 +373,43 @@ impl<T: Write> Application<T> {
                     if customization_selected > 0 {
                         match customization_selected {
                             1 => {
-                                let cifd = &mut self.settings.new_game.custom_initial_fall_delay;
-                                *cifd = if modifiers.contains(KeyModifiers::SHIFT) {
-                                    cifd.div_ennf64(mult_fall_delay)
+                                // Increase custom fall delay.
+                                let base_delay =
+                                    self.settings.new_game.custom_fall_delay_params.base_delay();
+                                let new_base_delay = if modifiers.contains(KeyModifiers::SHIFT) {
+                                    base_delay.div_ennf64(mult_fall_delay)
                                 } else {
-                                    cifd.saturating_sub(d_fall_delay)
+                                    base_delay.saturating_sub(d_fall_delay)
                                 };
+                                let lowerbound =
+                                    self.settings.new_game.custom_fall_delay_params.lowerbound();
+                                self.settings.new_game.custom_fall_delay_params = self
+                                    .settings
+                                    .new_game
+                                    .custom_fall_delay_params
+                                    .with_bounds(new_base_delay, lowerbound)
+                                    .unwrap();
                             }
                             2 => {
-                                let e = &mut self.settings.new_game.custom_fall_delay_equation;
-                                *e = if *e == DelayEquation::constant() {
-                                    DelayEquation::guidelinelike_fall_delays()
+                                // Toggle increasing fall delay.
+                                let (new_factor, new_subtrahend) = if self
+                                    .settings
+                                    .new_game
+                                    .custom_fall_delay_params
+                                    .is_constant()
+                                {
+                                    let c = DelayParameters::constant(Default::default());
+                                    (c.factor(), c.subtrahend())
                                 } else {
-                                    DelayEquation::constant()
+                                    let d = DelayParameters::default_fall();
+                                    (d.factor(), d.subtrahend())
                                 };
+                                self.settings.new_game.custom_fall_delay_params = self
+                                    .settings
+                                    .new_game
+                                    .custom_fall_delay_params
+                                    .with_coefficients(new_factor, new_subtrahend)
+                                    .unwrap();
                             }
                             3 => {
                                 match self.settings.new_game.custom_win_condition {
@@ -475,10 +529,8 @@ impl<T: Write> Application<T> {
                     if selected == selection_len - 1 {
                         self.settings.new_game.custom_seed = None;
                         self.settings.new_game.custom_board = None;
-                        self.settings.new_game.custom_initial_fall_delay =
-                            InitialValues::default_seeded().initial_fall_delay;
-                        self.settings.new_game.custom_fall_delay_equation =
-                            DelayEquation::guidelinelike_fall_delays();
+                        self.settings.new_game.custom_fall_delay_params =
+                            DelayParameters::default_fall();
                         self.settings.new_game.custom_win_condition = None;
                     } else if selected == 6 {
                         let new_layout_idx = if let Some(i) = COMBO_STARTLAYOUTS
@@ -528,7 +580,7 @@ impl<T: Write> Application<T> {
                 let mut builder = Game::builder();
                 builder
                     .rotation_system(rotation_system)
-                    .initial_tetromino_generator(tetromino_generator)
+                    .tetromino_generator(tetromino_generator)
                     .piece_preview_count(piece_preview_count)
                     .delayed_auto_shift(delayed_auto_shift)
                     .auto_repeat_rate(auto_repeat_rate)
@@ -561,15 +613,14 @@ impl<T: Write> Application<T> {
                 } else {
                     let n = &self.settings.new_game;
                     builder
-                        .initial_fall_delay(n.custom_initial_fall_delay)
-                        .fall_delay_equation(n.custom_fall_delay_equation)
+                        .fall_delay_params(n.custom_fall_delay_params)
                         .end_conditions(match n.custom_win_condition {
                             Some(stat) => vec![(stat, true)],
                             None => vec![],
                         });
                     // Optionally load custom seed.
-                    if n.custom_seed.is_some() {
-                        builder.seed = n.custom_seed;
+                    if let Some(seed) = n.custom_seed {
+                        builder.seed(seed);
                     }
                     // Optionally load custom board.
                     let new_custom_game = if let Some(board) = &n.custom_board {
