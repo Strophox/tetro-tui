@@ -115,7 +115,9 @@ pub fn build(builder: &GameBuilder) -> Game {
         });
     builder
         .clone()
-        .fall_delay_params(DelayParameters::constant(Duration::from_secs(1).into()))
+        .fall_delay_params(DelayParameters::constant(
+            Duration::from_millis(1000).into(),
+        ))
         .piece_preview_count(0)
         .build_modded([Modifier {
             descriptor: MOD_ID.to_owned(),

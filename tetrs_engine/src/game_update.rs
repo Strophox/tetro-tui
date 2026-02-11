@@ -29,7 +29,6 @@ impl Game {
         target_time: InGameTime,
         mut button_changes: Option<ButtonChange>,
     ) -> Result<FeedbackMessages, UpdateGameError> {
-        //let/*TODO:dbg*/s=format!("# IN___ update {target_time:?}, {button_changes:?}, {:?} {:?}\n", self.phase, self.state);if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
         if target_time < self.state.time {
             // Do not allow updating if target time lies in the past.
             return Err(UpdateGameError::TargetTimeInPast);
@@ -65,7 +64,6 @@ impl Game {
                 // Game ended by now.
                 // Return accumulated messages.
                 Phase::GameEnd { .. } => {
-                    //let/*TODO:dbg*/s=format!("# OUTOF update {target_time:?}, {button_changes:?}, {:?} {:?}\n", self.phase, self.state);if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
                     return Ok(feedback_msgs);
                 }
 
@@ -74,7 +72,6 @@ impl Game {
                 Phase::LinesClearing {
                     line_clears_finish_time,
                 } if line_clears_finish_time <= target_time => {
-                    //let/*TODO:dbg*/s=format!("INTO do_line_clearing ({line_clears_finish_time:?})\n");if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
                     self.phase =
                         do_line_clearing(&self.config, &mut self.state, line_clears_finish_time);
                     self.state.time = line_clears_finish_time;
@@ -106,7 +103,6 @@ impl Game {
                             // Piece is moving autonomously and before next fall/lock.
                             flag = true;
 
-                            //let/*TODO:dbg*/s=format!("INTO do_autonomous_move ({move_time:?})\n");if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
                             self.phase = do_autonomous_move(
                                 &self.config,
                                 &mut self.state,
@@ -121,7 +117,6 @@ impl Game {
                     // else: Piece is not moving autonomously and instead falls or locks
                     if !flag {
                         if piece_data.is_fall_not_lock {
-                            //let/*TODO:dbg*/s=format!("INTO do_fall ({:?})\n", piece_data.fall_or_lock_time);if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
                             self.phase = do_fall(
                                 &self.config,
                                 &mut self.state,
@@ -132,7 +127,6 @@ impl Game {
 
                             self.run_mods(UpdatePoint::PieceFell, &mut feedback_msgs);
                         } else {
-                            //let/*TODO:dbg*/s=format!("INTO do_lock ({:?})\n", piece_data.fall_or_lock_time);if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
                             self.phase = do_lock(
                                 &self.config,
                                 &mut self.state,
@@ -152,7 +146,6 @@ impl Game {
                     let Some(button_change) = button_changes.take() else {
                         unreachable!()
                     };
-                    //let/*TODO:dbg*/s=format!("INTO do_player_button_update ({target_time:?})\n");if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
                     self.phase = do_player_button_update(
                         &self.config,
                         &mut self.state,
@@ -179,7 +172,6 @@ impl Game {
                     // NOTE: Ensure button state is updated as requested, even when `PieceInPlay` case is not triggered.
                     self.state.buttons_pressed = new_state_buttons_pressed;
 
-                    //let/*TODO:dbg*/s=format!("# OUTOF update {target_time:?}, {button_changes:?}, {:?} {:?}\n", self.phase, self.state);if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
                     return Ok(feedback_msgs);
                 }
             }
@@ -240,7 +232,6 @@ impl Game {
 }
 
 fn do_spawn(config: &Configuration, state: &mut State, spawn_time: InGameTime) -> Phase {
-    //let/*TODO:dbg*/s=format!("IN do_spawn\n");if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
     let [button_ml, button_mr, button_rl, button_rr, button_ra, _ds, _dh, _td, _tl, _tr, button_h] =
         state
             .buttons_pressed
@@ -409,7 +400,6 @@ fn check_piece_became_movable_get_moved_piece_and_move_scheduled(
     board: &Board,
     (dx, next_move_time): (isize, InGameTime),
 ) -> Option<(Piece, Option<InGameTime>)> {
-    //let/*TODO:dbg*/s=format!("IN check_new_move_get_piece_and_move_scheduled ({next_move_time:?})\n");if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
     // Do not check 'no movement'.
     if dx == 0 {
         return None;
@@ -417,13 +407,11 @@ fn check_piece_became_movable_get_moved_piece_and_move_scheduled(
     let old_piece_moved = old_piece.fits_at(board, (dx, 0));
     let new_piece_moved = new_piece.fits_at(board, (dx, 0));
     if let (None, Some(moved_piece)) = (old_piece_moved, new_piece_moved) {
-        //let/*TODO:dbg*/s=format!(" - success\n");if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
         Some((moved_piece, Some(next_move_time)))
 
     // All checks passed, no changes need to be made.
     // This is the case where neither (³) or (⁴) apply.
     } else {
-        //let/*TODO:dbg*/s=format!(" - fail\n");if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
         None
     }
 }
@@ -787,7 +775,6 @@ fn do_player_button_update(
             let rel_ml = old_ml && !old_mr && !is_prs && is_ml; // ←₋ᵏ
             let rel_mr = !old_ml && old_mr && !is_prs && !is_ml; // →₋ᵏ
             maybe_override_auto_move = if rel_one || prs_ml || prs_mr {
-                //let/*TODO:dbg*/s=format!(" - moving\n");if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
                 if let Some(moved_piece) = new_piece.fits_at(&state.board, (dx, 0)) {
                     new_piece = moved_piece;
                     Some(Some(next_move_time)) // Able to do relevant move; Insert autonomous movement.
@@ -885,7 +872,6 @@ fn do_player_button_update(
             );
         if fall_reset {
             // Refresh fall timer if we *started* falling, or soft drop just pressed, or soft drop just released.
-            //let/*TODO:dbg*/s=format!("YEA\n");if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
             button_update_time.saturating_add(
                 if new_state_buttons_pressed[Button::DropSoft].is_some() {
                     state.fall_delay.div_ennf64(config.soft_drop_divisor)
@@ -908,7 +894,14 @@ fn do_player_button_update(
             && matches!(
                 button_change,
                 BC::Press(
-                    B::MoveLeft | B::MoveRight | B::RotateLeft | B::RotateAround | B::RotateRight
+                    B::MoveLeft
+                        | B::MoveRight
+                        | B::RotateLeft
+                        | B::RotateAround
+                        | B::RotateRight
+                        | B::TeleLeft
+                        | B::TeleDown
+                        | B::TeleRight
                 )
             );
 
@@ -926,7 +919,6 @@ fn do_player_button_update(
             previous_piece_data.fall_or_lock_time
         }
     };
-    //let/*TODO:dbg*/s=format!("THEN: {new_fall_or_lock_time:?}\n");if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
 
     // 'Update' ActionState;
     // Return it to the main state machine with the latest acquired piece data.
@@ -947,11 +939,9 @@ fn try_hold(
     tetromino: Tetromino,
     new_piece_spawn_time: InGameTime,
 ) -> Option<Phase> {
-    //let/*TODO:dbg*/s=format!("IN try_hold\n");if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
     match state.piece_held {
         // Nothing held yet, just hold spawned tetromino.
         None => {
-            //let/*TODO:dbg*/s=format!(" - success\n");if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
             state.piece_held = Some((tetromino, false));
             // Issue a spawn.
             Some(Phase::Spawning {
@@ -960,7 +950,6 @@ fn try_hold(
         }
         // Swap spawned tetromino, push held back into next pieces queue.
         Some((held_tet, true)) => {
-            //let/*TODO:dbg*/s=format!(" - success\n");if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
             state.piece_held = Some((tetromino, false));
             // Cause the next spawn to specially be the piece we held.
             state.piece_preview.push_front(held_tet);
@@ -1078,7 +1067,6 @@ fn do_lock(
     // 'Update' ActionState;
     // Return it to the main state machine with all newly acquired piece data.
     if lineclears == 0 {
-        //let/*TODO:dbg*/s=format!("OUTOF do_lock {:?}\n", lock_time + config.spawn_delay);if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
         // No lines cleared, directly proceed to spawn.
         Phase::Spawning {
             spawn_time: lock_time.saturating_add(config.spawn_delay),
@@ -1125,7 +1113,6 @@ fn calc_move_dx_and_next_move_time(
         },
     );
 
-    //let/*TODO:dbg*/s=format!("OUTOF calc_move_dx_and_next_move_time ({dx:?}, {next_move_scheduled:?})\n");if let Ok(f)=&mut std::fs::OpenOptions::new().append(true).open("dbg.txt"){let _=std::io::Write::write(f,s.as_bytes());}
     (dx, next_move_scheduled)
 }
 
@@ -1139,16 +1126,10 @@ fn calc_fall_and_lock_delay(
     if let Some(hit_at_n_lineclears) = fall_delay_lowerbound_hit_at_n_lineclears {
         // Fall delay zero was hit at some point, only possibly decrease lock delay now.
 
-        if fall_delay_params.is_constant() {
-            // Only push down lock delay if fall delay is putting pressure to do so.
-            // If fall delay is programmed constant, then assume that lock delay shouldn't become more intense.
-            (fall_delay_params.lowerbound, lock_delay_params.base_delay)
-        } else {
-            // Actually compute new delay from equation.
-            let lock_delay = lock_delay_params.calculate(lineclears - hit_at_n_lineclears);
+        // Actually compute new delay from equation.
+        let lock_delay = lock_delay_params.calculate(lineclears - hit_at_n_lineclears);
 
-            (fall_delay_params.lowerbound, lock_delay)
-        }
+        (fall_delay_params.lowerbound, lock_delay)
     } else {
         // Normally decrease fall delay.
 

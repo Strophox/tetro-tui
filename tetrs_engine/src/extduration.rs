@@ -58,6 +58,16 @@ impl ExtDuration {
     /// An extended duration of zero time.
     pub const ZERO: Self = Self::Finite(Duration::ZERO);
 
+    /// Returns `true` if this `ExtDuration` spans no time.
+    pub const fn is_zero(&self) -> bool {
+        matches!(self, &ExtDuration::ZERO)
+    }
+
+    /// Returns `true` if this `ExtDuration` spans infinite time.
+    pub const fn is_infinite(&self) -> bool {
+        matches!(self, ExtDuration::Infinite)
+    }
+
     /// Returns the number of seconds contained by this `ExtDuration`, saturating to [`Duration::MAX`] if infinite.
     pub const fn saturating_duration(&self) -> Duration {
         match self {
@@ -121,7 +131,7 @@ impl ExtDuration {
             }
             (ExtDuration::Infinite, ExtDuration::Finite(_)) => ExtDuration::Infinite,
             (ExtDuration::Finite(_), ExtDuration::Infinite) => ExtDuration::ZERO,
-            (ExtDuration::Infinite, ExtDuration::Infinite) => ExtDuration::ZERO, // Controversial?
+            (ExtDuration::Infinite, ExtDuration::Infinite) => ExtDuration::ZERO, // FIXME: Controversial?
         }
     }
 }

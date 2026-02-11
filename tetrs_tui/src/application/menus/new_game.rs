@@ -219,7 +219,7 @@ impl<T: Write> Application<T> {
                         ),
                     ),
                     format!(
-                        "| Increasing gravity: {}",
+                        "| Progressive gravity: {}",
                         !self
                             .settings
                             .new_game
@@ -325,11 +325,11 @@ impl<T: Write> Application<T> {
                                     .custom_fall_delay_params
                                     .is_constant()
                                 {
+                                    let d = DelayParameters::standard_fall();
+                                    (d.factor(), d.subtrahend())
+                                } else {
                                     let c = DelayParameters::constant(Default::default());
                                     (c.factor(), c.subtrahend())
-                                } else {
-                                    let d = DelayParameters::default_fall();
-                                    (d.factor(), d.subtrahend())
                                 };
                                 self.settings.new_game.custom_fall_delay_params = self
                                     .settings
@@ -398,11 +398,11 @@ impl<T: Write> Application<T> {
                                     .custom_fall_delay_params
                                     .is_constant()
                                 {
+                                    let d = DelayParameters::standard_fall();
+                                    (d.factor(), d.subtrahend())
+                                } else {
                                     let c = DelayParameters::constant(Default::default());
                                     (c.factor(), c.subtrahend())
-                                } else {
-                                    let d = DelayParameters::default_fall();
-                                    (d.factor(), d.subtrahend())
                                 };
                                 self.settings.new_game.custom_fall_delay_params = self
                                     .settings
@@ -530,7 +530,7 @@ impl<T: Write> Application<T> {
                         self.settings.new_game.custom_seed = None;
                         self.settings.new_game.custom_board = None;
                         self.settings.new_game.custom_fall_delay_params =
-                            DelayParameters::default_fall();
+                            DelayParameters::standard_fall();
                         self.settings.new_game.custom_win_condition = None;
                     } else if selected == 6 {
                         let new_layout_idx = if let Some(i) = COMBO_STARTLAYOUTS
@@ -612,16 +612,24 @@ impl<T: Write> Application<T> {
                 // Build custom game.
                 } else {
                     let n = &self.settings.new_game;
+
                     builder
                         .fall_delay_params(n.custom_fall_delay_params)
                         .end_conditions(match n.custom_win_condition {
                             Some(stat) => vec![(stat, true)],
                             None => vec![],
                         });
+
+                    // Make lock delay decrease if fall delay was chosen to decrease.
+                    if !n.custom_fall_delay_params.is_constant() {
+                        builder.lock_delay_params(DelayParameters::standard_lock());
+                    }
+
                     // Optionally load custom seed.
                     if let Some(seed) = n.custom_seed {
                         builder.seed(seed);
                     }
+
                     // Optionally load custom board.
                     let new_custom_game = if let Some(board) = &n.custom_board {
                         builder.build_modded([
@@ -631,6 +639,7 @@ impl<T: Write> Application<T> {
                     } else {
                         builder.build()
                     };
+
                     let new_meta_data = GameMetaData {
                         datetime: chrono::Utc::now().format("%Y-%m-%d_%H:%M").to_string(),
                         title: "Custom".to_owned(),

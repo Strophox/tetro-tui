@@ -29,8 +29,8 @@ impl<T: Write> Application<T> {
             lineclears,
             points_scored,
             pieces_locked,
-            final_fall_delay,
-            final_lock_delay,
+            fall_delay_reached,
+            lock_delay_reached,
         } = past_game;
         let selection = vec![
             Menu::NewGame,
@@ -61,17 +61,20 @@ impl<T: Write> Application<T> {
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
                 .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
 
-            let stats = [
+            let mut stats = vec![
                 format!("Time elapsed: {}", fmt_duration(*time_elapsed)),
-                format!("Lines: {}", lineclears),
+                format!("Lines: {lineclears}"),
                 format!("Score: {points_scored}"),
                 format!("Pieces: {}", fmt_tetromino_counts(pieces_locked)),
-                format!("Gravity: {}", fmt_hertz(final_fall_delay.as_hertz())),
-                format!(
-                    "Lock delay: {}ms",
-                    final_lock_delay.saturating_duration().as_millis()
-                ),
+                format!("Gravity: {}", fmt_hertz(fall_delay_reached.as_hertz())),
             ];
+
+            if let Some(lock_delay_reached) = lock_delay_reached {
+                stats.push(format!(
+                    "Lock delay: {}ms",
+                    lock_delay_reached.saturating_duration().as_millis()
+                ));
+            }
 
             for (i, s) in stats.iter().enumerate() {
                 self.term

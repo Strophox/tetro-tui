@@ -80,6 +80,16 @@ impl ExtNonNegF64 {
     pub const fn recip(self) -> Self {
         Self(self.0.recip())
     }
+
+    /// Returns `true` if this value is (positive) zero.
+    pub const fn is_zero(self) -> bool {
+        self.0 == 0.0
+    }
+
+    /// Returns `true` if this value is (positive) infinity.
+    pub const fn is_infinite(self) -> bool {
+        self.0.is_infinite()
+    }
 }
 
 impl std::ops::Add for ExtNonNegF64 {

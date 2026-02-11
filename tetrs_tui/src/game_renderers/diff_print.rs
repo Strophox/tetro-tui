@@ -298,7 +298,8 @@ impl Renderer for DiffPrintRenderer {
         let show_lockdelay = game
             .state()
             .fall_delay_lowerbound_hit_at_n_lineclears
-            .is_some();
+            .is_some()
+            && !game.config.lock_delay_params.is_constant();
 
         // Screen: draw.
         #[allow(clippy::useless_format)]

@@ -16,7 +16,7 @@ pub fn forty_lines() -> GameModePreset {
         Box::new(|builder: &GameBuilder| {
             builder
                 .clone()
-                .fall_delay_params(DelayParameters::constant(Duration::from_millis(500).into()))
+                .fall_delay_params(DelayParameters::constant(Duration::from_millis(667).into()))
                 .end_conditions(vec![(Stat::LinesCleared(40), true)])
                 .build()
         }),
@@ -30,6 +30,8 @@ pub fn marathon() -> GameModePreset {
         Box::new(|builder: &GameBuilder| {
             builder
                 .clone()
+                .fall_delay_params(DelayParameters::standard_fall())
+                .lock_delay_params(DelayParameters::standard_lock())
                 .end_conditions(vec![(Stat::LinesCleared(150), true)])
                 .build()
         }),
@@ -43,7 +45,7 @@ pub fn time_trial() -> GameModePreset {
         Box::new(|builder: &GameBuilder| {
             builder
                 .clone()
-                .fall_delay_params(DelayParameters::constant(Duration::from_millis(500).into()))
+                .fall_delay_params(DelayParameters::constant(Duration::from_millis(667).into()))
                 .end_conditions(vec![(Stat::TimeElapsed(Duration::from_secs(3 * 60)), true)])
                 .build()
         }),
@@ -58,6 +60,7 @@ pub fn master() -> GameModePreset {
             builder
                 .clone()
                 .fall_delay_params(DelayParameters::constant(ExtDuration::ZERO))
+                .lock_delay_params(DelayParameters::standard_lock())
                 .end_conditions(vec![(Stat::LinesCleared(150), true)])
                 .build()
         }),
@@ -110,7 +113,9 @@ pub fn n_combo(linelimit: Option<NonZeroU32>, startlayout: u16) -> GameModePrese
             move |builder: &GameBuilder| {
                 builder
                     .clone()
-                    .fall_delay_params(DelayParameters::constant(Duration::from_secs(1).into()))
+                    .fall_delay_params(DelayParameters::constant(
+                        Duration::from_millis(1000).into(),
+                    ))
                     .end_conditions(match linelimit {
                         Some(l) => vec![(Stat::LinesCleared(l.get()), true)],
                         None => vec![],

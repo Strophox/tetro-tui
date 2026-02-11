@@ -56,7 +56,7 @@ pub fn reconstruct_build_modded<'a>(
             let (linelimit, cheese_tiles_per_line, fall_delay) =
                 get_mod_args::<(Option<NonZeroU32>, NonZeroUsize, ExtDuration)>(
                     &mut lines, mod_id,
-                )?; // TODO: Can serde handle this?
+                )?;
             let build = Box::new(move |builder| {
                 cheese::build(builder, linelimit, cheese_tiles_per_line, fall_delay)
             });

@@ -163,8 +163,8 @@ pub struct ScoreboardEntry {
     lineclears: u32,
     points_scored: u32,
     pieces_locked: [u32; Tetromino::VARIANTS.len()],
-    final_fall_delay: ExtDuration,
-    final_lock_delay: ExtDuration,
+    fall_delay_reached: ExtDuration,
+    lock_delay_reached: Option<ExtDuration>,
 }
 
 impl ScoreboardEntry {
@@ -174,8 +174,13 @@ impl ScoreboardEntry {
             time_elapsed: game.state().time,
             pieces_locked: game.state().pieces_locked,
             lineclears: game.state().lineclears,
-            final_fall_delay: game.state().fall_delay,
-            final_lock_delay: game.state().lock_delay,
+            fall_delay_reached: game.state().fall_delay,
+            lock_delay_reached: (game
+                .state()
+                .fall_delay_lowerbound_hit_at_n_lineclears
+                .is_some()
+                && !game.config.lock_delay_params.is_constant())
+            .then_some(game.state().lock_delay),
             points_scored: game.state().score,
             result: game.result().unwrap_or(Err(GameOver::Forfeit)),
         }
@@ -231,7 +236,7 @@ pub struct NewGameSettings {
 impl Default for NewGameSettings {
     fn default() -> Self {
         Self {
-            custom_fall_delay_params: DelayParameters::default_fall(),
+            custom_fall_delay_params: DelayParameters::standard_fall(),
             custom_win_condition: None,
             custom_seed: None,
             custom_board: None,

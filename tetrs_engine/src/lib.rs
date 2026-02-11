@@ -187,7 +187,7 @@ pub struct DelayParameters {
     /// - `0.0` means 'subtract 0% of initial delay for every line clear',
     /// - `0.5` means 'subtract 50% of initial delay for every line clear',
     /// - `1.0` means 'subtract 100% of initial delay for every line clear'.
-    subtrahend: ExtNonNegF64,
+    subtrahend: ExtDuration,
     /// The duration below which delay cannot decrease.
     lowerbound: ExtDuration,
 }
@@ -755,7 +755,7 @@ impl DelayParameters {
     /// - `0.0` means 'subtract 0% of initial delay for every line clear',
     /// - `0.5` means 'subtract 50% of initial delay for every line clear',
     /// - `1.0` means 'subtract 100% of initial delay for every line clear'.
-    pub fn subtrahend(&self) -> ExtNonNegF64 {
+    pub fn subtrahend(&self) -> ExtDuration {
         self.subtrahend
     }
 
@@ -769,7 +769,7 @@ impl DelayParameters {
         base_delay: ExtDuration,
         lowerbound: ExtDuration,
         factor: ExtNonNegF64,
-        subtrahend: ExtNonNegF64,
+        subtrahend: ExtDuration,
     ) -> Option<Self> {
         Self::constant(Default::default())
             .with_bounds(base_delay, lowerbound)?
@@ -787,12 +787,8 @@ impl DelayParameters {
     }
 
     /// Create a modified delay parameters where only the coefficients are changed.
-    pub fn with_coefficients(
-        &self,
-        factor: ExtNonNegF64,
-        subtrahend: ExtNonNegF64,
-    ) -> Option<Self> {
-        let correct_coefficients = factor <= 1.into() && subtrahend <= 1.into();
+    pub fn with_coefficients(&self, factor: ExtNonNegF64, subtrahend: ExtDuration) -> Option<Self> {
+        let correct_coefficients = factor <= 1.into();
         correct_coefficients.then_some(Self {
             factor,
             subtrahend,
@@ -805,52 +801,57 @@ impl DelayParameters {
         Self {
             base_delay: delay,
             factor: 1.into(),
-            subtrahend: 0.into(),
+            subtrahend: ExtDuration::ZERO,
             lowerbound: delay,
         }
     }
 
     /// Whether the delay curve is invariant to number of lineclears.
     pub fn is_constant(&self) -> bool {
-        self.factor == 1.into() && self.subtrahend == 0.into()
+        self.factor == 1.into() && self.subtrahend.is_zero()
     }
 
     /// Delay equation which implements guideline-like fall delays:
-    /// * 0 lineclears ~> 1s to fall one unit / 20s whole skyline height.
-    /// * 100 lineclears ~> 2s to fall one whole skyline height.
-    /// * 210 lineclears ~> 0s / instant gravity.
-    pub fn default_fall() -> Self {
+    /// *   0.0  lineclears ~> 20s to fall 20 units (1s/unit).
+    /// *  28.8_ lineclears ~> 10s to fall 20 units.
+    /// *  94.4_ lineclears ~>  2s to fall 20 units.
+    /// * 120.9_ lineclears ~>  1s to fall 20 units.
+    /// * 156.8_ lineclears ~> 1/3s to fall 20 units (NES max; 1 unit/frame).
+    /// * 196.1_ lineclears ~> 1/60s to fall 20 units (1frame/20units).
+    /// * 199.4_ lineclears ~>  0s to fall (instant gravity).
+    pub fn standard_fall() -> Self {
         Self {
             base_delay: Duration::from_millis(1000).into(),
-            factor: ExtNonNegF64::new(0.9776880098709251).unwrap(),
-            subtrahend: ExtNonNegF64::new(0.000042).unwrap(),
+            factor: ExtNonNegF64::new(0.9763).unwrap(),
+            subtrahend: Duration::from_secs_f64(0.000042).into(),
             lowerbound: Duration::ZERO.into(),
         }
     }
 
     /// Delay equation which implements guideline-like lock delays:
     /// * 0 lineclears ~> 500ms lock delay.
-    /// * Decrease lock_delay by 20 ms every 10 lineclears (= 0.004 / 0.4% every lineclear).
+    /// * Decrease lock_delay by 20 ms every 10 lineclears (= 2 ms every lineclear).
     /// * End at 200ms lock delay.
-    pub fn default_lock() -> Self {
+    pub fn standard_lock() -> Self {
         Self {
             base_delay: Duration::from_millis(500).into(),
             factor: 1.into(),
-            subtrahend: ExtNonNegF64::new(0.004).unwrap(),
+            subtrahend: Duration::from_millis(2).into(),
             lowerbound: Duration::from_millis(200).into(),
         }
     }
 
     /// Calculates an actual delay value given a number of lineclears to determine progression.
     pub fn calculate(&self, lineclears: u32) -> ExtDuration {
-        let lineclears = f64::from(lineclears);
-        // Compute the intended multiplier resulting from the lineclears.
-        let raw_multiplier =
-            self.factor.get().powf(lineclears) - self.subtrahend.get() * lineclears;
-        // Adjust multiplier so it cannot be negative.
-        let enn_multiplier = ExtNonNegF64::new(0.0f64.max(raw_multiplier)).unwrap();
-        // Use multiplier to calculate intended delay.
-        let raw_delay = self.base_delay.mul_ennf64(enn_multiplier);
+        // Multiplicative factor computed from lineclears.
+        let mul =
+            ExtNonNegF64::new(0.0f64.max(self.factor.get().powf(f64::from(lineclears)))).unwrap();
+        // Subtractive offset computed from lineclears.
+        let sub = self.subtrahend.mul_ennf64(lineclears.into());
+
+        // Calculate intended delay.
+        let raw_delay = self.base_delay.mul_ennf64(mul).saturating_sub(sub);
+
         // Return delay capped by lower bound.
         self.lowerbound.max(raw_delay)
     }
@@ -898,17 +899,16 @@ impl Default for Configuration {
             piece_preview_count: 4,
             allow_prespawn_actions: true,
             rotation_system: RotationSystem::default(),
+            spawn_delay: Duration::from_millis(50),
             delayed_auto_shift: Duration::from_millis(167),
             auto_repeat_rate: Duration::from_millis(33),
+            fall_delay_params: DelayParameters::constant(Duration::from_millis(1000).into()),
             soft_drop_divisor: ExtNonNegF64::new(10.0).unwrap(),
+            lock_delay_params: DelayParameters::constant(Duration::from_millis(500).into()),
+            lenient_lock_delay_reset: false,
             lock_reset_cap_factor: ExtNonNegF64::new(8.0).unwrap(),
             line_clear_duration: Duration::from_millis(200),
-            spawn_delay: Duration::from_millis(50),
-            // This approximates guideline.
-            fall_delay_params: DelayParameters::default_fall(),
-            lock_delay_params: DelayParameters::default_lock(),
             update_delays_every_n_lineclears: 10,
-            lenient_lock_delay_reset: true,
             end_conditions: Default::default(),
             feedback_verbosity: FeedbackVerbosity::default(),
         }
