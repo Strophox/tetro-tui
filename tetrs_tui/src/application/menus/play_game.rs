@@ -272,7 +272,12 @@ impl<T: Write> Application<T> {
                 }
             }
             for button in to_unpress {
-                let _ = game.update(game.state().time, Some(ButtonChange::Release(button)));
+                let unpress_time = game.state().time;
+                let button_unpress = ButtonChange::Release(button);
+                let _ = game.update(unpress_time, Some(button_unpress));
+                button_input_history
+                    .0
+                    .push(ButtonInputHistory::encode(unpress_time, button_unpress));
             }
         }
 
