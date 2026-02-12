@@ -25,7 +25,7 @@ impl<T: Write> Application<T> {
             if settings.keybinds_slot_active < settings.keybinds_slots_that_should_not_be_changed {
                 let mut n = 1;
                 let new_custom_slot_name = loop {
-                    let name = format!("custom_{n}");
+                    let name = format!("Custom-{n}");
                     if settings.keybinds_slots.iter().any(|s| s.0 == name) {
                         n += 1;
                     } else {

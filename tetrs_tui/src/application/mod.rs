@@ -17,16 +17,7 @@ use tetrs_engine::{
     RotationSystem, Stat, Tetromino, TetrominoGenerator,
 };
 
-use crate::{
-    game_mode_presets, game_renderers,
-    keybinds_presets::{
-        guideline_keybinds, tetrs_default_keybinds, tetrs_finesse_keybinds, vim_keybinds, Keybinds,
-    },
-    palette_presets::{
-        color16_palette, fullcolor_palette, gruvbox_light_palette, gruvbox_palette,
-        monochrome_palette, oklch_palette, the_matrix_palette, Palette,
-    },
-};
+use crate::{game_mode_presets, game_renderers, keybinds_presets::*, palette_presets::*};
 
 pub type Slots<T> = Vec<(String, T)>;
 
@@ -397,9 +388,9 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         let graphics_slots = vec![
-            ("default".to_owned(), GraphicsSettings::default()),
+            ("Default".to_owned(), GraphicsSettings::default()),
             (
-                "focused".to_owned(),
+                "Focused".to_owned(),
                 GraphicsSettings {
                     palette_active: 2,
                     palette_active_lockedtiles: 0,
@@ -414,20 +405,26 @@ impl Default for Settings {
             ("16-color".to_owned(), color16_palette()),
             ("Fullcolor".to_owned(), fullcolor_palette()),
             ("Okpalette".to_owned(), oklch_palette()),
-            ("Gruvbox (light)".to_owned(), gruvbox_light_palette()),
             ("Gruvbox".to_owned(), gruvbox_palette()),
+            ("Solarized".to_owned(), solarized_palette()),
+            ("Terafox".to_owned(), terafox_palette()),
+            ("PaperColor".to_owned(), papercolor_palette()),
+            ("Nature Suede".to_owned(), naturesuede_palette()),
+            ("Lavendel".to_owned(), lavendel_palette()),
+            ("Fahrenheit".to_owned(), fahrenheit_palette()),
             ("The Matrix".to_owned(), the_matrix_palette()),
+            ("Sequoia".to_owned(), sequoia_palette()),
         ];
         let keybinds_slots = vec![
-            ("Tetrs default".to_owned(), tetrs_default_keybinds()),
-            ("Tetrs finesse".to_owned(), tetrs_finesse_keybinds()),
-            ("Vim-like".to_owned(), vim_keybinds()),
-            ("TTC default".to_owned(), guideline_keybinds()),
+            ("Default".to_owned(), tetrs_default_keybinds()),
+            ("Finesse".to_owned(), tetrs_finesse_keybinds()),
+            ("Vim".to_owned(), vim_keybinds()),
+            ("Guideline".to_owned(), guideline_keybinds()),
         ];
         let gameplay_slots = vec![
-            ("default".to_owned(), GameplaySettings::default()),
+            ("Default".to_owned(), GameplaySettings::default()),
             (
-                "finesse".to_owned(),
+                "Finesse".to_owned(),
                 GameplaySettings {
                     delayed_auto_shift: Duration::from_millis(110),
                     auto_repeat_rate: Duration::from_millis(0),

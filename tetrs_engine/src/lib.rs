@@ -843,15 +843,16 @@ impl DelayParameters {
 
     /// Calculates an actual delay value given a number of lineclears to determine progression.
     pub fn calculate(&self, lineclears: u32) -> ExtDuration {
-        // Multiplicative factor computed from lineclears.
-        let mul =
-            ExtNonNegF64::new(0.0f64.max(self.factor.get().powf(f64::from(lineclears)))).unwrap();
+        // Multiplicative factor computed from lineclears;
+        let raw_mul = self.factor.get().powf(f64::from(lineclears));
+        // Wrap it back in ExtNonNegF64.
+        let mul = ExtNonNegF64::new(raw_mul).unwrap();
+
         // Subtractive offset computed from lineclears.
         let sub = self.subtrahend.mul_ennf64(lineclears.into());
 
-        // Calculate intended delay.
+        // Calculate intended delay;
         let raw_delay = self.base_delay.mul_ennf64(mul).saturating_sub(sub);
-
         // Return delay capped by lower bound.
         self.lowerbound.max(raw_delay)
     }

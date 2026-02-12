@@ -24,7 +24,7 @@ impl<T: Write> Application<T> {
             if settings.graphics_slot_active < settings.graphics_slots_that_should_not_be_changed {
                 let mut n = 1;
                 let new_custom_slot_name = loop {
-                    let name = format!("custom_{n}");
+                    let name = format!("Custom-{n}");
                     if settings.graphics_slots.iter().any(|s| s.0 == name) {
                         n += 1;
                     } else {
@@ -278,7 +278,7 @@ impl<T: Write> Application<T> {
                     }
                     6 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                        if self.settings.graphics().game_fps >= 1.0 {
+                        if self.settings.graphics().game_fps > 1.0 {
                             self.settings.graphics_mut().game_fps -= 1.0;
                         }
                     }
