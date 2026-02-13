@@ -39,8 +39,7 @@ impl<T: Write> Application<T> {
         // Toggle on enhanced-keyboard-events.
         if self.runtime_data.kitty_assumed {
             let f = Self::KEYBOARD_ENHANCEMENT_FLAGS;
-            // FIXME: Handle io::Error? If not, why not?
-            let _v = self.term.execute(event::PushKeyboardEnhancementFlags(f));
+            self.term.execute(event::PushKeyboardEnhancementFlags(f))?;
         }
 
         // Prepare channel from which to receive terminal inputs.
@@ -155,6 +154,13 @@ impl<T: Write> Application<T> {
                                 let update_target_time =
                                     std::cmp::max(game_time_userinput, game.state().time);
 
+                                // Here we actually compress the information in update_target_time:
+                                // We round it to millisecond, and up (ceiling, to not be in game's past).
+                                let update_target_time_millis =
+                                    (update_target_time.as_millis() + 1) as u64;
+                                let update_target_time =
+                                    Duration::from_millis(update_target_time_millis);
+
                                 if self.runtime_data.kitty_assumed {
                                     // Enhanced keyboard events: determinedly send press or release.
                                     let button_change =
@@ -177,6 +183,11 @@ impl<T: Write> Application<T> {
                                 } else {
                                     // Normal terminal - since we don't have "release" events, we just assume a button press is instantaneous.
                                     let button_change = ButtonChange::Press(button);
+
+                                    // Special handling for terminal that STILL send "release" events, so we don't interpret them as presses.
+                                    if matches!(key_event_kind, KeyEventKind::Release) {
+                                        continue 'frame_idle;
+                                    }
 
                                     let update_result =
                                         game.update(update_target_time, Some(button_change));

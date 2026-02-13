@@ -47,20 +47,20 @@ impl CompressedGameInputHistory {
     pub fn new(game_input_history: &GameInputHistory) -> Self {
         let mut compressed_inputs = Vec::new();
 
-        if let Some((mut latest_update_time, button_change)) = game_input_history.first() {
-            let i = Self::compress_input((latest_update_time, *button_change));
+        if let Some((mut update_time_0, button_change)) = game_input_history.first() {
+            let i = Self::compress_input((update_time_0, *button_change));
 
             // Add first input.
             compressed_inputs.push(i);
 
-            for (target_update_time, button_change) in game_input_history.iter().skip(1) {
-                let time_diff = latest_update_time.saturating_sub(*target_update_time);
+            for (update_time_1, button_change) in game_input_history.iter().skip(1) {
+                let time_diff = update_time_1.saturating_sub(update_time_0);
                 let i = Self::compress_input((time_diff, *button_change));
 
                 // Add further input.
                 compressed_inputs.push(i);
 
-                latest_update_time = *target_update_time;
+                update_time_0 = *update_time_1;
             }
         };
 
@@ -71,19 +71,19 @@ impl CompressedGameInputHistory {
         let mut decompressed_inputs = Vec::new();
 
         if let Some(i) = self.0.first() {
-            let (mut latest_update_time, button_change) = Self::decompress_input(*i);
+            let (mut update_time_0, button_change) = Self::decompress_input(*i);
 
             // Add first input.
-            decompressed_inputs.push((latest_update_time, button_change));
+            decompressed_inputs.push((update_time_0, button_change));
 
             for i in self.0.iter().skip(1) {
                 let (time_diff, button_change) = Self::decompress_input(*i);
-                let target_update_time = latest_update_time.saturating_add(time_diff);
+                let update_time_1 = update_time_0.saturating_add(time_diff);
 
                 // Add further input.
-                decompressed_inputs.push((target_update_time, button_change));
+                decompressed_inputs.push((update_time_1, button_change));
 
-                latest_update_time = target_update_time;
+                update_time_0 = update_time_1;
             }
         }
 
@@ -93,19 +93,20 @@ impl CompressedGameInputHistory {
     // For serialization reasons, we encode a single user input as `u128` instead of
     // `(GameTime, ButtonChange)`, which would have a verbose direct string representation.
     fn compress_input((update_target_time, button_change): (InGameTime, ButtonChange)) -> u128 {
-        // Encode `GameTime = std::time::Duration` using `std::time::Duration::as_nanos`.
-        let nanos: u128 = update_target_time.as_nanos();
+        // Encode `GameTime = std::time::Duration` using `std::time::Duration::as_millis`.
+        // NOTE: We actually use `millis` not `nanos` as a convention which is upheld by `play_game.rs`!
+        let millis: u128 = update_target_time.as_millis();
         // Encode `tetrs_engine::ButtonChange` using `Self::encode_button_change`.
         let bc_bits: u8 = Self::compress_buttonchange(&button_change);
-        (nanos << Self::BUTTON_CHANGE_BITSIZE) | u128::from(bc_bits)
+        (millis << Self::BUTTON_CHANGE_BITSIZE) | u128::from(bc_bits)
     }
 
     fn decompress_input(i: u128) -> (InGameTime, ButtonChange) {
         let mask = u128::MAX >> (128 - Self::BUTTON_CHANGE_BITSIZE);
         let bc_bits = u8::try_from(i & mask).unwrap();
-        let nanos = u64::try_from(i >> Self::BUTTON_CHANGE_BITSIZE).unwrap();
+        let millis = u64::try_from(i >> Self::BUTTON_CHANGE_BITSIZE).unwrap();
         (
-            std::time::Duration::from_nanos(nanos),
+            std::time::Duration::from_millis(millis),
             Self::decompress_buttonchange(bc_bits),
         )
     }
@@ -156,18 +157,44 @@ impl GameRestorationData<GameInputHistory> {
                 &builder,
                 self.mod_descriptors.iter().map(String::as_str),
             ) {
-                Ok(modified_game) => modified_game,
+                Ok((mut modded_game, unrecognized_mod_descriptors)) => {
+                    // #[rustfmt::skip]
+                    let print_warn_msgs_mod = Modifier {
+                        descriptor: "print_warn_msgs".to_owned(),
+                        mod_function: Box::new({
+                            let mut init = false;
+                            move |_point, _config, _init_vals, state, _phase, msgs| {
+                                if init {
+                                    return;
+                                } else {
+                                    init = true;
+                                }
+                                for umd in unrecognized_mod_descriptors.iter() {
+                                    msgs.push((
+                                        state.time,
+                                        Feedback::Text(format!("WARNING: Idk {umd:?}")),
+                                    ));
+                                }
+                            }
+                        }),
+                    };
+
+                    modded_game.modifiers.push(print_warn_msgs_mod);
+
+                    modded_game
+                }
                 Err(msg) => {
                     #[rustfmt::skip]
                     let print_error_msg_mod = Modifier {
-                        descriptor: "print_error_msg_mod".to_owned(),
+                        descriptor: "print_error_msg".to_owned(),
                         mod_function: Box::new({ let mut init = false;
                             move |_point, _config, _init_vals, state, _phase, msgs| {
-                                if init { return; } init = true;
+                                if init { return; } else { init = true; }
                                 msgs.push((state.time, Feedback::Text(format!("ERROR: {msg:?}"))));
                             }
                         }),
                     };
+
                     builder.build_modded([print_error_msg_mod])
                 }
             }
@@ -711,11 +738,25 @@ impl<T: Write> Application<T> {
             }
         }
 
+        let compressed_game_savepoint =
+            self.game_savepoint
+                .as_ref()
+                .map(|(meta_data, restoration_data, load_offset)| {
+                    let restoration_data = GameRestorationData {
+                        builder: restoration_data.builder.clone(),
+                        mod_descriptors: restoration_data.mod_descriptors.clone(),
+                        input_history: CompressedGameInputHistory::new(
+                            &restoration_data.input_history,
+                        ),
+                    };
+                    (meta_data, restoration_data, load_offset)
+                });
+
         let save_state = (
             &self.save_on_exit,
             &self.settings,
             &self.scoreboard,
-            &self.game_savepoint,
+            compressed_game_savepoint,
         );
         let save_str = serde_json::to_string(&save_state)?;
         let mut file = File::create(path)?;
@@ -737,12 +778,29 @@ impl<T: Write> Application<T> {
         let mut save_str = String::new();
         file.read_to_string(&mut save_str)?;
         let save_state = serde_json::from_str(&save_str)?;
+
+        let compressed_game_savepoint: Option<(
+            GameMetaData,
+            GameRestorationData<CompressedGameInputHistory>,
+            usize,
+        )>;
+
         (
             self.save_on_exit,
             self.settings,
             self.scoreboard,
-            self.game_savepoint,
+            compressed_game_savepoint,
         ) = save_state;
+
+        self.game_savepoint =
+            compressed_game_savepoint.map(|(meta_data, restoration_data, load_offset)| {
+                let restoration_data = GameRestorationData {
+                    builder: restoration_data.builder.clone(),
+                    mod_descriptors: restoration_data.mod_descriptors.clone(),
+                    input_history: restoration_data.input_history.decompress(),
+                };
+                (meta_data, restoration_data, load_offset)
+            });
         Ok(())
     }
 

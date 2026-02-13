@@ -10,8 +10,9 @@ pub mod puzzle;
 pub fn reconstruct_build_modded<'a>(
     builder: &'a GameBuilder,
     mod_descriptors: impl IntoIterator<Item = &'a str>,
-) -> Result<Game, String> {
-    let mut compounding_mod: Vec<Modifier> = Vec::new();
+) -> Result<(Game, Vec<String>), String> {
+    let mut compounding_mods: Vec<Modifier> = Vec::new();
+
     #[allow(clippy::type_complexity)]
     let mut building_mod: Option<(&str, Box<dyn Fn(&'a GameBuilder) -> Game>)> = None;
 
@@ -22,6 +23,8 @@ pub fn reconstruct_build_modded<'a>(
         building_mod.replace((mod_id, build));
         Ok(())
     };
+
+    let mut unrecognized_mod_descriptors = Vec::new();
 
     // NOTE: We can actually only deserialize to owned types, so if a mod accepts `&str` in args, we need to instead parse `String`.
     fn get_mod_args<'de, T: serde::Deserialize<'de>>(
@@ -64,26 +67,28 @@ pub fn reconstruct_build_modded<'a>(
         } else if mod_id == combo_board::MOD_ID {
             let linelimit = get_mod_args::<u16>(&mut lines, mod_id)?;
             let modifier = combo_board::modifier(linelimit);
-            compounding_mod.push(modifier);
+            compounding_mods.push(modifier);
         } else if mod_id == print_recency_tet_gen_stats::MOD_ID {
             let modifier = print_recency_tet_gen_stats::modifier();
-            compounding_mod.push(modifier);
+            compounding_mods.push(modifier);
         } else if mod_id == custom_start_board::MOD_ID {
             let encoded_board = get_mod_args::<String>(&mut lines, mod_id)?;
             let modifier = custom_start_board::modifier(&encoded_board);
-            compounding_mod.push(modifier);
+            compounding_mods.push(modifier);
         } else {
-            return Err(format!("unrecognized mod {mod_id:?}"));
+            unrecognized_mod_descriptors.push(mod_id.to_owned());
         }
     }
 
-    Ok(if let Some((_, build)) = building_mod {
-        let mut game = build(builder);
-        game.modifiers.extend(compounding_mod);
-        game
+    let mut game = if let Some((_, build)) = building_mod {
+        build(builder)
     } else {
-        builder.build_modded(compounding_mod)
-    })
+        builder.build()
+    };
+
+    game.modifiers.extend(compounding_mods);
+
+    Ok((game, unrecognized_mod_descriptors))
 }
 
 pub mod custom_start_board {
