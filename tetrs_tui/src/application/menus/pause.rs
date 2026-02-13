@@ -7,9 +7,9 @@ impl<T: Write> Application<T> {
         let selection = vec![
             Menu::NewGame,
             Menu::Settings,
-            Menu::Scores,
+            Menu::Scoreboard,
             Menu::About,
-            Menu::Quit("quit from pause".to_owned()),
+            Menu::Quit,
         ];
         self.generic_menu("Game Paused", selection)
     }

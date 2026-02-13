@@ -1,8 +1,8 @@
 use std::{collections::VecDeque, num::NonZeroU8, time::Duration};
 
 use tetrs_engine::{
-    Button, ButtonChange, DelayParameters, Feedback, FeedbackMessages, Game, GameBuilder,
-    GameModFn, GameOver, Line, Modifier, Phase, Stat, State, Tetromino, UpdatePoint,
+    Button, ButtonChange, DelayParameters, Feedback, FeedbackMsg, Game, GameBuilder, GameModFn,
+    GameOver, Line, Modifier, Phase, Stat, State, Tetromino, UpdatePoint,
 };
 
 pub const MOD_ID: &str = "puzzle";
@@ -15,7 +15,7 @@ pub fn build(builder: &GameBuilder) -> Game {
     let load_puzzle = move |state: &mut State,
                             attempt: usize,
                             current_puzzle_idx: usize,
-                            feedback_msgs: &mut FeedbackMessages|
+                            feedback_msgs: &mut Vec<FeedbackMsg>|
           -> usize {
         let (puzzle_name, puzzle_lines, puzzle_pieces) = &puzzles[current_puzzle_idx];
         // Game message.

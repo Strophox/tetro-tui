@@ -15,11 +15,11 @@ use crossterm::{
     terminal::{Clear, ClearType},
     QueueableCommand,
 };
-use tetrs_engine::{DelayParameters, ExtDuration, ExtNonNegF64, Game, Stat};
+use tetrs_engine::{DelayParameters, ExtDuration, ExtNonNegF64, Game, InGameTime, Stat};
 
 use crate::{
     application::{
-        Application, ButtonInputHistory, GameMetaData, GameRestorationData, GameplaySettings, Menu,
+        Application, GameInputHistory, GameMetaData, GameRestorationData, GameplaySettings, Menu,
         MenuUpdate,
     },
     fmt_helpers::{fmt_button_change, fmt_duration, fmt_hertz},
@@ -139,7 +139,7 @@ impl<T: Write> Application<T> {
                 &self.game_savepoint
             {
                 let load_title = &game_meta_data.title;
-                let load_offset_max = input_history.0.len();
+                let load_offset_max = input_history.len();
                 self.term
                     .queue(MoveTo(
                         x_main,
@@ -151,8 +151,7 @@ impl<T: Write> Application<T> {
                             if *load_offset == 0 {
                                 format!(">> Load {load_title:?} run from start [Del] <<")
                             } else {
-                                let (load_time, load_input) = ButtonInputHistory::decompress_input(
-                                    input_history.0[(load_offset - 1) % input_history.0.len()]);
+                                let (load_time, load_input) = input_history[(load_offset - 1) % input_history.len()];
                                 let load_time = fmt_duration(load_time);
                                 let load_input = fmt_button_change(load_input);
                                 format!(">> Load {load_title} from: {load_offset}/{load_offset_max} ({load_input} @{load_time}) [Del] <<")
@@ -267,11 +266,7 @@ impl<T: Write> Application<T> {
                     modifiers: KeyModifiers::CONTROL,
                     kind: Press | Repeat,
                     state: _,
-                }) => {
-                    break Ok(MenuUpdate::Push(Menu::Quit(
-                        "exited with ctrl-c".to_owned(),
-                    )))
-                }
+                }) => break Ok(MenuUpdate::Push(Menu::Quit)),
 
                 // Exit menu.
                 Event::Key(KeyEvent {
@@ -459,13 +454,13 @@ impl<T: Write> Application<T> {
                         &mut self.game_savepoint
                     {
                         if selected == selection_len - 2 {
-                            *load_offset += game_restoration_data.input_history.0.len()
+                            *load_offset += game_restoration_data.input_history.len()
                                 * if modifiers.contains(KeyModifiers::SHIFT) {
                                     20
                                 } else {
                                     1
                                 };
-                            *load_offset %= game_restoration_data.input_history.0.len() + 1;
+                            *load_offset %= game_restoration_data.input_history.len() + 1;
                         }
                     }
                 }
@@ -515,7 +510,7 @@ impl<T: Write> Application<T> {
                             } else {
                                 1
                             };
-                            *load_offset %= game_restoration_data.input_history.0.len() + 1;
+                            *load_offset %= game_restoration_data.input_history.len() + 1;
                         }
                     }
                 }
@@ -588,29 +583,43 @@ impl<T: Write> Application<T> {
                     .line_clear_duration(line_clear_duration)
                     .spawn_delay(spawn_delay)
                     .allow_prespawn_actions(allow_prespawn_actions);
-                // Build one of the selected game modes.
+
                 let (meta_data, game, button_input_history) = if selected < game_presets.len() {
+                    // Build one of the selected game modes.
                     let ((title, comparison_stat, build), _desc) = &game_presets[selected];
-                    let new_game = build(&builder);
+
+                    let mut new_game = build(&builder);
+
+                    // We do an initial update, which allows the piece to spawn and queue to get generated.
+                    // We do this so the renderer does not render a first frame of no pieces.
+                    let _v = new_game.update(InGameTime::ZERO, None);
+
                     let new_meta_data = GameMetaData {
                         datetime: chrono::Utc::now().format("%Y-%m-%d_%H:%M").to_string(),
                         title: title.to_owned(),
                         comparison_stat: comparison_stat.to_owned(),
                     };
-                    let new_input_history = ButtonInputHistory::default();
+
+                    let new_input_history = GameInputHistory::default();
+
                     (new_meta_data, new_game, new_input_history)
-                // Load saved game.
                 } else if selected == selection_len - 2 {
+                    // Load saved game.
                     let (game_meta_data, game_restoration_data, load_offset) =
                         &self.game_savepoint.as_ref().unwrap();
+
                     let restored_game = game_restoration_data.restore(*load_offset);
+
                     let mut restored_meta_data = game_meta_data.clone();
+
                     // Mark restored game as such.
                     restored_meta_data.title.push('\'');
+
                     let restored_input_history = game_restoration_data.input_history.clone();
+
                     (restored_meta_data, restored_game, restored_input_history)
-                // Build custom game.
                 } else {
+                    // Build custom game.
                     let n = &self.settings.new_game;
 
                     builder
@@ -631,7 +640,7 @@ impl<T: Write> Application<T> {
                     }
 
                     // Optionally load custom board.
-                    let new_custom_game = if let Some(board) = &n.custom_board {
+                    let mut new_custom_game = if let Some(board) = &n.custom_board {
                         builder.build_modded([
                             game_mode_presets::game_modifiers::custom_start_board::modifier(board),
                         ])
@@ -640,28 +649,32 @@ impl<T: Write> Application<T> {
                         builder.build()
                     };
 
+                    // We do an initial update, which allows the piece to spawn and queue to get generated.
+                    // We do this so the renderer does not render a first frame of no pieces.
+                    let _v = new_custom_game.update(InGameTime::ZERO, None);
+
                     let new_meta_data = GameMetaData {
                         datetime: chrono::Utc::now().format("%Y-%m-%d_%H:%M").to_string(),
                         title: "Custom".to_owned(),
                         comparison_stat: (Stat::PointsScored(0), false),
                     };
-                    let new_input_history = ButtonInputHistory::default();
+                    let new_input_history = GameInputHistory::default();
                     (new_meta_data, new_custom_game, new_input_history)
                 };
-                // FIXME: Remove or implement as feature/toggle.
+                // FIXME: Remove eventually.
                 // let mut game = game;
                 // game.modifiers.push(game_mode_presets::game_modifiers::print_fall_delay::modifier());
                 // game.modifiers.push(game_mode_presets::game_modifiers::misc_modifiers::print_recency_tet_gen_stats::modifier());
                 // game.modifiers.push(tetrs_engine::Modifier { descriptor: "always_clear_board".to_owned(), mod_function: Box::new(|_c, _i, s, _m, _f| { s.board = Default::default(); })});
                 let now = Instant::now();
                 let time_started = now - game.state().time;
-                break Ok(MenuUpdate::Push(Menu::Game {
+                break Ok(MenuUpdate::Push(Menu::PlayGame {
                     game: Box::new(game),
                     meta_data,
-                    time_started,
+                    timestamp_game_started: time_started,
                     last_paused: now,
                     total_pause_duration: Duration::ZERO,
-                    button_input_history,
+                    game_input_history: button_input_history,
                     game_renderer: Default::default(),
                 }));
             }

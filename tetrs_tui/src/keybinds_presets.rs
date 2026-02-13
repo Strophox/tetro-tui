@@ -5,6 +5,38 @@ use tetrs_engine::Button;
 
 pub type Keybinds = HashMap<(KeyCode, KeyModifiers), Button>;
 
+pub fn normalize((mut code, mut modifiers): (KeyCode, KeyModifiers)) -> (KeyCode, KeyModifiers) {
+    match code {
+        KeyCode::Modifier(modifier_key_code) => {
+            // If a *modifier-as-keycode* is being handled, remove 'unnecessary'/duplicate modifier flag.
+            // (It's just duplicate information that might unintuitively influence keybind detection.)
+            use crossterm::event::ModifierKeyCode as MKC;
+            let modifier = match modifier_key_code {
+                MKC::LeftShift | MKC::RightShift => KeyModifiers::SHIFT,
+                MKC::LeftControl | MKC::RightControl => KeyModifiers::CONTROL,
+                MKC::LeftAlt | MKC::RightAlt => KeyModifiers::ALT,
+                MKC::LeftSuper | MKC::RightSuper => KeyModifiers::SUPER,
+                MKC::LeftHyper | MKC::RightHyper => KeyModifiers::HYPER,
+                MKC::LeftMeta | MKC::RightMeta => KeyModifiers::META,
+                MKC::IsoLevel3Shift | MKC::IsoLevel5Shift => KeyModifiers::NONE,
+            };
+
+            modifiers.remove(modifier);
+        }
+
+        // Normalize character enum to store a lowercase `char`.
+        // FIXME: Could this somehow have undesirable effects?
+        KeyCode::Char(ref mut char) => {
+            *char = char.to_ascii_lowercase();
+        }
+
+        // No changes for other keycodes.
+        _ => {}
+    }
+
+    (code, modifiers)
+}
+
 pub fn tetrs_default_keybinds() -> Keybinds {
     let keybinds_tetrs: [((KeyCode, KeyModifiers), Button); 7] = [
         (KeyCode::Left, Button::MoveLeft),

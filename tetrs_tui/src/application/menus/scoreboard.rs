@@ -15,7 +15,8 @@ use tetrs_engine::Stat;
 
 use crate::{
     application::{
-        Application, GameRestorationData, Menu, MenuUpdate, ScoreboardEntry, ScoreboardSorting,
+        Application, CompressedGameInputHistory, GameRestorationData, Menu, MenuUpdate,
+        ScoreboardEntry, ScoreboardSorting,
     },
     fmt_helpers::fmt_duration,
 };
@@ -46,7 +47,10 @@ impl<T: Write> Application<T> {
                 Stat::PointsScored(_) => format!("score: {}", p.points_scored),
             };
 
-            let fmt_past_game = |(e, _): &(ScoreboardEntry, Option<GameRestorationData>)| {
+            let fmt_past_game = |(e, _): &(
+                ScoreboardEntry,
+                Option<GameRestorationData<CompressedGameInputHistory>>,
+            )| {
                 format!(
                     "{} {} | {}{}",
                     e.game_meta_data.datetime,
@@ -116,11 +120,7 @@ impl<T: Write> Application<T> {
                     modifiers: KeyModifiers::CONTROL,
                     kind: Press | Repeat,
                     state: _,
-                }) => {
-                    break Ok(MenuUpdate::Push(Menu::Quit(
-                        "exited with ctrl-c".to_owned(),
-                    )))
-                }
+                }) => break Ok(MenuUpdate::Push(Menu::Quit)),
                 Event::Key(KeyEvent {
                     code:
                         KeyCode::Esc | KeyCode::Char('q') | KeyCode::Backspace | KeyCode::Char('b'),
@@ -218,11 +218,18 @@ impl<T: Write> Application<T> {
                     if let (ScoreboardEntry { game_meta_data, .. }, Some(game_restoration_data)) =
                         &self.scoreboard.entries[cursor_pos]
                     {
-                        let _ = self.game_savepoint.insert((
-                            game_meta_data.clone(),
-                            game_restoration_data.clone(),
-                            game_restoration_data.input_history.0.len(),
-                        ));
+                        let meta_data = game_meta_data.clone();
+
+                        let restoration_data = GameRestorationData {
+                            builder: game_restoration_data.builder.clone(),
+                            mod_descriptors: game_restoration_data.mod_descriptors.clone(),
+                            input_history: game_restoration_data.input_history.decompress(),
+                        };
+
+                        let savepoint_load_offset = restoration_data.input_history.len();
+
+                        self.game_savepoint =
+                            Some((meta_data, restoration_data, savepoint_load_offset));
                     }
                 }
 

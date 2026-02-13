@@ -1,7 +1,6 @@
 use std::{
     cmp::Ordering,
     fmt::{Debug, Display},
-    io::{self, Write},
     num::NonZeroU8,
     time::Duration,
 };
@@ -11,17 +10,28 @@ use crossterm::{
     style::{self, Color, Print, PrintStyledContent, Stylize},
     terminal, QueueableCommand,
 };
-use tetrs_engine::{
-    Button, Coord, Feedback, FeedbackMessages, Game, InGameTime, Orientation, Stat, TileTypeID,
-};
+
+use tetrs_engine::{Button, Coord, Feedback, InGameTime, Orientation, Stat, TileTypeID};
+
+use super::*;
 
 use crate::{
-    application::{Application, GameMetaData, Glyphset},
+    application::{Application, Glyphset},
     fmt_helpers::{fmt_duration, fmt_hertz, fmt_keybinds_of, fmt_tet_mini, fmt_tet_small},
-    game_renderers::Renderer,
 };
 
-#[derive(Clone, Default, Debug)]
+#[derive(
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Clone,
+    Debug,
+    Default,
+    serde::Serialize,
+    serde::Deserialize,
+)]
 struct TerminalScreenBuffer {
     prev: Vec<Vec<(char, Option<Color>)>>,
     next: Vec<Vec<(char, Option<Color>)>>,
@@ -196,7 +206,9 @@ impl TerminalScreenBuffer {
     }
 }
 
-#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug)]
+#[derive(
+    PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug, serde::Serialize, serde::Deserialize,
+)]
 struct HardDropTile {
     creation_time: InGameTime,
     pos: Coord,
@@ -204,27 +216,50 @@ struct HardDropTile {
     tile_type_id: TileTypeID,
 }
 
-#[derive(Clone, Default, Debug)]
+#[derive(
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Clone,
+    Debug,
+    Default,
+    serde::Serialize,
+    serde::Deserialize,
+)]
 pub struct DiffPrintRenderer {
     screen: TerminalScreenBuffer,
-    active_feedback: Vec<(InGameTime, Feedback, bool)>,
-    messages: Vec<(InGameTime, String)>,
+    buffered_feedback_msgs: Vec<(InGameTime, Feedback, bool)>,
+    buffered_text_msgs: Vec<(InGameTime, String)>,
     hard_drop_tiles: Vec<(HardDropTile, bool)>,
 }
 
 impl Renderer for DiffPrintRenderer {
+    fn push_game_feedback_msgs(
+        &mut self,
+        new_msgs: impl IntoIterator<Item = (InGameTime, Feedback)>,
+    ) {
+        // Update stored events.
+        self.buffered_feedback_msgs.extend(
+            new_msgs
+                .into_iter()
+                .map(|(time, event)| (time, event, true)),
+        );
+    }
+
     fn render<T>(
         &mut self,
-        app: &mut Application<T>,
         game: &Game,
         meta_data: &GameMetaData,
-        new_feedback_msgs: FeedbackMessages,
-        screen_resized: bool,
+        settings: &Settings,
+        term: &mut T,
+        refresh_entire_view: bool,
     ) -> io::Result<()>
     where
         T: Write,
     {
-        if screen_resized {
+        if refresh_entire_view {
             let (x_main, y_main) = Application::<T>::fetch_main_xy();
             self.screen
                 .buffer_reset((usize::from(x_main), usize::from(y_main)));
@@ -257,7 +292,7 @@ impl Renderer for DiffPrintRenderer {
         } else {
             ("", "".to_owned())
         };
-        let f = |b| fmt_keybinds_of(b, app.settings().keybinds());
+        let f = |b| fmt_keybinds_of(b, settings.keybinds());
         let mut icons_move = format!("{}{}", f(Button::MoveLeft), f(Button::MoveRight));
         let mut icons_rotate = format!(
             "{}{}{}",
@@ -304,7 +339,7 @@ impl Renderer for DiffPrintRenderer {
         // Screen: draw.
         #[allow(clippy::useless_format)]
         #[rustfmt::skip]
-        let base_screen = match app.settings().graphics().glyphset {
+        let base_screen = match settings.graphics().glyphset {
             Glyphset::Electronika60 => vec![
                 format!("                                                            ", ),
                 format!("                                              {: ^w$      } ", "mode:", w=modename_len),
@@ -394,9 +429,9 @@ impl Renderer for DiffPrintRenderer {
         let pos_board = |(x, y)| (x_board + 2 * x, y_board + Game::SKYLINE_HEIGHT - y);
         // Color helpers.
         let get_color =
-            |tile_type_id: &TileTypeID| app.settings().palette().get(&tile_type_id.get()).copied();
+            |tile_type_id: &TileTypeID| settings.palette().get(&tile_type_id.get()).copied();
         let get_color_locked = |tile_type_id: &TileTypeID| {
-            app.settings()
+            settings
                 .palette_lockedtiles()
                 .get(&tile_type_id.get())
                 .copied()
@@ -414,7 +449,7 @@ impl Renderer for DiffPrintRenderer {
         ) in self.hard_drop_tiles.iter_mut()
         {
             let elapsed = game.state().time.saturating_sub(*creation_time);
-            let luminance_map = match app.settings().graphics().glyphset {
+            let luminance_map = match settings.graphics().glyphset {
                 Glyphset::Electronika60 => [" .", " .", " .", " .", " .", " .", " .", " ."],
                 Glyphset::ASCII | Glyphset::Unicode => {
                     ["@@", "$$", "##", "%%", "**", "++", "~~", ".."]
@@ -436,13 +471,13 @@ impl Renderer for DiffPrintRenderer {
         self.hard_drop_tiles.retain(|elt| elt.1);
 
         let (tile_ground, tile_ghost, tile_active, tile_preview) =
-            match app.settings().graphics().glyphset {
+            match settings.graphics().glyphset {
                 Glyphset::Electronika60 => ("▮▮", " .", "▮▮", "▮▮"),
                 Glyphset::ASCII => ("##", "::", "[]", "[]"),
                 Glyphset::Unicode => ("██", "░░", "▓▓", "▒▒"),
             };
         // Board: draw locked tiles.
-        if !app.settings().graphics().blindfolded {
+        if !settings.graphics().blindfolded {
             for (y, line) in game.state().board.iter().enumerate().take(21).rev() {
                 for (x, cell) in line.iter().enumerate() {
                     if let Some(tile_type_id) = cell {
@@ -463,7 +498,7 @@ impl Renderer for DiffPrintRenderer {
         } = game.phase()
         {
             // Draw ghost piece.
-            if app.settings().graphics().show_ghost_piece {
+            if settings.graphics().show_ghost_piece {
                 for (tile_pos, tile_type_id) in
                     piece.teleported(&game.state().board, (0, -1)).tiles()
                 {
@@ -534,23 +569,18 @@ impl Renderer for DiffPrintRenderer {
             });
             self.screen.buffer_str(str, color, (x_hold, y_hold));
         }
-        // Update stored events.
-        self.active_feedback.extend(
-            new_feedback_msgs
-                .into_iter()
-                .map(|(time, event)| (time, event, true)),
-        );
+
         // Handle feedback.
-        for (feedback_time, feedback, active) in self.active_feedback.iter_mut() {
+        for (feedback_time, feedback, active) in self.buffered_feedback_msgs.iter_mut() {
             let elapsed = game.state().time.saturating_sub(*feedback_time);
             match feedback {
                 Feedback::PieceLocked { piece } => {
-                    if !app.settings().graphics().render_effects {
+                    if !settings.graphics().render_effects {
                         *active = false;
                         continue;
                     }
                     #[rustfmt::skip]
-                    let animation_locking = match app.settings().graphics().glyphset {
+                    let animation_locking = match settings.graphics().glyphset {
                         Glyphset::Electronika60 => [
                             ( 50, "▮▮"),
                             ( 75, "▮▮"),
@@ -577,7 +607,7 @@ impl Renderer for DiffPrintRenderer {
                         ],
                     };
                     let color_locking = get_color(&NonZeroU8::try_from(255).unwrap());
-                    // FIXME: Replace all these 'find tile' implementations with configurable system akin to animation lineclear (interpolated time).
+                    // FIXME: Possibly replace these manual find-tile snippets with flexible/parameterized/interpolated-time animations (see lineclear animation).
                     let Some(tile) = animation_locking.iter().find_map(|(ms, tile)| {
                         (elapsed < Duration::from_millis(*ms)).then_some(tile)
                     }) else {
@@ -591,15 +621,16 @@ impl Renderer for DiffPrintRenderer {
                         }
                     }
                 }
+
                 Feedback::LinesClearing {
                     y_coords,
                     line_clear_start: line_clear_duration,
                 } => {
-                    if !app.settings().graphics().render_effects || line_clear_duration.is_zero() {
+                    if !settings.graphics().render_effects || line_clear_duration.is_zero() {
                         *active = false;
                         continue;
                     }
-                    let animation_lineclear = match app.settings().graphics().glyphset {
+                    let animation_lineclear = match settings.graphics().glyphset {
                         Glyphset::Electronika60 => [
                             "▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮",
                             "  ▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮",
@@ -653,11 +684,12 @@ impl Renderer for DiffPrintRenderer {
                             .buffer_str(animation_lineclear[idx], color_lineclear, pos);
                     }
                 }
+
                 Feedback::HardDrop {
                     old_piece: _,
                     new_piece,
                 } => {
-                    if !app.settings().graphics().render_effects {
+                    if !settings.graphics().render_effects {
                         *active = false;
                         continue;
                     }
@@ -676,6 +708,7 @@ impl Renderer for DiffPrintRenderer {
                     }
                     *active = false;
                 }
+
                 Feedback::Accolade {
                     score_bonus,
                     tetromino,
@@ -721,29 +754,37 @@ impl Renderer for DiffPrintRenderer {
                     if *combo > 1 {
                         msg.push(format!("#{combo}."));
                     }
-                    self.messages.push((*feedback_time, msg.join(" ")));
+                    self.buffered_text_msgs
+                        .push((*feedback_time, msg.join(" ")));
                     *active = false;
                 }
+
                 Feedback::Text(msg) => {
-                    self.messages.push((*feedback_time, msg.clone()));
+                    self.buffered_text_msgs.push((*feedback_time, msg.clone()));
                     *active = false;
                 }
+
                 Feedback::Debug(update_point) => {
-                    self.messages
+                    self.buffered_text_msgs
                         .push((*feedback_time, format!("{update_point:?}")));
                     *active = false;
                 }
             }
         }
-        self.active_feedback.retain(|elt| elt.2);
+
+        // Purge
+        self.buffered_feedback_msgs.retain(|elt| elt.2);
+
         // Draw messages.
-        for (y, (_timestamp, message)) in self.messages.iter().rev().enumerate() {
+        for (y, (_timestamp, message)) in self.buffered_text_msgs.iter().rev().enumerate() {
             let pos = (x_messages, y_messages + y);
             self.screen.buffer_str(message, None, pos);
         }
-        self.messages.retain(|(timestamp, _message)| {
+
+        self.buffered_text_msgs.retain(|(timestamp, _msg)| {
             game.state().time.saturating_sub(*timestamp) < Duration::from_millis(5000)
         });
-        self.screen.flush(&mut app.term)
+
+        self.screen.flush(term)
     }
 }

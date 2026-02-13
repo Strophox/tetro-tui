@@ -1,39 +1,43 @@
-use std::{
-    collections::VecDeque,
-    io::{self, Write},
-};
+use crossterm::{cursor, style, terminal, QueueableCommand};
 
-use crossterm::{
-    cursor::{self, MoveToNextLine},
-    style::Print,
-    terminal, QueueableCommand,
-};
-use tetrs_engine::{Feedback, FeedbackMessages, Game, InGameTime, State};
-
-use crate::{
-    application::{Application, GameMetaData},
-    game_renderers::Renderer,
-};
+use super::*;
 
 // "|⠁|⠂|⠄|⠈|⠐|⠠|⡀|⢀|"
 const BRAILLE: &str = "⠀⠁⠂⠃⠄⠅⠆⠇⠈⠉⠊⠋⠌⠍⠎⠏⠐⠑⠒⠓⠔⠕⠖⠗⠘⠙⠚⠛⠜⠝⠞⠟⠠⠡⠢⠣⠤⠥⠦⠧⠨⠩⠪⠫⠬⠭⠮⠯⠰⠱⠲⠳⠴⠵⠶⠷⠸⠹⠺⠻⠼⠽⠾⠿⡀⡁⡂⡃⡄⡅⡆⡇⡈⡉⡊⡋⡌⡍⡎⡏⡐⡑⡒⡓⡔⡕⡖⡗⡘⡙⡚⡛⡜⡝⡞⡟⡠⡡⡢⡣⡤⡥⡦⡧⡨⡩⡪⡫⡬⡭⡮⡯⡰⡱⡲⡳⡴⡵⡶⡷⡸⡹⡺⡻⡼⡽⡾⡿⢀⢁⢂⢃⢄⢅⢆⢇⢈⢉⢊⢋⢌⢍⢎⢏⢐⢑⢒⢓⢔⢕⢖⢗⢘⢙⢚⢛⢜⢝⢞⢟⢠⢡⢢⢣⢤⢥⢦⢧⢨⢩⢪⢫⢬⢭⢮⢯⢰⢱⢲⢳⢴⢵⢶⢷⢸⢹⢺⢻⢼⢽⢾⢿⣀⣁⣂⣃⣄⣅⣆⣇⣈⣉⣊⣋⣌⣍⣎⣏⣐⣑⣒⣓⣔⣕⣖⣗⣘⣙⣚⣛⣜⣝⣞⣟⣠⣡⣢⣣⣤⣥⣦⣧⣨⣩⣪⣫⣬⣭⣮⣯⣰⣱⣲⣳⣴⣵⣶⣷⣸⣹⣺⣻⣼⣽⣾⣿";
 
 #[allow(dead_code)]
-#[derive(Clone, Default, Debug)]
-pub struct BrailleRenderer {
-    feedback_msgs_buffer: VecDeque<(InGameTime, Feedback)>,
-}
+#[derive(
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Clone,
+    Copy,
+    Debug,
+    Default,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+pub struct BrailleRenderer;
 
 impl Renderer for BrailleRenderer {
+    fn push_game_feedback_msgs(
+        &mut self,
+        _feedback_msgs: impl IntoIterator<Item = (InGameTime, Feedback)>,
+    ) {
+        // We do not use/display feedback_msg-related things for this renderer at this time
+    }
+
     fn render<T: Write>(
         &mut self,
-        app: &mut Application<T>,
         game: &Game,
         _meta_data: &GameMetaData,
-        _new_feedback_msgs: FeedbackMessages,
-        _screen_resized: bool,
+        _settings: &Settings,
+        term: &mut T,
+        _refresh_entire_view: bool,
     ) -> io::Result<()> {
-        let State { board, .. } = game.state();
+        let tetrs_engine::State { board, .. } = game.state();
 
         let mut board = *board;
         if let Some(piece) = game.phase().piece() {
@@ -44,8 +48,7 @@ impl Renderer for BrailleRenderer {
 
         let braille = BRAILLE.chars().collect::<Vec<char>>();
 
-        app.term
-            .queue(cursor::MoveTo(0, 0))?
+        term.queue(cursor::MoveTo(0, 0))?
             .queue(terminal::Clear(terminal::ClearType::FromCursorDown))?;
 
         let btxt_lines = [
@@ -73,13 +76,14 @@ impl Renderer for BrailleRenderer {
                 })
                 .collect::<String>()
         });
+
         for b_line in btxt_lines {
-            app.term
-                .queue(Print(format!("|{b_line}|")))?
-                .queue(MoveToNextLine(1))?;
+            term.queue(style::Print(format!("|{b_line}|")))?
+                .queue(cursor::MoveToNextLine(1))?;
         }
 
-        app.term.flush()?;
+        term.flush()?;
+
         Ok(())
     }
 }

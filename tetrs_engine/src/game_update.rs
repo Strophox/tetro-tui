@@ -28,7 +28,7 @@ impl Game {
         &mut self,
         target_time: InGameTime,
         mut button_changes: Option<ButtonChange>,
-    ) -> Result<FeedbackMessages, UpdateGameError> {
+    ) -> Result<Vec<FeedbackMsg>, UpdateGameError> {
         if target_time < self.state.time {
             // Do not allow updating if target time lies in the past.
             return Err(UpdateGameError::TargetTimeInPast);
@@ -203,7 +203,7 @@ impl Game {
     fn run_mods(
         &mut self,
         mut update_point: UpdatePoint<&mut Option<ButtonChange>>,
-        feedback_msgs: &mut FeedbackMessages,
+        feedback_msgs: &mut Vec<FeedbackMsg>,
     ) {
         if self.config.feedback_verbosity == FeedbackVerbosity::Debug {
             use UpdatePoint as UP;
@@ -609,7 +609,7 @@ fn do_player_button_update(
     button_change: ButtonChange,
     new_state_buttons_pressed: [Option<InGameTime>; Button::VARIANTS.len()],
     button_update_time: InGameTime,
-    feedback_msgs: &mut FeedbackMessages,
+    feedback_msgs: &mut Vec<FeedbackMsg>,
 ) -> Phase {
     // # Overview
     //
@@ -968,7 +968,7 @@ fn do_lock(
     state: &mut State,
     piece: Piece,
     lock_time: InGameTime,
-    feedback_msgs: &mut FeedbackMessages,
+    feedback_msgs: &mut Vec<FeedbackMsg>,
 ) -> Phase {
     if config.feedback_verbosity != FeedbackVerbosity::Silent {
         feedback_msgs.push((lock_time, Feedback::PieceLocked { piece }));

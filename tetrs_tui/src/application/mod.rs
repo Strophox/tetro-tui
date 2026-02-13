@@ -9,7 +9,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use crossterm::{cursor, style, terminal, ExecutableCommand};
+use crossterm::{cursor, event::KeyboardEnhancementFlags, style, terminal, ExecutableCommand};
 
 use tetrs_engine::{
     Board, Button, ButtonChange, Configuration, DelayParameters, ExtDuration, ExtNonNegF64,
@@ -20,6 +20,8 @@ use tetrs_engine::{
 use crate::{game_mode_presets, game_renderers, keybinds_presets::*, palette_presets::*};
 
 pub type Slots<T> = Vec<(String, T)>;
+
+pub type GameInputHistory = Vec<(InGameTime, ButtonChange)>;
 
 #[derive(
     Eq,
@@ -33,18 +35,64 @@ pub type Slots<T> = Vec<(String, T)>;
     serde::Serialize,
     serde::Deserialize,
 )]
-pub struct ButtonInputHistory(Vec<u128>);
+pub struct CompressedGameInputHistory(Vec<u128>);
 
-impl ButtonInputHistory {
+impl CompressedGameInputHistory {
     // How many bits it takes to encode a `ButtonChange`:
     // - 1 bit for Press/Release,
     // - At time of writing: 4 bits for the 11 `Button` variants.
     pub const BUTTON_CHANGE_BITSIZE: usize =
         1 + Button::VARIANTS.len().next_power_of_two().ilog2() as usize;
 
+    pub fn new(game_input_history: &GameInputHistory) -> Self {
+        let mut compressed_inputs = Vec::new();
+
+        if let Some((mut latest_update_time, button_change)) = game_input_history.first() {
+            let i = Self::compress_input((latest_update_time, *button_change));
+
+            // Add first input.
+            compressed_inputs.push(i);
+
+            for (target_update_time, button_change) in game_input_history.iter().skip(1) {
+                let time_diff = latest_update_time.saturating_sub(*target_update_time);
+                let i = Self::compress_input((time_diff, *button_change));
+
+                // Add further input.
+                compressed_inputs.push(i);
+
+                latest_update_time = *target_update_time;
+            }
+        };
+
+        Self(compressed_inputs)
+    }
+
+    pub fn decompress(&self) -> GameInputHistory {
+        let mut decompressed_inputs = Vec::new();
+
+        if let Some(i) = self.0.first() {
+            let (mut latest_update_time, button_change) = Self::decompress_input(*i);
+
+            // Add first input.
+            decompressed_inputs.push((latest_update_time, button_change));
+
+            for i in self.0.iter().skip(1) {
+                let (time_diff, button_change) = Self::decompress_input(*i);
+                let target_update_time = latest_update_time.saturating_add(time_diff);
+
+                // Add further input.
+                decompressed_inputs.push((target_update_time, button_change));
+
+                latest_update_time = target_update_time;
+            }
+        }
+
+        decompressed_inputs
+    }
+
     // For serialization reasons, we encode a single user input as `u128` instead of
     // `(GameTime, ButtonChange)`, which would have a verbose direct string representation.
-    pub fn compress_input((update_target_time, button_change): (InGameTime, ButtonChange)) -> u128 {
+    fn compress_input((update_target_time, button_change): (InGameTime, ButtonChange)) -> u128 {
         // Encode `GameTime = std::time::Duration` using `std::time::Duration::as_nanos`.
         let nanos: u128 = update_target_time.as_nanos();
         // Encode `tetrs_engine::ButtonChange` using `Self::encode_button_change`.
@@ -52,49 +100,51 @@ impl ButtonInputHistory {
         (nanos << Self::BUTTON_CHANGE_BITSIZE) | u128::from(bc_bits)
     }
 
-    pub fn decompress_input(num: u128) -> (InGameTime, ButtonChange) {
+    fn decompress_input(i: u128) -> (InGameTime, ButtonChange) {
         let mask = u128::MAX >> (128 - Self::BUTTON_CHANGE_BITSIZE);
-        let bc_bits = u8::try_from(num & mask).unwrap();
-        let nanos = u64::try_from(num >> Self::BUTTON_CHANGE_BITSIZE).unwrap();
+        let bc_bits = u8::try_from(i & mask).unwrap();
+        let nanos = u64::try_from(i >> Self::BUTTON_CHANGE_BITSIZE).unwrap();
         (
             std::time::Duration::from_nanos(nanos),
             Self::decompress_buttonchange(bc_bits),
         )
     }
 
-    pub fn compress_buttonchange(button_change: &ButtonChange) -> u8 {
+    fn compress_buttonchange(button_change: &ButtonChange) -> u8 {
         match button_change {
             ButtonChange::Release(button) => (*button as u8) << 1,
             ButtonChange::Press(button) => ((*button as u8) << 1) | 1,
         }
     }
 
-    pub fn decompress_buttonchange(bc_bits: u8) -> ButtonChange {
-        (if bc_bits.is_multiple_of(2) {
+    fn decompress_buttonchange(b: u8) -> ButtonChange {
+        (if b.is_multiple_of(2) {
             ButtonChange::Release
         } else {
             ButtonChange::Press
-        })(Button::VARIANTS[usize::from(bc_bits >> 1)])
+        })(Button::VARIANTS[usize::from(b >> 1)])
     }
 }
 
 #[derive(PartialEq, PartialOrd, Clone, Debug, serde::Serialize, serde::Deserialize)]
-pub struct GameRestorationData {
+pub struct GameRestorationData<T> {
     builder: GameBuilder,
     mod_descriptors: Vec<String>,
-    input_history: ButtonInputHistory,
+    input_history: T,
 }
 
-impl GameRestorationData {
-    fn new(game: &Game, input_history: &ButtonInputHistory) -> GameRestorationData {
+impl<T> GameRestorationData<T> {
+    fn new(game: &Game, input_history: T) -> GameRestorationData<T> {
         let (builder, mod_descriptors) = game.blueprint();
         GameRestorationData {
             builder,
             mod_descriptors: mod_descriptors.map(str::to_owned).collect(),
-            input_history: input_history.clone(),
+            input_history,
         }
     }
+}
 
+impl GameRestorationData<GameInputHistory> {
     fn restore(&self, input_index: usize) -> Game {
         // Step 1: Prepare builder.
         let builder = self.builder.clone();
@@ -127,10 +177,9 @@ impl GameRestorationData {
         let restore_feedback_verbosity = game.config.feedback_verbosity;
 
         game.config.feedback_verbosity = FeedbackVerbosity::Silent;
-        for bits in self.input_history.0.iter().take(input_index) {
-            let (update_time, button_change) = ButtonInputHistory::decompress_input(*bits);
-            // FIXME: Error handling?
-            let _ = game.update(update_time, Some(button_change));
+        for (update_time, button_change) in self.input_history.iter().take(input_index) {
+            // FIXME: Handle UpdateGameError? If not, why not?
+            let _v = game.update(*update_time, Some(*button_change));
         }
 
         game.config.feedback_verbosity = restore_feedback_verbosity;
@@ -204,7 +253,10 @@ pub enum ScoreboardSorting {
 #[derive(PartialEq, PartialOrd, Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Scoreboard {
     sorting: ScoreboardSorting,
-    entries: Vec<(ScoreboardEntry, Option<GameRestorationData>)>,
+    entries: Vec<(
+        ScoreboardEntry,
+        Option<GameRestorationData<CompressedGameInputHistory>>,
+    )>,
 }
 
 #[derive(
@@ -494,13 +546,13 @@ pub struct RuntimeData {
 enum Menu {
     Title,
     NewGame,
-    Game {
+    PlayGame {
         game: Box<Game>,
         meta_data: GameMetaData,
-        time_started: Instant,
+        timestamp_game_started: Instant,
         last_paused: Instant,
         total_pause_duration: Duration,
-        button_input_history: ButtonInputHistory,
+        game_input_history: GameInputHistory,
         game_renderer: Box<game_renderers::diff_print::DiffPrintRenderer>,
     },
     GameOver(Box<ScoreboardEntry>),
@@ -510,9 +562,9 @@ enum Menu {
     AdjustKeybinds,
     AdjustGameplay,
     AdjustGraphics,
-    Scores,
+    Scoreboard,
     About,
-    Quit(String),
+    Quit,
 }
 
 impl std::fmt::Display for Menu {
@@ -520,7 +572,7 @@ impl std::fmt::Display for Menu {
         let name = match self {
             Menu::Title => "Title Screen",
             Menu::NewGame => "New Game",
-            Menu::Game { meta_data, .. } => &format!("Game ({})", meta_data.title),
+            Menu::PlayGame { meta_data, .. } => &format!("Game ({})", meta_data.title),
             Menu::GameOver(_) => "Game Over",
             Menu::GameComplete(_) => "Game Completed",
             Menu::Pause => "Pause",
@@ -528,9 +580,9 @@ impl std::fmt::Display for Menu {
             Menu::AdjustKeybinds => "Adjust Keybinds",
             Menu::AdjustGameplay => "Adjust Gameplay",
             Menu::AdjustGraphics => "Adjust Graphics",
-            Menu::Scores => "Scoreboard",
+            Menu::Scoreboard => "Scoreboard",
             Menu::About => "About",
-            Menu::Quit(_) => "Quit",
+            Menu::Quit => "Quit",
         };
         write!(f, "{name}")
     }
@@ -542,35 +594,39 @@ enum MenuUpdate {
     Push(Menu),
 }
 
+// TODO: Move tui application into `main` instead of artifically having it in one module below `tetrs_tui::main`.
 #[derive(PartialEq, Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Application<T: Write> {
     runtime_data: RuntimeData,
-    pub term: T,
+    term: T,
     save_on_exit: SavefileGranularity,
     settings: Settings,
     scoreboard: Scoreboard,
-    game_savepoint: Option<(GameMetaData, GameRestorationData, usize)>,
+    game_savepoint: Option<(GameMetaData, GameRestorationData<GameInputHistory>, usize)>,
 }
 
 impl<T: Write> Drop for Application<T> {
     fn drop(&mut self) {
-        let savefile_path = Self::savefile_path();
-        // If the user wants any of their data stored, try to do so.
-        if self.save_on_exit != SavefileGranularity::NoSavefile {
-            // FIXME: Handle error?
-            if let Err(_e) = self.store_savefile(savefile_path) {
-                //eprintln!("Could not save settings this time: {e} ");
-                //std::thread::sleep(Duration::from_secs(4));
-            }
-        // Otherwise explicitly check for savefile to make sure it's removed.
-        } else if savefile_path.try_exists().is_ok_and(|exists| exists) {
-            let _ = std::fs::remove_file(savefile_path);
-        }
-        // FIXME: Handle error?
+        // (Try to) undo terminal setup.
         let _ = terminal::disable_raw_mode();
         let _ = self.term.execute(style::ResetColor);
         let _ = self.term.execute(cursor::Show);
         let _ = self.term.execute(terminal::LeaveAlternateScreen);
+
+        // Save settings using file system.
+        let savefile_path = Self::savefile_path();
+
+        if self.save_on_exit != SavefileGranularity::NoSavefile {
+            // If the user wants any of their data stored, try to do so.
+            if let Err(e) = self.store_savefile(savefile_path) {
+                eprintln!("{e}");
+            }
+        } else if savefile_path.try_exists().is_ok_and(|exists| exists) {
+            // Otherwise explicitly check for savefile and try to make sure we don't leave it around.
+            if let Err(e) = std::fs::remove_file(savefile_path) {
+                eprintln!("{e}");
+            }
+        }
     }
 }
 
@@ -581,17 +637,21 @@ impl<T: Write> Application<T> {
     pub const SAVEFILE_NAME: &'static str =
         concat!(".tetrs_tui_", clap::crate_version!(), "_savefile.json");
 
+    // FIXME: Could we ever get any undesirable results from pushing *all* enhancement flags?
+    pub const KEYBOARD_ENHANCEMENT_FLAGS: KeyboardEnhancementFlags =
+        KeyboardEnhancementFlags::all();
+
     pub fn new(
         mut term: T,
         custom_start_seed: Option<u64>,
         custom_start_board: Option<String>,
     ) -> Self {
         // Console prologue: Initialization.
-        // FIXME: Handle error?
-        let _ = term.execute(terminal::EnterAlternateScreen);
-        let _ = term.execute(terminal::SetTitle("tetrs - Terminal User Interface"));
-        let _ = term.execute(cursor::Hide);
-        let _ = terminal::enable_raw_mode();
+        // FIXME: Handle io::Error? If not, why not?
+        let _v = term.execute(terminal::EnterAlternateScreen);
+        let _v = term.execute(terminal::SetTitle("tetrs - Terminal User Interface"));
+        let _v = term.execute(cursor::Hide);
+        let _v = terminal::enable_raw_mode();
         let mut app = Self {
             runtime_data: RuntimeData {
                 kitty_detected: false,
@@ -605,9 +665,9 @@ impl<T: Write> Application<T> {
         };
 
         // Actually load in settings.
-        // FIXME: Handle error?
+        // FIXME: Handle io::Error? If not, why not?
         if app.load_savefile(Self::savefile_path()).is_err() {
-            //eprintln!("Could not loading settings: {e}");
+            //eprintln!("Could not load settings: {e}");
             //std::thread::sleep(Duration::from_secs(5));
         }
 
@@ -624,10 +684,6 @@ impl<T: Write> Application<T> {
             app.settings.new_game.custom_seed = custom_start_seed;
         }
         app
-    }
-
-    pub fn settings(&self) -> &Settings {
-        &self.settings
     }
 
     pub(crate) fn fetch_main_xy() -> (u16, u16) {
@@ -663,9 +719,17 @@ impl<T: Write> Application<T> {
         );
         let save_str = serde_json::to_string(&save_state)?;
         let mut file = File::create(path)?;
-        // FIXME: Handle error?
-        let _ = file.write(save_str.as_bytes())?;
-        Ok(())
+
+        let n_written = file.write(save_str.as_bytes())?;
+
+        // Attempt at additionally handling the case when save_str could not be written entirely.
+        if n_written < save_str.len() {
+            Err(std::io::Error::other(
+                "attempt to write to file consumed `n < save_str.len()` bytes",
+            ))
+        } else {
+            Ok(())
+        }
     }
 
     fn load_savefile(&mut self, path: PathBuf) -> io::Result<()> {
@@ -717,44 +781,44 @@ impl<T: Write> Application<T> {
         );
     }
 
-    pub fn run(&mut self) -> io::Result<String> {
+    pub fn run(&mut self) -> io::Result<()> {
         let mut menu_stack = vec![Menu::Title];
-        let msg = loop {
+        loop {
             // Retrieve active menu, stop application if stack is empty.
             let Some(screen) = menu_stack.last_mut() else {
-                break String::from("all menus exited");
+                break;
             };
             // Open new menu screen, then store what it returns.
             let menu_update = match screen {
                 Menu::Title => self.menu_title(),
                 Menu::NewGame => self.menu_new_game(),
-                Menu::Game {
+                Menu::PlayGame {
                     game,
                     meta_data,
-                    time_started,
+                    timestamp_game_started,
                     total_pause_duration,
                     last_paused,
-                    button_input_history,
+                    game_input_history,
                     game_renderer,
                 } => self.menu_play_game(
                     game,
                     meta_data,
-                    time_started,
+                    *timestamp_game_started,
                     last_paused,
                     total_pause_duration,
-                    button_input_history,
+                    game_input_history,
                     game_renderer.as_mut(),
                 ),
                 Menu::Pause => self.menu_pause(),
                 Menu::GameOver(past_game) => self.menu_game_ended(past_game),
                 Menu::GameComplete(past_game) => self.menu_game_ended(past_game),
-                Menu::Scores => self.menu_scoreboard(),
+                Menu::Scoreboard => self.menu_scoreboard(),
                 Menu::About => self.menu_about(),
                 Menu::Settings => self.menu_settings(),
                 Menu::AdjustKeybinds => self.menu_adjust_keybinds(),
                 Menu::AdjustGameplay => self.menu_adjust_gameplay(),
                 Menu::AdjustGraphics => self.menu_adjust_graphics(),
-                Menu::Quit(string) => break string.clone(),
+                Menu::Quit => break,
             }?;
             // Change screen session depending on what response screen gave.
             match menu_update {
@@ -766,14 +830,18 @@ impl<T: Write> Application<T> {
                 MenuUpdate::Push(menu) => {
                     if matches!(
                         menu,
-                        Menu::Title | Menu::Game { .. } | Menu::GameOver(_) | Menu::GameComplete(_)
+                        Menu::Title
+                            | Menu::PlayGame { .. }
+                            | Menu::GameOver(_)
+                            | Menu::GameComplete(_)
                     ) {
                         menu_stack.clear();
                     }
                     menu_stack.push(menu);
                 }
             }
-        };
-        Ok(msg)
+        }
+
+        Ok(())
     }
 }

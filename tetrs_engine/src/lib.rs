@@ -75,13 +75,13 @@ pub type GameModFn = dyn FnMut(
     &StateInitialization,
     &mut State,
     &mut Phase,
-    &mut FeedbackMessages,
+    &mut Vec<FeedbackMsg>,
 );
 /// The result of a game that ended.
 pub type GameResult = Result<Stat, GameOver>;
 
 /// Convenient type alias to denote a collection of [`Feedback`]s associated with some [`GameTime`].
-pub type FeedbackMessages = Vec<(InGameTime, Feedback)>;
+pub type FeedbackMsg = (InGameTime, Feedback);
 
 /// Represents one of the seven "Tetrominos";
 ///

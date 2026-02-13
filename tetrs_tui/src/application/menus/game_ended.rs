@@ -32,12 +32,7 @@ impl<T: Write> Application<T> {
             fall_delay_reached,
             lock_delay_reached,
         } = past_game;
-        let selection = vec![
-            Menu::NewGame,
-            Menu::Settings,
-            Menu::Scores,
-            Menu::Quit("quit after game ended".to_owned()),
-        ];
+        let selection = vec![Menu::NewGame, Menu::Settings, Menu::Scoreboard, Menu::Quit];
         // if gamemode.name.as_ref().map(String::as_str) == Some("Puzzle")
         if result.is_ok() && game_meta_data.title == "Puzzle" {
             self.settings.new_game.experimental_mode_unlocked = true;
@@ -121,11 +116,7 @@ impl<T: Write> Application<T> {
                     modifiers: KeyModifiers::CONTROL,
                     kind: Press | Repeat,
                     state: _,
-                }) => {
-                    break Ok(MenuUpdate::Push(Menu::Quit(
-                        "exited with ctrl-c".to_owned(),
-                    )))
-                }
+                }) => break Ok(MenuUpdate::Push(Menu::Quit)),
                 Event::Key(KeyEvent {
                     code:
                         KeyCode::Esc | KeyCode::Char('q') | KeyCode::Backspace | KeyCode::Char('b'),

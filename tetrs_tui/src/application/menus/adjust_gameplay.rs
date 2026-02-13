@@ -185,11 +185,7 @@ impl<T: Write> Application<T> {
                     modifiers: KeyModifiers::CONTROL,
                     kind: Press | Repeat,
                     state: _,
-                }) => {
-                    break Ok(MenuUpdate::Push(Menu::Quit(
-                        "exited with ctrl-c".to_owned(),
-                    )))
-                }
+                }) => break Ok(MenuUpdate::Push(Menu::Quit)),
                 Event::Key(KeyEvent {
                     code:
                         KeyCode::Esc | KeyCode::Char('q') | KeyCode::Backspace | KeyCode::Char('b'),

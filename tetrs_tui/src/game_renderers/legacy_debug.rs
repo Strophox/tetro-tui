@@ -1,34 +1,49 @@
-use std::{
-    collections::VecDeque,
-    io::{self, Write},
-};
+use std::collections::VecDeque;
 
 use crossterm::{
     cursor::{self, MoveToNextLine},
     style::{self, Print},
     terminal, QueueableCommand,
 };
-use tetrs_engine::{Feedback, FeedbackMessages, Game, InGameTime, State};
 
-use crate::{
-    application::{Application, GameMetaData},
-    game_renderers::Renderer,
-};
+use tetrs_engine::{Feedback, InGameTime, State};
+
+use super::*;
 
 #[allow(dead_code)]
-#[derive(Clone, Default, Debug)]
+#[derive(
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Clone,
+    Debug,
+    Default,
+    serde::Serialize,
+    serde::Deserialize,
+)]
 pub struct DebugRenderer {
     feedback_msgs_buffer: VecDeque<(InGameTime, Feedback)>,
 }
 
 impl Renderer for DebugRenderer {
+    fn push_game_feedback_msgs(
+        &mut self,
+        feedback_msgs: impl IntoIterator<Item = (InGameTime, Feedback)>,
+    ) {
+        for x in feedback_msgs {
+            self.feedback_msgs_buffer.push_front(x);
+        }
+    }
+
     fn render<T>(
         &mut self,
-        app: &mut Application<T>,
         game: &Game,
         _meta_data: &GameMetaData,
-        new_feedback_msgs: FeedbackMessages,
-        _screen_resized: bool,
+        _settings: &Settings,
+        term: &mut T,
+        _refresh_entire_view: bool,
     ) -> io::Result<()>
     where
         T: Write,
@@ -49,11 +64,9 @@ impl Renderer for DebugRenderer {
                 board[y][x] = Some(tile_type_id);
             }
         }
-        app.term
-            .queue(cursor::MoveTo(0, 0))?
+        term.queue(cursor::MoveTo(0, 0))?
             .queue(terminal::Clear(terminal::ClearType::FromCursorDown))?;
-        app.term
-            .queue(Print("   +--------------------+"))?
+        term.queue(Print("   +--------------------+"))?
             .queue(MoveToNextLine(1))?;
         for (idx, line) in board.iter().take(20).enumerate().rev() {
             let txt_line = format!(
@@ -77,18 +90,14 @@ impl Renderer for DebugRenderer {
                     .collect::<Vec<_>>()
                     .join("")
             );
-            app.term.queue(Print(txt_line))?.queue(MoveToNextLine(1))?;
+            term.queue(Print(txt_line))?.queue(MoveToNextLine(1))?;
         }
-        app.term
-            .queue(Print("   +--------------------+"))?
+        term.queue(Print("   +--------------------+"))?
             .queue(MoveToNextLine(1))?;
-        app.term
-            .queue(style::Print(format!("   {:?}", game_time)))?
+        term.queue(style::Print(format!("   {:?}", game_time)))?
             .queue(MoveToNextLine(1))?;
+
         // Draw feedback stuf
-        for evt in new_feedback_msgs {
-            self.feedback_msgs_buffer.push_front(evt);
-        }
         let mut feed_evt_msgs = Vec::new();
         for (_, feedback) in self.feedback_msgs_buffer.iter() {
             feed_evt_msgs.push(match feedback {
@@ -139,6 +148,7 @@ impl Renderer for DebugRenderer {
                     }
                     msg.join(" ")
                 }
+
                 Feedback::PieceLocked { .. } => continue,
                 Feedback::LinesClearing { .. } => continue,
                 Feedback::HardDrop { .. } => continue,
@@ -146,11 +156,14 @@ impl Renderer for DebugRenderer {
                 Feedback::Text(s) => s.clone(),
             });
         }
+
         for str in feed_evt_msgs.iter().take(16) {
-            app.term.queue(Print(str))?.queue(MoveToNextLine(1))?;
+            term.queue(Print(str))?.queue(MoveToNextLine(1))?;
         }
+
         // Execute draw.
-        app.term.flush()?;
+        term.flush()?;
+
         Ok(())
     }
 }

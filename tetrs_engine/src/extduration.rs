@@ -129,9 +129,15 @@ impl ExtDuration {
             (ExtDuration::Finite(dur0), ExtDuration::Finite(dur1)) => {
                 dur0.saturating_sub(dur1).into()
             }
+
             (ExtDuration::Infinite, ExtDuration::Finite(_)) => ExtDuration::Infinite,
+
             (ExtDuration::Finite(_), ExtDuration::Infinite) => ExtDuration::ZERO,
-            (ExtDuration::Infinite, ExtDuration::Infinite) => ExtDuration::ZERO, // FIXME: Controversial?
+
+            // FIXME: Controversial?
+            // Arguably enables the useful behavior that `d.saturating_sub(d).is_zero()`;
+            // But current implementation also has `(d + d).saturating_sub(d).is_zero()`.
+            (ExtDuration::Infinite, ExtDuration::Infinite) => ExtDuration::ZERO,
         }
     }
 }

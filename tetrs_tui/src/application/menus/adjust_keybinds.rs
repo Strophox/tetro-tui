@@ -16,6 +16,7 @@ use tetrs_engine::Button;
 use crate::{
     application::{Application, Menu, MenuUpdate, Settings},
     fmt_helpers::fmt_keybinds_of,
+    keybinds_presets::normalize,
 };
 
 impl<T: Write> Application<T> {
@@ -135,11 +136,7 @@ impl<T: Write> Application<T> {
                     modifiers: KeyModifiers::CONTROL,
                     kind: Press | Repeat,
                     state: _,
-                }) => {
-                    break Ok(MenuUpdate::Push(Menu::Quit(
-                        "exited with ctrl-c".to_owned(),
-                    )))
-                }
+                }) => break Ok(MenuUpdate::Push(Menu::Quit)),
 
                 // Quit menu.
                 Event::Key(KeyEvent {
@@ -178,11 +175,9 @@ impl<T: Write> Application<T> {
                             .execute(Clear(ClearType::CurrentLine))?;
                         // Wait until appropriate keypress detected.
                         if self.runtime_data.kitty_assumed {
-                            // FIXME: Kinda iffy. Do we need all flags? What undesirable effects might there be?
-                            let _ = self.term.execute(event::PushKeyboardEnhancementFlags(
-                                event::KeyboardEnhancementFlags::all(),
-                                // event::KeyboardEnhancementFlags::REPORT_EVENT_TYPES,
-                            ));
+                            let f = Self::KEYBOARD_ENHANCEMENT_FLAGS;
+                            // FIXME: Handle io::Error? If not, why not?
+                            let _v = self.term.execute(event::PushKeyboardEnhancementFlags(f));
                         }
                         loop {
                             if let Event::Key(KeyEvent {
@@ -197,14 +192,15 @@ impl<T: Write> Application<T> {
                                     if_slot_is_default_then_copy_and_switch(&mut self.settings);
                                     self.settings
                                         .keybinds_mut()
-                                        .insert((code, modifiers), current_button);
+                                        .insert(normalize((code, modifiers)), current_button);
                                 }
                                 break;
                             }
                         }
                         // Console epilogue: De-initialization.
                         if self.runtime_data.kitty_assumed {
-                            let _ = self.term.execute(event::PopKeyboardEnhancementFlags);
+                            // FIXME: Handle io::Error? If not, why not?
+                            let _v = self.term.execute(event::PopKeyboardEnhancementFlags);
                         }
                     }
                 }

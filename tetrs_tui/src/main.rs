@@ -1,9 +1,9 @@
 mod application;
 mod fmt_helpers;
-mod game_input_handlers;
 mod game_mode_presets;
 mod game_renderers;
 mod keybinds_presets;
+mod live_input_handler;
 mod palette_presets;
 
 use std::io;
@@ -54,8 +54,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }));
 
     // Run main application.
-    let exit_msg = app.run()?;
-    println!("{exit_msg}");
+    app.run()?;
 
     Ok(())
 }
