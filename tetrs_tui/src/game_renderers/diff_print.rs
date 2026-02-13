@@ -389,7 +389,7 @@ impl Renderer for DiffPrintRenderer {
         let (x_hold, y_hold) = (18, 2);
         let (x_preview, y_preview) = (48, 11);
         let (x_preview_small, y_preview_small) = (48, 14);
-        let (x_preview_minuscule, y_preview_minuscule) = (50, 16);
+        let (x_preview_minuscule, y_preview_minuscule) = (48, 16);
         let (x_messages, y_messages) = (47, 18);
         let pos_board = |(x, y)| (x_board + 2 * x, y_board + Game::SKYLINE_HEIGHT - y);
         // Color helpers.

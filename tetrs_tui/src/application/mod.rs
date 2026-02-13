@@ -36,36 +36,40 @@ pub type Slots<T> = Vec<(String, T)>;
 pub struct ButtonInputHistory(Vec<u128>);
 
 impl ButtonInputHistory {
-    pub const BUTTON_CHANGE_BITSIZE: usize = 5;
+    // How many bits it takes to encode a `ButtonChange`:
+    // - 1 bit for Press/Release,
+    // - At time of writing: 4 bits for the 11 `Button` variants.
+    pub const BUTTON_CHANGE_BITSIZE: usize =
+        1 + Button::VARIANTS.len().next_power_of_two().ilog2() as usize;
 
     // For serialization reasons, we encode a single user input as `u128` instead of
-    // `(GameTime, ButtonChange)`, which would have a more verbose string representation.
-    pub fn encode(update_target_time: InGameTime, button_change: ButtonChange) -> u128 {
+    // `(GameTime, ButtonChange)`, which would have a verbose direct string representation.
+    pub fn compress_input((update_target_time, button_change): (InGameTime, ButtonChange)) -> u128 {
         // Encode `GameTime = std::time::Duration` using `std::time::Duration::as_nanos`.
         let nanos: u128 = update_target_time.as_nanos();
         // Encode `tetrs_engine::ButtonChange` using `Self::encode_button_change`.
-        let bc_bits: u8 = Self::encode_button_change(&button_change);
+        let bc_bits: u8 = Self::compress_buttonchange(&button_change);
         (nanos << Self::BUTTON_CHANGE_BITSIZE) | u128::from(bc_bits)
     }
 
-    pub fn decode(num: u128) -> (InGameTime, ButtonChange) {
+    pub fn decompress_input(num: u128) -> (InGameTime, ButtonChange) {
         let mask = u128::MAX >> (128 - Self::BUTTON_CHANGE_BITSIZE);
         let bc_bits = u8::try_from(num & mask).unwrap();
         let nanos = u64::try_from(num >> Self::BUTTON_CHANGE_BITSIZE).unwrap();
         (
             std::time::Duration::from_nanos(nanos),
-            Self::decode_button_change(bc_bits),
+            Self::decompress_buttonchange(bc_bits),
         )
     }
 
-    pub fn encode_button_change(button_change: &ButtonChange) -> u8 {
+    pub fn compress_buttonchange(button_change: &ButtonChange) -> u8 {
         match button_change {
             ButtonChange::Release(button) => (*button as u8) << 1,
             ButtonChange::Press(button) => ((*button as u8) << 1) | 1,
         }
     }
 
-    pub fn decode_button_change(bc_bits: u8) -> ButtonChange {
+    pub fn decompress_buttonchange(bc_bits: u8) -> ButtonChange {
         (if bc_bits.is_multiple_of(2) {
             ButtonChange::Release
         } else {
@@ -124,7 +128,7 @@ impl GameRestorationData {
 
         game.config.feedback_verbosity = FeedbackVerbosity::Silent;
         for bits in self.input_history.0.iter().take(input_index) {
-            let (update_time, button_change) = ButtonInputHistory::decode(*bits);
+            let (update_time, button_change) = ButtonInputHistory::decompress_input(*bits);
             // FIXME: Error handling?
             let _ = game.update(update_time, Some(button_change));
         }

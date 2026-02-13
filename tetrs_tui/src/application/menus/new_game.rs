@@ -151,7 +151,7 @@ impl<T: Write> Application<T> {
                             if *load_offset == 0 {
                                 format!(">> Load {load_title:?} run from start [Del] <<")
                             } else {
-                                let (load_time, load_input) = ButtonInputHistory::decode(
+                                let (load_time, load_input) = ButtonInputHistory::decompress_input(
                                     input_history.0[(load_offset - 1) % input_history.0.len()]);
                                 let load_time = fmt_duration(load_time);
                                 let load_input = fmt_button_change(load_input);

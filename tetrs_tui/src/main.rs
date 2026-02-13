@@ -6,7 +6,7 @@ mod game_renderers;
 mod keybinds_presets;
 mod palette_presets;
 
-use std::io::{self, Write};
+use std::io;
 
 use clap::Parser;
 
@@ -36,22 +36,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut app = application::Application::new(stdout, args.seed, args.board);
 
     // Catch panics and write error to separate file, so it isn't lost due to app's terminal shenanigans.
-    #[cfg(debug_assertions)]
     std::panic::set_hook(Box::new(|panic_info| {
-        let crash_file_name = format!(
-            "tetrs_tui_{}_crash-msg-{}.txt",
-            clap::crate_version!(),
-            chrono::Utc::now().format("%Y-%m-%d_%Hh%Mm%Ss")
+        // Forcefully reset terminal state.
+        // Although `Application` restores it, it appears to sometimes not do so before we can meaningfully print
+        // an error visible to the user.
+        let _ = crossterm::terminal::disable_raw_mode();
+        let _ =
+            crossterm::ExecutableCommand::execute(&mut io::stderr(), crossterm::style::ResetColor);
+        let _ = crossterm::ExecutableCommand::execute(&mut io::stderr(), crossterm::cursor::Show);
+        let _ = crossterm::ExecutableCommand::execute(
+            &mut io::stderr(),
+            crossterm::terminal::LeaveAlternateScreen,
         );
-        if let Ok(mut file) = std::fs::File::create(crash_file_name) {
-            let _ = file.write(panic_info.to_string().as_bytes());
-            let _ = file.write(b"\n\n\n");
-            let _ = file.write(
-                std::backtrace::Backtrace::force_capture()
-                    .to_string()
-                    .as_bytes(),
-            );
-        }
+
+        // Print the actual panic info.
+        eprint!("{panic_info}\n\n");
     }));
 
     // Run main application.

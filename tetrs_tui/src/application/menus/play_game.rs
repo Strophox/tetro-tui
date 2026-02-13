@@ -187,10 +187,12 @@ impl<T: Write> Application<T> {
 
                         let result = game.update(update_target_time, Some(button_change));
 
-                        button_input_history.0.push(ButtonInputHistory::encode(
-                            update_target_time,
-                            button_change,
-                        ));
+                        button_input_history
+                            .0
+                            .push(ButtonInputHistory::compress_input((
+                                update_target_time,
+                                button_change,
+                            )));
 
                         // FIXME: Combo Bot.
                         // inform_combo_bot(game, &evts);
@@ -277,7 +279,10 @@ impl<T: Write> Application<T> {
                 let _ = game.update(unpress_time, Some(button_unpress));
                 button_input_history
                     .0
-                    .push(ButtonInputHistory::encode(unpress_time, button_unpress));
+                    .push(ButtonInputHistory::compress_input((
+                        unpress_time,
+                        button_unpress,
+                    )));
             }
         }
 
