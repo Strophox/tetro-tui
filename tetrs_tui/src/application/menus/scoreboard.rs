@@ -1,4 +1,7 @@
-use std::io::{self, Write};
+use std::{
+    io::{self, Write},
+    time::{Duration, Instant},
+};
 
 use crossterm::{
     cursor::MoveTo,
@@ -15,8 +18,8 @@ use tetrs_engine::Stat;
 
 use crate::{
     application::{
-        Application, CompressedGameInputHistory, GameRestorationData, Menu, MenuUpdate,
-        ScoreboardEntry, ScoreboardSorting,
+        Application, CompressedGameInputHistory, GameInputHistory, GameRestorationData, Menu,
+        MenuUpdate, ScoreboardEntry, ScoreboardSorting,
     },
     fmt_helpers::fmt_duration,
 };
@@ -220,16 +223,25 @@ impl<T: Write> Application<T> {
                     {
                         let meta_data = game_meta_data.clone();
 
-                        let restoration_data = GameRestorationData {
+                        let restoration_data = GameRestorationData::<GameInputHistory> {
                             builder: game_restoration_data.builder.clone(),
                             mod_descriptors: game_restoration_data.mod_descriptors.clone(),
                             input_history: game_restoration_data.input_history.decompress(),
                         };
 
-                        let savepoint_load_offset = restoration_data.input_history.len();
+                        let game = restoration_data.restore(0);
 
-                        self.game_savepoint =
-                            Some((meta_data, restoration_data, savepoint_load_offset));
+                        break Ok(MenuUpdate::Push(Menu::ReplayGame {
+                            game: Box::new(game),
+                            meta_data,
+                            timestamp_play_started: Instant::now(),
+                            last_paused: Instant::now(),
+                            total_pause_duration: Duration::ZERO,
+                            game_input_history: restoration_data.input_history,
+                            game_renderer: Default::default(),
+                        }));
+                    } else {
+                        // FIXME: Handle game-replay-unavailable?
                     }
                 }
 

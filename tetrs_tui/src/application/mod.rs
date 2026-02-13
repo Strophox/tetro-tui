@@ -576,20 +576,29 @@ enum Menu {
     PlayGame {
         game: Box<Game>,
         meta_data: GameMetaData,
-        timestamp_game_started: Instant,
+        timestamp_play_started: Instant,
         last_paused: Instant,
         total_pause_duration: Duration,
         game_input_history: GameInputHistory,
         game_renderer: Box<game_renderers::diff_print::DiffPrintRenderer>,
     },
-    GameOver(Box<ScoreboardEntry>),
-    GameComplete(Box<ScoreboardEntry>),
     Pause,
     Settings,
+    AdjustGraphics,
     AdjustKeybinds,
     AdjustGameplay,
-    AdjustGraphics,
+    GameOver(Box<ScoreboardEntry>),
+    GameComplete(Box<ScoreboardEntry>),
     Scoreboard,
+    ReplayGame {
+        game: Box<Game>,
+        meta_data: GameMetaData,
+        timestamp_play_started: Instant,
+        last_paused: Instant,
+        total_pause_duration: Duration,
+        game_input_history: GameInputHistory,
+        game_renderer: Box<game_renderers::diff_print::DiffPrintRenderer>,
+    },
     About,
     Quit,
 }
@@ -599,15 +608,16 @@ impl std::fmt::Display for Menu {
         let name = match self {
             Menu::Title => "Title Screen",
             Menu::NewGame => "New Game",
-            Menu::PlayGame { meta_data, .. } => &format!("Game ({})", meta_data.title),
-            Menu::GameOver(_) => "Game Over",
-            Menu::GameComplete(_) => "Game Completed",
+            Menu::PlayGame { meta_data, .. } => &format!("Playing Game ({})", meta_data.title),
             Menu::Pause => "Pause",
             Menu::Settings => "Settings",
+            Menu::AdjustGraphics => "Adjust Graphics",
             Menu::AdjustKeybinds => "Adjust Keybinds",
             Menu::AdjustGameplay => "Adjust Gameplay",
-            Menu::AdjustGraphics => "Adjust Graphics",
+            Menu::GameOver(_) => "Game Over",
+            Menu::GameComplete(_) => "Game Completed",
             Menu::Scoreboard => "Scoreboard",
+            Menu::ReplayGame { meta_data, .. } => &format!("Replaying Game ({})", meta_data.title),
             Menu::About => "About",
             Menu::Quit => "Quit",
         };
@@ -658,8 +668,11 @@ impl<T: Write> Drop for Application<T> {
 }
 
 impl<T: Write> Application<T> {
-    pub const W_MAIN: u16 = 80;
-    pub const H_MAIN: u16 = 24;
+    // FIXME: What the... Maybe do less hardcoding here?
+    // pub const W_MAIN: u16 = 80;
+    // pub const H_MAIN: u16 = 24;
+    pub const W_MAIN: u16 = 62;
+    pub const H_MAIN: u16 = 23;
 
     pub const SAVEFILE_NAME: &'static str =
         concat!(".tetrs_tui_", clap::crate_version!(), "_savefile.json");
@@ -853,7 +866,7 @@ impl<T: Write> Application<T> {
                 Menu::PlayGame {
                     game,
                     meta_data,
-                    timestamp_game_started,
+                    timestamp_play_started,
                     total_pause_duration,
                     last_paused,
                     game_input_history,
@@ -861,21 +874,38 @@ impl<T: Write> Application<T> {
                 } => self.menu_play_game(
                     game,
                     meta_data,
-                    *timestamp_game_started,
+                    *timestamp_play_started,
                     last_paused,
                     total_pause_duration,
                     game_input_history,
                     game_renderer.as_mut(),
                 ),
                 Menu::Pause => self.menu_pause(),
+                Menu::Settings => self.menu_settings(),
+                Menu::AdjustGraphics => self.menu_adjust_graphics(),
+                Menu::AdjustKeybinds => self.menu_adjust_keybinds(),
+                Menu::AdjustGameplay => self.menu_adjust_gameplay(),
                 Menu::GameOver(past_game) => self.menu_game_ended(past_game),
                 Menu::GameComplete(past_game) => self.menu_game_ended(past_game),
                 Menu::Scoreboard => self.menu_scoreboard(),
+                Menu::ReplayGame {
+                    game,
+                    meta_data,
+                    timestamp_play_started,
+                    total_pause_duration,
+                    last_paused,
+                    game_input_history,
+                    game_renderer,
+                } => self.menu_replay_game(
+                    game,
+                    meta_data,
+                    *timestamp_play_started,
+                    last_paused,
+                    total_pause_duration,
+                    game_input_history,
+                    game_renderer.as_mut(),
+                ),
                 Menu::About => self.menu_about(),
-                Menu::Settings => self.menu_settings(),
-                Menu::AdjustKeybinds => self.menu_adjust_keybinds(),
-                Menu::AdjustGameplay => self.menu_adjust_gameplay(),
-                Menu::AdjustGraphics => self.menu_adjust_graphics(),
                 Menu::Quit => break,
             }?;
             // Change screen session depending on what response screen gave.

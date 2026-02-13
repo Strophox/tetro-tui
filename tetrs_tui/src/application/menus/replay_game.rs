@@ -18,14 +18,14 @@ use crate::{
         Application, CompressedGameInputHistory, GameInputHistory, GameMetaData,
         GameRestorationData, Menu, MenuUpdate, ScoreboardEntry,
     },
-    fmt_helpers::get_play_keybinds_legend,
+    fmt_helpers::replay_keybinds_legend,
     game_renderers::Renderer,
     live_input_handler::{self, LiveTermSignal},
 };
 
 impl<T: Write> Application<T> {
     #[allow(clippy::too_many_arguments)]
-    pub(in crate::application) fn menu_play_game(
+    pub(in crate::application) fn menu_replay_game(
         &mut self,
         game: &mut Game,
         game_meta_data: &mut GameMetaData,
@@ -37,7 +37,7 @@ impl<T: Write> Application<T> {
     ) -> io::Result<MenuUpdate> {
         // Prepare everything to enter the game (react & render) loop.
 
-        let keybinds_legend = get_play_keybinds_legend(self.settings.keybinds());
+        let keybinds_legend = replay_keybinds_legend();
 
         // Toggle on enhanced-keyboard-events.
         if self.runtime_data.kitty_assumed {
@@ -98,23 +98,6 @@ impl<T: Write> Application<T> {
                 }
             }
 
-            // Calculate the time of the next render we can catch.
-            // We actually completely base this off the start of the session,
-            // and just skip a render if we miss the window.
-            let now = Instant::now();
-            let next_render_at = loop {
-                let planned_render_at = session_resumed
-                    + Duration::from_secs_f64(
-                        f64::from(render_id) / self.settings.graphics().game_fps,
-                    );
-
-                if planned_render_at < now {
-                    render_id += 1;
-                } else {
-                    break planned_render_at;
-                }
-            };
-
             if let Some(game_result) = game.result() {
                 // Game ended, cannot actually continue playing;
                 // Convert to scoreboard entry and return appropriate game-ended menu.
@@ -137,6 +120,23 @@ impl<T: Write> Application<T> {
 
                 break 'render_and_input MenuUpdate::Push(menu);
             }
+
+            // Calculate the time of the next render we can catch.
+            // We actually completely base this off the start of the session,
+            // and just skip a render if we miss the window.
+            let now = Instant::now();
+            let next_render_at = loop {
+                let planned_render_at = session_resumed
+                    + Duration::from_secs_f64(
+                        f64::from(render_id) / self.settings.graphics().game_fps,
+                    );
+
+                if planned_render_at < now {
+                    render_id += 1;
+                } else {
+                    break planned_render_at;
+                }
+            };
 
             'frame_idle: loop {
                 // Compute time left until we should stop waiting.

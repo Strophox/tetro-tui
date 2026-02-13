@@ -10,7 +10,10 @@ use std::io::{self, Write};
 
 use tetrs_engine::{Feedback, Game, InGameTime};
 
-use crate::application::{GameMetaData, Settings};
+use crate::{
+    application::{GameMetaData, Settings},
+    fmt_helpers::KeybindsLegend,
+};
 
 pub trait Renderer {
     fn push_game_feedback_msgs(
@@ -23,6 +26,7 @@ pub trait Renderer {
         game: &Game,
         meta_data: &GameMetaData,
         settings: &Settings,
+        keybinds_legend: &KeybindsLegend,
         term: &mut T,
         refresh_entire_view: bool,
     ) -> io::Result<()>;

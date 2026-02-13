@@ -34,6 +34,7 @@ impl Renderer for BrailleRenderer {
         game: &Game,
         _meta_data: &GameMetaData,
         _settings: &Settings,
+        _keybinds_legend: &KeybindsLegend,
         term: &mut T,
         _refresh_entire_view: bool,
     ) -> io::Result<()> {

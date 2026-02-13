@@ -584,7 +584,7 @@ impl<T: Write> Application<T> {
                     .spawn_delay(spawn_delay)
                     .allow_prespawn_actions(allow_prespawn_actions);
 
-                let (meta_data, game, button_input_history) = if selected < game_presets.len() {
+                let (meta_data, game, game_input_history) = if selected < game_presets.len() {
                     // Build one of the selected game modes.
                     let ((title, comparison_stat, build), _desc) = &game_presets[selected];
 
@@ -667,14 +667,14 @@ impl<T: Write> Application<T> {
                 // game.modifiers.push(game_mode_presets::game_modifiers::misc_modifiers::print_recency_tet_gen_stats::modifier());
                 // game.modifiers.push(tetrs_engine::Modifier { descriptor: "always_clear_board".to_owned(), mod_function: Box::new(|_c, _i, s, _m, _f| { s.board = Default::default(); })});
                 let now = Instant::now();
-                let time_started = now - game.state().time;
+                let timestamp_play_started = now - game.state().time;
                 break Ok(MenuUpdate::Push(Menu::PlayGame {
                     game: Box::new(game),
                     meta_data,
-                    timestamp_game_started: time_started,
+                    timestamp_play_started,
                     last_paused: now,
                     total_pause_duration: Duration::ZERO,
-                    game_input_history: button_input_history,
+                    game_input_history,
                     game_renderer: Default::default(),
                 }));
             }

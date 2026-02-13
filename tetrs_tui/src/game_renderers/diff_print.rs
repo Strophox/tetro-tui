@@ -11,13 +11,13 @@ use crossterm::{
     terminal, QueueableCommand,
 };
 
-use tetrs_engine::{Button, Coord, Feedback, InGameTime, Orientation, Stat, TileTypeID};
+use tetrs_engine::{Coord, Feedback, InGameTime, Orientation, Stat, TileTypeID};
 
 use super::*;
 
 use crate::{
     application::{Application, Glyphset},
-    fmt_helpers::{fmt_duration, fmt_hertz, fmt_keybinds_of, fmt_tet_mini, fmt_tet_small},
+    fmt_helpers::{fmt_duration, fmt_hertz, fmt_tet_mini, fmt_tet_small},
 };
 
 #[derive(
@@ -45,10 +45,10 @@ impl TerminalScreenBuffer {
         (self.x_draw, self.y_draw) = (x, y);
     }
 
-    fn buffer_from(&mut self, base_screen: Vec<String>) {
+    fn buffer_from<'a>(&mut self, base_screen: impl IntoIterator<Item = &'a str>) {
         self.next = base_screen
-            .iter()
-            .map(|str| str.chars().zip(std::iter::repeat(None)).collect())
+            .into_iter()
+            .map(|str: &str| str.chars().zip(std::iter::repeat(None)).collect())
             .collect();
     }
 
@@ -253,6 +253,7 @@ impl Renderer for DiffPrintRenderer {
         game: &Game,
         meta_data: &GameMetaData,
         settings: &Settings,
+        keybinds_legend: &KeybindsLegend,
         term: &mut T,
         refresh_entire_view: bool,
     ) -> io::Result<()>
@@ -292,41 +293,6 @@ impl Renderer for DiffPrintRenderer {
         } else {
             ("", "".to_owned())
         };
-        let f = |b| fmt_keybinds_of(b, settings.keybinds());
-        let mut icons_move = format!("{}{}", f(Button::MoveLeft), f(Button::MoveRight));
-        let mut icons_rotate = format!(
-            "{}{}{}",
-            f(Button::RotateLeft),
-            f(Button::RotateAround),
-            f(Button::RotateRight)
-        );
-        let mut icons_drop = format!("{}{}", f(Button::DropSoft), f(Button::DropHard));
-        let mut icons_hold = f(Button::HoldPiece);
-        // FAIR enough https://users.rust-lang.org/t/truncating-a-string/77903/9 :
-        let eleven = icons_move
-            .char_indices()
-            .map(|(i, _)| i)
-            .nth(11)
-            .unwrap_or(icons_move.len());
-        icons_move.truncate(eleven);
-        let eleven = icons_rotate
-            .char_indices()
-            .map(|(i, _)| i)
-            .nth(11)
-            .unwrap_or(icons_rotate.len());
-        icons_rotate.truncate(eleven);
-        let eleven = icons_drop
-            .char_indices()
-            .map(|(i, _)| i)
-            .nth(11)
-            .unwrap_or(icons_drop.len());
-        icons_drop.truncate(eleven);
-        let eleven = icons_hold
-            .char_indices()
-            .map(|(i, _)| i)
-            .nth(11)
-            .unwrap_or(icons_hold.len());
-        icons_hold.truncate(eleven);
 
         let show_hold = game.state().piece_held.is_some();
         let show_next = !game.state().piece_preview.is_empty();
@@ -339,94 +305,98 @@ impl Renderer for DiffPrintRenderer {
         // Screen: draw.
         #[allow(clippy::useless_format)]
         #[rustfmt::skip]
-        let base_screen = match settings.graphics().glyphset {
-            Glyphset::Electronika60 => vec![
-                format!("                                                            ", ),
-                format!("                                              {: ^w$      } ", "mode:", w=modename_len),
-                format!("    STATS             <! . . . . . . . . . .!>{: ^w$      } ", meta_data.title, w=modename_len),
-                format!("                      <! . . . . . . . . . .!>{: ^w$      } ", "", w=modename_len),
-                format!("   Time: {:<13       }<! . . . . . . . . . .!>              ", fmt_duration(game.state().time)),
-                format!("   Lines: {:<12      }<! . . . . . . . . . .!> {           }", game.state().lineclears, endcond_title),
-                format!("   Score: {:<12      }<! . . . . . . . . . .!>   {         }", game.state().score, endcond_value),
-                format!("                      <! . . . . . . . . . .!>              ", ),
-                format!("   Gravity: {:<10    }<! . . . . . . . . . .!>              ", fmt_hertz(gravity)),
-                format!("   {                 }<! . . . . . . . . . .!>              ", if show_lockdelay { format!("Lock delay: {:<7  }", format!("{}ms",game.state().lock_delay.saturating_duration().as_millis())) } else { "                   ".to_owned() }),
-                format!("                      <! . . . . . . . . . .!>              ", ),
-                format!("                      <! . . . . . . . . . .!>              ", ),
-                format!("                      <! . . . . . . . . . .!>              ", ),
-                format!("                      <! . . . . . . . . . .!>              ", ),
-                format!("                      <! . . . . . . . . . .!>              ", ),
-                format!("    KEYBINDS          <! . . . . . . . . . .!>              ", ),
-                format!("                      <! . . . . . . . . . .!>              ", ),
-                format!("   Move    {:<11     }<! . . . . . . . . . .!>              ", icons_move),
-                format!("   Rotate  {:<11     }<! . . . . . . . . . .!>              ", icons_rotate),
-                format!("   Drop    {:<11     }<! . . . . . . . . . .!>              ", icons_drop),
-                format!("   Hold    {:<11     }<! . . . . . . . . . .!>              ", icons_hold),
-                format!("   Pause   [Esc]      <! . . . . . . . . . .!>              ", ),
-                format!("                      <!====================!>              ", ),
-               format!(r"                        \/\/\/\/\/\/\/\/\/\/                ", ),
+        let base_screen: &[String] = match settings.graphics().glyphset {
+            Glyphset::Electronika60 => &[
+                format!("                                                              ", ),
+                format!("                                                {: ^w$      } ", "mode:", w=modename_len),
+                format!("                        <! . . . . . . . . . .!>{: ^w$      } ", meta_data.title, w=modename_len),
+                format!("  STATS                 <! . . . . . . . . . .!>{: ^w$      } ", "", w=modename_len),
+                format!("                        <! . . . . . . . . . .!>              ", ),
+                format!(" Time:  {:<16          }<! . . . . . . . . . .!> {           }", fmt_duration(game.state().time), endcond_title),
+                format!(" Lines: {:<16          }<! . . . . . . . . . .!>   {         }", game.state().lineclears, endcond_value),
+                format!(" Score: {:<16          }<! . . . . . . . . . .!>              ", game.state().score),
+                format!("                        <! . . . . . . . . . .!>              ", ),
+                format!(" Gravity: {:<14        }<! . . . . . . . . . .!>              ", fmt_hertz(gravity)),
+                format!(" {:<23                 }<! . . . . . . . . . .!>              ", if show_lockdelay { format!("Lock delay: {}", format!("{}ms",game.state().lock_delay.saturating_duration().as_millis())) } else { "".to_owned() }),
+                format!("                        <! . . . . . . . . . .!>              ", ),
+                format!("                        <! . . . . . . . . . .!>              ", ),
+                format!("  KEYBINDS              <! . . . . . . . . . .!>              ", ),
+                format!("                        <! . . . . . . . . . .!>              ", ),
+                format!("                        <! . . . . . . . . . .!>              ", ),
+                format!("                        <! . . . . . . . . . .!>              ", ),
+                format!("                        <! . . . . . . . . . .!>              ", ),
+                format!("                        <! . . . . . . . . . .!>              ", ),
+                format!("                        <! . . . . . . . . . .!>              ", ),
+                format!("                        <! . . . . . . . . . .!>              ", ),
+                format!("                        <! . . . . . . . . . .!>              ", ),
+                format!("                        <!====================!>              ", ),
+               format!(r"                          \/\/\/\/\/\/\/\/\/\/                ", ),
             ],
-            Glyphset::ASCII => vec![
-                format!("                                                            ", ),
-                format!("                {     }|- - - - - - - - - - +{:-^w$       }+", if show_hold { "+-hold-" } else {"       "}, "mode", w=modename_len),
-                format!("    STATS       {}     |                    |{: ^w$       }|", if show_hold { "| " } else {"  "}, meta_data.title, w=modename_len),
-                format!("   ----------   {     }|                    +{:-^w$       }+", if show_hold { "+------" } else {"       "}, "", w=modename_len),
-                format!("   Time: {:<14        }|                    |               ", fmt_duration(game.state().time)),
-                format!("   Lines: {:<13       }|                    |  {           }", game.state().lineclears, endcond_title),
-                format!("   Score: {:<13       }|                    |    {         }", game.state().score, endcond_value),
-                format!("                       |                    |               ", ),
-                format!("   Gravity: {:<11     }|                    |               ", fmt_hertz(gravity)),
-                format!("   {                  }|                    |{             }", if show_lockdelay { format!("Lock delay: {:<8   }", format!("{}ms",game.state().lock_delay.saturating_duration().as_millis())) } else { "                    ".to_owned() }, if show_next { "-----next-----+" } else {"               "}),
-                format!("                       |                    |             {}", if show_next { " |" } else {"  "}),
-                format!("                       |                    |             {}", if show_next { " |" } else {"  "}),
-                format!("                       |                    |{             }", if show_next { "--------------+" } else {"               "}),
-                format!("                       |                    |               ", ),
-                format!("                       |                    |               ", ),
-                format!("    KEYBINDS           |                    |               ", ),
-                format!("   ----------          |                    |               ", ),
-                format!("   Move    {:<12      }|                    |               ", icons_move),
-                format!("   Rotate  {:<12      }|                    |               ", icons_rotate),
-                format!("   Drop    {:<12      }|                    |               ", icons_drop),
-                format!("   Hold    {:<12      }|                    |               ", icons_hold),
-                format!("   Pause   [Esc]       |                    |               ", ),
-                format!("                      ~#====================#~              ", ),
-                format!("                                                            ", ),
+            Glyphset::ASCII => &[
+                format!("                                                              ", ),
+                format!("                  {     }|- - - - - - - - - - +{:-^w$       }+", if show_hold { "+-hold-" } else {"       "}, "mode", w=modename_len),
+                format!("                  {}     |                    |{: ^w$       }|", if show_hold { "| " } else {"  "}, meta_data.title, w=modename_len),
+                format!("  STATS           {     }|                    +{:-^w$       }+", if show_hold { "+------" } else {"       "}, "", w=modename_len),
+                format!(" ----------              |                    |               ", ),
+                format!(" Time:  {:<17           }|                    |  {           }", fmt_duration(game.state().time), endcond_title),
+                format!(" Lines: {:<17           }|                    |    {         }", game.state().lineclears, endcond_value),
+                format!(" Score: {:<17           }|                    |               ", game.state().score),
+                format!("                         |                    |{             }", if show_next { "-----next-----+" } else {"               "}),
+                format!(" Gravity: {:<15         }|                    |             {}", fmt_hertz(gravity), if show_next { " |" } else {"  "}),
+                format!(" {:<24                  }|                    |             {}", if show_lockdelay { format!("Lock delay: {}", format!("{}ms",game.state().lock_delay.saturating_duration().as_millis())) } else { "".to_owned() }, if show_next { " |" } else {"  "}),
+                format!("                         |                    |{             }", if show_next { "--------------+" } else {"               "}),
+                format!("                         |                    |               ", ),
+                format!("  KEYBINDS               |                    |               ", ),
+                format!(" ----------              |                    |               ", ),
+                format!("                         |                    |               ", ),
+                format!("                         |                    |               ", ),
+                format!("                         |                    |               ", ),
+                format!("                         |                    |               ", ),
+                format!("                         |                    |               ", ),
+                format!("                         |                    |               ", ),
+                format!("                         |                    |               ", ),
+                format!("                        ~#====================#~              ", ),
             ],
-        Glyphset::Unicode => vec![
-                format!("                                                            ", ),
-                format!("                {     }╓╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╥{:─^w$       }┐", if show_hold { "┌─hold─" } else {"       "}, "mode", w=modename_len),
-                format!("    STATS       {}     ║                    ║{: ^w$       }│", if show_hold { "│ " } else {"  "}, meta_data.title, w=modename_len),
-                format!("   ─────────╴   {     }║                    ╟{:─^w$       }┘", if show_hold { "└──────" } else {"       "}, "", w=modename_len),
-                format!("   Time: {:<14        }║                    ║               ", fmt_duration(game.state().time)),
-                format!("   Lines: {:<13       }║                    ║  {           }", game.state().lineclears, endcond_title),
-                format!("   Score: {:<13       }║                    ║    {         }", game.state().score, endcond_value),
-                format!("                       ║                    ║               ", ),
-                format!("   Gravity: {:<11     }║                    ║               ", fmt_hertz(gravity)),
-                format!("   {                  }║                    ║{             }", if show_lockdelay { format!("Lock delay: {:<8   }", format!("{}ms",game.state().lock_delay.saturating_duration().as_millis())) } else { "                    ".to_owned() }, if show_next { "─────next─────┐" } else {"               "}),
-                format!("                       ║                    ║             {}", if show_next { " │" } else {"  "}),
-                format!("                       ║                    ║             {}", if show_next { " │" } else {"  "}),
-                format!("                       ║                    ║{             }", if show_next { "──────────────┘" } else {"               "}),
-                format!("                       ║                    ║               ", ),
-                format!("                       ║                    ║               ", ),
-                format!("    KEYBINDS           ║                    ║               ", ),
-                format!("   ─────────╴          ║                    ║               ", ),
-                format!("   Move    {:<12      }║                    ║               ", icons_move),
-                format!("   Rotate  {:<12      }║                    ║               ", icons_rotate),
-                format!("   Drop    {:<12      }║                    ║               ", icons_drop),
-                format!("   Hold    {:<12      }║                    ║               ", icons_hold),
-                format!("   Pause   [Esc]       ║                    ║               ", ),
-                format!("                    ░▒▓█▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀█▓▒░            ", ),
-                format!("                                                            ", ),
+        Glyphset::Unicode => &[
+                format!("                                                              ", ),
+                format!("                  {     }╓╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╥{:─^w$       }┐", if show_hold { "┌─hold─" } else {"       "}, "mode", w=modename_len),
+                format!("                  {}     ║                    ║{: ^w$       }│", if show_hold { "│ " } else {"  "}, meta_data.title, w=modename_len),
+                format!("  STATS           {     }║                    ╟{:─^w$       }┘", if show_hold { "└──────" } else {"       "}, "", w=modename_len),
+                format!(" ─────────╴              ║                    ║               ", ),
+                format!(" Time:  {:<17           }║                    ║  {           }", fmt_duration(game.state().time), endcond_title),
+                format!(" Lines: {:<17           }║                    ║    {         }", game.state().lineclears, endcond_value),
+                format!(" Score: {:<17           }║                    ║               ", game.state().score),
+                format!("                         ║                    ║{             }", if show_next { "─────next─────┐" } else {"               "}),
+                format!(" Gravity: {:<15         }║                    ║             {}", fmt_hertz(gravity), if show_next { " │" } else {"  "}),
+                format!(" {:<24                  }║                    ║             {}", if show_lockdelay { format!("Lock delay: {}", format!("{}ms",game.state().lock_delay.saturating_duration().as_millis())) } else { "".to_owned() }, if show_next { " │" } else {"  "}),
+                format!("                         ║                    ║{             }", if show_next { "──────────────┘" } else {"               "}),
+                format!("                         ║                    ║               ", ),
+                format!("  KEYBINDS               ║                    ║               ", ),
+                format!(" ─────────╴              ║                    ║               ", ),
+                format!("                         ║                    ║               ", ),
+                format!("                         ║                    ║               ", ),
+                format!("                         ║                    ║               ", ),
+                format!("                         ║                    ║               ", ),
+                format!("                         ║                    ║               ", ),
+                format!("                         ║                    ║               ", ),
+                format!("                         ║                    ║               ", ),
+                format!("                      ░▒▓█▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀█▓▒░            ", ),
             ],
         };
-        self.screen.buffer_from(base_screen);
-        let (x_board, y_board) = (24, 1);
-        let (x_hold, y_hold) = (18, 2);
-        let (x_preview, y_preview) = (48, 11);
-        let (x_preview_small, y_preview_small) = (48, 14);
-        let (x_preview_minuscule, y_preview_minuscule) = (48, 16);
-        let (x_messages, y_messages) = (47, 18);
+
+        self.screen
+            .buffer_from(base_screen.iter().map(String::as_str));
+
+        // Positioning of dynamically rendered elements.
+        let (x_board, y_board) = (26, 1);
+        let (x_hold, y_hold) = (20, 2);
+        let (x_preview, y_preview) = (50, 10);
+        let (x_preview_small, y_preview_small) = (49, 13);
+        let (x_preview_mini, y_preview_mini) = (50, 15);
+        let (x_messages, y_messages) = (49, 18);
+        let (x_keybinds, y_keybinds) = (1, 15);
         let pos_board = |(x, y)| (x_board + 2 * x, y_board + Game::SKYLINE_HEIGHT - y);
+
         // Color helpers.
         let get_color =
             |tile_type_id: &TileTypeID| settings.palette().get(&tile_type_id.get()).copied();
@@ -436,6 +406,27 @@ impl Renderer for DiffPrintRenderer {
                 .get(&tile_type_id.get())
                 .copied()
         };
+
+        const W_KEYBINDS: usize = 23;
+        // FIXME: Kinda inefficient to this iterating each time maybe?
+        let desc_len = keybinds_legend
+            .iter()
+            .map(|s| s.1.chars().count())
+            .max()
+            .unwrap_or(0);
+        let icons_available_len = W_KEYBINDS - desc_len - 1;
+        let icons_len = keybinds_legend
+            .iter()
+            .map(|s| s.0.chars().count())
+            .max()
+            .unwrap_or(0)
+            .min(icons_available_len);
+        for (dy, (icons, desc)) in keybinds_legend.iter().enumerate() {
+            let pos = (x_keybinds, y_keybinds + dy);
+            let icons = icons.chars().take(icons_len).collect::<String>();
+            self.screen
+                .buffer_str(&format!("{icons: >icons_len$} {desc}"), None, pos);
+        }
 
         // Board: draw hard drop trail.
         for (
@@ -474,8 +465,9 @@ impl Renderer for DiffPrintRenderer {
             match settings.graphics().glyphset {
                 Glyphset::Electronika60 => ("▮▮", " .", "▮▮", "▮▮"),
                 Glyphset::ASCII => ("##", "::", "[]", "[]"),
-                Glyphset::Unicode => ("██", "░░", "▓▓", "▒▒"),
+                Glyphset::Unicode => ("██", "░░", "▓▓", "██" /*"▒▒"*/),
             };
+
         // Board: draw locked tiles.
         if !settings.graphics().blindfolded {
             for (y, line) in game.state().board.iter().enumerate().take(21).rev() {
@@ -552,10 +544,7 @@ impl Renderer for DiffPrintRenderer {
             self.screen.buffer_str(
                 str,
                 get_color(&tet.tiletypeid()),
-                (
-                    x_preview_minuscule + x_offset_minuscule,
-                    y_preview_minuscule,
-                ),
+                (x_preview_mini + x_offset_minuscule, y_preview_mini),
             );
             x_offset_minuscule += str.chars().count() + 1;
         }
@@ -694,12 +683,12 @@ impl Renderer for DiffPrintRenderer {
                         continue;
                     }
                     for ((x_tile, y_tile), tile_type_id) in new_piece.tiles() {
-                        for y in y_tile..Game::SKYLINE_HEIGHT {
+                        for dy in y_tile..Game::SKYLINE_HEIGHT {
                             self.hard_drop_tiles.push((
                                 HardDropTile {
                                     creation_time: *feedback_time,
-                                    pos: (x_tile, y),
-                                    y_offset: y - y_tile,
+                                    pos: (x_tile, dy),
+                                    y_offset: dy - y_tile,
                                     tile_type_id,
                                 },
                                 true,
@@ -776,8 +765,8 @@ impl Renderer for DiffPrintRenderer {
         self.buffered_feedback_msgs.retain(|elt| elt.2);
 
         // Draw messages.
-        for (y, (_timestamp, message)) in self.buffered_text_msgs.iter().rev().enumerate() {
-            let pos = (x_messages, y_messages + y);
+        for (dy, (_timestamp, message)) in self.buffered_text_msgs.iter().rev().enumerate() {
+            let pos = (x_messages, y_messages + dy);
             self.screen.buffer_str(message, None, pos);
         }
 

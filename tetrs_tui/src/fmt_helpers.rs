@@ -5,6 +5,8 @@ use tetrs_engine::{Button, ButtonChange, ExtNonNegF64, Tetromino};
 
 use crate::keybinds_presets::Keybinds;
 
+pub type KeybindsLegend = Vec<(/*(KeyCode, KeyModifiers)*/ String, &'static str)>;
+
 pub fn fmt_duration(dur: Duration) -> String {
     format!(
         "{}min {}.{:02}s",
@@ -159,16 +161,62 @@ pub fn fmt_keymods(keymod: KeyModifiers) -> String {
     .join("+")
 }
 
+pub fn fmt_key_keymods((key, keymods): (KeyCode, KeyModifiers)) -> String {
+    if keymods.is_empty() {
+        format!("[{}]", fmt_key(key))
+    } else {
+        format!("[{}+{}]", fmt_keymods(keymods), fmt_key(key))
+    }
+}
+
 pub fn fmt_keybinds_of(button: Button, keybinds: &Keybinds) -> String {
     keybinds
         .iter()
-        .filter_map(|(&(k, kms), &b)| {
-            (b == button).then_some(if kms.is_empty() {
-                format!("[{}]", fmt_key(k))
-            } else {
-                format!("[{}+{}]", fmt_keymods(kms), fmt_key(k))
-            })
-        })
+        .filter_map(|(key_keymods, b)| (*b == button).then_some(fmt_key_keymods(*key_keymods)))
         .collect::<Vec<_>>()
         .join("")
+}
+
+pub fn get_play_keybinds_legend(keybinds: &Keybinds) -> KeybindsLegend {
+    let fk = |k| fmt_key_keymods((k, KeyModifiers::NONE));
+    let fb = |b| fmt_keybinds_of(b, keybinds);
+
+    let icon_pause = fk(KeyCode::Esc);
+    let icons_move = format!("{}{}", fb(Button::MoveLeft), fb(Button::MoveRight));
+    let icons_rotate = format!(
+        "{}{}{}",
+        fb(Button::RotateLeft),
+        fb(Button::RotateAround),
+        fb(Button::RotateRight)
+    );
+    let icons_drop = format!("{}{}", fb(Button::DropSoft), fb(Button::DropHard));
+    let icons_hold = fb(Button::HoldPiece);
+
+    vec![
+        (icon_pause, "pause"),
+        (icons_move, "move"),
+        (icons_rotate, "rotate"),
+        (icons_drop, "drop"),
+        (icons_hold, "hold"),
+    ]
+}
+
+pub fn replay_keybinds_legend() -> KeybindsLegend {
+    let fk = |k| fmt_key_keymods((k, KeyModifiers::NONE));
+
+    let icon_pause = fk(KeyCode::Char(' '));
+    let icons_speed = format!("{}{}", fk(KeyCode::Down), fk(KeyCode::Up));
+    let icons_skip = format!("{}{}", fk(KeyCode::Left), fk(KeyCode::Right));
+    let icons_game_update = format!("{}{}", fk(KeyCode::Char(',')), fk(KeyCode::Char('.')));
+    let icons_enter = fk(KeyCode::Enter);
+    let icon_stop = fk(KeyCode::Esc);
+
+    vec![
+        (icon_pause, "pause"),
+        (icons_speed, "speed -/+ 0.1"),
+        (icons_skip, "skip -/+ 2s"),
+        (icons_game_update, "-/+ game update"),
+        (icons_enter, "game from here"),
+        (icon_stop, "stop"),
+    ]
 }
