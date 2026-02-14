@@ -387,9 +387,10 @@ pub struct GraphicsSettings {
     palette_active: usize,
     palette_active_lockedtiles: usize,
     pub glyphset: Glyphset,
-    pub render_effects: bool,
+    pub show_effects: bool,
     pub blindfolded: bool,
     pub show_ghost_piece: bool,
+    pub show_button_state: bool,
     game_fps: f64,
     show_fps: bool,
 }
@@ -400,9 +401,10 @@ impl Default for GraphicsSettings {
             glyphset: Glyphset::Unicode,
             palette_active: 3,
             palette_active_lockedtiles: 3,
-            render_effects: true,
+            show_effects: true,
             blindfolded: false,
             show_ghost_piece: true,
+            show_button_state: false,
             game_fps: 30.0,
             show_fps: false,
         }
@@ -477,7 +479,7 @@ impl Default for Settings {
                 GraphicsSettings {
                     palette_active: 2,
                     palette_active_lockedtiles: 0,
-                    render_effects: false,
+                    show_effects: false,
                     game_fps: 60.0,
                     ..GraphicsSettings::default()
                 },

@@ -36,7 +36,7 @@ impl<T: Write> Application<T> {
                 settings.graphics_slot_active = settings.graphics_slots.len() - 1;
             }
         };
-        let selection_len = 8;
+        let selection_len = 9;
         let mut selected = 1usize;
         loop {
             let w_main = Self::W_MAIN.into();
@@ -93,17 +93,19 @@ impl<T: Write> Application<T> {
                     "Color locked tiles: {}",
                     self.settings.graphics().palette_active_lockedtiles != 0
                 ),
-                format!(
-                    "Render effects: {}",
-                    self.settings.graphics().render_effects
-                ),
+                format!("Show effects: {}", self.settings.graphics().show_effects),
                 format!(
                     "Show ghost piece: {}",
                     self.settings.graphics().show_ghost_piece
                 ),
+                format!(
+                    "Show button state: {}",
+                    self.settings.graphics().show_button_state
+                ),
                 format!("Framerate: {}", self.settings.graphics().game_fps),
                 format!("Show fps: {}", self.settings.graphics().show_fps),
             ];
+
             for (i, label) in labels.into_iter().enumerate() {
                 self.term
                     .queue(MoveTo(
@@ -119,10 +121,12 @@ impl<T: Write> Application<T> {
                         }
                     )))?;
             }
+
             self.term.queue(MoveTo(
                 x_main + u16::try_from((w_main - 27) / 2).unwrap(),
                 y_main + y_selection + 6 + u16::try_from(selection_len).unwrap() + 1,
             ))?;
+
             for tet in Tetromino::VARIANTS {
                 self.term.queue(PrintStyledContent(
                     fmt_tet_small(tet).with(
@@ -135,6 +139,7 @@ impl<T: Write> Application<T> {
                 ))?;
                 self.term.queue(Print(' '))?;
             }
+
             self.term.flush()?;
 
             // Wait for new input.
@@ -210,7 +215,7 @@ impl<T: Write> Application<T> {
                     }
                     4 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().render_effects ^= true;
+                        self.settings.graphics_mut().show_effects ^= true;
                     }
                     5 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
@@ -218,9 +223,13 @@ impl<T: Write> Application<T> {
                     }
                     6 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().game_fps += 1.0;
+                        self.settings.graphics_mut().show_button_state ^= true;
                     }
                     7 => {
+                        if_slot_is_default_then_copy_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().game_fps += 1.0;
+                    }
+                    8 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
                         self.settings.graphics_mut().show_fps ^= true;
                     }
@@ -266,7 +275,7 @@ impl<T: Write> Application<T> {
                     }
                     4 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().render_effects ^= true;
+                        self.settings.graphics_mut().show_effects ^= true;
                     }
                     5 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
@@ -274,11 +283,15 @@ impl<T: Write> Application<T> {
                     }
                     6 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().show_button_state ^= true;
+                    }
+                    7 => {
+                        if_slot_is_default_then_copy_and_switch(&mut self.settings);
                         if self.settings.graphics().game_fps > 1.0 {
                             self.settings.graphics_mut().game_fps -= 1.0;
                         }
                     }
-                    7 => {
+                    8 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
                         self.settings.graphics_mut().show_fps ^= true;
                     }

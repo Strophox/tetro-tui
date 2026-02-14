@@ -74,6 +74,7 @@ impl<T: Write> Application<T> {
                 game_meta_data,
                 &self.settings,
                 &keybinds_legend,
+                None,
                 &mut self.term,
                 refresh_entire_view,
             )?;

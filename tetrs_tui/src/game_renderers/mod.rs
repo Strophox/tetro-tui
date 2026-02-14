@@ -27,6 +27,7 @@ pub trait Renderer {
         meta_data: &GameMetaData,
         settings: &Settings,
         keybinds_legend: &KeybindsLegend,
+        replay_extra: Option<InGameTime>,
         term: &mut T,
         refresh_entire_view: bool,
     ) -> io::Result<()>;

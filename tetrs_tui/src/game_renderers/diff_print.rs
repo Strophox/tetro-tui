@@ -11,13 +11,13 @@ use crossterm::{
     terminal, QueueableCommand,
 };
 
-use tetrs_engine::{Coord, Feedback, InGameTime, Orientation, Stat, TileTypeID};
+use tetrs_engine::{Button, Coord, Feedback, InGameTime, Orientation, Stat, Tetromino, TileTypeID};
 
 use super::*;
 
 use crate::{
     application::{Application, Glyphset},
-    fmt_helpers::{fmt_duration, fmt_hertz, fmt_tet_mini, fmt_tet_small},
+    fmt_helpers::{fmt_button, fmt_duration, fmt_hertz, fmt_tet_mini, fmt_tet_small},
 };
 
 #[derive(
@@ -254,6 +254,7 @@ impl Renderer for DiffPrintRenderer {
         meta_data: &GameMetaData,
         settings: &Settings,
         keybinds_legend: &KeybindsLegend,
+        replay_extra: Option<InGameTime>,
         term: &mut T,
         refresh_entire_view: bool,
     ) -> io::Result<()>
@@ -395,6 +396,9 @@ impl Renderer for DiffPrintRenderer {
         let (x_preview_mini, y_preview_mini) = (50, 15);
         let (x_messages, y_messages) = (49, 18);
         let (x_keybinds, y_keybinds) = (1, 15);
+        let (x_rep_hdr, y_rep_hdr) = (3, 1);
+        let (x_replen, y_replen) = (1, 11);
+        let (x_buttonst, y_buttonst) = (48, 17);
         let pos_board = |(x, y)| (x_board + 2 * x, y_board + Game::SKYLINE_HEIGHT - y);
 
         // Color helpers.
@@ -407,6 +411,7 @@ impl Renderer for DiffPrintRenderer {
                 .copied()
         };
 
+        // Print keybinds legend.
         const W_KEYBINDS: usize = 23;
         // FIXME: Kinda inefficient to this iterating each time maybe?
         let desc_len = keybinds_legend
@@ -426,6 +431,64 @@ impl Renderer for DiffPrintRenderer {
             let icons = icons.chars().take(icons_len).collect::<String>();
             self.screen
                 .buffer_str(&format!("{icons: >icons_len$} {desc}"), None, pos);
+        }
+
+        if let Some(replay_length) = replay_extra {
+            // Rendering a replay, show additional info.
+
+            // Replay header.
+            self.screen
+                .buffer_str("(Game Replay)", None, (x_rep_hdr, y_rep_hdr));
+
+            // Replay length.
+            self.screen.buffer_str(
+                &format!("Replay len/{}", fmt_duration(replay_length)),
+                None,
+                (x_replen, y_replen),
+            );
+        }
+
+        // Draw button state.
+        if settings.graphics().show_button_state || replay_extra.is_some() {
+            let n253 = NonZeroU8::try_from(253).unwrap();
+            let n255 = NonZeroU8::try_from(255).unwrap();
+            let bc = |b: Button| {
+                get_color(if game.state().buttons_pressed[b].is_some() {
+                    &n255
+                } else {
+                    &n253
+                })
+            };
+            let es = [
+                Err("("),
+                Ok(Button::MoveLeft),
+                Ok(Button::DropSoft),
+                Ok(Button::MoveRight),
+                Err(" "),
+                Ok(Button::RotateLeft),
+                Ok(Button::RotateAround),
+                Ok(Button::RotateRight),
+                Err(" "),
+                Ok(Button::DropHard),
+                Err(" "),
+                Ok(Button::HoldPiece),
+                Err(" "),
+                Ok(Button::TeleLeft),
+                Ok(Button::TeleDown),
+                Ok(Button::TeleRight),
+                Err(")"),
+            ];
+            for (dx, e) in es.into_iter().enumerate() {
+                match e {
+                    Ok(b) => {
+                        self.screen
+                            .buffer_str(fmt_button(b), bc(b), (x_buttonst + dx, y_buttonst))
+                    }
+                    Err(s) => self
+                        .screen
+                        .buffer_str(s, None, (x_buttonst + dx, y_buttonst)),
+                }
+            }
         }
 
         // Board: draw hard drop trail.
@@ -520,7 +583,10 @@ impl Renderer for DiffPrintRenderer {
         if let Some(next_piece) = game.state().piece_preview.front() {
             let color = get_color(&next_piece.tiletypeid());
             for (x, y) in next_piece.minos(Orientation::N) {
-                let pos = (x_preview + 2 * x, y_preview - y);
+                let pos = (
+                    if *next_piece == Tetromino::O { 2 } else { 0 } + x_preview + 2 * x,
+                    y_preview - y,
+                );
                 self.screen.buffer_str(tile_preview, color, pos);
             }
         }
@@ -564,7 +630,7 @@ impl Renderer for DiffPrintRenderer {
             let elapsed = game.state().time.saturating_sub(*feedback_time);
             match feedback {
                 Feedback::PieceLocked { piece } => {
-                    if !settings.graphics().render_effects {
+                    if !settings.graphics().show_effects {
                         *active = false;
                         continue;
                     }
@@ -615,7 +681,7 @@ impl Renderer for DiffPrintRenderer {
                     y_coords,
                     line_clear_start: line_clear_duration,
                 } => {
-                    if !settings.graphics().render_effects || line_clear_duration.is_zero() {
+                    if !settings.graphics().show_effects || line_clear_duration.is_zero() {
                         *active = false;
                         continue;
                     }
@@ -678,7 +744,7 @@ impl Renderer for DiffPrintRenderer {
                     old_piece: _,
                     new_piece,
                 } => {
-                    if !settings.graphics().render_effects {
+                    if !settings.graphics().show_effects {
                         *active = false;
                         continue;
                     }

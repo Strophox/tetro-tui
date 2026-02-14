@@ -38,6 +38,11 @@ impl<T: Write> Application<T> {
         // Prepare everything to enter the game (react & render) loop.
 
         let keybinds_legend = replay_keybinds_legend();
+        let replay_length = game_input_history
+            .last()
+            .clone()
+            .map(|x| x.0)
+            .unwrap_or_default();
 
         // Toggle on enhanced-keyboard-events.
         if self.runtime_data.kitty_assumed {
@@ -74,6 +79,7 @@ impl<T: Write> Application<T> {
                 game_meta_data,
                 &self.settings,
                 &keybinds_legend,
+                Some(replay_length),
                 &mut self.term,
                 refresh_entire_view,
             )?;
