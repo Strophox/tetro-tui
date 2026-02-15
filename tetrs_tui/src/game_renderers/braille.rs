@@ -35,7 +35,7 @@ impl Renderer for BrailleRenderer {
         _meta_data: &GameMetaData,
         _settings: &Settings,
         _keybinds_legend: &KeybindsLegend,
-        _replay_extra: Option<InGameTime>,
+        _replay_extra: Option<(InGameTime, f64)>,
         term: &mut T,
         _rerender_entire_view: bool,
     ) -> io::Result<()> {

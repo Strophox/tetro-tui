@@ -63,7 +63,11 @@ impl Game {
             match self.phase {
                 // Game ended by now.
                 // Return accumulated messages.
-                Phase::GameEnd { .. } => {
+                Phase::GameEnd { result } => {
+                    // Add message that game ended.
+                    feedback_msgs.push((self.state.time, Feedback::GameEnded { result }));
+
+                    // Return early.
                     return Ok(feedback_msgs);
                 }
 
@@ -76,6 +80,7 @@ impl Game {
                         do_line_clearing(&self.config, &mut self.state, line_clears_finish_time);
                     self.state.time = line_clears_finish_time;
 
+                    // Return from update due to game end.
                     self.run_mods(UpdatePoint::LinesCleared, &mut feedback_msgs);
                 }
 
@@ -172,6 +177,7 @@ impl Game {
                     // NOTE: Ensure button state is updated as requested, even when `PieceInPlay` case is not triggered.
                     self.state.buttons_pressed = new_state_buttons_pressed;
 
+                    // Return from update due to target time reached.
                     return Ok(feedback_msgs);
                 }
             }

@@ -37,9 +37,8 @@ impl<T: Write> Application<T> {
                     match self.save_on_exit {
                         SavefileGranularity::NoSavefile => "No*",
                         SavefileGranularity::RememberSettings => "Yes (only settings)",
-                        SavefileGranularity::RememberSettingsScoreboard =>
-                            "Yes (only settings,scores)",
-                        SavefileGranularity::RememberSettingsScoreboardGamerecords =>
+                        SavefileGranularity::RememberSettingsScores => "Yes (only settings,scores)",
+                        SavefileGranularity::RememberSettingsScoresReplays =>
                             "Yes (save settings,scores,replays)",
                     }
                 ),
@@ -108,8 +107,7 @@ impl<T: Write> Application<T> {
                     1 => break Ok(MenuUpdate::Push(Menu::AdjustKeybinds)),
                     2 => break Ok(MenuUpdate::Push(Menu::AdjustGameplay)),
                     3 => {
-                        self.save_on_exit =
-                            SavefileGranularity::RememberSettingsScoreboardGamerecords;
+                        self.save_on_exit = SavefileGranularity::RememberSettingsScoresReplays;
                     }
                     _ => {}
                 },
@@ -137,12 +135,12 @@ impl<T: Write> Application<T> {
                     if selected == 3 {
                         self.save_on_exit = match self.save_on_exit {
                             SavefileGranularity::NoSavefile => {
-                                SavefileGranularity::RememberSettingsScoreboardGamerecords
+                                SavefileGranularity::RememberSettingsScoresReplays
                             }
-                            SavefileGranularity::RememberSettingsScoreboardGamerecords => {
-                                SavefileGranularity::RememberSettingsScoreboard
+                            SavefileGranularity::RememberSettingsScoresReplays => {
+                                SavefileGranularity::RememberSettingsScores
                             }
-                            SavefileGranularity::RememberSettingsScoreboard => {
+                            SavefileGranularity::RememberSettingsScores => {
                                 SavefileGranularity::RememberSettings
                             }
                             SavefileGranularity::RememberSettings => {
@@ -163,12 +161,12 @@ impl<T: Write> Application<T> {
                                 SavefileGranularity::RememberSettings
                             }
                             SavefileGranularity::RememberSettings => {
-                                SavefileGranularity::RememberSettingsScoreboard
+                                SavefileGranularity::RememberSettingsScores
                             }
-                            SavefileGranularity::RememberSettingsScoreboard => {
-                                SavefileGranularity::RememberSettingsScoreboardGamerecords
+                            SavefileGranularity::RememberSettingsScores => {
+                                SavefileGranularity::RememberSettingsScoresReplays
                             }
-                            SavefileGranularity::RememberSettingsScoreboardGamerecords => {
+                            SavefileGranularity::RememberSettingsScoresReplays => {
                                 SavefileGranularity::NoSavefile
                             }
                         };

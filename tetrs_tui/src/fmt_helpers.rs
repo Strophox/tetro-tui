@@ -206,15 +206,15 @@ pub fn replay_keybinds_legend() -> KeybindsLegend {
     let icon_pause = fk(KeyCode::Char(' '));
     let icons_speed = format!("{}{}", fk(KeyCode::Down), fk(KeyCode::Up));
     let icons_skip = format!("{}{}", fk(KeyCode::Left), fk(KeyCode::Right));
-    let icons_game_update = format!("{}{}", fk(KeyCode::Char(',')), fk(KeyCode::Char('.')));
+    // let icons_game_update = format!("{}{}", fk(KeyCode::Char(',')), fk(KeyCode::Char('.')));
     let icons_enter = fk(KeyCode::Enter);
     let icon_stop = fk(KeyCode::Esc);
 
     vec![
         (icon_pause, "pause"),
-        (icons_speed, "speed -/+ 0.1"),
-        (icons_skip, "skip -/+ 2s"),
-        (icons_game_update, "-/+ game update"),
+        (icons_speed, "speed -/+"),
+        (icons_skip, "skip -/+"),
+        // (icons_game_update, "-/+ game update"),
         (icons_enter, "game from here"),
         (icon_stop, "stop"),
     ]

@@ -13,16 +13,16 @@ use crossterm::{
 };
 
 use crate::{
-    application::{Application, Menu, MenuUpdate, ScoreboardEntry},
+    application::{Application, Menu, MenuUpdate, ScoresEntry},
     fmt_helpers::{fmt_duration, fmt_hertz, fmt_tetromino_counts},
 };
 
 impl<T: Write> Application<T> {
     pub(in crate::application) fn run_menu_game_ended(
         &mut self,
-        past_game: &ScoreboardEntry,
+        past_game: &ScoresEntry,
     ) -> io::Result<MenuUpdate> {
-        let ScoreboardEntry {
+        let ScoresEntry {
             game_meta_data,
             result,
             time_elapsed,
@@ -32,7 +32,12 @@ impl<T: Write> Application<T> {
             fall_delay_reached,
             lock_delay_reached,
         } = past_game;
-        let selection = vec![Menu::NewGame, Menu::Settings, Menu::Scoreboard, Menu::Quit];
+        let selection = vec![
+            Menu::NewGame,
+            Menu::Settings,
+            Menu::ScoresAndReplays,
+            Menu::Quit,
+        ];
         // if gamemode.name.as_ref().map(String::as_str) == Some("Puzzle")
         if result.is_ok() && game_meta_data.title == "Puzzle" {
             self.settings.new_game.experimental_mode_unlocked = true;

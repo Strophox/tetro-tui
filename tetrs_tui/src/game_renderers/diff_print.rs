@@ -254,7 +254,7 @@ impl Renderer for DiffPrintRenderer {
         meta_data: &GameMetaData,
         settings: &Settings,
         keybinds_legend: &KeybindsLegend,
-        replay_extra: Option<InGameTime>,
+        replay_extra: Option<(InGameTime, f64)>,
         term: &mut T,
         rerender_entire_view: bool,
     ) -> io::Result<()>
@@ -321,8 +321,8 @@ impl Renderer for DiffPrintRenderer {
                 format!(" {:<23                 }<! . . . . . . . . . .!>              ", if show_lockdelay { format!("Lock delay: {}", format!("{}ms",game.state().lock_delay.saturating_duration().as_millis())) } else { "".to_owned() }),
                 format!("                        <! . . . . . . . . . .!>              ", ),
                 format!("                        <! . . . . . . . . . .!>              ", ),
-                format!("  KEYBINDS              <! . . . . . . . . . .!>              ", ),
                 format!("                        <! . . . . . . . . . .!>              ", ),
+                format!("  KEYBINDS              <! . . . . . . . . . .!>              ", ),
                 format!("                        <! . . . . . . . . . .!>              ", ),
                 format!("                        <! . . . . . . . . . .!>              ", ),
                 format!("                        <! . . . . . . . . . .!>              ", ),
@@ -347,9 +347,9 @@ impl Renderer for DiffPrintRenderer {
                 format!(" {:<24                  }|                    |             {}", if show_lockdelay { format!("Lock delay: {}", format!("{}ms",game.state().lock_delay.saturating_duration().as_millis())) } else { "".to_owned() }, if show_next { " |" } else {"  "}),
                 format!("                         |                    |{             }", if show_next { "--------------+" } else {"               "}),
                 format!("                         |                    |               ", ),
+                format!("                         |                    |               ", ),
                 format!("  KEYBINDS               |                    |               ", ),
                 format!(" ----------              |                    |               ", ),
-                format!("                         |                    |               ", ),
                 format!("                         |                    |               ", ),
                 format!("                         |                    |               ", ),
                 format!("                         |                    |               ", ),
@@ -372,9 +372,9 @@ impl Renderer for DiffPrintRenderer {
                 format!(" {:<24                  }║                    ║             {}", if show_lockdelay { format!("Lock delay: {}", format!("{}ms",game.state().lock_delay.saturating_duration().as_millis())) } else { "".to_owned() }, if show_next { " │" } else {"  "}),
                 format!("                         ║                    ║{             }", if show_next { "──────────────┘" } else {"               "}),
                 format!("                         ║                    ║               ", ),
+                format!("                         ║                    ║               ", ),
                 format!("  KEYBINDS               ║                    ║               ", ),
                 format!(" ─────────╴              ║                    ║               ", ),
-                format!("                         ║                    ║               ", ),
                 format!("                         ║                    ║               ", ),
                 format!("                         ║                    ║               ", ),
                 format!("                         ║                    ║               ", ),
@@ -395,9 +395,10 @@ impl Renderer for DiffPrintRenderer {
         let (x_preview_small, y_preview_small) = (49, 13);
         let (x_preview_mini, y_preview_mini) = (50, 15);
         let (x_messages, y_messages) = (49, 18);
-        let (x_keybinds, y_keybinds) = (1, 15);
-        let (x_rep_hdr, y_rep_hdr) = (3, 1);
-        let (x_replen, y_replen) = (1, 11);
+        let (x_keybinds, y_keybinds) = (1, 16);
+        let (x_rep_hdr, y_rep_hdr) = (1, 1);
+        let (x_rep_len, y_rep_len) = (1, 11);
+        let (x_rep_spd, y_rep_spd) = (1, 12);
         let (x_buttonst, y_buttonst) = (48, 17);
         let pos_board = |(x, y)| (x_board + 2 * x, y_board + Game::SKYLINE_HEIGHT - y);
 
@@ -433,18 +434,25 @@ impl Renderer for DiffPrintRenderer {
                 .buffer_str(&format!("{icons: >icons_len$} {desc}"), None, pos);
         }
 
-        if let Some(replay_length) = replay_extra {
+        if let Some((replay_length, replay_speed)) = replay_extra {
             // Rendering a replay, show additional info.
 
             // Replay header.
             self.screen
-                .buffer_str("(Game Replay)", None, (x_rep_hdr, y_rep_hdr));
+                .buffer_str("(VIEWING REPLAY)", None, (x_rep_hdr, y_rep_hdr));
 
             // Replay length.
             self.screen.buffer_str(
                 &format!("Replay len/{}", fmt_duration(replay_length)),
                 None,
-                (x_replen, y_replen),
+                (x_rep_len, y_rep_len),
+            );
+
+            // Replay speed.
+            self.screen.buffer_str(
+                &format!("Replay speed/{:.2}", replay_speed),
+                None,
+                (x_rep_spd, y_rep_spd),
             );
         }
 
@@ -669,6 +677,7 @@ impl Renderer for DiffPrintRenderer {
                         *active = false;
                         continue;
                     };
+
                     for (tile_pos, _tile_type_id) in piece.tiles() {
                         if tile_pos.1 <= Game::SKYLINE_HEIGHT {
                             self.screen
@@ -761,6 +770,7 @@ impl Renderer for DiffPrintRenderer {
                             ));
                         }
                     }
+
                     *active = false;
                 }
 
@@ -772,13 +782,13 @@ impl Renderer for DiffPrintRenderer {
                     is_perfect_clear: perfect_clear,
                     combo,
                 } => {
-                    let mut msg = Vec::new();
-                    msg.push(format!("+{score_bonus}"));
+                    let mut text = Vec::new();
+                    text.push(format!("+{score_bonus}"));
                     if *perfect_clear {
-                        msg.push("Perfect".to_owned());
+                        text.push("Perfect".to_owned());
                     }
                     if *spin {
-                        msg.push(format!("{tetromino:?}-Spin"));
+                        text.push(format!("{tetromino:?}-Spin"));
                     }
                     let clear_action = match lineclears {
                         1 => "Single",
@@ -805,23 +815,37 @@ impl Renderer for DiffPrintRenderer {
                         _ => "Unreachable",
                     }
                     .to_string();
-                    msg.push(clear_action);
+                    text.push(clear_action);
                     if *combo > 1 {
-                        msg.push(format!("#{combo}."));
+                        text.push(format!("#{combo}."));
                     }
                     self.buffered_text_msgs
-                        .push((*feedback_time, msg.join(" ")));
+                        .push((*feedback_time, text.join(" ")));
+
                     *active = false;
                 }
 
-                Feedback::Text(msg) => {
-                    self.buffered_text_msgs.push((*feedback_time, msg.clone()));
+                Feedback::Text(string) => {
+                    self.buffered_text_msgs
+                        .push((*feedback_time, string.clone()));
+
                     *active = false;
                 }
 
                 Feedback::Debug(update_point) => {
                     self.buffered_text_msgs
                         .push((*feedback_time, format!("{update_point:?}")));
+
+                    *active = false;
+                }
+
+                Feedback::GameEnded { result } => {
+                    let text = match result {
+                        Ok(_stat) => "Game Complete!".to_owned(),
+                        Err(cause) => format!("{cause:?}..."),
+                    };
+
+                    self.buffered_text_msgs.push((*feedback_time, text));
                     *active = false;
                 }
             }

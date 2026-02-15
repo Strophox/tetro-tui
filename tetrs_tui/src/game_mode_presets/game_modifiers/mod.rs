@@ -117,9 +117,7 @@ pub mod custom_start_board {
 // NOTE: Can be / was used for debugging.
 #[allow(dead_code)]
 pub mod print_recency_tet_gen_stats {
-    use tetrs_engine::{
-        tetromino_generator::TetrominoGenerator, Feedback, Modifier, Tetromino, UpdatePoint,
-    };
+    use tetrs_engine::{Feedback, Modifier, Tetromino, TetrominoGenerator, UpdatePoint};
 
     pub const MOD_ID: &str = "print_recency_tet_gen_stats";
 

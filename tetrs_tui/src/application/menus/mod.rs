@@ -7,7 +7,7 @@ pub mod new_game;
 pub mod pause;
 pub mod play_game;
 pub mod replay_game;
-pub mod scoreboard;
+pub mod scores_and_replays;
 pub mod settings;
 pub mod title;
 

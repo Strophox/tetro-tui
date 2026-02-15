@@ -102,7 +102,7 @@ impl<T: Write> Application<T> {
                     "Show button state: {}",
                     self.settings.graphics().show_button_state
                 ),
-                format!("Framerate: {}", self.settings.graphics().game_fps),
+                format!("Max framerate: {}", self.settings.graphics().game_fps),
                 format!("Show fps: {}", self.settings.graphics().show_fps),
             ];
 

@@ -19,8 +19,8 @@ use tetrs_engine::{DelayParameters, ExtDuration, ExtNonNegF64, Game, InGameTime,
 
 use crate::{
     application::{
-        Application, GameInputHistory, GameMetaData, GameRestorationData, GameplaySettings, Menu,
-        MenuUpdate,
+        Application, GameMetaData, GameRestorationData, GameSave, GameplaySettings, Menu,
+        MenuUpdate, UncompressedInputHistory,
     },
     fmt_helpers::{fmt_button_change, fmt_duration, fmt_hertz},
     game_mode_presets::{
@@ -101,7 +101,7 @@ impl<T: Write> Application<T> {
             let w_main = Self::W_MAIN.into();
             let (x_main, y_main) = Self::fetch_main_xy();
             let y_selection = Self::H_MAIN / 5;
-            let savepoint_available = if self.game_savepoint.is_some() { 1 } else { 0 };
+            let savepoint_available = if !self.game_saves.1.is_empty() { 1 } else { 0 };
             // Normal presets + 2 spaces if savepoint option available + custom preset.
             let selection_len = game_presets.len() + savepoint_available + 1;
             // There are four columns for the custom stat selection.
@@ -135,8 +135,11 @@ impl<T: Write> Application<T> {
                     )))?;
             }
             // Render load savepoint option.
-            if let Some((game_meta_data, GameRestorationData { input_history, .. }, load_offset)) =
-                &self.game_savepoint
+            if let Some(GameSave {
+                game_meta_data,
+                game_restoration_data: GameRestorationData { input_history, .. },
+                inputs_to_load,
+            }) = &self.game_saves.1.get(self.game_saves.0)
             {
                 let load_title = &game_meta_data.title;
                 let load_offset_max = input_history.len();
@@ -148,13 +151,13 @@ impl<T: Write> Application<T> {
                     .queue(Print(format!(
                         "{:^w_main$}",
                         if selected == selection_len - 2 {
-                            if *load_offset == 0 {
+                            if *inputs_to_load == 0 {
                                 format!(">> Load {load_title:?} run from start [Del] <<")
                             } else {
-                                let (load_time, load_input) = input_history[(load_offset - 1) % input_history.len()];
+                                let (load_time, load_input) = input_history[(inputs_to_load - 1) % input_history.len()];
                                 let load_time = fmt_duration(load_time);
                                 let load_input = fmt_button_change(load_input);
-                                format!(">> Load {load_title} from: {load_offset}/{load_offset_max} ({load_input} @{load_time}) [Del] <<")
+                                format!(">> Load {load_title} from: {inputs_to_load}/{load_offset_max} ({load_input} @{load_time}) [Del] <<")
                             }
                         } else {
                             format!("Savepoint - {load_title} run...")
@@ -450,17 +453,20 @@ impl<T: Write> Application<T> {
                             self.settings.new_game.combo_linelimit =
                                 NonZeroU32::try_from(limit.get() - 1).ok();
                         }
-                    } else if let Some((_game_meta_data, game_restoration_data, load_offset)) =
-                        &mut self.game_savepoint
+                    } else if let Some(GameSave {
+                        game_restoration_data: GameRestorationData { input_history, .. },
+                        inputs_to_load,
+                        ..
+                    }) = self.game_saves.1.get_mut(self.game_saves.0)
                     {
                         if selected == selection_len - 2 {
-                            *load_offset += game_restoration_data.input_history.len()
+                            *inputs_to_load += input_history.len()
                                 * if modifiers.contains(KeyModifiers::SHIFT) {
                                     20
                                 } else {
                                     1
                                 };
-                            *load_offset %= game_restoration_data.input_history.len() + 1;
+                            *inputs_to_load %= input_history.len() + 1;
                         }
                     }
                 }
@@ -501,16 +507,19 @@ impl<T: Write> Application<T> {
                             } else {
                                 Some(NonZeroU32::MIN)
                             };
-                    } else if let Some((_game_meta_data, game_restoration_data, load_offset)) =
-                        &mut self.game_savepoint
+                    } else if let Some(GameSave {
+                        game_restoration_data: GameRestorationData { input_history, .. },
+                        inputs_to_load,
+                        ..
+                    }) = self.game_saves.1.get_mut(self.game_saves.0)
                     {
                         if selected == selection_len - 2 {
-                            *load_offset += if modifiers.contains(KeyModifiers::SHIFT) {
+                            *inputs_to_load += if modifiers.contains(KeyModifiers::SHIFT) {
                                 20
                             } else {
                                 1
                             };
-                            *load_offset %= game_restoration_data.input_history.len() + 1;
+                            *inputs_to_load %= input_history.len() + 1;
                         }
                     }
                 }
@@ -540,7 +549,8 @@ impl<T: Write> Application<T> {
                         self.settings.new_game.combo_startlayout =
                             COMBO_STARTLAYOUTS[new_layout_idx];
                     } else if selected == selection_len - 2 {
-                        self.game_savepoint = None;
+                        self.game_saves.1.remove(self.game_saves.0);
+                        self.game_saves.0 = 0;
                     }
                 }
 
@@ -572,7 +582,9 @@ impl<T: Write> Application<T> {
                     spawn_delay,
                     allow_prespawn_actions,
                 } = self.settings.gameplay().clone();
+
                 let mut builder = Game::builder();
+
                 builder
                     .rotation_system(rotation_system)
                     .tetromino_generator(tetromino_generator)
@@ -584,40 +596,47 @@ impl<T: Write> Application<T> {
                     .spawn_delay(spawn_delay)
                     .allow_prespawn_actions(allow_prespawn_actions);
 
-                let (meta_data, game, game_input_history) = if selected < game_presets.len() {
+                let (game_meta_data, game, game_input_history) = if selected < game_presets.len() {
                     // Build one of the selected game modes.
                     let ((title, comparison_stat, build), _desc) = &game_presets[selected];
 
-                    let mut new_game = build(&builder);
+                    let mut preset_game = build(&builder);
 
                     // We do an initial update, which allows the piece to spawn and queue to get generated.
                     // We do this so the renderer does not render a first frame of no pieces.
-                    let _v = new_game.update(InGameTime::ZERO, None);
+                    let _v = preset_game.update(InGameTime::ZERO, None);
 
-                    let new_meta_data = GameMetaData {
+                    let preset_game_meta_data = GameMetaData {
                         datetime: chrono::Utc::now().format("%Y-%m-%d_%H:%M").to_string(),
                         title: title.to_owned(),
                         comparison_stat: comparison_stat.to_owned(),
                     };
 
-                    let new_input_history = GameInputHistory::default();
+                    let fresh_input_history = UncompressedInputHistory::default();
 
-                    (new_meta_data, new_game, new_input_history)
+                    (preset_game_meta_data, preset_game, fresh_input_history)
                 } else if selected == selection_len - 2 {
                     // Load saved game.
-                    let (game_meta_data, game_restoration_data, load_offset) =
-                        &self.game_savepoint.as_ref().unwrap();
+                    // SAFETY: we an only get into this case if save exists!...
+                    let GameSave {
+                        game_meta_data,
+                        game_restoration_data,
+                        inputs_to_load,
+                    } = &self.game_saves.1.get(self.game_saves.0).unwrap();
 
-                    let restored_game = game_restoration_data.restore(*load_offset);
+                    let restored_game = game_restoration_data.restore(*inputs_to_load);
 
-                    let mut restored_meta_data = game_meta_data.clone();
-
+                    let mut restored_game_meta_data = game_meta_data.clone();
                     // Mark restored game as such.
-                    restored_meta_data.title.push('\'');
+                    restored_game_meta_data.title.push('\'');
 
                     let restored_input_history = game_restoration_data.input_history.clone();
 
-                    (restored_meta_data, restored_game, restored_input_history)
+                    (
+                        restored_game_meta_data,
+                        restored_game,
+                        restored_input_history,
+                    )
                 } else {
                     // Build custom game.
                     let n = &self.settings.new_game;
@@ -653,13 +672,13 @@ impl<T: Write> Application<T> {
                     // We do this so the renderer does not render a first frame of no pieces.
                     let _v = new_custom_game.update(InGameTime::ZERO, None);
 
-                    let new_meta_data = GameMetaData {
+                    let custom_game_meta_data = GameMetaData {
                         datetime: chrono::Utc::now().format("%Y-%m-%d_%H:%M").to_string(),
                         title: "Custom".to_owned(),
                         comparison_stat: (Stat::PointsScored(0), false),
                     };
-                    let new_input_history = GameInputHistory::default();
-                    (new_meta_data, new_custom_game, new_input_history)
+                    let fresh_input_history = UncompressedInputHistory::default();
+                    (custom_game_meta_data, new_custom_game, fresh_input_history)
                 };
                 // FIXME: Remove eventually.
                 // let mut game = game;
@@ -668,8 +687,8 @@ impl<T: Write> Application<T> {
                 // game.modifiers.push(tetrs_engine::Modifier { descriptor: "always_clear_board".to_owned(), mod_function: Box::new(|_c, _i, s, _m, _f| { s.board = Default::default(); })});
                 break Ok(MenuUpdate::Push(Menu::PlayGame {
                     game: Box::new(game),
-                    meta_data,
                     game_input_history,
+                    game_meta_data,
                     game_renderer: Default::default(),
                 }));
             }

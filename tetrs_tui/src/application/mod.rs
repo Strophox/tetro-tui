@@ -21,30 +21,30 @@ use crate::{game_mode_presets, game_renderers, keybinds_presets::*, palette_pres
 
 pub type Slots<T> = Vec<(String, T)>;
 
-pub type GameInputHistory = Vec<(InGameTime, ButtonChange)>;
+pub type UncompressedInputHistory = Vec<(InGameTime, ButtonChange)>;
 
 #[derive(
-    Eq,
     PartialEq,
-    Ord,
+    Eq,
     PartialOrd,
-    Clone,
+    Ord,
     Hash,
+    Clone,
     Debug,
     Default,
     serde::Serialize,
     serde::Deserialize,
 )]
-pub struct CompressedGameInputHistory(Vec<u128>);
+pub struct CompressedInputHistory(Vec<u128>);
 
-impl CompressedGameInputHistory {
+impl CompressedInputHistory {
     // How many bits it takes to encode a `ButtonChange`:
     // - 1 bit for Press/Release,
     // - At time of writing: 4 bits for the 11 `Button` variants.
     pub const BUTTON_CHANGE_BITSIZE: usize =
         1 + Button::VARIANTS.len().next_power_of_two().ilog2() as usize;
 
-    pub fn new(game_input_history: &GameInputHistory) -> Self {
+    pub fn new(game_input_history: &UncompressedInputHistory) -> Self {
         let mut compressed_inputs = Vec::new();
 
         if let Some((mut update_time_0, button_change)) = game_input_history.first() {
@@ -67,7 +67,7 @@ impl CompressedGameInputHistory {
         Self(compressed_inputs)
     }
 
-    pub fn decompress(&self) -> GameInputHistory {
+    pub fn decompress(&self) -> UncompressedInputHistory {
         let mut decompressed_inputs = Vec::new();
 
         if let Some(i) = self.0.first() {
@@ -127,25 +127,38 @@ impl CompressedGameInputHistory {
     }
 }
 
-#[derive(PartialEq, PartialOrd, Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(
+    PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
+)]
 pub struct GameRestorationData<T> {
     builder: GameBuilder,
     mod_descriptors: Vec<String>,
     input_history: T,
+    forfeit: Option<InGameTime>,
 }
 
 impl<T> GameRestorationData<T> {
-    fn new(game: &Game, input_history: T) -> GameRestorationData<T> {
+    fn new(game: &Game, input_history: T, forfeit: Option<InGameTime>) -> GameRestorationData<T> {
         let (builder, mod_descriptors) = game.blueprint();
         GameRestorationData {
             builder,
             mod_descriptors: mod_descriptors.map(str::to_owned).collect(),
             input_history,
+            forfeit,
+        }
+    }
+
+    fn map<U>(self, f: impl Fn(T) -> U) -> GameRestorationData<U> {
+        GameRestorationData::<U> {
+            builder: self.builder,
+            mod_descriptors: self.mod_descriptors,
+            input_history: f(self.input_history),
+            forfeit: self.forfeit,
         }
     }
 }
 
-impl GameRestorationData<GameInputHistory> {
+impl GameRestorationData<UncompressedInputHistory> {
     fn restore(&self, input_index: usize) -> Game {
         // Step 1: Prepare builder.
         let builder = self.builder.clone();
@@ -158,23 +171,14 @@ impl GameRestorationData<GameInputHistory> {
                 self.mod_descriptors.iter().map(String::as_str),
             ) {
                 Ok((mut modded_game, unrecognized_mod_descriptors)) => {
-                    // #[rustfmt::skip]
+                    #[rustfmt::skip]
                     let print_warn_msgs_mod = Modifier {
                         descriptor: "print_warn_msgs".to_owned(),
                         mod_function: Box::new({
                             let mut init = false;
                             move |_point, _config, _init_vals, state, _phase, msgs| {
-                                if init {
-                                    return;
-                                } else {
-                                    init = true;
-                                }
-                                for umd in unrecognized_mod_descriptors.iter() {
-                                    msgs.push((
-                                        state.time,
-                                        Feedback::Text(format!("WARNING: Idk {umd:?}")),
-                                    ));
-                                }
+                                if init { return; } else { init = true; }
+                                for umd in unrecognized_mod_descriptors.iter() { msgs.push((state.time,Feedback::Text(format!("WARNING: Idk {umd:?}")))); }
                             }
                         }),
                     };
@@ -216,7 +220,7 @@ impl GameRestorationData<GameInputHistory> {
 }
 
 #[derive(
-    Eq, PartialEq, Ord, PartialOrd, Clone, Hash, Debug, serde::Serialize, serde::Deserialize,
+    PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]
 pub struct GameMetaData {
     pub datetime: String,
@@ -225,9 +229,28 @@ pub struct GameMetaData {
 }
 
 #[derive(
-    Eq, PartialEq, Ord, PartialOrd, Clone, Hash, Debug, serde::Serialize, serde::Deserialize,
+    PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]
-pub struct ScoreboardEntry {
+pub struct GameSave<T> {
+    game_meta_data: GameMetaData,
+    game_restoration_data: GameRestorationData<T>,
+    inputs_to_load: usize,
+}
+
+impl<T> GameSave<T> {
+    fn map<U>(self, f: impl Fn(T) -> U) -> GameSave<U> {
+        GameSave {
+            game_restoration_data: self.game_restoration_data.map(f),
+            game_meta_data: self.game_meta_data,
+            inputs_to_load: self.inputs_to_load,
+        }
+    }
+}
+
+#[derive(
+    PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
+)]
+pub struct ScoresEntry {
     game_meta_data: GameMetaData,
     result: GameResult,
     time_elapsed: InGameTime,
@@ -238,9 +261,9 @@ pub struct ScoreboardEntry {
     lock_delay_reached: Option<ExtDuration>,
 }
 
-impl ScoreboardEntry {
-    fn new(game: &Game, game_meta_data: &GameMetaData) -> ScoreboardEntry {
-        ScoreboardEntry {
+impl ScoresEntry {
+    fn new(game: &Game, game_meta_data: &GameMetaData) -> ScoresEntry {
+        ScoresEntry {
             game_meta_data: game_meta_data.clone(),
             time_elapsed: game.state().time,
             pieces_locked: game.state().pieces_locked,
@@ -259,35 +282,46 @@ impl ScoreboardEntry {
 }
 
 #[derive(
-    Eq,
     PartialEq,
-    Ord,
+    Eq,
     PartialOrd,
+    Ord,
+    Hash,
     Clone,
     Copy,
-    Hash,
     Debug,
     Default,
     serde::Serialize,
     serde::Deserialize,
 )]
-pub enum ScoreboardSorting {
+pub enum ScoresSorting {
     #[default]
     Chronological,
     Semantic,
 }
 
-#[derive(PartialEq, PartialOrd, Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
-pub struct Scoreboard {
-    sorting: ScoreboardSorting,
+#[derive(
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Clone,
+    Debug,
+    Default,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+pub struct ScoresAndReplays {
+    sorting: ScoresSorting,
     entries: Vec<(
-        ScoreboardEntry,
-        Option<GameRestorationData<CompressedGameInputHistory>>,
+        ScoresEntry,
+        Option<GameRestorationData<CompressedInputHistory>>,
     )>,
 }
 
 #[derive(
-    Eq, PartialEq, Ord, PartialOrd, Clone, Hash, Debug, serde::Serialize, serde::Deserialize,
+    PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]
 pub struct NewGameSettings {
     custom_fall_delay_params: DelayParameters,
@@ -373,12 +407,23 @@ impl NewGameSettings {
 }
 
 #[derive(
-    Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug, serde::Serialize, serde::Deserialize,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Clone,
+    Copy,
+    Debug,
+    Default,
+    serde::Serialize,
+    serde::Deserialize,
 )]
 pub enum Glyphset {
     Electronika60,
     #[allow(clippy::upper_case_acronyms)]
     ASCII,
+    #[default]
     Unicode,
 }
 
@@ -398,7 +443,7 @@ pub struct GraphicsSettings {
 impl Default for GraphicsSettings {
     fn default() -> Self {
         Self {
-            glyphset: Glyphset::Unicode,
+            glyphset: Glyphset::default(),
             palette_active: 3,
             palette_active_lockedtiles: 3,
             show_effects: true,
@@ -411,7 +456,9 @@ impl Default for GraphicsSettings {
     }
 }
 
-#[derive(PartialEq, PartialOrd, Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(
+    PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug, serde::Serialize, serde::Deserialize,
+)]
 pub struct GameplaySettings {
     rotation_system: RotationSystem,
     tetromino_generator: TetrominoGenerator,
@@ -442,13 +489,24 @@ impl Default for GameplaySettings {
 }
 
 #[derive(
-    Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug, serde::Serialize, serde::Deserialize,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Clone,
+    Copy,
+    Debug,
+    Default,
+    serde::Serialize,
+    serde::Deserialize,
 )]
 pub enum SavefileGranularity {
+    #[default]
     NoSavefile,
     RememberSettings,
-    RememberSettingsScoreboard,
-    RememberSettingsScoreboardGamerecords,
+    RememberSettingsScores,
+    RememberSettingsScoresReplays,
 }
 
 #[serde_with::serde_as]
@@ -564,7 +622,7 @@ impl Settings {
 }
 
 #[derive(
-    Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Hash, Debug, serde::Serialize, serde::Deserialize,
+    PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug, serde::Serialize, serde::Deserialize,
 )]
 pub struct RuntimeData {
     kitty_detected: bool,
@@ -577,8 +635,8 @@ enum Menu {
     NewGame,
     PlayGame {
         game: Box<Game>,
-        meta_data: GameMetaData,
-        game_input_history: GameInputHistory,
+        game_input_history: UncompressedInputHistory,
+        game_meta_data: GameMetaData,
         game_renderer: Box<game_renderers::diff_print::DiffPrintRenderer>,
     },
     Pause,
@@ -586,13 +644,12 @@ enum Menu {
     AdjustGraphics,
     AdjustKeybinds,
     AdjustGameplay,
-    GameOver(Box<ScoreboardEntry>),
-    GameComplete(Box<ScoreboardEntry>),
-    Scoreboard,
+    GameOver(Box<ScoresEntry>),
+    GameComplete(Box<ScoresEntry>),
+    ScoresAndReplays,
     ReplayGame {
-        game: Box<Game>,
-        meta_data: GameMetaData,
-        game_input_history: GameInputHistory,
+        game_restoration_data: Box<GameRestorationData<UncompressedInputHistory>>,
+        game_meta_data: GameMetaData,
         game_renderer: Box<game_renderers::diff_print::DiffPrintRenderer>,
     },
     About,
@@ -604,7 +661,9 @@ impl std::fmt::Display for Menu {
         let name = match self {
             Menu::Title => "Title Screen",
             Menu::NewGame => "New Game",
-            Menu::PlayGame { meta_data, .. } => &format!("Playing Game ({})", meta_data.title),
+            Menu::PlayGame { game_meta_data, .. } => {
+                &format!("Playing Game ({})", game_meta_data.title)
+            }
             Menu::Pause => "Pause",
             Menu::Settings => "Settings",
             Menu::AdjustGraphics => "Adjust Graphics",
@@ -612,8 +671,10 @@ impl std::fmt::Display for Menu {
             Menu::AdjustGameplay => "Adjust Gameplay",
             Menu::GameOver(_) => "Game Over",
             Menu::GameComplete(_) => "Game Completed",
-            Menu::Scoreboard => "Scoreboard",
-            Menu::ReplayGame { meta_data, .. } => &format!("Replaying Game ({})", meta_data.title),
+            Menu::ScoresAndReplays => "Scores and Replays",
+            Menu::ReplayGame { game_meta_data, .. } => {
+                &format!("Replaying Game ({})", game_meta_data.title)
+            }
             Menu::About => "About",
             Menu::Quit => "Quit",
         };
@@ -628,14 +689,14 @@ enum MenuUpdate {
 }
 
 // TODO: Move tui application into `main` instead of artifically having it in one module below `tetrs_tui::main`.
-#[derive(PartialEq, Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(PartialEq, Clone, Debug)]
 pub struct Application<T: Write> {
     runtime_data: RuntimeData,
     term: T,
     save_on_exit: SavefileGranularity,
     settings: Settings,
-    scoreboard: Scoreboard,
-    game_savepoint: Option<(GameMetaData, GameRestorationData<GameInputHistory>, usize)>,
+    scores_and_replays: ScoresAndReplays,
+    game_saves: (usize, Vec<GameSave<UncompressedInputHistory>>),
 }
 
 impl<T: Write> Drop for Application<T> {
@@ -695,8 +756,8 @@ impl<T: Write> Application<T> {
             },
             term,
             settings: Settings::default(),
-            scoreboard: Scoreboard::default(),
-            game_savepoint: None,
+            scores_and_replays: ScoresAndReplays::default(),
+            game_saves: (0, Vec::new()),
             save_on_exit: SavefileGranularity::NoSavefile,
         };
 
@@ -737,35 +798,31 @@ impl<T: Write> Application<T> {
     }
 
     fn store_savefile(&mut self, path: PathBuf) -> io::Result<()> {
-        if self.save_on_exit < SavefileGranularity::RememberSettingsScoreboard {
+        if self.save_on_exit < SavefileGranularity::RememberSettingsScores {
             // Clear scoreboard if no game data is wished to be stored.
-            self.scoreboard.entries.clear();
-        } else if self.save_on_exit < SavefileGranularity::RememberSettingsScoreboardGamerecords {
+            self.scores_and_replays.entries.clear();
+        } else if self.save_on_exit < SavefileGranularity::RememberSettingsScoresReplays {
             // Clear past game inputs if no game input data is wished to be stored.
-            for (_entry, restoration_data) in &mut self.scoreboard.entries {
+            for (_entry, restoration_data) in &mut self.scores_and_replays.entries {
                 restoration_data.take();
             }
         }
 
-        let compressed_game_savepoint =
-            self.game_savepoint
-                .as_ref()
-                .map(|(meta_data, restoration_data, load_offset)| {
-                    let restoration_data = GameRestorationData {
-                        builder: restoration_data.builder.clone(),
-                        mod_descriptors: restoration_data.mod_descriptors.clone(),
-                        input_history: CompressedGameInputHistory::new(
-                            &restoration_data.input_history,
-                        ),
-                    };
-                    (meta_data, restoration_data, load_offset)
-                });
+        let compressed_game_saves = (
+            self.game_saves.0,
+            self.game_saves
+                .1
+                .iter()
+                .cloned()
+                .map(|save| save.map(|input_history| CompressedInputHistory::new(&input_history)))
+                .collect::<Vec<_>>(),
+        );
 
         let save_state = (
             &self.save_on_exit,
             &self.settings,
-            &self.scoreboard,
-            compressed_game_savepoint,
+            &self.scores_and_replays,
+            compressed_game_saves,
         );
         let save_str = serde_json::to_string(&save_state)?;
         let mut file = File::create(path)?;
@@ -788,47 +845,45 @@ impl<T: Write> Application<T> {
         file.read_to_string(&mut save_str)?;
         let save_state = serde_json::from_str(&save_str)?;
 
-        let compressed_game_savepoint: Option<(
-            GameMetaData,
-            GameRestorationData<CompressedGameInputHistory>,
-            usize,
-        )>;
+        let compressed_game_saves: (usize, Vec<GameSave<CompressedInputHistory>>);
 
         (
             self.save_on_exit,
             self.settings,
-            self.scoreboard,
-            compressed_game_savepoint,
+            self.scores_and_replays,
+            compressed_game_saves,
         ) = save_state;
 
-        self.game_savepoint =
-            compressed_game_savepoint.map(|(meta_data, restoration_data, load_offset)| {
-                let restoration_data = GameRestorationData {
-                    builder: restoration_data.builder.clone(),
-                    mod_descriptors: restoration_data.mod_descriptors.clone(),
-                    input_history: restoration_data.input_history.decompress(),
-                };
-                (meta_data, restoration_data, load_offset)
-            });
+        self.game_saves = (
+            compressed_game_saves.0,
+            compressed_game_saves
+                .1
+                .into_iter()
+                .map(|save| save.map(|input_history| input_history.decompress()))
+                .collect::<Vec<_>>(),
+        );
+
         Ok(())
     }
 
     fn sort_past_games_chronologically(&mut self) {
-        self.scoreboard.entries.sort_by(|(pg1, _), (pg2, _)| {
-            pg1.game_meta_data
-                .datetime
-                .cmp(&pg2.game_meta_data.datetime)
-                .reverse()
-        });
+        self.scores_and_replays
+            .entries
+            .sort_by(|(pg1, _), (pg2, _)| {
+                pg1.game_meta_data
+                    .datetime
+                    .cmp(&pg2.game_meta_data.datetime)
+                    .reverse()
+            });
     }
 
     #[rustfmt::skip]
     fn sort_past_games_semantically(&mut self) {
-        self.scoreboard.entries.sort_by(|(pg1, _), (pg2, _)|
+        self.scores_and_replays.entries.sort_by(|(pg1, _), (pg2, _)|
             // Sort by gamemode (name).
             pg1.game_meta_data.title.cmp(&pg2.game_meta_data.title).then_with(||
             // Sort by if gamemode was finished successfully.
-            pg1.result.is_ok().cmp(&pg2.result.is_ok()).then_with(|| {
+            pg1.result.is_ok().cmp(&pg2.result.is_ok()).reverse().then_with(|| {
                 // Sort by comparison stat...
                 let o = match pg1.game_meta_data.comparison_stat.0 {
                     Stat::TimeElapsed(_)    => pg1.time_elapsed.cmp(&pg2.time_elapsed),
@@ -844,7 +899,6 @@ impl<T: Write> Application<T> {
                     { o } else { o.reverse() }
             })
             )
-            .reverse()
         );
     }
 
@@ -861,13 +915,13 @@ impl<T: Write> Application<T> {
                 Menu::NewGame => self.run_menu_new_game(),
                 Menu::PlayGame {
                     game,
-                    meta_data,
                     game_input_history,
+                    game_meta_data,
                     game_renderer,
                 } => self.run_menu_play_game(
                     game,
-                    meta_data,
                     game_input_history,
+                    game_meta_data,
                     game_renderer.as_mut(),
                 ),
                 Menu::Pause => self.run_menu_pause(),
@@ -877,22 +931,20 @@ impl<T: Write> Application<T> {
                 Menu::AdjustGameplay => self.run_menu_adjust_gameplay(),
                 Menu::GameOver(past_game) => self.run_menu_game_ended(past_game),
                 Menu::GameComplete(past_game) => self.run_menu_game_ended(past_game),
-                Menu::Scoreboard => self.run_menu_scoreboard(),
+                Menu::ScoresAndReplays => self.run_menu_scores_and_replays(),
                 Menu::ReplayGame {
-                    game,
-                    meta_data,
-                    game_input_history,
+                    game_restoration_data,
+                    game_meta_data,
                     game_renderer,
                 } => self.run_menu_replay_game(
-                    game,
-                    meta_data,
-                    game_input_history,
+                    game_restoration_data,
+                    game_meta_data,
                     game_renderer.as_mut(),
                 ),
                 Menu::About => self.run_menu_about(),
                 Menu::Quit => break,
             }?;
-            
+
             // Change screen session depending on what response screen gave.
             match menu_update {
                 MenuUpdate::Pop => {

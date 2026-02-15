@@ -7,7 +7,7 @@ impl<T: Write> Application<T> {
         let selection = vec![
             Menu::NewGame,
             Menu::Settings,
-            Menu::Scoreboard,
+            Menu::ScoresAndReplays,
             Menu::About,
             Menu::Quit,
         ];

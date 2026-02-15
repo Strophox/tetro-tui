@@ -37,8 +37,8 @@ TASK: Document all features (including IRS, etc. - cargo feature `serde`).
 
 pub mod extduration;
 pub mod extnonnegf64;
-pub mod game_builder;
-pub mod game_update;
+mod game_builder;
+mod game_update;
 pub mod rotation_system;
 pub mod tetromino_generator;
 
@@ -559,6 +559,11 @@ pub enum Feedback {
         /// The tetromino type that was locked.
         tetromino: Tetromino,
     },
+    /// Message that the game has ended.
+    GameEnded {
+        /// Outcome of the game.
+        result: GameResult,
+    },
     /// A message containing an exact in-engine `UpdatePoint` that was processed.
     Debug(UpdatePoint<String>),
     /// Generic text feedback message.
@@ -996,10 +1001,12 @@ impl Game {
     /// Retrieve the when the next *autonomous* in-game update is scheduled.
     /// I.e., compute the next time the game would change state assuming no button updates
     ///
+    /// Returns `None` when game ended.
+    ///
     /// # Modifiers
     /// Note that this only predicts what an unmodded game would do;
     /// [`Modifier`]s may arbitrarily change game state and change or prevent precise update predictions.
-    pub fn peek_update_time(&self) -> Option<InGameTime> {
+    pub fn peek_next_update_time(&self) -> Option<InGameTime> {
         // Find the next autonomous game update.
         let action_time = match self.phase {
             Phase::GameEnd { .. } => return None,
@@ -1053,10 +1060,17 @@ impl Game {
     ///
     /// This can be used so `game.ended()` returns true and prevents future
     /// calls to `update` from continuing to advance the game.
-    pub const fn forfeit(&mut self) {
+    pub const fn forfeit(&mut self) -> FeedbackMsg {
         self.phase = Phase::GameEnd {
             result: Err(GameOver::Forfeit),
         };
+
+        (
+            self.state.time,
+            Feedback::GameEnded {
+                result: Err(GameOver::Forfeit),
+            },
+        )
     }
 
     /// Creates an identical, independent copy of the game but without any modifiers.

@@ -43,7 +43,7 @@ impl Renderer for DebugRenderer {
         _meta_data: &GameMetaData,
         _settings: &Settings,
         _keybinds_legend: &KeybindsLegend,
-        _replay_extra: Option<InGameTime>,
+        _replay_extra: Option<(InGameTime, f64)>,
         term: &mut T,
         _rerender_entire_view: bool,
     ) -> io::Result<()>
@@ -151,11 +151,7 @@ impl Renderer for DebugRenderer {
                     msg.join(" ")
                 }
 
-                Feedback::PieceLocked { .. } => continue,
-                Feedback::LinesClearing { .. } => continue,
-                Feedback::HardDrop { .. } => continue,
-                Feedback::Debug(update_point) => format!("{update_point:?}"),
-                Feedback::Text(s) => s.clone(),
+                feedback => format!("{feedback:?}"),
             });
         }
 

@@ -1,6 +1,4 @@
-use std::{
-    io::{self, Write},
-};
+use std::io::{self, Write};
 
 use crossterm::{
     cursor::MoveTo,
@@ -17,15 +15,15 @@ use tetrs_engine::Stat;
 
 use crate::{
     application::{
-        Application, CompressedGameInputHistory, GameInputHistory, GameRestorationData, Menu,
-        MenuUpdate, ScoreboardEntry, ScoreboardSorting,
+        Application, CompressedInputHistory, GameRestorationData, Menu, MenuUpdate, ScoresEntry,
+        ScoresSorting,
     },
     fmt_helpers::fmt_duration,
 };
 
 impl<T: Write> Application<T> {
     #[allow(clippy::len_zero)]
-    pub(in crate::application) fn run_menu_scoreboard(&mut self) -> io::Result<MenuUpdate> {
+    pub(in crate::application) fn run_menu_scores_and_replays(&mut self) -> io::Result<MenuUpdate> {
         const CAMERA_SIZE: usize = 14;
         const CAMERA_MARGIN: usize = 3;
         let mut cursor_pos = 0usize;
@@ -37,38 +35,38 @@ impl<T: Write> Application<T> {
             self.term
                 .queue(Clear(ClearType::All))?
                 .queue(MoveTo(x_main, y_main + y_selection))?
-                .queue(Print(format!("{:^w_main$}", "* Scoreboard *")))?
+                .queue(Print(format!("{:^w_main$}", "* Scores & Replays *")))?
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
                 .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
 
-            let fmt_comparison_stat = |p: &ScoreboardEntry| match p.game_meta_data.comparison_stat.0
-            {
+            let fmt_comparison_stat = |p: &ScoresEntry| match p.game_meta_data.comparison_stat.0 {
                 Stat::TimeElapsed(_) => format!("time: {}", fmt_duration(p.time_elapsed)),
                 Stat::PiecesLocked(_) => format!("pieces: {}", p.pieces_locked.iter().sum::<u32>()),
                 Stat::LinesCleared(_) => format!("lines: {}", p.lineclears),
                 Stat::PointsScored(_) => format!("score: {}", p.points_scored),
             };
 
-            let fmt_past_game = |(e, _): &(
-                ScoreboardEntry,
-                Option<GameRestorationData<CompressedGameInputHistory>>,
+            let fmt_past_game = |(entry, opt_rep): &(
+                ScoresEntry,
+                Option<GameRestorationData<CompressedInputHistory>>,
             )| {
                 format!(
-                    "{} {} | {}{}",
-                    e.game_meta_data.datetime,
-                    e.game_meta_data.title,
-                    fmt_comparison_stat(e),
-                    if e.result.is_ok() { "" } else { " (unf.)" }
+                    "{} {} | {}{}{}",
+                    entry.game_meta_data.datetime,
+                    entry.game_meta_data.title,
+                    fmt_comparison_stat(entry),
+                    if entry.result.is_ok() { "" } else { " (unf.)" },
+                    if opt_rep.is_some() { " &RP" } else { "" }
                 )
             };
 
-            match self.scoreboard.sorting {
-                ScoreboardSorting::Chronological => self.sort_past_games_chronologically(),
-                ScoreboardSorting::Semantic => self.sort_past_games_semantically(),
+            match self.scores_and_replays.sorting {
+                ScoresSorting::Chronological => self.sort_past_games_chronologically(),
+                ScoresSorting::Semantic => self.sort_past_games_semantically(),
             };
 
             for (i, entry) in self
-                .scoreboard
+                .scores_and_replays
                 .entries
                 .iter()
                 .skip(camera_pos)
@@ -91,7 +89,7 @@ impl<T: Write> Application<T> {
                     )))?;
             }
             let entries_left = self
-                .scoreboard
+                .scores_and_replays
                 .entries
                 .len()
                 .saturating_sub(camera_pos + CAMERA_SIZE);
@@ -109,7 +107,7 @@ impl<T: Write> Application<T> {
                         } else {
                             "".to_owned()
                         },
-                        format!("({:?} order [←|→])", self.scoreboard.sorting)
+                        format!("({:?} order [←|→])", self.scores_and_replays.sorting)
                     )
                 )))?;
             self.term.flush()?;
@@ -135,15 +133,19 @@ impl<T: Write> Application<T> {
                     code: KeyCode::Up | KeyCode::Char('k'),
                     kind: kind @ (Press | Repeat),
                     ..
-                }) if self.scoreboard.entries.len() > 0 => {
+                }) if self.scores_and_replays.entries.len() > 0 => {
                     // We allow wrapping cursor pos, but only on manual presses (if detectable).
                     if 0 < cursor_pos || kind == Press {
                         // Cursor pos possibly wraps back down.
-                        cursor_pos += self.scoreboard.entries.len() - 1;
-                        cursor_pos %= self.scoreboard.entries.len();
+                        cursor_pos += self.scores_and_replays.entries.len() - 1;
+                        cursor_pos %= self.scores_and_replays.entries.len();
                         // If it does, then manually reset camera to bottom of scoreboard.
-                        if cursor_pos == self.scoreboard.entries.len() - 1 {
-                            camera_pos = self.scoreboard.entries.len().saturating_sub(CAMERA_SIZE);
+                        if cursor_pos == self.scores_and_replays.entries.len() - 1 {
+                            camera_pos = self
+                                .scores_and_replays
+                                .entries
+                                .len()
+                                .saturating_sub(CAMERA_SIZE);
                         // Otherwise cursor just moved normally, and we may have to adapt camera (unless it hit scoreboard end).
                         } else if 0 < camera_pos && cursor_pos < camera_pos + CAMERA_MARGIN {
                             camera_pos -= 1;
@@ -156,19 +158,23 @@ impl<T: Write> Application<T> {
                     code: KeyCode::Down | KeyCode::Char('j'),
                     kind: kind @ (Press | Repeat),
                     ..
-                }) if self.scoreboard.entries.len() > 0 => {
+                }) if self.scores_and_replays.entries.len() > 0 => {
                     // We allow wrapping cursor pos, but only on manual presses (if detectable).
-                    if cursor_pos < self.scoreboard.entries.len() - 1 || kind == Press {
+                    if cursor_pos < self.scores_and_replays.entries.len() - 1 || kind == Press {
                         // Cursor pos possibly wraps back up.
                         cursor_pos += 1;
-                        cursor_pos %= self.scoreboard.entries.len();
+                        cursor_pos %= self.scores_and_replays.entries.len();
                         // If it does, then manually reset camera to bottom of scoreboard.
                         if cursor_pos == 0 {
                             camera_pos = 0;
                         // Otherwise cursor just moved normally, and we may have to adapt camera (unless it hit scoreboard end).
                         } else if camera_pos + CAMERA_SIZE - CAMERA_MARGIN <= cursor_pos
                             && camera_pos
-                                < self.scoreboard.entries.len().saturating_sub(CAMERA_SIZE)
+                                < self
+                                    .scores_and_replays
+                                    .entries
+                                    .len()
+                                    .saturating_sub(CAMERA_SIZE)
                         {
                             camera_pos += 1;
                         }
@@ -180,9 +186,9 @@ impl<T: Write> Application<T> {
                     kind: Press | Repeat,
                     ..
                 }) => {
-                    self.scoreboard.sorting = match self.scoreboard.sorting {
-                        ScoreboardSorting::Chronological => ScoreboardSorting::Semantic,
-                        ScoreboardSorting::Semantic => ScoreboardSorting::Chronological,
+                    self.scores_and_replays.sorting = match self.scores_and_replays.sorting {
+                        ScoresSorting::Chronological => ScoresSorting::Semantic,
+                        ScoresSorting::Semantic => ScoresSorting::Chronological,
                     };
                 }
 
@@ -191,9 +197,9 @@ impl<T: Write> Application<T> {
                     kind: Press | Repeat,
                     ..
                 }) => {
-                    self.scoreboard.sorting = match self.scoreboard.sorting {
-                        ScoreboardSorting::Chronological => ScoreboardSorting::Semantic,
-                        ScoreboardSorting::Semantic => ScoreboardSorting::Chronological,
+                    self.scores_and_replays.sorting = match self.scores_and_replays.sorting {
+                        ScoresSorting::Chronological => ScoresSorting::Semantic,
+                        ScoresSorting::Semantic => ScoresSorting::Chronological,
                     };
                 }
 
@@ -202,9 +208,9 @@ impl<T: Write> Application<T> {
                     code: KeyCode::Delete | KeyCode::Char('d'),
                     kind: Press | Repeat,
                     ..
-                }) if self.scoreboard.entries.len() > 0 => {
-                    self.scoreboard.entries.remove(cursor_pos);
-                    if 0 < cursor_pos && cursor_pos == self.scoreboard.entries.len() {
+                }) if self.scores_and_replays.entries.len() > 0 => {
+                    self.scores_and_replays.entries.remove(cursor_pos);
+                    if 0 < cursor_pos && cursor_pos == self.scores_and_replays.entries.len() {
                         cursor_pos -= 1;
                         camera_pos = camera_pos.saturating_sub(1);
                     }
@@ -216,24 +222,19 @@ impl<T: Write> Application<T> {
                     code: KeyCode::Enter | KeyCode::Char('e'),
                     kind: Press | Repeat,
                     ..
-                }) if self.scoreboard.entries.len() > 0 => {
-                    if let (ScoreboardEntry { game_meta_data, .. }, Some(game_restoration_data)) =
-                        &self.scoreboard.entries[cursor_pos]
+                }) if self.scores_and_replays.entries.len() > 0 => {
+                    if let (ScoresEntry { game_meta_data, .. }, Some(game_restoration_data)) =
+                        &self.scores_and_replays.entries[cursor_pos]
                     {
-                        let meta_data = game_meta_data.clone();
+                        let game_meta_data = game_meta_data.clone();
 
-                        let restoration_data = GameRestorationData::<GameInputHistory> {
-                            builder: game_restoration_data.builder.clone(),
-                            mod_descriptors: game_restoration_data.mod_descriptors.clone(),
-                            input_history: game_restoration_data.input_history.decompress(),
-                        };
-
-                        let game = restoration_data.restore(0);
+                        let game_restoration_data = game_restoration_data
+                            .clone()
+                            .map(|input_history| input_history.decompress());
 
                         break Ok(MenuUpdate::Push(Menu::ReplayGame {
-                            game: Box::new(game),
-                            meta_data,
-                            game_input_history: restoration_data.input_history,
+                            game_restoration_data: Box::new(game_restoration_data),
+                            game_meta_data,
                             game_renderer: Default::default(),
                         }));
                     } else {

@@ -11,12 +11,12 @@ use crossterm::{
     terminal::{self, Clear, ClearType},
     ExecutableCommand,
 };
-use tetrs_engine::{Button, ButtonChange, Feedback, Game, InGameTime, UpdateGameError};
+use tetrs_engine::{Button, ButtonChange, Feedback, Game, GameOver, InGameTime, UpdateGameError};
 
 use crate::{
     application::{
-        Application, CompressedGameInputHistory, GameInputHistory, GameMetaData,
-        GameRestorationData, Menu, MenuUpdate, ScoreboardEntry,
+        Application, CompressedInputHistory, GameMetaData, GameRestorationData, GameSave, Menu,
+        MenuUpdate, ScoresEntry, UncompressedInputHistory,
     },
     fmt_helpers::get_play_keybinds_legend,
     game_renderers::Renderer,
@@ -28,25 +28,25 @@ impl<T: Write> Application<T> {
     pub(in crate::application) fn run_menu_play_game(
         &mut self,
         game: &mut Game,
+        game_input_history: &mut UncompressedInputHistory,
         game_meta_data: &mut GameMetaData,
-        game_input_history: &mut GameInputHistory,
         game_renderer: &mut impl Renderer,
     ) -> io::Result<MenuUpdate> {
         /* Our game loop recipe looks like this:
-           * Enter 'update_and_render loop:
-             - If game has ended, break loop.
-             - Enter 'wait loop (budget based on 'latest refresh'):
-               + Use player input to update game.
-               + If budget ran out, break loop.
-             - Set 'latest refresh' variable to ::now(). 
-             - Do game.update().
-               ** Note that in-game time at time of update can be determined with either
-                  -- `duration elapsed IRL - duration paused`,
-                  -- `in-game time before entering loop + in-game time elapsed since loop entered`.
+          * Enter 'update_and_render loop:
+            - If game has ended, break loop.
+            - Enter 'wait loop (budget based on 'latest refresh'):
+              + Use player input to update game.
+              + If budget ran out, break loop.
+            - Set 'latest refresh' variable to ::now().
+            - Do game.update().
+              ** Note that in-game time at time of update can be determined with either
+                 -- `duration elapsed IRL - duration paused`,
+                 -- `in-game time before entering loop + in-game time elapsed since loop entered`.
 
-             - Do game.render().
-             - Continue 'update_and_render.
-         */
+            - Do game.render().
+            - Continue 'update_and_render.
+        */
 
         // Prepare everything to enter the game (react & render) loop.
 
@@ -63,14 +63,11 @@ impl<T: Write> Application<T> {
         let _join_handle =
             live_input_handler::spawn(input_sender, self.settings.keybinds().clone());
 
+        let keybinds_legend = get_play_keybinds_legend(self.settings.keybinds());
+
         // FPS counter.
         let mut renders_per_second_counter = 0u32;
         let mut renders_per_second_counter_start_time = Instant::now();
-
-        // Explicitly tells the renderer if entire screen needs to be re-drawn once.
-        let mut rerender_entire_view = true;
-
-        let keybinds_legend = get_play_keybinds_legend(self.settings.keybinds());
 
         // Initial render.
         game_renderer.render(
@@ -80,8 +77,11 @@ impl<T: Write> Application<T> {
             &keybinds_legend,
             None,
             &mut self.term,
-            rerender_entire_view,
+            true,
         )?;
+
+        // Explicitly tells the renderer if entire screen needs to be re-drawn once.
+        let mut rerender_entire_view = false;
 
         // Time of the game when we enter the game loop.
         let ingametime_when_game_loop_entered = game.state().time;
@@ -90,7 +90,8 @@ impl<T: Write> Application<T> {
         let time_game_loop_entered = Instant::now();
 
         // How much time passes between each refresh.
-        let refresh_time_budget = Duration::from_secs_f64(self.settings.graphics().game_fps.recip());
+        let refresh_time_budget =
+            Duration::from_secs_f64(self.settings.graphics().game_fps.recip());
 
         let mut time_last_refresh = time_game_loop_entered;
 
@@ -102,22 +103,24 @@ impl<T: Write> Application<T> {
             if let Some(game_result) = game.result() {
                 // Game ended, cannot actually continue playing;
                 // Convert to scoreboard entry and return appropriate game-ended menu.
-                let scoreboard_entry = ScoreboardEntry::new(game, game_meta_data);
+                let scores_entry = ScoresEntry::new(game, game_meta_data);
 
-                let compressed_game_input_history =
-                    CompressedGameInputHistory::new(game_input_history);
+                let compressed_game_input_history = CompressedInputHistory::new(game_input_history);
+                let forfeit =
+                    matches!(game_result, Err(GameOver::Forfeit)).then_some(game.state().time);
+
                 let game_restoration_data =
-                    GameRestorationData::new(game, compressed_game_input_history);
+                    GameRestorationData::new(game, compressed_game_input_history, forfeit);
 
-                self.scoreboard
+                self.scores_and_replays
                     .entries
-                    .push((scoreboard_entry.clone(), Some(game_restoration_data)));
+                    .push((scores_entry.clone(), Some(game_restoration_data)));
 
                 let menu = if game_result.is_ok() {
                     Menu::GameComplete
                 } else {
                     Menu::GameOver
-                }(Box::new(scoreboard_entry));
+                }(Box::new(scores_entry));
 
                 break 'update_and_render MenuUpdate::Push(menu);
             }
@@ -138,7 +141,8 @@ impl<T: Write> Application<T> {
                             // Found a recognized game input: use it.
                             LiveTermSignal::RecognizedButton(button, key_event_kind) => {
                                 // We first calculate the intended time at time of reaching here.
-                                let update_target_time = ingametime_when_game_loop_entered + timestamp.saturating_duration_since(time_game_loop_entered);
+                                let update_target_time = ingametime_when_game_loop_entered
+                                    + timestamp.saturating_duration_since(time_game_loop_entered);
 
                                 // Guarantee update cannot fail because it lies in the game's past:
                                 // Worst case react to player input as quickly as possible now.
@@ -148,8 +152,14 @@ impl<T: Write> Application<T> {
                                 // We round it to milliseconds (manually do ceiling rounding, to not be in game's past).
                                 let nanos = update_target_time.as_nanos();
                                 const NANOS_PER_MILLI: u128 = 1_000_000;
-                                let update_target_time =
-                                    InGameTime::from_millis((nanos / NANOS_PER_MILLI + if nanos.is_multiple_of(NANOS_PER_MILLI) { 0 } else { 1 }) as u64);
+                                let update_target_time = InGameTime::from_millis(
+                                    (nanos / NANOS_PER_MILLI
+                                        + if nanos.is_multiple_of(NANOS_PER_MILLI) {
+                                            0
+                                        } else {
+                                            1
+                                        }) as u64,
+                                );
 
                                 if self.runtime_data.kitty_assumed {
                                     // Enhanced keyboard events: determinedly send a single press or release.
@@ -169,19 +179,18 @@ impl<T: Write> Application<T> {
                                         Err(UpdateGameError::GameEnded) => break 'wait,
                                         Err(UpdateGameError::TargetTimeInPast) => unreachable!(),
                                     }
-
                                 } else {
                                     // Special handling for terminals that STILL send "release" events despite us assuming it's not enhanced;
                                     // So we don't accidentally interpret them as presses.
                                     if matches!(key_event_kind, KeyEventKind::Release) {
                                         continue 'wait;
                                     }
-                                    
+
                                     // Non-enhanced terminal - since we don't have "release" events, we just assume a button press is an instantaneous sequence of press+release.
                                     let button_change = ButtonChange::Press(button);
 
                                     game_input_history.push((update_target_time, button_change));
-                                    
+
                                     match game.update(update_target_time, Some(button_change)) {
                                         Ok(msgs) => game_renderer.push_game_feedback_msgs(msgs),
                                         Err(UpdateGameError::GameEnded) => break 'wait,
@@ -192,7 +201,7 @@ impl<T: Write> Application<T> {
                                     let button_change = ButtonChange::Release(button);
 
                                     game_input_history.push((update_target_time, button_change));
-                                    
+
                                     let update_result =
                                         game.update(update_target_time, Some(button_change));
 
@@ -248,14 +257,23 @@ impl<T: Write> Application<T> {
 
                                             // [Ctrl+S]: Store savepoint.
                                             (KeyCode::Char('s'), KeyModifiers::CONTROL) => {
-                                                self.game_savepoint = Some((
-                                                    game_meta_data.clone(),
-                                                    GameRestorationData::new(
-                                                        game,
-                                                        game_input_history.clone(),
-                                                    ),
-                                                    game_input_history.len(),
-                                                ));
+                                                self.game_saves = (
+                                                    0,
+                                                    vec![GameSave {
+                                                        game_meta_data: game_meta_data.clone(),
+                                                        game_restoration_data:
+                                                            GameRestorationData::new(
+                                                                game,
+                                                                game_input_history.clone(),
+                                                                matches!(
+                                                                    game.result(),
+                                                                    Some(Err(GameOver::Forfeit))
+                                                                )
+                                                                .then_some(game.state().time),
+                                                            ),
+                                                        inputs_to_load: game_input_history.len(),
+                                                    }],
+                                                );
 
                                                 game_renderer.push_game_feedback_msgs([(
                                                     game.state().time,
@@ -349,7 +367,8 @@ impl<T: Write> Application<T> {
             time_last_refresh = now;
 
             // We first calculate the intended time at time of reaching here.
-            let update_target_time = ingametime_when_game_loop_entered + now.saturating_duration_since(time_game_loop_entered);
+            let update_target_time = ingametime_when_game_loop_entered
+                + now.saturating_duration_since(time_game_loop_entered);
 
             match game.update(update_target_time, None) {
                 // Update.
@@ -370,7 +389,7 @@ impl<T: Write> Application<T> {
                 &mut self.term,
                 rerender_entire_view,
             )?;
-            
+
             renders_per_second_counter += 1;
 
             // Reset state of this variable since render just occurred.
@@ -378,7 +397,9 @@ impl<T: Write> Application<T> {
 
             // Render FPS counter.
             if self.settings.graphics().show_fps {
-                let secs_diff = now.saturating_duration_since(renders_per_second_counter_start_time).as_secs_f64();
+                let secs_diff = now
+                    .saturating_duration_since(renders_per_second_counter_start_time)
+                    .as_secs_f64();
                 const REFRESH_FPS_COUNTER_EVERY_N_SECS: f64 = 1.0;
 
                 // One second has passed since we started counting.
@@ -386,7 +407,10 @@ impl<T: Write> Application<T> {
                     self.term.execute(MoveTo(0, 0))?;
                     self.term.execute(Print(format!(
                         "{:_>7}",
-                        format!("{:.1}fps", f64::from(renders_per_second_counter) / secs_diff)
+                        format!(
+                            "{:.1}fps",
+                            f64::from(renders_per_second_counter) / secs_diff
+                        )
                     )))?;
 
                     // Reset data.

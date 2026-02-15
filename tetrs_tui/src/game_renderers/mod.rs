@@ -15,7 +15,7 @@ use crate::{
     fmt_helpers::KeybindsLegend,
 };
 
-pub trait Renderer {
+pub trait Renderer: Default {
     fn push_game_feedback_msgs(
         &mut self,
         feedback_msgs: impl IntoIterator<Item = (InGameTime, Feedback)>,
@@ -27,7 +27,7 @@ pub trait Renderer {
         meta_data: &GameMetaData,
         settings: &Settings,
         keybinds_legend: &KeybindsLegend,
-        replay_extra: Option<InGameTime>,
+        replay_extra: Option<(InGameTime, f64)>,
         term: &mut T,
         rerender_entire_view: bool,
     ) -> io::Result<()>;
