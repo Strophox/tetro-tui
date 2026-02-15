@@ -15,8 +15,8 @@ use tetrs_engine::{Button, ButtonChange, Feedback, Game, UpdateGameError};
 
 use crate::{
     application::{
-        Application, CompressedGameInputHistory, GameInputHistory, GameMetaData,
-        GameRestorationData, Menu, MenuUpdate, ScoreboardEntry,
+        Application, GameInputHistory, GameMetaData,
+        GameRestorationData, Menu, MenuUpdate,
     },
     fmt_helpers::replay_keybinds_legend,
     game_renderers::Renderer,
@@ -25,16 +25,13 @@ use crate::{
 
 impl<T: Write> Application<T> {
     #[allow(clippy::too_many_arguments)]
-    pub(in crate::application) fn menu_replay_game(
+    pub(in crate::application) fn run_menu_replay_game(
         &mut self,
         game: &mut Game,
         game_meta_data: &mut GameMetaData,
-        timestamp_play_started: Instant,
-        time_last_paused: &mut Instant,
-        total_pause_duration: &mut Duration,
         game_input_history: &mut GameInputHistory,
         game_renderer: &mut impl Renderer,
-    ) -> io::Result<MenuUpdate> {
+    ) -> io::Result<MenuUpdate> {/*
         // Prepare everything to enter the game (react & render) loop.
 
         let keybinds_legend = replay_keybinds_legend();
@@ -44,18 +41,12 @@ impl<T: Write> Application<T> {
             .map(|x| x.0)
             .unwrap_or_default();
 
-        // Toggle on enhanced-keyboard-events.
-        if self.runtime_data.kitty_assumed {
-            let f = Self::KEYBOARD_ENHANCEMENT_FLAGS;
-            self.term.execute(event::PushKeyboardEnhancementFlags(f))?;
-        }
-
         // Prepare channel from which to receive terminal inputs.
         let (input_sender, input_receiver) = mpsc::channel();
 
         // Spawn input handler thread.
         let _join_handle =
-            live_input_handler::spawn(input_sender, self.settings.keybinds().clone());
+            live_input_handler::spawn(input_sender, Default::default());
 
         // Game Loop
 
@@ -69,6 +60,13 @@ impl<T: Write> Application<T> {
 
         // Explicitly tells the renderer if entire screen needs to be re-drawn once.
         let mut refresh_entire_view = true;
+
+        // Replay-specific data.
+        let mut update_id = 0u32;
+        let mut load_offset = 0usize;
+        let mut is_paused = false;
+        let mut replay_speed = 1.0f64;
+        let mut anchor_saves: Vec<(Game, u32)> = Vec::new();
 
         let menu_update = 'render_and_input: loop {
             // Start new iteration of [render->input->] loop.
@@ -106,25 +104,8 @@ impl<T: Write> Application<T> {
 
             if let Some(game_result) = game.result() {
                 // Game ended, cannot actually continue playing;
-                // Convert to scoreboard entry and return appropriate game-ended menu.
-                let scoreboard_entry = ScoreboardEntry::new(game, game_meta_data);
+                is_paused = true;
 
-                let compressed_game_input_history =
-                    CompressedGameInputHistory::new(game_input_history);
-                let game_restoration_data =
-                    GameRestorationData::new(game, compressed_game_input_history);
-
-                self.scoreboard
-                    .entries
-                    .push((scoreboard_entry.clone(), Some(game_restoration_data)));
-
-                let menu = if game_result.is_ok() {
-                    Menu::GameComplete
-                } else {
-                    Menu::GameOver
-                }(Box::new(scoreboard_entry));
-
-                break 'render_and_input MenuUpdate::Push(menu);
             }
 
             // Calculate the time of the next render we can catch.
@@ -153,76 +134,8 @@ impl<T: Write> Application<T> {
                 match recv_result {
                     Ok((signal, timestamp)) => {
                         match signal {
-                            // Found a recognized game input: use it.
-                            LiveTermSignal::RecognizedButton(button, key_event_kind) => {
-                                let game_time_userinput = timestamp
-                                    .saturating_duration_since(timestamp_play_started)
-                                    - *total_pause_duration;
-
-                                // Guarantee update cannot fail because it lies in the game's past:
-                                // Instead react to player input as quickly as possible now.
-                                let update_target_time =
-                                    std::cmp::max(game_time_userinput, game.state().time);
-
-                                // Here we actually compress the information in update_target_time:
-                                // We round it to millisecond, and up (ceiling, to not be in game's past).
-                                let update_target_time_millis =
-                                    (update_target_time.as_millis() + 1) as u64;
-                                let update_target_time =
-                                    Duration::from_millis(update_target_time_millis);
-
-                                if self.runtime_data.kitty_assumed {
-                                    // Enhanced keyboard events: determinedly send press or release.
-                                    let button_change =
-                                        (match key_event_kind {
-                                            KeyEventKind::Press => ButtonChange::Press,
-                                            // Kitty does not actually care about terminal/OS keyboard 'repeat' events.
-                                            KeyEventKind::Repeat => continue 'frame_idle,
-                                            KeyEventKind::Release => ButtonChange::Release,
-                                        })(button);
-
-                                    let update_result =
-                                        game.update(update_target_time, Some(button_change));
-
-                                    game_input_history.push((update_target_time, button_change));
-                                    match update_result {
-                                        Ok(msgs) => game_renderer.push_game_feedback_msgs(msgs),
-                                        Err(UpdateGameError::GameEnded) => break 'frame_idle,
-                                        Err(UpdateGameError::TargetTimeInPast) => unreachable!(),
-                                    }
-                                } else {
-                                    // Normal terminal - since we don't have "release" events, we just assume a button press is instantaneous.
-                                    let button_change = ButtonChange::Press(button);
-
-                                    // Special handling for terminal that STILL send "release" events, so we don't interpret them as presses.
-                                    if matches!(key_event_kind, KeyEventKind::Release) {
-                                        continue 'frame_idle;
-                                    }
-
-                                    let update_result =
-                                        game.update(update_target_time, Some(button_change));
-
-                                    game_input_history.push((update_target_time, button_change));
-                                    match update_result {
-                                        Ok(msgs) => game_renderer.push_game_feedback_msgs(msgs),
-                                        Err(UpdateGameError::GameEnded) => break 'frame_idle,
-                                        Err(UpdateGameError::TargetTimeInPast) => unreachable!(),
-                                    }
-
-                                    // Note that we do not expect a button release to actually end the game or similar, but we handle things properly anyway.
-                                    let button_change = ButtonChange::Release(button);
-
-                                    let update_result =
-                                        game.update(update_target_time, Some(button_change));
-
-                                    game_input_history.push((update_target_time, button_change));
-                                    match update_result {
-                                        Ok(msgs) => game_renderer.push_game_feedback_msgs(msgs),
-                                        Err(UpdateGameError::GameEnded) => break 'frame_idle,
-                                        Err(UpdateGameError::TargetTimeInPast) => unreachable!(),
-                                    }
-                                }
-                            }
+                            // Found a recognized game input: DON'T use it.
+                            LiveTermSignal::RecognizedButton(..) => {}
 
                             // Some other input that does not cause an 'in-game action': Process it.
                             LiveTermSignal::RawEvent(event) => {
@@ -233,18 +146,15 @@ impl<T: Write> Application<T> {
                                         kind,
                                         state: _,
                                     }) => {
-                                        if !matches!(kind, KeyEventKind::Press) {
-                                            // It just so happens that, once we're done considering in-game-relevant presses,
-                                            // for the remaining controls we only care about key*down*s.
+                                        if matches!(kind, KeyEventKind::Release) {
+                                            // For the remaining controls we only care about non- key-releases.
                                             continue 'frame_idle;
                                         }
 
                                         match (code, modifiers) {
-                                            // [Esc]: Pause.
+                                            // [Esc]: Stop.
                                             (KeyCode::Esc, _) => {
-                                                break 'render_and_input MenuUpdate::Push(
-                                                    Menu::Pause,
-                                                );
+                                                break 'render_and_input MenuUpdate::Pop;
                                             }
 
                                             // [Ctrl+C]: Abort program.
@@ -254,76 +164,46 @@ impl<T: Write> Application<T> {
                                                 );
                                             }
 
-                                            // [Ctrl+D]: Forfeit game.
-                                            (KeyCode::Char('d'), KeyModifiers::CONTROL) => {
-                                                game.forfeit();
-
-                                                game_renderer.push_game_feedback_msgs([(
-                                                    game.state().time,
-                                                    Feedback::Text("Forfeit Game!".to_owned()),
-                                                )]);
-
-                                                continue 'render_and_input;
+                                            // [Enter]: Play game.
+                                            (KeyCode::Enter, _) => {
+                                                let now = Instant::now();
+                                                // We take out the exact game. Leave some dummy in its place that shouldn't be used/relevant...
+                                                let the_game = std::mem::replace(game, Game::builder().build());
+                                                break 'render_and_input MenuUpdate::Push(Menu::PlayGame {
+                                                    game: Box::new(the_game),
+                                                    meta_data: game_meta_data.clone(),
+                                                    timestamp_play_started: now - game.state().time,
+                                                    last_paused: now,
+                                                    total_pause_duration: Duration::ZERO,
+                                                    game_input_history: game_input_history.iter().take(load_offset).cloned().collect(),
+                                                    game_renderer: Default::default(),
+                                                });
                                             }
 
-                                            // [Ctrl+S]: Store savepoint.
-                                            (KeyCode::Char('s'), KeyModifiers::CONTROL) => {
-                                                self.game_savepoint = Some((
-                                                    game_meta_data.clone(),
-                                                    GameRestorationData::new(
-                                                        game,
-                                                        game_input_history.clone(),
-                                                    ),
-                                                    game_input_history.len(),
-                                                ));
-
-                                                game_renderer.push_game_feedback_msgs([(
-                                                    game.state().time,
-                                                    Feedback::Text(
-                                                        "(Savepoint stored!)".to_owned(),
-                                                    ),
-                                                )]);
+                                            // [Space]: (Un-)Pause replay.
+                                            (KeyCode::Char(' '), _) => {
+                                                is_paused ^= true;
                                             }
 
-                                            // [Ctrl+E]: Store seed.
-                                            (KeyCode::Char('e'), KeyModifiers::CONTROL) => {
-                                                self.settings.new_game.custom_seed =
-                                                    Some(game.state_init().seed);
-
-                                                game_renderer.push_game_feedback_msgs([(
-                                                    game.state().time,
-                                                    Feedback::Text(format!(
-                                                        "(Seed stored: {})",
-                                                        game.state_init().seed
-                                                    )),
-                                                )]);
+                                            // [↓][↑]: Adjust replay speed.
+                                            (KeyCode::Down | KeyCode::Up, _) => {
+                                                if code == KeyCode::Up {
+                                                    replay_speed += 0.1;
+                                                } else if replay_speed > 0.1 {
+                                                    replay_speed -= 0.1;
+                                                };
                                             }
 
-                                            // [Ctrl+Shift+B]: (Un-)Blindfold.
-                                            (KeyCode::Char('b'), _)
-                                                if modifiers.contains(
-                                                    KeyModifiers::CONTROL
-                                                        .union(KeyModifiers::SHIFT),
-                                                ) =>
-                                            {
-                                                self.settings.graphics_mut().blindfolded ^= true;
-                                                if self.settings.graphics().blindfolded {
-                                                    game_renderer.push_game_feedback_msgs([(
-                                                        game.state().time,
-                                                        Feedback::Text(
-                                                            "Blindfolded! [Ctrl+Shift+B]"
-                                                                .to_owned(),
-                                                        ),
-                                                    )]);
-                                                } else {
-                                                    game_renderer.push_game_feedback_msgs([(
-                                                        game.state().time,
-                                                        Feedback::Text(
-                                                            "Blindfolds removed! [Ctrl+Shift+B]"
-                                                                .to_owned(),
-                                                        ),
-                                                    )]);
-                                                }
+                                            // [←][→]: Skip to anchor save.
+                                            (KeyCode::Left | KeyCode::Right, _) => {
+                                                
+                                            }
+
+                                            // [,][.]: Skip to game update. Pauses replay.
+                                            (KeyCode::Char(',') | KeyCode::Char('.'), _) => {
+
+                                                
+                                                is_paused = true;
                                             }
 
                                             // Other misc. key event: We don't care.
@@ -369,9 +249,9 @@ impl<T: Write> Application<T> {
                                 break 'frame_idle;
                             }
 
-                            // Input handler thread died... Pause game for now.
+                            // Input handler thread died... Pop game for now.
                             mpsc::RecvTimeoutError::Disconnected => {
-                                break 'render_and_input MenuUpdate::Push(Menu::Pause);
+                                break 'render_and_input MenuUpdate::Pop;
                             }
                         }
                     }
@@ -379,51 +259,6 @@ impl<T: Write> Application<T> {
             }
         };
 
-        // Play-Game epilogue: De-initialization.
-        *time_last_paused = Instant::now();
-
-        if self.runtime_data.kitty_assumed {
-            // FIXME: Handle io::Error? If not, why not?
-            let _v = self.term.execute(event::PopKeyboardEnhancementFlags);
-        }
-
-        if let Some(game_result) = game.result() {
-            let h_console = terminal::size()?.1;
-            if game_result.is_ok() {
-                for i in 0..h_console {
-                    self.term
-                        .execute(MoveTo(0, i))?
-                        .execute(Clear(ClearType::CurrentLine))?;
-                    std::thread::sleep(Duration::from_secs_f32(0.01));
-                }
-            } else {
-                for i in (0..h_console).rev() {
-                    self.term
-                        .execute(MoveTo(0, i))?
-                        .execute(Clear(ClearType::CurrentLine))?;
-                    std::thread::sleep(Duration::from_secs_f32(0.01));
-                }
-            };
-        } else {
-            // Game not done:.
-            // Manually release any pressed buttons to avoid weird persistent-buttonpress behavior.
-            let unpress_time = game.state().time;
-            'button_unpressing: for button in Button::VARIANTS {
-                if game.state().buttons_pressed[button].is_some() {
-                    let button_change = ButtonChange::Release(button);
-
-                    let update_result = game.update(unpress_time, Some(button_change));
-
-                    game_input_history.push((unpress_time, button_change));
-                    match update_result {
-                        Ok(msgs) => game_renderer.push_game_feedback_msgs(msgs),
-                        Err(UpdateGameError::GameEnded) => break 'button_unpressing,
-                        Err(UpdateGameError::TargetTimeInPast) => unreachable!(),
-                    }
-                }
-            }
-        }
-
         Ok(menu_update)
-    }
+    */todo!()}
 }

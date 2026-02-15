@@ -122,8 +122,7 @@ pub fn fmt_key(key: KeyCode) -> String {
         K::F(k) => return format!("F{k}"),
         K::Char(' ') => "Space",
         K::Char(c) => {
-            return c /*FIXME: Remove?: .to_uppercase()*/
-                .to_string();
+            return c.to_string();
         }
         //K::Esc => "Esc",
         K::Modifier(M::LeftAlt) => "LAlt",

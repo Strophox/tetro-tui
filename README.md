@@ -88,7 +88,7 @@ This repo contains:
 - Familiar tetromino stacker experience: Move, rotate, soft-drop, hard-drop and hold tetrominos and successfully clear horizontally completed rows.
 - Tetrominos colored by type.
 - Preview of upcoming tetromino(s).
-- 'Ghost' tetromino (preview of where it will land).
+- 'Shadow' tetromino (preview of where it will land).
 - Animations for: Hard drop, line clear, tetromino locking on ground.
 - Game stats: Current gravity level, lines cleared, points scored, time elapsed, pieces placed.
 - etc.

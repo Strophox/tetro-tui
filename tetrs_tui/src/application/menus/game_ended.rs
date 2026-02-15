@@ -18,7 +18,7 @@ use crate::{
 };
 
 impl<T: Write> Application<T> {
-    pub(in crate::application) fn menu_game_ended(
+    pub(in crate::application) fn run_menu_game_ended(
         &mut self,
         past_game: &ScoreboardEntry,
     ) -> io::Result<MenuUpdate> {

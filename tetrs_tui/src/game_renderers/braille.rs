@@ -37,7 +37,7 @@ impl Renderer for BrailleRenderer {
         _keybinds_legend: &KeybindsLegend,
         _replay_extra: Option<InGameTime>,
         term: &mut T,
-        _refresh_entire_view: bool,
+        _rerender_entire_view: bool,
     ) -> io::Result<()> {
         let tetrs_engine::State { board, .. } = game.state();
 

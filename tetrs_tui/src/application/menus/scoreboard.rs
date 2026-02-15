@@ -1,6 +1,5 @@
 use std::{
     io::{self, Write},
-    time::{Duration, Instant},
 };
 
 use crossterm::{
@@ -26,7 +25,7 @@ use crate::{
 
 impl<T: Write> Application<T> {
     #[allow(clippy::len_zero)]
-    pub(in crate::application) fn menu_scoreboard(&mut self) -> io::Result<MenuUpdate> {
+    pub(in crate::application) fn run_menu_scoreboard(&mut self) -> io::Result<MenuUpdate> {
         const CAMERA_SIZE: usize = 14;
         const CAMERA_MARGIN: usize = 3;
         let mut cursor_pos = 0usize;
@@ -234,9 +233,6 @@ impl<T: Write> Application<T> {
                         break Ok(MenuUpdate::Push(Menu::ReplayGame {
                             game: Box::new(game),
                             meta_data,
-                            timestamp_play_started: Instant::now(),
-                            last_paused: Instant::now(),
-                            total_pause_duration: Duration::ZERO,
                             game_input_history: restoration_data.input_history,
                             game_renderer: Default::default(),
                         }));

@@ -3,7 +3,7 @@ use std::io::{self, Write};
 use crate::application::{Application, MenuUpdate};
 
 impl<T: Write> Application<T> {
-    pub(in crate::application) fn menu_about(&mut self) -> io::Result<MenuUpdate> {
+    pub(in crate::application) fn run_menu_about(&mut self) -> io::Result<MenuUpdate> {
         /* FIXME: About menu. */
         self.generic_menu(
             concat!(

@@ -256,12 +256,12 @@ impl Renderer for DiffPrintRenderer {
         keybinds_legend: &KeybindsLegend,
         replay_extra: Option<InGameTime>,
         term: &mut T,
-        refresh_entire_view: bool,
+        rerender_entire_view: bool,
     ) -> io::Result<()>
     where
         T: Write,
     {
-        if refresh_entire_view {
+        if rerender_entire_view {
             let (x_main, y_main) = Application::<T>::fetch_main_xy();
             self.screen
                 .buffer_reset((usize::from(x_main), usize::from(y_main)));
@@ -524,7 +524,7 @@ impl Renderer for DiffPrintRenderer {
         }
         self.hard_drop_tiles.retain(|elt| elt.1);
 
-        let (tile_ground, tile_ghost, tile_active, tile_preview) =
+        let (tile_ground, tile_shadow, tile_active, tile_preview) =
             match settings.graphics().glyphset {
                 Glyphset::Electronika60 => ("▮▮", " .", "▮▮", "▮▮"),
                 Glyphset::ASCII => ("##", "::", "[]", "[]"),
@@ -552,14 +552,14 @@ impl Renderer for DiffPrintRenderer {
             ..
         } = game.phase()
         {
-            // Draw ghost piece.
-            if settings.graphics().show_ghost_piece {
+            // Draw shadow piece.
+            if settings.graphics().show_shadow_piece {
                 for (tile_pos, tile_type_id) in
                     piece.teleported(&game.state().board, (0, -1)).tiles()
                 {
                     if tile_pos.1 <= Game::SKYLINE_HEIGHT {
                         self.screen.buffer_str(
-                            tile_ghost,
+                            tile_shadow,
                             get_color(&tile_type_id),
                             pos_board(tile_pos),
                         );

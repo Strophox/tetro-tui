@@ -21,9 +21,8 @@ pub fn spawn(
 ) -> JoinHandle<()> {
     thread::spawn(move || {
         'detect_events: loop {
-            let event_read_result = event::read();
-
-            match event_read_result {
+            // Read event.
+            match event::read() {
                 Ok(event) => {
                     let timestamp = Instant::now();
 
@@ -36,14 +35,16 @@ pub fn spawn(
                             kind,
                             ..
                         }) => {
-                            let is_press = matches!(
+                            let is_press_or_repeat = matches!(
                                 kind,
                                 event::KeyEventKind::Press | event::KeyEventKind::Repeat
                             );
+                            // FIXME: What about forfeiting a game with [Ctrl+D]?
                             let escape = matches!(code, event::KeyCode::Esc);
                             let ctrl_c = matches!(code, event::KeyCode::Char('c'))
                                 && matches!(modifiers, event::KeyModifiers::CONTROL);
-                            if is_press && (escape || ctrl_c) {
+
+                            if is_press_or_repeat && (escape || ctrl_c) {
                                 stop_thread = true;
                             }
 
@@ -60,9 +61,8 @@ pub fn spawn(
                         _ => LiveTermSignal::RawEvent(event),
                     };
 
-                    let send_signal_result = input_sender.send((signal, timestamp));
-
-                    match send_signal_result {
+                    // Send signal.
+                    match input_sender.send((signal, timestamp)) {
                         Ok(()) => {}
                         Err(SendError(_event_which_failed_to_transmit)) => {
                             break 'detect_events;
@@ -74,10 +74,9 @@ pub fn spawn(
                     }
                 }
 
-                Err(_e) => {
-                    // FIXME: Handle io::Error? If not, why not?
-                }
-            };
+                // FIXME: Handle io::Error? If not, why not?
+                Err(_e) => {}
+            }
         }
     })
 }

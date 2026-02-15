@@ -1,7 +1,7 @@
 use std::{
     io::{self, Write},
     num::NonZeroU32,
-    time::{Duration, Instant},
+    time::Duration,
 };
 
 use crossterm::{
@@ -29,7 +29,7 @@ use crate::{
 };
 
 impl<T: Write> Application<T> {
-    pub(in crate::application) fn menu_new_game(&mut self) -> io::Result<MenuUpdate> {
+    pub(in crate::application) fn run_menu_new_game(&mut self) -> io::Result<MenuUpdate> {
         let mut selected = 0usize;
         let mut customization_selected = 0usize;
 
@@ -666,14 +666,9 @@ impl<T: Write> Application<T> {
                 // game.modifiers.push(game_mode_presets::game_modifiers::print_fall_delay::modifier());
                 // game.modifiers.push(game_mode_presets::game_modifiers::misc_modifiers::print_recency_tet_gen_stats::modifier());
                 // game.modifiers.push(tetrs_engine::Modifier { descriptor: "always_clear_board".to_owned(), mod_function: Box::new(|_c, _i, s, _m, _f| { s.board = Default::default(); })});
-                let now = Instant::now();
-                let timestamp_play_started = now - game.state().time;
                 break Ok(MenuUpdate::Push(Menu::PlayGame {
                     game: Box::new(game),
                     meta_data,
-                    timestamp_play_started,
-                    last_paused: now,
-                    total_pause_duration: Duration::ZERO,
                     game_input_history,
                     game_renderer: Default::default(),
                 }));

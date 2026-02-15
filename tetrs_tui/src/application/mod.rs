@@ -6,7 +6,7 @@ use std::{
     io::{self, Read, Write},
     num::{NonZeroU32, NonZeroUsize},
     path::PathBuf,
-    time::{Duration, Instant},
+    time::Duration,
 };
 
 use crossterm::{cursor, event::KeyboardEnhancementFlags, style, terminal, ExecutableCommand};
@@ -389,7 +389,7 @@ pub struct GraphicsSettings {
     pub glyphset: Glyphset,
     pub show_effects: bool,
     pub blindfolded: bool,
-    pub show_ghost_piece: bool,
+    pub show_shadow_piece: bool,
     pub show_button_state: bool,
     game_fps: f64,
     show_fps: bool,
@@ -403,7 +403,7 @@ impl Default for GraphicsSettings {
             palette_active_lockedtiles: 3,
             show_effects: true,
             blindfolded: false,
-            show_ghost_piece: true,
+            show_shadow_piece: true,
             show_button_state: false,
             game_fps: 30.0,
             show_fps: false,
@@ -578,9 +578,6 @@ enum Menu {
     PlayGame {
         game: Box<Game>,
         meta_data: GameMetaData,
-        timestamp_play_started: Instant,
-        last_paused: Instant,
-        total_pause_duration: Duration,
         game_input_history: GameInputHistory,
         game_renderer: Box<game_renderers::diff_print::DiffPrintRenderer>,
     },
@@ -595,9 +592,6 @@ enum Menu {
     ReplayGame {
         game: Box<Game>,
         meta_data: GameMetaData,
-        timestamp_play_started: Instant,
-        last_paused: Instant,
-        total_pause_duration: Duration,
         game_input_history: GameInputHistory,
         game_renderer: Box<game_renderers::diff_print::DiffPrintRenderer>,
     },
@@ -858,58 +852,47 @@ impl<T: Write> Application<T> {
         let mut menu_stack = vec![Menu::Title];
         loop {
             // Retrieve active menu, stop application if stack is empty.
-            let Some(screen) = menu_stack.last_mut() else {
+            let Some(menu) = menu_stack.last_mut() else {
                 break;
             };
             // Open new menu screen, then store what it returns.
-            let menu_update = match screen {
-                Menu::Title => self.menu_title(),
-                Menu::NewGame => self.menu_new_game(),
+            let menu_update = match menu {
+                Menu::Title => self.run_menu_title(),
+                Menu::NewGame => self.run_menu_new_game(),
                 Menu::PlayGame {
                     game,
                     meta_data,
-                    timestamp_play_started,
-                    total_pause_duration,
-                    last_paused,
                     game_input_history,
                     game_renderer,
-                } => self.menu_play_game(
+                } => self.run_menu_play_game(
                     game,
                     meta_data,
-                    *timestamp_play_started,
-                    last_paused,
-                    total_pause_duration,
                     game_input_history,
                     game_renderer.as_mut(),
                 ),
-                Menu::Pause => self.menu_pause(),
-                Menu::Settings => self.menu_settings(),
-                Menu::AdjustGraphics => self.menu_adjust_graphics(),
-                Menu::AdjustKeybinds => self.menu_adjust_keybinds(),
-                Menu::AdjustGameplay => self.menu_adjust_gameplay(),
-                Menu::GameOver(past_game) => self.menu_game_ended(past_game),
-                Menu::GameComplete(past_game) => self.menu_game_ended(past_game),
-                Menu::Scoreboard => self.menu_scoreboard(),
+                Menu::Pause => self.run_menu_pause(),
+                Menu::Settings => self.run_menu_settings(),
+                Menu::AdjustGraphics => self.run_menu_adjust_graphics(),
+                Menu::AdjustKeybinds => self.run_menu_adjust_keybinds(),
+                Menu::AdjustGameplay => self.run_menu_adjust_gameplay(),
+                Menu::GameOver(past_game) => self.run_menu_game_ended(past_game),
+                Menu::GameComplete(past_game) => self.run_menu_game_ended(past_game),
+                Menu::Scoreboard => self.run_menu_scoreboard(),
                 Menu::ReplayGame {
                     game,
                     meta_data,
-                    timestamp_play_started,
-                    total_pause_duration,
-                    last_paused,
                     game_input_history,
                     game_renderer,
-                } => self.menu_replay_game(
+                } => self.run_menu_replay_game(
                     game,
                     meta_data,
-                    *timestamp_play_started,
-                    last_paused,
-                    total_pause_duration,
                     game_input_history,
                     game_renderer.as_mut(),
                 ),
-                Menu::About => self.menu_about(),
+                Menu::About => self.run_menu_about(),
                 Menu::Quit => break,
             }?;
+            
             // Change screen session depending on what response screen gave.
             match menu_update {
                 MenuUpdate::Pop => {

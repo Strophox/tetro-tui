@@ -45,7 +45,7 @@ impl Renderer for DebugRenderer {
         _keybinds_legend: &KeybindsLegend,
         _replay_extra: Option<InGameTime>,
         term: &mut T,
-        _refresh_entire_view: bool,
+        _rerender_entire_view: bool,
     ) -> io::Result<()>
     where
         T: Write,
