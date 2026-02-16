@@ -238,14 +238,14 @@ impl<T: Write> Application<T> {
                                             }
 
                                             // [Ctrl+C]: Abort program.
-                                            (KeyCode::Char('c'), KeyModifiers::CONTROL) => {
+                                            (KeyCode::Char('c' | 'C'), KeyModifiers::CONTROL) => {
                                                 break 'update_and_render MenuUpdate::Push(
                                                     Menu::Quit,
                                                 );
                                             }
 
                                             // [Ctrl+D]: Forfeit game.
-                                            (KeyCode::Char('d'), KeyModifiers::CONTROL) => {
+                                            (KeyCode::Char('d' | 'D'), KeyModifiers::CONTROL) => {
                                                 game.forfeit();
 
                                                 game_renderer.push_game_feedback_msgs([(
@@ -257,7 +257,7 @@ impl<T: Write> Application<T> {
                                             }
 
                                             // [Ctrl+S]: Store savepoint.
-                                            (KeyCode::Char('s'), KeyModifiers::CONTROL) => {
+                                            (KeyCode::Char('s' | 'S'), KeyModifiers::CONTROL) => {
                                                 self.game_saves = (
                                                     0,
                                                     vec![GameSave {
@@ -285,7 +285,7 @@ impl<T: Write> Application<T> {
                                             }
 
                                             // [Ctrl+E]: Store seed.
-                                            (KeyCode::Char('e'), KeyModifiers::CONTROL) => {
+                                            (KeyCode::Char('e' | 'E'), KeyModifiers::CONTROL) => {
                                                 self.settings.new_game.custom_seed =
                                                     Some(game.state_init().seed);
 
@@ -299,7 +299,7 @@ impl<T: Write> Application<T> {
                                             }
 
                                             // [Ctrl+Shift+B]: (Un-)Blindfold.
-                                            (KeyCode::Char('b'), _)
+                                            (KeyCode::Char('b' | 'B'), _)
                                                 if modifiers.contains(
                                                     KeyModifiers::CONTROL
                                                         .union(KeyModifiers::SHIFT),

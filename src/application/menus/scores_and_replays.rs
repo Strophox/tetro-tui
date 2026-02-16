@@ -128,21 +128,24 @@ impl<T: Write> Application<T> {
             match event::read()? {
                 // Quit menu.
                 Event::Key(KeyEvent {
-                    code: KeyCode::Char('c'),
+                    code: KeyCode::Char('c' | 'C'),
                     modifiers: KeyModifiers::CONTROL,
                     kind: Press | Repeat,
                     state: _,
                 }) => break Ok(MenuUpdate::Push(Menu::Quit)),
                 Event::Key(KeyEvent {
                     code:
-                        KeyCode::Esc | KeyCode::Char('q') | KeyCode::Backspace | KeyCode::Char('b'),
+                        KeyCode::Esc
+                        | KeyCode::Char('q' | 'Q')
+                        | KeyCode::Backspace
+                        | KeyCode::Char('b' | 'B'),
                     kind: Press,
                     ..
                 }) => break Ok(MenuUpdate::Pop),
 
                 // Move selector up.
                 Event::Key(KeyEvent {
-                    code: KeyCode::Up | KeyCode::Char('k'),
+                    code: KeyCode::Up | KeyCode::Char('k' | 'K'),
                     kind: kind @ (Press | Repeat),
                     ..
                 }) if self.scores_and_replays.entries.len() > 0 => {
@@ -167,7 +170,7 @@ impl<T: Write> Application<T> {
 
                 // Move selector down.
                 Event::Key(KeyEvent {
-                    code: KeyCode::Down | KeyCode::Char('j'),
+                    code: KeyCode::Down | KeyCode::Char('j' | 'J'),
                     kind: kind @ (Press | Repeat),
                     ..
                 }) if self.scores_and_replays.entries.len() > 0 => {
@@ -194,7 +197,7 @@ impl<T: Write> Application<T> {
                 }
 
                 Event::Key(KeyEvent {
-                    code: KeyCode::Left | KeyCode::Char('h'),
+                    code: KeyCode::Left | KeyCode::Char('h' | 'H'),
                     kind: Press | Repeat,
                     ..
                 }) => {
@@ -205,7 +208,7 @@ impl<T: Write> Application<T> {
                 }
 
                 Event::Key(KeyEvent {
-                    code: KeyCode::Right | KeyCode::Char('l'),
+                    code: KeyCode::Right | KeyCode::Char('l' | 'L'),
                     kind: Press | Repeat,
                     ..
                 }) => {
@@ -217,20 +220,25 @@ impl<T: Write> Application<T> {
 
                 // Delete entire slot.
                 Event::Key(KeyEvent {
-                    code: KeyCode::Delete | KeyCode::Char('d'),
+                    code: KeyCode::Delete | KeyCode::Char('d' | 'D'),
                     kind: Press | Repeat,
+                    modifiers,
                     ..
                 }) if self.scores_and_replays.entries.len() > 0 => {
-                    self.scores_and_replays.entries.remove(cursor_pos);
-                    if 0 < cursor_pos && cursor_pos == self.scores_and_replays.entries.len() {
-                        cursor_pos -= 1;
-                        camera_pos = camera_pos.saturating_sub(1);
+                    if modifiers.contains(KeyModifiers::SHIFT) {
+                        self.scores_and_replays.entries[cursor_pos].1.take();
+                    } else {
+                        self.scores_and_replays.entries.remove(cursor_pos);
+                        if 0 < cursor_pos && cursor_pos == self.scores_and_replays.entries.len() {
+                            cursor_pos -= 1;
+                            camera_pos = camera_pos.saturating_sub(1);
+                        }
                     }
                 }
 
                 // Load slot as savepoint.
                 Event::Key(KeyEvent {
-                    code: KeyCode::Enter | KeyCode::Char('e'),
+                    code: KeyCode::Enter | KeyCode::Char('e' | 'E'),
                     kind: Press | Repeat,
                     ..
                 }) if self.scores_and_replays.entries.len() > 0 => {

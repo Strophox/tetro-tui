@@ -146,7 +146,7 @@ impl<T: Write> Application<T> {
             match event::read()? {
                 // Abort program.
                 Event::Key(KeyEvent {
-                    code: KeyCode::Char('c'),
+                    code: KeyCode::Char('c' | 'C'),
                     modifiers: KeyModifiers::CONTROL,
                     kind: Press | Repeat,
                     state: _,
@@ -155,14 +155,17 @@ impl<T: Write> Application<T> {
                 // Quit menu.
                 Event::Key(KeyEvent {
                     code:
-                        KeyCode::Esc | KeyCode::Char('q') | KeyCode::Backspace | KeyCode::Char('b'),
+                        KeyCode::Esc
+                        | KeyCode::Char('q' | 'Q')
+                        | KeyCode::Backspace
+                        | KeyCode::Char('b' | 'B'),
                     kind: Press,
                     ..
                 }) => break Ok(MenuUpdate::Pop),
 
                 // Move selector up.
                 Event::Key(KeyEvent {
-                    code: KeyCode::Up | KeyCode::Char('k'),
+                    code: KeyCode::Up | KeyCode::Char('k' | 'K'),
                     kind: Press | Repeat,
                     ..
                 }) => {
@@ -171,7 +174,7 @@ impl<T: Write> Application<T> {
 
                 // Move selector down.
                 Event::Key(KeyEvent {
-                    code: KeyCode::Down | KeyCode::Char('j'),
+                    code: KeyCode::Down | KeyCode::Char('j' | 'J'),
                     kind: Press | Repeat,
                     ..
                 }) => {
@@ -179,7 +182,7 @@ impl<T: Write> Application<T> {
                 }
 
                 Event::Key(KeyEvent {
-                    code: KeyCode::Right | KeyCode::Char('l'),
+                    code: KeyCode::Right | KeyCode::Char('l' | 'L'),
                     kind: Press | Repeat,
                     ..
                 }) => match selected {
@@ -237,7 +240,7 @@ impl<T: Write> Application<T> {
                 },
 
                 Event::Key(KeyEvent {
-                    code: KeyCode::Left | KeyCode::Char('h'),
+                    code: KeyCode::Left | KeyCode::Char('h' | 'H'),
                     kind: Press | Repeat,
                     ..
                 }) => match selected {
@@ -300,7 +303,7 @@ impl<T: Write> Application<T> {
 
                 // Reset graphics, or delete entire slot.
                 Event::Key(KeyEvent {
-                    code: KeyCode::Delete | KeyCode::Char('d'),
+                    code: KeyCode::Delete | KeyCode::Char('d' | 'D'),
                     kind: Press,
                     ..
                 }) => {

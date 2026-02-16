@@ -117,20 +117,23 @@ impl<T: Write> Application<T> {
             match event::read()? {
                 // Quit menu.
                 Event::Key(KeyEvent {
-                    code: KeyCode::Char('c'),
+                    code: KeyCode::Char('c' | 'C'),
                     modifiers: KeyModifiers::CONTROL,
                     kind: Press | Repeat,
                     state: _,
                 }) => break Ok(MenuUpdate::Push(Menu::Quit)),
                 Event::Key(KeyEvent {
                     code:
-                        KeyCode::Esc | KeyCode::Char('q') | KeyCode::Backspace | KeyCode::Char('b'),
+                        KeyCode::Esc
+                        | KeyCode::Char('q' | 'Q')
+                        | KeyCode::Backspace
+                        | KeyCode::Char('b' | 'B'),
                     kind: Press,
                     ..
                 }) => break Ok(MenuUpdate::Pop),
                 // Select next menu.
                 Event::Key(KeyEvent {
-                    code: KeyCode::Enter | KeyCode::Char('e'),
+                    code: KeyCode::Enter | KeyCode::Char('e' | 'E'),
                     kind: Press,
                     ..
                 }) => {
@@ -141,7 +144,7 @@ impl<T: Write> Application<T> {
                 }
                 // Move selector up.
                 Event::Key(KeyEvent {
-                    code: KeyCode::Up | KeyCode::Char('k'),
+                    code: KeyCode::Up | KeyCode::Char('k' | 'K'),
                     kind: Press | Repeat,
                     ..
                 }) => {
@@ -151,7 +154,7 @@ impl<T: Write> Application<T> {
                 }
                 // Move selector down.
                 Event::Key(KeyEvent {
-                    code: KeyCode::Down | KeyCode::Char('j'),
+                    code: KeyCode::Down | KeyCode::Char('j' | 'J'),
                     kind: Press | Repeat,
                     ..
                 }) => {

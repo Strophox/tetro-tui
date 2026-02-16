@@ -267,7 +267,7 @@ impl<T: Write> Application<T> {
             match event::read()? {
                 // Quit app.
                 Event::Key(KeyEvent {
-                    code: KeyCode::Char('c'),
+                    code: KeyCode::Char('c' | 'C'),
                     modifiers: KeyModifiers::CONTROL,
                     kind: Press | Repeat,
                     state: _,
@@ -276,14 +276,17 @@ impl<T: Write> Application<T> {
                 // Exit menu.
                 Event::Key(KeyEvent {
                     code:
-                        KeyCode::Esc | KeyCode::Char('q') | KeyCode::Backspace | KeyCode::Char('b'),
+                        KeyCode::Esc
+                        | KeyCode::Char('q' | 'Q')
+                        | KeyCode::Backspace
+                        | KeyCode::Char('b' | 'B'),
                     kind: Press,
                     ..
                 }) => break Ok(MenuUpdate::Pop),
 
                 // Try select mode.
                 Event::Key(KeyEvent {
-                    code: KeyCode::Enter | KeyCode::Char('e'),
+                    code: KeyCode::Enter | KeyCode::Char('e' | 'E'),
                     kind: Press,
                     ..
                 }) => {
@@ -292,7 +295,7 @@ impl<T: Write> Application<T> {
 
                 // Move selector up or increase stat.
                 Event::Key(KeyEvent {
-                    code: KeyCode::Up | KeyCode::Char('k'),
+                    code: KeyCode::Up | KeyCode::Char('k' | 'K'),
                     kind: Press | Repeat,
                     modifiers,
                     ..
@@ -364,7 +367,7 @@ impl<T: Write> Application<T> {
 
                 // Move selector down or decrease stat.
                 Event::Key(KeyEvent {
-                    code: KeyCode::Down | KeyCode::Char('j'),
+                    code: KeyCode::Down | KeyCode::Char('j' | 'J'),
                     kind: Press | Repeat,
                     modifiers,
                     ..
@@ -438,7 +441,7 @@ impl<T: Write> Application<T> {
 
                 // Move selector left (select stat).
                 Event::Key(KeyEvent {
-                    code: KeyCode::Left | KeyCode::Char('h'),
+                    code: KeyCode::Left | KeyCode::Char('h' | 'H'),
                     kind: Press | Repeat,
                     modifiers,
                     ..
@@ -475,7 +478,7 @@ impl<T: Write> Application<T> {
 
                 // Move selector right (select stat).
                 Event::Key(KeyEvent {
-                    code: KeyCode::Right | KeyCode::Char('l'),
+                    code: KeyCode::Right | KeyCode::Char('l' | 'L'),
                     kind: Press | Repeat,
                     modifiers,
                     ..
@@ -528,7 +531,7 @@ impl<T: Write> Application<T> {
 
                 // Move selector right (select stat).
                 Event::Key(KeyEvent {
-                    code: KeyCode::Delete | KeyCode::Char('d'),
+                    code: KeyCode::Delete | KeyCode::Char('d' | 'D'),
                     kind: Press | Repeat,
                     ..
                 }) => {

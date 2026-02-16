@@ -105,20 +105,25 @@ impl<T: Write> Application<T> {
             match event::read()? {
                 // Quit menu.
                 Event::Key(KeyEvent {
-                    code: KeyCode::Char('c'),
+                    code: KeyCode::Char('c' | 'C'),
                     modifiers: KeyModifiers::CONTROL,
                     kind: KeyEventKind::Press | KeyEventKind::Repeat,
                     state: _,
                 }) => break Ok(MenuUpdate::Push(Menu::Quit)),
                 Event::Key(KeyEvent {
                     code:
-                        KeyCode::Esc | KeyCode::Char('q') | KeyCode::Backspace | KeyCode::Char('b'),
+                        KeyCode::Esc
+                        | KeyCode::Char('q' | 'Q')
+                        | KeyCode::Backspace
+                        | KeyCode::Char('b' | 'B'),
                     kind: KeyEventKind::Press,
                     ..
-                }) => break Ok(MenuUpdate::Pop),
+                }) => {
+                    selected = 4;
+                }
                 // Select next menu.
                 Event::Key(KeyEvent {
-                    code: KeyCode::Enter | KeyCode::Char('e'),
+                    code: KeyCode::Enter | KeyCode::Char('e' | 'E'),
                     kind: KeyEventKind::Press,
                     ..
                 }) => {
@@ -129,7 +134,7 @@ impl<T: Write> Application<T> {
                 }
                 // Move selector up.
                 Event::Key(KeyEvent {
-                    code: KeyCode::Up | KeyCode::Char('k'),
+                    code: KeyCode::Up | KeyCode::Char('k' | 'K'),
                     kind: KeyEventKind::Press | KeyEventKind::Repeat,
                     ..
                 }) => {
@@ -139,7 +144,7 @@ impl<T: Write> Application<T> {
                 }
                 // Move selector down.
                 Event::Key(KeyEvent {
-                    code: KeyCode::Down | KeyCode::Char('j'),
+                    code: KeyCode::Down | KeyCode::Char('j' | 'J'),
                     kind: KeyEventKind::Press | KeyEventKind::Repeat,
                     ..
                 }) => {

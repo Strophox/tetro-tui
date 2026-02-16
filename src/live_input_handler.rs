@@ -41,7 +41,7 @@ pub fn spawn(
                             );
                             // FIXME: What about forfeiting a game with [Ctrl+D]?
                             let escape = matches!(code, event::KeyCode::Esc);
-                            let ctrl_c = matches!(code, event::KeyCode::Char('c'))
+                            let ctrl_c = matches!(code, event::KeyCode::Char('c' | 'C'))
                                 && matches!(modifiers, event::KeyModifiers::CONTROL);
 
                             if is_press_or_repeat && (escape || ctrl_c) {

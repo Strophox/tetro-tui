@@ -177,41 +177,19 @@ impl<T: Write> Application<T> {
 
                                         match (code, modifiers) {
                                             // [Esc]: Stop.
-                                            (KeyCode::Esc, _) => {
+                                            (KeyCode::Esc | KeyCode::Char('q' | 'Q'), _) => {
                                                 break 'update_and_render MenuUpdate::Pop;
                                             }
 
                                             // [Ctrl+C]: Abort program.
-                                            (KeyCode::Char('c'), KeyModifiers::CONTROL) => {
+                                            (KeyCode::Char('c' | 'C'), KeyModifiers::CONTROL) => {
                                                 break 'update_and_render MenuUpdate::Push(
                                                     Menu::Quit,
                                                 );
                                             }
 
-                                            // [Enter]: Start playable game from here!
-                                            (KeyCode::Enter, _) => {
-                                                // We yank the *exact* gamestate. Leave some dummy in its place that shouldn't be used/relevant...
-                                                let the_game = std::mem::replace(
-                                                    &mut game,
-                                                    Game::builder().build(),
-                                                );
-                                                break 'update_and_render MenuUpdate::Push(
-                                                    Menu::PlayGame {
-                                                        game: Box::new(the_game),
-                                                        game_input_history: game_restoration_data
-                                                            .input_history
-                                                            .iter()
-                                                            .take(inputs_loaded)
-                                                            .cloned()
-                                                            .collect(),
-                                                        game_meta_data: game_meta_data.clone(),
-                                                        game_renderer: Default::default(),
-                                                    },
-                                                );
-                                            }
-
                                             // [Ctrl+S]: Store savepoint.
-                                            (KeyCode::Char('s'), KeyModifiers::CONTROL) => {
+                                            (KeyCode::Char('s' | 'S'), KeyModifiers::CONTROL) => {
                                                 self.game_saves = (
                                                     0,
                                                     vec![GameSave {
@@ -243,14 +221,14 @@ impl<T: Write> Application<T> {
                                             }
 
                                             // [Ctrl+E]: Store seed.
-                                            (KeyCode::Char('e'), KeyModifiers::CONTROL) => {
+                                            (KeyCode::Char('e' | 'E'), KeyModifiers::CONTROL) => {
                                                 self.settings.new_game.custom_seed =
                                                     Some(game.state_init().seed);
 
                                                 game_renderer.push_game_feedback_msgs([(
                                                     game.state().time,
                                                     Feedback::Text(format!(
-                                                        "(Seed stored: {})",
+                                                        "(Seed stored: {}.)",
                                                         game.state_init().seed
                                                     )),
                                                 )]);
@@ -262,7 +240,13 @@ impl<T: Write> Application<T> {
                                             }
 
                                             // [↓][↑]: Adjust replay speed.
-                                            (KeyCode::Down | KeyCode::Up, modifier) => {
+                                            (
+                                                KeyCode::Down
+                                                | KeyCode::Char('j' | 'J')
+                                                | KeyCode::Up
+                                                | KeyCode::Char('k' | 'K'),
+                                                modifier,
+                                            ) => {
                                                 let speed_delta =
                                                     if modifier.contains(KeyModifiers::SHIFT) {
                                                         SPEED_SMALL_STEPPER_DELTA
@@ -270,7 +254,10 @@ impl<T: Write> Application<T> {
                                                         SPEED_NORMAL_STEPPER_DELTA
                                                     };
 
-                                                if code == KeyCode::Up {
+                                                if matches!(
+                                                    code,
+                                                    KeyCode::Up | KeyCode::Char('k' | 'K')
+                                                ) {
                                                     replay_speed_stepper += speed_delta;
                                                 } else if replay_speed_stepper > speed_delta {
                                                     replay_speed_stepper -= speed_delta;
@@ -279,10 +266,16 @@ impl<T: Write> Application<T> {
 
                                             // FIXME: Actually catch this keybind for consistency, but don't actually do anything.
                                             // [Ctrl+←]: -
-                                            (KeyCode::Left, KeyModifiers::SHIFT) => {}
+                                            (
+                                                KeyCode::Left | KeyCode::Char('h' | 'H'),
+                                                KeyModifiers::SHIFT,
+                                            ) => {}
 
                                             // [Ctrl+→]: Skip one input.
-                                            (KeyCode::Right, KeyModifiers::SHIFT) => {
+                                            (
+                                                KeyCode::Right | KeyCode::Char('l' | 'L'),
+                                                KeyModifiers::SHIFT,
+                                            ) => {
                                                 if let Some((next_input_time, button_change)) =
                                                     game_restoration_data
                                                         .input_history
@@ -325,14 +318,23 @@ impl<T: Write> Application<T> {
                                             }
 
                                             // [←][→]: Skip to anchor save.
-                                            (KeyCode::Left | KeyCode::Right, _) => {
+                                            (
+                                                KeyCode::Left
+                                                | KeyCode::Char('h' | 'H')
+                                                | KeyCode::Right
+                                                | KeyCode::Char('l' | 'L'),
+                                                _,
+                                            ) => {
                                                 let mut anchor_index =
                                                     (game.state().time.as_secs_f64()
                                                         / ANCHOR_INTERVAL.as_secs_f64())
                                                     .floor()
                                                         as usize;
 
-                                                if code == KeyCode::Left {
+                                                if matches!(
+                                                    code,
+                                                    KeyCode::Left | KeyCode::Char('h' | 'H')
+                                                ) {
                                                     anchor_index = anchor_index.saturating_sub(1);
                                                 } else {
                                                     anchor_index += 1;
@@ -357,6 +359,28 @@ impl<T: Write> Application<T> {
                                                 jump_to_anchor = Some(anchor_index);
 
                                                 break 'wait;
+                                            }
+
+                                            // [Enter]: Start playable game from here!
+                                            (KeyCode::Enter | KeyCode::Char('e' | 'E'), _) => {
+                                                // We yank the *exact* gamestate. Leave some dummy in its place that shouldn't be used/relevant...
+                                                let the_game = std::mem::replace(
+                                                    &mut game,
+                                                    Game::builder().build(),
+                                                );
+                                                break 'update_and_render MenuUpdate::Push(
+                                                    Menu::PlayGame {
+                                                        game: Box::new(the_game),
+                                                        game_input_history: game_restoration_data
+                                                            .input_history
+                                                            .iter()
+                                                            .take(inputs_loaded)
+                                                            .cloned()
+                                                            .collect(),
+                                                        game_meta_data: game_meta_data.clone(),
+                                                        game_renderer: Default::default(),
+                                                    },
+                                                );
                                             }
 
                                             // Other misc. key event: We don't care.
