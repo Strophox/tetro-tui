@@ -1,4 +1,5 @@
-!["terminal tetromino game demonstration GIF"](./demo/tetro_logo_glow.png)
+["tetro-tui logo"](./assets/tetro_logo_glow.png)
+<!--!["tetro-tui logo"](https://github.com/Strophox/tetro-tui/blob/COMMITHASH/assets/tetro_logo_glow.png?raw=true)-->
 
 
 # Tetro TUI - Cross-platform Terminal Game
@@ -10,11 +11,14 @@
 A cross-platform terminal game where tetrominos fall and stack.
 
 
+TODO-nice-gif
+
+
 ## Ways to Run
 
 ### Release download
 
-1. [Download a release](<https://github.com/Strophox/tetrs/releases>) for your platform (windows, linux/unix/macos) if available.
+1. [Download a release](<https://github.com/Strophox/tetro-tui/releases>) for your platform (windows, linux/unix/macos) if available.
 2. Open your favorite terminal (preferably [Kitty](<https://sw.kovidgoyal.net/kitty/>) or [Alacritty](<https://alacritty.org/>)).
 3. Run the application (e.g. `./tetro-tui` or `tetro-tui.exe`).
 
@@ -126,9 +130,9 @@ It is based off visual intuition and symmetry.
 <details>
 <summary>Visual heatmap comparison of rotation systems.</summary>
 
-!["ocular rotation system heatmap"](./demo/ocular-rotation-system.png)
+!["ocular rotation system heatmap"](./assets/ocular-rotation-system.png)
 
-!["super rotation system heatmap"](./demo/super-rotation-system.png)
+!["super rotation system heatmap"](./assets/super-rotation-system.png)
 
 </details>
 

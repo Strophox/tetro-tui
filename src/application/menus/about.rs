@@ -7,9 +7,9 @@ impl<T: Write> Application<T> {
         /* FIXME: About menu. */
         self.generic_menu(
             concat!(
-                "About tetrs_tui ",
+                "About Tetro TUI ",
                 clap::crate_version!(),
-                " - https://github.com/Strophox/tetrs"
+                " - https://github.com/Strophox/tetro-tui"
             ),
             vec![],
         )

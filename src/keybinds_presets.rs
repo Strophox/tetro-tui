@@ -37,8 +37,8 @@ pub fn normalize((mut code, mut modifiers): (KeyCode, KeyModifiers)) -> (KeyCode
     (code, modifiers)
 }
 
-pub fn tetrs_default_keybinds() -> Keybinds {
-    let keybinds_tetrs: [((KeyCode, KeyModifiers), Button); 7] = [
+pub fn tetro_default_keybinds() -> Keybinds {
+    let keybinds_tetro: [((KeyCode, KeyModifiers), Button); 7] = [
         (KeyCode::Left, Button::MoveLeft),
         (KeyCode::Right, Button::MoveRight),
         (KeyCode::Char('a'), Button::RotateLeft),
@@ -52,11 +52,11 @@ pub fn tetrs_default_keybinds() -> Keybinds {
         (KeyCode::Char(' '), Button::HoldPiece),
     ]
     .map(|(k, b)| ((k, KeyModifiers::NONE), b));
-    HashMap::from(keybinds_tetrs)
+    HashMap::from(keybinds_tetro)
 }
 
-pub fn tetrs_finesse_keybinds() -> Keybinds {
-    let keybinds_tetrs: [((KeyCode, KeyModifiers), Button); 11] = [
+pub fn tetro_finesse_keybinds() -> Keybinds {
+    let keybinds_tetro: [((KeyCode, KeyModifiers), Button); 11] = [
         (KeyCode::Left, Button::MoveLeft),
         (KeyCode::Right, Button::MoveRight),
         (KeyCode::Char('a'), Button::RotateLeft),
@@ -70,7 +70,7 @@ pub fn tetrs_finesse_keybinds() -> Keybinds {
         (KeyCode::Char(' '), Button::HoldPiece),
     ]
     .map(|(k, b)| ((k, KeyModifiers::NONE), b));
-    HashMap::from(keybinds_tetrs)
+    HashMap::from(keybinds_tetro)
 }
 
 pub fn vim_keybinds() -> Keybinds {

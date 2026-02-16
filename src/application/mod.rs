@@ -556,8 +556,8 @@ impl Default for Settings {
             ("Sequoia".to_owned(), sequoia_palette()),
         ];
         let keybinds_slots = vec![
-            ("Default".to_owned(), tetrs_default_keybinds()),
-            ("Extra Finesse".to_owned(), tetrs_finesse_keybinds()),
+            ("Default".to_owned(), tetro_default_keybinds()),
+            ("Extra Finesse".to_owned(), tetro_finesse_keybinds()),
             ("Vim".to_owned(), vim_keybinds()),
             ("Guideline".to_owned(), guideline_keybinds()),
         ];
@@ -685,7 +685,7 @@ enum MenuUpdate {
     Push(Menu),
 }
 
-// FIXME: Move tui application into `main` instead of artifically having it in one module below `tetrs_tui::main`.
+// FIXME: Move tui application into `main` instead of artifically having it in one module below `tetro-tui::main`.
 #[derive(PartialEq, Clone, Debug)]
 pub struct Application<T: Write> {
     runtime_data: RuntimeData,
@@ -729,7 +729,7 @@ impl<T: Write> Application<T> {
     pub const H_MAIN: u16 = 23;
 
     pub const SAVEFILE_NAME: &'static str =
-        concat!(".tetrs_tui_", clap::crate_version!(), "_savefile.json");
+        concat!(".tetro-tui_", clap::crate_version!(), "_savefile.json");
 
     // FIXME: Could we ever get any undesirable results from pushing *all* enhancement flags?
     pub const KEYBOARD_ENHANCEMENT_FLAGS: KeyboardEnhancementFlags =
@@ -743,7 +743,7 @@ impl<T: Write> Application<T> {
         // Console prologue: Initialization.
         // FIXME: Handle io::Error? If not, why not?
         let _v = term.execute(terminal::EnterAlternateScreen);
-        let _v = term.execute(terminal::SetTitle("tetrs - Terminal User Interface"));
+        let _v = term.execute(terminal::SetTitle("Tetro Terminal User Interface"));
         let _v = term.execute(cursor::Hide);
         let _v = terminal::enable_raw_mode();
         let mut app = Self {
