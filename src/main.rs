@@ -37,6 +37,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Catch panics and write error to separate file, so it isn't lost due to app's terminal shenanigans.
     std::panic::set_hook(Box::new(|panic_info| {
+        #[cfg(debug_assertions)]
+        {
+            let crash_file_name = format!(
+                "tetrs_tui_{}_crash-msg-{}.txt",
+                clap::crate_version!(),
+                chrono::Utc::now().format("%Y-%m-%d_%Hh%Mm%Ss")
+            );
+            if let Ok(mut file) = std::fs::File::create(crash_file_name) {
+                use std::io::Write;
+
+                let _ = file.write(panic_info.to_string().as_bytes());
+                let _ = file.write(b"\n\n\n");
+                let _ = file.write(
+                    std::backtrace::Backtrace::force_capture()
+                        .to_string()
+                        .as_bytes(),
+                );
+            }
+        }
         // Forcefully reset terminal state.
         // Although `Application` restores it, it appears to sometimes not do so before we can meaningfully print
         // an error visible to the user.
