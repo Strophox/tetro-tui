@@ -533,7 +533,7 @@ impl Default for Settings {
         let graphics_slots = vec![
             ("Default".to_owned(), GraphicsSettings::default()),
             (
-                "Focused".to_owned(),
+                "Extra Focused".to_owned(),
                 GraphicsSettings {
                     palette_active: 2,
                     palette_active_lockedtiles: 0,
@@ -551,23 +551,20 @@ impl Default for Settings {
             ("Gruvbox".to_owned(), gruvbox_palette()),
             ("Solarized".to_owned(), solarized_palette()),
             ("Terafox".to_owned(), terafox_palette()),
-            ("PaperColor".to_owned(), papercolor_palette()),
-            ("Nature Suede".to_owned(), naturesuede_palette()),
-            ("Lavendel".to_owned(), lavendel_palette()),
             ("Fahrenheit".to_owned(), fahrenheit_palette()),
             ("The Matrix".to_owned(), the_matrix_palette()),
             ("Sequoia".to_owned(), sequoia_palette()),
         ];
         let keybinds_slots = vec![
             ("Default".to_owned(), tetrs_default_keybinds()),
-            ("Finesse".to_owned(), tetrs_finesse_keybinds()),
+            ("Extra Finesse".to_owned(), tetrs_finesse_keybinds()),
             ("Vim".to_owned(), vim_keybinds()),
             ("Guideline".to_owned(), guideline_keybinds()),
         ];
         let gameplay_slots = vec![
             ("Default".to_owned(), GameplaySettings::default()),
             (
-                "Finesse".to_owned(),
+                "Extra Finesse".to_owned(),
                 GameplaySettings {
                     delayed_auto_shift: Duration::from_millis(110),
                     auto_repeat_rate: Duration::from_millis(0),
@@ -688,7 +685,7 @@ enum MenuUpdate {
     Push(Menu),
 }
 
-// TODO: Move tui application into `main` instead of artifically having it in one module below `tetrs_tui::main`.
+// FIXME: Move tui application into `main` instead of artifically having it in one module below `tetrs_tui::main`.
 #[derive(PartialEq, Clone, Debug)]
 pub struct Application<T: Write> {
     runtime_data: RuntimeData,

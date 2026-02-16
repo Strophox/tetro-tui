@@ -7,7 +7,7 @@ use crossterm::{
         KeyEventKind::{Press, Repeat},
         KeyModifiers,
     },
-    style::Print,
+    style::{Print, PrintStyledContent, Stylize},
     terminal::{Clear, ClearType},
     QueueableCommand,
 };
@@ -24,7 +24,7 @@ use crate::{
 impl<T: Write> Application<T> {
     #[allow(clippy::len_zero)]
     pub(in crate::application) fn run_menu_scores_and_replays(&mut self) -> io::Result<MenuUpdate> {
-        const CAMERA_SIZE: usize = 14;
+        const CAMERA_SIZE: usize = 13;
         const CAMERA_MARGIN: usize = 3;
         let mut cursor_pos = 0usize;
         let mut camera_pos = 0usize;
@@ -54,9 +54,9 @@ impl<T: Write> Application<T> {
                     "{} {} | {}{}{}",
                     entry.game_meta_data.datetime,
                     entry.game_meta_data.title,
+                    if entry.result.is_ok() { "" } else { "unf." },
                     fmt_comparison_stat(entry),
-                    if entry.result.is_ok() { "" } else { " (unf.)" },
-                    if opt_rep.is_some() { " &RP" } else { "" }
+                    if opt_rep.is_some() { " | RP" } else { "" }
                 )
             };
 
@@ -103,13 +103,25 @@ impl<T: Write> Application<T> {
                     format!(
                         "{}{}",
                         if entries_left > 0 {
-                            format!("... +{entries_left} more ")
+                            format!("... +{entries_left} more  ")
                         } else {
                             "".to_owned()
                         },
                         format!("({:?} order [←|→])", self.scores_and_replays.sorting)
                     )
                 )))?;
+            self.term
+                .queue(MoveTo(
+                    x_main,
+                    y_main + y_selection + 4 + u16::try_from(CAMERA_SIZE).unwrap() + 1,
+                ))?
+                .queue(PrintStyledContent(
+                    format!(
+                        "{:^w_main$}",
+                        format!("(Controls: [↓|↑]=scroll [Del]=delete [Enter]=replay)")
+                    )
+                    .italic(),
+                ))?;
             self.term.flush()?;
 
             // Wait for new input.
@@ -217,7 +229,6 @@ impl<T: Write> Application<T> {
                 }
 
                 // Load slot as savepoint.
-                // TODO: make this visible to frontend user.
                 Event::Key(KeyEvent {
                     code: KeyCode::Enter | KeyCode::Char('e'),
                     kind: Press | Repeat,

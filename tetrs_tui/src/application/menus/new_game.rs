@@ -236,7 +236,7 @@ impl<T: Write> Application<T> {
                 for (j, stat_str) in stats_strs.into_iter().enumerate() {
                     self.term
                         .queue(MoveTo(
-                            x_main + 25 + 4 * u16::try_from(j).unwrap(),
+                            x_main + 16 + 4 * u16::try_from(j).unwrap(),
                             y_main
                                 + y_selection
                                 + 4

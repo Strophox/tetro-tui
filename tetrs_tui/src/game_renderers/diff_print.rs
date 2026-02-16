@@ -397,8 +397,8 @@ impl Renderer for DiffPrintRenderer {
         let (x_messages, y_messages) = (49, 18);
         let (x_keybinds, y_keybinds) = (1, 16);
         let (x_rep_hdr, y_rep_hdr) = (1, 1);
-        let (x_rep_len, y_rep_len) = (1, 11);
-        let (x_rep_spd, y_rep_spd) = (1, 12);
+        let (x_rep_spd, y_rep_spd) = (1, 11);
+        let (x_rep_len, y_rep_len) = (1, 12);
         let (x_buttonst, y_buttonst) = (48, 17);
         let pos_board = |(x, y)| (x_board + 2 * x, y_board + Game::SKYLINE_HEIGHT - y);
 
@@ -439,20 +439,20 @@ impl Renderer for DiffPrintRenderer {
 
             // Replay header.
             self.screen
-                .buffer_str("(VIEWING REPLAY)", None, (x_rep_hdr, y_rep_hdr));
-
-            // Replay length.
-            self.screen.buffer_str(
-                &format!("Replay len/{}", fmt_duration(replay_length)),
-                None,
-                (x_rep_len, y_rep_len),
-            );
+                .buffer_str("(Viewing REPLAY)", None, (x_rep_hdr, y_rep_hdr));
 
             // Replay speed.
             self.screen.buffer_str(
-                &format!("Replay speed/{:.2}", replay_speed),
+                &format!("Replay speed: {:.2}", replay_speed),
                 None,
                 (x_rep_spd, y_rep_spd),
+            );
+
+            // Replay length.
+            self.screen.buffer_str(
+                &format!("Game len.: {}", fmt_duration(replay_length)),
+                None,
+                (x_rep_len, y_rep_len),
             );
         }
 

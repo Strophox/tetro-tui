@@ -95,23 +95,23 @@ pub fn fahrenheit_palette() -> Palette {
     HashMap::from(COLORS_FAHRENHEIT)
 }
 
-// pub fn gruvbox_palette() -> Palette {
-//     #[rustfmt::skip]
-//     const COLORS_GRUVBOX0: [(u8, Color); 7 + 3] = [
-//         (  1, Color::Rgb{r:215,g:153,b: 33}), // #D79921
-//         (  2, Color::Rgb{r:104,g:157,b:106}), // #689D6A
-//         (  3, Color::Rgb{r:152,g:151,b: 26}), // #98971A
-//         (  4, Color::Rgb{r:204,g: 36,b: 29}), // #CC241D
-//         (  5, Color::Rgb{r:177,g: 98,b:134}), // #B16286
-//         (  6, Color::Rgb{r:214,g: 93,b: 14}), // #D65D0E
-//         (  7, Color::Rgb{r: 69,g:133,b:136}), // #458588
+/*pub fn gruvbox_palette() -> Palette {
+    #[rustfmt::skip]
+    const COLORS_GRUVBOX0: [(u8, Color); 7 + 3] = [
+        (  1, Color::Rgb{r:215,g:153,b: 33}), // #D79921
+        (  2, Color::Rgb{r:104,g:157,b:106}), // #689D6A
+        (  3, Color::Rgb{r:152,g:151,b: 26}), // #98971A
+        (  4, Color::Rgb{r:204,g: 36,b: 29}), // #CC241D
+        (  5, Color::Rgb{r:177,g: 98,b:134}), // #B16286
+        (  6, Color::Rgb{r:214,g: 93,b: 14}), // #D65D0E
+        (  7, Color::Rgb{r: 69,g:133,b:136}), // #458588
 
-//         (253, Color::Rgb{r:  0,g:  0,b:  0}), // #000000
-//         (254, Color::Rgb{r:127,g:127,b:127}), // #7f7f7f
-//         (255, Color::Rgb{r:255,g:255,b:255}), // #FFFFFF
-//     ];
-//     HashMap::from(COLORS_GRUVBOX0)
-// }
+        (253, Color::Rgb{r:  0,g:  0,b:  0}), // #000000
+        (254, Color::Rgb{r:127,g:127,b:127}), // #7f7f7f
+        (255, Color::Rgb{r:255,g:255,b:255}), // #FFFFFF
+    ];
+    HashMap::from(COLORS_GRUVBOX0)
+}*/
 pub fn gruvbox_palette() -> Palette {
     #[rustfmt::skip]
     const COLORS_GRUVBOX1: [(u8, Color); 7 + 3] = [
@@ -130,7 +130,7 @@ pub fn gruvbox_palette() -> Palette {
     HashMap::from(COLORS_GRUVBOX1)
 }
 
-pub fn lavendel_palette() -> Palette {
+/*pub fn lavendel_palette() -> Palette {
     #[rustfmt::skip]
     const COLORS_LAVENDEL: [(u8, Color); 7 + 3] = [
         (  1, Color::Rgb{r:196,g:145,b:222}), // #C491DE
@@ -146,9 +146,9 @@ pub fn lavendel_palette() -> Palette {
         (255, Color::Rgb{r:225,g:227,b:237}), // #E1E3ED
     ];
     HashMap::from(COLORS_LAVENDEL)
-}
+}*/
 
-pub fn naturesuede_palette() -> Palette {
+/*pub fn nature_suede_palette() -> Palette {
     #[rustfmt::skip]
     const COLORS_NATURE_SUEDE: [(u8, Color); 7 + 3] = [
         (  1, Color::Rgb{r:200,g:157,b: 91}), // #C89D5B
@@ -164,9 +164,9 @@ pub fn naturesuede_palette() -> Palette {
         (255, Color::Rgb{r:228,g:201,b:140}), // #E4C98C
     ];
     HashMap::from(COLORS_NATURE_SUEDE)
-}
+}*/
 
-pub fn papercolor_palette() -> Palette {
+/*pub fn papercolor_palette() -> Palette {
     #[rustfmt::skip]
     const COLORS_PAPERCOLOR: [(u8, Color); 7 + 3] = [
         (  1, Color::Rgb{r:255,g:175,b:  0}), // #FFAF00
@@ -182,7 +182,7 @@ pub fn papercolor_palette() -> Palette {
         (255, Color::Rgb{r:208,g:208,b:208}), // #D0D0D0
     ];
     HashMap::from(COLORS_PAPERCOLOR)
-}
+}*/
 
 pub fn sequoia_palette() -> Palette {
     #[rustfmt::skip]

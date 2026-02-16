@@ -9,6 +9,7 @@ use crossterm::{
     cursor::MoveTo,
     event::{self, KeyCode, KeyEvent, KeyEventKind, KeyModifiers},
     style::{Print, PrintStyledContent, Stylize},
+    terminal::Clear,
     ExecutableCommand,
 };
 use tetrs_engine::{Feedback, Game, GameOver, UpdateGameError};
@@ -81,7 +82,22 @@ impl<T: Write> Application<T> {
             .unwrap_or_default();
 
         let mut is_paused = false;
-        let mut replay_speed = 1.0f64;
+
+        /* FIXME: This is a workaround for FLOATING POINT INPRECISION.
+           Originally we had `let replay_speed = 1.0f64;` but then we had issues such as:
+        ```
+        // Carefully don't go below desired minimum delta...
+        if replay_speed > speed_delta {  /* <- rep_spd = 0.05000000000002 > 0.05; */
+            replay_speed -= speed_delta; /* <- rep_spd = 0.00000000000002 OOF.    */
+        }
+        ``` */
+        const REPLAY_SPEED_STEPSIZE: f64 = 0.05;
+        let mut replay_speed_stepper = 20u32;
+        const SPEED_SMALL_STEPPER_DELTA: u32 = 1;
+        const SPEED_NORMAL_STEPPER_DELTA: u32 = 5;
+
+        let calc_speed =
+            |replay_speed_stepper: u32| f64::from(replay_speed_stepper) * REPLAY_SPEED_STEPSIZE;
 
         // Initialized/load game and generate game_save_anchors if possible.
         const ANCHOR_INTERVAL: Duration = Duration::from_millis(1000);
@@ -100,7 +116,7 @@ impl<T: Write> Application<T> {
             game_meta_data,
             &self.settings,
             &keybinds_legend,
-            Some((replay_length, replay_speed)),
+            Some((replay_length, calc_speed(replay_speed_stepper))),
             &mut self.term,
             true,
         )?;
@@ -250,15 +266,15 @@ impl<T: Write> Application<T> {
                                             (KeyCode::Down | KeyCode::Up, modifier) => {
                                                 let speed_delta =
                                                     if modifier.contains(KeyModifiers::SHIFT) {
-                                                        0.05
+                                                        SPEED_SMALL_STEPPER_DELTA
                                                     } else {
-                                                        0.25
+                                                        SPEED_NORMAL_STEPPER_DELTA
                                                     };
 
                                                 if code == KeyCode::Up {
-                                                    replay_speed += speed_delta;
-                                                } else if replay_speed > speed_delta {
-                                                    replay_speed -= speed_delta;
+                                                    replay_speed_stepper += speed_delta;
+                                                } else if replay_speed_stepper > speed_delta {
+                                                    replay_speed_stepper -= speed_delta;
                                                 };
                                             }
 
@@ -290,7 +306,10 @@ impl<T: Write> Application<T> {
                                                         game_meta_data,
                                                         &self.settings,
                                                         &keybinds_legend,
-                                                        Some((replay_length, replay_speed)),
+                                                        Some((
+                                                            replay_length,
+                                                            calc_speed(replay_speed_stepper),
+                                                        )),
                                                         &mut self.term,
                                                         true,
                                                     )?;
@@ -405,7 +424,7 @@ impl<T: Write> Application<T> {
                     game_meta_data,
                     &self.settings,
                     &keybinds_legend,
-                    Some((replay_length, replay_speed)),
+                    Some((replay_length, calc_speed(replay_speed_stepper))),
                     &mut self.term,
                     true,
                 )?;
@@ -417,14 +436,24 @@ impl<T: Write> Application<T> {
                 continue 'update_and_render;
             }
 
-            if !game.result().is_some() && !is_paused {
+            if is_paused || game.result().is_some() {
+                // We're paused.
+
+                self.term.execute(MoveTo(0, 0))?;
+                self.term
+                    .execute(PrintStyledContent(Stylize::italic("Replay Paused...")))?;
+            } else {
                 // Game has not ended and is not paused: progress the game.
+
+                self.term.execute(MoveTo(0, 0))?;
+                self.term
+                    .execute(Clear(crossterm::terminal::ClearType::CurrentLine))?;
 
                 // We first calculate the intended time at time of reaching here.
                 let update_target_time = game.state().time
                     + now
                         .saturating_duration_since(time_last_refresh)
-                        .mul_f64(replay_speed);
+                        .mul_f64(calc_speed(replay_speed_stepper));
 
                 'feed_inputs: loop {
                     let Some((next_input_time, button_change)) =
@@ -485,7 +514,7 @@ impl<T: Write> Application<T> {
                 game_meta_data,
                 &self.settings,
                 &keybinds_legend,
-                Some((replay_length, replay_speed)),
+                Some((replay_length, calc_speed(replay_speed_stepper))),
                 &mut self.term,
                 rerender_entire_view,
             )?;
@@ -576,10 +605,8 @@ impl<T: Write> Application<T> {
         let mut next_anchor_time = game.state().time + anchor_interval;
 
         'calculate_anchors: loop {
-            // FIXME: Handle io::Result? If not, why not?
-            let _v = self.term.execute(MoveTo(0, 0))?;
-            let _v = self
-                .term
+            self.term.execute(MoveTo(0, 0))?;
+            self.term
                 .execute(PrintStyledContent(Stylize::italic(format!(
                     "Loading replay... (precalculated {}/{})",
                     fmt_duration(game.state().time),
