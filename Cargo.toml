@@ -1,12 +1,21 @@
-[workspace]
+[package]
+name = "tetrs_tui"
+version = "0.3.0"
+edition = "2021"
 
-members = [
-    "tetrs_tui",
-    "tetrs_engine",
-]
-resolver = "2"
+[dependencies]
+chrono = "0.4.38" # Generating timestamps.
+clap = { version = "4.5.9", features = ["derive", "cargo"] } # Deriving command-line arguments. Getting Cargo.toml version.
+crossterm = { version = "0.27.0", features = ["serde"] } # Cross-platform terminal handling.
+dirs = "6.0.0"    # Cross-platform "Find the standard 'applications config' folder".
+rand = "0.9.2"    # Expose `random_range` for ChaCha12Rng.
 
-#[profile.release]
-#strip = true  # Automatically strip symbols from the binary.
-#opt-level = "z"  # Optimize for size.
-#lto = true # Link-time optimization.
+# Serializing data to store save file.
+serde = { version = "1.0.204", features = ["derive"] }
+serde_json = "1.0.120"
+serde_with = { version = "3.9.0", features = ["json"] }
+
+falling-tetromino-engine = { version = "1.0.0", features = ["serde"] } # Game logic.
+
+[features]
+graphviz = [] # Debug graphs for 'Combo Bot'.

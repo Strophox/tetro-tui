@@ -6,7 +6,6 @@
 </div>
 
 This repo contains:
-- `tetrs_engine`, a tetromino game backend – capable of handling modern 'stacker' mechanics;
 - `tetrs_tui`, a basic cross-platform Terminal User Interface – providing a sufficiently polished, familiar game experience.
 
 <!--
@@ -219,7 +218,7 @@ Very basic interaction with the engine is decoupled from IO or passing of time, 
 
 ```rust
 // Starting a round of the game.
-let game = tetrs_engine::Game::new(Gamemode::marathon());
+let game = falling_tetromino_engine::Game::new(Gamemode::marathon());
 
 // Application loop.
 loop {
@@ -236,11 +235,11 @@ loop {
 ```
 Notice that `game` does not advance its internal state until the caller of `game.update(...)` specifies the next `update_time`-point (which might or might not involve changes in user interaction).
 
-> `tetrs_engine` can be used as a [dependency from git](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#specifying-dependencies-from-git-repositories) by adding the following line to `Cargo.toml`:
+> `falling_tetromino_engine` can be used as a [dependency from git](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#specifying-dependencies-from-git-repositories) by adding the following line to `Cargo.toml`:
 > 
 > ```toml
 > [dependencies]
-> tetrs_engine = { git = "https://github.com/Strophox/tetrs.git" }
+> falling_tetromino_engine = { git = "https://github.com/Strophox/tetrs.git" }
 > ```
 
 <details>
@@ -330,7 +329,7 @@ struct Modifier {
 
 ## Known Issues
 
-- The README is too big. Well... rather the documentation of `tetrs_engine` is disproportionately too small.
+- The README is too big. Well... rather the documentation of `falling_tetromino_engine` is disproportionately too small.
 - [bug] Buttons pressed in-game, held, and unpressed in the Pause menu do not register as unpressed in-game.
 
 
@@ -360,8 +359,8 @@ We list considerations regarding perfomance of both the tetrs engine and TUI:
   - *(In an ideal world.)* Certainty of panic-freedom of `Game::update` (without use of mods).
 - Better code comments for TUI in case it ever does get improved / refactored.
 - Possibly remove `#[allow(…)]`, `#[allow(rustfmt::…)]`, , `#[allow(clippy::…)]`.
-- List of `tetrs_engine` features?...
-  - Small but attractive details of the `tetrs_engine` are not properly explained, e.g., an available *initial rotation system* which allows a piece to spawn already rotated if a rotation button was being held.
+- List of `falling_tetromino_engine` features?...
+  - Small but attractive details of the `falling_tetromino_engine` are not properly explained, e.g., an available *initial rotation system* which allows a piece to spawn already rotated if a rotation button was being held.
 
 
 ## Contribution Guidelines
