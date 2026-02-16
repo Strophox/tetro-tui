@@ -30,10 +30,9 @@ struct GameSaveAnchor {
 }
 
 impl<T: Write> Application<T> {
-    #[allow(clippy::too_many_arguments)]
     pub(in crate::application) fn run_menu_replay_game(
         &mut self,
-        game_restoration_data: &Box<GameRestorationData<UncompressedInputHistory>>,
+        game_restoration_data: &GameRestorationData<UncompressedInputHistory>,
         game_meta_data: &GameMetaData,
         game_renderer: &mut impl Renderer,
     ) -> io::Result<MenuUpdate> {
@@ -601,7 +600,7 @@ impl<T: Write> Application<T> {
     // NOTE: We do not treat degenerate games that end immediately (total time = 0).
     fn calculate_game_save_anchors(
         &mut self,
-        game_restoration_data: &Box<GameRestorationData<UncompressedInputHistory>>,
+        game_restoration_data: &GameRestorationData<UncompressedInputHistory>,
         anchor_interval: Duration,
     ) -> io::Result<(Game, Option<Vec<GameSaveAnchor>>)> {
         let initial_game = game_restoration_data.restore(0);

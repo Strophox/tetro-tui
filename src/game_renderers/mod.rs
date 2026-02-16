@@ -21,6 +21,7 @@ pub trait Renderer: Default {
         feedback_msgs: impl IntoIterator<Item = (InGameTime, Feedback)>,
     );
 
+    #[allow(clippy::too_many_arguments)]
     fn render<T: Write>(
         &mut self,
         game: &Game,

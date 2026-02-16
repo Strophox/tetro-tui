@@ -1,6 +1,8 @@
 use std::num::NonZeroU8;
 
-use falling_tetromino_engine::{Board, Game, GameOver, Line, Modifier, Phase, Stat, Tetromino, UpdatePoint};
+use falling_tetromino_engine::{
+    Board, Game, GameOver, Line, Modifier, Phase, Stat, Tetromino, UpdatePoint,
+};
 
 pub const MOD_ID: &str = "combo_board";
 

@@ -15,7 +15,9 @@ use crossterm::{
     terminal::{Clear, ClearType},
     QueueableCommand,
 };
-use falling_tetromino_engine::{DelayParameters, ExtDuration, ExtNonNegF64, Game, InGameTime, Stat};
+use falling_tetromino_engine::{
+    DelayParameters, ExtDuration, ExtNonNegF64, Game, InGameTime, Stat,
+};
 
 use crate::{
     application::{
@@ -581,7 +583,7 @@ impl<T: Write> Application<T> {
                     line_clear_duration,
                     spawn_delay,
                     allow_prespawn_actions,
-                } = self.settings.gameplay().clone();
+                } = *self.settings.gameplay();
 
                 let mut builder = Game::builder();
 

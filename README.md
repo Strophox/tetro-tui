@@ -1,5 +1,4 @@
-["tetro-tui logo"](./assets/tetro_logo_glow.png)
-<!--!["tetro-tui logo"](https://github.com/Strophox/tetro-tui/blob/COMMITHASH/assets/tetro_logo_glow.png?raw=true)-->
+!["tetro-tui logo"](https://github.com/Strophox/tetro-tui/blob/a78483f9ba145798201f83ad2e4dc760ba918916/assets/tetro_logo_glow.png?raw=true)
 
 
 # Tetro TUI - Cross-platform Terminal Game

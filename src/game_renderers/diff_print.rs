@@ -11,7 +11,9 @@ use crossterm::{
     terminal, QueueableCommand,
 };
 
-use falling_tetromino_engine::{Button, Coord, Feedback, InGameTime, Orientation, Stat, Tetromino, TileTypeID};
+use falling_tetromino_engine::{
+    Button, Coord, Feedback, InGameTime, Orientation, Stat, Tetromino, TileTypeID,
+};
 
 use super::*;
 
@@ -318,7 +320,7 @@ impl Renderer for DiffPrintRenderer {
                 format!(" Score: {:<16          }<! . . . . . . . . . .!>              ", game.state().score),
                 format!("                        <! . . . . . . . . . .!>              ", ),
                 format!(" Gravity: {:<14        }<! . . . . . . . . . .!>              ", fmt_hertz(gravity)),
-                format!(" {:<23                 }<! . . . . . . . . . .!>              ", if show_lockdelay { format!("Lock delay: {}", format!("{}ms",game.state().lock_delay.saturating_duration().as_millis())) } else { "".to_owned() }),
+                format!(" {:<23                 }<! . . . . . . . . . .!>              ", if show_lockdelay { format!("Lock delay: {}ms",game.state().lock_delay.saturating_duration().as_millis()) } else { "".to_owned() }),
                 format!("                        <! . . . . . . . . . .!>              ", ),
                 format!("                        <! . . . . . . . . . .!>              ", ),
                 format!("                        <! . . . . . . . . . .!>              ", ),
@@ -344,7 +346,7 @@ impl Renderer for DiffPrintRenderer {
                 format!(" Score: {:<17           }|                    |               ", game.state().score),
                 format!("                         |                    |{             }", if show_next { "-----next-----+" } else {"               "}),
                 format!(" Gravity: {:<15         }|                    |             {}", fmt_hertz(gravity), if show_next { " |" } else {"  "}),
-                format!(" {:<24                  }|                    |             {}", if show_lockdelay { format!("Lock delay: {}", format!("{}ms",game.state().lock_delay.saturating_duration().as_millis())) } else { "".to_owned() }, if show_next { " |" } else {"  "}),
+                format!(" {:<24                  }|                    |             {}", if show_lockdelay { format!("Lock delay: {}ms",game.state().lock_delay.saturating_duration().as_millis()) } else { "".to_owned() }, if show_next { " |" } else {"  "}),
                 format!("                         |                    |{             }", if show_next { "--------------+" } else {"               "}),
                 format!("                         |                    |               ", ),
                 format!("                         |                    |               ", ),
@@ -369,7 +371,7 @@ impl Renderer for DiffPrintRenderer {
                 format!(" Score: {:<17           }║                    ║               ", game.state().score),
                 format!("                         ║                    ║{             }", if show_next { "─────next─────┐" } else {"               "}),
                 format!(" Gravity: {:<15         }║                    ║             {}", fmt_hertz(gravity), if show_next { " │" } else {"  "}),
-                format!(" {:<24                  }║                    ║             {}", if show_lockdelay { format!("Lock delay: {}", format!("{}ms",game.state().lock_delay.saturating_duration().as_millis())) } else { "".to_owned() }, if show_next { " │" } else {"  "}),
+                format!(" {:<24                  }║                    ║             {}", if show_lockdelay { format!("Lock delay: {}ms",game.state().lock_delay.saturating_duration().as_millis()) } else { "".to_owned() }, if show_next { " │" } else {"  "}),
                 format!("                         ║                    ║{             }", if show_next { "──────────────┘" } else {"               "}),
                 format!("                         ║                    ║               ", ),
                 format!("                         ║                    ║               ", ),

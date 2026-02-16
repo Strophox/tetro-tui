@@ -31,7 +31,7 @@ impl<T: Write> Application<T> {
                         break name;
                     }
                 };
-                let new_slot = (new_custom_slot_name, settings.gameplay().clone());
+                let new_slot = (new_custom_slot_name, *settings.gameplay());
                 settings.gameplay_slots.push(new_slot);
                 settings.gameplay_slot_active = settings.gameplay_slots.len() - 1;
             }

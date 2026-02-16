@@ -11,7 +11,9 @@ use crossterm::{
     terminal::{self, Clear, ClearType},
     ExecutableCommand,
 };
-use falling_tetromino_engine::{Button, ButtonChange, Feedback, Game, GameOver, InGameTime, UpdateGameError};
+use falling_tetromino_engine::{
+    Button, ButtonChange, Feedback, Game, GameOver, InGameTime, UpdateGameError,
+};
 
 use crate::{
     application::{
@@ -24,7 +26,6 @@ use crate::{
 };
 
 impl<T: Write> Application<T> {
-    #[allow(clippy::too_many_arguments)]
     pub(in crate::application) fn run_menu_play_game(
         &mut self,
         game: &mut Game,

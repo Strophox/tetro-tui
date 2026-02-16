@@ -1,13 +1,17 @@
 use std::io::{self, Write};
 
-use crossterm::{QueueableCommand, cursor::MoveTo, event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers}, style::{Color, Print, PrintStyledContent, Stylize}, terminal::{Clear, ClearType}};
+use crossterm::{
+    cursor::MoveTo,
+    event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers},
+    style::{Color, Print, PrintStyledContent, Stylize},
+    terminal::{Clear, ClearType},
+    QueueableCommand,
+};
 
 use crate::application::{Application, Menu, MenuUpdate};
 
 impl<T: Write> Application<T> {
-    pub(in crate::application) fn run_menu_title(
-        &mut self,
-    ) -> io::Result<MenuUpdate> {
+    pub(in crate::application) fn run_menu_title(&mut self) -> io::Result<MenuUpdate> {
         let selection = vec![
             Menu::NewGame,
             Menu::Settings,
@@ -38,7 +42,10 @@ impl<T: Write> Application<T> {
 
             for (dy, (bline, cline)) in title.iter().zip(title_colors).enumerate() {
                 for (dx, (bchar, cchar)) in bline.chars().zip(cline.chars()).enumerate() {
-                    self.term.queue(MoveTo(x_main + u16::try_from(dx_title + dx).unwrap(), y_main + y_selection + u16::try_from(dy).unwrap()))?;
+                    self.term.queue(MoveTo(
+                        x_main + u16::try_from(dx_title + dx).unwrap(),
+                        y_main + y_selection + u16::try_from(dy).unwrap(),
+                    ))?;
 
                     self.term.queue(PrintStyledContent(bchar.to_string().with(
                         if cchar == ' ' {
@@ -47,10 +54,16 @@ impl<T: Write> Application<T> {
                             *self
                                 .settings
                                 .palette()
-                                .get(&falling_tetromino_engine::Tetromino::VARIANTS[cchar.to_string().parse::<usize>().unwrap()].tiletypeid().get())
+                                .get(
+                                    &falling_tetromino_engine::Tetromino::VARIANTS
+                                        [cchar.to_string().parse::<usize>().unwrap()]
+                                    .tiletypeid()
+                                    .get(),
+                                )
                                 .unwrap_or(&Color::Reset)
-                        })))?;
-                } 
+                        },
+                    )))?;
+                }
             }
 
             let names = selection
@@ -85,9 +98,9 @@ impl<T: Write> Application<T> {
                     )
                     .italic(),
                 ))?;
-            
+
             self.term.flush()?;
-            
+
             // Wait for new input.
             match event::read()? {
                 // Quit menu.

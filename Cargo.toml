@@ -2,6 +2,18 @@
 name = "tetro-tui"
 version = "1.0.0"
 edition = "2021"
+rust-version = "1.87.0"
+authors = ["Strophox"]
+license = "MIT"
+description = " A cross-platform terminal game where tetrominos fall and stack."
+# documentation = "https://docs.rs/tetro-tui"
+# homepage = "https://...
+repository = "https://github.com/Strophox/tetro-tui"
+readme = "README.md"
+keywords = ["tetromino", "terminal", "game", "tui", "ascii-art"]
+categories = ["games", "command-line-utilities"]
+exclude = ["assets/*", ".github/"]
+
 
 [dependencies]
 chrono = "0.4.38" # Generating timestamps.

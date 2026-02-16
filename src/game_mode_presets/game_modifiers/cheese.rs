@@ -1,10 +1,10 @@
 use std::num::{NonZeroU32, NonZeroU8, NonZeroUsize};
 
-use rand::seq::SliceRandom;
 use falling_tetromino_engine::{
     DelayParameters, ExtDuration, Game, GameBuilder, GameModFn, GameRng, Line, Modifier, Stat,
     UpdatePoint,
 };
+use rand::seq::SliceRandom;
 
 pub const MOD_ID: &str = "cheese";
 
