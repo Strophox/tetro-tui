@@ -278,13 +278,18 @@ impl<T: Write> Application<T> {
                                                 };
                                             }
 
+                                            // FIXME: Actually catch this keybind for consistency, but don't actually do anything.
+                                            // [Ctrl+←]: -
+                                            (KeyCode::Left, KeyModifiers::SHIFT) => {}
+
+                                            // [Ctrl+→]: Skip one input.
                                             (KeyCode::Right, KeyModifiers::SHIFT) => {
                                                 if let Some((next_input_time, button_change)) =
                                                     game_restoration_data
                                                         .input_history
                                                         .get(inputs_loaded)
                                                 {
-                                                    // VERY Hacky way to advance by one input.
+                                                    // VERY Hacky way to advance by one player input.
 
                                                     time_last_refresh = Instant::now();
                                                     match game.update(
@@ -395,6 +400,14 @@ impl<T: Write> Application<T> {
             let now = Instant::now();
 
             if let Some(anchor_index) = jump_to_anchor.take() {
+                // We don't allow skipping beyond last anchor.
+                if anchor_index
+                    > ((replay_length.as_secs_f64() / ANCHOR_INTERVAL.as_secs_f64()).floor()
+                        as usize)
+                {
+                    continue 'update_and_render;
+                }
+
                 // Remember: We convene on logically setting the 'refresh point' to before the update and render happens.
                 time_last_refresh = now;
 
