@@ -213,7 +213,7 @@ pub fn replay_keybinds_legend() -> KeybindsLegend {
     vec![
         (icon_pause, "pause"),
         (icons_speed, "speed -/+"),
-        (icons_skip, "skip -/+"),
+        (icons_skip, "timeskip -/+"),
         // (icons_game_update, "-/+ game update"),
         (icons_enter, "game from here"),
         (icon_stop, "stop"),

@@ -316,7 +316,7 @@ impl<T: Write> Application<T> {
                                                             calc_speed(replay_speed_stepper),
                                                         )),
                                                         &mut self.term,
-                                                        true,
+                                                        rerender_entire_view,
                                                     )?;
                                                     // Reset state of this variable since render just occurred.
                                                     rerender_entire_view = false;
@@ -422,10 +422,20 @@ impl<T: Write> Application<T> {
                         inputs_loaded = *anchor_inputs_loaded;
                     }
                 } else {
-                    // let tgt_time = ANCHOR_INTERVAL.mul_f64(f64::try_from(anchor_index).unwrap());
-                    // game_restoration_data.input_history.binary_search_by_key(tgt_time, ||)
-                    // game_restoration_data ;
-                    todo!("replay skips yet unsupported for modded games")
+                    let tgt_time = ANCHOR_INTERVAL.mul_f64(anchor_index as f64);
+                    let idx = match game_restoration_data
+                        .input_history
+                        .binary_search_by_key(&tgt_time, |d_bc| d_bc.0)
+                    {
+                        Ok(idx) | Err(idx) => idx,
+                    };
+                    game = game_restoration_data.restore(idx);
+                    match game.update(tgt_time, None) {
+                        Ok(msgs) => game_renderer.push_game_feedback_msgs(msgs),
+                        // FIXME: Handle UpdateGameError? If not, why not?
+                        Err(_e) => {}
+                    }
+                    inputs_loaded = idx;
                 }
 
                 // Reset renderer.
