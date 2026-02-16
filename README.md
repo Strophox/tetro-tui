@@ -10,7 +10,7 @@
 A cross-platform terminal game where tetrominos fall and stack.
 
 
-TODO-nice-gif
+!["tetro-tui demonstration GIF"](./assets/tetro-tui_demo.gif)
 
 
 ## Ways to Run
@@ -129,9 +129,9 @@ It is based off visual intuition and symmetry.
 <details>
 <summary>Visual heatmap comparison of rotation systems.</summary>
 
-!["ocular rotation system heatmap"](./assets/ocular-rotation-system.png)
+!["super rotation system heatmap"](./assets/super-rotation_heatmap.png.png)
 
-!["super rotation system heatmap"](./assets/super-rotation-system.png)
+!["ocular rotation system heatmap"](./assets/ocular-rotation_heatmap.png.png)
 
 </details>
 
