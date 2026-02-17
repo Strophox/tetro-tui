@@ -45,7 +45,7 @@ Then you can run the game with `tetro-tui`.
 > *Tetro* is about [tetromino](<https://en.wikipedia.org/wiki/Tetromino>) pieces falling from the sky and stacking on a rectangular playing field.
 > 
 > Whenever a line is filled up horizontally, it clears away, and the rest of what you 'stacked' moves down.
-> This way a killed player can keep playing without Blocking Out the entire board.
+> This way a skilled player can keep playing without Blocking Out the entire board.
 
 
 ### How good is customization?
@@ -256,6 +256,6 @@ Color palettes used:
 
 Special Thanks to:
 - GrBtAce, KonSola5 and bennxt *for support early in development*,
-- Dunspixel *for inspiration regarding ['O'-spin](<https://dunspixel.github.io/ospin-guide/chapter4.html#tetrs>)*,
+- Dunspixel *for inspiration regarding ['O'-spin](<https://dunspixel.github.io/ospin-guide/chapter4.html#tetro-tui>)*,
 - madkiwi *for advice regarding 4wide-6res layouts*,
 - and RayZN *for advice regarding the Tetro logo*.

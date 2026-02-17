@@ -57,7 +57,8 @@ impl<T: Write> Application<T> {
         // Toggle on enhanced-keyboard-events.
         if self.runtime_data.kitty_assumed {
             let f = Self::KEYBOARD_ENHANCEMENT_FLAGS;
-            self.term.execute(event::PushKeyboardEnhancementFlags(f))?;
+            // FIXME: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm doesn't like operating on Windows.
+            let _v = self.term.execute(event::PushKeyboardEnhancementFlags(f));
         }
 
         // Prepare channel from which to receive terminal inputs.
@@ -615,7 +616,8 @@ impl<T: Write> Application<T> {
         ``` */
 
         if self.runtime_data.kitty_assumed {
-            self.term.execute(event::PopKeyboardEnhancementFlags)?;
+            // FIXME: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm doesn't like operating on Windows.
+            let _v = self.term.execute(event::PopKeyboardEnhancementFlags);
         }
 
         Ok(menu_update)
