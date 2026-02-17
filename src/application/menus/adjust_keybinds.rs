@@ -179,7 +179,7 @@ impl<T: Write> Application<T> {
                         // Wait until appropriate keypress detected.
                         if self.runtime_data.kitty_assumed {
                             let f = Self::KEYBOARD_ENHANCEMENT_FLAGS;
-                            // FIXME: Handle io::Error? If not, why not?
+                            // FIXME: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm doesn't like operating on Windows.
                             let _v = self.term.execute(event::PushKeyboardEnhancementFlags(f));
                         }
                         loop {
@@ -202,7 +202,7 @@ impl<T: Write> Application<T> {
                         }
                         // Console epilogue: De-initialization.
                         if self.runtime_data.kitty_assumed {
-                            // FIXME: Handle io::Error? If not, why not?
+                            // FIXME: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm doesn't like operating on Windows.
                             let _v = self.term.execute(event::PopKeyboardEnhancementFlags);
                         }
                     }
