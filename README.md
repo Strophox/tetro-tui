@@ -3,9 +3,9 @@
 
 # Tetro TUI - Cross-platform Terminal Game
 
-[![Crates.io](https://img.shields.io/crates/v/falling-tetromino-engine.svg)](https://crates.io/crates/falling-tetromino-engine)
-[![Documentation](https://docs.rs/falling-tetromino-engine/badge.svg)](https://docs.rs/falling-tetromino-engine)
-[![License](https://img.shields.io/crates/l/falling-tetromino-engine)](https://github.com/Strophox/falling-tetromino-engine#license)
+[![Crates.io](https://img.shields.io/crates/v/tetro-tui.svg)](https://crates.io/crates/tetro-tui)
+[![License](https://img.shields.io/crates/l/tetro-tui)](https://github.com/Strophox/tetro-tui#license)
+<!--[![Documentation](https://docs.rs/tetro-tui/badge.svg)](https://docs.rs/tetro-tui)-->
 
 A cross-platform terminal game where tetrominos fall and stack.
 
@@ -40,28 +40,24 @@ Then you can run the game with `tetro-tui`.
 ## FAQ
 
 
-### How does this work? Which Gamemodes are available?
+### How does the game work?
 
 > *Tetro* is about [tetromino](<https://en.wikipedia.org/wiki/Tetromino>) pieces falling from the sky and stacking on a rectangular playing field.
-
+> 
 > Whenever a line is filled up horizontally, it clears away, and the rest of what you 'stacked' moves down.
 > This way a killed player can keep playing without Blocking Out the entire board.
-> 
-> - **Basic modes:** 40-Lines, Marathon (150 lines), Time Trial (3 min.), Master (300 lines at instant fall gravity).
-> - **Special modes:** Puzzle (24 stages), Cheese, Combo.
-> - **Custom mode:** customize initial gravity, gravity progression on/off, custom goal or 'no limit' (*commandline options:* start board or seed).
 
 
-### How good is customization / options?
+### How good is customization?
 
-> Solid:
+> For what started as a small project, solid:
 > - **Graphics:** Unicode/ASCII/Electronika, 10 default color palettes, FPS, toggle effects...
 > - **Keybinds:** to your heart's desire.
 > - **Gameplay/Handling:** Rotation system, tetromino generator, preview count; DAS, ARR, SDF, LDC, ARE (timings), IRS/IHS
-> - **Comprehensive game replay:** speed, time skipping/jumping.
+> - **Gamemode selection:** 40-Lines, Marathon, Time Trial, Master; Puzzle, Cheese, Combo; Custom mode (choose initial gravity, gravity progress on/off, custom/no goal, *commandline options:* start board or seed).
 
 
-### What's the motivation behind this project?
+### What was the motivation behind this project?
 
 > This is a passion project.
 > The addition of the many features stem from personal motivation to make them available and make things enjoyable.
@@ -82,22 +78,24 @@ Then you can run the game with `tetro-tui`.
 > Savefile size may grow primarily due to saved replays (though good care has been taken to compress those well). You can choose past games to delete in the *Scores and Replays* menu.
 
 
-### *Experienced Stackers:* Why do custom timings (DAS/ARR/SDF etc.) not always work?
+### *Experienced Stackers:* Why do timing-settings (DAS/ARR/SDF etc.) not always apply?
 
 > *TL;DR* use a terminal like [kitty](<https://sw.kovidgoyal.net/kitty/>) (or [some other](https://docs.rs/crossterm/latest/crossterm/event/struct.PushKeyboardEnhancementFlags.html)) for 'true' (smooth) gameplay experience.
-> 
 > In all other cases some timing configurations depend on how your terminal/keyboard/OS simulates key-repetitions.
 > 
-> The problem lies in how terminals only send 'key-pressed-once' signals, but none 'key-released-again'. This makes it impossible to implement mechanics like: "If `[←]` is pressed, move left repeatedly *until key is released again*".
-> 
+> The problem lies in how terminals only send 'key-pressed-once' signals, but none 'key-released-again'.
+> This makes it impossible to implement mechanics like: "If `[←]` is pressed, move left repeatedly *until key is released again*".
 > Precisely this issue is fixed with 'kitty protocol' / ['progressive enhancement'](<https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement>) / 'enhanced keyboard events'.
 
 
-### *Experienced Stackers:* How do mechanics/configuration depth compare to other games?
+### *Experienced Stackers:* How 'polished' are the precision mechanics?
 
-> Quote from the [Falling Tetromino Engine](<https://crates.io/crates/falling-tetromino-engine>) powering the actual game logic:
-> 
 > <details>
+> <summary>
+> 
+> Quote from the [Falling Tetromino Engine](<https://crates.io/crates/falling-tetromino-engine>) powering the actual game logic:
+>
+> </summary>
 > 
 > The engine aims to compete on the order of modern tetromino stackers;
 > It incorporates many features found in such games.
@@ -124,29 +122,48 @@ Then you can run the game with `tetro-tui`.
 > </details>
 
 
-### *Experienced Stackers:* In which ways is it *not* like familiar stacker games?
+### *Experienced Stackers:* In which ways is it *unlike* familiar stacker games?
 
-> The project took its liberties to adapt/experiment with stacker game mechanics where it was seen to make improve experience of newcomers:
-> - TODO
+> <details>
+> <summary>
+> 
+> The project took its liberties to adapt/experiment with certain aspects of game mechanics (to try and improve it):
+> 
+> </summary>
+> 
+> - Custom **Ocular Rotation** System, instead of the 'odd' industry standard.
+> - Default controls set to **WASD + Arrow**.
+> - **Recency/History generator** instead of 'overdeterministic' 7-bag.
+> - **Scoring** system is different, more **simplified**.
+>   - 'Allspin' (no 'minis') instead of preoccupation with 'T-spins'.
+>   - Combos, but no back-to-back.
+>   - Exact formula is: `score_bonus = if is_perfect_clear{ 4 }else{ 1 } * if is_spin{ 2 }else{ 1 } * lineclears * 2 - 1 + (combo - 1)`
+> - Additional controls for Teleport Down (a.k.a. 'Sonic Drop') / Left / Right.
+> - Different lock reset implementation ('max 15 moves' vs. 'max 10⋅current lock delay')
+> - Speed/Gravity/Fall curve slightly adapted.
+> 
+> </details>
 
 
 ### *Experienced Stackers:* What's the "Ocular Rotation System"?
 
-> A 'better' implementation of tetromino rotation.
-> 
-> It is based off visual intuition and symmetry.
-> 
 > <details>
-> <summary>Visual heatmap comparison of rotation systems.</summary>
+> <summary>
 > 
-> !["super rotation system heatmap"](./assets/super-rotation_heatmap.png)
+> A 'better' implementation of tetromino rotation, based off visual intuition and symmetry:
 > 
-> !["ocular rotation system heatmap"](./assets/ocular-rotation_heatmap.png)
+> </summary>
 >
 > The Ocular Rotation System affords:
 > - Rotation based on 'where it looks like the piece should be able to go'.
 > - Symmetric (mirrored) situations should lead to symmetric (mirrored) outcomes.
 > - Tetrominos should not teleport up/down too much.
+>
+> Visual heatmap comparison of rotation systems:
+> 
+> !["super rotation system heatmap"](https://github.com/Strophox/tetro-tui/blob/d8de81636a9fe47ba2e1f222de5a43f174d292ce/assets/super-rotation_heatmap.png?raw=true)
+> 
+> !["ocular rotation system heatmap"](https://github.com/Strophox/tetro-tui/blob/d8de81636a9fe47ba2e1f222de5a43f174d292ce/assets/ocular-rotation_heatmap.png?raw=true)
 > 
 > </details>
 
@@ -154,9 +171,7 @@ Then you can run the game with `tetro-tui`.
 ### *CLI Enthusiasts:* How was the Terminal User Interface (TUI) programmed?
 
 > This basic but hopefully decent TUI was programmed directly using the amazing [Crossterm](<https://crates.io/crates/crossterm>).
-> Crossterm handles all the placement of (colored) characters and reading inputs from the terminal.
-> 
-> Care has been taken to implement our own diff'ing - I/O operations should not bottleneck smooth rendering of gameplay.
+> Crossterm handles all the placement of (colored) characters and reading inputs from the terminal. We implement custom diff'ing so I/O does not bottleneck smooth rendering.
 
 
 ### How do I navigate the TUI? Can I see a table of all the controls?
