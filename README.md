@@ -266,7 +266,7 @@ Color palettes used:
 ## Acknowledgements
 
 Special Thanks to:
-- GrBtAce, KonSola5 and bennxt *for support early in development*,
-- Dunspixel *for inspiration regarding ['O'-spin](<https://dunspixel.github.io/ospin-guide/chapter4.html#tetro-tui>)*,
-- madkiwi *for advice regarding 4wide-6res layouts*,
-- and RayZN *for advice regarding the Tetro logo*.
+- GrBtAce, KonSola5 and bennxt – for support early in development
+- Dunspixel – for inspiration regarding ['O'-spin](<https://dunspixel.github.io/ospin-guide/chapter4.html#tetro-tui>)
+- madkiwi – for advice regarding 4wide-6res combo layouts
+- and RayZN and ˗ˋˏthe One and Onlyˎˊ˗ – for advice regarding the Tetro logo
