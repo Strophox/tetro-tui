@@ -85,17 +85,17 @@ impl<T: Write> Application<T> {
         // Explicitly tells the renderer if entire screen needs to be re-drawn once.
         let mut rerender_entire_view = false;
 
+        // How much time passes between each refresh.
+        let frame_interval = Duration::from_secs_f64(self.settings.graphics().game_fps.recip());
+
         // Time of the game when we enter the game loop.
         let ingametime_when_game_loop_entered = game.state().time;
 
         // The 'real-life' time at which we enter the game loop.
         let time_game_loop_entered = Instant::now();
 
-        // How much time passes between each refresh.
-        let refresh_time_budget =
-            Duration::from_secs_f64(self.settings.graphics().game_fps.recip());
-
-        let mut time_last_refresh = time_game_loop_entered;
+        // The number of the frame. This is used to calculate the time of the next frame.
+        let mut time_next_frame = time_game_loop_entered;
 
         // Main Game Loop
 
@@ -128,13 +128,20 @@ impl<T: Write> Application<T> {
             }
 
             // Calculate the time of the next render we can catch.
-            // We actually completely base this off the start of the session,
-            // and just skip a render if we miss the window.
-            let time_next_refresh = time_last_refresh + refresh_time_budget;
+            // We actually just skip a render if we missed the window anyway.
+            let now = Instant::now();
+            loop {
+                time_next_frame += frame_interval;
+                if time_next_frame < now {
+                    continue;
+                }
+                break;
+            }
 
             'wait: loop {
-                // Compute time left until we should stop waiting.
-                let refresh_time_budget_remaining = time_next_refresh - Instant::now();
+                // Compute duration left until we should stop waiting.
+                let refresh_time_budget_remaining =
+                    time_next_frame.saturating_duration_since(Instant::now());
 
                 // Read terminal signal or finish waiting.
                 match input_receiver.recv_timeout(refresh_time_budget_remaining) {
@@ -364,9 +371,6 @@ impl<T: Write> Application<T> {
             }
 
             let now = Instant::now();
-
-            // We convene on logically setting the 'refresh point' to before the update and render happens.
-            time_last_refresh = now;
 
             // We first calculate the intended time at time of reaching here.
             let update_target_time = ingametime_when_game_loop_entered
