@@ -338,7 +338,7 @@ impl<T: Write> Application<T> {
                                     event::Event::Resize(_, _) => {
                                         // Need to redraw screen for proper centering etc.
                                         rerender_entire_view = true;
-                                        continue 'update_and_render;
+                                        break 'wait;
                                     }
                                 }
                             }
