@@ -55,6 +55,17 @@ Then you can run the game with `tetro-tui`.
 > - **Keybinds:** to your heart's desire.
 > - **Gameplay/Handling:** Rotation system, tetromino generator, preview count; DAS, ARR, SDF, LDC, ARE (timings), IRS/IHS
 > - **Gamemode selection:** 40-Lines, Marathon, Time Trial, Master; Puzzle, Cheese, Combo; Custom mode (choose initial gravity, gravity progress on/off, custom/no goal, *commandline options:* start board or seed).
+>
+> <details>
+> <summary>
+>
+> Terminal customizations can carry over to game graphics, e.g. using [cool-retro-term](<https://github.com/Swordfish90/cool-retro-term>):
+>
+> </summary>
+>
+> !["tetro-tui logo"](https://github.com/Strophox/tetro-tui/blob/4072b518eec0655419f564e3e76a23ef5c17fd2e/assets/tetro-tui_cool-retro-term.png?raw=true)
+>
+> </details>
 
 
 ### What was the motivation behind this project?
