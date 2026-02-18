@@ -1,6 +1,6 @@
 [package]
 name = "tetro-tui"
-version = "1.0.1"
+version = "1.1.0"
 edition = "2021"
 rust-version = "1.87.0"
 authors = ["Strophox"]
@@ -28,6 +28,3 @@ serde_json = "1.0.120"
 serde_with = { version = "3.9.0", features = ["json"] }
 
 falling-tetromino-engine = { version = "1.0.0", features = ["serde"] } # Game logic.
-
-[features]
-graphviz = [] # Debug graphs for 'Combo Bot'.
