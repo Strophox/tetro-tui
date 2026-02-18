@@ -225,7 +225,7 @@ Then you can run the game with `tetro-tui`.
 > | `Ctrl`+`D` | Forfeit game |
 > | `Ctrl`+`E` | Store seed (→custom mode) |
 > | `Ctrl`+`S` | Store savepoint (→new game menu) |
-> | `Ctrl`+`Shift`+`B` | Toggle on/off visibility of tiles ('Blindfolded' mode) |
+> | `Ctrl`+`Alt`+`B` | Toggle on/off visibility of tiles ('Blindfold') |
 > | `Ctrl`+`C` | Abort application |
 > 
 > </details>

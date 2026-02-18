@@ -308,17 +308,19 @@ impl<T: Write> Application<T> {
 
                                             // [Ctrl+Shift+B]: (Un-)Blindfold.
                                             (KeyCode::Char('b' | 'B'), _)
-                                                if modifiers.contains(
+                                                if {
+                                                    modifiers.contains(
                                                     KeyModifiers::CONTROL
-                                                        .union(KeyModifiers::SHIFT),
-                                                ) =>
+                                                        .union(KeyModifiers::ALT),
+                                                )} =>
                                             {
+                                                
                                                 self.settings.graphics_mut().blindfolded ^= true;
                                                 if self.settings.graphics().blindfolded {
                                                     game_renderer.push_game_feedback_msgs([(
                                                         game.state().time,
                                                         Feedback::Text(
-                                                            "Blindfolded! [Ctrl+Shift+B]"
+                                                            "Blindfolded! [Ctrl+Alt+B]"
                                                                 .to_owned(),
                                                         ),
                                                     )]);
@@ -326,7 +328,7 @@ impl<T: Write> Application<T> {
                                                     game_renderer.push_game_feedback_msgs([(
                                                         game.state().time,
                                                         Feedback::Text(
-                                                            "Blindfolds removed! [Ctrl+Shift+B]"
+                                                            "Blindfolds removed [Ctrl+Alt+B]"
                                                                 .to_owned(),
                                                         ),
                                                     )]);
