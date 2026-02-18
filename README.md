@@ -63,7 +63,7 @@ Then you can run the game with `tetro-tui`.
 >
 > </summary>
 >
-> !["tetro-tui logo"](https://github.com/Strophox/tetro-tui/blob/4072b518eec0655419f564e3e76a23ef5c17fd2e/assets/tetro-tui_cool-retro-term.png?raw=true)
+> !["tetro-tui running in cool-retro-term"](https://github.com/Strophox/tetro-tui/blob/011251ba7cbfaca03414c910c5483791f3fef737/assets/tetro-tui_cool-retro-term.jpg?raw=true)
 >
 > </details>
 
