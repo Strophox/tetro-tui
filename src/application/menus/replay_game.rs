@@ -12,7 +12,7 @@ use crossterm::{
     terminal::Clear,
     ExecutableCommand,
 };
-use falling_tetromino_engine::{Feedback, Game, GameOver, UpdateGameError};
+use falling_tetromino_engine::{Feedback, Game, GameOver, InGameTime, UpdateGameError};
 
 use crate::{
     application::{
@@ -34,6 +34,7 @@ impl<T: Write> Application<T> {
         &mut self,
         game_restoration_data: &GameRestorationData<UncompressedInputHistory>,
         game_meta_data: &GameMetaData,
+        replay_length: InGameTime,
         game_renderer: &mut impl Renderer,
     ) -> io::Result<MenuUpdate> {
         /* Our game loop recipe looks like this:
@@ -74,12 +75,6 @@ impl<T: Write> Application<T> {
 
         // Replay: keybinds legend.
         let keybinds_legend = replay_keybinds_legend();
-
-        let replay_length = game_restoration_data
-            .input_history
-            .last()
-            .map(|x| x.0)
-            .unwrap_or_default();
 
         let mut is_paused = false;
 
@@ -369,6 +364,10 @@ impl<T: Write> Application<T> {
                                                     &mut game,
                                                     Game::builder().build(),
                                                 );
+
+                                                let mut the_meta_data = game_meta_data.clone();
+                                                the_meta_data.title.push('\'');
+
                                                 break 'update_and_render MenuUpdate::Push(
                                                     Menu::PlayGame {
                                                         game: Box::new(the_game),
@@ -378,7 +377,7 @@ impl<T: Write> Application<T> {
                                                             .take(inputs_loaded)
                                                             .cloned()
                                                             .collect(),
-                                                        game_meta_data: game_meta_data.clone(),
+                                                        game_meta_data: the_meta_data,
                                                         game_renderer: Default::default(),
                                                     },
                                                 );
@@ -396,7 +395,7 @@ impl<T: Write> Application<T> {
                                     event::Event::Resize(_, _) => {
                                         // Need to redraw screen for proper centering etc.
                                         rerender_entire_view = true;
-                                        continue 'update_and_render;
+                                        break 'wait;
                                     }
                                 }
                             }

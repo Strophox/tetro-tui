@@ -242,8 +242,14 @@ impl<T: Write> Application<T> {
                     kind: Press | Repeat,
                     ..
                 }) if self.scores_and_replays.entries.len() > 0 => {
-                    if let (ScoresEntry { game_meta_data, .. }, Some(game_restoration_data)) =
-                        &self.scores_and_replays.entries[cursor_pos]
+                    if let (
+                        ScoresEntry {
+                            game_meta_data,
+                            time_elapsed,
+                            ..
+                        },
+                        Some(game_restoration_data),
+                    ) = &self.scores_and_replays.entries[cursor_pos]
                     {
                         let game_meta_data = game_meta_data.clone();
 
@@ -254,6 +260,7 @@ impl<T: Write> Application<T> {
                         break Ok(MenuUpdate::Push(Menu::ReplayGame {
                             game_restoration_data: Box::new(game_restoration_data),
                             game_meta_data,
+                            replay_length: *time_elapsed,
                             game_renderer: Default::default(),
                         }));
                     } else {

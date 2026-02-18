@@ -13,8 +13,8 @@ use crossterm::{cursor, event::KeyboardEnhancementFlags, style, terminal, Execut
 
 use falling_tetromino_engine::{
     Board, Button, ButtonChange, Configuration, DelayParameters, ExtDuration, ExtNonNegF64,
-    Feedback, FeedbackVerbosity, Game, GameBuilder, GameOver, GameResult, InGameTime, Modifier,
-    RotationSystem, Stat, Tetromino, TetrominoGenerator,
+    FeedbackVerbosity, Game, GameBuilder, GameOver, GameResult, InGameTime, RotationSystem, Stat,
+    Tetromino, TetrominoGenerator,
 };
 
 use crate::{game_mode_presets, game_renderers, keybinds_presets::*, palette_presets::*};
@@ -171,33 +171,27 @@ impl GameRestorationData<UncompressedInputHistory> {
                 self.mod_descriptors.iter().map(String::as_str),
             ) {
                 Ok((mut modded_game, unrecognized_mod_descriptors)) => {
-                    #[rustfmt::skip]
-                    let print_warn_msgs_mod = Modifier {
-                        descriptor: "print_warn_msgs".to_owned(),
-                        mod_function: Box::new({
-                            let mut init = false;
-                            move |_point, _config, _init_vals, state, _phase, msgs| {
-                                if init { return; } else { init = true; }
-                                for umd in unrecognized_mod_descriptors.iter() { msgs.push((state.time,Feedback::Text(format!("WARNING: Idk {umd:?}")))); }
-                            }
-                        }),
-                    };
+                    if !unrecognized_mod_descriptors.is_empty() {
+                        // Add warning messages if certain mods could not be recognized.
+                        // This should never happen in our application.
+                        let warn_messages = unrecognized_mod_descriptors
+                            .into_iter()
+                            .map(|mod_desc| format!("WARNING: idk mod {mod_desc:?}"))
+                            .collect();
 
-                    modded_game.modifiers.push(print_warn_msgs_mod);
+                        let print_warn_msgs_mod =
+                            game_mode_presets::game_modifiers::print_msgs::modifier(warn_messages);
+
+                        modded_game.modifiers.push(print_warn_msgs_mod);
+                    }
 
                     modded_game
                 }
                 Err(msg) => {
-                    #[rustfmt::skip]
-                    let print_error_msg_mod = Modifier {
-                        descriptor: "print_error_msg".to_owned(),
-                        mod_function: Box::new({ let mut init = false;
-                            move |_point, _config, _init_vals, state, _phase, msgs| {
-                                if init { return; } else { init = true; }
-                                msgs.push((state.time, Feedback::Text(format!("ERROR: {msg:?}"))));
-                            }
-                        }),
-                    };
+                    let error_messages = vec![format!("ERROR: {msg}")];
+
+                    let print_error_msg_mod =
+                        game_mode_presets::game_modifiers::print_msgs::modifier(error_messages);
 
                     builder.build_modded([print_error_msg_mod])
                 }
@@ -647,6 +641,7 @@ enum Menu {
     ReplayGame {
         game_restoration_data: Box<GameRestorationData<UncompressedInputHistory>>,
         game_meta_data: GameMetaData,
+        replay_length: InGameTime,
         game_renderer: Box<game_renderers::diff_print::DiffPrintRenderer>,
     },
     About,
@@ -932,10 +927,12 @@ impl<T: Write> Application<T> {
                 Menu::ReplayGame {
                     game_restoration_data,
                     game_meta_data,
+                    replay_length,
                     game_renderer,
                 } => self.run_menu_replay_game(
                     game_restoration_data,
                     game_meta_data,
+                    *replay_length,
                     game_renderer.as_mut(),
                 ),
                 Menu::About => self.run_menu_about(),

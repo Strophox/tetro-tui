@@ -452,7 +452,7 @@ impl Renderer for DiffPrintRenderer {
 
             // Replay length.
             self.screen.buffer_str(
-                &format!("Game len.: {}", fmt_duration(replay_length)),
+                &format!("Total time {}", fmt_duration(replay_length)),
                 None,
                 (x_rep_len, y_rep_len),
             );

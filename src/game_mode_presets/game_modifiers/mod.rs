@@ -71,6 +71,10 @@ pub fn reconstruct_build_modded<'a>(
         } else if mod_id == print_recency_tet_gen_stats::MOD_ID {
             let modifier = print_recency_tet_gen_stats::modifier();
             compounding_mods.push(modifier);
+        } else if mod_id == print_msgs::MOD_ID {
+            let messages = get_mod_args::<Vec<String>>(&mut lines, mod_id)?;
+            let modifier = print_msgs::modifier(messages);
+            compounding_mods.push(modifier);
         } else if mod_id == custom_start_board::MOD_ID {
             let encoded_board = get_mod_args::<String>(&mut lines, mod_id)?;
             let modifier = custom_start_board::modifier(&encoded_board);
@@ -97,7 +101,7 @@ pub mod custom_start_board {
     pub const MOD_ID: &str = "custom_start_board";
 
     pub fn modifier(encoded_board: &str) -> Modifier {
-        let board = crate::application::NewGameSettings::decode_board(encoded_board);
+        let init_board = crate::application::NewGameSettings::decode_board(encoded_board);
         let mut init = false;
         Modifier {
             descriptor: format!(
@@ -106,8 +110,33 @@ pub mod custom_start_board {
             ),
             mod_function: Box::new(move |_point, _config, _init_vals, state, _phase, _msgs| {
                 if !init {
-                    state.board.clone_from(&board);
+                    state.board = init_board;
                     init = true;
+                }
+            }),
+        }
+    }
+}
+
+pub mod print_msgs {
+    use falling_tetromino_engine::{Feedback, Modifier};
+
+    pub const MOD_ID: &str = "print_msgs";
+
+    pub fn modifier(messages: Vec<String>) -> Modifier {
+        Modifier {
+            descriptor: format!("{MOD_ID}\n{}", serde_json::to_string(&messages).unwrap()),
+            mod_function: Box::new({
+                let mut init = false;
+                move |_point, _config, _init_vals, state, _phase, msgs| {
+                    if init {
+                        return;
+                    } else {
+                        init = true;
+                    }
+                    for msg in messages.iter() {
+                        msgs.push((state.time, Feedback::Text(msg.to_owned())));
+                    }
                 }
             }),
         }
