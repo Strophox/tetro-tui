@@ -5,6 +5,7 @@ state changes lead to exactly which minimal changes in visuals, and save itself 
 simulating everything it wants to print and manually diffing that like we do now? (diff_state) */
 pub mod diff_print;
 pub mod legacy_debug;
+pub mod smallascii;
 
 use std::io::{self, Write};
 

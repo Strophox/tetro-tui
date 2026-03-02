@@ -310,18 +310,17 @@ impl<T: Write> Application<T> {
                                             (KeyCode::Char('b' | 'B'), _)
                                                 if {
                                                     modifiers.contains(
-                                                    KeyModifiers::CONTROL
-                                                        .union(KeyModifiers::ALT),
-                                                )} =>
+                                                        KeyModifiers::CONTROL
+                                                            .union(KeyModifiers::ALT),
+                                                    )
+                                                } =>
                                             {
-                                                
                                                 self.settings.graphics_mut().blindfolded ^= true;
                                                 if self.settings.graphics().blindfolded {
                                                     game_renderer.push_game_feedback_msgs([(
                                                         game.state().time,
                                                         Feedback::Text(
-                                                            "Blindfolded! [Ctrl+Alt+B]"
-                                                                .to_owned(),
+                                                            "Blindfolded! [Ctrl+Alt+B]".to_owned(),
                                                         ),
                                                     )]);
                                                 } else {
