@@ -684,6 +684,13 @@ impl<T: Write> Application<T> {
                 inputs_loaded += 1;
             }
 
+            // Game was forfeit before anchor.
+            if let Some(forfeit_time) = game_restoration_data.forfeit {
+                if forfeit_time <= next_anchor_time {
+                    break 'calculate_anchors;
+                }
+            }
+
             // Anchor is next.
             match game.update(next_anchor_time, None) {
                 Ok(_msgs) => {}
