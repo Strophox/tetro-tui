@@ -88,10 +88,10 @@ impl<T: Write> Application<T> {
         let frame_interval = Duration::from_secs_f64(self.settings.graphics().game_fps.recip());
 
         // Time of the game when we enter the game loop.
-        let ingametime_when_game_loop_entered = game.state().time;
+        let mut ingametime_when_game_loop_entered = game.state().time;
 
         // The 'real-life' time at which we enter the game loop.
-        let time_game_loop_entered = Instant::now();
+        let mut time_game_loop_entered = Instant::now();
 
         // The number of the frame. This is used to calculate the time of the next frame.
         let mut time_next_frame = time_game_loop_entered;
@@ -257,10 +257,10 @@ impl<T: Write> Application<T> {
 
                                                 game_renderer.push_game_feedback_msgs([(
                                                     game.state().time,
-                                                    Feedback::Text("Forfeit Game!".to_owned()),
+                                                    Feedback::Text("Forfeit...".to_owned()),
                                                 )]);
 
-                                                continue 'update_and_render;
+                                                break 'wait;
                                             }
 
                                             // [Ctrl+S]: Store savepoint.
@@ -285,10 +285,46 @@ impl<T: Write> Application<T> {
 
                                                 game_renderer.push_game_feedback_msgs([(
                                                     game.state().time,
-                                                    Feedback::Text(
-                                                        "(Savepoint stored!)".to_owned(),
-                                                    ),
+                                                    Feedback::Text("(Stored savepoint)".to_owned()),
                                                 )]);
+                                            }
+
+                                            // [Ctrl+L]: Load savepoint.
+                                            (KeyCode::Char('l' | 'L'), KeyModifiers::CONTROL) => {
+                                                let GameSave {
+                                                    game_meta_data: saved_meta_data,
+                                                    game_restoration_data,
+                                                    inputs_to_load,
+                                                } = &self
+                                                    .game_saves
+                                                    .1
+                                                    .get(self.game_saves.0)
+                                                    .unwrap();
+
+                                                *game =
+                                                    game_restoration_data.restore(*inputs_to_load);
+
+                                                *game_meta_data = saved_meta_data.clone();
+                                                // Mark restored game as such.
+                                                game_meta_data.title.push('\'');
+
+                                                *game_input_history = game_restoration_data
+                                                    .input_history
+                                                    .iter()
+                                                    .take(*inputs_to_load)
+                                                    .copied()
+                                                    .collect();
+
+                                                game_renderer.reset_game_associated_state();
+                                                game_renderer.push_game_feedback_msgs([(
+                                                    game.state().time,
+                                                    Feedback::Text("(Loaded savepoint)".to_owned()),
+                                                )]);
+
+                                                // What we do here is rather unholy, so we have to adapt the game loop state itself.
+                                                ingametime_when_game_loop_entered =
+                                                    game.state().time;
+                                                time_game_loop_entered = Instant::now();
                                             }
 
                                             // [Ctrl+E]: Store seed.

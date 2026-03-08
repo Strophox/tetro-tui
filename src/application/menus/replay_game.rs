@@ -202,17 +202,13 @@ impl<T: Write> Application<T> {
                                                                 )
                                                                 .then_some(game.state().time),
                                                             ),
-                                                        inputs_to_load: game_restoration_data
-                                                            .input_history
-                                                            .len(),
+                                                        inputs_to_load: inputs_loaded,
                                                     }],
                                                 );
 
                                                 game_renderer.push_game_feedback_msgs([(
                                                     game.state().time,
-                                                    Feedback::Text(
-                                                        "(Savepoint stored!)".to_owned(),
-                                                    ),
+                                                    Feedback::Text("(Stored savepoint)".to_owned()),
                                                 )]);
                                             }
 

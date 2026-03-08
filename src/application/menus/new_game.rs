@@ -154,15 +154,15 @@ impl<T: Write> Application<T> {
                         "{:^w_main$}",
                         if selected == selection_len - 2 {
                             if *inputs_to_load == 0 {
-                                format!(">> Load {load_title:?} run from start [Del] <<")
+                                format!(">> Load {load_title:?} from start. [Del] <<")
                             } else {
                                 let (load_time, load_input) = input_history[(inputs_to_load - 1) % input_history.len()];
                                 let load_time = fmt_duration(load_time);
                                 let load_input = fmt_button_change(load_input);
-                                format!(">> Load {load_title} from: {inputs_to_load}/{load_offset_max} ({load_input} @{load_time}) [Del] <<")
+                                format!(">> Load {load_title:?} from: {inputs_to_load}/{load_offset_max} ({load_input} @{load_time}) [Del] <<")
                             }
                         } else {
-                            format!("Savepoint - {load_title} run...")
+                            format!("Savepoint ({load_title})")
                         },
                     )))?;
             }

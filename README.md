@@ -192,14 +192,14 @@ Then you can run the game with `tetro-tui`.
 > 
 > | Keys | ~Meaning |
 > | -: | :- |
-> | `↓` `↑` / `j` `k` | Navigate up/down |
-> | `←` `→` / `h` `l` | Change value |
-> | `Enter`/`e` | Select |
-> | `Esc`/`q`, `Back`/`b` | Go back |
-> | `Del`/`d` | Delete/reset |
-> | `1` `2` `3`... | Quickselect option 1,2,3 ... (→new game menu) |
-> | `Shift`+... | 'Accelerate certain controls' |
-> | `Shift`+`Del`/`d` | Delete replay  (→scores&replays menu) |
+> | `↓`/`↑`, `j`/`k` | Navigate up/down |
+> | `←`/`→`, `h`/`l` | Change value |
+> | `Enter`, `e` | Select |
+> | `Esc`, `q`, `Back`, `b` | Go back |
+> | `Del`, `d` | Delete/reset |
+> | `1`/`2`/`3`... | Quickselect option 1/2/3/... (in Start Game)|
+> | `Shift`+... | Accelerate (some) value changes (in Start Game) |
+> | `Shift`+`Del`, `Shift`+`d` | Delete replay  (in Scores and Replays) |
 > | `Ctrl`+`C` | Abort application |
 > 
 > </details>
@@ -223,8 +223,9 @@ Then you can run the game with `tetro-tui`.
 > | - | Teleport right |
 > | `Space` | Hold piece |
 > | `Ctrl`+`D` | Forfeit game |
-> | `Ctrl`+`E` | Store seed (→custom mode) |
-> | `Ctrl`+`S` | Store savepoint (→new game menu) |
+> | `Ctrl`+`E` | Store seed (accessible in Start Game⇝Custom Mode) |
+> | `Ctrl`+`S` | Store savepoint (accessible in Start Game⇝Savepoint or in Live Game) |
+> | `Ctrl`+`L` | Load savepoint (Caution: overwrites live game) |
 > | `Ctrl`+`Alt`+`B` | Toggle on/off visibility of tiles ('Blindfold') |
 > | `Ctrl`+`C` | Abort application |
 > 
@@ -236,15 +237,16 @@ Then you can run the game with `tetro-tui`.
 > 
 > | Key | Action |
 > | -: | :- |
-> | `Esc`/`q`, `Back`/`b` | Stop replay |
+> | `Esc`, `q`, `Back`, `b` | Exit replay |
 > | `Space` | Pause replay |
-> | `↓` `↑` / `j` `k` | Speed up / Slow down replay by 0.25 |
-> | `Shift`+`↓` `↑` / `Shift`+`j` `k` | Speed up / Slow down replay by 0.05 |
-> | `←` `→` / `h` `l` | Skip forward/backward 1s in time |
-> | `Shift`+`→` / `Shift`+`l` | Skip forward one user input and pause |
-> | `Enter`/`e` | Enter playable game from replay position |
-> | `Ctrl`+`E` | Store seed (→custom mode) |
-> | `Ctrl`+`S` | Store savepoint (→new game menu) |
+> | `↓`/`↑` , `j`/`k` | Speed up / Slow down replay by 0.25 |
+> | `Shift`+`↓`/`↑`, `Shift`+`j`/`k` | Speed up / Slow down replay by 0.05 |
+> | `←`/`→` , `h`/`l` | Skip forward/backward 1s in time |
+> | `1`/`2`/`3`... | Jump to 10%/20%/30%/... |
+> | `Shift`+`→`, `Shift`+`l` | Skip forward one user input and pause |
+> | `Enter`, `e` | Enter live game (from current replay position) |
+> | `Ctrl`+`E` | Store seed (accessible in Start Game⇝Custom Mode) |
+> | `Ctrl`+`S` | Store savepoint (accessible in Start Game→Savepoint or in Live Game) |
 > | `Ctrl`+`C` | Abort application |
 > 
 > </details>
