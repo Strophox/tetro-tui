@@ -875,7 +875,7 @@ impl Renderer for DiffPrintRenderer {
         }
 
         self.buffered_text_msgs.retain(|(timestamp, _msg)| {
-            game.state().time.saturating_sub(*timestamp) < Duration::from_millis(5000)
+            game.state().time.saturating_sub(*timestamp) < Duration::from_millis(4000)
         });
 
         self.screen.flush(term)
