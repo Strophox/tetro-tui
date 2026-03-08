@@ -526,10 +526,9 @@ impl Renderer for DiffPrintRenderer {
             let elapsed = game.state().time.saturating_sub(*creation_time);
             let luminance_map = match settings.graphics().glyphset {
                 Glyphset::Electronika60 => [" .", " .", " .", " .", " .", " .", " .", " ."],
-                Glyphset::ASCII | Glyphset::Unicode => {
-                    ["@@", "$$", "##", "%%", "**", "++", "~~", ".."]
-                    // FIXME: Make this available: ["||", "||", "¦¦", "¦¦", "::", "::", "..", ".."]
-                }
+                // FIXME: Make this hard drop effect available independently of Glyphset (i.e. also for ASCII).
+                Glyphset::ASCII => ["||", "||", "¦¦", "¦¦", "::", "::", "..", ".."],
+                Glyphset::Unicode => ["@@", "$$", "##", "%%", "**", "++", "~~", ".."],
             };
             // let Some(&char) = [50, 60, 70, 80, 90, 110, 140, 180]
             let Some(tile) = [50, 70, 90, 110, 130, 150, 180, 240]
