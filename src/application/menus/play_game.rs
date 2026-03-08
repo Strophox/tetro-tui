@@ -341,7 +341,7 @@ impl<T: Write> Application<T> {
                                                 )]);
                                             }
 
-                                            // [Ctrl+Shift+B]: (Un-)Blindfold.
+                                            // [Ctrl+Alt+B]: (Un-)Blindfold.
                                             (KeyCode::Char('b' | 'B'), _)
                                                 if {
                                                     modifiers.contains(

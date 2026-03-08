@@ -76,7 +76,7 @@ impl<T: Write> Application<T> {
         // Replay: keybinds legend.
         let keybinds_legend = replay_keybinds_legend();
 
-        let mut is_paused = false;
+        let mut paused_with_extra_render_request = None;
 
         /* FIXME: This is a workaround for FLOATING POINT INPRECISION.
            Originally we had `let replay_speed = 1.0f64;` but then we had issues such as:
@@ -175,7 +175,13 @@ impl<T: Write> Application<T> {
 
                                         match (code, modifiers) {
                                             // [Esc]: Stop.
-                                            (KeyCode::Esc | KeyCode::Char('q' | 'Q'), _) => {
+                                            (
+                                                KeyCode::Esc
+                                                | KeyCode::Char('q' | 'Q')
+                                                | KeyCode::Backspace
+                                                | KeyCode::Char('b' | 'B'),
+                                                _,
+                                            ) => {
                                                 break 'update_and_render MenuUpdate::Pop;
                                             }
 
@@ -230,24 +236,12 @@ impl<T: Write> Application<T> {
 
                                             // [Space]: (Un-)Pause replay.
                                             (KeyCode::Char(' '), _) => {
-                                                is_paused ^= true;
-
-                                                if is_paused {
-                                                    // Manually render current state of the game, since render will be paused too.
-                                                    game_renderer.render(
-                                                        &game,
-                                                        game_meta_data,
-                                                        &self.settings,
-                                                        &keybinds_legend,
-                                                        Some((
-                                                            replay_length,
-                                                            calc_speed(replay_speed_stepper),
-                                                        )),
-                                                        &mut self.term,
-                                                    )?;
-
-                                                    renders_per_second_counter += 1;
-                                                }
+                                                paused_with_extra_render_request =
+                                                    if paused_with_extra_render_request.is_some() {
+                                                        None
+                                                    } else {
+                                                        Some(true)
+                                                    };
                                             }
 
                                             // [↓][↑]: Adjust replay speed.
@@ -259,7 +253,7 @@ impl<T: Write> Application<T> {
                                                 modifier,
                                             ) => {
                                                 let speed_delta =
-                                                    if modifier.contains(KeyModifiers::SHIFT) {
+                                                    if modifier.contains(KeyModifiers::ALT) {
                                                         SPEED_SMALL_STEPPER_DELTA
                                                     } else {
                                                         SPEED_NORMAL_STEPPER_DELTA
@@ -273,11 +267,19 @@ impl<T: Write> Application<T> {
                                                 } else if replay_speed_stepper > speed_delta {
                                                     replay_speed_stepper -= speed_delta;
                                                 };
+
+                                                if paused_with_extra_render_request.is_some() {
+                                                    paused_with_extra_render_request = Some(true);
+                                                }
                                             }
 
                                             // [-]: Reset replay speed to 1.
                                             (KeyCode::Char('-'), _) => {
                                                 replay_speed_stepper = REPLAY_SPEED_STEP_EQUIVALENT_TO_SPEED_MULTIPLIER_1;
+
+                                                if paused_with_extra_render_request.is_some() {
+                                                    paused_with_extra_render_request = Some(true);
+                                                }
                                             }
 
                                             // [.]: Skip one input forward.
@@ -302,7 +304,7 @@ impl<T: Write> Application<T> {
                                                         Err(UpdateGameError::GameEnded) => {}
                                                     }
                                                     inputs_loaded += 1;
-                                                    is_paused = true;
+                                                    paused_with_extra_render_request = Some(true);
                                                     // Re-render full state.
                                                     game_renderer.render(
                                                         &game,
@@ -491,7 +493,7 @@ impl<T: Write> Application<T> {
                 continue 'update_and_render;
             }
 
-            if is_paused || game.result().is_some() {
+            if paused_with_extra_render_request.is_some() || game.result().is_some() {
                 // We're paused.
 
                 self.term.execute(MoveTo(0, 0))?;
@@ -558,7 +560,10 @@ impl<T: Write> Application<T> {
                     let msg = game.forfeit();
                     game_renderer.push_game_feedback_msgs([msg])
                 }
+            }
 
+            // Render frame only if not paused or paused but render requested
+            if matches!(paused_with_extra_render_request, None | Some(true)) {
                 // Render current state of the game.
                 game_renderer.render(
                     &game,
@@ -570,6 +575,10 @@ impl<T: Write> Application<T> {
                 )?;
 
                 renders_per_second_counter += 1;
+
+                if paused_with_extra_render_request.is_some() {
+                    paused_with_extra_render_request = Some(false);
+                }
             }
 
             // Remember: We convene on logically setting the 'refresh point' to before the update and render happens.

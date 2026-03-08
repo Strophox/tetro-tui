@@ -198,7 +198,7 @@ Then you can run the game with `tetro-tui`.
 > | `Esc`, `q`, `Back`, `b` | Go back |
 > | `Del`, `d` | Delete/reset |
 > | `1`/`2`/`3`... | Quickselect option 1/2/3/... (in Start Game)|
-> | `Shift`+... | Accelerate (some) value changes (in Start Game) |
+> | `Alt`+... | Alt. value changes (in Start Game⇝Savepoint,Custom Mode) |
 > | `Alt`+`Del`, `Alt`+`d` | Delete replay  (in Scores and Replays) |
 > | `Ctrl`+`C` | Exit application |
 > 
@@ -240,7 +240,7 @@ Then you can run the game with `tetro-tui`.
 > | `Esc`, `q`, `Back`, `b` | Exit replay |
 > | `Space` | Pause replay |
 > | `↓`/`↑` , `j`/`k` | Speed up / Slow down replay by 0.25 |
-> | `Shift`+`↓`/`↑`, `Shift`+`j`/`k` | Speed up / Slow down replay by 0.05 |
+> | `Alt`+`↓`/`↑`, `Alt`+`j`/`k` | Speed up / Slow down replay by 0.05 |
 > | `-` | Reset replay speed to 1.0 |
 > | `←`/`→` , `h`/`l` | Skip forward/backward 1s in time |
 > | `1`/`2`/`3`... | Jump to 10%/20%/30%/... |

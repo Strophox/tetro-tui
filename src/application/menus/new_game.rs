@@ -306,7 +306,7 @@ impl<T: Write> Application<T> {
                                 // Increase custom fall delay.
                                 let base_delay =
                                     self.settings.new_game.custom_fall_delay_params.base_delay();
-                                let new_base_delay = if modifiers.contains(KeyModifiers::SHIFT) {
+                                let new_base_delay = if modifiers.contains(KeyModifiers::ALT) {
                                     base_delay.mul_ennf64(mult_fall_delay)
                                 } else {
                                     base_delay + d_fall_delay
@@ -379,7 +379,7 @@ impl<T: Write> Application<T> {
                                 // Increase custom fall delay.
                                 let base_delay =
                                     self.settings.new_game.custom_fall_delay_params.base_delay();
-                                let new_base_delay = if modifiers.contains(KeyModifiers::SHIFT) {
+                                let new_base_delay = if modifiers.contains(KeyModifiers::ALT) {
                                     base_delay.div_ennf64(mult_fall_delay)
                                 } else {
                                     base_delay.saturating_sub(d_fall_delay)
@@ -466,7 +466,7 @@ impl<T: Write> Application<T> {
                     {
                         if selected == selection_len - 2 {
                             *inputs_to_load += input_history.len()
-                                * if modifiers.contains(KeyModifiers::SHIFT) {
+                                * if modifiers.contains(KeyModifiers::ALT) {
                                     20
                                 } else {
                                     1
@@ -519,7 +519,7 @@ impl<T: Write> Application<T> {
                     }) = self.game_saves.1.get_mut(self.game_saves.0)
                     {
                         if selected == selection_len - 2 {
-                            *inputs_to_load += if modifiers.contains(KeyModifiers::SHIFT) {
+                            *inputs_to_load += if modifiers.contains(KeyModifiers::ALT) {
                                 20
                             } else {
                                 1
