@@ -5,7 +5,6 @@ use super::*;
 // "|⠁|⠂|⠄|⠈|⠐|⠠|⡀|⢀|"
 const BRAILLE: &str = "⠀⠁⠂⠃⠄⠅⠆⠇⠈⠉⠊⠋⠌⠍⠎⠏⠐⠑⠒⠓⠔⠕⠖⠗⠘⠙⠚⠛⠜⠝⠞⠟⠠⠡⠢⠣⠤⠥⠦⠧⠨⠩⠪⠫⠬⠭⠮⠯⠰⠱⠲⠳⠴⠵⠶⠷⠸⠹⠺⠻⠼⠽⠾⠿⡀⡁⡂⡃⡄⡅⡆⡇⡈⡉⡊⡋⡌⡍⡎⡏⡐⡑⡒⡓⡔⡕⡖⡗⡘⡙⡚⡛⡜⡝⡞⡟⡠⡡⡢⡣⡤⡥⡦⡧⡨⡩⡪⡫⡬⡭⡮⡯⡰⡱⡲⡳⡴⡵⡶⡷⡸⡹⡺⡻⡼⡽⡾⡿⢀⢁⢂⢃⢄⢅⢆⢇⢈⢉⢊⢋⢌⢍⢎⢏⢐⢑⢒⢓⢔⢕⢖⢗⢘⢙⢚⢛⢜⢝⢞⢟⢠⢡⢢⢣⢤⢥⢦⢧⢨⢩⢪⢫⢬⢭⢮⢯⢰⢱⢲⢳⢴⢵⢶⢷⢸⢹⢺⢻⢼⢽⢾⢿⣀⣁⣂⣃⣄⣅⣆⣇⣈⣉⣊⣋⣌⣍⣎⣏⣐⣑⣒⣓⣔⣕⣖⣗⣘⣙⣚⣛⣜⣝⣞⣟⣠⣡⣢⣣⣤⣥⣦⣧⣨⣩⣪⣫⣬⣭⣮⣯⣰⣱⣲⣳⣴⣵⣶⣷⣸⣹⣺⣻⣼⣽⣾⣿";
 
-#[allow(dead_code)]
 #[derive(
     PartialEq,
     Eq,
@@ -19,14 +18,30 @@ const BRAILLE: &str = "⠀⠁⠂⠃⠄⠅⠆⠇⠈⠉⠊⠋⠌⠍⠎⠏⠐⠑⠒
     serde::Serialize,
     serde::Deserialize,
 )]
-pub struct BrailleRenderer;
+pub struct BrailleRenderer {
+    x_draw: usize,
+    y_draw: usize,
+}
 
 impl Renderer for BrailleRenderer {
     fn push_game_feedback_msgs(
         &mut self,
         _feedback_msgs: impl IntoIterator<Item = (InGameTime, Feedback)>,
     ) {
-        // We do not use/display feedback_msg-related things for this renderer at this time
+        // We do not use/display feedback_msg-related things for this renderer at this time.
+    }
+
+    fn reset_game_associated_state(&mut self) {
+        // We do not store any state associated with the game at this time.
+    }
+
+    fn reset_view_diff_state(&mut self) {
+        // We do not implement diff'ing for this renderer at this time.
+    }
+
+    fn set_render_offset(&mut self, x: usize, y: usize) {
+        self.x_draw = x;
+        self.y_draw = y;
     }
 
     fn render<T: Write>(
@@ -37,7 +52,6 @@ impl Renderer for BrailleRenderer {
         _keybinds_legend: &KeybindsLegend,
         _replay_extra: Option<(InGameTime, f64)>,
         term: &mut T,
-        _rerender_entire_view: bool,
     ) -> io::Result<()> {
         let falling_tetromino_engine::State { board, .. } = game.state();
 
@@ -49,9 +63,6 @@ impl Renderer for BrailleRenderer {
         }
 
         let braille = BRAILLE.chars().collect::<Vec<char>>();
-
-        term.queue(cursor::MoveTo(0, 0))?
-            .queue(terminal::Clear(terminal::ClearType::FromCursorDown))?;
 
         let btxt_lines = [
             [19, 18, 17, 16],
@@ -79,9 +90,14 @@ impl Renderer for BrailleRenderer {
                 .collect::<String>()
         });
 
-        for b_line in btxt_lines {
-            term.queue(style::Print(format!("|{b_line}|")))?
-                .queue(cursor::MoveToNextLine(1))?;
+        term.queue(terminal::Clear(terminal::ClearType::All))?;
+
+        for (dy, b_line) in btxt_lines.enumerate() {
+            term.queue(cursor::MoveTo(
+                u16::try_from(self.x_draw).unwrap(),
+                u16::try_from(self.y_draw + dy).unwrap(),
+            ))?
+            .queue(style::Print(format!("|{b_line}|")))?;
         }
 
         term.flush()?;

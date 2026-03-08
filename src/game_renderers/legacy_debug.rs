@@ -10,7 +10,6 @@ use falling_tetromino_engine::{Feedback, InGameTime, State};
 
 use super::*;
 
-#[allow(dead_code)]
 #[derive(
     PartialEq,
     Eq,
@@ -37,6 +36,18 @@ impl Renderer for DebugRenderer {
         }
     }
 
+    fn reset_game_associated_state(&mut self) {
+        self.feedback_msgs_buffer.clear();
+    }
+
+    fn reset_view_diff_state(&mut self) {
+        // We do not implement diff'ing for this renderer at this time.
+    }
+
+    fn set_render_offset(&mut self, _x: usize, _y: usize) {
+        // We do not implement an rendering offset for this renderer at this time.
+    }
+
     fn render<T>(
         &mut self,
         game: &Game,
@@ -45,7 +56,6 @@ impl Renderer for DebugRenderer {
         _keybinds_legend: &KeybindsLegend,
         _replay_extra: Option<(InGameTime, f64)>,
         term: &mut T,
-        _rerender_entire_view: bool,
     ) -> io::Result<()>
     where
         T: Write,

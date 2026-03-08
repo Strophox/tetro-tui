@@ -72,6 +72,9 @@ impl<T: Write> Application<T> {
         let mut renders_per_second_counter_start_time = Instant::now();
 
         // Initial render.
+        let (x_main, y_main) = Application::<T>::fetch_main_xy();
+        game_renderer.set_render_offset(usize::from(x_main), usize::from(y_main));
+        game_renderer.reset_view_diff_state();
         game_renderer.render(
             game,
             game_meta_data,
@@ -79,11 +82,7 @@ impl<T: Write> Application<T> {
             &keybinds_legend,
             None,
             &mut self.term,
-            true,
         )?;
-
-        // Explicitly tells the renderer if entire screen needs to be re-drawn once.
-        let mut rerender_entire_view = false;
 
         // How much time passes between each refresh.
         let frame_interval = Duration::from_secs_f64(self.settings.graphics().game_fps.recip());
@@ -345,7 +344,12 @@ impl<T: Write> Application<T> {
                                     event::Event::FocusLost => {}
                                     event::Event::Resize(_, _) => {
                                         // Need to redraw screen for proper centering etc.
-                                        rerender_entire_view = true;
+                                        let (x_main, y_main) = Application::<T>::fetch_main_xy();
+                                        game_renderer.set_render_offset(
+                                            usize::from(x_main),
+                                            usize::from(y_main),
+                                        );
+                                        game_renderer.reset_view_diff_state();
                                         break 'wait;
                                     }
                                 }
@@ -394,13 +398,9 @@ impl<T: Write> Application<T> {
                 &keybinds_legend,
                 None,
                 &mut self.term,
-                rerender_entire_view,
             )?;
 
             renders_per_second_counter += 1;
-
-            // Reset state of this variable since render just occurred.
-            rerender_entire_view = false;
 
             // Render FPS counter.
             if self.settings.graphics().show_fps {

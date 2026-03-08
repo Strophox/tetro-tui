@@ -18,7 +18,7 @@ use falling_tetromino_engine::{
 use super::*;
 
 use crate::{
-    application::{Application, Glyphset},
+    application::Glyphset,
     fmt_helpers::{fmt_button, fmt_duration, fmt_hertz, fmt_tet_mini, fmt_tet_small},
 };
 
@@ -42,9 +42,12 @@ struct TerminalScreenBuffer {
 }
 
 impl TerminalScreenBuffer {
-    fn buffer_reset(&mut self, (x, y): (usize, usize)) {
-        self.prev.clear();
+    fn set_render_offset(&mut self, x: usize, y: usize) {
         (self.x_draw, self.y_draw) = (x, y);
+    }
+
+    fn buffer_reset(&mut self) {
+        self.prev.clear();
     }
 
     fn buffer_from<'a>(&mut self, base_screen: impl IntoIterator<Item = &'a str>) {
@@ -250,6 +253,20 @@ impl Renderer for DiffPrintRenderer {
         );
     }
 
+    fn reset_game_associated_state(&mut self) {
+        self.buffered_feedback_msgs.clear();
+        self.buffered_text_msgs.clear();
+        self.hard_drop_tiles.clear();
+    }
+
+    fn reset_view_diff_state(&mut self) {
+        self.screen.buffer_reset();
+    }
+
+    fn set_render_offset(&mut self, x: usize, y: usize) {
+        self.screen.set_render_offset(x, y);
+    }
+
     fn render<T>(
         &mut self,
         game: &Game,
@@ -258,16 +275,10 @@ impl Renderer for DiffPrintRenderer {
         keybinds_legend: &KeybindsLegend,
         replay_extra: Option<(InGameTime, f64)>,
         term: &mut T,
-        rerender_entire_view: bool,
     ) -> io::Result<()>
     where
         T: Write,
     {
-        if rerender_entire_view {
-            let (x_main, y_main) = Application::<T>::fetch_main_xy();
-            self.screen
-                .buffer_reset((usize::from(x_main), usize::from(y_main)));
-        }
         let pieces = game.state().pieces_locked.iter().sum::<u32>();
         let gravity = game.state().fall_delay.as_hertz();
         // Screen: some titles.

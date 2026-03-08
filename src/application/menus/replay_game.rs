@@ -106,6 +106,10 @@ impl<T: Write> Application<T> {
         let mut renders_per_second_counter_start_time = Instant::now();
 
         // Initial render.
+
+        let (x_main, y_main) = Application::<T>::fetch_main_xy();
+        game_renderer.set_render_offset(usize::from(x_main), usize::from(y_main));
+        game_renderer.reset_view_diff_state();
         game_renderer.render(
             &game,
             game_meta_data,
@@ -113,11 +117,7 @@ impl<T: Write> Application<T> {
             &keybinds_legend,
             Some((replay_length, calc_speed(replay_speed_stepper))),
             &mut self.term,
-            true,
         )?;
-
-        // Explicitly tells the renderer if entire screen needs to be re-drawn once.
-        let mut rerender_entire_view = false;
 
         // The 'real-life' time at which we enter the game loop.
         let time_game_loop_entered = Instant::now();
@@ -304,10 +304,7 @@ impl<T: Write> Application<T> {
                                                             calc_speed(replay_speed_stepper),
                                                         )),
                                                         &mut self.term,
-                                                        rerender_entire_view,
                                                     )?;
-                                                    // Reset state of this variable since render just occurred.
-                                                    rerender_entire_view = false;
                                                     // Restart update-render loop as if we just entered it.
                                                     continue 'update_and_render;
                                                 }
@@ -378,6 +375,7 @@ impl<T: Write> Application<T> {
                                                             .cloned()
                                                             .collect(),
                                                         game_meta_data: the_meta_data,
+                                                        // FIXME: Clone renderer when entering live game from here?
                                                         game_renderer: Default::default(),
                                                     },
                                                 );
@@ -394,7 +392,12 @@ impl<T: Write> Application<T> {
                                     event::Event::FocusLost => {}
                                     event::Event::Resize(_, _) => {
                                         // Need to redraw screen for proper centering etc.
-                                        rerender_entire_view = true;
+                                        let (x_main, y_main) = Application::<T>::fetch_main_xy();
+                                        game_renderer.set_render_offset(
+                                            usize::from(x_main),
+                                            usize::from(y_main),
+                                        );
+                                        game_renderer.reset_view_diff_state();
                                         break 'wait;
                                     }
                                 }
@@ -461,8 +464,8 @@ impl<T: Write> Application<T> {
                     inputs_loaded = idx;
                 }
 
-                // Reset renderer.
-                *game_renderer = Default::default();
+                // Reset renderer's state associated with game (since we could be at any other game state now).
+                game_renderer.reset_game_associated_state();
 
                 // Re-render full state.
                 game_renderer.render(
@@ -472,11 +475,7 @@ impl<T: Write> Application<T> {
                     &keybinds_legend,
                     Some((replay_length, calc_speed(replay_speed_stepper))),
                     &mut self.term,
-                    true,
                 )?;
-
-                // Reset state of this variable since render just occurred.
-                rerender_entire_view = false;
 
                 // Restart update-render loop as if we just entered it.
                 continue 'update_and_render;
@@ -562,13 +561,9 @@ impl<T: Write> Application<T> {
                 &keybinds_legend,
                 Some((replay_length, calc_speed(replay_speed_stepper))),
                 &mut self.term,
-                rerender_entire_view,
             )?;
 
             renders_per_second_counter += 1;
-
-            // Reset state of this variable since render just occurred.
-            rerender_entire_view = false;
 
             // Render FPS counter.
             if self.settings.graphics().show_fps {
