@@ -613,11 +613,12 @@ impl Settings {
 }
 
 #[derive(
-    PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug, serde::Serialize, serde::Deserialize,
+    PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]
 pub struct RuntimeData {
     kitty_detected: bool,
     kitty_assumed: bool,
+    savefile_path: PathBuf,
 }
 
 #[derive(Debug)]
@@ -699,17 +700,19 @@ impl<T: Write> Drop for Application<T> {
         let _ = self.term.execute(cursor::Show);
         let _ = self.term.execute(terminal::LeaveAlternateScreen);
 
-        // Save settings using file system.
-        let savefile_path = Self::savefile_path();
-
         if self.save_on_exit != SavefileGranularity::NoSavefile {
             // If the user wants any of their data stored, try to do so.
-            if let Err(e) = self.store_savefile(savefile_path) {
+            if let Err(e) = self.store_savefile() {
                 eprintln!("{e}");
             }
-        } else if savefile_path.try_exists().is_ok_and(|exists| exists) {
+        } else if self
+            .runtime_data
+            .savefile_path
+            .try_exists()
+            .is_ok_and(|exists| exists)
+        {
             // Otherwise explicitly check for savefile and try to make sure we don't leave it around.
-            if let Err(e) = std::fs::remove_file(savefile_path) {
+            if let Err(e) = std::fs::remove_file(self.runtime_data.savefile_path.clone()) {
                 eprintln!("{e}");
             }
         }
@@ -723,15 +726,13 @@ impl<T: Write> Application<T> {
     pub const W_MAIN: u16 = 62;
     pub const H_MAIN: u16 = 23;
 
-    pub const SAVEFILE_NAME: &'static str =
-        concat!(".tetro-tui_", clap::crate_version!(), "_savefile.json");
-
     // FIXME: Could we ever get any undesirable results from pushing *all* enhancement flags?
     pub const KEYBOARD_ENHANCEMENT_FLAGS: KeyboardEnhancementFlags =
         KeyboardEnhancementFlags::all();
 
     pub fn new(
         mut term: T,
+        savefile_path: PathBuf,
         custom_start_seed: Option<u64>,
         custom_start_board: Option<String>,
     ) -> Self {
@@ -745,6 +746,7 @@ impl<T: Write> Application<T> {
             runtime_data: RuntimeData {
                 kitty_detected: false,
                 kitty_assumed: false,
+                savefile_path: savefile_path.clone(),
             },
             term,
             settings: Settings::default(),
@@ -755,7 +757,7 @@ impl<T: Write> Application<T> {
 
         // Actually load in settings.
         // FIXME: Handle io::Error? If not, why not?
-        if app.load_savefile(Self::savefile_path()).is_err() {
+        if app.load_savefile().is_err() {
             //eprintln!("Could not load settings: {e}");
             //std::thread::sleep(Duration::from_secs(5));
         }
@@ -765,6 +767,7 @@ impl<T: Write> Application<T> {
         app.runtime_data = RuntimeData {
             kitty_detected,
             kitty_assumed: kitty_detected,
+            savefile_path,
         };
         if custom_start_board.is_some() {
             app.settings.new_game.custom_board = custom_start_board;
@@ -783,13 +786,7 @@ impl<T: Write> Application<T> {
         )
     }
 
-    fn savefile_path() -> PathBuf {
-        dirs::config_dir()
-            .unwrap_or_else(|| PathBuf::from("."))
-            .join(Self::SAVEFILE_NAME)
-    }
-
-    fn store_savefile(&mut self, path: PathBuf) -> io::Result<()> {
+    fn store_savefile(&mut self) -> io::Result<()> {
         if self.save_on_exit < SavefileGranularity::RememberSettingsScores {
             // Clear scoreboard if no game data is wished to be stored.
             self.scores_and_replays.entries.clear();
@@ -817,7 +814,7 @@ impl<T: Write> Application<T> {
             compressed_game_saves,
         );
         let save_str = serde_json::to_string(&save_state)?;
-        let mut file = File::create(path)?;
+        let mut file = File::create(self.runtime_data.savefile_path.clone())?;
 
         let n_written = file.write(save_str.as_bytes())?;
 
@@ -831,8 +828,8 @@ impl<T: Write> Application<T> {
         }
     }
 
-    fn load_savefile(&mut self, path: PathBuf) -> io::Result<()> {
-        let mut file = File::open(path)?;
+    fn load_savefile(&mut self) -> io::Result<()> {
+        let mut file = File::open(self.runtime_data.savefile_path.clone())?;
         let mut save_str = String::new();
         file.read_to_string(&mut save_str)?;
         let save_state = serde_json::from_str(&save_str)?;

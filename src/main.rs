@@ -6,9 +6,44 @@ mod keybinds_presets;
 mod live_input_handler;
 mod palette_presets;
 
-use std::io;
+use std::{io, path::PathBuf};
 
 use clap::Parser;
+
+// Inspired by `clap::crate_version!()`.
+const CRATE_VERSION: &str = env!("CARGO_PKG_VERSION");
+
+const CRATE_VERSION_MAJOR_MINOR: &str = {
+    let full_semver_str_bytes = CRATE_VERSION.as_bytes();
+    let mut dot_seen = false;
+    let mut i = 0;
+    loop {
+        if full_semver_str_bytes[i] == b'.' {
+            if dot_seen {
+                break;
+            } else {
+                dot_seen = true;
+            }
+        }
+        i += 1;
+    }
+
+    let Ok(the_str) = str::from_utf8(full_semver_str_bytes.split_at(i).0) else {
+        unreachable!()
+    };
+
+    the_str
+};
+
+fn savefile_name() -> String {
+    format!(".tetro-tui_v{CRATE_VERSION_MAJOR_MINOR}_savefile.json")
+}
+
+fn savefile_path() -> PathBuf {
+    dirs::config_dir()
+        .unwrap_or_else(|| PathBuf::from("."))
+        .join(savefile_name())
+}
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -33,15 +68,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Initialize application.
     let stdout = io::BufWriter::new(io::stdout());
-    let mut app = application::Application::new(stdout, args.seed, args.board);
+    let mut app = application::Application::new(stdout, savefile_path(), args.seed, args.board);
 
     // Catch panics and write error to separate file, so it isn't lost due to app's terminal shenanigans.
     std::panic::set_hook(Box::new(|panic_info| {
         #[cfg(debug_assertions)]
         {
             let crash_file_name = format!(
-                "tetro-tui_{}_crash-msg-{}.txt",
-                clap::crate_version!(),
+                "tetro-tui_v{CRATE_VERSION}_panic-info_{}.txt",
                 chrono::Utc::now().format("%Y-%m-%d_%Hh%Mm%Ss")
             );
             if let Ok(mut file) = std::fs::File::create(crash_file_name) {

@@ -69,7 +69,10 @@ impl<T: Write> Application<T> {
                         if self.save_on_exit == SavefileGranularity::NoSavefile {
                             "(*Caution: no data will not be stored on exit)".to_owned()
                         } else {
-                            format!("(Save file - \"{}\")", Self::savefile_path().display())
+                            format!(
+                                "(Savefile: \"{}\")",
+                                self.runtime_data.savefile_path.display()
+                            )
                         },
                     )
                     .italic()
