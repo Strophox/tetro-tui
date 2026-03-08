@@ -528,6 +528,7 @@ impl Renderer for DiffPrintRenderer {
                 Glyphset::Electronika60 => [" .", " .", " .", " .", " .", " .", " .", " ."],
                 Glyphset::ASCII | Glyphset::Unicode => {
                     ["@@", "$$", "##", "%%", "**", "++", "~~", ".."]
+                    // FIXME: Make this available: ["||", "||", "¦¦", "¦¦", "::", "::", "..", ".."]
                 }
             };
             // let Some(&char) = [50, 60, 70, 80, 90, 110, 140, 180]
