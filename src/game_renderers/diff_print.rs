@@ -19,7 +19,7 @@ use super::*;
 
 use crate::{
     application::Glyphset,
-    fmt_helpers::{fmt_button, fmt_duration, fmt_hertz, fmt_tet_mini, fmt_tet_small},
+    fmt_helpers::{fmt_button, fmt_duration, fmt_hertz, TetrominoStr},
 };
 
 #[derive(
@@ -615,7 +615,11 @@ impl Renderer for DiffPrintRenderer {
         // Draw small preview pieces 2,3,4.
         let mut x_offset_small = 0;
         for tet in game.state().piece_preview.iter().skip(1).take(3) {
-            let str = fmt_tet_small(*tet);
+            let str = if settings.graphics().glyphset == Glyphset::Unicode {
+                tet.str_small()
+            } else {
+                tet.str_small_ascii()
+            };
             self.screen.buffer_str(
                 str,
                 get_color(&tet.tiletypeid()),
@@ -627,9 +631,13 @@ impl Renderer for DiffPrintRenderer {
         let mut x_offset_minuscule = 0;
         for tet in game.state().piece_preview.iter().skip(4) {
             //.take(5) {
-            let str = fmt_tet_mini(*tet);
+            let str = String::from(if settings.graphics().glyphset == Glyphset::Unicode {
+                tet.str_mini()
+            } else {
+                tet.str_mini_ascii().into()
+            });
             self.screen.buffer_str(
-                str,
+                &str,
                 get_color(&tet.tiletypeid()),
                 (x_preview_mini + x_offset_minuscule, y_preview_mini),
             );
@@ -637,7 +645,11 @@ impl Renderer for DiffPrintRenderer {
         }
         // Draw held piece.
         if let Some((tet, swap_allowed)) = game.state().piece_held {
-            let str = fmt_tet_small(tet);
+            let str = if settings.graphics().glyphset == Glyphset::Unicode {
+                tet.str_small()
+            } else {
+                tet.str_small_ascii()
+            };
             let color = get_color(&if swap_allowed {
                 tet.tiletypeid()
             } else {

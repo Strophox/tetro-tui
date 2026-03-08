@@ -28,37 +28,81 @@ pub fn fmt_hertz(f: ExtNonNegF64) -> String {
     }
 }
 
-pub fn fmt_tet_small(t: Tetromino) -> &'static str {
-    use Tetromino::*;
-    match t {
-        O => "██",
-        I => "▄▄▄▄",
-        S => "▄█▀",
-        Z => "▀█▄",
-        T => "▄█▄",
-        L => "▄▄█",
-        J => "█▄▄",
+pub trait TetrominoStr {
+    fn str_small(&self) -> &str;
+    fn str_small_ascii(&self) -> &str;
+    fn str_mini(&self) -> char;
+    fn str_mini_ascii(&self) -> u8;
+}
+
+impl TetrominoStr for Tetromino {
+    fn str_small(&self) -> &'static str {
+        use Tetromino::*;
+        match self {
+            O => "██",
+            I => "▄▄▄▄",
+            S => "▄█▀",
+            Z => "▀█▄",
+            T => "▄█▄",
+            L => "▄▄█",
+            J => "█▄▄",
+        }
+    }
+
+    fn str_small_ascii(&self) -> &'static str {
+        use Tetromino::*;
+        match self {
+            O => "::",
+            I => "....",
+            S => ".:°",
+            Z => "°:.",
+            T => ".:.",
+            L => "..:",
+            J => ":..",
+        }
+    }
+
+    fn str_mini(&self) -> char {
+        use Tetromino::*;
+        match self {
+            O => '⠶', //"⠶",
+            I => '⡇', //"⠤⠤",
+            S => '⠳', //"⠴⠂",
+            Z => '⠞', //"⠲⠄",
+            T => '⠗', //"⠴⠄",
+            L => '⠧', //"⠤⠆",
+            J => '⠼', //"⠦⠄",
+        }
+    }
+
+    fn str_mini_ascii(&self) -> u8 {
+        use Tetromino::*;
+        match self {
+            O => b'O',
+            I => b'I',
+            S => b'S',
+            Z => b'Z',
+            T => b'T',
+            L => b'L',
+            J => b'J',
+        }
     }
 }
 
-pub fn fmt_tet_mini(t: Tetromino) -> &'static str {
-    use Tetromino::*;
-    match t {
-        O => "⠶", //"⠶",
-        I => "⡇", //"⠤⠤",
-        S => "⠳", //"⠴⠂",
-        Z => "⠞", //"⠲⠄",
-        T => "⠗", //"⠴⠄",
-        L => "⠧", //"⠤⠆",
-        J => "⠼", //"⠦⠄",
-    }
-}
-
-pub fn fmt_tetromino_counts(counts: &[u32; Tetromino::VARIANTS.len()]) -> String {
+pub fn fmt_tetromino_counts(counts: &[u32; Tetromino::VARIANTS.len()], as_ascii: bool) -> String {
     counts
         .iter()
         .zip(Tetromino::VARIANTS)
-        .map(|(n, t)| format!("{n}{}", fmt_tet_mini(t)))
+        .map(|(n, t)| {
+            format!(
+                "{n}{}",
+                if as_ascii {
+                    t.str_mini_ascii().into()
+                } else {
+                    t.str_mini().to_ascii_lowercase()
+                }
+            )
+        })
         .collect::<Vec<_>>()
         .join(" ")
 }

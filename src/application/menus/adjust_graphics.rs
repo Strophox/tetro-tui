@@ -15,7 +15,7 @@ use falling_tetromino_engine::Tetromino;
 
 use crate::{
     application::{Application, Glyphset, Menu, MenuUpdate, Settings},
-    fmt_helpers::fmt_tet_small,
+    fmt_helpers::TetrominoStr,
 };
 
 impl<T: Write> Application<T> {
@@ -129,7 +129,12 @@ impl<T: Write> Application<T> {
 
             for tet in Tetromino::VARIANTS {
                 self.term.queue(PrintStyledContent(
-                    fmt_tet_small(tet).with(
+                    if self.settings.graphics().glyphset == Glyphset::Unicode {
+                        tet.str_small()
+                    } else {
+                        tet.str_small_ascii()
+                    }
+                    .with(
                         *self
                             .settings
                             .palette()
