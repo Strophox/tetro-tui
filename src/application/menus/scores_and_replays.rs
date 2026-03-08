@@ -225,7 +225,7 @@ impl<T: Write> Application<T> {
                     modifiers,
                     ..
                 }) if self.scores_and_replays.entries.len() > 0 => {
-                    if modifiers.contains(KeyModifiers::SHIFT) {
+                    if modifiers.contains(KeyModifiers::ALT) {
                         self.scores_and_replays.entries[cursor_pos].1.take();
                     } else {
                         self.scores_and_replays.entries.remove(cursor_pos);

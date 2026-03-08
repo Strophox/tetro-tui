@@ -256,18 +256,8 @@ impl<T: Write> Application<T> {
                                                 };
                                             }
 
-                                            // FIXME: Actually catch this keybind for consistency, but don't actually do anything.
-                                            // [Ctrl+←]: -
-                                            (
-                                                KeyCode::Left | KeyCode::Char('h' | 'H'),
-                                                KeyModifiers::SHIFT,
-                                            ) => {}
-
-                                            // [Ctrl+→]: Skip one input.
-                                            (
-                                                KeyCode::Right | KeyCode::Char('l' | 'L'),
-                                                KeyModifiers::SHIFT,
-                                            ) => {
+                                            // [.]: Skip one input forward.
+                                            (KeyCode::Char('.'), _) => {
                                                 if let Some((next_input_time, button_change)) =
                                                     game_restoration_data
                                                         .input_history

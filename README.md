@@ -199,7 +199,7 @@ Then you can run the game with `tetro-tui`.
 > | `Del`, `d` | Delete/reset |
 > | `1`/`2`/`3`... | Quickselect option 1/2/3/... (in Start Game)|
 > | `Shift`+... | Accelerate (some) value changes (in Start Game) |
-> | `Shift`+`Del`, `Shift`+`d` | Delete replay  (in Scores and Replays) |
+> | `Alt`+`Del`, `Alt`+`d` | Delete replay  (in Scores and Replays) |
 > | `Ctrl`+`C` | Abort application |
 > 
 > </details>
