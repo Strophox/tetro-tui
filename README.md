@@ -241,9 +241,10 @@ Then you can run the game with `tetro-tui`.
 > | `Space` | Pause replay |
 > | `↓`/`↑` , `j`/`k` | Speed up / Slow down replay by 0.25 |
 > | `Shift`+`↓`/`↑`, `Shift`+`j`/`k` | Speed up / Slow down replay by 0.05 |
+> | `-` | Reset replay speed to 1.0 |
 > | `←`/`→` , `h`/`l` | Skip forward/backward 1s in time |
 > | `1`/`2`/`3`... | Jump to 10%/20%/30%/... |
-> | `Shift`+`→`, `Shift`+`l` | Skip forward one user input and pause |
+> | `.` | Skip forward one user input and pause |
 > | `Enter`, `e` | Enter live game (from current replay position) |
 > | `Ctrl`+`E` | Store seed (accessible in Start Game⇝Custom Mode) |
 > | `Ctrl`+`S` | Store savepoint (accessible in Start Game→Savepoint or in Live Game) |

@@ -86,8 +86,10 @@ impl<T: Write> Application<T> {
             replay_speed -= speed_delta; /* <- rep_spd = 0.00000000000002 OOF.    */
         }
         ``` */
-        const REPLAY_SPEED_STEPSIZE: f64 = 0.05;
-        let mut replay_speed_stepper = 20u32;
+        const REPLAY_SPEED_STEP_EQUIVALENT_TO_SPEED_MULTIPLIER_1: u32 = 20;
+        const REPLAY_SPEED_STEPSIZE: f64 =
+            1.0 / (REPLAY_SPEED_STEP_EQUIVALENT_TO_SPEED_MULTIPLIER_1 as f64);
+        let mut replay_speed_stepper = REPLAY_SPEED_STEP_EQUIVALENT_TO_SPEED_MULTIPLIER_1;
         const SPEED_SMALL_STEPPER_DELTA: u32 = 1;
         const SPEED_NORMAL_STEPPER_DELTA: u32 = 5;
 
@@ -271,6 +273,11 @@ impl<T: Write> Application<T> {
                                                 } else if replay_speed_stepper > speed_delta {
                                                     replay_speed_stepper -= speed_delta;
                                                 };
+                                            }
+
+                                            // [-]: Reset replay speed to 1.
+                                            (KeyCode::Char('-'), _) => {
+                                                replay_speed_stepper = REPLAY_SPEED_STEP_EQUIVALENT_TO_SPEED_MULTIPLIER_1;
                                             }
 
                                             // [.]: Skip one input forward.
