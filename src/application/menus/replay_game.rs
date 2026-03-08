@@ -218,6 +218,10 @@ impl<T: Write> Application<T> {
                                                     game.state().time,
                                                     Feedback::Text("(Stored savepoint)".to_owned()),
                                                 )]);
+
+                                                if paused_with_extra_render_request.is_some() {
+                                                    paused_with_extra_render_request = Some(true);
+                                                }
                                             }
 
                                             // [Ctrl+E]: Store seed.
@@ -232,6 +236,10 @@ impl<T: Write> Application<T> {
                                                         game.state_init().seed
                                                     )),
                                                 )]);
+
+                                                if paused_with_extra_render_request.is_some() {
+                                                    paused_with_extra_render_request = Some(true);
+                                                }
                                             }
 
                                             // [Space]: (Un-)Pause replay.
@@ -410,6 +418,11 @@ impl<T: Write> Application<T> {
                                             usize::from(y_main),
                                         );
                                         game_renderer.reset_view_diff_state();
+
+                                        if paused_with_extra_render_request.is_some() {
+                                            paused_with_extra_render_request = Some(true);
+                                        }
+
                                         break 'wait;
                                     }
                                 }
