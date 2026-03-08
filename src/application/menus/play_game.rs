@@ -244,7 +244,7 @@ impl<T: Write> Application<T> {
                                                 );
                                             }
 
-                                            // [Ctrl+C]: Abort program.
+                                            // [Ctrl+C]: Exit program.
                                             (KeyCode::Char('c' | 'C'), KeyModifiers::CONTROL) => {
                                                 break 'update_and_render MenuUpdate::Push(
                                                     Menu::Quit,

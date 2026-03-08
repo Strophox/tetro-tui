@@ -177,7 +177,7 @@ impl<T: Write> Application<T> {
                                                 break 'update_and_render MenuUpdate::Pop;
                                             }
 
-                                            // [Ctrl+C]: Abort program.
+                                            // [Ctrl+C]: Exit program.
                                             (KeyCode::Char('c' | 'C'), KeyModifiers::CONTROL) => {
                                                 break 'update_and_render MenuUpdate::Push(
                                                     Menu::Quit,
@@ -229,6 +229,23 @@ impl<T: Write> Application<T> {
                                             // [Space]: (Un-)Pause replay.
                                             (KeyCode::Char(' '), _) => {
                                                 is_paused ^= true;
+
+                                                if is_paused {
+                                                    // Manually render current state of the game, since render will be paused too.
+                                                    game_renderer.render(
+                                                        &game,
+                                                        game_meta_data,
+                                                        &self.settings,
+                                                        &keybinds_legend,
+                                                        Some((
+                                                            replay_length,
+                                                            calc_speed(replay_speed_stepper),
+                                                        )),
+                                                        &mut self.term,
+                                                    )?;
+
+                                                    renders_per_second_counter += 1;
+                                                }
                                             }
 
                                             // [↓][↑]: Adjust replay speed.
@@ -534,22 +551,22 @@ impl<T: Write> Application<T> {
                     let msg = game.forfeit();
                     game_renderer.push_game_feedback_msgs([msg])
                 }
+
+                // Render current state of the game.
+                game_renderer.render(
+                    &game,
+                    game_meta_data,
+                    &self.settings,
+                    &keybinds_legend,
+                    Some((replay_length, calc_speed(replay_speed_stepper))),
+                    &mut self.term,
+                )?;
+
+                renders_per_second_counter += 1;
             }
 
             // Remember: We convene on logically setting the 'refresh point' to before the update and render happens.
             time_last_refresh = now;
-
-            // Render current state of the game.
-            game_renderer.render(
-                &game,
-                game_meta_data,
-                &self.settings,
-                &keybinds_legend,
-                Some((replay_length, calc_speed(replay_speed_stepper))),
-                &mut self.term,
-            )?;
-
-            renders_per_second_counter += 1;
 
             // Render FPS counter.
             if self.settings.graphics().show_fps {

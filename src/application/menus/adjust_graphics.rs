@@ -144,7 +144,7 @@ impl<T: Write> Application<T> {
 
             // Wait for new input.
             match event::read()? {
-                // Abort program.
+                // Exit program.
                 Event::Key(KeyEvent {
                     code: KeyCode::Char('c' | 'C'),
                     modifiers: KeyModifiers::CONTROL,

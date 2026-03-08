@@ -200,7 +200,7 @@ Then you can run the game with `tetro-tui`.
 > | `1`/`2`/`3`... | Quickselect option 1/2/3/... (in Start Game)|
 > | `Shift`+... | Accelerate (some) value changes (in Start Game) |
 > | `Alt`+`Del`, `Alt`+`d` | Delete replay  (in Scores and Replays) |
-> | `Ctrl`+`C` | Abort application |
+> | `Ctrl`+`C` | Exit application |
 > 
 > </details>
 > 
@@ -227,7 +227,7 @@ Then you can run the game with `tetro-tui`.
 > | `Ctrl`+`S` | Store savepoint (accessible in Start Game⇝Savepoint or in Live Game) |
 > | `Ctrl`+`L` | Load savepoint (Caution: overwrites live game) |
 > | `Ctrl`+`Alt`+`B` | Toggle on/off visibility of tiles ('Blindfold') |
-> | `Ctrl`+`C` | Abort application |
+> | `Ctrl`+`C` | Exit application |
 > 
 > </details>
 > 
@@ -247,7 +247,7 @@ Then you can run the game with `tetro-tui`.
 > | `Enter`, `e` | Enter live game (from current replay position) |
 > | `Ctrl`+`E` | Store seed (accessible in Start Game⇝Custom Mode) |
 > | `Ctrl`+`S` | Store savepoint (accessible in Start Game→Savepoint or in Live Game) |
-> | `Ctrl`+`C` | Abort application |
+> | `Ctrl`+`C` | Exit application |
 > 
 > </details>
 
