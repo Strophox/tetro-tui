@@ -335,8 +335,8 @@ impl Renderer for DiffPrintRenderer {
                 format!("                        <! . . . . . . . . . .!>              ", ),
                 format!("                        <! . . . . . . . . . .!>              ", ),
                 format!("                        <! . . . . . . . . . .!>              ", ),
-                format!("  KEYBINDS              <! . . . . . . . . . .!>              ", ),
                 format!("                        <! . . . . . . . . . .!>              ", ),
+                format!("  KEYBINDS              <! . . . . . . . . . .!>              ", ),
                 format!("                        <! . . . . . . . . . .!>              ", ),
                 format!("                        <! . . . . . . . . . .!>              ", ),
                 format!("                        <! . . . . . . . . . .!>              ", ),
@@ -361,9 +361,9 @@ impl Renderer for DiffPrintRenderer {
                 format!("                         |                    |{             }", if show_next { "--------------+" } else {"               "}),
                 format!("                         |                    |               ", ),
                 format!("                         |                    |               ", ),
+                format!("                         |                    |               ", ),
                 format!("  KEYBINDS               |                    |               ", ),
                 format!(" ----------              |                    |               ", ),
-                format!("                         |                    |               ", ),
                 format!("                         |                    |               ", ),
                 format!("                         |                    |               ", ),
                 format!("                         |                    |               ", ),
@@ -386,9 +386,9 @@ impl Renderer for DiffPrintRenderer {
                 format!("                         ║                    ║{             }", if show_next { "──────────────┘" } else {"               "}),
                 format!("                         ║                    ║               ", ),
                 format!("                         ║                    ║               ", ),
+                format!("                         ║                    ║               ", ),
                 format!("  KEYBINDS               ║                    ║               ", ),
                 format!(" ─────────╴              ║                    ║               ", ),
-                format!("                         ║                    ║               ", ),
                 format!("                         ║                    ║               ", ),
                 format!("                         ║                    ║               ", ),
                 format!("                         ║                    ║               ", ),
@@ -408,7 +408,7 @@ impl Renderer for DiffPrintRenderer {
         let (x_preview_small, y_preview_small) = (49, 13);
         let (x_preview_mini, y_preview_mini) = (50, 15);
         let (x_messages, y_messages) = (49, 18);
-        let (x_keybinds, y_keybinds) = (1, 16);
+        let (x_keybinds, y_keybinds) = (1, 17);
         let (x_rep_hdr, y_rep_hdr) = (1, 1);
         let (x_rep_spd, y_rep_spd) = (1, 11);
         let (x_rep_len, y_rep_len) = (1, 12);
