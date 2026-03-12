@@ -16,7 +16,7 @@ use falling_tetromino_engine::Button;
 use crate::{
     application::{Application, Menu, MenuUpdate, Settings},
     fmt_helpers::fmt_keybinds_of,
-    keybinds_presets::normalize,
+    keybinds::normalize,
 };
 
 impl<T: Write> Application<T> {

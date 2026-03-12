@@ -8,7 +8,7 @@ use crossterm::event::{self, Event, KeyEvent, KeyEventKind};
 
 use falling_tetromino_engine::Button;
 
-use crate::keybinds_presets::{normalize, Keybinds};
+use crate::keybinds::{normalize, Keybinds};
 
 pub enum LiveTermSignal {
     RecognizedButton(Button, KeyEventKind),

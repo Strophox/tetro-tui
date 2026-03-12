@@ -18,7 +18,7 @@ use crate::{
     application::{
         Application, GameMetaData, GameRestorationData, GameSave, Menu, MenuUpdate,
         UncompressedInputHistory,
-    }, fmt_helpers::{fmt_duration, replay_keybinds_legend}, game_renderers::Renderer, keybinds_presets::normalize, live_input_handler::{self, LiveTermSignal}
+    }, fmt_helpers::{fmt_duration, replay_keybinds_legend}, game_renderers::Renderer, keybinds::normalize, live_input_handler::{self, LiveTermSignal}
 };
 
 struct GameSaveAnchor {

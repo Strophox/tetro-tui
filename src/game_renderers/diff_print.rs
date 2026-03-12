@@ -18,7 +18,7 @@ use falling_tetromino_engine::{
 use super::*;
 
 use crate::{
-    application::Glyphset,
+    graphics_settings::Glyphset,
     fmt_helpers::{FmtTetromino, fmt_button, fmt_button_ascii, fmt_duration, fmt_hertz},
 };
 

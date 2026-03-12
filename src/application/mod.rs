@@ -6,18 +6,17 @@ use std::{
     io::{self, Read, Write},
     num::{NonZeroU32, NonZeroUsize},
     path::PathBuf,
-    time::Duration,
 };
 
 use crossterm::{cursor, event::KeyboardEnhancementFlags, style, terminal, ExecutableCommand};
 
 use falling_tetromino_engine::{
-    Board, Button, ButtonChange, Configuration, DelayParameters, ExtDuration, ExtNonNegF64,
-    FeedbackVerbosity, Game, GameBuilder, GameOver, GameResult, InGameTime, RotationSystem, Stat,
-    Tetromino, TetrominoGenerator,
+    Board, Button, ButtonChange, DelayParameters, ExtDuration,
+    FeedbackVerbosity, Game, GameBuilder, GameOver, GameResult, InGameTime, Stat,
+    Tetromino,
 };
 
-use crate::{game_mode_presets, game_renderers, keybinds_presets::*, palette_presets::*};
+use crate::{game_mode_presets, game_renderers, gameplay_settings::*, graphics_settings::*, keybinds::*, palette::*};
 
 pub type Slots<T> = Vec<(String, T)>;
 
@@ -413,88 +412,6 @@ impl NewGameSettings {
     serde::Serialize,
     serde::Deserialize,
 )]
-pub enum Glyphset {
-    Electronika60,
-    #[allow(clippy::upper_case_acronyms)]
-    ASCII,
-    #[default]
-    Unicode,
-}
-
-#[derive(PartialEq, PartialOrd, Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
-pub struct GraphicsSettings {
-    palette_active: usize,
-    palette_active_lockedtiles: usize,
-    pub glyphset: Glyphset,
-    pub show_effects: bool,
-    pub blindfolded: bool,
-    pub show_shadow_piece: bool,
-    pub show_button_state: bool,
-    game_fps: f64,
-    show_fps: bool,
-}
-
-impl Default for GraphicsSettings {
-    fn default() -> Self {
-        Self {
-            glyphset: Glyphset::default(),
-            palette_active: 3,
-            palette_active_lockedtiles: 3,
-            show_effects: true,
-            blindfolded: false,
-            show_shadow_piece: true,
-            show_button_state: false,
-            game_fps: 30.0,
-            show_fps: false,
-        }
-    }
-}
-
-#[derive(
-    PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug, serde::Serialize, serde::Deserialize,
-)]
-pub struct GameplaySettings {
-    rotation_system: RotationSystem,
-    tetromino_generator: TetrominoGenerator,
-    piece_preview_count: usize,
-    delayed_auto_shift: Duration,
-    auto_repeat_rate: Duration,
-    soft_drop_factor: ExtNonNegF64,
-    line_clear_duration: Duration,
-    spawn_delay: Duration,
-    allow_prespawn_actions: bool,
-}
-
-impl Default for GameplaySettings {
-    fn default() -> Self {
-        let c = Configuration::default();
-        Self {
-            rotation_system: c.rotation_system,
-            tetromino_generator: TetrominoGenerator::default(),
-            piece_preview_count: c.piece_preview_count,
-            delayed_auto_shift: c.delayed_auto_shift,
-            auto_repeat_rate: c.auto_repeat_rate,
-            soft_drop_factor: c.soft_drop_divisor,
-            line_clear_duration: c.line_clear_duration,
-            spawn_delay: c.spawn_delay,
-            allow_prespawn_actions: c.allow_prespawn_actions,
-        }
-    }
-}
-
-#[derive(
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    Clone,
-    Copy,
-    Debug,
-    Default,
-    serde::Serialize,
-    serde::Deserialize,
-)]
 pub enum SavefileGranularity {
     #[default]
     NoSavefile,
@@ -526,47 +443,35 @@ impl Default for Settings {
     fn default() -> Self {
         let graphics_slots = vec![
             ("Default".to_owned(), GraphicsSettings::default()),
-            (
-                "Extra Focused".to_owned(),
-                GraphicsSettings {
-                    palette_active: 2,
-                    palette_active_lockedtiles: 0,
-                    show_effects: false,
-                    game_fps: 60.0,
-                    ..GraphicsSettings::default()
-                },
-            ),
+            ("Extra Focus".to_owned(), GraphicsSettings::extra_focus()),
+            ("Classic".to_owned(), GraphicsSettings::classic()),
         ];
         let palette_slots = vec![
-            ("Monochrome".to_owned(), monochrome_palette()), // NOTE: The slot at index 0 is the special 'monochrome'/no palette slot.
-            ("16-color".to_owned(), color16_palette()),
-            ("Fullcolor".to_owned(), fullcolor_palette()),
-            ("Okpalette".to_owned(), oklch_palette()),
-            ("Gruvbox".to_owned(), gruvbox_palette()),
-            ("Solarized".to_owned(), solarized_palette()),
-            ("Terafox".to_owned(), terafox_palette()),
-            ("Fahrenheit".to_owned(), fahrenheit_palette()),
-            ("The Matrix".to_owned(), the_matrix_palette()),
-            ("Sequoia".to_owned(), sequoia_palette()),
+            ("Monochrome".to_owned(), Palette::monochrome()), // NOTE: The slot at index 0 is the special 'monochrome'/no palette slot.
+            ("16-color".to_owned(), Palette::color16()),
+            ("Fullcolor".to_owned(), Palette::fullcolor()),
+            ("Okpalette".to_owned(), Palette::okpalette()),
+            ("Gruvbox".to_owned(), Palette::gruvbox()),
+            ("Solarized".to_owned(), Palette::solarized()),
+            ("Terafox".to_owned(), Palette::terafox()),
+            ("Fahrenheit".to_owned(), Palette::fahrenheit()),
+            ("The Matrix".to_owned(), Palette::matrix()),
+            ("Sequoia".to_owned(), Palette::sequoia()),
         ];
         let keybinds_slots = vec![
-            ("Default".to_owned(), tetro_default_keybinds()),
-            ("Extra Finesse".to_owned(), tetro_finesse_keybinds()),
-            ("Vim".to_owned(), vim_keybinds()),
-            ("Guideline".to_owned(), guideline_keybinds()),
+            ("Default".to_owned(), Keybinds::default_tetro()),
+            ("Extra Finesse".to_owned(), Keybinds::extra_finesse()),
+            ("Guideline".to_owned(), Keybinds::guideline()),
+            ("Vim".to_owned(), Keybinds::vim()),
         ];
         let gameplay_slots = vec![
             ("Default".to_owned(), GameplaySettings::default()),
-            (
-                "Extra Finesse".to_owned(),
-                GameplaySettings {
-                    delayed_auto_shift: Duration::from_millis(110),
-                    auto_repeat_rate: Duration::from_millis(0),
-                    piece_preview_count: 9,
-                    ..GameplaySettings::default()
-                },
-            ),
+            ("Extra Finesse".to_owned(), GameplaySettings::extra_finesse()),
+            ("Guideline".to_owned(), GameplaySettings::guideline()),
+            ("NES".to_owned(), GameplaySettings::nes()),
+            ("Gameboy".to_owned(), GameplaySettings::gameboy()),
         ];
+        
         Self {
             graphics_slot_active: 0,
             keybinds_slot_active: 0,
