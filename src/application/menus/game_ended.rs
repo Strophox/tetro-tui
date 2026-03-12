@@ -13,7 +13,7 @@ use crossterm::{
 };
 
 use crate::{
-    application::{Application, Glyphset, Menu, MenuUpdate, ScoresEntry},
+    application::{Application, Menu, MenuUpdate, ScoresEntry},
     fmt_helpers::{fmt_duration, fmt_hertz, fmt_tetromino_counts},
 };
 
@@ -67,10 +67,7 @@ impl<T: Write> Application<T> {
                 format!("Score: {points_scored}"),
                 format!(
                     "Pieces: {}",
-                    fmt_tetromino_counts(
-                        pieces_locked,
-                        self.settings.graphics().glyphset != Glyphset::Unicode
-                    )
+                    fmt_tetromino_counts(pieces_locked)
                 ),
                 format!("Gravity: {}", fmt_hertz(fall_delay_reached.as_hertz())),
             ];

@@ -28,15 +28,20 @@ pub fn fmt_hertz(f: ExtNonNegF64) -> String {
     }
 }
 
-pub trait TetrominoStr {
-    fn str_small(&self) -> &str;
-    fn str_small_ascii(&self) -> &str;
-    fn str_mini(&self) -> char;
-    fn str_mini_ascii(&self) -> u8;
+// FIXME: In an ideal world, some of our functions could return `char` or even `u8` instead of `&str` to show their additional 'restrictiveness'.
+// Unfortunately, converting between `u8`, `char` and `&str` is painful. :-(
+//                     char --let mut bs=vec![0;len_utf8()];c.encode_utf8(&mut bs)--> &str
+//    u8 --b.into()--> char --c.to_string()--> String ------------------s.as_str()--> &str
+//    u8 --------------------------------------------str::from_utf8(&[b]).unwrap()--> &str
+pub trait FmtTetromino {
+    fn fmt_small(&self) -> &str;
+    fn fmt_small_ascii(&self) -> &str;
+    fn fmt_mini(&self) -> &str;
+    fn fmt_mini_ascii(&self) -> &str;
 }
 
-impl TetrominoStr for Tetromino {
-    fn str_small(&self) -> &'static str {
+impl FmtTetromino for Tetromino {
+    fn fmt_small(&self) -> &'static str {
         use Tetromino::*;
         match self {
             O => "██",
@@ -49,7 +54,7 @@ impl TetrominoStr for Tetromino {
         }
     }
 
-    fn str_small_ascii(&self) -> &'static str {
+    fn fmt_small_ascii(&self) -> &'static str {
         use Tetromino::*;
         match self {
             O => "::",
@@ -62,45 +67,41 @@ impl TetrominoStr for Tetromino {
         }
     }
 
-    fn str_mini(&self) -> char {
+    fn fmt_mini(&self) -> &'static str {
         use Tetromino::*;
         match self {
-            O => '⠶', //"⠶",
-            I => '⡇', //"⠤⠤",
-            S => '⠳', //"⠴⠂",
-            Z => '⠞', //"⠲⠄",
-            T => '⠗', //"⠴⠄",
-            L => '⠧', //"⠤⠆",
-            J => '⠼', //"⠦⠄",
+            O => "⠶", //"⠶",
+            I => "⡇", //"⠤⠤",
+            S => "⠳", //"⠴⠂",
+            Z => "⠞", //"⠲⠄",
+            T => "⠗", //"⠴⠄",
+            L => "⠧", //"⠤⠆",
+            J => "⠼", //"⠦⠄",
         }
     }
 
-    fn str_mini_ascii(&self) -> u8 {
+    fn fmt_mini_ascii(&self) -> &'static str {
         use Tetromino::*;
         match self {
-            O => b'O',
-            I => b'I',
-            S => b'S',
-            Z => b'Z',
-            T => b'T',
-            L => b'L',
-            J => b'J',
+            O => "O",
+            I => "I",
+            S => "S",
+            Z => "Z",
+            T => "T",
+            L => "L",
+            J => "J",
         }
     }
 }
 
-pub fn fmt_tetromino_counts(counts: &[u32; Tetromino::VARIANTS.len()], as_ascii: bool) -> String {
+pub fn fmt_tetromino_counts(counts: &[u32; Tetromino::VARIANTS.len()]) -> String {
     counts
         .iter()
         .zip(Tetromino::VARIANTS)
         .map(|(n, t)| {
             format!(
                 "{n}{}",
-                if as_ascii {
-                    t.str_mini_ascii().into()
-                } else {
-                    t.str_mini().to_ascii_lowercase()
-                }
+                t.fmt_mini_ascii().to_ascii_lowercase()
             )
         })
         .collect::<Vec<_>>()
@@ -120,28 +121,32 @@ pub fn fmt_button(b: Button) -> &'static str {
         B::TeleDown => "⇓",
         B::TeleLeft => "⇐",
         B::TeleRight => "⇒",
+        B::HoldPiece => "⇋",
+    }
+}
+
+pub fn fmt_button_ascii(b: Button) -> &'static str {
+    use Button as B;
+    match b {
+        B::MoveLeft => "<",
+        B::MoveRight => ">",
+        B::RotateLeft => "l",
+        B::RotateRight => "r",
+        B::RotateAround => "a",
+        B::DropSoft => "v",
+        B::DropHard => "!",
+        B::TeleDown => "w",
+        B::TeleLeft => "{",
+        B::TeleRight => "}",
         B::HoldPiece => "h",
     }
 }
 
-pub fn fmt_button_change(button_change: ButtonChange) -> String {
+pub fn fmt_button_change(button_change: ButtonChange, as_ascii: bool) -> String {
     match button_change {
-        ButtonChange::Press(b) => format!("++[{}]", fmt_button(b)),
-        ButtonChange::Release(b) => format!("--[{}]", fmt_button(b)),
+        ButtonChange::Press(b) => format!("++({})", if as_ascii { fmt_button_ascii } else { fmt_button }(b)),
+        ButtonChange::Release(b) => format!("--({})", if as_ascii { fmt_button_ascii } else { fmt_button }(b)),
     }
-}
-
-#[allow(dead_code)]
-pub fn fmt_button_state(button_state: &[bool; Button::VARIANTS.len()]) -> String {
-    let s = button_state
-        .iter()
-        .zip(Button::VARIANTS)
-        .filter(|(p, _)| **p)
-        .map(|(_, b)| fmt_button(b))
-        .collect::<Vec<_>>()
-        .join(" ");
-
-    format!("[{s}]")
 }
 
 pub fn fmt_key(key: KeyCode) -> String {

@@ -21,12 +21,11 @@ use falling_tetromino_engine::{
 
 use crate::{
     application::{
-        Application, GameMetaData, GameRestorationData, GameSave, GameplaySettings, Menu,
-        MenuUpdate, UncompressedInputHistory,
+        Application, GameMetaData, GameRestorationData, GameSave, GameplaySettings, Glyphset, Menu, MenuUpdate, UncompressedInputHistory
     },
     fmt_helpers::{fmt_button_change, fmt_duration, fmt_hertz},
     game_mode_presets::{
-        self, game_modifiers::combo_board::LAYOUTS as COMBO_STARTLAYOUTS, GameModePreset,
+        self, GameModePreset, game_modifiers::combo_board::LAYOUTS as COMBO_STARTLAYOUTS
     },
 };
 
@@ -154,12 +153,12 @@ impl<T: Write> Application<T> {
                         "{:^w_main$}",
                         if selected == selection_len - 2 {
                             if *inputs_to_load == 0 {
-                                format!(">> Load {load_title:?} from start. [Del] <<")
+                                format!(">> Load {load_title} from beginning [Del] <<")
                             } else {
                                 let (load_time, load_input) = input_history[(inputs_to_load - 1) % input_history.len()];
                                 let load_time = fmt_duration(load_time);
-                                let load_input = fmt_button_change(load_input);
-                                format!(">> Load {load_title:?} from: {inputs_to_load}/{load_offset_max} ({load_input} @{load_time}) [Del] <<")
+                                let load_input = fmt_button_change(load_input, self.settings.graphics().glyphset != Glyphset::Unicode);
+                                format!(">> Load {load_title} from input {inputs_to_load}/{load_offset_max} ({load_input} @ {load_time}) [Del] <<")
                             }
                         } else {
                             format!("Savepoint ({load_title})")

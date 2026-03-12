@@ -19,7 +19,7 @@ use super::*;
 
 use crate::{
     application::Glyphset,
-    fmt_helpers::{fmt_button, fmt_duration, fmt_hertz, TetrominoStr},
+    fmt_helpers::{FmtTetromino, fmt_button, fmt_button_ascii, fmt_duration, fmt_hertz},
 };
 
 #[derive(
@@ -503,7 +503,7 @@ impl Renderer for DiffPrintRenderer {
                 match e {
                     Ok(b) => {
                         self.screen
-                            .buffer_str(fmt_button(b), bc(b), (x_buttonst + dx, y_buttonst))
+                            .buffer_str(if settings.graphics().glyphset != Glyphset::Unicode { fmt_button_ascii } else { fmt_button }(b), bc(b), (x_buttonst + dx, y_buttonst))
                     }
                     Err(s) => self
                         .screen
@@ -616,9 +616,9 @@ impl Renderer for DiffPrintRenderer {
         let mut x_offset_small = 0;
         for tet in game.state().piece_preview.iter().skip(1).take(3) {
             let str = if settings.graphics().glyphset == Glyphset::Unicode {
-                tet.str_small()
+                tet.fmt_small()
             } else {
-                tet.str_small_ascii()
+                tet.fmt_small_ascii()
             };
             self.screen.buffer_str(
                 str,
@@ -632,9 +632,9 @@ impl Renderer for DiffPrintRenderer {
         for tet in game.state().piece_preview.iter().skip(4) {
             //.take(5) {
             let str = String::from(if settings.graphics().glyphset == Glyphset::Unicode {
-                tet.str_mini()
+                tet.fmt_mini()
             } else {
-                tet.str_mini_ascii().into()
+                tet.fmt_mini_ascii().into()
             });
             self.screen.buffer_str(
                 &str,
@@ -646,9 +646,9 @@ impl Renderer for DiffPrintRenderer {
         // Draw held piece.
         if let Some((tet, swap_allowed)) = game.state().piece_held {
             let str = if settings.graphics().glyphset == Glyphset::Unicode {
-                tet.str_small()
+                tet.fmt_small()
             } else {
-                tet.str_small_ascii()
+                tet.fmt_small_ascii()
             };
             let color = get_color(&if swap_allowed {
                 tet.tiletypeid()

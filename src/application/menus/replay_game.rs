@@ -12,16 +12,13 @@ use crossterm::{
     terminal::Clear,
     ExecutableCommand,
 };
-use falling_tetromino_engine::{Feedback, Game, GameOver, InGameTime, UpdateGameError};
+use falling_tetromino_engine::{ButtonChange, Feedback, Game, GameOver, InGameTime, UpdateGameError};
 
 use crate::{
     application::{
         Application, GameMetaData, GameRestorationData, GameSave, Menu, MenuUpdate,
         UncompressedInputHistory,
-    },
-    fmt_helpers::{fmt_duration, replay_keybinds_legend},
-    game_renderers::Renderer,
-    live_input_handler::{self, LiveTermSignal},
+    }, fmt_helpers::{fmt_duration, replay_keybinds_legend}, game_renderers::Renderer, keybinds_presets::normalize, live_input_handler::{self, LiveTermSignal}
 };
 
 struct GameSaveAnchor {
@@ -76,7 +73,11 @@ impl<T: Write> Application<T> {
         // Replay: keybinds legend.
         let keybinds_legend = replay_keybinds_legend();
 
+        // Store whether to pause. When paused, may store a boolean requesting one additional re-render of state.
         let mut paused_with_extra_render_request = None;
+
+        // This toggle enables users to actually do inputs on the game.
+        let mut enable_game_intervention_inputs = false;
 
         /* FIXME: This is a workaround for FLOATING POINT INPRECISION.
            Originally we had `let replay_speed = 1.0f64;` but then we had issues such as:
@@ -190,6 +191,60 @@ impl<T: Write> Application<T> {
                                                 break 'update_and_render MenuUpdate::Push(
                                                     Menu::Quit,
                                                 );
+                                            }
+
+                                            // [Ctrl+I]: Enable Interactive Instant-Input Intervention.
+                                            (KeyCode::Char('i' | 'I'), KeyModifiers::CONTROL) => {
+                                                enable_game_intervention_inputs ^= true;
+
+                                                let str = if enable_game_intervention_inputs {
+                                                    "(Enabled inputs)"
+                                                } else {
+                                                    "(Disabled inputs)"
+                                                };
+
+                                                game_renderer.push_game_feedback_msgs([(
+                                                    game.state().time,
+                                                    Feedback::Text(str.to_owned()),
+                                                )]);
+
+                                                paused_with_extra_render_request = Some(true);
+                                            }
+
+                                            (code, modifiers) if enable_game_intervention_inputs => {
+                                                match self.settings.keybinds().get(&normalize((code, modifiers))) {
+                                                    // No binding: Just ignore.
+                                                    None => {},
+
+                                                    // Binding found: Usebutton un-/press.
+                                                    Some(&button) => {
+                                                        match game.update(
+                                                            game.state().time,
+                                                            Some(ButtonChange::Press(button)),
+                                                        ) {
+                                                            Ok(msgs) => game_renderer
+                                                                .push_game_feedback_msgs(msgs),
+                                                            // FIXME: Handle UpdateGameError::TargetTimeInPast? If not, why not?
+                                                            Err(UpdateGameError::TargetTimeInPast) => {}
+                                                            // Game ended.
+                                                            Err(UpdateGameError::GameEnded) => {}
+                                                        }
+                                                        match game.update(
+                                                            game.state().time,
+                                                            Some(ButtonChange::Release(button)),
+                                                        ) {
+                                                            Ok(msgs) => game_renderer
+                                                                .push_game_feedback_msgs(msgs),
+                                                            // FIXME: Handle UpdateGameError::TargetTimeInPast? If not, why not?
+                                                            Err(UpdateGameError::TargetTimeInPast) => {}
+                                                            // Game ended.
+                                                            Err(UpdateGameError::GameEnded) => {}
+                                                        }
+                                                    },
+                                                }
+
+                                                // Pause and render.
+                                                paused_with_extra_render_request = Some(true);
                                             }
 
                                             // [Ctrl+S]: Store savepoint.
@@ -313,6 +368,7 @@ impl<T: Write> Application<T> {
                                                     }
                                                     inputs_loaded += 1;
                                                     paused_with_extra_render_request = Some(true);
+                                                    // TODO: At this point we shouldn't(?)(!) need the explicit render and 'continue'.
                                                     // Re-render full state.
                                                     game_renderer.render(
                                                         &game,
