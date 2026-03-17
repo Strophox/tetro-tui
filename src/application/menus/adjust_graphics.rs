@@ -84,26 +84,26 @@ impl<T: Write> Application<T> {
                 .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
 
             let labels = [
-                format!("Glyphset: {:?}", self.settings.graphics().glyphset),
+                format!("Glyphset = {:?}", self.settings.graphics().glyphset),
                 format!(
-                    "Color palette: '{}'",
+                    "Color palette = '{}'",
                     self.settings.palette_slots[self.settings.graphics().palette_active].0
                 ),
                 format!(
-                    "Color locked tiles: {}",
+                    "Color locked tiles = {}",
                     self.settings.graphics().palette_active_lockedtiles != 0
                 ),
-                format!("Show effects: {}", self.settings.graphics().show_effects),
+                format!("Show effects = {}", self.settings.graphics().show_effects),
                 format!(
-                    "Show shadow piece: {}",
+                    "Show shadow piece = {}",
                     self.settings.graphics().show_shadow_piece
                 ),
                 format!(
-                    "Show button state: {}",
+                    "Show button state = {}",
                     self.settings.graphics().show_button_state
                 ),
-                format!("Max framerate: {}", self.settings.graphics().game_fps),
-                format!("Show fps: {}", self.settings.graphics().show_fps),
+                format!("Max framerate = {}", self.settings.graphics().game_fps),
+                format!("Show fps = {}", self.settings.graphics().show_fps),
             ];
 
             for (i, label) in labels.into_iter().enumerate() {

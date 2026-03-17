@@ -72,7 +72,7 @@ impl<T: Write> Application<T> {
                         self.settings.new_game.cheese_fall_delay,
                     ),
                     format!(
-                        "Eat through lines like Swiss cheese. Limit: {:?}",
+                        "Eat through lines like Swiss cheese. Limit={:?}",
                         self.settings.new_game.cheese_linelimit
                     ),
                 ),
@@ -82,7 +82,7 @@ impl<T: Write> Application<T> {
                         self.settings.new_game.combo_startlayout,
                     ),
                     format!(
-                        "Get consecutive line clears. Limit: {:?}{}",
+                        "Get consecutive line clears. Limit={:?}{}",
                         self.settings.new_game.combo_linelimit,
                         if self.settings.new_game.combo_startlayout != COMBO_STARTLAYOUTS[0] {
                             format!(", Layout={:b}", self.settings.new_game.combo_startlayout)
@@ -206,7 +206,7 @@ impl<T: Write> Application<T> {
             if selected == selection_len - 1 {
                 let stats_strs = [
                     format!(
-                        "| Initial fall delay: {:?}s | gravity: {}",
+                        "| Initial fall delay = {:?}s (gravity = {})",
                         self.settings
                             .new_game
                             .custom_fall_delay_params
@@ -222,7 +222,7 @@ impl<T: Write> Application<T> {
                         ),
                     ),
                     format!(
-                        "| Progressive gravity: {}",
+                        "| Progressive gravity = {}",
                         !self
                             .settings
                             .new_game
@@ -230,7 +230,7 @@ impl<T: Write> Application<T> {
                             .is_constant()
                     ),
                     format!(
-                        "| Limit: {:?} [→]",
+                        "| Limit = {:?} [→]",
                         self.settings.new_game.custom_win_condition
                     ),
                 ];

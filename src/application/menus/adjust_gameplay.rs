@@ -98,11 +98,11 @@ impl<T: Write> Application<T> {
             // Draw config selection.
             let labels = [
                 format!(
-                    "Rotation system: {:?}",
+                    "Rotation system = {:?}",
                     self.settings.gameplay().rotation_system
                 ),
                 format!(
-                    "Tetromino generator: {}",
+                    "Tetromino generator = {}",
                     match &self.settings.gameplay().tetromino_generator {
                         TetrominoGenerator::Uniform => "Uniformly random".to_owned(),
                         TetrominoGenerator::Stock { .. } => "Bag".to_owned(),
@@ -112,35 +112,35 @@ impl<T: Write> Application<T> {
                     }
                 ),
                 format!(
-                    "Piece preview count: {}",
+                    "Piece preview count = {}",
                     self.settings.gameplay().piece_preview_count
                 ),
                 format!(
-                    "Delayed auto shift (DAS): {:?} *",
+                    "Delayed auto shift (DAS) = {:?} *",
                     self.settings.gameplay().delayed_auto_shift
                 ),
                 format!(
-                    "Auto repeat rate (ARR): {:?} *",
+                    "Auto repeat rate (ARR) = {:?} *",
                     self.settings.gameplay().auto_repeat_rate
                 ),
                 format!(
-                    "Soft drop factor (SDF): {} *",
+                    "Soft drop factor (SDF) = {} *",
                     self.settings.gameplay().soft_drop_factor.get()
                 ),
                 format!(
-                    "Line clear duration (LCD): {:?}",
+                    "Line clear duration (LCD) = {:?}",
                     self.settings.gameplay().line_clear_duration
                 ),
                 format!(
-                    "Spawn delay (ARE): {:?}",
+                    "Spawn delay (ARE) = {:?}",
                     self.settings.gameplay().spawn_delay
                 ),
                 format!(
-                    "Allow pre-spawn rotation/hold (IRS/IHS): {:?} *",
+                    "Allow pre-spawn rotation/hold (IRS/IHS) = {:?} *",
                     self.settings.gameplay().allow_prespawn_actions
                 ),
                 format!(
-                    "/!\\ Override - assume enhanced-key-events: {} *",
+                    "/!\\ Override - assume enhanced-key-events = {} *",
                     self.runtime_data.kitty_assumed
                 ),
             ];
