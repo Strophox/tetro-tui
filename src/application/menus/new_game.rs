@@ -95,7 +95,7 @@ impl<T: Write> Application<T> {
             if self.settings.new_game.experimental_mode_unlocked {
                 game_presets.push((
                     game_mode_presets::ascent(),
-                    "(Experimental. Needs 180° rot.) Per aspera ad astra".to_owned(),
+                    "(experimental; needs 180° rot.) Per aspera ad astra".to_owned(),
                 ))
             }
             // First part: rendering the menu.
@@ -187,12 +187,12 @@ impl<T: Write> Application<T> {
                                     " |"
                                 },
                                 if self.settings.new_game.custom_seed.is_some() {
-                                    " seed"
+                                    " *seed"
                                 } else {
                                     ""
                                 },
                                 if self.settings.new_game.custom_board.is_some() {
-                                    " board"
+                                    " *board"
                                 } else {
                                     ""
                                 },
@@ -672,13 +672,23 @@ impl<T: Write> Application<T> {
                         builder.build()
                     };
 
+                    let title = match n.custom_win_condition {
+                        Some(stat) => match stat {
+                            Stat::TimeElapsed(duration) => format!("Timed~{}s", duration.as_secs()),
+                            Stat::PiecesLocked(p) => format!("Pieces-{p}"),
+                            Stat::LinesCleared(l) => format!("Lines-{l}"),
+                            Stat::PointsScored(s) => format!("Score-{s}"),
+                        },
+                        None => "Infinite".to_owned(),
+                    };
+
                     // We do an initial update, which allows the piece to spawn and queue to get generated.
                     // We do this so the renderer does not render a first frame of no pieces.
                     let _v = new_custom_game.update(InGameTime::ZERO, None);
 
                     let custom_game_meta_data = GameMetaData {
                         datetime: chrono::Utc::now().format("%Y-%m-%d_%H:%M").to_string(),
-                        title: "Custom".to_owned(),
+                        title,
                         comparison_stat: (Stat::PointsScored(0), false),
                     };
                     let fresh_input_history = UncompressedInputHistory::default();

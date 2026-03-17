@@ -11,7 +11,7 @@ pub type GameModePreset = (String, (Stat, bool), Box<dyn Fn(&GameBuilder) -> Gam
 
 pub fn forty_lines() -> GameModePreset {
     (
-        "40-Lines".to_owned(),
+        "Forty Lines".to_owned(),
         (Stat::TimeElapsed(Duration::ZERO), true),
         Box::new(|builder: &GameBuilder| {
             builder
@@ -82,9 +82,9 @@ pub fn n_cheese(
 ) -> GameModePreset {
     (
         format!(
-            "{}Cheese",
+            "Cheese{}",
             if let Some(limit) = linelimit {
-                format!("{limit}-")
+                format!("-{limit}")
             } else {
                 "".to_owned()
             }
@@ -101,9 +101,9 @@ pub fn n_cheese(
 pub fn n_combo(linelimit: Option<NonZeroU32>, startlayout: u16) -> GameModePreset {
     (
         format!(
-            "{}Combo",
+            "Combo{}",
             if let Some(limit) = linelimit {
-                format!("{limit}-")
+                format!("-{limit}")
             } else {
                 "".to_owned()
             }
@@ -128,7 +128,7 @@ pub fn n_combo(linelimit: Option<NonZeroU32>, startlayout: u16) -> GameModePrese
 
 pub fn ascent() -> GameModePreset {
     (
-        "*Ascent".to_owned(),
+        "The Ascent".to_owned(),
         (Stat::PointsScored(0), false),
         Box::new(game_modifiers::ascent::build),
     )
