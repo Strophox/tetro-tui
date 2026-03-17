@@ -28,8 +28,9 @@ impl<T: Write> Application<T> {
         cursor_pos: &mut usize,
         camera_pos: &mut usize,
     ) -> io::Result<MenuUpdate> {
-        const CAMERA_SIZE: usize = 12;
-        const CAMERA_MARGIN: usize = 3;
+        let mut re_sort_scoreboard = true;
+        const CAMERA_SIZE: usize = 11;
+        const CAMERA_MARGIN: usize = 2;
         loop {
             let w_main = Self::W_MAIN.into();
             let (x_main, y_main) = Self::fetch_main_xy();
@@ -74,10 +75,38 @@ impl<T: Write> Application<T> {
                 )
             };
 
-            match self.scores_and_replays.sorting {
-                ScoresSorting::Chronological => self.sort_past_games_chronologically(),
-                ScoresSorting::Scoring => self.sort_past_games_semantically(),
-            };
+            if re_sort_scoreboard {
+                re_sort_scoreboard = false;
+                let mut h = std::hash::DefaultHasher::new();
+                std::hash::Hash::hash(&self.scores_and_replays.entries[*cursor_pos], &mut h);
+                let old_hash = std::hash::Hasher::finish(&h);
+
+                match self.scores_and_replays.sorting {
+                    ScoresSorting::Chronological => self.sort_past_games_chronologically(),
+                    ScoresSorting::Scoring => self.sort_past_games_semantically(),
+                };
+
+                // let d_pos = cursor_pos.saturating_sub(*camera_pos);
+                *cursor_pos = self
+                    .scores_and_replays
+                    .entries
+                    .iter()
+                    .enumerate()
+                    .find_map(|(i, entry)| {
+                        let mut h = std::hash::DefaultHasher::new();
+                        std::hash::Hash::hash(entry, &mut h);
+                        let new_hash = std::hash::Hasher::finish(&h);
+                        old_hash.eq(&new_hash).then_some(i)
+                    })
+                    .unwrap_or(*cursor_pos);
+                // *camera_pos = cursor_pos.saturating_sub(d_pos);
+                *camera_pos = cursor_pos.saturating_sub(CAMERA_SIZE / 2).min(
+                    self.scores_and_replays
+                        .entries
+                        .len()
+                        .saturating_sub(CAMERA_SIZE),
+                );
+            }
 
             if self.scores_and_replays.entries.is_empty() {
                 self.term
@@ -250,6 +279,7 @@ impl<T: Write> Application<T> {
                         ScoresSorting::Chronological => ScoresSorting::Scoring,
                         ScoresSorting::Scoring => ScoresSorting::Chronological,
                     };
+                    re_sort_scoreboard = true;
                 }
 
                 Event::Key(KeyEvent {
@@ -261,6 +291,7 @@ impl<T: Write> Application<T> {
                         ScoresSorting::Chronological => ScoresSorting::Scoring,
                         ScoresSorting::Scoring => ScoresSorting::Chronological,
                     };
+                    re_sort_scoreboard = true;
                 }
 
                 // Delete entire slot.
