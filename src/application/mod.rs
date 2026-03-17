@@ -460,7 +460,7 @@ impl Default for Settings {
         ];
         let keybinds_slots = vec![
             ("Default".to_owned(), Keybinds::default_tetro()),
-            ("Extra Finesse".to_owned(), Keybinds::extra_finesse()),
+            ("Extra Control".to_owned(), Keybinds::extra_control()),
             ("Guideline".to_owned(), Keybinds::guideline()),
             ("Vim".to_owned(), Keybinds::vim()),
         ];

@@ -39,7 +39,7 @@ pub fn normalize((mut code, mut modifiers): (KeyCode, KeyModifiers)) -> (KeyCode
 
 pub trait KeybindsExt {
     fn default_tetro() -> Self;
-    fn extra_finesse() -> Self;
+    fn extra_control() -> Self;
     fn guideline() -> Self;
     fn vim() -> Self;
 }
@@ -63,7 +63,7 @@ impl KeybindsExt for Keybinds {
         HashMap::from(keybinds_tetro)
     }
     
-    fn extra_finesse() -> Keybinds {
+    fn extra_control() -> Keybinds {
         let keybinds_tetro: [((KeyCode, KeyModifiers), Button); 11] = [
             (KeyCode::Left, Button::MoveLeft),
             (KeyCode::Right, Button::MoveRight),

@@ -29,9 +29,9 @@ impl<T: Write> Application<T> {
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
                 .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
             let labels = [
-                "Adjust Graphics...".to_owned(),
-                "Adjust Keybinds...".to_owned(),
-                "Adjust Gameplay...".to_owned(),
+                format!("Adjust graphics ({:?}) ...", self.settings.graphics_slots[self.settings.graphics_slot_active].0),
+                format!("Adjust keybinds ({:?}) ...", self.settings.keybinds_slots[self.settings.keybinds_slot_active].0),
+                format!("Adjust gameplay ({:?}) ...", self.settings.gameplay_slots[self.settings.gameplay_slot_active].0),
                 format!(
                     "Keep save file: {}",
                     match self.save_on_exit {
@@ -138,21 +138,40 @@ impl<T: Write> Application<T> {
                     kind: Press | Repeat,
                     ..
                 }) => {
-                    if selected == 3 {
-                        self.save_on_exit = match self.save_on_exit {
-                            SavefileGranularity::NoSavefile => {
-                                SavefileGranularity::RememberSettingsScoresReplays
-                            }
-                            SavefileGranularity::RememberSettingsScoresReplays => {
-                                SavefileGranularity::RememberSettingsScores
-                            }
-                            SavefileGranularity::RememberSettingsScores => {
-                                SavefileGranularity::RememberSettings
-                            }
-                            SavefileGranularity::RememberSettings => {
-                                SavefileGranularity::NoSavefile
-                            }
-                        };
+                    match selected {
+                        0 => {
+                            self.settings.graphics_slot_active +=
+                                self.settings.graphics_slots.len() + 1;
+                            self.settings.graphics_slot_active %= self.settings.graphics_slots.len();
+                        }
+                        1 => {
+                            self.settings.keybinds_slot_active +=
+                                self.settings.keybinds_slots.len() + 1;
+                            self.settings.keybinds_slot_active %= self.settings.keybinds_slots.len();
+                        }
+                        2 => {
+                            self.settings.gameplay_slot_active +=
+                                self.settings.gameplay_slots.len() + 1;
+                            self.settings.gameplay_slot_active %= self.settings.gameplay_slots.len();
+                        }
+                        3 => {
+                            self.save_on_exit = match self.save_on_exit {
+                                SavefileGranularity::NoSavefile => {
+                                    SavefileGranularity::RememberSettingsScoresReplays
+                                }
+                                SavefileGranularity::RememberSettingsScoresReplays => {
+                                    SavefileGranularity::RememberSettingsScores
+                                }
+                                SavefileGranularity::RememberSettingsScores => {
+                                    SavefileGranularity::RememberSettings
+                                }
+                                SavefileGranularity::RememberSettings => {
+                                    SavefileGranularity::NoSavefile
+                                }
+                            };
+                        }
+                        // No accessible options beyond.
+                        _ => {}
                     }
                 }
 
@@ -161,21 +180,40 @@ impl<T: Write> Application<T> {
                     kind: Press | Repeat,
                     ..
                 }) => {
-                    if selected == 3 {
-                        self.save_on_exit = match self.save_on_exit {
-                            SavefileGranularity::NoSavefile => {
-                                SavefileGranularity::RememberSettings
-                            }
-                            SavefileGranularity::RememberSettings => {
-                                SavefileGranularity::RememberSettingsScores
-                            }
-                            SavefileGranularity::RememberSettingsScores => {
-                                SavefileGranularity::RememberSettingsScoresReplays
-                            }
-                            SavefileGranularity::RememberSettingsScoresReplays => {
-                                SavefileGranularity::NoSavefile
-                            }
-                        };
+                    match selected {
+                        0 => {
+                            self.settings.graphics_slot_active +=
+                                self.settings.graphics_slots.len() - 1;
+                            self.settings.graphics_slot_active %= self.settings.graphics_slots.len();
+                        }
+                        1 => {
+                            self.settings.keybinds_slot_active +=
+                                self.settings.keybinds_slots.len() - 1;
+                            self.settings.keybinds_slot_active %= self.settings.keybinds_slots.len();
+                        }
+                        2 => {
+                            self.settings.gameplay_slot_active +=
+                                self.settings.gameplay_slots.len() - 1;
+                            self.settings.gameplay_slot_active %= self.settings.gameplay_slots.len();
+                        }
+                        3 => {
+                            self.save_on_exit = match self.save_on_exit {
+                                SavefileGranularity::NoSavefile => {
+                                    SavefileGranularity::RememberSettings
+                                }
+                                SavefileGranularity::RememberSettings => {
+                                    SavefileGranularity::RememberSettingsScores
+                                }
+                                SavefileGranularity::RememberSettingsScores => {
+                                    SavefileGranularity::RememberSettingsScoresReplays
+                                }
+                                SavefileGranularity::RememberSettingsScoresReplays => {
+                                    SavefileGranularity::NoSavefile
+                                }
+                            };
+                        }
+                        // No accessible options beyond.
+                        _ => {}
                     }
                 }
 
@@ -185,8 +223,21 @@ impl<T: Write> Application<T> {
                     kind: Press | Repeat,
                     ..
                 }) => {
-                    if selected == 3 {
+                    match selected {
+                        0 => {
+                            self.settings.graphics_slot_active = 0;
+                        }
+                        1 => {
+                            self.settings.keybinds_slot_active = 0;
+                        }
+                        2 => {
+                            self.settings.gameplay_slot_active = 0;
+                        }
+                        3 => {
                         self.save_on_exit = SavefileGranularity::NoSavefile;
+                        }
+                        // No accessible options beyond.
+                        _ => {}
                     }
                 }
 
