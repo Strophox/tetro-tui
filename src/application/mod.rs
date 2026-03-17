@@ -277,35 +277,15 @@ impl ScoresEntry {
 }
 
 #[derive(
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    Clone,
-    Copy,
-    Debug,
-    Default,
-    serde::Serialize,
-    serde::Deserialize,
+    PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug, serde::Serialize, serde::Deserialize,
 )]
 pub enum ScoresSorting {
-    #[default]
     Chronological,
-    Semantic,
+    Scoring,
 }
 
 #[derive(
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    Clone,
-    Debug,
-    Default,
-    serde::Serialize,
-    serde::Deserialize,
+    PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]
 pub struct ScoresAndReplays {
     sorting: ScoresSorting,
@@ -313,6 +293,15 @@ pub struct ScoresAndReplays {
         ScoresEntry,
         Option<GameRestorationData<CompressedInputHistory>>,
     )>,
+}
+
+impl Default for ScoresAndReplays {
+    fn default() -> Self {
+        Self {
+            sorting: ScoresSorting::Scoring,
+            entries: Vec::new(),
+        }
+    }
 }
 
 #[derive(

@@ -28,7 +28,7 @@ impl<T: Write> Application<T> {
         cursor_pos: &mut usize,
         camera_pos: &mut usize,
     ) -> io::Result<MenuUpdate> {
-        const CAMERA_SIZE: usize = 13;
+        const CAMERA_SIZE: usize = 12;
         const CAMERA_MARGIN: usize = 3;
         loop {
             let w_main = Self::W_MAIN.into();
@@ -50,13 +50,23 @@ impl<T: Write> Application<T> {
                 Stat::PointsScored(_) => format!("score: {}", p.points_scored),
             };
 
-            let fmt_past_game = |(entry, opt_rep): &(
-                ScoresEntry,
-                Option<GameRestorationData<CompressedInputHistory>>,
+            let sorting = self.scores_and_replays.sorting;
+            let fmt_past_game = |(rank, (entry, opt_rep)): (
+                usize,
+                &(
+                    ScoresEntry,
+                    Option<GameRestorationData<CompressedInputHistory>>,
+                ),
             )| {
+                let lhs_annotation = match sorting {
+                    ScoresSorting::Chronological => format!("{}", entry.game_meta_data.datetime),
+                    ScoresSorting::Scoring => {
+                        format!("{rank: >2}{}", if rank == 1 { '#' } else { '.' })
+                    }
+                };
                 format!(
                     "{} {} | {}{}{}",
-                    entry.game_meta_data.datetime,
+                    lhs_annotation,
                     entry.game_meta_data.title,
                     if entry.result.is_ok() { "" } else { "unf." },
                     fmt_comparison_stat(entry),
@@ -66,7 +76,7 @@ impl<T: Write> Application<T> {
 
             match self.scores_and_replays.sorting {
                 ScoresSorting::Chronological => self.sort_past_games_chronologically(),
-                ScoresSorting::Semantic => self.sort_past_games_semantically(),
+                ScoresSorting::Scoring => self.sort_past_games_semantically(),
             };
 
             if self.scores_and_replays.entries.is_empty() {
@@ -90,6 +100,15 @@ impl<T: Write> Application<T> {
                 .scores_and_replays
                 .entries
                 .iter()
+                .scan((1, None), |(i, prev_title), e| {
+                    if Some(&e.0.game_meta_data.title) != prev_title.as_ref() {
+                        *prev_title = Some(e.0.game_meta_data.title.clone());
+                        *i = 1;
+                    } else {
+                        *i += 1;
+                    }
+                    Some((*i, e))
+                })
                 .skip(*camera_pos)
                 .take(CAMERA_SIZE)
                 .map(fmt_past_game)
@@ -100,14 +119,11 @@ impl<T: Write> Application<T> {
                         x_main,
                         y_main + y_selection + 4 + u16::try_from(i).unwrap(),
                     ))?
-                    .queue(Print(format!(
-                        "{:<w_main$}",
-                        if *cursor_pos == *camera_pos + i {
-                            format!(">{}", entry)
-                        } else {
-                            entry
-                        }
-                    )))?;
+                    .queue(PrintStyledContent(if *cursor_pos == *camera_pos + i {
+                        format!("{:<w_main$}", format!(">{}", entry)).bold()
+                    } else {
+                        format!("{:<w_main$}", format!(" {}", entry)).reset()
+                    }))?;
             }
 
             let entries_left = self
@@ -123,15 +139,11 @@ impl<T: Write> Application<T> {
                 .queue(PrintStyledContent(
                     format!(
                         "{:^w_main$}",
-                        format!(
-                            "{}{}",
-                            if entries_left > 0 {
-                                format!("... +{entries_left} more  ")
-                            } else {
-                                "".to_owned()
-                            },
-                            format!("(Order = {:?} [←|→])", self.scores_and_replays.sorting)
-                        )
+                        if entries_left > 0 {
+                            format!("... +{entries_left} more")
+                        } else {
+                            "".to_owned()
+                        }
                     )
                     .italic(),
                 ))?;
@@ -139,6 +151,18 @@ impl<T: Write> Application<T> {
                 .queue(MoveTo(
                     x_main,
                     y_main + y_selection + 4 + u16::try_from(CAMERA_SIZE).unwrap() + 1,
+                ))?
+                .queue(PrintStyledContent(
+                    format!(
+                        "{:^w_main$}",
+                        format!("(Order = {:?} [←|→])", self.scores_and_replays.sorting)
+                    )
+                    .italic(),
+                ))?;
+            self.term
+                .queue(MoveTo(
+                    x_main,
+                    y_main + y_selection + 4 + u16::try_from(CAMERA_SIZE).unwrap() + 2,
                 ))?
                 .queue(PrintStyledContent(
                     format!(
@@ -223,8 +247,8 @@ impl<T: Write> Application<T> {
                     ..
                 }) => {
                     self.scores_and_replays.sorting = match self.scores_and_replays.sorting {
-                        ScoresSorting::Chronological => ScoresSorting::Semantic,
-                        ScoresSorting::Semantic => ScoresSorting::Chronological,
+                        ScoresSorting::Chronological => ScoresSorting::Scoring,
+                        ScoresSorting::Scoring => ScoresSorting::Chronological,
                     };
                 }
 
@@ -234,8 +258,8 @@ impl<T: Write> Application<T> {
                     ..
                 }) => {
                     self.scores_and_replays.sorting = match self.scores_and_replays.sorting {
-                        ScoresSorting::Chronological => ScoresSorting::Semantic,
-                        ScoresSorting::Semantic => ScoresSorting::Chronological,
+                        ScoresSorting::Chronological => ScoresSorting::Scoring,
+                        ScoresSorting::Scoring => ScoresSorting::Chronological,
                     };
                 }
 
