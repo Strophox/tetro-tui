@@ -59,7 +59,7 @@ impl<T: Write> Application<T> {
         // Prepare everything to enter the game (react & render) loop.
 
         // Toggle on enhanced-keyboard-events.
-        if self.runtime_data.kitty_assumed {
+        if self.session_data.kitty_assumed {
             let f = Self::KEYBOARD_ENHANCEMENT_FLAGS;
             // FIXME: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm doesn't like operating on Windows.
             let _v = self.term.execute(event::PushKeyboardEnhancementFlags(f));
@@ -133,6 +133,7 @@ impl<T: Write> Application<T> {
             &game,
             game_meta_data,
             &self.settings,
+            &self.session_data,
             &keybinds_legend,
             Some((replay_length, calc_speed(replay_speed_stepper))),
             &mut self.term,
@@ -399,6 +400,7 @@ impl<T: Write> Application<T> {
                                                         &game,
                                                         game_meta_data,
                                                         &self.settings,
+                                                        &self.session_data,
                                                         &keybinds_legend,
                                                         Some((
                                                             replay_length,
@@ -578,6 +580,7 @@ impl<T: Write> Application<T> {
                     &game,
                     game_meta_data,
                     &self.settings,
+                    &self.session_data,
                     &keybinds_legend,
                     Some((replay_length, calc_speed(replay_speed_stepper))),
                     &mut self.term,
@@ -663,6 +666,7 @@ impl<T: Write> Application<T> {
                     &game,
                     game_meta_data,
                     &self.settings,
+                    &self.session_data,
                     &keybinds_legend,
                     Some((replay_length, calc_speed(replay_speed_stepper))),
                     &mut self.term,
@@ -722,7 +726,7 @@ impl<T: Write> Application<T> {
             }
         ``` */
 
-        if self.runtime_data.kitty_assumed {
+        if self.session_data.kitty_assumed {
             // FIXME: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm doesn't like operating on Windows.
             let _v = self.term.execute(event::PopKeyboardEnhancementFlags);
         }

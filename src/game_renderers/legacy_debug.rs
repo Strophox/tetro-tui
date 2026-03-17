@@ -53,6 +53,7 @@ impl Renderer for DebugRenderer {
         game: &Game,
         _meta_data: &GameMetaData,
         _settings: &Settings,
+        _session_data: &SessionData,
         _keybinds_legend: &KeybindsLegend,
         _replay_extra: Option<(InGameTime, f64)>,
         term: &mut T,

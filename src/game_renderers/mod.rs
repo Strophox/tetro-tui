@@ -12,7 +12,7 @@ use std::io::{self, Write};
 use falling_tetromino_engine::{Feedback, Game, InGameTime};
 
 use crate::{
-    application::{GameMetaData, Settings},
+    application::{GameMetaData, SessionData, Settings},
     fmt_helpers::KeybindsLegend,
 };
 
@@ -45,6 +45,7 @@ pub trait Renderer: Default {
         game: &Game,
         meta_data: &GameMetaData,
         settings: &Settings,
+        session_data: &SessionData,
         keybinds_legend: &KeybindsLegend,
         replay_extra: Option<(InGameTime, f64)>,
         term: &mut T,

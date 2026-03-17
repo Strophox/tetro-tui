@@ -2,6 +2,7 @@ pub mod about;
 pub mod adjust_gameplay;
 pub mod adjust_graphics;
 pub mod adjust_keybinds;
+pub mod advanced_settings;
 pub mod game_ended;
 pub mod new_game;
 pub mod pause;

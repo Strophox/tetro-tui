@@ -75,7 +75,22 @@ impl<T: Write> Application<T> {
                 )
             };
 
-            if re_sort_scoreboard {
+            if self.scores_and_replays.entries.is_empty() {
+                self.term
+                    .queue(MoveTo(x_main, y_main + y_selection + 4 + 4))?
+                    .queue(PrintStyledContent(
+                        format!("{:^w_main$}", "The scoreboard is empty.").italic(),
+                    ))?;
+                self.term
+                    .queue(MoveTo(x_main, y_main + y_selection + 4 + 5))?
+                    .queue(PrintStyledContent(
+                        format!(
+                            "{:^w_main$}",
+                            "If you finish a game it is going to show up here!"
+                        )
+                        .italic(),
+                    ))?;
+            } else if re_sort_scoreboard {
                 re_sort_scoreboard = false;
                 let mut h = std::hash::DefaultHasher::new();
                 std::hash::Hash::hash(&self.scores_and_replays.entries[*cursor_pos], &mut h);
@@ -106,23 +121,6 @@ impl<T: Write> Application<T> {
                         .len()
                         .saturating_sub(CAMERA_SIZE),
                 );
-            }
-
-            if self.scores_and_replays.entries.is_empty() {
-                self.term
-                    .queue(MoveTo(x_main, y_main + y_selection + 4 + 4))?
-                    .queue(PrintStyledContent(
-                        format!("{:^w_main$}", "The scoreboard is empty.").italic(),
-                    ))?;
-                self.term
-                    .queue(MoveTo(x_main, y_main + y_selection + 4 + 5))?
-                    .queue(PrintStyledContent(
-                        format!(
-                            "{:^w_main$}",
-                            "If you finish a game it is going to show up here!"
-                        )
-                        .italic(),
-                    ))?;
             }
 
             for (i, entry) in self

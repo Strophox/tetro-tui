@@ -524,10 +524,11 @@ impl Settings {
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]
-pub struct RuntimeData {
-    kitty_detected: bool,
-    kitty_assumed: bool,
-    savefile_path: PathBuf,
+pub struct SessionData {
+    pub kitty_detected: bool,
+    pub kitty_assumed: bool,
+    pub blindfold_enabled: bool,
+    pub savefile_path: PathBuf, // This should technically be the same for a given compiled binary, but we compute it at runtime.
 }
 
 #[derive(Debug)]
@@ -545,6 +546,7 @@ enum Menu {
     AdjustGraphics,
     AdjustKeybinds,
     AdjustGameplay,
+    AdvancedSettings,
     GameOver(Box<ScoresEntry>),
     GameComplete(Box<ScoresEntry>),
     ScoresAndReplays {
@@ -574,6 +576,7 @@ impl std::fmt::Display for Menu {
             Menu::AdjustGraphics => "Adjust Graphics",
             Menu::AdjustKeybinds => "Adjust Keybinds",
             Menu::AdjustGameplay => "Adjust Gameplay",
+            Menu::AdvancedSettings => "Advanced Settings",
             Menu::GameOver(_) => "Game Over",
             Menu::GameComplete(_) => "Game Completed",
             Menu::ScoresAndReplays { .. } => "Scores and Replays",
@@ -596,7 +599,7 @@ enum MenuUpdate {
 // FIXME: Move tui application into `main` instead of artifically having it in one module below `tetro-tui::main`.
 #[derive(PartialEq, Clone, Debug)]
 pub struct Application<T: Write> {
-    runtime_data: RuntimeData,
+    session_data: SessionData,
     term: T,
     save_on_exit: SavefileGranularity,
     settings: Settings,
@@ -618,13 +621,13 @@ impl<T: Write> Drop for Application<T> {
                 eprintln!("{e}");
             }
         } else if self
-            .runtime_data
+            .session_data
             .savefile_path
             .try_exists()
             .is_ok_and(|exists| exists)
         {
             // Otherwise explicitly check for savefile and try to make sure we don't leave it around.
-            if let Err(e) = std::fs::remove_file(self.runtime_data.savefile_path.clone()) {
+            if let Err(e) = std::fs::remove_file(self.session_data.savefile_path.clone()) {
                 eprintln!("{e}");
             }
         }
@@ -655,9 +658,10 @@ impl<T: Write> Application<T> {
         let _v = term.execute(cursor::Hide);
         let _v = terminal::enable_raw_mode();
         let mut app = Self {
-            runtime_data: RuntimeData {
+            session_data: SessionData {
                 kitty_detected: false,
                 kitty_assumed: false,
+                blindfold_enabled: false,
                 savefile_path: savefile_path.clone(),
             },
             term,
@@ -676,9 +680,10 @@ impl<T: Write> Application<T> {
 
         // Now that the settings are loaded, we handle separate flags set for this session.
         let kitty_detected = terminal::supports_keyboard_enhancement().unwrap_or(false);
-        app.runtime_data = RuntimeData {
+        app.session_data = SessionData {
             kitty_detected,
             kitty_assumed: kitty_detected,
+            blindfold_enabled: false,
             savefile_path,
         };
         if custom_start_board.is_some() {
@@ -726,7 +731,7 @@ impl<T: Write> Application<T> {
             compressed_game_saves,
         );
         let save_str = serde_json::to_string(&save_state)?;
-        let mut file = File::create(self.runtime_data.savefile_path.clone())?;
+        let mut file = File::create(self.session_data.savefile_path.clone())?;
 
         let n_written = file.write(save_str.as_bytes())?;
 
@@ -741,7 +746,7 @@ impl<T: Write> Application<T> {
     }
 
     fn load_savefile(&mut self) -> io::Result<()> {
-        let mut file = File::open(self.runtime_data.savefile_path.clone())?;
+        let mut file = File::open(self.session_data.savefile_path.clone())?;
         let mut save_str = String::new();
         file.read_to_string(&mut save_str)?;
         let save_state = serde_json::from_str(&save_str)?;
@@ -830,6 +835,7 @@ impl<T: Write> Application<T> {
                 Menu::AdjustGraphics => self.run_menu_adjust_graphics(),
                 Menu::AdjustKeybinds => self.run_menu_adjust_keybinds(),
                 Menu::AdjustGameplay => self.run_menu_adjust_gameplay(),
+                Menu::AdvancedSettings => self.run_menu_advanced_settings(),
                 Menu::GameOver(past_game) => self.run_menu_game_ended(past_game),
                 Menu::GameComplete(past_game) => self.run_menu_game_ended(past_game),
                 Menu::ScoresAndReplays {

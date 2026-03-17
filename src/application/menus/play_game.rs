@@ -52,7 +52,7 @@ impl<T: Write> Application<T> {
         // Prepare everything to enter the game (react & render) loop.
 
         // Toggle on enhanced-keyboard-events.
-        if self.runtime_data.kitty_assumed {
+        if self.session_data.kitty_assumed {
             let f = Self::KEYBOARD_ENHANCEMENT_FLAGS;
             // FIXME: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm doesn't like operating on Windows.
             let _v = self.term.execute(event::PushKeyboardEnhancementFlags(f));
@@ -93,6 +93,7 @@ impl<T: Write> Application<T> {
             game,
             game_meta_data,
             &self.settings,
+            &self.session_data,
             &keybinds_legend,
             None,
             &mut self.term,
@@ -183,7 +184,7 @@ impl<T: Write> Application<T> {
                                         }) as u64,
                                 );
 
-                                if self.runtime_data.kitty_assumed {
+                                if self.session_data.kitty_assumed {
                                     // Enhanced keyboard events: determinedly send a single press or release.
 
                                     let button_change =
@@ -364,8 +365,8 @@ impl<T: Write> Application<T> {
                                                     )
                                                 } =>
                                             {
-                                                self.settings.graphics_mut().blindfolded ^= true;
-                                                if self.settings.graphics().blindfolded {
+                                                self.session_data.blindfold_enabled ^= true;
+                                                if self.session_data.blindfold_enabled {
                                                     game_renderer.push_game_feedback_msgs([(
                                                         game.state().time,
                                                         Feedback::Text(
@@ -445,6 +446,7 @@ impl<T: Write> Application<T> {
                 game,
                 game_meta_data,
                 &self.settings,
+                &self.session_data,
                 &keybinds_legend,
                 None,
                 &mut self.term,
@@ -496,7 +498,7 @@ impl<T: Write> Application<T> {
             }
         ``` */
 
-        if self.runtime_data.kitty_assumed {
+        if self.session_data.kitty_assumed {
             // FIXME: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm doesn't like operating on Windows.
             let _v = self.term.execute(event::PopKeyboardEnhancementFlags);
         }

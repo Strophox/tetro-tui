@@ -18,6 +18,7 @@ use falling_tetromino_engine::{
 use super::*;
 
 use crate::{
+    application::SessionData,
     fmt_helpers::{fmt_button, fmt_button_ascii, fmt_duration, fmt_hertz, FmtTetromino},
     graphics_settings::Glyphset,
 };
@@ -272,6 +273,7 @@ impl Renderer for DiffPrintRenderer {
         game: &Game,
         meta_data: &GameMetaData,
         settings: &Settings,
+        session_data: &SessionData,
         keybinds_legend: &KeybindsLegend,
         replay_extra: Option<(InGameTime, f64)>,
         term: &mut T,
@@ -558,7 +560,7 @@ impl Renderer for DiffPrintRenderer {
             };
 
         // Board: draw locked tiles.
-        if !settings.graphics().blindfolded {
+        if !session_data.blindfold_enabled {
             for (y, line) in game.state().board.iter().enumerate().take(21).rev() {
                 for (x, cell) in line.iter().enumerate() {
                     if let Some(tile_type_id) = cell {
