@@ -502,8 +502,7 @@ impl<T: Write> Application<T> {
                             self.settings.new_game.combo_startlayout =
                                 COMBO_STARTLAYOUTS[new_layout_idx];
                         } else if let Some(limit) = self.settings.new_game.combo_linelimit {
-                            self.settings.new_game.combo_linelimit = if limit > lowerbound_combo
-                            {
+                            self.settings.new_game.combo_linelimit = if limit > lowerbound_combo {
                                 NonZeroU32::try_from(limit.get() - 1).ok()
                             } else {
                                 None
