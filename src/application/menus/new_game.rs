@@ -545,7 +545,7 @@ impl<T: Write> Application<T> {
                                     Some(Stat::PointsScored(_)) => Some(Stat::PiecesLocked(100)),
                                     Some(Stat::PiecesLocked(_)) => Some(Stat::LinesCleared(40)),
                                     Some(Stat::LinesCleared(_)) => None,
-                                    None => Some(Stat::TimeElapsed(Duration::from_secs(180))),
+                                    None => Some(Stat::TimeElapsed(Duration::from_secs(300))),
                                 };
                         } else {
                             customization_selected += 1
@@ -740,7 +740,7 @@ impl<T: Write> Application<T> {
 
                     let title = match n.custom_win_condition {
                         Some(stat) => match stat {
-                            Stat::TimeElapsed(duration) => format!("Timed~{}s", duration.as_secs()),
+                            Stat::TimeElapsed(duration) => format!("Time-{}s", duration.as_secs()),
                             Stat::PiecesLocked(p) => format!("Pieces-{p}"),
                             Stat::LinesCleared(l) => format!("Lines-{l}"),
                             Stat::PointsScored(s) => format!("Score-{s}"),
