@@ -268,3 +268,38 @@ pub fn replay_keybinds_legend() -> KeybindsLegend {
         (icon_stop, "stop"),
     ]
 }
+
+pub fn arabic_to_roman(mut num: u32) -> String {
+    // Large roman numerals should be uncommon and have little convention
+    // (<https://en.wikipedia.org/wiki/Roman_numerals#Large_numbers>),
+    // return fallback decimal representation. 
+    if 4000 <= num {
+        return num.to_string();
+    }
+
+    const ADDITIVE_NUMERAL_PARTS: [(&'static str, u32); 13] = [
+        ("M", 1000),
+        ("CM", 900),
+        ("D", 500),
+        ("CD", 400),
+        ("C", 100),
+        ("XC", 90),
+        ("L", 50),
+        ("XL", 40),
+        ("X", 10),
+        ("IX", 9),
+        ("V", 5),
+        ("IV", 4),
+        ("I", 1),
+    ];
+    
+    let mut string = String::new();
+    for (str, value) in ADDITIVE_NUMERAL_PARTS {
+        while num >= value {
+            num -= value;
+            string.push_str(str);
+        }
+    }
+
+    string
+}

@@ -15,7 +15,7 @@ use falling_tetromino_engine::Tetromino;
 
 use crate::{
     application::{Application, Glyphset, Menu, MenuUpdate, Settings},
-    fmt_helpers::FmtTetromino,
+    fmt_helpers::{FmtTetromino, arabic_to_roman},
 };
 
 impl<T: Write> Application<T> {
@@ -24,7 +24,7 @@ impl<T: Write> Application<T> {
             if settings.graphics_slot_active < settings.graphics_slots_that_should_not_be_changed {
                 let mut n = 1;
                 let new_custom_slot_name = loop {
-                    let name = format!("Custom-{n}");
+                    let name = format!("Custom {}", arabic_to_roman(n));
                     if settings.graphics_slots.iter().any(|s| s.0 == name) {
                         n += 1;
                     } else {

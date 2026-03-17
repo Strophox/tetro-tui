@@ -15,7 +15,7 @@ use falling_tetromino_engine::Button;
 
 use crate::{
     application::{Application, Menu, MenuUpdate, Settings},
-    fmt_helpers::fmt_keybinds_of,
+    fmt_helpers::{arabic_to_roman, fmt_keybinds_of},
     keybinds::normalize,
 };
 
@@ -26,7 +26,7 @@ impl<T: Write> Application<T> {
             if settings.keybinds_slot_active < settings.keybinds_slots_that_should_not_be_changed {
                 let mut n = 1;
                 let new_custom_slot_name = loop {
-                    let name = format!("Custom-{n}");
+                    let name = format!("Custom {}", arabic_to_roman(n));
                     if settings.keybinds_slots.iter().any(|s| s.0 == name) {
                         n += 1;
                     } else {

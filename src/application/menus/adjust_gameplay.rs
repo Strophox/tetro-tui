@@ -16,7 +16,7 @@ use crossterm::{
 };
 use falling_tetromino_engine::{ExtNonNegF64, RotationSystem, TetrominoGenerator};
 
-use crate::application::{Application, Menu, MenuUpdate, Settings};
+use crate::{application::{Application, Menu, MenuUpdate, Settings}, fmt_helpers::arabic_to_roman};
 
 impl<T: Write> Application<T> {
     pub(in crate::application) fn run_menu_adjust_gameplay(&mut self) -> io::Result<MenuUpdate> {
@@ -24,7 +24,7 @@ impl<T: Write> Application<T> {
             if settings.gameplay_slot_active < settings.gameplay_slots_that_should_not_be_changed {
                 let mut n = 1;
                 let new_custom_slot_name = loop {
-                    let name = format!("Custom-{n}");
+                    let name = format!("Custom {}", arabic_to_roman(n));
                     if settings.gameplay_slots.iter().any(|s| s.0 == name) {
                         n += 1;
                     } else {
