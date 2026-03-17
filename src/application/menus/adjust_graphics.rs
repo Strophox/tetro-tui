@@ -199,9 +199,9 @@ impl<T: Write> Application<T> {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
                         self.settings.graphics_mut().glyphset =
                             match self.settings.graphics().glyphset {
-                                Glyphset::Electronika60 => Glyphset::ASCII,
+                                Glyphset::Elektronika_60 => Glyphset::ASCII,
                                 Glyphset::ASCII => Glyphset::Unicode,
-                                Glyphset::Unicode => Glyphset::Electronika60,
+                                Glyphset::Unicode => Glyphset::Elektronika_60,
                             };
                     }
                     2 => {
@@ -258,8 +258,8 @@ impl<T: Write> Application<T> {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
                         self.settings.graphics_mut().glyphset =
                             match self.settings.graphics().glyphset {
-                                Glyphset::Electronika60 => Glyphset::Unicode,
-                                Glyphset::ASCII => Glyphset::Electronika60,
+                                Glyphset::Elektronika_60 => Glyphset::Unicode,
+                                Glyphset::ASCII => Glyphset::Elektronika_60,
                                 Glyphset::Unicode => Glyphset::ASCII,
                             };
                     }

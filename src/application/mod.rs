@@ -444,7 +444,9 @@ impl Default for Settings {
         let graphics_slots = vec![
             ("Default".to_owned(), GraphicsSettings::default()),
             ("Extra Focus".to_owned(), GraphicsSettings::extra_focus()),
-            ("Classic".to_owned(), GraphicsSettings::classic()),
+            ("Guideline".to_owned(), GraphicsSettings::guideline()),
+            ("Compatibility".to_owned(), GraphicsSettings::compatibility()),
+            ("Elektronika 60".to_owned(), GraphicsSettings::elektronika_60()),
         ];
         let palette_slots = vec![
             ("Monochrome".to_owned(), Palette::monochrome()), // NOTE: The slot at index 0 is the special 'monochrome'/no palette slot.

@@ -7,15 +7,14 @@
     Clone,
     Copy,
     Debug,
-    Default,
     serde::Serialize,
     serde::Deserialize,
 )]
 pub enum Glyphset {
-    Electronika60,
+    #[allow(non_camel_case_types)]
+    Elektronika_60,
     #[allow(clippy::upper_case_acronyms)]
     ASCII,
-    #[default]
     Unicode,
 }
 
@@ -35,7 +34,7 @@ pub struct GraphicsSettings {
 impl Default for GraphicsSettings {
     fn default() -> Self {
         Self {
-            glyphset: Glyphset::default(),
+            glyphset: Glyphset::Unicode,
             palette_active: 3,
             palette_active_lockedtiles: 3,
             show_effects: true,
@@ -63,16 +62,43 @@ impl GraphicsSettings {
             
         }
     }
-}
 
-impl GraphicsSettings {
-    pub fn classic() -> Self {
+    pub fn guideline() -> Self {
+        Self {
+            glyphset: Glyphset::Unicode,
+            palette_active: 2,
+            palette_active_lockedtiles: 2,
+            show_effects: true,
+            blindfolded: false,
+            show_shadow_piece: true,
+            show_button_state: false,
+            game_fps: 60.0,
+            show_fps: false,
+        }
+    }
+    
+    pub fn compatibility() -> Self {
+        Self {
+            palette_active: 1,
+            palette_active_lockedtiles: 1,
+            show_effects: true,
+            game_fps: 30.0,
+            glyphset: Glyphset::ASCII,
+            blindfolded: false,
+            show_shadow_piece: true,
+            show_button_state: false,
+            show_fps: false,
+            
+        }
+    }
+    
+    pub fn elektronika_60() -> Self {
         Self {
             palette_active: 0,
-            show_effects: true,
-            game_fps: 60.0,
             palette_active_lockedtiles: 0,
-            glyphset: Glyphset::Electronika60,
+            show_effects: true,
+            game_fps: 30.0,
+            glyphset: Glyphset::Elektronika_60,
             blindfolded: false,
             show_shadow_piece: false,
             show_button_state: false,

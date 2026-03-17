@@ -320,7 +320,7 @@ impl Renderer for DiffPrintRenderer {
         #[allow(clippy::useless_format)]
         #[rustfmt::skip]
         let base_screen: &[String] = match settings.graphics().glyphset {
-            Glyphset::Electronika60 => &[
+            Glyphset::Elektronika_60 => &[
                 format!("                                                              ", ),
                 format!("                                                {: ^w$      } ", "mode:", w=modename_len),
                 format!("                        <! . . . . . . . . . .!>{: ^w$      } ", meta_data.title, w=modename_len),
@@ -525,7 +525,7 @@ impl Renderer for DiffPrintRenderer {
         {
             let elapsed = game.state().time.saturating_sub(*creation_time);
             let luminance_map = match settings.graphics().glyphset {
-                Glyphset::Electronika60 => [" .", " .", " .", " .", " .", " .", " .", " ."],
+                Glyphset::Elektronika_60 => [" .", " .", " .", " .", " .", " .", " .", " ."],
                 // FIXME: Make this hard drop effect available independently of Glyphset (i.e. also for ASCII).
                 Glyphset::ASCII => ["||", "||", "¦¦", "¦¦", "::", "::", "..", ".."],
                 Glyphset::Unicode => ["@@", "$$", "##", "%%", "**", "++", "~~", ".."],
@@ -547,7 +547,7 @@ impl Renderer for DiffPrintRenderer {
 
         let (tile_ground, tile_shadow, tile_active, tile_preview) =
             match settings.graphics().glyphset {
-                Glyphset::Electronika60 => ("▮▮", " .", "▮▮", "▮▮"),
+                Glyphset::Elektronika_60 => ("▮▮", " .", "▮▮", "▮▮"),
                 Glyphset::ASCII => ("##", "::", "[]", "[]"),
                 Glyphset::Unicode => ("██", "░░", "▓▓", "██" /*"▒▒"*/),
             };
@@ -669,7 +669,7 @@ impl Renderer for DiffPrintRenderer {
                     }
                     #[rustfmt::skip]
                     let animation_locking = match settings.graphics().glyphset {
-                        Glyphset::Electronika60 => [
+                        Glyphset::Elektronika_60 => [
                             ( 50, "▮▮"),
                             ( 75, "▮▮"),
                             (100, "▮▮"),
@@ -720,7 +720,7 @@ impl Renderer for DiffPrintRenderer {
                         continue;
                     }
                     let animation_lineclear = match settings.graphics().glyphset {
-                        Glyphset::Electronika60 => [
+                        Glyphset::Elektronika_60 => [
                             "▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮",
                             "  ▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮",
                             "    ▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮",
