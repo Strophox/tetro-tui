@@ -50,10 +50,9 @@ impl<T: Write> Application<T> {
                 self.term
                     .queue(Clear(ClearType::All))?
                     .queue(MoveTo(x_main, y_main + y_selection))?
-                    .queue(Print(format!(
-                        "{:^w_main$}",
-                        format!("- {} -", current_menu_name)
-                    )))?
+                    .queue(PrintStyledContent(
+                        format!("{:^w_main$}", format!("- {} -", current_menu_name)).bold(),
+                    ))?
                     .queue(MoveTo(x_main, y_main + y_selection + 2))?
                     .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
             }
@@ -65,10 +64,13 @@ impl<T: Write> Application<T> {
             if n_names == 0 {
                 self.term
                     .queue(MoveTo(x_main, y_main + y_selection + 5))?
-                    .queue(Print(format!(
-                        "{:^w_main$}",
-                        "(There isn't anything interesting implemented here yet... )",
-                    )))?;
+                    .queue(PrintStyledContent(
+                        format!(
+                            "{:^w_main$}",
+                            "(There isn't anything interesting implemented here yet... )",
+                        )
+                        .italic(),
+                    ))?;
             } else {
                 for (i, name) in names.into_iter().enumerate() {
                     self.term

@@ -26,7 +26,7 @@ impl<T: Write> Application<T> {
         loop {
             let w_main: usize = Self::W_MAIN.into();
             let (x_main, y_main) = Self::fetch_main_xy();
-            let y_selection = Self::H_MAIN / 5;
+            let y_selection = (Self::H_MAIN / 5).saturating_sub(1);
 
             self.term.queue(Clear(ClearType::All))?;
 

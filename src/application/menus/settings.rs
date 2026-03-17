@@ -25,7 +25,9 @@ impl<T: Write> Application<T> {
             self.term
                 .queue(Clear(ClearType::All))?
                 .queue(MoveTo(x_main, y_main + y_selection))?
-                .queue(Print(format!("{:^w_main$}", "% Settings %")))?
+                .queue(PrintStyledContent(
+                    format!("{:^w_main$}", "% Settings %").bold(),
+                ))?
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
                 .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
             let labels = [
@@ -76,7 +78,7 @@ impl<T: Write> Application<T> {
                     format!(
                         "{:^w_main$}",
                         if self.save_on_exit == SavefileGranularity::NoSavefile {
-                            "(*Caution: no data will not be stored on exit)".to_owned()
+                            "(*Caution: data will be wiped on exit)".to_owned()
                         } else {
                             format!(
                                 "(Savefile: \"{}\")",

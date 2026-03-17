@@ -11,7 +11,7 @@ use crossterm::{
         KeyEventKind::{Press, Repeat},
         KeyModifiers,
     },
-    style::Print,
+    style::{Print, PrintStyledContent, Stylize},
     terminal::{Clear, ClearType},
     QueueableCommand,
 };
@@ -119,7 +119,9 @@ impl<T: Write> Application<T> {
             self.term
                 .queue(Clear(ClearType::All))?
                 .queue(MoveTo(x_main, y_main + y_selection))?
-                .queue(Print(format!("{:^w_main$}", "+ Start New Game +")))?
+                .queue(PrintStyledContent(
+                    format!("{:^w_main$}", "+ Start New Game +").bold(),
+                ))?
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
                 .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
             // Render normal and special gamemodes.

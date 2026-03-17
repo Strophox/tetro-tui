@@ -35,7 +35,9 @@ impl<T: Write> Application<T> {
             self.term
                 .queue(Clear(ClearType::All))?
                 .queue(MoveTo(x_main, y_main + y_selection))?
-                .queue(Print(format!("{:^w_main$}", "* Scores and Replays *")))?
+                .queue(PrintStyledContent(
+                    format!("{:^w_main$}", "* Scores and Replays *").bold(),
+                ))?
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
                 .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
 
@@ -65,6 +67,23 @@ impl<T: Write> Application<T> {
                 ScoresSorting::Semantic => self.sort_past_games_semantically(),
             };
 
+            if self.scores_and_replays.entries.is_empty() {
+                self.term
+                    .queue(MoveTo(x_main, y_main + y_selection + 4 + 4))?
+                    .queue(PrintStyledContent(
+                        format!("{:^w_main$}", "The scoreboard is empty.").italic(),
+                    ))?;
+                self.term
+                    .queue(MoveTo(x_main, y_main + y_selection + 4 + 5))?
+                    .queue(PrintStyledContent(
+                        format!(
+                            "{:^w_main$}",
+                            "If you finish a game it is going to show up here!"
+                        )
+                        .italic(),
+                    ))?;
+            }
+
             for (i, entry) in self
                 .scores_and_replays
                 .entries
@@ -88,6 +107,7 @@ impl<T: Write> Application<T> {
                         }
                     )))?;
             }
+
             let entries_left = self
                 .scores_and_replays
                 .entries
@@ -98,18 +118,21 @@ impl<T: Write> Application<T> {
                     x_main,
                     y_main + y_selection + 4 + u16::try_from(CAMERA_SIZE).unwrap(),
                 ))?
-                .queue(Print(format!(
-                    "{:^w_main$}",
+                .queue(PrintStyledContent(
                     format!(
-                        "{}{}",
-                        if entries_left > 0 {
-                            format!("... +{entries_left} more  ")
-                        } else {
-                            "".to_owned()
-                        },
-                        format!("({:?} order [←|→])", self.scores_and_replays.sorting)
+                        "{:^w_main$}",
+                        format!(
+                            "{}{}",
+                            if entries_left > 0 {
+                                format!("... +{entries_left} more  ")
+                            } else {
+                                "".to_owned()
+                            },
+                            format!("(Order = {:?} [←|→])", self.scores_and_replays.sorting)
+                        )
                     )
-                )))?;
+                    .italic(),
+                ))?;
             self.term
                 .queue(MoveTo(
                     x_main,
@@ -118,7 +141,7 @@ impl<T: Write> Application<T> {
                 .queue(PrintStyledContent(
                     format!(
                         "{:^w_main$}",
-                        format!("(Controls: [↓|↑]=scroll [Del]=delete [Enter]=replay)")
+                        "(Controls: [↓|↑]=scroll [Del]=delete [Enter]=replay)"
                     )
                     .italic(),
                 ))?;
