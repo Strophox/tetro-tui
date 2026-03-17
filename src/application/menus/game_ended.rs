@@ -62,12 +62,17 @@ impl<T: Write> Application<T> {
         let animation_delay =
             std::time::Duration::from_secs_f64(1. / self.settings.graphics().game_fps);
 
-        // if gamemode.name.as_ref().map(String::as_str) == Some("Puzzle")
         if result.is_ok()
+            && game_meta_data.title == "Marathon"
+            && !self.settings.new_game.master_mode_unlocked
+        {
+            self.settings.new_game.master_mode_unlocked = true;
+        } else if result.is_ok()
             && game_meta_data.title == "Puzzle"
             && !self.settings.new_game.experimental_mode_unlocked
         {
             self.settings.new_game.experimental_mode_unlocked = true;
+            // FIXME: Remove unused code or reinstate it: hacky 'notification' screen for unlocking.
             // let w_main = Self::W_MAIN.into();
             // let (x_main, y_main) = Self::fetch_main_xy();
             // let y_half = (Self::H_MAIN / 2).saturating_sub(1);
