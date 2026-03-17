@@ -56,7 +56,7 @@ impl<T: Write> Application<T> {
                 .queue(MoveTo(x_main, y_main + y_selection))?
                 .queue(Print(format!(
                     "{:^w_main$}",
-                    "= Gameplay Configurations (apply on New Game) ="
+                    "= Gameplay Configuration (apply on New Game) ="
                 )))?
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
                 .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;

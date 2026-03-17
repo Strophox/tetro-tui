@@ -44,7 +44,7 @@ impl<T: Write> Application<T> {
 
         let d_fall_delay = Duration::from_millis(100).into();
         let mult_fall_delay = ExtNonNegF64::from(10);
-        let lowerbound_fall_delay = Duration::from_millis(1).into();
+        let lowerbound_fall_delay: ExtDuration = Duration::from_millis(1).into();
         let upperbound_fall_delay: ExtDuration = Duration::from_secs(1000).into();
 
         loop {
@@ -312,7 +312,7 @@ impl<T: Write> Application<T> {
                                     self.settings.new_game.custom_fall_delay_params.base_delay();
 
                                 let new_base_delay = if base_delay.is_zero() {
-                                    lowerbound_fall_delay
+                                    lowerbound_fall_delay.max(d_fall_delay)
                                 } else if base_delay.is_infinite() {
                                     base_delay
                                 } else {
