@@ -69,8 +69,18 @@ impl<T: Write> Application<T> {
         let (input_sender, input_receiver) = mpsc::channel();
 
         // Spawn input handler thread.
-        let no_game_keybinds = HashMap::new();
-        let _join_handle = live_input_handler::spawn(input_sender, no_game_keybinds);
+        let empty_game_control_keybinds = HashMap::new();
+        let is_stop_keybind = |code: KeyCode, modifiers: KeyModifiers| {
+            matches!(code, KeyCode::Esc)
+                || matches!(code, KeyCode::Char('q' | 'Q'))
+                || matches!(code, KeyCode::Backspace)
+                || matches!(
+                    (code, modifiers),
+                    (KeyCode::Char('c' | 'C'), KeyModifiers::CONTROL)
+                )
+        };
+        let _join_handle =
+            live_input_handler::spawn(input_sender, empty_game_control_keybinds, is_stop_keybind);
 
         // Replay data/variables setup:
 
@@ -185,8 +195,7 @@ impl<T: Write> Application<T> {
                                             (
                                                 KeyCode::Esc
                                                 | KeyCode::Char('q' | 'Q')
-                                                | KeyCode::Backspace
-                                                | KeyCode::Char('b' | 'B'),
+                                                | KeyCode::Backspace,
                                                 _,
                                             ) => {
                                                 break 'update_and_render MenuUpdate::Pop;

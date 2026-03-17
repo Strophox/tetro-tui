@@ -18,6 +18,9 @@ pub enum LiveTermSignal {
 pub fn spawn(
     input_sender: Sender<(LiveTermSignal, Instant)>,
     keybinds: Keybinds,
+    is_stop_key: impl Fn(crossterm::event::KeyCode, crossterm::event::KeyModifiers) -> bool
+        + Send
+        + 'static,
 ) -> JoinHandle<()> {
     thread::spawn(move || {
         'detect_events: loop {
@@ -39,12 +42,8 @@ pub fn spawn(
                                 kind,
                                 event::KeyEventKind::Press | event::KeyEventKind::Repeat
                             );
-                            // FIXME: What about forfeiting a game with [Ctrl+D]?
-                            let escape = matches!(code, event::KeyCode::Esc);
-                            let ctrl_c = matches!(code, event::KeyCode::Char('c' | 'C'))
-                                && matches!(modifiers, event::KeyModifiers::CONTROL);
 
-                            if is_press_or_repeat && (escape || ctrl_c) {
+                            if is_press_or_repeat && is_stop_key(code, modifiers) {
                                 stop_thread = true;
                             }
 

@@ -142,11 +142,7 @@ impl<T: Write> Application<T> {
 
                 // Quit menu.
                 Event::Key(KeyEvent {
-                    code:
-                        KeyCode::Esc
-                        | KeyCode::Char('q' | 'Q')
-                        | KeyCode::Backspace
-                        | KeyCode::Char('b' | 'B'),
+                    code: KeyCode::Esc | KeyCode::Char('q' | 'Q') | KeyCode::Backspace,
                     kind: Press,
                     ..
                 }) => break Ok(MenuUpdate::Pop),
@@ -192,8 +188,13 @@ impl<T: Write> Application<T> {
                                 ..
                             }) = event::read()?
                             {
-                                // Add key pressed unless it's `Esc`.
-                                if code != KeyCode::Esc {
+                                // Add key pressed unless it's [Esc] or [Ctrl+C].
+                                if matches!(
+                                    (code, modifiers),
+                                    (KeyCode::Char('c' | 'C'), KeyModifiers::CONTROL)
+                                ) {
+                                    return Ok(MenuUpdate::Push(Menu::Quit));
+                                } else if !matches!(code, KeyCode::Esc) {
                                     if_slot_is_default_then_copy_and_switch(&mut self.settings);
                                     self.settings
                                         .keybinds_mut()

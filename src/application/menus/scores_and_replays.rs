@@ -23,11 +23,13 @@ use crate::{
 
 impl<T: Write> Application<T> {
     #[allow(clippy::len_zero)]
-    pub(in crate::application) fn run_menu_scores_and_replays(&mut self) -> io::Result<MenuUpdate> {
+    pub(in crate::application) fn run_menu_scores_and_replays(
+        &mut self,
+        cursor_pos: &mut usize,
+        camera_pos: &mut usize,
+    ) -> io::Result<MenuUpdate> {
         const CAMERA_SIZE: usize = 13;
         const CAMERA_MARGIN: usize = 3;
-        let mut cursor_pos = 0usize;
-        let mut camera_pos = 0usize;
         loop {
             let w_main = Self::W_MAIN.into();
             let (x_main, y_main) = Self::fetch_main_xy();
@@ -88,7 +90,7 @@ impl<T: Write> Application<T> {
                 .scores_and_replays
                 .entries
                 .iter()
-                .skip(camera_pos)
+                .skip(*camera_pos)
                 .take(CAMERA_SIZE)
                 .map(fmt_past_game)
                 .enumerate()
@@ -100,7 +102,7 @@ impl<T: Write> Application<T> {
                     ))?
                     .queue(Print(format!(
                         "{:<w_main$}",
-                        if cursor_pos == camera_pos + i {
+                        if *cursor_pos == *camera_pos + i {
                             format!(">{}", entry)
                         } else {
                             entry
@@ -112,7 +114,7 @@ impl<T: Write> Application<T> {
                 .scores_and_replays
                 .entries
                 .len()
-                .saturating_sub(camera_pos + CAMERA_SIZE);
+                .saturating_sub(*camera_pos + CAMERA_SIZE);
             self.term
                 .queue(MoveTo(
                     x_main,
@@ -157,11 +159,7 @@ impl<T: Write> Application<T> {
                     state: _,
                 }) => break Ok(MenuUpdate::Push(Menu::Quit)),
                 Event::Key(KeyEvent {
-                    code:
-                        KeyCode::Esc
-                        | KeyCode::Char('q' | 'Q')
-                        | KeyCode::Backspace
-                        | KeyCode::Char('b' | 'B'),
+                    code: KeyCode::Esc | KeyCode::Char('q' | 'Q') | KeyCode::Backspace,
                     kind: Press,
                     ..
                 }) => break Ok(MenuUpdate::Pop),
@@ -173,20 +171,20 @@ impl<T: Write> Application<T> {
                     ..
                 }) if self.scores_and_replays.entries.len() > 0 => {
                     // We allow wrapping cursor pos, but only on manual presses (if detectable).
-                    if 0 < cursor_pos || kind == Press {
+                    if 0 < *cursor_pos || kind == Press {
                         // Cursor pos possibly wraps back down.
-                        cursor_pos += self.scores_and_replays.entries.len() - 1;
-                        cursor_pos %= self.scores_and_replays.entries.len();
+                        *cursor_pos += self.scores_and_replays.entries.len() - 1;
+                        *cursor_pos %= self.scores_and_replays.entries.len();
                         // If it does, then manually reset camera to bottom of scoreboard.
-                        if cursor_pos == self.scores_and_replays.entries.len() - 1 {
-                            camera_pos = self
+                        if *cursor_pos == self.scores_and_replays.entries.len() - 1 {
+                            *camera_pos = self
                                 .scores_and_replays
                                 .entries
                                 .len()
                                 .saturating_sub(CAMERA_SIZE);
                         // Otherwise cursor just moved normally, and we may have to adapt camera (unless it hit scoreboard end).
-                        } else if 0 < camera_pos && cursor_pos < camera_pos + CAMERA_MARGIN {
-                            camera_pos -= 1;
+                        } else if 0 < *camera_pos && *cursor_pos < *camera_pos + CAMERA_MARGIN {
+                            *camera_pos -= 1;
                         }
                     }
                 }
@@ -198,23 +196,23 @@ impl<T: Write> Application<T> {
                     ..
                 }) if self.scores_and_replays.entries.len() > 0 => {
                     // We allow wrapping cursor pos, but only on manual presses (if detectable).
-                    if cursor_pos < self.scores_and_replays.entries.len() - 1 || kind == Press {
+                    if *cursor_pos < self.scores_and_replays.entries.len() - 1 || kind == Press {
                         // Cursor pos possibly wraps back up.
-                        cursor_pos += 1;
-                        cursor_pos %= self.scores_and_replays.entries.len();
+                        *cursor_pos += 1;
+                        *cursor_pos %= self.scores_and_replays.entries.len();
                         // If it does, then manually reset camera to bottom of scoreboard.
-                        if cursor_pos == 0 {
-                            camera_pos = 0;
+                        if *cursor_pos == 0 {
+                            *camera_pos = 0;
                         // Otherwise cursor just moved normally, and we may have to adapt camera (unless it hit scoreboard end).
-                        } else if camera_pos + CAMERA_SIZE - CAMERA_MARGIN <= cursor_pos
-                            && camera_pos
+                        } else if *camera_pos + CAMERA_SIZE - CAMERA_MARGIN <= *cursor_pos
+                            && *camera_pos
                                 < self
                                     .scores_and_replays
                                     .entries
                                     .len()
                                     .saturating_sub(CAMERA_SIZE)
                         {
-                            camera_pos += 1;
+                            *camera_pos += 1;
                         }
                     }
                 }
@@ -249,12 +247,12 @@ impl<T: Write> Application<T> {
                     ..
                 }) if self.scores_and_replays.entries.len() > 0 => {
                     if modifiers.contains(KeyModifiers::ALT) {
-                        self.scores_and_replays.entries[cursor_pos].1.take();
+                        self.scores_and_replays.entries[*cursor_pos].1.take();
                     } else {
-                        self.scores_and_replays.entries.remove(cursor_pos);
-                        if 0 < cursor_pos && cursor_pos == self.scores_and_replays.entries.len() {
-                            cursor_pos -= 1;
-                            camera_pos = camera_pos.saturating_sub(1);
+                        self.scores_and_replays.entries.remove(*cursor_pos);
+                        if 0 < *cursor_pos && *cursor_pos == self.scores_and_replays.entries.len() {
+                            *cursor_pos -= 1;
+                            *camera_pos = camera_pos.saturating_sub(1);
                         }
                     }
                 }
@@ -272,7 +270,7 @@ impl<T: Write> Application<T> {
                             ..
                         },
                         Some(game_restoration_data),
-                    ) = &self.scores_and_replays.entries[cursor_pos]
+                    ) = &self.scores_and_replays.entries[*cursor_pos]
                     {
                         let game_meta_data = game_meta_data.clone();
 

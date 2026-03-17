@@ -282,11 +282,7 @@ impl<T: Write> Application<T> {
 
                 // Exit menu.
                 Event::Key(KeyEvent {
-                    code:
-                        KeyCode::Esc
-                        | KeyCode::Char('q' | 'Q')
-                        | KeyCode::Backspace
-                        | KeyCode::Char('b' | 'B'),
+                    code: KeyCode::Esc | KeyCode::Char('q' | 'Q') | KeyCode::Backspace,
                     kind: Press,
                     ..
                 }) => break Ok(MenuUpdate::Pop),

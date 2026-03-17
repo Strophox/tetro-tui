@@ -556,7 +556,10 @@ enum Menu {
     AdjustGameplay,
     GameOver(Box<ScoresEntry>),
     GameComplete(Box<ScoresEntry>),
-    ScoresAndReplays,
+    ScoresAndReplays {
+        cursor_pos: usize,
+        camera_pos: usize,
+    },
     ReplayGame {
         game_restoration_data: Box<GameRestorationData<UncompressedInputHistory>>,
         game_meta_data: GameMetaData,
@@ -582,7 +585,7 @@ impl std::fmt::Display for Menu {
             Menu::AdjustGameplay => "Adjust Gameplay",
             Menu::GameOver(_) => "Game Over",
             Menu::GameComplete(_) => "Game Completed",
-            Menu::ScoresAndReplays => "Scores and Replays",
+            Menu::ScoresAndReplays { .. } => "Scores and Replays",
             Menu::ReplayGame { game_meta_data, .. } => {
                 &format!("Replaying Game ({})", game_meta_data.title)
             }
@@ -838,7 +841,10 @@ impl<T: Write> Application<T> {
                 Menu::AdjustGameplay => self.run_menu_adjust_gameplay(),
                 Menu::GameOver(past_game) => self.run_menu_game_ended(past_game),
                 Menu::GameComplete(past_game) => self.run_menu_game_ended(past_game),
-                Menu::ScoresAndReplays => self.run_menu_scores_and_replays(),
+                Menu::ScoresAndReplays {
+                    cursor_pos,
+                    camera_pos,
+                } => self.run_menu_scores_and_replays(cursor_pos, camera_pos),
                 Menu::ReplayGame {
                     game_restoration_data,
                     game_meta_data,

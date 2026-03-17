@@ -62,8 +62,22 @@ impl<T: Write> Application<T> {
         let (input_sender, input_receiver) = mpsc::channel();
 
         // Spawn input handler thread.
-        let _join_handle =
-            live_input_handler::spawn(input_sender, self.settings.keybinds().clone());
+        let is_stop_keybind = |code: KeyCode, modifiers: KeyModifiers| {
+            matches!(code, KeyCode::Esc)
+                || matches!(
+                    (code, modifiers),
+                    (KeyCode::Char('d' | 'D'), KeyModifiers::CONTROL)
+                )
+                || matches!(
+                    (code, modifiers),
+                    (KeyCode::Char('c' | 'C'), KeyModifiers::CONTROL)
+                )
+        };
+        let _join_handle = live_input_handler::spawn(
+            input_sender,
+            self.settings.keybinds().clone(),
+            is_stop_keybind,
+        );
 
         let keybinds_legend = get_play_keybinds_legend(self.settings.keybinds());
 

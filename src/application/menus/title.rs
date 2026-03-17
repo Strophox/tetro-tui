@@ -18,7 +18,10 @@ impl<T: Write> Application<T> {
         let selection = vec![
             Menu::NewGame,
             Menu::Settings,
-            Menu::ScoresAndReplays,
+            Menu::ScoresAndReplays {
+                cursor_pos: 0,
+                camera_pos: 0,
+            },
             Menu::About,
             Menu::Quit,
         ];
@@ -215,11 +218,7 @@ impl<T: Write> Application<T> {
                     state: _,
                 }) => break Ok(MenuUpdate::Push(Menu::Quit)),
                 Event::Key(KeyEvent {
-                    code:
-                        KeyCode::Esc
-                        | KeyCode::Char('q' | 'Q')
-                        | KeyCode::Backspace
-                        | KeyCode::Char('b' | 'B'),
+                    code: KeyCode::Esc | KeyCode::Char('q' | 'Q') | KeyCode::Backspace,
                     kind: KeyEventKind::Press,
                     ..
                 }) => {

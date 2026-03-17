@@ -195,7 +195,7 @@ Then you can run the game with `tetro-tui`.
 > | `↓`/`↑`, `j`/`k` | Navigate up/down |
 > | `←`/`→`, `h`/`l` | Change value |
 > | `Enter`, `e` | Select |
-> | `Esc`, `q`, `Back`, `b` | Go back |
+> | `Esc`, `q`, `Back`, | Go back |
 > | `Del`, `d` | Delete/reset |
 > | `1`/`2`/`3`... | Quickselect option 1/2/3/... (in Start Game)|
 > | `Alt`+... | Alt. value changes (in Start Game⇝Savepoint,Custom Mode) |
@@ -237,7 +237,7 @@ Then you can run the game with `tetro-tui`.
 > 
 > | Key | Action |
 > | -: | :- |
-> | `Esc`, `q`, `Back`, `b` | Exit replay |
+> | `Esc`, `q`, `Back` | Exit replay |
 > | `Space` | Pause replay |
 > | `↓`/`↑` , `j`/`k` | Speed up / Slow down replay by 0.25 |
 > | `Alt`+`↓`/`↑`, `Alt`+`j`/`k` | Speed up / Slow down replay by 0.05 |
