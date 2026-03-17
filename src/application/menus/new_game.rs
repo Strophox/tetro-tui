@@ -21,7 +21,7 @@ use falling_tetromino_engine::{
 
 use crate::{
     application::{
-        Application, GameMetaData, GameRestorationData, GameSave, GameplaySettings, Glyphset, Menu, MenuUpdate, UncompressedInputHistory
+        Application, GameMetaData, GameRestorationData, GameSave, GameplaySettings, Glyphset, Menu, MenuUpdate, NewGameSettings, UncompressedInputHistory
     },
     fmt_helpers::{fmt_button_change, fmt_duration, fmt_hertz},
     game_mode_presets::{
@@ -34,13 +34,18 @@ impl<T: Write> Application<T> {
         let mut selected = 0usize;
         let mut customization_selected = 0usize;
 
+        let lowerbound_cheese = NonZeroU32::new(10).unwrap();
+        let lowerbound_combo = NonZeroU32::new(10).unwrap();
+
         let d_time = Duration::from_secs(10);
         let d_score = 10;
         let d_pieces = 1;
         let d_lines = 1;
 
-        let d_fall_delay = ExtDuration::from(Duration::from_millis(100));
+        let d_fall_delay = Duration::from_millis(100).into();
         let mult_fall_delay = ExtNonNegF64::from(10);
+        let lowerbound_fall_delay = Duration::from_millis(1).into();
+        let upperbound_fall_delay: ExtDuration = Duration::from_secs(1000).into();
 
         loop {
             #[allow(clippy::type_complexity)]
@@ -55,7 +60,7 @@ impl<T: Write> Application<T> {
                 ),
                 (
                     game_mode_presets::time_trial(),
-                    "How high a score can you get in 3 min.?".to_owned(),
+                    "What highscore can you get in 3min.?".to_owned(),
                 ),
                 (
                     game_mode_presets::master(),
@@ -206,7 +211,7 @@ impl<T: Write> Application<T> {
             if selected == selection_len - 1 {
                 let stats_strs = [
                     format!(
-                        "| Initial fall delay = {:?}s (gravity = {})",
+                        "| Initial fall delay = {:?}s (Gravity: {})",
                         self.settings
                             .new_game
                             .custom_fall_delay_params
@@ -305,11 +310,24 @@ impl<T: Write> Application<T> {
                                 // Increase custom fall delay.
                                 let base_delay =
                                     self.settings.new_game.custom_fall_delay_params.base_delay();
-                                let new_base_delay = if modifiers.contains(KeyModifiers::ALT) {
-                                    base_delay.mul_ennf64(mult_fall_delay)
+
+                                let new_base_delay = if base_delay.is_zero() {
+                                    lowerbound_fall_delay
+                                } else if base_delay.is_infinite() {
+                                    base_delay
                                 } else {
-                                    base_delay + d_fall_delay
+                                    let new_base_delay = if modifiers.contains(KeyModifiers::ALT) {
+                                        base_delay.mul_ennf64(mult_fall_delay)
+                                    } else {
+                                        base_delay + d_fall_delay
+                                    };
+                                    if new_base_delay > upperbound_fall_delay {
+                                        ExtDuration::Infinite
+                                    } else {
+                                        new_base_delay
+                                    }
                                 };
+
                                 let lowerbound =
                                     self.settings.new_game.custom_fall_delay_params.lowerbound();
                                 self.settings.new_game.custom_fall_delay_params = self
@@ -378,13 +396,28 @@ impl<T: Write> Application<T> {
                                 // Increase custom fall delay.
                                 let base_delay =
                                     self.settings.new_game.custom_fall_delay_params.base_delay();
-                                let new_base_delay = if modifiers.contains(KeyModifiers::ALT) {
-                                    base_delay.div_ennf64(mult_fall_delay)
+                                
+
+                                let new_base_delay = if base_delay.is_zero() {
+                                    base_delay
+                                } else if base_delay.is_infinite() {
+                                    upperbound_fall_delay
                                 } else {
-                                    base_delay.saturating_sub(d_fall_delay)
+                                    let new_base_delay = if modifiers.contains(KeyModifiers::ALT) {
+                                        base_delay.div_ennf64(mult_fall_delay)
+                                    } else {
+                                        base_delay.saturating_sub(d_fall_delay)
+                                    };
+                                    if new_base_delay < lowerbound_fall_delay {
+                                        ExtDuration::ZERO
+                                    } else {
+                                        new_base_delay
+                                    }
                                 };
+
                                 let lowerbound =
                                     self.settings.new_game.custom_fall_delay_params.lowerbound();
+
                                 self.settings.new_game.custom_fall_delay_params = self
                                     .settings
                                     .new_game
@@ -449,13 +482,33 @@ impl<T: Write> Application<T> {
                         customization_selected += customization_selection_size - 1
                     } else if selected == 5 {
                         if let Some(limit) = self.settings.new_game.cheese_linelimit {
-                            self.settings.new_game.cheese_linelimit =
-                                NonZeroU32::try_from(limit.get() - 1).ok();
+                            self.settings.new_game.cheese_linelimit = if limit > lowerbound_cheese {
+                                NonZeroU32::try_from(limit.get() - 1).ok()
+                            } else {
+                                None
+                            };
                         }
                     } else if selected == 6 {
-                        if let Some(limit) = self.settings.new_game.combo_linelimit {
-                            self.settings.new_game.combo_linelimit =
-                                NonZeroU32::try_from(limit.get() - 1).ok();
+                        if modifiers.contains(KeyModifiers::ALT) {
+                            let new_layout_idx = if let Some(i) = COMBO_STARTLAYOUTS
+                                .iter()
+                                .position(|lay| *lay == self.settings.new_game.combo_startlayout)
+                            {
+                                let layout_cnt = COMBO_STARTLAYOUTS.len();
+                                (i + layout_cnt - 1) % layout_cnt
+                            } else {
+                                0
+                            };
+                            self.settings.new_game.combo_startlayout =
+                                COMBO_STARTLAYOUTS[new_layout_idx];
+                        } else {
+                            if let Some(limit) = self.settings.new_game.combo_linelimit {
+                                self.settings.new_game.combo_linelimit = if limit > lowerbound_combo {
+                                    NonZeroU32::try_from(limit.get() - 1).ok()
+                                } else {
+                                    None
+                                };
+                            }
                         }
                     } else if let Some(GameSave {
                         game_restoration_data: GameRestorationData { input_history, .. },
@@ -502,15 +555,29 @@ impl<T: Write> Application<T> {
                             if let Some(limit) = self.settings.new_game.cheese_linelimit {
                                 limit.checked_add(1)
                             } else {
-                                Some(NonZeroU32::MIN)
+                                Some(lowerbound_cheese)
                             };
                     } else if selected == 6 {
-                        self.settings.new_game.combo_linelimit =
-                            if let Some(limit) = self.settings.new_game.combo_linelimit {
-                                limit.checked_add(1)
+                        if modifiers.contains(KeyModifiers::ALT) {
+                            let new_layout_idx = if let Some(i) = COMBO_STARTLAYOUTS
+                                .iter()
+                                .position(|lay| *lay == self.settings.new_game.combo_startlayout)
+                            {
+                                let layout_cnt = COMBO_STARTLAYOUTS.len();
+                                (i + 1) % layout_cnt
                             } else {
-                                Some(NonZeroU32::MIN)
+                                0
                             };
+                            self.settings.new_game.combo_startlayout =
+                                COMBO_STARTLAYOUTS[new_layout_idx];
+                        } else {
+                            self.settings.new_game.combo_linelimit =
+                                if let Some(limit) = self.settings.new_game.combo_linelimit {
+                                    limit.checked_add(1)
+                                } else {
+                                    Some(lowerbound_combo)
+                                };
+                        }
                     } else if let Some(GameSave {
                         game_restoration_data: GameRestorationData { input_history, .. },
                         inputs_to_load,
@@ -532,6 +599,7 @@ impl<T: Write> Application<T> {
                 Event::Key(KeyEvent {
                     code: KeyCode::Delete | KeyCode::Char('d' | 'D'),
                     kind: Press | Repeat,
+                    modifiers,
                     ..
                 }) => {
                     if selected == selection_len - 1 {
@@ -540,18 +608,15 @@ impl<T: Write> Application<T> {
                         self.settings.new_game.custom_fall_delay_params =
                             DelayParameters::standard_fall();
                         self.settings.new_game.custom_win_condition = None;
+                    } else if selected == 5 {
+                        self.settings.new_game.cheese_linelimit = NewGameSettings::default().cheese_linelimit;
                     } else if selected == 6 {
-                        let new_layout_idx = if let Some(i) = COMBO_STARTLAYOUTS
-                            .iter()
-                            .position(|lay| *lay == self.settings.new_game.combo_startlayout)
-                        {
-                            let layout_cnt = COMBO_STARTLAYOUTS.len();
-                            (i + 1) % layout_cnt
+                        if modifiers.contains(KeyModifiers::ALT) {
+                            self.settings.new_game.combo_startlayout =
+                                COMBO_STARTLAYOUTS[0];
                         } else {
-                            0
-                        };
-                        self.settings.new_game.combo_startlayout =
-                            COMBO_STARTLAYOUTS[new_layout_idx];
+                            self.settings.new_game.combo_linelimit = NewGameSettings::default().combo_linelimit;
+                        }
                     } else if selected == selection_len - 2 {
                         self.game_saves.1.remove(self.game_saves.0);
                         self.game_saves.0 = 0;
@@ -679,7 +744,7 @@ impl<T: Write> Application<T> {
                             Stat::LinesCleared(l) => format!("Lines-{l}"),
                             Stat::PointsScored(s) => format!("Score-{s}"),
                         },
-                        None => "Infinite".to_owned(),
+                        None => "Limitless".to_owned(),
                     };
 
                     // We do an initial update, which allows the piece to spawn and queue to get generated.
