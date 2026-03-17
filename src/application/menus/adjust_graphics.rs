@@ -15,7 +15,7 @@ use falling_tetromino_engine::Tetromino;
 
 use crate::{
     application::{Application, Glyphset, Menu, MenuUpdate, Settings},
-    fmt_helpers::{FmtTetromino, arabic_to_roman},
+    fmt_helpers::{arabic_to_roman, FmtTetromino},
 };
 
 impl<T: Write> Application<T> {

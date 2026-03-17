@@ -65,10 +65,7 @@ impl<T: Write> Application<T> {
                 format!("Time elapsed: {}", fmt_duration(*time_elapsed)),
                 format!("Lines: {lineclears}"),
                 format!("Score: {points_scored}"),
-                format!(
-                    "Pieces: {}",
-                    fmt_tetromino_counts(pieces_locked)
-                ),
+                format!("Pieces: {}", fmt_tetromino_counts(pieces_locked)),
                 format!("Gravity: {}", fmt_hertz(fall_delay_reached.as_hertz())),
             ];
 

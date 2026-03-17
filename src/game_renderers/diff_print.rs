@@ -18,8 +18,8 @@ use falling_tetromino_engine::{
 use super::*;
 
 use crate::{
+    fmt_helpers::{fmt_button, fmt_button_ascii, fmt_duration, fmt_hertz, FmtTetromino},
     graphics_settings::Glyphset,
-    fmt_helpers::{FmtTetromino, fmt_button, fmt_button_ascii, fmt_duration, fmt_hertz},
 };
 
 #[derive(
@@ -501,10 +501,15 @@ impl Renderer for DiffPrintRenderer {
             ];
             for (dx, e) in es.into_iter().enumerate() {
                 match e {
-                    Ok(b) => {
-                        self.screen
-                            .buffer_str(if settings.graphics().glyphset != Glyphset::Unicode { fmt_button_ascii } else { fmt_button }(b), bc(b), (x_buttonst + dx, y_buttonst))
-                    }
+                    Ok(b) => self.screen.buffer_str(
+                        if settings.graphics().glyphset != Glyphset::Unicode {
+                            fmt_button_ascii
+                        } else {
+                            fmt_button
+                        }(b),
+                        bc(b),
+                        (x_buttonst + dx, y_buttonst),
+                    ),
                     Err(s) => self
                         .screen
                         .buffer_str(s, None, (x_buttonst + dx, y_buttonst)),
@@ -634,7 +639,7 @@ impl Renderer for DiffPrintRenderer {
             let str = String::from(if settings.graphics().glyphset == Glyphset::Unicode {
                 tet.fmt_mini()
             } else {
-                tet.fmt_mini_ascii().into()
+                tet.fmt_mini_ascii()
             });
             self.screen.buffer_str(
                 &str,

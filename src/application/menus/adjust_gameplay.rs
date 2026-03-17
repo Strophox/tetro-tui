@@ -16,7 +16,10 @@ use crossterm::{
 };
 use falling_tetromino_engine::{ExtNonNegF64, RotationSystem, TetrominoGenerator};
 
-use crate::{application::{Application, Menu, MenuUpdate, Settings}, fmt_helpers::arabic_to_roman};
+use crate::{
+    application::{Application, Menu, MenuUpdate, Settings},
+    fmt_helpers::arabic_to_roman,
+};
 
 impl<T: Write> Application<T> {
     pub(in crate::application) fn run_menu_adjust_gameplay(&mut self) -> io::Result<MenuUpdate> {

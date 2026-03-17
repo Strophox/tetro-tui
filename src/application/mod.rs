@@ -11,12 +11,14 @@ use std::{
 use crossterm::{cursor, event::KeyboardEnhancementFlags, style, terminal, ExecutableCommand};
 
 use falling_tetromino_engine::{
-    Board, Button, ButtonChange, DelayParameters, ExtDuration,
-    FeedbackVerbosity, Game, GameBuilder, GameOver, GameResult, InGameTime, Stat,
-    Tetromino,
+    Board, Button, ButtonChange, DelayParameters, ExtDuration, FeedbackVerbosity, Game,
+    GameBuilder, GameOver, GameResult, InGameTime, Stat, Tetromino,
 };
 
-use crate::{game_mode_presets, game_renderers, gameplay_settings::*, graphics_settings::*, keybinds::*, palette::*};
+use crate::{
+    game_mode_presets, game_renderers, gameplay_settings::*, graphics_settings::*, keybinds::*,
+    palette::*,
+};
 
 pub type Slots<T> = Vec<(String, T)>;
 
@@ -445,8 +447,14 @@ impl Default for Settings {
             ("Default".to_owned(), GraphicsSettings::default()),
             ("Extra Focus".to_owned(), GraphicsSettings::extra_focus()),
             ("Guideline".to_owned(), GraphicsSettings::guideline()),
-            ("Compatibility".to_owned(), GraphicsSettings::compatibility()),
-            ("Elektronika 60".to_owned(), GraphicsSettings::elektronika_60()),
+            (
+                "Compatibility".to_owned(),
+                GraphicsSettings::compatibility(),
+            ),
+            (
+                "Elektronika 60".to_owned(),
+                GraphicsSettings::elektronika_60(),
+            ),
         ];
         let palette_slots = vec![
             ("Monochrome".to_owned(), Palette::monochrome()), // NOTE: The slot at index 0 is the special 'monochrome'/no palette slot.
@@ -468,12 +476,15 @@ impl Default for Settings {
         ];
         let gameplay_slots = vec![
             ("Default".to_owned(), GameplaySettings::default()),
-            ("Extra Finesse".to_owned(), GameplaySettings::extra_finesse()),
+            (
+                "Extra Finesse".to_owned(),
+                GameplaySettings::extra_finesse(),
+            ),
             ("Guideline".to_owned(), GameplaySettings::guideline()),
             ("NES".to_owned(), GameplaySettings::nes()),
             ("Gameboy".to_owned(), GameplaySettings::gameboy()),
         ];
-        
+
         Self {
             graphics_slot_active: 0,
             keybinds_slot_active: 0,

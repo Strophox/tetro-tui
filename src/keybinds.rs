@@ -62,7 +62,7 @@ impl KeybindsExt for Keybinds {
         .map(|(k, b)| ((k, KeyModifiers::NONE), b));
         HashMap::from(keybinds_tetro)
     }
-    
+
     fn extra_control() -> Keybinds {
         let keybinds_tetro: [((KeyCode, KeyModifiers), Button); 11] = [
             (KeyCode::Left, Button::MoveLeft),
@@ -80,7 +80,7 @@ impl KeybindsExt for Keybinds {
         .map(|(k, b)| ((k, KeyModifiers::NONE), b));
         HashMap::from(keybinds_tetro)
     }
-    
+
     fn guideline() -> Keybinds {
         use crossterm::event::ModifierKeyCode as M;
         let keybinds_guidelinle: [((KeyCode, KeyModifiers), Button); 13] = [
@@ -101,7 +101,7 @@ impl KeybindsExt for Keybinds {
         .map(|(k, b)| ((k, KeyModifiers::NONE), b));
         HashMap::from(keybinds_guidelinle)
     }
-    
+
     fn vim() -> Keybinds {
         let keybinds_vim: [((KeyCode, KeyModifiers), Button); 7] = [
             (KeyCode::Char('h'), Button::MoveLeft),

@@ -19,18 +19,18 @@ pub struct GameplaySettings {
 
 impl Default for GameplaySettings {
     fn default() -> Self {
-    let c = Configuration::default();
-    Self {
-        rotation_system: c.rotation_system,
-        tetromino_generator: TetrominoGenerator::default(),
-        piece_preview_count: c.piece_preview_count,
-        delayed_auto_shift: c.delayed_auto_shift,
-        auto_repeat_rate: c.auto_repeat_rate,
-        soft_drop_factor: c.soft_drop_divisor,
-        line_clear_duration: c.line_clear_duration,
-        spawn_delay: c.spawn_delay,
-        allow_prespawn_actions: c.allow_prespawn_actions,
-    }
+        let c = Configuration::default();
+        Self {
+            rotation_system: c.rotation_system,
+            tetromino_generator: TetrominoGenerator::default(),
+            piece_preview_count: c.piece_preview_count,
+            delayed_auto_shift: c.delayed_auto_shift,
+            auto_repeat_rate: c.auto_repeat_rate,
+            soft_drop_factor: c.soft_drop_divisor,
+            line_clear_duration: c.line_clear_duration,
+            spawn_delay: c.spawn_delay,
+            allow_prespawn_actions: c.allow_prespawn_actions,
+        }
     }
 }
 
@@ -43,21 +43,21 @@ impl GameplaySettings {
             ..Self::default()
         }
     }
-    
+
     pub fn guideline() -> GameplaySettings {
         GameplaySettings {
             rotation_system: RotationSystem::Super,
             tetromino_generator: TetrominoGenerator::bag(),
             piece_preview_count: 3,
             delayed_auto_shift: Duration::from_millis(167), // ≈ 0.3s
-            auto_repeat_rate: Duration::from_millis(33), // ≈ 0.5s / 8
+            auto_repeat_rate: Duration::from_millis(33),    // ≈ 0.5s / 8
             soft_drop_factor: ExtNonNegF64::new(20.0).unwrap(), // = 20
             line_clear_duration: Duration::from_millis(200), // (See spawn_delay.)
             spawn_delay: Duration::from_millis(50), // (Should be =0.2s but use that for line clear duration.)
-            allow_prespawn_actions: true,       
+            allow_prespawn_actions: true,
         }
     }
-    
+
     pub fn nes() -> GameplaySettings {
         GameplaySettings {
             rotation_system: RotationSystem::ClassicR,
@@ -65,13 +65,13 @@ impl GameplaySettings {
             delayed_auto_shift: Duration::from_millis(266), // ≈ 16 /60.0988
             piece_preview_count: 1,
             auto_repeat_rate: Duration::from_millis(100), // ≈ 6 /60.0988
-            spawn_delay: Duration::from_millis(166), // ≈ 10(~18) /60.0988
-            line_clear_duration: Duration::from_millis(283),  // ≈ 17(~20) /60.0988
+            spawn_delay: Duration::from_millis(166),      // ≈ 10(~18) /60.0988
+            line_clear_duration: Duration::from_millis(283), // ≈ 17(~20) /60.0988
             soft_drop_factor: ExtNonNegF64::new(20.0).unwrap(), // ≈ 60.0988 * (1/2 G)
             allow_prespawn_actions: false,
         }
     }
-    
+
     pub fn gameboy() -> GameplaySettings {
         GameplaySettings {
             rotation_system: RotationSystem::ClassicL,
@@ -79,7 +79,7 @@ impl GameplaySettings {
             delayed_auto_shift: Duration::from_millis(400), // ≈ 24 /59.73
             piece_preview_count: 1,
             auto_repeat_rate: Duration::from_millis(150), // ≈ 9 /59.73
-            spawn_delay: Duration::from_millis(33), // ≈ 2 /59.73
+            spawn_delay: Duration::from_millis(33),       // ≈ 2 /59.73
             line_clear_duration: Duration::from_millis(1500), // ≈ 91 /59.73
             soft_drop_factor: ExtNonNegF64::new(5.0).unwrap(), // !≈ 59.73 * (1/3 G)
             allow_prespawn_actions: false,

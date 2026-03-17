@@ -21,11 +21,12 @@ use falling_tetromino_engine::{
 
 use crate::{
     application::{
-        Application, GameMetaData, GameRestorationData, GameSave, GameplaySettings, Glyphset, Menu, MenuUpdate, NewGameSettings, UncompressedInputHistory
+        Application, GameMetaData, GameRestorationData, GameSave, GameplaySettings, Glyphset, Menu,
+        MenuUpdate, NewGameSettings, UncompressedInputHistory,
     },
     fmt_helpers::{fmt_button_change, fmt_duration, fmt_hertz},
     game_mode_presets::{
-        self, GameModePreset, game_modifiers::combo_board::LAYOUTS as COMBO_STARTLAYOUTS
+        self, game_modifiers::combo_board::LAYOUTS as COMBO_STARTLAYOUTS, GameModePreset,
     },
 };
 
@@ -396,7 +397,6 @@ impl<T: Write> Application<T> {
                                 // Increase custom fall delay.
                                 let base_delay =
                                     self.settings.new_game.custom_fall_delay_params.base_delay();
-                                
 
                                 let new_base_delay = if base_delay.is_zero() {
                                     base_delay
@@ -501,14 +501,13 @@ impl<T: Write> Application<T> {
                             };
                             self.settings.new_game.combo_startlayout =
                                 COMBO_STARTLAYOUTS[new_layout_idx];
-                        } else {
-                            if let Some(limit) = self.settings.new_game.combo_linelimit {
-                                self.settings.new_game.combo_linelimit = if limit > lowerbound_combo {
-                                    NonZeroU32::try_from(limit.get() - 1).ok()
-                                } else {
-                                    None
-                                };
-                            }
+                        } else if let Some(limit) = self.settings.new_game.combo_linelimit {
+                            self.settings.new_game.combo_linelimit = if limit > lowerbound_combo
+                            {
+                                NonZeroU32::try_from(limit.get() - 1).ok()
+                            } else {
+                                None
+                            };
                         }
                     } else if let Some(GameSave {
                         game_restoration_data: GameRestorationData { input_history, .. },
@@ -609,13 +608,14 @@ impl<T: Write> Application<T> {
                             DelayParameters::standard_fall();
                         self.settings.new_game.custom_win_condition = None;
                     } else if selected == 5 {
-                        self.settings.new_game.cheese_linelimit = NewGameSettings::default().cheese_linelimit;
+                        self.settings.new_game.cheese_linelimit =
+                            NewGameSettings::default().cheese_linelimit;
                     } else if selected == 6 {
                         if modifiers.contains(KeyModifiers::ALT) {
-                            self.settings.new_game.combo_startlayout =
-                                COMBO_STARTLAYOUTS[0];
+                            self.settings.new_game.combo_startlayout = COMBO_STARTLAYOUTS[0];
                         } else {
-                            self.settings.new_game.combo_linelimit = NewGameSettings::default().combo_linelimit;
+                            self.settings.new_game.combo_linelimit =
+                                NewGameSettings::default().combo_linelimit;
                         }
                     } else if selected == selection_len - 2 {
                         self.game_saves.1.remove(self.game_saves.0);

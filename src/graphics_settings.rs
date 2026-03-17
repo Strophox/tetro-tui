@@ -1,14 +1,5 @@
 #[derive(
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    Clone,
-    Copy,
-    Debug,
-    serde::Serialize,
-    serde::Deserialize,
+    PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug, serde::Serialize, serde::Deserialize,
 )]
 pub enum Glyphset {
     #[allow(non_camel_case_types)]
@@ -59,7 +50,6 @@ impl GraphicsSettings {
             show_shadow_piece: true,
             show_button_state: false,
             show_fps: false,
-            
         }
     }
 
@@ -76,7 +66,7 @@ impl GraphicsSettings {
             show_fps: false,
         }
     }
-    
+
     pub fn compatibility() -> Self {
         Self {
             palette_active: 1,
@@ -88,10 +78,9 @@ impl GraphicsSettings {
             show_shadow_piece: true,
             show_button_state: false,
             show_fps: false,
-            
         }
     }
-    
+
     pub fn elektronika_60() -> Self {
         Self {
             palette_active: 0,
@@ -106,4 +95,3 @@ impl GraphicsSettings {
         }
     }
 }
-

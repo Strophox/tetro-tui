@@ -29,9 +29,18 @@ impl<T: Write> Application<T> {
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
                 .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
             let labels = [
-                format!("Adjust graphics ({:?}) ...", self.settings.graphics_slots[self.settings.graphics_slot_active].0),
-                format!("Adjust keybinds ({:?}) ...", self.settings.keybinds_slots[self.settings.keybinds_slot_active].0),
-                format!("Adjust gameplay ({:?}) ...", self.settings.gameplay_slots[self.settings.gameplay_slot_active].0),
+                format!(
+                    "Adjust graphics ({:?}) ...",
+                    self.settings.graphics_slots[self.settings.graphics_slot_active].0
+                ),
+                format!(
+                    "Adjust keybinds ({:?}) ...",
+                    self.settings.keybinds_slots[self.settings.keybinds_slot_active].0
+                ),
+                format!(
+                    "Adjust gameplay ({:?}) ...",
+                    self.settings.gameplay_slots[self.settings.gameplay_slot_active].0
+                ),
                 format!(
                     "Keep save file: {}",
                     match self.save_on_exit {
@@ -142,17 +151,20 @@ impl<T: Write> Application<T> {
                         0 => {
                             self.settings.graphics_slot_active +=
                                 self.settings.graphics_slots.len() + 1;
-                            self.settings.graphics_slot_active %= self.settings.graphics_slots.len();
+                            self.settings.graphics_slot_active %=
+                                self.settings.graphics_slots.len();
                         }
                         1 => {
                             self.settings.keybinds_slot_active +=
                                 self.settings.keybinds_slots.len() + 1;
-                            self.settings.keybinds_slot_active %= self.settings.keybinds_slots.len();
+                            self.settings.keybinds_slot_active %=
+                                self.settings.keybinds_slots.len();
                         }
                         2 => {
                             self.settings.gameplay_slot_active +=
                                 self.settings.gameplay_slots.len() + 1;
-                            self.settings.gameplay_slot_active %= self.settings.gameplay_slots.len();
+                            self.settings.gameplay_slot_active %=
+                                self.settings.gameplay_slots.len();
                         }
                         3 => {
                             self.save_on_exit = match self.save_on_exit {
@@ -184,17 +196,20 @@ impl<T: Write> Application<T> {
                         0 => {
                             self.settings.graphics_slot_active +=
                                 self.settings.graphics_slots.len() - 1;
-                            self.settings.graphics_slot_active %= self.settings.graphics_slots.len();
+                            self.settings.graphics_slot_active %=
+                                self.settings.graphics_slots.len();
                         }
                         1 => {
                             self.settings.keybinds_slot_active +=
                                 self.settings.keybinds_slots.len() - 1;
-                            self.settings.keybinds_slot_active %= self.settings.keybinds_slots.len();
+                            self.settings.keybinds_slot_active %=
+                                self.settings.keybinds_slots.len();
                         }
                         2 => {
                             self.settings.gameplay_slot_active +=
                                 self.settings.gameplay_slots.len() - 1;
-                            self.settings.gameplay_slot_active %= self.settings.gameplay_slots.len();
+                            self.settings.gameplay_slot_active %=
+                                self.settings.gameplay_slots.len();
                         }
                         3 => {
                             self.save_on_exit = match self.save_on_exit {
@@ -234,7 +249,7 @@ impl<T: Write> Application<T> {
                             self.settings.gameplay_slot_active = 0;
                         }
                         3 => {
-                        self.save_on_exit = SavefileGranularity::NoSavefile;
+                            self.save_on_exit = SavefileGranularity::NoSavefile;
                         }
                         // No accessible options beyond.
                         _ => {}

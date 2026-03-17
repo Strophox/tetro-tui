@@ -12,13 +12,19 @@ use crossterm::{
     terminal::Clear,
     ExecutableCommand,
 };
-use falling_tetromino_engine::{ButtonChange, Feedback, Game, GameOver, InGameTime, UpdateGameError};
+use falling_tetromino_engine::{
+    ButtonChange, Feedback, Game, GameOver, InGameTime, UpdateGameError,
+};
 
 use crate::{
     application::{
         Application, GameMetaData, GameRestorationData, GameSave, Menu, MenuUpdate,
         UncompressedInputHistory,
-    }, fmt_helpers::{fmt_duration, replay_keybinds_legend}, game_renderers::Renderer, keybinds::normalize, live_input_handler::{self, LiveTermSignal}
+    },
+    fmt_helpers::{fmt_duration, replay_keybinds_legend},
+    game_renderers::Renderer,
+    keybinds::normalize,
+    live_input_handler::{self, LiveTermSignal},
 };
 
 struct GameSaveAnchor {
@@ -211,10 +217,16 @@ impl<T: Write> Application<T> {
                                                 paused_with_extra_render_request = Some(true);
                                             }
 
-                                            (code, modifiers) if enable_game_intervention_inputs => {
-                                                match self.settings.keybinds().get(&normalize((code, modifiers))) {
+                                            (code, modifiers)
+                                                if enable_game_intervention_inputs =>
+                                            {
+                                                match self
+                                                    .settings
+                                                    .keybinds()
+                                                    .get(&normalize((code, modifiers)))
+                                                {
                                                     // No binding: Just ignore.
-                                                    None => {},
+                                                    None => {}
 
                                                     // Binding found: Usebutton un-/press.
                                                     Some(&button) => {
@@ -225,7 +237,9 @@ impl<T: Write> Application<T> {
                                                             Ok(msgs) => game_renderer
                                                                 .push_game_feedback_msgs(msgs),
                                                             // FIXME: Handle UpdateGameError::TargetTimeInPast? If not, why not?
-                                                            Err(UpdateGameError::TargetTimeInPast) => {}
+                                                            Err(
+                                                                UpdateGameError::TargetTimeInPast,
+                                                            ) => {}
                                                             // Game ended.
                                                             Err(UpdateGameError::GameEnded) => {}
                                                         }
@@ -236,11 +250,13 @@ impl<T: Write> Application<T> {
                                                             Ok(msgs) => game_renderer
                                                                 .push_game_feedback_msgs(msgs),
                                                             // FIXME: Handle UpdateGameError::TargetTimeInPast? If not, why not?
-                                                            Err(UpdateGameError::TargetTimeInPast) => {}
+                                                            Err(
+                                                                UpdateGameError::TargetTimeInPast,
+                                                            ) => {}
                                                             // Game ended.
                                                             Err(UpdateGameError::GameEnded) => {}
                                                         }
-                                                    },
+                                                    }
                                                 }
 
                                                 // Pause and render.
