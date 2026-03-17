@@ -322,6 +322,7 @@ pub struct NewGameSettings {
     /// Example: '▀▄▄▀' => 0b_1001_0110 = 150
     combo_startlayout: u16,
 
+    master_mode_unlocked: bool,
     experimental_mode_unlocked: bool,
 }
 
@@ -340,6 +341,7 @@ impl Default for NewGameSettings {
             combo_linelimit: Some(NonZeroU32::try_from(30).unwrap()),
             combo_startlayout: game_mode_presets::game_modifiers::combo_board::LAYOUTS[0],
 
+            master_mode_unlocked: false,
             experimental_mode_unlocked: false,
         }
     }

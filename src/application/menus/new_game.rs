@@ -52,27 +52,23 @@ impl<T: Write> Application<T> {
             #[allow(clippy::type_complexity)]
             let mut game_presets: Vec<(GameModePreset, String)> = vec![
                 (
-                    game_mode_presets::forty_lines(),
+                    game_mode_presets::speed_run(),
                     "How fast can you clear forty lines?".to_owned(),
                 ),
                 (
                     game_mode_presets::marathon(),
                     "Clear 150 lines at increasing gravity.".to_owned(),
                 ),
-                (
-                    game_mode_presets::time_trial(),
-                    "What highscore can you get in 3min.?".to_owned(),
-                ),
-                (
-                    game_mode_presets::master(),
-                    "Clear 150 lines at instant gravity.".to_owned(),
-                ),
+                // (
+                //     game_mode_presets::time_trial(),
+                //     "What highscore can you get in 3min.?".to_owned(),
+                // ),
                 (
                     game_mode_presets::puzzle(),
                     "Clear 24 hand-crafted puzzles.".to_owned(),
                 ),
                 (
-                    game_mode_presets::n_cheese(
+                    game_mode_presets::cheese_n(
                         self.settings.new_game.cheese_linelimit,
                         self.settings.new_game.cheese_tiles_per_line,
                         self.settings.new_game.cheese_fall_delay,
@@ -83,7 +79,7 @@ impl<T: Write> Application<T> {
                     ),
                 ),
                 (
-                    game_mode_presets::n_combo(
+                    game_mode_presets::combo_n(
                         self.settings.new_game.combo_linelimit,
                         self.settings.new_game.combo_startlayout,
                     ),
@@ -98,6 +94,15 @@ impl<T: Write> Application<T> {
                     ),
                 ),
             ];
+            if self.settings.new_game.master_mode_unlocked {
+                game_presets.insert(
+                    2,
+                    (
+                        game_mode_presets::master(),
+                        "Clear 150 lines at instant gravity.".to_owned(),
+                    ),
+                );
+            }
             if self.settings.new_game.experimental_mode_unlocked {
                 game_presets.push((
                     game_mode_presets::ascent(),
@@ -129,10 +134,7 @@ impl<T: Write> Application<T> {
                 self.term
                     .queue(MoveTo(
                         x_main,
-                        y_main
-                            + y_selection
-                            + 4
-                            + u16::try_from(i + if 4 <= i { 1 } else { 0 }).unwrap(),
+                        y_main + y_selection + 4 + u16::try_from(i).unwrap(),
                     ))?
                     .queue(Print(format!(
                         "{:^w_main$}",
@@ -155,7 +157,7 @@ impl<T: Write> Application<T> {
                 self.term
                     .queue(MoveTo(
                         x_main,
-                        y_main + y_selection + 4 + u16::try_from(game_presets.len() + 2).unwrap(),
+                        y_main + y_selection + 4 + u16::try_from(game_presets.len() + 1).unwrap(),
                     ))?
                     .queue(Print(format!(
                         "{:^w_main$}",
@@ -180,7 +182,7 @@ impl<T: Write> Application<T> {
                     y_main
                         + y_selection
                         + 4
-                        + u16::try_from(selection_len + savepoint_available + 1).unwrap(),
+                        + u16::try_from(selection_len + savepoint_available).unwrap(),
                 ))?
                 .queue(Print(format!(
                     "{:^w_main$}",
@@ -249,7 +251,7 @@ impl<T: Write> Application<T> {
                             y_main
                                 + y_selection
                                 + 4
-                                + u16::try_from(2 + j + selection_len + savepoint_available)
+                                + u16::try_from(1 + j + selection_len + savepoint_available)
                                     .unwrap(),
                         ))?
                         .queue(Print(if j + 1 == customization_selected {
@@ -293,6 +295,26 @@ impl<T: Write> Application<T> {
                     kind: Press,
                     ..
                 }) => {
+                    // FIXME: Remove or reinstate code: Unused because replaying savepoint from this menu feels a bit out of place.
+                    // if modifiers.contains(KeyModifiers::ALT) {
+                    //     if let Some(GameSave {
+                    //         game_meta_data,
+                    //         game_restoration_data,
+                    //         inputs_to_load: _,
+                    //     }) = &self.game_saves.1.get(self.game_saves.0) {
+                    //         let replay_length = if let Some((time, _)) = game_restoration_data.input_history.last() {
+                    //             *time
+                    //         } else {
+                    //             Duration::ZERO
+                    //         };
+                    //         break Ok(MenuUpdate::Push(Menu::ReplayGame {
+                    //             game_restoration_data: Box::new(game_restoration_data.clone()),
+                    //             game_meta_data: game_meta_data.clone(),
+                    //             replay_length,
+                    //             game_renderer: Default::default(),
+                    //         }))
+                    //     }
+                    // }
                     immediately_start_new_game = true;
                 }
 
@@ -478,7 +500,9 @@ impl<T: Write> Application<T> {
                 }) => {
                     if selected == selection_len - 1 && customization_selected > 0 {
                         customization_selected += customization_selection_size - 1
-                    } else if selected == 5 {
+                    } else if selected < game_presets.len()
+                        && game_presets[selected].0 .0.starts_with("Cheese")
+                    {
                         if let Some(limit) = self.settings.new_game.cheese_linelimit {
                             self.settings.new_game.cheese_linelimit = if limit > lowerbound_cheese {
                                 NonZeroU32::try_from(limit.get() - 1).ok()
@@ -486,7 +510,9 @@ impl<T: Write> Application<T> {
                                 None
                             };
                         }
-                    } else if selected == 6 {
+                    } else if selected < game_presets.len()
+                        && game_presets[selected].0 .0.starts_with("Combo")
+                    {
                         if modifiers.contains(KeyModifiers::ALT) {
                             let new_layout_idx = if let Some(i) = COMBO_STARTLAYOUTS
                                 .iter()
@@ -546,14 +572,18 @@ impl<T: Write> Application<T> {
                         } else {
                             customization_selected += 1
                         }
-                    } else if selected == 5 {
+                    } else if selected < game_presets.len()
+                        && game_presets[selected].0 .0.starts_with("Cheese")
+                    {
                         self.settings.new_game.cheese_linelimit =
                             if let Some(limit) = self.settings.new_game.cheese_linelimit {
                                 limit.checked_add(1)
                             } else {
                                 Some(lowerbound_cheese)
                             };
-                    } else if selected == 6 {
+                    } else if selected < game_presets.len()
+                        && game_presets[selected].0 .0.starts_with("Combo")
+                    {
                         if modifiers.contains(KeyModifiers::ALT) {
                             let new_layout_idx = if let Some(i) = COMBO_STARTLAYOUTS
                                 .iter()
@@ -604,10 +634,14 @@ impl<T: Write> Application<T> {
                         self.settings.new_game.custom_fall_delay_params =
                             DelayParameters::standard_fall();
                         self.settings.new_game.custom_win_condition = None;
-                    } else if selected == 5 {
+                    } else if selected < game_presets.len()
+                        && game_presets[selected].0 .0.starts_with("Cheese")
+                    {
                         self.settings.new_game.cheese_linelimit =
                             NewGameSettings::default().cheese_linelimit;
-                    } else if selected == 6 {
+                    } else if selected < game_presets.len()
+                        && game_presets[selected].0 .0.starts_with("Combo")
+                    {
                         if modifiers.contains(KeyModifiers::ALT) {
                             self.settings.new_game.combo_startlayout = COMBO_STARTLAYOUTS[0];
                         } else {
@@ -630,6 +664,17 @@ impl<T: Write> Application<T> {
                         selected = if n == 0 { 10 - 1 } else { n - 1 };
                         immediately_start_new_game = true;
                     }
+                }
+
+                // Secret - This unlocks things.
+                Event::Key(KeyEvent {
+                    code: KeyCode::Char('u' | 'U'),
+                    modifiers: KeyModifiers::CONTROL,
+                    kind: Press | Repeat,
+                    ..
+                }) => {
+                    self.settings.new_game.master_mode_unlocked = true;
+                    self.settings.new_game.experimental_mode_unlocked = true;
                 }
 
                 // Other event: don't care.

@@ -9,9 +9,9 @@ pub mod game_modifiers;
 
 pub type GameModePreset = (String, (Stat, bool), Box<dyn Fn(&GameBuilder) -> Game>);
 
-pub fn forty_lines() -> GameModePreset {
+pub fn speed_run() -> GameModePreset {
     (
-        "Forty Lines".to_owned(),
+        "Speed-run".to_owned(),
         (Stat::TimeElapsed(Duration::ZERO), true),
         Box::new(|builder: &GameBuilder| {
             builder
@@ -38,23 +38,23 @@ pub fn marathon() -> GameModePreset {
     )
 }
 
-pub fn time_trial() -> GameModePreset {
-    (
-        "Time Trial".to_owned(),
-        (Stat::PointsScored(0), false),
-        Box::new(|builder: &GameBuilder| {
-            builder
-                .clone()
-                .fall_delay_params(DelayParameters::constant(Duration::from_millis(667).into()))
-                .end_conditions(vec![(Stat::TimeElapsed(Duration::from_secs(3 * 60)), true)])
-                .build()
-        }),
-    )
-}
+// pub fn time_trial() -> GameModePreset {
+//     (
+//         "Time Trial".to_owned(),
+//         (Stat::PointsScored(0), false),
+//         Box::new(|builder: &GameBuilder| {
+//             builder
+//                 .clone()
+//                 .fall_delay_params(DelayParameters::constant(Duration::from_millis(667).into()))
+//                 .end_conditions(vec![(Stat::TimeElapsed(Duration::from_secs(3 * 60)), true)])
+//                 .build()
+//         }),
+//     )
+// }
 
 pub fn master() -> GameModePreset {
     (
-        "Master".to_owned(),
+        "*Master".to_owned(),
         (Stat::PointsScored(0), false),
         Box::new(|builder: &GameBuilder| {
             builder
@@ -75,7 +75,7 @@ pub fn puzzle() -> GameModePreset {
     )
 }
 
-pub fn n_cheese(
+pub fn cheese_n(
     linelimit: Option<NonZeroU32>,
     cheese_tiles_per_line: NonZeroUsize,
     fall_delay: ExtDuration,
@@ -98,7 +98,7 @@ pub fn n_cheese(
     )
 }
 
-pub fn n_combo(linelimit: Option<NonZeroU32>, startlayout: u16) -> GameModePreset {
+pub fn combo_n(linelimit: Option<NonZeroU32>, startlayout: u16) -> GameModePreset {
     (
         format!(
             "Combo{}",
@@ -128,7 +128,7 @@ pub fn n_combo(linelimit: Option<NonZeroU32>, startlayout: u16) -> GameModePrese
 
 pub fn ascent() -> GameModePreset {
     (
-        "The Ascent".to_owned(),
+        "*Ascent".to_owned(),
         (Stat::PointsScored(0), false),
         Box::new(game_modifiers::ascent::build),
     )
