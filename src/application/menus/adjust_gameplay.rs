@@ -39,7 +39,7 @@ impl<T: Write> Application<T> {
 
         let d_das = Duration::from_millis(1);
         let d_arr = Duration::from_millis(1);
-        let d_sdf = ExtNonNegF64::new(0.2).unwrap();
+        let d_sdf = ExtNonNegF64::new(0.25).unwrap();
         let d_lcd = Duration::from_millis(5);
         let d_are = Duration::from_millis(5);
 
