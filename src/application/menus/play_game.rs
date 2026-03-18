@@ -12,7 +12,7 @@ use crossterm::{
     ExecutableCommand,
 };
 use falling_tetromino_engine::{
-    Button, ButtonChange, Feedback, Game, GameOver, InGameTime, UpdateGameError,
+    Button, Feedback, Game, GameOver, InGameTime, Input, UpdateGameError,
 };
 
 use crate::{
@@ -189,10 +189,10 @@ impl<T: Write> Application<T> {
 
                                     let button_change =
                                         (match key_event_kind {
-                                            KeyEventKind::Press => ButtonChange::Press,
+                                            KeyEventKind::Press => Input::Activate,
                                             // Kitty does not actually care about terminal/OS keyboard 'repeat' events.
                                             KeyEventKind::Repeat => continue 'wait,
-                                            KeyEventKind::Release => ButtonChange::Release,
+                                            KeyEventKind::Release => Input::Deactivate,
                                         })(button);
 
                                     game_input_history.push((update_target_time, button_change));
@@ -210,7 +210,7 @@ impl<T: Write> Application<T> {
                                     }
 
                                     // Non-enhanced terminal - since we don't have "release" events, we just assume a button press is an instantaneous sequence of press+release.
-                                    let button_change = ButtonChange::Press(button);
+                                    let button_change = Input::Activate(button);
 
                                     game_input_history.push((update_target_time, button_change));
 
@@ -221,7 +221,7 @@ impl<T: Write> Application<T> {
                                     }
 
                                     // Note that we do not expect a button release to actually end the game or similar, but we handle things properly anyway.
-                                    let button_change = ButtonChange::Release(button);
+                                    let button_change = Input::Deactivate(button);
 
                                     game_input_history.push((update_target_time, button_change));
 
@@ -526,7 +526,7 @@ impl<T: Write> Application<T> {
             let unpress_time = game.state().time;
             'button_unpressing: for button in Button::VARIANTS {
                 if game.state().buttons_pressed[button].is_some() {
-                    let button_change = ButtonChange::Release(button);
+                    let button_change = Input::Deactivate(button);
 
                     let update_result = game.update(unpress_time, Some(button_change));
 

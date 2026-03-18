@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use crossterm::event::{KeyCode, KeyModifiers};
-use falling_tetromino_engine::{Button, ButtonChange, ExtNonNegF64, Tetromino};
+use falling_tetromino_engine::{Button, ExtNonNegF64, Input, Tetromino};
 
 use crate::keybinds::Keybinds;
 
@@ -137,18 +137,18 @@ pub fn fmt_button_ascii(b: Button) -> &'static str {
     }
 }
 
-pub fn fmt_button_change(button_change: ButtonChange, as_ascii: bool) -> String {
-    match button_change {
-        ButtonChange::Press(b) => format!(
-            "++({})",
+pub fn fmt_button_input(input: Input, as_ascii: bool) -> String {
+    match input {
+        Input::Activate(b) => format!(
+            "+({})+",
             if as_ascii {
                 fmt_button_ascii
             } else {
                 fmt_button
             }(b)
         ),
-        ButtonChange::Release(b) => format!(
-            "--({})",
+        Input::Deactivate(b) => format!(
+            "-({})-",
             if as_ascii {
                 fmt_button_ascii
             } else {

@@ -1,8 +1,8 @@
 use std::{collections::VecDeque, num::NonZeroU8, time::Duration};
 
 use falling_tetromino_engine::{
-    Button, ButtonChange, DelayParameters, Feedback, FeedbackMsg, Game, GameBuilder, GameModFn,
-    GameOver, Line, Modifier, Phase, Stat, State, Tetromino, UpdatePoint,
+    Button, DelayParameters, Feedback, FeedbackMsg, Game, GameBuilder, GameModFn, GameOver, Input,
+    Line, Modifier, Phase, Stat, State, Tetromino, UpdatePoint,
 };
 
 pub const MOD_ID: &str = "puzzle";
@@ -107,7 +107,7 @@ pub fn build(builder: &GameBuilder) -> Game {
 
             // Remove ability to hold.
             if let UpdatePoint::MainLoopHead(button_changes) = point {
-                if matches!(button_changes, Some(ButtonChange::Press(Button::HoldPiece))) {
+                if matches!(button_changes, Some(Input::Activate(Button::HoldPiece))) {
                     // Remove hold input to stop engine from processing it.
                     button_changes.take();
                 }

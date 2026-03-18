@@ -11,8 +11,8 @@ use std::{
 use crossterm::{cursor, event::KeyboardEnhancementFlags, style, terminal, ExecutableCommand};
 
 use falling_tetromino_engine::{
-    Board, Button, ButtonChange, DelayParameters, ExtDuration, FeedbackVerbosity, Game,
-    GameBuilder, GameOver, GameResult, InGameTime, Stat, Tetromino,
+    Board, Button, DelayParameters, ExtDuration, FeedbackVerbosity, Game, GameBuilder, GameOver,
+    GameResult, InGameTime, Input, Stat, Tetromino,
 };
 
 use crate::{
@@ -22,7 +22,7 @@ use crate::{
 
 pub type Slots<T> = Vec<(String, T)>;
 
-pub type UncompressedInputHistory = Vec<(InGameTime, ButtonChange)>;
+pub type UncompressedInputHistory = Vec<(InGameTime, Input)>;
 
 #[derive(
     PartialEq,
@@ -93,7 +93,7 @@ impl CompressedInputHistory {
 
     // For serialization reasons, we encode a single user input as `u128` instead of
     // `(GameTime, ButtonChange)`, which would have a verbose direct string representation.
-    fn compress_input((update_target_time, button_change): (InGameTime, ButtonChange)) -> u128 {
+    fn compress_input((update_target_time, button_change): (InGameTime, Input)) -> u128 {
         // Encode `GameTime = std::time::Duration` using `std::time::Duration::as_millis`.
         // NOTE: We actually use `millis` not `nanos` as a convention which is upheld by `play_game.rs`!
         let millis: u128 = update_target_time.as_millis();
@@ -102,7 +102,7 @@ impl CompressedInputHistory {
         (millis << Self::BUTTON_CHANGE_BITSIZE) | u128::from(bc_bits)
     }
 
-    fn decompress_input(i: u128) -> (InGameTime, ButtonChange) {
+    fn decompress_input(i: u128) -> (InGameTime, Input) {
         let mask = u128::MAX >> (128 - Self::BUTTON_CHANGE_BITSIZE);
         let bc_bits = u8::try_from(i & mask).unwrap();
         let millis = u64::try_from(i >> Self::BUTTON_CHANGE_BITSIZE).unwrap();
@@ -112,18 +112,18 @@ impl CompressedInputHistory {
         )
     }
 
-    fn compress_buttonchange(button_change: &ButtonChange) -> u8 {
+    fn compress_buttonchange(button_change: &Input) -> u8 {
         match button_change {
-            ButtonChange::Release(button) => (*button as u8) << 1,
-            ButtonChange::Press(button) => ((*button as u8) << 1) | 1,
+            Input::Deactivate(button) => (*button as u8) << 1,
+            Input::Activate(button) => ((*button as u8) << 1) | 1,
         }
     }
 
-    fn decompress_buttonchange(b: u8) -> ButtonChange {
+    fn decompress_buttonchange(b: u8) -> Input {
         (if b.is_multiple_of(2) {
-            ButtonChange::Release
+            Input::Deactivate
         } else {
-            ButtonChange::Press
+            Input::Activate
         })(Button::VARIANTS[usize::from(b >> 1)])
     }
 }

@@ -12,9 +12,7 @@ use crossterm::{
     terminal::Clear,
     ExecutableCommand,
 };
-use falling_tetromino_engine::{
-    ButtonChange, Feedback, Game, GameOver, InGameTime, UpdateGameError,
-};
+use falling_tetromino_engine::{Feedback, Game, GameOver, InGameTime, Input, UpdateGameError};
 
 use crate::{
     application::{
@@ -242,7 +240,7 @@ impl<T: Write> Application<T> {
                                                     Some(&button) => {
                                                         match game.update(
                                                             game.state().time,
-                                                            Some(ButtonChange::Press(button)),
+                                                            Some(Input::Activate(button)),
                                                         ) {
                                                             Ok(msgs) => game_renderer
                                                                 .push_game_feedback_msgs(msgs),
@@ -255,7 +253,7 @@ impl<T: Write> Application<T> {
                                                         }
                                                         match game.update(
                                                             game.state().time,
-                                                            Some(ButtonChange::Release(button)),
+                                                            Some(Input::Deactivate(button)),
                                                         ) {
                                                             Ok(msgs) => game_renderer
                                                                 .push_game_feedback_msgs(msgs),

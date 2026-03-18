@@ -3,8 +3,8 @@ use std::{num::NonZeroU8, time::Duration};
 use rand::Rng;
 
 use falling_tetromino_engine::{
-    Button, ButtonChange, DelayParameters, ExtDuration, Game, GameBuilder, GameModFn, GameRng,
-    InGameTime, Line, Modifier, Phase, Piece, PieceData, Stat, Tetromino, UpdatePoint,
+    Button, DelayParameters, ExtDuration, Game, GameBuilder, GameModFn, GameRng, InGameTime, Input,
+    Line, Modifier, Phase, Piece, PieceData, Stat, Tetromino, UpdatePoint,
 };
 
 pub const MOD_ID: &str = "ascent";
@@ -73,7 +73,7 @@ pub fn build(builder: &GameBuilder) -> Game {
             // Also change colors for fun after each rotation.
             if matches!(
                 point,
-                UpdatePoint::PiecePlayed(ButtonChange::Press(
+                UpdatePoint::PiecePlayed(Input::Activate(
                     Button::RotateLeft | Button::RotateAround | Button::RotateRight
                 ))
             ) {
@@ -112,7 +112,7 @@ pub fn build(builder: &GameBuilder) -> Game {
 
             // Replace hold with custom hold.
             if let UpdatePoint::MainLoopHead(button_changes) = point {
-                if matches!(button_changes, Some(ButtonChange::Press(Button::HoldPiece))) {
+                if matches!(button_changes, Some(Input::Activate(Button::HoldPiece))) {
                     // Remove hold input to stop engine from processing it.
                     button_changes.take();
                     // Manually swap pieces.
@@ -123,7 +123,7 @@ pub fn build(builder: &GameBuilder) -> Game {
                     (*tet1, *tet2) = (*tet2, *tet1);
                 } else if matches!(
                     button_changes,
-                    Some(ButtonChange::Press(Button::DropSoft | Button::DropHard))
+                    Some(Input::Activate(Button::DropSoft | Button::DropHard))
                 ) {
                     button_changes.take();
                 }
