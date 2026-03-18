@@ -200,7 +200,7 @@ Then you can run the game with `tetro-tui`.
 > | `1`/`2`/`3`... | Quickselect option 1/2/3/... (in Start Game)|
 > | `Alt`+... | Alt. value changes (in Start Game⇝Savepoint,Custom Mode) |
 > | `Alt`+`Del`, `Alt`+`d` | Delete replay  (in Scores and Replays) |
-> | `Ctrl`+`C` | Exit application |
+> | `Ctrl`+`C` | Exit application (respects save preferences) |
 > 
 > </details>
 > 
@@ -227,7 +227,7 @@ Then you can run the game with `tetro-tui`.
 > | `Ctrl`+`S` | Store savepoint (accessible in Start Game⇝Savepoint or in Live Game) |
 > | `Ctrl`+`L` | Load savepoint (Caution: overwrites live game) |
 > | `Ctrl`+`Alt`+`B` | Toggle on/off visibility of tiles ('Blindfold') |
-> | `Ctrl`+`C` | Exit application |
+> | `Ctrl`+`C` | Exit application (respects save preferences) |
 > 
 > </details>
 > 
@@ -245,10 +245,11 @@ Then you can run the game with `tetro-tui`.
 > | `←`/`→` , `h`/`l` | Skip forward/backward 1s in time |
 > | `1`/`2`/`3`... | Jump to 10%/20%/30%/... |
 > | `.` | Skip forward one user input and pause |
+> | `Alt`+`.` | Skip forward one game state change\* and pause (\*Experimental, might not work properly for modded games.) |
 > | `Enter`, `e` | Enter live game (from current replay position) |
 > | `Ctrl`+`E` | Store seed (accessible in Start Game⇝Custom Mode) |
 > | `Ctrl`+`S` | Store savepoint (accessible in Start Game→Savepoint or in Live Game) |
-> | `Ctrl`+`C` | Exit application |
+> | `Ctrl`+`C` | Exit application (respects save preferences) |
 > 
 > </details>
 

@@ -82,13 +82,11 @@ impl<T: Write> Application<T> {
 
         // Replay data/variables setup:
 
-        let mut jump_to_anchor: Option<usize> = None;
-
         // Replay: keybinds legend.
         let keybinds_legend = replay_keybinds_legend();
 
-        // Store whether to pause. When paused, may store a boolean requesting one additional re-render of state.
-        let mut paused_with_extra_render_request = None;
+        // Store whether to pause.
+        let mut paused = false;
 
         // This toggle enables users to actually do inputs on the game.
         let mut enable_game_intervention_inputs = false;
@@ -158,6 +156,11 @@ impl<T: Write> Application<T> {
             }
             ``` */
 
+            // Whether we should pause on next frame. Stores a boolean which may request one additional re-render of state.
+            let mut next_paused_with_extra_render_request = paused.then_some(false);
+
+            let mut jump_to_anchor: Option<usize> = None;
+
             // Calculate the time of the next render we can catch.
             // We actually completely base this off the start of the session,
             // and just skip a render if we miss the window.
@@ -222,7 +225,7 @@ impl<T: Write> Application<T> {
                                                     Feedback::Text(str.to_owned()),
                                                 )]);
 
-                                                paused_with_extra_render_request = Some(true);
+                                                next_paused_with_extra_render_request = Some(true);
                                             }
 
                                             (code, modifiers)
@@ -268,7 +271,8 @@ impl<T: Write> Application<T> {
                                                 }
 
                                                 // Pause and render.
-                                                paused_with_extra_render_request = Some(true);
+                                                next_paused_with_extra_render_request = Some(true);
+                                                break 'wait;
                                             }
 
                                             // [Ctrl+S]: Store savepoint.
@@ -298,8 +302,10 @@ impl<T: Write> Application<T> {
                                                     Feedback::Text("(Stored savepoint)".to_owned()),
                                                 )]);
 
-                                                if paused_with_extra_render_request.is_some() {
-                                                    paused_with_extra_render_request = Some(true);
+                                                if paused {
+                                                    next_paused_with_extra_render_request =
+                                                        Some(true);
+                                                    break 'wait;
                                                 }
                                             }
 
@@ -316,19 +322,18 @@ impl<T: Write> Application<T> {
                                                     )),
                                                 )]);
 
-                                                if paused_with_extra_render_request.is_some() {
-                                                    paused_with_extra_render_request = Some(true);
+                                                if paused {
+                                                    next_paused_with_extra_render_request =
+                                                        Some(true);
+                                                    break 'wait;
                                                 }
                                             }
 
                                             // [Space]: (Un-)Pause replay.
                                             (KeyCode::Char(' '), _) => {
-                                                paused_with_extra_render_request =
-                                                    if paused_with_extra_render_request.is_some() {
-                                                        None
-                                                    } else {
-                                                        Some(true)
-                                                    };
+                                                next_paused_with_extra_render_request =
+                                                    if paused { None } else { Some(true) };
+                                                break 'wait;
                                             }
 
                                             // [↓][↑]: Adjust replay speed.
@@ -355,8 +360,10 @@ impl<T: Write> Application<T> {
                                                     replay_speed_stepper -= speed_delta;
                                                 };
 
-                                                if paused_with_extra_render_request.is_some() {
-                                                    paused_with_extra_render_request = Some(true);
+                                                if paused {
+                                                    next_paused_with_extra_render_request =
+                                                        Some(true);
+                                                    break 'wait;
                                                 }
                                             }
 
@@ -364,8 +371,64 @@ impl<T: Write> Application<T> {
                                             (KeyCode::Char('-'), _) => {
                                                 replay_speed_stepper = REPLAY_SPEED_STEP_EQUIVALENT_TO_SPEED_MULTIPLIER_1;
 
-                                                if paused_with_extra_render_request.is_some() {
-                                                    paused_with_extra_render_request = Some(true);
+                                                if paused {
+                                                    next_paused_with_extra_render_request =
+                                                        Some(true);
+                                                    break 'wait;
+                                                }
+                                            }
+
+                                            // [Alt+.]: Skip one *update?* forward.
+                                            (KeyCode::Char('.'), KeyModifiers::ALT) => {
+                                                if let Some(mut update_target_time) =
+                                                    game.peek_next_update_time()
+                                                {
+                                                    let mut opt_input = None;
+
+                                                    let mut do_forfeit = false;
+
+                                                    if let Some(forfeit_time) =
+                                                        game_restoration_data.forfeit
+                                                    {
+                                                        // FIXME: I'm actually not sure about the semantics of whether forfeit or game-update is handled in such a case. Forfeiting is weird I guess.
+                                                        if forfeit_time <= update_target_time {
+                                                            update_target_time = forfeit_time;
+                                                            do_forfeit = true;
+                                                        }
+                                                    }
+
+                                                    if let Some((next_input_time, input)) =
+                                                        game_restoration_data
+                                                            .input_history
+                                                            .get(inputs_loaded)
+                                                    {
+                                                        if *next_input_time <= update_target_time {
+                                                            update_target_time = *next_input_time;
+                                                            do_forfeit = false;
+                                                            opt_input = Some(*input);
+                                                            inputs_loaded += 1;
+                                                        }
+                                                    }
+
+                                                    match game.update(update_target_time, opt_input)
+                                                    {
+                                                        Ok(msgs) => game_renderer
+                                                            .push_game_feedback_msgs(msgs),
+                                                        // FIXME: Handle UpdateGameError::TargetTimeInPast? If not, why not?
+                                                        Err(UpdateGameError::TargetTimeInPast) => {}
+                                                        // Game ended, no more inputs.
+                                                        Err(UpdateGameError::GameEnded) => {}
+                                                    }
+
+                                                    if do_forfeit {
+                                                        let msg = game.forfeit();
+                                                        game_renderer
+                                                            .push_game_feedback_msgs([msg]);
+                                                    }
+
+                                                    next_paused_with_extra_render_request =
+                                                        Some(true);
+                                                    break 'wait;
                                                 }
                                             }
 
@@ -376,9 +439,8 @@ impl<T: Write> Application<T> {
                                                         .input_history
                                                         .get(inputs_loaded)
                                                 {
-                                                    // VERY Hacky way to advance by one player input.
+                                                    // FIXME: We do not handle degenerate cases where input is available even tho game should forfeit.
 
-                                                    time_last_refresh = Instant::now();
                                                     match game.update(
                                                         *next_input_time,
                                                         Some(*button_change),
@@ -391,23 +453,9 @@ impl<T: Write> Application<T> {
                                                         Err(UpdateGameError::GameEnded) => {}
                                                     }
                                                     inputs_loaded += 1;
-                                                    paused_with_extra_render_request = Some(true);
-                                                    // TODO: At this point we shouldn't(?)(!) need the explicit render and 'continue'.
-                                                    // Re-render full state.
-                                                    game_renderer.render(
-                                                        &game,
-                                                        game_meta_data,
-                                                        &self.settings,
-                                                        &self.session_data,
-                                                        &keybinds_legend,
-                                                        Some((
-                                                            replay_length,
-                                                            calc_speed(replay_speed_stepper),
-                                                        )),
-                                                        &mut self.term,
-                                                    )?;
-                                                    // Restart update-render loop as if we just entered it.
-                                                    continue 'update_and_render;
+                                                    next_paused_with_extra_render_request =
+                                                        Some(true);
+                                                    break 'wait;
                                                 }
                                             }
 
@@ -500,8 +548,8 @@ impl<T: Write> Application<T> {
                                         );
                                         game_renderer.reset_view_diff_state();
 
-                                        if paused_with_extra_render_request.is_some() {
-                                            paused_with_extra_render_request = Some(true);
+                                        if paused {
+                                            next_paused_with_extra_render_request = Some(true);
                                         }
 
                                         break 'wait;
@@ -584,28 +632,27 @@ impl<T: Write> Application<T> {
                     &mut self.term,
                 )?;
 
+                renders_per_second_counter += 1;
+
                 // Restart update-render loop as if we just entered it.
                 continue 'update_and_render;
-            }
-
-            if paused_with_extra_render_request.is_some() || game.result().is_some() {
-                // We're paused.
-
-                self.term.execute(MoveTo(0, 0))?;
-                self.term
-                    .execute(PrintStyledContent(Stylize::italic("Replay Paused...")))?;
-            } else {
+            } else if !paused && game.result().is_none() {
                 // Game has not ended and is not paused: progress the game.
 
-                self.term.execute(MoveTo(0, 0))?;
-                self.term
-                    .execute(Clear(crossterm::terminal::ClearType::CurrentLine))?;
-
                 // We first calculate the intended time at time of reaching here.
-                let update_target_time = game.state().time
+                let mut update_target_time = game.state().time
                     + now
                         .saturating_duration_since(time_last_refresh)
                         .mul_f64(calc_speed(replay_speed_stepper));
+
+                let mut do_forfeit = false;
+
+                if let Some(forfeit_time) = game_restoration_data.forfeit {
+                    if forfeit_time <= update_target_time {
+                        update_target_time = forfeit_time;
+                        do_forfeit = true;
+                    }
+                }
 
                 'feed_inputs: loop {
                     let Some((next_input_time, button_change)) =
@@ -615,8 +662,8 @@ impl<T: Write> Application<T> {
                         break 'feed_inputs;
                     };
 
-                    if update_target_time < *next_input_time {
-                        // Target reached.
+                    if *next_input_time > update_target_time {
+                        // Next input would be beyond target, stop loading in inputs.
                         break 'feed_inputs;
                     }
 
@@ -624,23 +671,12 @@ impl<T: Write> Application<T> {
                         Ok(msgs) => game_renderer.push_game_feedback_msgs(msgs),
                         // FIXME: Handle UpdateGameError::TargetTimeInPast? If not, why not?
                         Err(UpdateGameError::TargetTimeInPast) => {}
-                        // Game ended, no more inputs.
+                        // Game ended? Do not attempt to feed more inputs.
                         Err(UpdateGameError::GameEnded) => break 'feed_inputs,
                     }
 
                     inputs_loaded += 1;
                 }
-
-                let (update_target_time, do_forfeit) =
-                    if let Some(forfeit_time) = game_restoration_data.forfeit {
-                        if forfeit_time <= update_target_time {
-                            (forfeit_time, true)
-                        } else {
-                            (update_target_time, false)
-                        }
-                    } else {
-                        (update_target_time, false)
-                    };
 
                 match game.update(update_target_time, None) {
                     // Update.
@@ -653,12 +689,12 @@ impl<T: Write> Application<T> {
 
                 if do_forfeit {
                     let msg = game.forfeit();
-                    game_renderer.push_game_feedback_msgs([msg])
+                    game_renderer.push_game_feedback_msgs([msg]);
                 }
             }
 
             // Render frame only if not paused or paused but render requested
-            if matches!(paused_with_extra_render_request, None | Some(true)) {
+            if !paused || next_paused_with_extra_render_request == Some(true) {
                 // Render current state of the game.
                 game_renderer.render(
                     &game,
@@ -671,17 +707,26 @@ impl<T: Write> Application<T> {
                 )?;
 
                 renders_per_second_counter += 1;
-
-                if paused_with_extra_render_request.is_some() {
-                    paused_with_extra_render_request = Some(false);
-                }
             }
 
-            // Remember: We convene on logically setting the 'refresh point' to before the update and render happens.
-            time_last_refresh = now;
+            // Render 'paused' message.
+            if !paused && next_paused_with_extra_render_request.is_some()
+                || next_paused_with_extra_render_request == Some(true)
+            {
+                self.term.execute(MoveTo(0, 0))?;
+                self.term
+                    .execute(PrintStyledContent(Stylize::italic("Replay Paused...")))?;
+
+            // Remove 'paused' message.
+            } else if paused && next_paused_with_extra_render_request.is_none() {
+                self.term.execute(MoveTo(0, 0))?;
+                self.term
+                    .execute(Clear(crossterm::terminal::ClearType::CurrentLine))?;
 
             // Render FPS counter.
-            if self.settings.graphics().show_fps {
+            } else if next_paused_with_extra_render_request.is_none()
+                && self.settings.graphics().show_fps
+            {
                 let secs_diff = now
                     .saturating_duration_since(renders_per_second_counter_start_time)
                     .as_secs_f64();
@@ -703,6 +748,12 @@ impl<T: Write> Application<T> {
                     renders_per_second_counter_start_time = now;
                 }
             }
+
+            // Update values.
+
+            // Remember: We convene on logically setting the 'refresh point' to before the update and render happens.
+            time_last_refresh = now;
+            paused = next_paused_with_extra_render_request.is_some();
         };
 
         // Game loop epilogue: De-initialization.

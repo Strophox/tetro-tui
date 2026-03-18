@@ -133,7 +133,6 @@ impl<T: Write> Application<T> {
                     ..
                 }) => break Ok(MenuUpdate::Pop),
 
-                // Reset config, or delete entire slot.
                 Event::Key(KeyEvent {
                     code: KeyCode::Delete | KeyCode::Char('d' | 'D'),
                     kind: Press,
