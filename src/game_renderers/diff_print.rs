@@ -12,7 +12,8 @@ use crossterm::{
 };
 
 use falling_tetromino_engine::{
-    Button, Coord, Feedback, InGameTime, Orientation, Phase, PieceData, Stat, Tetromino, TileTypeID,
+    Button, Coord, Feedback, GameEndCause, InGameTime, Orientation, Phase, Stat, Tetromino,
+    TileTypeID,
 };
 
 use super::*;
@@ -415,16 +416,19 @@ impl Renderer for DiffPrintRenderer {
         let (x_rep_spd, y_rep_spd) = (1, 11);
         let (x_rep_len, y_rep_len) = (1, 12);
         let (x_buttonst, y_buttonst) = (48, 17);
+        // FIXME: This is limited insofar that this returns `None` as soon as it is OOB for the
+        // rectangle of our custom game screen buffer. But there might be space in the TUI above
+        // so we cut off 'for no reason'!
         let pos_board = |(x, y)| {
-            (
+            Some((
                 x_board + 2 * (x as usize),
-                y_board + Game::LOCK_OUT_HEIGHT - (y as usize),
-            )
+                (y_board + Game::LOCK_OUT_HEIGHT).checked_sub_signed(y)?,
+            ))
         };
 
         // Color helpers.
         let get_color =
-            |tile_type_id: &TileTypeID| settings.palette().get(&tile_type_id.get()).copied();
+            |tile_type_id: TileTypeID| settings.palette().get(&tile_type_id.get()).copied();
         let get_color_locked = |tile_type_id: &TileTypeID| {
             settings
                 .palette_lockedtiles()
@@ -482,9 +486,9 @@ impl Renderer for DiffPrintRenderer {
             let n255 = NonZeroU8::try_from(255).unwrap();
             let bc = |b: Button| {
                 get_color(if game.state().buttons_pressed[b].is_some() {
-                    &n255
+                    n255
                 } else {
-                    &n253
+                    n253
                 })
             };
             let es = [
@@ -524,6 +528,73 @@ impl Renderer for DiffPrintRenderer {
             }
         }
 
+        let (tile_ground, tile_shadow, tile_active, tile_preview) =
+            match settings.graphics().glyphset {
+                Glyphset::Elektronika_60 => ("▮▮", " .", "▮▮", "▮▮"),
+                Glyphset::ASCII => ("##", "::", "[]", "[]"),
+                Glyphset::Unicode => ("██", "░░", "▓▓", "██" /*"▒▒"*/),
+            };
+
+        // Draw preview.
+        if let Some(next_piece) = game.state().piece_preview.front() {
+            let color = get_color(next_piece.tiletypeid());
+            for (x, y) in next_piece.minos(Orientation::N) {
+                let pos = (
+                    (if *next_piece == Tetromino::O { 2 } else { 0 } + x_preview + 2 * x) as usize,
+                    (y_preview - y) as usize,
+                );
+                self.screen.buffer_str(tile_preview, color, pos);
+            }
+        }
+
+        // Draw small preview pieces 2,3,4.
+        let mut x_offset_small = 0;
+        for tet in game.state().piece_preview.iter().skip(1).take(3) {
+            let str = if settings.graphics().glyphset == Glyphset::Unicode {
+                tet.fmt_small()
+            } else {
+                tet.fmt_small_ascii()
+            };
+            self.screen.buffer_str(
+                str,
+                get_color(tet.tiletypeid()),
+                (x_preview_small + x_offset_small, y_preview_small),
+            );
+            x_offset_small += str.chars().count() + 1;
+        }
+
+        // Draw minuscule preview pieces 5,6,7,8...
+        let mut x_offset_minuscule = 0;
+        for tet in game.state().piece_preview.iter().skip(4) {
+            //.take(5) {
+            let str = String::from(if settings.graphics().glyphset == Glyphset::Unicode {
+                tet.fmt_mini()
+            } else {
+                tet.fmt_mini_ascii()
+            });
+            self.screen.buffer_str(
+                &str,
+                get_color(tet.tiletypeid()),
+                (x_preview_mini + x_offset_minuscule, y_preview_mini),
+            );
+            x_offset_minuscule += str.chars().count() + 1;
+        }
+
+        // Draw held piece.
+        if let Some((tet, swap_allowed)) = game.state().piece_held {
+            let str = if settings.graphics().glyphset == Glyphset::Unicode {
+                tet.fmt_small()
+            } else {
+                tet.fmt_small_ascii()
+            };
+            let color = get_color(if swap_allowed {
+                tet.tiletypeid()
+            } else {
+                NonZeroU8::try_from(254).unwrap()
+            });
+            self.screen.buffer_str(str, color, (x_hold, y_hold));
+        }
+
         // Board: draw hard drop trail.
         for (
             HardDropTile {
@@ -552,122 +623,123 @@ impl Renderer for DiffPrintRenderer {
                 *active = false;
                 continue;
             };
-            self.screen
-                .buffer_str(tile, get_color(tile_type_id), pos_board(*pos));
+            if let Some(xy) = pos_board(*pos) {
+                self.screen.buffer_str(tile, get_color(*tile_type_id), xy);
+            }
         }
-        self.hard_drop_tiles.retain(|elt| elt.1);
 
-        let (tile_ground, tile_shadow, tile_active, tile_preview) =
-            match settings.graphics().glyphset {
-                Glyphset::Elektronika_60 => ("▮▮", " .", "▮▮", "▮▮"),
-                Glyphset::ASCII => ("##", "::", "[]", "[]"),
-                Glyphset::Unicode => ("██", "░░", "▓▓", "██" /*"▒▒"*/),
-            };
+        self.hard_drop_tiles.retain(|elt| elt.1);
 
         // Board: draw locked tiles.
         if !session_data.blindfold_enabled {
-            for (y, line) in game.state().board.iter().enumerate().take(21).rev() {
+            for (y, line) in game.state().board.iter().enumerate().rev() {
                 for (x, cell) in line.iter().enumerate() {
                     if let Some(tile_type_id) = cell {
-                        self.screen.buffer_str(
-                            tile_ground,
-                            get_color_locked(tile_type_id),
-                            pos_board((isize::try_from(x).unwrap(), isize::try_from(y).unwrap())),
-                        );
+                        if let Some(xy) =
+                            pos_board((isize::try_from(x).unwrap(), isize::try_from(y).unwrap()))
+                        {
+                            self.screen
+                                .buffer_str(tile_ground, get_color_locked(tile_type_id), xy);
+                        }
                     }
                 }
             }
         }
 
-        // If a piece is in play.
-        if let Phase::PieceInPlay {
-            piece_data: PieceData { piece, .. },
-            ..
-        } = game.phase()
-        {
-            // Draw shadow piece.
-            if settings.graphics().show_shadow_piece {
-                for (tile_pos, tile_type_id) in
-                    piece.teleported(&game.state().board, (0, -1)).tiles()
-                {
-                    if (tile_pos.1 as usize) <= Game::LOCK_OUT_HEIGHT {
-                        self.screen.buffer_str(
-                            tile_shadow,
-                            get_color(&tile_type_id),
-                            pos_board(tile_pos),
-                        );
+        match game.phase() {
+            // FIXME: Spawn phase does not have a visual indicator?
+            Phase::Spawning { spawn_time: _ } => {}
+
+            // If a piece is in play.
+            Phase::PieceInPlay { piece_data } => {
+                // Draw shadow piece.
+                if settings.graphics().show_shadow_piece {
+                    for (tile_pos, tile_type_id) in piece_data
+                        .piece
+                        .teleported(&game.state().board, (0, -1))
+                        .tiles()
+                    {
+                        if let Some(xy) = pos_board(tile_pos) {
+                            self.screen
+                                .buffer_str(tile_shadow, get_color(tile_type_id), xy);
+                        }
+                    }
+                }
+
+                // Draw active piece.
+                for (tile_pos, tile_type_id) in piece_data.piece.tiles() {
+                    if let Some(xy) = pos_board(tile_pos) {
+                        self.screen
+                            .buffer_str(tile_active, get_color(tile_type_id), xy);
                     }
                 }
             }
 
-            // Draw active piece.
-            for (tile_pos, tile_type_id) in piece.tiles() {
-                if (tile_pos.1 as usize) <= Game::LOCK_OUT_HEIGHT {
-                    self.screen.buffer_str(
-                        tile_active,
-                        get_color(&tile_type_id),
-                        pos_board(tile_pos),
-                    );
+            // FIXME: Line clear effect is independent of game phase? Should it be?
+            Phase::LinesClearing { .. } => {}
+
+            Phase::GameEnd { cause, is_win: _ } => {
+                match cause {
+                    GameEndCause::LockOut { locked_out_piece } => {
+                        for (tile_pos, tile_type_id) in locked_out_piece.tiles() {
+                            if let Some(xy) = pos_board(tile_pos) {
+                                self.screen.buffer_str(
+                                    "XX",
+                                    get_color(tile_type_id), /*Some(Color::Red)*/
+                                    xy,
+                                );
+                            }
+                        }
+                    }
+                    GameEndCause::BlockOut { blocked_piece } => {
+                        // Special hack to make block-out piece more visible.
+                        for (_feedback_time, feedback, active) in
+                            self.buffered_feedback_msgs.iter_mut()
+                        {
+                            if matches!(feedback, Feedback::PieceLocked { .. }) {
+                                *active = false;
+                            }
+                        }
+
+                        for (tile_pos @ (x, y), tile_type_id) in blocked_piece.tiles() {
+                            if let Some(xy) = pos_board(tile_pos) {
+                                let (t, c) = if let Some(board_tile) =
+                                    game.state().board[y as usize][x as usize]
+                                {
+                                    ("XX", get_color(board_tile))
+                                } else {
+                                    ("XX", get_color(tile_type_id) /*Some(Color::Red)*/)
+                                };
+
+                                self.screen.buffer_str(t, c, xy);
+                            }
+                        }
+                    }
+
+                    // FIXME: Game end by top out does not have a visual indicator.
+                    GameEndCause::TopOut { blocked_lines: _ } => {}
+
+                    // FIXME: Game end by limit reached does not have a visual indicator.
+                    GameEndCause::Limit(_) => {}
+
+                    GameEndCause::Forfeit { piece_in_play } => {
+                        if let Some(piece) = piece_in_play {
+                            for (tile_pos, tile_type_id) in piece.tiles() {
+                                if let Some(xy) = pos_board(tile_pos) {
+                                    self.screen.buffer_str(
+                                        "XX",
+                                        get_color(tile_type_id), /*Some(Color::Red)*/
+                                        xy,
+                                    );
+                                }
+                            }
+                        }
+                    }
+
+                    // Do not draw special visual indication for custom end cause.
+                    GameEndCause::Custom(_) => {}
                 }
             }
-        }
-
-        // Draw preview.
-        if let Some(next_piece) = game.state().piece_preview.front() {
-            let color = get_color(&next_piece.tiletypeid());
-            for (x, y) in next_piece.minos(Orientation::N) {
-                let pos = (
-                    (if *next_piece == Tetromino::O { 2 } else { 0 } + x_preview + 2 * x) as usize,
-                    (y_preview - y) as usize,
-                );
-                self.screen.buffer_str(tile_preview, color, pos);
-            }
-        }
-
-        // Draw small preview pieces 2,3,4.
-        let mut x_offset_small = 0;
-        for tet in game.state().piece_preview.iter().skip(1).take(3) {
-            let str = if settings.graphics().glyphset == Glyphset::Unicode {
-                tet.fmt_small()
-            } else {
-                tet.fmt_small_ascii()
-            };
-            self.screen.buffer_str(
-                str,
-                get_color(&tet.tiletypeid()),
-                (x_preview_small + x_offset_small, y_preview_small),
-            );
-            x_offset_small += str.chars().count() + 1;
-        }
-        // Draw minuscule preview pieces 5,6,7,8...
-        let mut x_offset_minuscule = 0;
-        for tet in game.state().piece_preview.iter().skip(4) {
-            //.take(5) {
-            let str = String::from(if settings.graphics().glyphset == Glyphset::Unicode {
-                tet.fmt_mini()
-            } else {
-                tet.fmt_mini_ascii()
-            });
-            self.screen.buffer_str(
-                &str,
-                get_color(&tet.tiletypeid()),
-                (x_preview_mini + x_offset_minuscule, y_preview_mini),
-            );
-            x_offset_minuscule += str.chars().count() + 1;
-        }
-        // Draw held piece.
-        if let Some((tet, swap_allowed)) = game.state().piece_held {
-            let str = if settings.graphics().glyphset == Glyphset::Unicode {
-                tet.fmt_small()
-            } else {
-                tet.fmt_small_ascii()
-            };
-            let color = get_color(&if swap_allowed {
-                tet.tiletypeid()
-            } else {
-                NonZeroU8::try_from(254).unwrap()
-            });
-            self.screen.buffer_str(str, color, (x_hold, y_hold));
         }
 
         // Handle feedback.
@@ -706,7 +778,7 @@ impl Renderer for DiffPrintRenderer {
                             (175, "▓▓"),
                         ],
                     };
-                    let color_locking = get_color(&NonZeroU8::try_from(255).unwrap());
+                    let color_locking = get_color(NonZeroU8::try_from(255).unwrap());
                     // FIXME: Possibly replace these manual find-tile snippets with flexible/parameterized/interpolated-time animations (see lineclear animation).
                     let Some(tile) = animation_locking.iter().find_map(|(ms, tile)| {
                         (elapsed < Duration::from_millis(*ms)).then_some(tile)
@@ -716,9 +788,8 @@ impl Renderer for DiffPrintRenderer {
                     };
 
                     for (tile_pos, _tile_type_id) in piece.tiles() {
-                        if (tile_pos.1 as usize) <= Game::LOCK_OUT_HEIGHT {
-                            self.screen
-                                .buffer_str(tile, color_locking, pos_board(tile_pos));
+                        if let Some(xy) = pos_board(tile_pos) {
+                            self.screen.buffer_str(tile, color_locking, xy);
                         }
                     }
                 }
@@ -769,7 +840,7 @@ impl Renderer for DiffPrintRenderer {
                             "         ██         ",
                         ],
                     };
-                    let color_lineclear = get_color(&NonZeroU8::try_from(255).unwrap());
+                    let color_lineclear = get_color(NonZeroU8::try_from(255).unwrap());
                     let percent = elapsed.as_secs_f64() / line_clear_duration.as_secs_f64();
                     let max_idx = f64::from(i32::try_from(animation_lineclear.len() - 1).unwrap());
                     let idx = if (0.0..=1.0).contains(&percent) {

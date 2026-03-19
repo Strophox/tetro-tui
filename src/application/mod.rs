@@ -6,13 +6,20 @@ use std::{
     io::{self, Read, Write},
     num::{NonZeroU32, NonZeroUsize},
     path::PathBuf,
+    time::Duration,
 };
 
-use crossterm::{cursor, event::KeyboardEnhancementFlags, style, terminal, ExecutableCommand};
+use crossterm::{
+    cursor::{self, MoveTo},
+    event::KeyboardEnhancementFlags,
+    style,
+    terminal::{self, Clear, ClearType},
+    ExecutableCommand,
+};
 
 use falling_tetromino_engine::{
     Board, Button, DelayParameters, ExtDuration, FeedbackVerbosity, Game, GameBuilder,
-    GameEndCause, InGameTime, Input, Phase, Stat, Tetromino,
+    GameEndCause, InGameTime, Input, Stat, Tetromino,
 };
 
 use crate::{
@@ -255,34 +262,6 @@ pub struct ScoresEntry {
     pieces_locked: [u32; Tetromino::VARIANTS.len()],
     fall_delay_reached: ExtDuration,
     lock_delay_reached: Option<ExtDuration>,
-}
-
-impl ScoresEntry {
-    fn new(game: &Game, game_meta_data: &GameMetaData) -> ScoresEntry {
-        let (end_cause, was_win) = if let Phase::GameEnd { cause, is_win } = game.phase() {
-            (cause.clone(), *is_win)
-        } else {
-            // FIXME: This should never happen.
-            (GameEndCause::Forfeit, false)
-        };
-
-        ScoresEntry {
-            game_meta_data: game_meta_data.clone(),
-            is_win: was_win,
-            end_cause,
-            time_elapsed: game.state().time,
-            pieces_locked: game.state().pieces_locked,
-            lineclears: game.state().lineclears,
-            fall_delay_reached: game.state().fall_delay,
-            lock_delay_reached: (game
-                .state()
-                .fall_delay_lowerbound_hit_at_n_lineclears
-                .is_some()
-                && !game.config.lock_delay_params.is_constant())
-            .then_some(game.state().lock_delay),
-            points_scored: game.state().score,
-        }
-    }
 }
 
 #[derive(
@@ -865,9 +844,45 @@ impl<T: Write> Application<T> {
                 MenuUpdate::Pop => {
                     if menu_stack.len() > 1 {
                         menu_stack.pop();
+
+                        // FIXME: Abandoned menu transition 2.
+                        // let (x_main, y_main) = Self::fetch_main_xy();
+                        // /*
+                        //  0      /1   /2   /3
+                        // 0,0  1,0  2,0  3,0
+                        // 0,1  1,1  2,1  3,1/-4
+                        // 0,2  1,2  2,2  3,2/-5
+                        // 0,3  1,3  2,3  3,3/-6
+                        //  */
+                        // for xplusy in 0 ..= (Self::W_MAIN/2).saturating_sub(1) + (Self::H_MAIN).saturating_sub(1) {
+                        //     for x in xplusy.saturating_sub((Self::H_MAIN).saturating_sub(1)) ..= (Self::W_MAIN/2).saturating_sub(1) {
+                        //         let y = xplusy.saturating_sub(x);
+                        //         self.term
+                        //             .queue(MoveTo(x_main + 2 * x, y_main + y))?
+                        //             .queue(Print("  "))?;
+                        //     }
+                        //     self.term.flush()?;
+                        //     std::thread::sleep(Duration::from_secs_f32(1./120.0));
+                        // }
+
+                        // FIXME: Abandoned menu transition 1.
+                        // let (x_main, y_main) = Self::fetch_main_xy();
+                        // for x in 0..Self::W_MAIN/2 {
+                        //     for y in 0..Self::H_MAIN {
+                        //         self.term
+                        //             .queue(MoveTo(x_main + 2 * x, y_main + y))?
+                        //             .queue(Print("  "))?;
+                        //     }
+                        //     self.term.flush()?;
+                        //     std::thread::sleep(Duration::from_secs_f32(1./240.0));
+                        // }
                     }
                 }
                 MenuUpdate::Push(menu) => {
+                    if matches!(menu, Menu::Quit) {
+                        break;
+                    }
+
                     if matches!(
                         menu,
                         Menu::Title
@@ -877,6 +892,57 @@ impl<T: Write> Application<T> {
                     ) {
                         menu_stack.clear();
                     }
+
+                    if matches!(menu, Menu::GameOver(_)) {
+                        let h_console = terminal::size()?.1;
+                        for y in (0..h_console).rev() {
+                            self.term
+                                .execute(MoveTo(0, y))?
+                                .execute(Clear(ClearType::CurrentLine))?;
+                            std::thread::sleep(Duration::from_secs_f32(1. / 60.0));
+                        }
+                    } else if matches!(menu, Menu::GameComplete(_)) {
+                        let h_console = terminal::size()?.1;
+                        for y in 0..h_console {
+                            self.term
+                                .execute(MoveTo(0, y))?
+                                .execute(Clear(ClearType::CurrentLine))?;
+                            std::thread::sleep(Duration::from_secs_f32(1. / 60.0));
+                        }
+                    } else {
+                        // FIXME: Abandoned menu transition 2.
+                        // let (x_main, y_main) = Self::fetch_main_xy();
+                        // /*
+                        //  0      /1   /2   /3
+                        // 0,0  1,0  2,0  3,0
+                        // 0,1  1,1  2,1  3,1/-4
+                        // 0,2  1,2  2,2  3,2/-5
+                        // 0,3  1,3  2,3  3,3/-6
+                        //  */
+                        // for xplusy in (0 ..= (Self::W_MAIN/2).saturating_sub(1) + (Self::H_MAIN).saturating_sub(1)).rev() {
+                        //     for x in xplusy.saturating_sub((Self::H_MAIN).saturating_sub(1)) ..= (Self::W_MAIN/2).saturating_sub(1) {
+                        //         let y = xplusy.saturating_sub(x);
+                        //         self.term
+                        //             .queue(MoveTo(x_main + 2 * x, y_main + y))?
+                        //             .queue(Print("  "))?;
+                        //     }
+                        //     self.term.flush()?;
+                        //     std::thread::sleep(Duration::from_secs_f32(1./120.0));
+                        // }
+
+                        // FIXME: Abandoned menu transition 1.
+                        // let (x_main, y_main) = Self::fetch_main_xy();
+                        // for x in (0..Self::W_MAIN/2).rev() {
+                        //     for y in 0..Self::H_MAIN {
+                        //         self.term
+                        //             .queue(MoveTo(x_main + 2 * x, y_main + y))?
+                        //             .queue(Print("  "))?;
+                        //     }
+                        //     self.term.flush()?;
+                        //     std::thread::sleep(Duration::from_secs_f32(1./240.0));
+                        // }
+                    }
+
                     menu_stack.push(menu);
                 }
             }

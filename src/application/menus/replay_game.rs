@@ -293,7 +293,7 @@ impl<T: Write> Application<T> {
                                                                     game.phase(),
                                                                     Phase::GameEnd {
                                                                         cause:
-                                                                            GameEndCause::Forfeit,
+                                                                            GameEndCause::Forfeit { .. },
                                                                         ..
                                                                     }
                                                                 )
@@ -519,7 +519,9 @@ impl<T: Write> Application<T> {
                                             }
 
                                             // [Enter]: Start playable game from here!
-                                            (KeyCode::Enter | KeyCode::Char('e' | 'E'), _) => {
+                                            (KeyCode::Enter | KeyCode::Char('e' | 'E'), _)
+                                                if !game.has_ended() =>
+                                            {
                                                 // We yank the *exact* gamestate. Leave some dummy in its place that shouldn't be used/relevant...
                                                 let the_game = std::mem::replace(
                                                     &mut game,

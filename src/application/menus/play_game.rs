@@ -8,7 +8,6 @@ use crossterm::{
     cursor::MoveTo,
     event::{self, KeyCode, KeyEvent, KeyEventKind, KeyModifiers},
     style::Print,
-    terminal::{self, Clear, ClearType},
     ExecutableCommand,
 };
 use falling_tetromino_engine::{
@@ -119,10 +118,26 @@ impl<T: Write> Application<T> {
             if let Phase::GameEnd { cause, is_win } = game.phase() {
                 // Game ended, cannot actually continue playing;
                 // Convert to scoreboard entry and return appropriate game-ended menu.
-                let scores_entry = ScoresEntry::new(game, game_meta_data);
+                let scores_entry = ScoresEntry {
+                    game_meta_data: game_meta_data.clone(),
+                    is_win: *is_win,
+                    end_cause: cause.clone(),
+                    time_elapsed: game.state().time,
+                    pieces_locked: game.state().pieces_locked,
+                    lineclears: game.state().lineclears,
+                    fall_delay_reached: game.state().fall_delay,
+                    lock_delay_reached: (game
+                        .state()
+                        .fall_delay_lowerbound_hit_at_n_lineclears
+                        .is_some()
+                        && !game.config.lock_delay_params.is_constant())
+                    .then_some(game.state().lock_delay),
+                    points_scored: game.state().score,
+                };
 
                 let compressed_game_input_history = CompressedInputHistory::new(game_input_history);
-                let forfeit = matches!(cause, GameEndCause::Forfeit).then_some(game.state().time);
+                let forfeit =
+                    matches!(cause, GameEndCause::Forfeit { .. }).then_some(game.state().time);
 
                 let game_restoration_data =
                     GameRestorationData::new(game, compressed_game_input_history, forfeit);
@@ -296,7 +311,7 @@ impl<T: Write> Application<T> {
                                                                     game.phase(),
                                                                     Phase::GameEnd {
                                                                         cause:
-                                                                            GameEndCause::Forfeit,
+                                                                            GameEndCause::Forfeit { .. },
                                                                         ..
                                                                     }
                                                                 )
@@ -515,24 +530,7 @@ impl<T: Write> Application<T> {
             let _v = self.term.execute(event::PopKeyboardEnhancementFlags);
         }
 
-        if let Phase::GameEnd { cause: _, is_win } = game.phase() {
-            let h_console = terminal::size()?.1;
-            if *is_win {
-                for i in 0..h_console {
-                    self.term
-                        .execute(MoveTo(0, i))?
-                        .execute(Clear(ClearType::CurrentLine))?;
-                    std::thread::sleep(Duration::from_secs_f32(0.01));
-                }
-            } else {
-                for i in (0..h_console).rev() {
-                    self.term
-                        .execute(MoveTo(0, i))?
-                        .execute(Clear(ClearType::CurrentLine))?;
-                    std::thread::sleep(Duration::from_secs_f32(0.01));
-                }
-            };
-        } else {
+        if !game.has_ended() {
             // Game not done:.
             // Manually release any pressed buttons to avoid weird persistent-buttonpress behavior.
             let unpress_time = game.state().time;
