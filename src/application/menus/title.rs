@@ -26,6 +26,8 @@ impl<T: Write> Application<T> {
             Menu::Quit,
         ];
         let mut selected = 0usize;
+        let mut dynamic_title_style = 1isize;
+        let mut dynamic_color_offset = 0isize;
         loop {
             let w_main: usize = Self::W_MAIN.into();
             let (x_main, y_main) = Self::fetch_main_xy();
@@ -72,8 +74,11 @@ impl<T: Write> Application<T> {
                                 y_main + y_selection + u16::try_from(dy).unwrap(),
                             ))?;
 
-                            let color = color_tetromino_rainbow
-                                [(dx + dy) / 2 % color_tetromino_rainbow.len()];
+                            let color = color_tetromino_rainbow[(((dx + dy) as isize
+                                + dynamic_color_offset)
+                                / 2)
+                            .rem_euclid(color_tetromino_rainbow.len() as isize)
+                                as usize];
 
                             self.term
                                 .queue(PrintStyledContent(bchar.to_string().with(color)))?;
@@ -129,7 +134,9 @@ impl<T: Write> Application<T> {
                                 y_main + y_selection + u16::try_from(dy).unwrap(),
                             ))?;
 
-                            let color = match (selected + 1) % 2 {
+                            let color = match dynamic_title_style
+                                .rem_euclid(Self::W_MAIN as isize + 2)
+                            {
                                 // Default title colors.
                                 0 => {
                                     if c_char == ' ' {
@@ -151,19 +158,24 @@ impl<T: Write> Application<T> {
                                     if co_char == ' ' {
                                         Color::Reset
                                     } else {
-                                        color_tetromino_rainbow[co_char
+                                        color_tetromino_rainbow[(co_char
                                             .to_string()
-                                            .parse::<usize>()
+                                            .parse::<isize>()
                                             .unwrap()
-                                            % color_tetromino_rainbow.len()]
+                                            + dynamic_color_offset)
+                                            .rem_euclid(color_tetromino_rainbow.len() as isize)
+                                            as usize]
                                     }
                                 }
                                 // FIXME: unused code.
-                                2 => {
-                                    color_tetromino_rainbow
-                                        [(dx + dy) / 2 % color_tetromino_rainbow.len()]
+                                n => {
+                                    let width = n - 1;
+                                    color_tetromino_rainbow[(((dx + dy) as isize
+                                        + dynamic_color_offset)
+                                        / width)
+                                        .rem_euclid(color_tetromino_rainbow.len() as isize)
+                                        as usize]
                                 }
-                                _ => unreachable!(),
                             };
 
                             self.term
@@ -241,26 +253,42 @@ impl<T: Write> Application<T> {
                     kind: KeyEventKind::Press | KeyEventKind::Repeat,
                     ..
                 }) => {
-                    if !selection.is_empty() {
-                        selected += selection.len() - 1;
-                    }
+                    selected += selection.len() - 1;
+                    dynamic_color_offset -= 1;
                 }
+
                 // Move selector down.
                 Event::Key(KeyEvent {
                     code: KeyCode::Down | KeyCode::Char('j' | 'J'),
                     kind: KeyEventKind::Press | KeyEventKind::Repeat,
                     ..
                 }) => {
-                    if !selection.is_empty() {
-                        selected += 1;
-                    }
+                    selected += 1;
+                    dynamic_color_offset += 1;
                 }
+
+                // Move l.
+                Event::Key(KeyEvent {
+                    code: KeyCode::Left | KeyCode::Char('h' | 'H'),
+                    kind: KeyEventKind::Press | KeyEventKind::Repeat,
+                    ..
+                }) => {
+                    dynamic_title_style -= 1;
+                }
+
+                // Move r.
+                Event::Key(KeyEvent {
+                    code: KeyCode::Right | KeyCode::Char('l' | 'L'),
+                    kind: KeyEventKind::Press | KeyEventKind::Repeat,
+                    ..
+                }) => {
+                    dynamic_title_style += 1;
+                }
+
                 // Other event: don't care.
                 _ => {}
             }
-            if !selection.is_empty() {
-                selected = selected.rem_euclid(selection.len());
-            }
+            selected = selected.rem_euclid(selection.len());
         }
     }
 }

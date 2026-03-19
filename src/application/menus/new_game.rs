@@ -106,7 +106,7 @@ impl<T: Write> Application<T> {
             if self.settings.new_game.experimental_mode_unlocked {
                 game_presets.push((
                     game_mode_presets::ascent(),
-                    "(experimental; needs 180° rot.) Per aspera ad astra".to_owned(),
+                    "(experimental; req. Ocular + 180° rot.)".to_owned(),
                 ))
             }
             // First part: rendering the menu.

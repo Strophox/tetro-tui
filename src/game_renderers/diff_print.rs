@@ -12,7 +12,7 @@ use crossterm::{
 };
 
 use falling_tetromino_engine::{
-    Button, Coord, Feedback, InGameTime, Orientation, Phase, Stat, Tetromino, TileTypeID,
+    Button, Coord, Feedback, InGameTime, Orientation, Phase, PieceData, Stat, Tetromino, TileTypeID,
 };
 
 use super::*;
@@ -575,8 +575,8 @@ impl Renderer for DiffPrintRenderer {
         }
 
         // If a piece is in play.
-        if let falling_tetromino_engine::Phase::PieceInPlay {
-            piece_data: falling_tetromino_engine::PieceData { piece, .. },
+        if let Phase::PieceInPlay {
+            piece_data: PieceData { piece, .. },
             ..
         } = game.phase()
         {
