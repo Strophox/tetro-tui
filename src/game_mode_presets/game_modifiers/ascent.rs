@@ -57,7 +57,7 @@ pub fn build(builder: &GameBuilder) -> Game {
 
             let has_camera_adjust_period_elapsed =
                 state.time.saturating_sub(timepoint_camera_adjusted) >= timeperiod_camera_adjust;
-            let hit_camera_top = Game::SKYLINE_HEIGHT - 5 <= piece.position.1;
+            let hit_camera_top = Game::LOCK_OUT_HEIGHT - 5 <= (piece.position.1 as usize);
 
             // Ascending virtual infinite board.
             if hit_camera_top && has_camera_adjust_period_elapsed {
@@ -74,7 +74,7 @@ pub fn build(builder: &GameBuilder) -> Game {
             if matches!(
                 point,
                 UpdatePoint::PiecePlayed(Input::Activate(
-                    Button::RotateLeft | Button::RotateAround | Button::RotateRight
+                    Button::RotateLeft | Button::Rotate180 | Button::RotateRight
                 ))
             ) {
                 let piece_tiles_coords = piece.tiles().map(|(coord, _)| coord);
@@ -86,10 +86,9 @@ pub fn build(builder: &GameBuilder) -> Game {
                         };
                         let i = tiletypeid.get();
                         if i <= 7 {
-                            let j = if piece_tiles_coords
-                                .iter()
-                                .any(|(x_p, y_p)| x_p.abs_diff(x) + y_p.abs_diff(y) <= 1)
-                            {
+                            let j = if piece_tiles_coords.iter().any(|&(x_p, y_p)| {
+                                (x_p as usize).abs_diff(x) + (y_p as usize).abs_diff(y) <= 1
+                            }) {
                                 state.score += 1;
                                 254
                             } else {

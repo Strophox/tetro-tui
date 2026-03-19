@@ -81,7 +81,7 @@ impl GraphicsSettings {
             palette_active: 0,
             palette_active_lockedtiles: 0,
             show_effects: true,
-            game_fps: 30.0,
+            game_fps: 24.0,
             glyphset: Glyphset::Elektronika_60,
             show_shadow_piece: false,
             show_button_state: false,

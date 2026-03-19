@@ -445,12 +445,9 @@ impl Default for Settings {
     fn default() -> Self {
         let graphics_slots = vec![
             ("Default".to_owned(), GraphicsSettings::default()),
-            ("Extra Focus".to_owned(), GraphicsSettings::extra_focus()),
+            ("Focus+".to_owned(), GraphicsSettings::extra_focus()),
             ("Guideline".to_owned(), GraphicsSettings::guideline()),
-            (
-                "Compatibility".to_owned(),
-                GraphicsSettings::compatibility(),
-            ),
+            ("High Compat.".to_owned(), GraphicsSettings::compatibility()),
             (
                 "Elektronika 60".to_owned(),
                 GraphicsSettings::elektronika_60(),
@@ -470,16 +467,13 @@ impl Default for Settings {
         ];
         let keybinds_slots = vec![
             ("Default".to_owned(), Keybinds::default_tetro()),
-            ("Extra Control".to_owned(), Keybinds::extra_control()),
+            ("Control+".to_owned(), Keybinds::extra_control()),
             ("Guideline".to_owned(), Keybinds::guideline()),
             ("Vim".to_owned(), Keybinds::vim()),
         ];
         let gameplay_slots = vec![
             ("Default".to_owned(), GameplaySettings::default()),
-            (
-                "Extra Finesse".to_owned(),
-                GameplaySettings::extra_finesse(),
-            ),
+            ("Finesse+".to_owned(), GameplaySettings::extra_finesse()),
             ("Guideline".to_owned(), GameplaySettings::guideline()),
             ("NES".to_owned(), GameplaySettings::nes()),
             ("Gameboy".to_owned(), GameplaySettings::gameboy()),

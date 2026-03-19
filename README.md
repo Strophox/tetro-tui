@@ -128,7 +128,7 @@ Then you can run the game with `tetro-tui`.
 > - Hold piece,
 > - Higher score for higher lineclears and spins ('allspin')
 > - Game reproducibility (PRNG),
-> - Available player actions: MoveLeft, MoveRight; RotateLeft, RotateRight, RotateAround (180°); DropSoft, DropHard, TeleDown ('Sonic drop'), TeleLeft, TeleRight, HoldPiece.
+> - Available player actions: MoveLeft, MoveRight; RotateLeft, RotateRight, Rotate180 (180°); DropSoft, DropHard, TeleDown ('Sonic drop'), TeleLeft, TeleRight, HoldPiece.
 > 
 > </details>
 

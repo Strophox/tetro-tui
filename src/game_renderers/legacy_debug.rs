@@ -74,7 +74,7 @@ impl Renderer for DebugRenderer {
         } = game.phase()
         {
             for ((x, y), tile_type_id) in piece.tiles() {
-                board[y][x] = Some(tile_type_id);
+                board[y as usize][x as usize] = Some(tile_type_id);
             }
         }
         term.queue(cursor::MoveTo(0, 0))?

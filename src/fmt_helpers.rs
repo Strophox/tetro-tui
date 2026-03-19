@@ -110,7 +110,7 @@ pub fn fmt_button(b: Button) -> &'static str {
         B::MoveRight => "→",
         B::RotateLeft => "↺",
         B::RotateRight => "↻",
-        B::RotateAround => "↔",
+        B::Rotate180 => "↔",
         B::DropSoft => "↓",
         B::DropHard => "⤓",
         B::TeleDown => "⇓",
@@ -125,15 +125,15 @@ pub fn fmt_button_ascii(b: Button) -> &'static str {
     match b {
         B::MoveLeft => "<",
         B::MoveRight => ">",
-        B::RotateLeft => "l",
-        B::RotateRight => "r",
-        B::RotateAround => "a",
+        B::RotateLeft => "L",
+        B::RotateRight => "R",
+        B::Rotate180 => "O",
         B::DropSoft => "v",
         B::DropHard => "!",
         B::TeleDown => "w",
         B::TeleLeft => "{",
         B::TeleRight => "}",
-        B::HoldPiece => "h",
+        B::HoldPiece => "H",
     }
 }
 
@@ -243,7 +243,7 @@ pub fn get_play_keybinds_legend(keybinds: &Keybinds) -> KeybindsLegend {
     let icons_rotate = format!(
         "{}{}{}",
         fb(Button::RotateLeft),
-        fb(Button::RotateAround),
+        fb(Button::Rotate180),
         fb(Button::RotateRight)
     );
     let icons_drop = format!("{}{}", fb(Button::DropSoft), fb(Button::DropHard));

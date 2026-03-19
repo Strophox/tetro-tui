@@ -242,6 +242,7 @@ impl<T: Write> Application<T> {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
                         self.settings.gameplay_mut().rotation_system =
                             match self.settings.gameplay().rotation_system {
+                                RotationSystem::Raw => RotationSystem::Ocular, // Set to Ocular.
                                 RotationSystem::Ocular => RotationSystem::ClassicL,
                                 RotationSystem::ClassicL => RotationSystem::ClassicR,
                                 RotationSystem::ClassicR => RotationSystem::Super,
@@ -306,6 +307,7 @@ impl<T: Write> Application<T> {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
                         self.settings.gameplay_mut().rotation_system =
                             match self.settings.gameplay().rotation_system {
+                                RotationSystem::Raw => RotationSystem::Ocular, // Set to Ocular.
                                 RotationSystem::Ocular => RotationSystem::Super,
                                 RotationSystem::Super => RotationSystem::ClassicR,
                                 RotationSystem::ClassicR => RotationSystem::ClassicL,

@@ -415,7 +415,12 @@ impl Renderer for DiffPrintRenderer {
         let (x_rep_spd, y_rep_spd) = (1, 11);
         let (x_rep_len, y_rep_len) = (1, 12);
         let (x_buttonst, y_buttonst) = (48, 17);
-        let pos_board = |(x, y)| (x_board + 2 * x, y_board + Game::SKYLINE_HEIGHT - y);
+        let pos_board = |(x, y)| {
+            (
+                x_board + 2 * (x as usize),
+                y_board + Game::LOCK_OUT_HEIGHT - (y as usize),
+            )
+        };
 
         // Color helpers.
         let get_color =
@@ -489,7 +494,7 @@ impl Renderer for DiffPrintRenderer {
                 Ok(Button::MoveRight),
                 Err(" "),
                 Ok(Button::RotateLeft),
-                Ok(Button::RotateAround),
+                Ok(Button::Rotate180),
                 Ok(Button::RotateRight),
                 Err(" "),
                 Ok(Button::DropHard),
@@ -567,7 +572,7 @@ impl Renderer for DiffPrintRenderer {
                         self.screen.buffer_str(
                             tile_ground,
                             get_color_locked(tile_type_id),
-                            pos_board((x, y)),
+                            pos_board((isize::try_from(x).unwrap(), isize::try_from(y).unwrap())),
                         );
                     }
                 }
@@ -585,7 +590,7 @@ impl Renderer for DiffPrintRenderer {
                 for (tile_pos, tile_type_id) in
                     piece.teleported(&game.state().board, (0, -1)).tiles()
                 {
-                    if tile_pos.1 <= Game::SKYLINE_HEIGHT {
+                    if (tile_pos.1 as usize) <= Game::LOCK_OUT_HEIGHT {
                         self.screen.buffer_str(
                             tile_shadow,
                             get_color(&tile_type_id),
@@ -597,7 +602,7 @@ impl Renderer for DiffPrintRenderer {
 
             // Draw active piece.
             for (tile_pos, tile_type_id) in piece.tiles() {
-                if tile_pos.1 <= Game::SKYLINE_HEIGHT {
+                if (tile_pos.1 as usize) <= Game::LOCK_OUT_HEIGHT {
                     self.screen.buffer_str(
                         tile_active,
                         get_color(&tile_type_id),
@@ -612,8 +617,8 @@ impl Renderer for DiffPrintRenderer {
             let color = get_color(&next_piece.tiletypeid());
             for (x, y) in next_piece.minos(Orientation::N) {
                 let pos = (
-                    if *next_piece == Tetromino::O { 2 } else { 0 } + x_preview + 2 * x,
-                    y_preview - y,
+                    (if *next_piece == Tetromino::O { 2 } else { 0 } + x_preview + 2 * x) as usize,
+                    (y_preview - y) as usize,
                 );
                 self.screen.buffer_str(tile_preview, color, pos);
             }
@@ -711,7 +716,7 @@ impl Renderer for DiffPrintRenderer {
                     };
 
                     for (tile_pos, _tile_type_id) in piece.tiles() {
-                        if tile_pos.1 <= Game::SKYLINE_HEIGHT {
+                        if (tile_pos.1 as usize) <= Game::LOCK_OUT_HEIGHT {
                             self.screen
                                 .buffer_str(tile, color_locking, pos_board(tile_pos));
                         }
@@ -775,7 +780,7 @@ impl Renderer for DiffPrintRenderer {
                         continue;
                     };
                     for y_line in y_coords {
-                        let pos = (x_board, y_board + Game::SKYLINE_HEIGHT - *y_line);
+                        let pos = (x_board, y_board + Game::LOCK_OUT_HEIGHT - *y_line);
                         self.screen
                             .buffer_str(animation_lineclear[idx], color_lineclear, pos);
                     }
@@ -790,12 +795,12 @@ impl Renderer for DiffPrintRenderer {
                         continue;
                     }
                     for ((x_tile, y_tile), tile_type_id) in new_piece.tiles() {
-                        for dy in y_tile..Game::SKYLINE_HEIGHT {
+                        for dy in (y_tile as usize)..Game::LOCK_OUT_HEIGHT {
                             self.hard_drop_tiles.push((
                                 HardDropTile {
                                     creation_time: *feedback_time,
-                                    pos: (x_tile, dy),
-                                    y_offset: dy - y_tile,
+                                    pos: (x_tile, isize::try_from(dy).unwrap()),
+                                    y_offset: dy - (y_tile as usize),
                                     tile_type_id,
                                 },
                                 true,

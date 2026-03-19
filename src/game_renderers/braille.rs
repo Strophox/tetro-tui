@@ -59,7 +59,7 @@ impl Renderer for BrailleRenderer {
         let mut board = *board;
         if let Some(piece) = game.phase().piece() {
             for ((x, y), tile_type_id) in piece.tiles() {
-                board[y][x] = Some(tile_type_id);
+                board[y as usize][x as usize] = Some(tile_type_id);
             }
         }
 
