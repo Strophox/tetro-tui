@@ -14,7 +14,7 @@ A cross-platform terminal game where tetrominos fall and stack.
 
 ## Ways to Run
 
-### Download
+### Download + run
 
 1. [Download a release](<https://github.com/Strophox/tetro-tui/releases>) for your platform (windows, linux/unix/macos) if available.
 2. Open your favorite terminal (preferably [Kitty](<https://sw.kovidgoyal.net/kitty/>) or [Alacritty](<https://alacritty.org/>)).
@@ -37,6 +37,13 @@ cargo install tetro-tui
 Then you can run the game with `tetro-tui`.
 
 
+<!-- TODO: Elaborate.
+### AUR Package
+
+https://aur.archlinux.org/packages/tetro-tui-bin
+-->
+
+
 ## FAQ
 
 
@@ -51,10 +58,10 @@ Then you can run the game with `tetro-tui`.
 ### How good is customization?
 
 > For what started as a small project, solid:
-> - **Graphics:** Unicode/ASCII/Electronika, 10 default color palettes, FPS, toggle effects...
-> - **Keybinds:** to your heart's desire.
+> - **Graphics:** Unicode/ASCII/Electronika, a handful of default color palettes, FPS, toggle effects...
+> - **Game Keybinds:** to your heart's desire.
 > - **Gameplay/Handling:** Rotation system, tetromino generator, preview count; DAS, ARR, SDF, LDC, ARE (timings), IRS/IHS
-> - **Gamemode selection:** 40-Lines, Marathon, Time Trial, Master; Puzzle, Cheese, Combo; Custom mode (choose initial gravity, gravity progress on/off, custom/no goal, *commandline options:* start board or seed).
+> - **Gamemode selection:** 40-Lines, Marathon, Master, Puzzle, Cheese, Combo; Custom mode (choose initial gravity, gravity progress on/off, custom/no goal, *commandline options:* start board or seed).
 >
 > <details>
 > <summary>
@@ -99,7 +106,7 @@ Then you can run the game with `tetro-tui`.
 > Precisely this issue is fixed with 'kitty protocol' / ['progressive enhancement'](<https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement>) / 'enhanced keyboard events'.
 
 
-### *Experienced Stackers:* How 'polished' are the precision mechanics?
+### *Experienced Stackers:* How 'polished' are the mechanics?
 
 > <details>
 > <summary>
@@ -111,24 +118,25 @@ Then you can run the game with `tetro-tui`.
 > The engine aims to compete on the order of modern tetromino stackers;
 > It incorporates many features found in such games.
 > Experienced players may be familiar with most of the following mechanics:
-> - Variable gravity/fall delay, possibly in-between 'frames', '20G' (fall delay = 0s),
-> - Simple but flexible programming of custom fall and lock delay progressions (`DelayParameters`),
-> - (Arbitrary) piece preview,
-> - Pre-spawn action toggle ('Initial Hold/Rotation System'),
-> - Rotation systems: 'Ocular' (engine-specific, playtested), 'Classic', 'Super',
-> - Tetromino generators: 'Uniform', 'Stock' (generalized Bag), 'Recency' (history), 'Balancerelative',
-> - Spawn delay (ARE),
-> - Delayed auto-shift (DAS),
-> - Auto-repeat rate (ARR),
-> - Soft drop factor (SDF),
-> - Lenient-lock-delay-reset toggle (reset lock delay even if rotation fails),
-> - Lock-reset-cap factor (~maximum time before lock delay cannot be reset),
-> - Line clear delay (LCD),
-> - Custom win/loss conditions based on stats: time, pieces, lines, score,
-> - Hold piece,
-> - Higher score for higher lineclears and spins ('allspin')
-> - Game reproducibility (PRNG),
-> - Available player actions: MoveLeft, MoveRight; RotateLeft, RotateRight, Rotate180 (180°); DropSoft, DropHard, TeleDown ('Sonic drop'), TeleLeft, TeleRight, HoldPiece.
+> - **Variable gravity/fall delay** (frame-agnostic); '20G' (= 0s fall delay),
+> - Simple but flexible programming of **custom fall and lock delay progressions** (`DelayParameters`),
+> - (Arbitrary) **piece preview**,
+> - **Pre-spawn actions** toggle ('Initial Hold/Rotation System'),
+> - **Rotation systems**: 'Ocular' (engine-specific, playtested), 'Classic', 'Super',
+> - **Tetromino generators**: 'Uniform', 'Stock' (generalized Bag), 'Recency' (history), 'Balancerelative',
+> - **Spawn delay** (ARE),
+> - **Delayed auto-shift** (DAS),
+> - **Auto-repeat rate** (ARR),
+> - **Soft drop factor** (SDF),
+> - **Lenient lock delay reset** toggle (reset lock delay even if rotate/move fails),
+> - **Ensure move delay less than lock delay** toggle (DAS/ARR automatically shortened when lock delay is very low),
+> - **Lock-reset-cap factor** (~maximum time before lock delay cannot be reset),
+> - **Line clear duration** (LCD),
+> - Custom **win/loss conditions based on stats**: time, pieces, lines, score,
+> - **Hold** piece,
+> - Higher **score** for larger lineclears and spins ('allspin')
+> - Game **reproducibility** (PRNG),
+> - Available player actions: MoveLeft, MoveRight; RotateLeft, RotateRight, Rotate180; DropSoft, DropHard, TeleDown ('Sonic drop'), TeleLeft, TeleRight, HoldPiece.
 > 
 > </details>
 
@@ -142,7 +150,7 @@ Then you can run the game with `tetro-tui`.
 > 
 > </summary>
 > 
-> - Custom **Ocular Rotation** System, instead of the 'odd' industry standard.
+> - Use of the intuitive/symmetrical **Ocular Rotation** System, instead of the 'odd' industry standard.
 > - Default controls set to **WASD + Arrow**.
 > - **Recency/History generator** instead of 'overdeterministic' 7-bag.
 > - **Scoring** system is different, more **simplified**.
@@ -150,7 +158,7 @@ Then you can run the game with `tetro-tui`.
 >   - Combos, but no back-to-back.
 >   - Exact formula is: `score_bonus = if is_perfect_clear{ 4 }else{ 1 } * if is_spin{ 2 }else{ 1 } * lineclears * 2 - 1 + (combo - 1)`
 > - Additional controls for Teleport Down (a.k.a. 'Sonic Drop') / Left / Right.
-> - Different lock reset implementation ('max 15 moves' vs. 'max 10⋅current lock delay')
+> - Different lock reset implementation ('max 15 moves' instead of 'max 10⋅current lock delay')
 > - Speed/Gravity/Fall curve slightly adapted.
 > 
 > </details>
