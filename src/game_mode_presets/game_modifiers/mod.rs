@@ -135,7 +135,7 @@ pub mod print_msgs {
                         init = true;
                     }
                     for msg in messages.iter() {
-                        msgs.push((state.time, Feedback::Text(msg.to_owned())));
+                        msgs.push((state.time, Feedback::Message(msg.to_owned())));
                     }
                 }
             }),
@@ -190,9 +190,9 @@ pub mod print_recency_tet_gen_stats {
                         .to_ascii_lowercase()
                     })
                     .join("");
-                msgs.push((state.time, Feedback::Text("".to_owned())));
-                msgs.push((state.time, Feedback::Text(str_piece_likelihood)));
-                msgs.push((state.time, Feedback::Text(str_piece_tallies)));
+                msgs.push((state.time, Feedback::Message("".to_owned())));
+                msgs.push((state.time, Feedback::Message(str_piece_likelihood)));
+                msgs.push((state.time, Feedback::Message(str_piece_tallies)));
                 // config.line_clear_duration = Duration::ZERO;
                 // config.spawn_delay = Duration::ZERO;
                 // state.board.remove(0);

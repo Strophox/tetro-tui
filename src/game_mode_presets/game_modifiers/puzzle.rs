@@ -1,8 +1,8 @@
 use std::{collections::VecDeque, num::NonZeroU8, time::Duration};
 
 use falling_tetromino_engine::{
-    Button, DelayParameters, Feedback, FeedbackMsg, Game, GameBuilder, GameModFn, GameOver, Input,
-    Line, Modifier, Phase, Stat, State, Tetromino, UpdatePoint,
+    Button, DelayParameters, Feedback, FeedbackMsg, Game, GameBuilder, GameEndCause, GameModFn,
+    Input, Line, Modifier, Phase, Stat, State, Tetromino, UpdatePoint,
 };
 
 pub const MOD_ID: &str = "puzzle";
@@ -21,7 +21,7 @@ pub fn build(builder: &GameBuilder) -> Game {
         // Game message.
         feedback_msgs.push((
             state.time,
-            Feedback::Text(if attempt == 1 {
+            Feedback::Message(if attempt == 1 {
                 format!(
                     "Stage {}: {}",
                     current_puzzle_idx + 1,
@@ -79,7 +79,8 @@ pub fn build(builder: &GameBuilder) -> Game {
                 // Run out of attempts, game over.
                 if !puzzle_done && current_puzzle_attempt == MAX_STAGE_ATTEMPTS {
                     *phase = Phase::GameEnd {
-                        result: Err(GameOver::Limit(Stat::LinesCleared(0))),
+                        cause: GameEndCause::Custom("Too many attempts".to_owned()),
+                        is_win: false,
                     };
                 } else {
                     if puzzle_done {
@@ -91,7 +92,10 @@ pub fn build(builder: &GameBuilder) -> Game {
                     if current_puzzle_idx == puzzles_len {
                         // Done with all puzzles, game completed.
                         *phase = Phase::GameEnd {
-                            result: Ok(Stat::PointsScored(puzzles_len.try_into().unwrap())),
+                            cause: GameEndCause::Limit(Stat::PointsScored(
+                                puzzles_len.try_into().unwrap(),
+                            )),
+                            is_win: true,
                         };
                     } else {
                         // Load in new puzzle.

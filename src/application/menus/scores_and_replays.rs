@@ -69,7 +69,7 @@ impl<T: Write> Application<T> {
                     "{} {} | {}{}{}",
                     lhs_annotation,
                     entry.game_meta_data.title,
-                    if entry.result.is_ok() { "" } else { "unf." },
+                    if entry.is_win { "" } else { "unf." },
                     fmt_comparison_stat(entry),
                     if opt_rep.is_some() { " | RP" } else { "" }
                 )

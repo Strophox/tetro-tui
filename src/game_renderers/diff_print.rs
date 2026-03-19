@@ -12,7 +12,7 @@ use crossterm::{
 };
 
 use falling_tetromino_engine::{
-    Button, Coord, Feedback, InGameTime, Orientation, Stat, Tetromino, TileTypeID,
+    Button, Coord, Feedback, InGameTime, Orientation, Phase, Stat, Tetromino, TileTypeID,
 };
 
 use super::*;
@@ -857,7 +857,7 @@ impl Renderer for DiffPrintRenderer {
                     *active = false;
                 }
 
-                Feedback::Text(string) => {
+                Feedback::Message(string) => {
                     self.buffered_text_msgs
                         .push((*feedback_time, string.clone()));
 
@@ -871,10 +871,16 @@ impl Renderer for DiffPrintRenderer {
                     *active = false;
                 }
 
-                Feedback::GameEnded { result } => {
-                    let text = match result {
-                        Ok(_stat) => "Game Complete!".to_owned(),
-                        Err(cause) => format!("{cause:?}..."),
+                Feedback::GameEnded { is_win } => {
+                    let text = if *is_win {
+                        "Game Complete!".to_owned()
+                    } else {
+                        if let Phase::GameEnd { cause, .. } = game.phase() {
+                            format!("{cause}...")
+                        } else {
+                            // FIXME: This should never happen.
+                            "Game Over!".to_owned()
+                        }
                     };
 
                     self.buffered_text_msgs.push((*feedback_time, text));

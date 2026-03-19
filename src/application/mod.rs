@@ -11,8 +11,8 @@ use std::{
 use crossterm::{cursor, event::KeyboardEnhancementFlags, style, terminal, ExecutableCommand};
 
 use falling_tetromino_engine::{
-    Board, Button, DelayParameters, ExtDuration, FeedbackVerbosity, Game, GameBuilder, GameOver,
-    GameResult, InGameTime, Input, Stat, Tetromino,
+    Board, Button, DelayParameters, ExtDuration, FeedbackVerbosity, Game, GameBuilder,
+    GameEndCause, InGameTime, Input, Phase, Stat, Tetromino,
 };
 
 use crate::{
@@ -247,7 +247,8 @@ impl<T> GameSave<T> {
 )]
 pub struct ScoresEntry {
     game_meta_data: GameMetaData,
-    result: GameResult,
+    end_cause: GameEndCause,
+    is_win: bool,
     time_elapsed: InGameTime,
     lineclears: u32,
     points_scored: u32,
@@ -258,8 +259,17 @@ pub struct ScoresEntry {
 
 impl ScoresEntry {
     fn new(game: &Game, game_meta_data: &GameMetaData) -> ScoresEntry {
+        let (end_cause, was_win) = if let Phase::GameEnd { cause, is_win } = game.phase() {
+            (cause.clone(), *is_win)
+        } else {
+            // FIXME: This should never happen.
+            (GameEndCause::Forfeit, false)
+        };
+
         ScoresEntry {
             game_meta_data: game_meta_data.clone(),
+            is_win: was_win,
+            end_cause,
             time_elapsed: game.state().time,
             pieces_locked: game.state().pieces_locked,
             lineclears: game.state().lineclears,
@@ -271,7 +281,6 @@ impl ScoresEntry {
                 && !game.config.lock_delay_params.is_constant())
             .then_some(game.state().lock_delay),
             points_scored: game.state().score,
-            result: game.result().unwrap_or(Err(GameOver::Forfeit)),
         }
     }
 }
@@ -789,7 +798,7 @@ impl<T: Write> Application<T> {
             // Sort by gamemode (name).
             pg1.game_meta_data.title.cmp(&pg2.game_meta_data.title).then_with(||
             // Sort by if gamemode was finished successfully.
-            pg1.result.is_ok().cmp(&pg2.result.is_ok()).reverse().then_with(|| {
+            pg1.is_win.cmp(&pg2.is_win).reverse().then_with(|| {
                 // Sort by comparison stat...
                 let o = match pg1.game_meta_data.comparison_stat.0 {
                     Stat::TimeElapsed(_)    => pg1.time_elapsed.cmp(&pg2.time_elapsed),

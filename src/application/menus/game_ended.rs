@@ -24,7 +24,8 @@ impl<T: Write> Application<T> {
     ) -> io::Result<MenuUpdate> {
         let ScoresEntry {
             game_meta_data,
-            result,
+            end_cause,
+            is_win,
             time_elapsed,
             lineclears,
             points_scored,
@@ -62,12 +63,12 @@ impl<T: Write> Application<T> {
         let animation_delay =
             std::time::Duration::from_secs_f64(1. / self.settings.graphics().game_fps);
 
-        if result.is_ok()
+        if *is_win
             && game_meta_data.title == "Marathon"
             && !self.settings.new_game.master_mode_unlocked
         {
             self.settings.new_game.master_mode_unlocked = true;
-        } else if result.is_ok()
+        } else if *is_win
             && game_meta_data.title == "Puzzle"
             && !self.settings.new_game.experimental_mode_unlocked
         {
@@ -102,60 +103,55 @@ impl<T: Write> Application<T> {
             let w_main = Self::W_MAIN.into();
             let (x_main, y_main) = Self::fetch_main_xy();
             let y_selection = Self::H_MAIN / 5;
-            match result {
-                Ok(_stat) => {
-                    let clear_type = if refresh_fully {
-                        refresh_fully = false;
-                        ClearType::All
-                    } else {
-                        ClearType::CurrentLine
-                    };
-                    self.term
-                        .queue(MoveTo(x_main, y_main + y_selection))?
-                        .queue(Clear(clear_type))?;
+            if *is_win {
+                let clear_type = if refresh_fully {
+                    refresh_fully = false;
+                    ClearType::All
+                } else {
+                    ClearType::CurrentLine
+                };
+                self.term
+                    .queue(MoveTo(x_main, y_main + y_selection))?
+                    .queue(Clear(clear_type))?;
 
-                    let line = format!(
-                        "{:^w_main$}",
-                        format!("++ Game Completed ({}) ++", game_meta_data.title)
-                    );
-                    for (x_offset, c) in line.chars().enumerate() {
-                        let added_offsets = timing_offset + x_offset;
-                        let mut rainbow_offset = added_offsets / coloring_width;
-                        // Some horrible hacking to make it look smoother + dithered on higher framerates.
-                        if self.settings.graphics().game_fps >= 42.0 {
-                            coloring_width = 9;
+                let line = format!(
+                    "{:^w_main$}",
+                    format!("++ Game Completed ({}) ++", game_meta_data.title)
+                );
+                for (x_offset, c) in line.chars().enumerate() {
+                    let added_offsets = timing_offset + x_offset;
+                    let mut rainbow_offset = added_offsets / coloring_width;
+                    // Some horrible hacking to make it look smoother + dithered on higher framerates.
+                    if self.settings.graphics().game_fps >= 42.0 {
+                        coloring_width = 9;
+                        rainbow_offset += 1;
+                        let modulod_offsets = added_offsets % coloring_width;
+                        if modulod_offsets == 0 {
+                            rainbow_offset -= 1;
+                        } else if modulod_offsets == coloring_width - 1 {
                             rainbow_offset += 1;
-                            let modulod_offsets = added_offsets % coloring_width;
-                            if modulod_offsets == 0 {
-                                rainbow_offset -= 1;
-                            } else if modulod_offsets == coloring_width - 1 {
-                                rainbow_offset += 1;
-                            }
                         }
-                        self.term
-                            .queue(MoveTo(
-                                x_main + u16::try_from(x_offset).unwrap(),
-                                y_main + y_selection,
-                            ))?
-                            .queue(PrintStyledContent(c.bold().with(
-                                color_tetromino_rainbow
-                                    [rainbow_offset % color_tetromino_rainbow.len()],
-                            )))?;
                     }
-                }
-
-                Err(cause) => {
                     self.term
-                        .queue(Clear(ClearType::All))?
-                        .queue(MoveTo(x_main, y_main + y_selection))?
-                        .queue(PrintStyledContent(
-                            format!(
-                                "{:^w_main$}",
-                                format!("-- Game Over ({}) by: {cause:?} --", game_meta_data.title)
-                            )
-                            .bold(),
-                        ))?;
+                        .queue(MoveTo(
+                            x_main + u16::try_from(x_offset).unwrap(),
+                            y_main + y_selection,
+                        ))?
+                        .queue(PrintStyledContent(c.bold().with(
+                            color_tetromino_rainbow[rainbow_offset % color_tetromino_rainbow.len()],
+                        )))?;
                 }
+            } else {
+                self.term
+                    .queue(Clear(ClearType::All))?
+                    .queue(MoveTo(x_main, y_main + y_selection))?
+                    .queue(PrintStyledContent(
+                        format!(
+                            "{:^w_main$}",
+                            format!("-- Game Over ({}): {end_cause} --", game_meta_data.title)
+                        )
+                        .bold(),
+                    ))?;
             }
 
             self.term

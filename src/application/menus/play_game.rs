@@ -12,7 +12,7 @@ use crossterm::{
     ExecutableCommand,
 };
 use falling_tetromino_engine::{
-    Button, Feedback, Game, GameOver, InGameTime, Input, UpdateGameError,
+    Button, Feedback, Game, GameEndCause, InGameTime, Input, Phase, UpdateGameError,
 };
 
 use crate::{
@@ -116,14 +116,13 @@ impl<T: Write> Application<T> {
         let menu_update = 'update_and_render: loop {
             // Start new iteration of [render->input->] loop.
 
-            if let Some(game_result) = game.result() {
+            if let Phase::GameEnd { cause, is_win } = game.phase() {
                 // Game ended, cannot actually continue playing;
                 // Convert to scoreboard entry and return appropriate game-ended menu.
                 let scores_entry = ScoresEntry::new(game, game_meta_data);
 
                 let compressed_game_input_history = CompressedInputHistory::new(game_input_history);
-                let forfeit =
-                    matches!(game_result, Err(GameOver::Forfeit)).then_some(game.state().time);
+                let forfeit = matches!(cause, GameEndCause::Forfeit).then_some(game.state().time);
 
                 let game_restoration_data =
                     GameRestorationData::new(game, compressed_game_input_history, forfeit);
@@ -132,7 +131,7 @@ impl<T: Write> Application<T> {
                     .entries
                     .push((scores_entry.clone(), Some(game_restoration_data)));
 
-                let menu = if game_result.is_ok() {
+                let menu = if *is_win {
                     Menu::GameComplete
                 } else {
                     Menu::GameOver
@@ -199,7 +198,7 @@ impl<T: Write> Application<T> {
 
                                     match game.update(update_target_time, Some(button_change)) {
                                         Ok(msgs) => game_renderer.push_game_feedback_msgs(msgs),
-                                        Err(UpdateGameError::GameEnded) => break 'wait,
+                                        Err(UpdateGameError::AlreadyEnded) => break 'wait,
                                         Err(UpdateGameError::TargetTimeInPast) => unreachable!(),
                                     }
                                 } else {
@@ -216,7 +215,7 @@ impl<T: Write> Application<T> {
 
                                     match game.update(update_target_time, Some(button_change)) {
                                         Ok(msgs) => game_renderer.push_game_feedback_msgs(msgs),
-                                        Err(UpdateGameError::GameEnded) => break 'wait,
+                                        Err(UpdateGameError::AlreadyEnded) => break 'wait,
                                         Err(UpdateGameError::TargetTimeInPast) => unreachable!(),
                                     }
 
@@ -230,7 +229,7 @@ impl<T: Write> Application<T> {
 
                                     match update_result {
                                         Ok(msgs) => game_renderer.push_game_feedback_msgs(msgs),
-                                        Err(UpdateGameError::GameEnded) => break 'wait,
+                                        Err(UpdateGameError::AlreadyEnded) => break 'wait,
                                         Err(UpdateGameError::TargetTimeInPast) => unreachable!(),
                                     }
                                 }
@@ -268,12 +267,17 @@ impl<T: Write> Application<T> {
 
                                             // [Ctrl+D]: Forfeit game.
                                             (KeyCode::Char('d' | 'D'), KeyModifiers::CONTROL) => {
-                                                game.forfeit();
+                                                match game.forfeit() {
+                                                    Ok(msgs) => {
+                                                        game_renderer.push_game_feedback_msgs(msgs)
+                                                    }
 
-                                                game_renderer.push_game_feedback_msgs([(
-                                                    game.state().time,
-                                                    Feedback::Text("Forfeit...".to_owned()),
-                                                )]);
+                                                    // We do not care if game ended or time is in past here.
+                                                    Err(
+                                                        UpdateGameError::AlreadyEnded
+                                                        | UpdateGameError::TargetTimeInPast,
+                                                    ) => {}
+                                                };
 
                                                 break 'wait;
                                             }
@@ -289,8 +293,12 @@ impl<T: Write> Application<T> {
                                                                 game,
                                                                 game_input_history.clone(),
                                                                 matches!(
-                                                                    game.result(),
-                                                                    Some(Err(GameOver::Forfeit))
+                                                                    game.phase(),
+                                                                    Phase::GameEnd {
+                                                                        cause:
+                                                                            GameEndCause::Forfeit,
+                                                                        ..
+                                                                    }
                                                                 )
                                                                 .then_some(game.state().time),
                                                             ),
@@ -300,7 +308,9 @@ impl<T: Write> Application<T> {
 
                                                 game_renderer.push_game_feedback_msgs([(
                                                     game.state().time,
-                                                    Feedback::Text("(Stored savepoint)".to_owned()),
+                                                    Feedback::Message(
+                                                        "(Stored savepoint)".to_owned(),
+                                                    ),
                                                 )]);
                                             }
 
@@ -333,7 +343,9 @@ impl<T: Write> Application<T> {
                                                 game_renderer.reset_game_associated_state();
                                                 game_renderer.push_game_feedback_msgs([(
                                                     game.state().time,
-                                                    Feedback::Text("(Loaded savepoint)".to_owned()),
+                                                    Feedback::Message(
+                                                        "(Loaded savepoint)".to_owned(),
+                                                    ),
                                                 )]);
 
                                                 // What we do here is rather unholy, so we have to adapt the game loop state itself.
@@ -349,7 +361,7 @@ impl<T: Write> Application<T> {
 
                                                 game_renderer.push_game_feedback_msgs([(
                                                     game.state().time,
-                                                    Feedback::Text(format!(
+                                                    Feedback::Message(format!(
                                                         "(Seed stored: {})",
                                                         game.state_init().seed
                                                     )),
@@ -369,14 +381,14 @@ impl<T: Write> Application<T> {
                                                 if self.session_data.blindfold_enabled {
                                                     game_renderer.push_game_feedback_msgs([(
                                                         game.state().time,
-                                                        Feedback::Text(
+                                                        Feedback::Message(
                                                             "Blindfolded! [Ctrl+Alt+B]".to_owned(),
                                                         ),
                                                     )]);
                                                 } else {
                                                     game_renderer.push_game_feedback_msgs([(
                                                         game.state().time,
-                                                        Feedback::Text(
+                                                        Feedback::Message(
                                                             "Blindfolds removed [Ctrl+Alt+B]"
                                                                 .to_owned(),
                                                         ),
@@ -438,7 +450,7 @@ impl<T: Write> Application<T> {
 
                 // We do not care if game ended or time is in past here:
                 // We just care about best-effort updating state to show it to player.
-                Err(UpdateGameError::GameEnded | UpdateGameError::TargetTimeInPast) => {}
+                Err(UpdateGameError::AlreadyEnded | UpdateGameError::TargetTimeInPast) => {}
             }
 
             // Render current state of the game.
@@ -503,9 +515,9 @@ impl<T: Write> Application<T> {
             let _v = self.term.execute(event::PopKeyboardEnhancementFlags);
         }
 
-        if let Some(game_result) = game.result() {
+        if let Phase::GameEnd { cause: _, is_win } = game.phase() {
             let h_console = terminal::size()?.1;
-            if game_result.is_ok() {
+            if *is_win {
                 for i in 0..h_console {
                     self.term
                         .execute(MoveTo(0, i))?
@@ -533,7 +545,7 @@ impl<T: Write> Application<T> {
                     game_input_history.push((unpress_time, button_change));
                     match update_result {
                         Ok(msgs) => game_renderer.push_game_feedback_msgs(msgs),
-                        Err(UpdateGameError::GameEnded) => break 'button_unpressing,
+                        Err(UpdateGameError::AlreadyEnded) => break 'button_unpressing,
                         Err(UpdateGameError::TargetTimeInPast) => unreachable!(),
                     }
                 }

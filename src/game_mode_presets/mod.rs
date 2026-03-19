@@ -117,7 +117,7 @@ pub fn combo_n(linelimit: Option<NonZeroU32>, startlayout: u16) -> GameModePrese
                         Duration::from_millis(1000).into(),
                     ))
                     .end_conditions(match linelimit {
-                        Some(l) => vec![(Stat::LinesCleared(l.get()), true)],
+                        Some(l) => vec![(Stat::LinesCleared(l.get()), true)], // FIXME: Technically, this should count combo, not lines.
                         None => vec![],
                     })
                     .build_modded([game_modifiers::combo_board::modifier(startlayout)])

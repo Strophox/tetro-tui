@@ -12,7 +12,9 @@ use crossterm::{
     terminal::Clear,
     ExecutableCommand,
 };
-use falling_tetromino_engine::{Feedback, Game, GameOver, InGameTime, Input, UpdateGameError};
+use falling_tetromino_engine::{
+    Feedback, Game, GameEndCause, InGameTime, Input, Phase, UpdateGameError,
+};
 
 use crate::{
     application::{
@@ -222,7 +224,7 @@ impl<T: Write> Application<T> {
 
                                                 game_renderer.push_game_feedback_msgs([(
                                                     game.state().time,
-                                                    Feedback::Text(str.to_owned()),
+                                                    Feedback::Message(str.to_owned()),
                                                 )]);
 
                                                 next_paused_with_extra_render_request = Some(true);
@@ -252,7 +254,7 @@ impl<T: Write> Application<T> {
                                                                 UpdateGameError::TargetTimeInPast,
                                                             ) => {}
                                                             // Game ended.
-                                                            Err(UpdateGameError::GameEnded) => {}
+                                                            Err(UpdateGameError::AlreadyEnded) => {}
                                                         }
                                                         match game.update(
                                                             game.state().time,
@@ -265,7 +267,7 @@ impl<T: Write> Application<T> {
                                                                 UpdateGameError::TargetTimeInPast,
                                                             ) => {}
                                                             // Game ended.
-                                                            Err(UpdateGameError::GameEnded) => {}
+                                                            Err(UpdateGameError::AlreadyEnded) => {}
                                                         }
                                                     }
                                                 }
@@ -288,8 +290,12 @@ impl<T: Write> Application<T> {
                                                                     .input_history
                                                                     .clone(),
                                                                 matches!(
-                                                                    game.result(),
-                                                                    Some(Err(GameOver::Forfeit))
+                                                                    game.phase(),
+                                                                    Phase::GameEnd {
+                                                                        cause:
+                                                                            GameEndCause::Forfeit,
+                                                                        ..
+                                                                    }
                                                                 )
                                                                 .then_some(game.state().time),
                                                             ),
@@ -299,7 +305,9 @@ impl<T: Write> Application<T> {
 
                                                 game_renderer.push_game_feedback_msgs([(
                                                     game.state().time,
-                                                    Feedback::Text("(Stored savepoint)".to_owned()),
+                                                    Feedback::Message(
+                                                        "(Stored savepoint)".to_owned(),
+                                                    ),
                                                 )]);
 
                                                 if paused {
@@ -316,7 +324,7 @@ impl<T: Write> Application<T> {
 
                                                 game_renderer.push_game_feedback_msgs([(
                                                     game.state().time,
-                                                    Feedback::Text(format!(
+                                                    Feedback::Message(format!(
                                                         "(Seed stored: {}.)",
                                                         game.state_init().seed
                                                     )),
@@ -417,13 +425,20 @@ impl<T: Write> Application<T> {
                                                         // FIXME: Handle UpdateGameError::TargetTimeInPast? If not, why not?
                                                         Err(UpdateGameError::TargetTimeInPast) => {}
                                                         // Game ended, no more inputs.
-                                                        Err(UpdateGameError::GameEnded) => {}
+                                                        Err(UpdateGameError::AlreadyEnded) => {}
                                                     }
 
                                                     if do_forfeit {
-                                                        let msg = game.forfeit();
-                                                        game_renderer
-                                                            .push_game_feedback_msgs([msg]);
+                                                        match game.forfeit() {
+                                                            Ok(msgs) => game_renderer
+                                                                .push_game_feedback_msgs(msgs),
+
+                                                            // We do not care if game ended or time is in past here.
+                                                            Err(
+                                                                UpdateGameError::AlreadyEnded
+                                                                | UpdateGameError::TargetTimeInPast,
+                                                            ) => {}
+                                                        };
                                                     }
 
                                                     next_paused_with_extra_render_request =
@@ -450,7 +465,7 @@ impl<T: Write> Application<T> {
                                                         // FIXME: Handle UpdateGameError::TargetTimeInPast? If not, why not?
                                                         Err(UpdateGameError::TargetTimeInPast) => {}
                                                         // Game ended, no more inputs.
-                                                        Err(UpdateGameError::GameEnded) => {}
+                                                        Err(UpdateGameError::AlreadyEnded) => {}
                                                     }
                                                     inputs_loaded += 1;
                                                     next_paused_with_extra_render_request =
@@ -636,7 +651,7 @@ impl<T: Write> Application<T> {
 
                 // Restart update-render loop as if we just entered it.
                 continue 'update_and_render;
-            } else if !paused && game.result().is_none() {
+            } else if !paused && !game.has_ended() {
                 // Game has not ended and is not paused: progress the game.
 
                 // We first calculate the intended time at time of reaching here.
@@ -672,7 +687,7 @@ impl<T: Write> Application<T> {
                         // FIXME: Handle UpdateGameError::TargetTimeInPast? If not, why not?
                         Err(UpdateGameError::TargetTimeInPast) => {}
                         // Game ended? Do not attempt to feed more inputs.
-                        Err(UpdateGameError::GameEnded) => break 'feed_inputs,
+                        Err(UpdateGameError::AlreadyEnded) => break 'feed_inputs,
                     }
 
                     inputs_loaded += 1;
@@ -684,12 +699,16 @@ impl<T: Write> Application<T> {
 
                     // We do not care if game ended or time is in past here:
                     // We just care about best-effort updating state to show it to player.
-                    Err(UpdateGameError::GameEnded | UpdateGameError::TargetTimeInPast) => {}
+                    Err(UpdateGameError::AlreadyEnded | UpdateGameError::TargetTimeInPast) => {}
                 }
 
                 if do_forfeit {
-                    let msg = game.forfeit();
-                    game_renderer.push_game_feedback_msgs([msg]);
+                    match game.forfeit() {
+                        Ok(msgs) => game_renderer.push_game_feedback_msgs(msgs),
+
+                        // We do not care if game ended or time is in past here.
+                        Err(UpdateGameError::AlreadyEnded | UpdateGameError::TargetTimeInPast) => {}
+                    };
                 }
             }
 
@@ -839,7 +858,7 @@ impl<T: Write> Application<T> {
                     // FIXME: Handle UpdateGameError::TargetTimeInPast? If not, why not?
                     Err(UpdateGameError::TargetTimeInPast) => {}
                     // Game ended, no more anchors.
-                    Err(UpdateGameError::GameEnded) => break 'calculate_anchors,
+                    Err(UpdateGameError::AlreadyEnded) => break 'calculate_anchors,
                 }
 
                 inputs_loaded += 1;
@@ -858,7 +877,7 @@ impl<T: Write> Application<T> {
                 // FIXME: Handle UpdateGameError::TargetTimeInPast? If not, why not?
                 Err(UpdateGameError::TargetTimeInPast) => {}
                 // Game ended, no more anchors.
-                Err(UpdateGameError::GameEnded) => break 'calculate_anchors,
+                Err(UpdateGameError::AlreadyEnded) => break 'calculate_anchors,
             }
 
             game_save_anchors.push(GameSaveAnchor {

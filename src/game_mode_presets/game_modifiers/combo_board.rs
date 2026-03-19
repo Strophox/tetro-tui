@@ -1,7 +1,7 @@
 use std::num::NonZeroU8;
 
 use falling_tetromino_engine::{
-    Board, Game, GameOver, Line, Modifier, Phase, Stat, Tetromino, UpdatePoint,
+    Board, Game, GameEndCause, Line, Modifier, Phase, Tetromino, UpdatePoint,
 };
 
 pub const MOD_ID: &str = "combo_board";
@@ -42,7 +42,8 @@ pub fn modifier(initial_layout: u16) -> Modifier {
                 && !matches!(phase, Phase::LinesClearing { .. })
             {
                 *phase = Phase::GameEnd {
-                    result: Err(GameOver::Limit(Stat::LinesCleared(0))),
+                    cause: GameEndCause::Custom("Combo broken".to_owned()),
+                    is_win: false,
                 };
             // Combo continues, prepare new line.
             } else if matches!(point, UpdatePoint::LinesCleared) {
