@@ -35,23 +35,24 @@ impl<T: Write> Application<T> {
             // Draw config selection.
             let labels = [
                 format!(
+                    "Save contents: {}",
+                    match self.save_on_exit {
+                        SavefileGranularity::NoSavefile => "Nothing",
+                        SavefileGranularity::RememberSettings =>
+                            "Only settings - No scores,replays",
+                        SavefileGranularity::RememberSettingsScores =>
+                            "Only settings,scores - No replays)",
+                        SavefileGranularity::RememberSettingsScoresReplays =>
+                            "Everything (settings,scores,replays)",
+                    }
+                ),
+                format!(
                     "Assume enhanced-key-events work = {} *",
                     self.session_data.kitty_assumed
                 ),
                 format!(
                     "Blindfold gameplay = {}",
                     self.session_data.blindfold_enabled
-                ),
-                format!(
-                    "Save contents: {}",
-                    match self.save_on_exit {
-                        SavefileGranularity::NoSavefile => "Nothing**",
-                        SavefileGranularity::RememberSettings => "Only settings, No scores&replays",
-                        SavefileGranularity::RememberSettingsScores =>
-                            "Only settings&scores, No replays)",
-                        SavefileGranularity::RememberSettingsScoresReplays =>
-                            "Everything (settings&scores&replays)",
-                    }
                 ),
             ];
 
@@ -90,33 +91,6 @@ impl<T: Write> Application<T> {
                     .italic(),
                 ))?;
 
-            self.term
-                .queue(MoveTo(
-                    x_main,
-                    y_main + y_selection + 4 + u16::try_from(selection_len).unwrap() + 3,
-                ))?
-                .queue(PrintStyledContent(
-                    format!(
-                        "{:^w_main$}",
-                        if self.save_on_exit == SavefileGranularity::NoSavefile {
-                            "(**Caution: data will be wiped on exit)".to_owned()
-                        } else {
-                            format!(
-                                "(Save file location: \"{}\")",
-                                self.session_data.savefile_path.display()
-                            )
-                        },
-                    )
-                    .italic()
-                    .with(
-                        if self.save_on_exit == SavefileGranularity::NoSavefile {
-                            crossterm::style::Color::Yellow
-                        } else {
-                            crossterm::style::Color::Reset
-                        },
-                    ),
-                ))?;
-
             self.term.flush()?;
             // Wait for new input.
             match event::read()? {
@@ -139,13 +113,13 @@ impl<T: Write> Application<T> {
                     ..
                 }) => match selected {
                     0 => {
-                        self.session_data.kitty_assumed = self.session_data.kitty_detected;
+                        self.save_on_exit = SavefileGranularity::NoSavefile;
                     }
                     1 => {
-                        self.session_data.blindfold_enabled = false;
+                        self.session_data.kitty_assumed = self.session_data.kitty_detected;
                     }
                     2 => {
-                        self.save_on_exit = SavefileGranularity::NoSavefile;
+                        self.session_data.blindfold_enabled = false;
                     }
                     _ => {}
                 },
@@ -172,12 +146,6 @@ impl<T: Write> Application<T> {
                     ..
                 }) => match selected {
                     0 => {
-                        self.session_data.kitty_assumed ^= true;
-                    }
-                    1 => {
-                        self.session_data.blindfold_enabled ^= true;
-                    }
-                    2 => {
                         self.save_on_exit = match self.save_on_exit {
                             SavefileGranularity::NoSavefile => {
                                 SavefileGranularity::RememberSettings
@@ -192,6 +160,12 @@ impl<T: Write> Application<T> {
                                 SavefileGranularity::NoSavefile
                             }
                         };
+                    }
+                    1 => {
+                        self.session_data.kitty_assumed ^= true;
+                    }
+                    2 => {
+                        self.session_data.blindfold_enabled ^= true;
                     }
                     _ => {}
                 },
@@ -201,12 +175,6 @@ impl<T: Write> Application<T> {
                     ..
                 }) => match selected {
                     0 => {
-                        self.session_data.kitty_assumed ^= true;
-                    }
-                    1 => {
-                        self.session_data.blindfold_enabled ^= true;
-                    }
-                    2 => {
                         self.save_on_exit = match self.save_on_exit {
                             SavefileGranularity::NoSavefile => {
                                 SavefileGranularity::RememberSettingsScoresReplays
@@ -221,6 +189,12 @@ impl<T: Write> Application<T> {
                                 SavefileGranularity::NoSavefile
                             }
                         };
+                    }
+                    1 => {
+                        self.session_data.kitty_assumed ^= true;
+                    }
+                    2 => {
+                        self.session_data.blindfold_enabled ^= true;
                     }
                     _ => {}
                 },
