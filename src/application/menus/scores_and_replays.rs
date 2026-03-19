@@ -77,18 +77,14 @@ impl<T: Write> Application<T> {
 
             if self.scores_and_replays.entries.is_empty() {
                 self.term
-                    .queue(MoveTo(x_main, y_main + y_selection + 4 + 4))?
+                    .queue(MoveTo(x_main, y_main + y_selection + 4 + 3))?
                     .queue(PrintStyledContent(
                         format!("{:^w_main$}", "The scoreboard is empty.").italic(),
-                    ))?;
-                self.term
-                    .queue(MoveTo(x_main, y_main + y_selection + 4 + 5))?
+                    ))?
+                    .queue(MoveTo(x_main, y_main + y_selection + 4 + 4))?
                     .queue(PrintStyledContent(
-                        format!(
-                            "{:^w_main$}",
-                            "If you finish a game it is going to show up here!"
-                        )
-                        .italic(),
+                        format!("{:^w_main$}", "If you finish a game it will show up here!")
+                            .italic(),
                     ))?;
             } else if re_sort_scoreboard {
                 re_sort_scoreboard = false;
