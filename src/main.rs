@@ -70,7 +70,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Initialize application.
     let stdout = io::BufWriter::new(io::stdout());
-    let mut app = application::Application::new(stdout, savefile_path(), args.seed, args.board);
+    let mut app = application::Application::with_savefile_and_cmdlineoptions(
+        stdout,
+        savefile_path(),
+        args.seed,
+        args.board,
+    );
 
     // Catch panics and write error to separate file, so it isn't lost due to app's terminal shenanigans.
     std::panic::set_hook(Box::new(|panic_info| {

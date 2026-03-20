@@ -206,7 +206,7 @@ https://aur.archlinux.org/packages/tetro-tui-bin
 > | `Esc`, `q`, `Back`, | Go back |
 > | `Del`, `d` | Delete/reset |
 > | `1`/`2`/`3`... | Quickselect option 1/2/3/... (in Start Game)|
-> | `Alt`+... | Alt. value changes (in Start Game⇝Savepoint,Custom Mode) |
+> | `Alt`+... | Alt. value changes (in { Start Game ⇝ {Combo, Savepoint, Custom Mode}, Gameplay settings ⇝ Tetromino Generation}) |
 > | `Alt`+`Del`, `Alt`+`d` | Delete replay  (in Scores and Replays) |
 > | `Ctrl`+`C` | Exit application (respects save preferences) |
 > 
@@ -253,10 +253,11 @@ https://aur.archlinux.org/packages/tetro-tui-bin
 > | `←`/`→` , `h`/`l` | Skip forward/backward 1s in time |
 > | `1`/`2`/`3`... | Jump to 10%/20%/30%/... |
 > | `.` | Skip forward one user input and pause |
-> | `Alt`+`.` | Skip forward one game state change\* and pause (\*Experimental, might not work properly for modded games.) |
+> | `Alt`+`.` | Skip forward one game state change\* and pause (\*Experimental, might not work properly for modded games) |
 > | `Enter`, `e` | Enter live game (from current replay position) |
 > | `Ctrl`+`E` | Store seed (accessible in Start Game⇝Custom Mode) |
 > | `Ctrl`+`S` | Store savepoint (accessible in Start Game→Savepoint or in Live Game) |
+> | `Ctrl`+`I` | Enter/exit Instant Interactive Input Intervention mode (experimental) |
 > | `Ctrl`+`C` | Exit application (respects save preferences) |
 > 
 > </details>

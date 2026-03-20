@@ -51,6 +51,7 @@ impl<T: Write> Application<T> {
                     self.temp_data.kitty_assumed
                 ),
                 format!("Blindfold gameplay = {}", self.temp_data.blindfold_enabled),
+                // format!("Renderertype = {}", self.temp_data.renderertype),
             ];
 
             let selection_len = labels.len();

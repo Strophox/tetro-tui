@@ -504,12 +504,23 @@ impl Settings {
 }
 
 #[derive(
-    PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Clone,
+    Debug,
+    Default,
+    serde::Serialize,
+    serde::Deserialize,
 )]
 pub struct TemporaryData {
+    pub custom_terminal_state_initialized: bool,
     pub kitty_detected: bool,
     pub kitty_assumed: bool,
     pub blindfold_enabled: bool,
+    // pub renderertype: u32,
     pub save_on_exit: SavefileGranularity,
     pub savefile_path: PathBuf, // This should technically be the same for a given compiled binary, but we compute it at runtime.
 }
@@ -592,15 +603,12 @@ pub struct Application<T: Write> {
 
 impl<T: Write> Drop for Application<T> {
     fn drop(&mut self) {
-        // (Try to) undo terminal setup.
-        let _ = terminal::disable_raw_mode();
-        let _ = self.term.execute(style::ResetColor);
-        let _ = self.term.execute(cursor::Show);
-        let _ = self.term.execute(terminal::LeaveAlternateScreen);
+        // (Try to) undo terminal setup. Ignore errors cuz atp it's too late to take any flak from Crossterm.
+        let _ = self.deinitialize_terminal_state();
 
         if self.temp_data.save_on_exit != SavefileGranularity::NoSavefile {
             // If the user wants any of their data stored, try to do so.
-            if let Err(e) = self.store_savefile() {
+            if let Err(e) = self.store_to_savefile() {
                 eprintln!("{e}");
             }
         } else if self
@@ -628,57 +636,6 @@ impl<T: Write> Application<T> {
     pub const KEYBOARD_ENHANCEMENT_FLAGS: KeyboardEnhancementFlags =
         KeyboardEnhancementFlags::all();
 
-    pub fn new(
-        mut term: T,
-        savefile_path: PathBuf,
-        custom_start_seed: Option<u64>,
-        custom_start_board: Option<String>,
-    ) -> Self {
-        // Console prologue: Initialization.
-        // FIXME: Handle io::Error? If not, why not?
-        let _v = term.execute(terminal::EnterAlternateScreen);
-        let _v = term.execute(terminal::SetTitle("Tetro Terminal User Interface"));
-        let _v = term.execute(cursor::Hide);
-        let _v = terminal::enable_raw_mode();
-        let mut new = Self {
-            temp_data: TemporaryData {
-                kitty_detected: false,
-                kitty_assumed: false,
-                blindfold_enabled: false,
-                save_on_exit: SavefileGranularity::NoSavefile,
-                savefile_path: savefile_path.clone(),
-            },
-            term,
-            settings: Settings::default(),
-            scores_and_replays: ScoresAndReplays::default(),
-            game_saves: (0, Vec::new()),
-        };
-
-        // Actually load in settings.
-        // FIXME: Handle io::Error? If not, why not?
-        if new.load_savefile().is_err() {
-            //eprintln!("Could not load settings: {e}");
-            //std::thread::sleep(Duration::from_secs(5));
-        }
-
-        // Now that the settings are loaded, we handle separate flags set for this session.
-        let kitty_detected = terminal::supports_keyboard_enhancement().unwrap_or(false);
-        new.temp_data = TemporaryData {
-            kitty_detected,
-            kitty_assumed: kitty_detected,
-            blindfold_enabled: false,
-            save_on_exit: new.temp_data.save_on_exit,
-            savefile_path,
-        };
-        if custom_start_board.is_some() {
-            new.settings.new_game.custom_board = custom_start_board;
-        }
-        if custom_start_seed.is_some() {
-            new.settings.new_game.custom_seed = custom_start_seed;
-        }
-        new
-    }
-
     pub(crate) fn fetch_main_xy() -> (u16, u16) {
         let (w_console, h_console) = terminal::size().unwrap_or((0, 0));
         (
@@ -687,7 +644,104 @@ impl<T: Write> Application<T> {
         )
     }
 
-    fn store_savefile(&mut self) -> io::Result<()> {
+    pub(crate) fn initialize_terminal_state(&mut self) -> io::Result<()> {
+        if !self.temp_data.custom_terminal_state_initialized {
+            self.temp_data.custom_terminal_state_initialized = true;
+
+            self.term.execute(terminal::EnterAlternateScreen)?;
+            terminal::enable_raw_mode()?;
+            self.term.execute(cursor::Hide)?;
+            self.term
+                .execute(terminal::SetTitle("Tetro Terminal User Interface"))?;
+        }
+        Ok(())
+    }
+
+    pub(crate) fn deinitialize_terminal_state(&mut self) -> io::Result<()> {
+        if self.temp_data.custom_terminal_state_initialized {
+            // (Try to) undo terminal setup.
+            self.term.execute(style::ResetColor)?;
+            self.term.execute(cursor::Show)?;
+            terminal::disable_raw_mode()?;
+            self.term.execute(terminal::LeaveAlternateScreen)?;
+
+            self.temp_data.custom_terminal_state_initialized = true;
+        }
+
+        Ok(())
+    }
+
+    pub fn with_savefile_and_cmdlineoptions(
+        term: T,
+        savefile_path: PathBuf,
+        custom_start_seed: Option<u64>,
+        custom_start_board: Option<String>,
+    ) -> Self {
+        let mut new = Self {
+            temp_data: TemporaryData::default(),
+            term,
+            settings: Settings::default(),
+            scores_and_replays: ScoresAndReplays::default(),
+            game_saves: (0, Vec::new()),
+        };
+
+        // Actually load in settings.
+        // FIXME: Handle io::Error? If not, why not?
+        if new.load_from_savefile(savefile_path.clone()).is_err() {
+            //eprintln!("Could not load settings: {e}");
+            //std::thread::sleep(Duration::from_secs(5));
+        }
+
+        // Now that the settings are loaded, we handle separate flags set for this session.
+        let kitty_detected = terminal::supports_keyboard_enhancement().unwrap_or(false);
+
+        new.temp_data = TemporaryData {
+            custom_terminal_state_initialized: false,
+            kitty_detected,
+            kitty_assumed: kitty_detected,
+            blindfold_enabled: false,
+            // renderertype: 0,
+            save_on_exit: new.temp_data.save_on_exit,
+            savefile_path,
+        };
+
+        if custom_start_board.is_some() {
+            new.settings.new_game.custom_board = custom_start_board;
+        }
+        if custom_start_seed.is_some() {
+            new.settings.new_game.custom_seed = custom_start_seed;
+        }
+
+        new
+    }
+
+    fn load_from_savefile(&mut self, savefile_path: PathBuf) -> io::Result<()> {
+        let mut file = File::open(savefile_path)?;
+        let mut save_str = String::new();
+        file.read_to_string(&mut save_str)?;
+
+        let compressed_game_saves: (usize, Vec<GameSave<CompressedInputHistory>>);
+
+        (
+            self.temp_data.save_on_exit,
+            self.settings,
+            self.scores_and_replays,
+            compressed_game_saves,
+        ) = serde_json::from_str(&save_str)?;
+
+        self.game_saves = (
+            compressed_game_saves.0,
+            compressed_game_saves
+                .1
+                .into_iter()
+                .map(|save| save.map(|input_history| input_history.decompress()))
+                .collect::<Vec<_>>(),
+        );
+
+        Ok(())
+    }
+
+    fn store_to_savefile(&mut self) -> io::Result<()> {
         if self.temp_data.save_on_exit < SavefileGranularity::RememberSettingsScores {
             // Clear scoreboard if no game data is wished to be stored.
             self.scores_and_replays.entries.clear();
@@ -727,32 +781,6 @@ impl<T: Write> Application<T> {
         }
     }
 
-    fn load_savefile(&mut self) -> io::Result<()> {
-        let mut file = File::open(self.temp_data.savefile_path.clone())?;
-        let mut save_str = String::new();
-        file.read_to_string(&mut save_str)?;
-
-        let compressed_game_saves: (usize, Vec<GameSave<CompressedInputHistory>>);
-
-        (
-            self.temp_data.save_on_exit,
-            self.settings,
-            self.scores_and_replays,
-            compressed_game_saves,
-        ) = serde_json::from_str(&save_str)?;
-
-        self.game_saves = (
-            compressed_game_saves.0,
-            compressed_game_saves
-                .1
-                .into_iter()
-                .map(|save| save.map(|input_history| input_history.decompress()))
-                .collect::<Vec<_>>(),
-        );
-
-        Ok(())
-    }
-
     fn sort_past_games_chronologically(&mut self) {
         self.scores_and_replays
             .entries
@@ -790,6 +818,10 @@ impl<T: Write> Application<T> {
     }
 
     pub fn run(&mut self) -> io::Result<()> {
+        // Console prologue: Initialization.
+        // FIXME: Handle io::Error? If not, why not?
+        let _e = self.initialize_terminal_state();
+
         let mut menu_stack = vec![Menu::Title];
         loop {
             // Retrieve active menu, stop application if stack is empty.
@@ -947,6 +979,8 @@ impl<T: Write> Application<T> {
             }
         }
 
-        Ok(())
+        // Console prologue: Initialization.
+        // FIXME: Handle io::Error? If not, why not?
+        self.deinitialize_terminal_state()
     }
 }
