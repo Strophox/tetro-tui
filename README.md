@@ -101,9 +101,19 @@ https://aur.archlinux.org/packages/tetro-tui-bin
 > *TL;DR* use a terminal like [kitty](<https://sw.kovidgoyal.net/kitty/>) or [Alacritty](<https://alacritty.org/>) (or [->other](https://docs.rs/crossterm/latest/crossterm/event/struct.PushKeyboardEnhancementFlags.html)) for 'true'/smoother handling in the terminal.
 > Otherwise timings might solely depend on how quickly your terminal sends key-repetition events.
 > 
+> <details>
+> <summary> Explanation. </summary>
+> 
 > The real problem lies in how terminals normally send "key pressed" signals, but no "key released again" signals.
 > This makes it impossible to implement mechanics like: "If `[←]` is pressed, move left repeatedly *until key is released again*".
 > Precisely this issue is fixed with 'kitty protocol' / ['progressive enhancement'](<https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement>) / 'enhanced keyboard events'.
+> 
+> Some Windows terminals support it but are not auto-detected, if so try the Override toggle in the Advanced Settings menu.
+> 
+> Note that a similar technicality affects the recognition of `[Shift]`,`[Alt]`,... key presses as separate keys.
+> On unenhanced terminals, those keys do not cause signals by themselves, but only in combination with a nonspecial-key presses (e.g. `[Ctrl+C]`). 
+>
+> </details>
 
 
 ### *Experienced Stackers:* How 'polished' are the mechanics?
