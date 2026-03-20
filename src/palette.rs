@@ -6,7 +6,7 @@ pub type Palette = HashMap<u8, Color>;
 
 pub trait PaletteExt {
     fn monochrome() -> Self;
-    fn color16() -> Self;
+    fn ansi() -> Self;
     fn fullcolor() -> Self;
     fn okpalette() -> Self;
     fn fahrenheit() -> Self;
@@ -22,7 +22,7 @@ impl PaletteExt for Palette {
         HashMap::new()
     }
 
-    fn color16() -> Palette {
+    fn ansi() -> Palette {
         const COLORS_COLOR16: [(u8, Color); 7 + 3] = [
             (1, Color::Yellow),
             (2, Color::DarkCyan),

@@ -434,7 +434,7 @@ impl Default for Settings {
         ];
         let palette_slots = vec![
             ("Monochrome".to_owned(), Palette::monochrome()), // NOTE: The slot at index 0 is the special 'monochrome'/no palette slot.
-            ("16-color".to_owned(), Palette::color16()),
+            ("ANSI".to_owned(), Palette::ansi()),
             ("Fullcolor".to_owned(), Palette::fullcolor()),
             ("Okpalette".to_owned(), Palette::okpalette()),
             ("Gruvbox".to_owned(), Palette::gruvbox()),
