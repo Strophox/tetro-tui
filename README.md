@@ -290,6 +290,7 @@ Color palettes used:
 
 Special Thanks to:
 - GrBtAce, KonSola5 and bennxt – for support early in development
-- Dunspixel – for inspiration regarding ['O'-spin](<https://dunspixel.github.io/ospin-guide/chapter4.html#tetro-tui>)
-- madkiwi – for advice regarding 4wide-6res combo layouts
+- Dunspixel – for inspiration regarding ['O'-spins](<https://dunspixel.github.io/ospin-guide/chapter4.html#tetro-tui>)
+- madkiwi – for advice regarding 4wide-6residual combo layouts
+- ([Apostolos Kousoukos](<https://akouzoukos.com/>) for making [Apotris](<https://apotris.com/>)!)
 - and RayZN and ˗ˋˏthe One and Onlyˎˊ˗ – for advice regarding the Tetro logo
