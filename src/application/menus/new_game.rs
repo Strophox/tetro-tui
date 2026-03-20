@@ -52,11 +52,11 @@ impl<T: Write> Application<T> {
             #[allow(clippy::type_complexity)]
             let mut game_presets: Vec<(GameModePreset, String)> = vec![
                 (
-                    game_mode_presets::speed_run(),
-                    "How fast can you clear forty lines?".to_owned(),
+                    game_mode_presets::swift(),
+                    "How fast can you clear 40 lines?".to_owned(),
                 ),
                 (
-                    game_mode_presets::marathon(),
+                    game_mode_presets::classic(),
                     "Clear 150 lines at increasing gravity.".to_owned(),
                 ),
                 // (

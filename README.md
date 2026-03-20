@@ -61,7 +61,7 @@ https://aur.archlinux.org/packages/tetro-tui-bin
 > - **Graphics:** Unicode/ASCII/Electronika, a handful of default color palettes, FPS, toggle effects...
 > - **Game Keybinds:** to your heart's desire.
 > - **Gameplay/Handling:** Rotation system, tetromino generator, preview count; DAS, ARR, SDF, LDC, ARE (timings), IRS/IHS
-> - **Gamemode selection:** 40-Lines, Marathon, Master, Puzzle, Cheese, Combo; Custom mode (choose initial gravity, gravity progress on/off, custom/no goal, *commandline options:* start board or seed).
+> - **Gamemode selection:** Swift (40 lines), Classic ('marathon'), Master, Puzzle, Cheese-X, Combo-X; Custom (choose start gravity, toggle gravity progress, select goal, *advanced flags:* start board or seed).
 >
 > <details>
 > <summary>

@@ -9,9 +9,9 @@ pub mod game_modifiers;
 
 pub type GameModePreset = (String, (Stat, bool), Box<dyn Fn(&GameBuilder) -> Game>);
 
-pub fn speed_run() -> GameModePreset {
+pub fn swift() -> GameModePreset {
     (
-        "Speed-run".to_owned(),
+        "Swift".to_owned(),
         (Stat::TimeElapsed(Duration::ZERO), true),
         Box::new(|builder: &GameBuilder| {
             builder
@@ -23,9 +23,9 @@ pub fn speed_run() -> GameModePreset {
     )
 }
 
-pub fn marathon() -> GameModePreset {
+pub fn classic() -> GameModePreset {
     (
-        "Marathon".to_owned(),
+        "Classic".to_owned(),
         (Stat::PointsScored(0), false),
         Box::new(|builder: &GameBuilder| {
             builder
