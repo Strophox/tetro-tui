@@ -16,16 +16,15 @@ A cross-platform terminal game where tetrominos fall and stack.
 
 ### Download + run
 
-1. [Download a release](<https://github.com/Strophox/tetro-tui/releases>) for your platform (windows, linux/unix/macos) if available.
-2. Open your favorite terminal (preferably [Kitty](<https://sw.kovidgoyal.net/kitty/>) or [Alacritty](<https://alacritty.org/>)).
-3. Run the application (e.g. `./tetro-tui` or `tetro-tui.exe`).
+1. [Download a release](<https://github.com/Strophox/tetro-tui/releases>) for your platform (Linux, MacOS, Windows, ..) if available.
+2. Navigate to and run the application (`tetro-tui`)
 
 
 ### Compile from source
 
-1. Ensure [Rust](<https://doc.rust-lang.org/book/ch01-01-installation.html>) installed.
-2. `git clone https://github.com/Strophox/tetro-tui` or manually download the source code.
-3. Go inside `tetro-tui/` and go `cargo run`.
+1. Ensure [Rust](<https://doc.rust-lang.org/book/ch01-01-installation.html>) is installed.
+2. `git clone https://github.com/Strophox/tetro-tui` or otherwise download this repository.
+3. Navigate inside `tetro-tui/` and do `cargo run`.
 
 
 ### Install via cargo
@@ -89,19 +88,20 @@ https://aur.archlinux.org/packages/tetro-tui-bin
 
 > The application will not store anything UNLESS 'Keep save file' is opted in.
 > 
-> The exact location of the config file is visible in the *Settings* TUI menu:
-> - Location based on `dirs::config_dir()` (e.g. `C:/User/username/AppData/Roaming/.tetro-tui_1.0.0_savefile.json`, `/home/username/.config/.tetro-tui_..`),
+> The exact location of the config file is visible in the *Advanced settings* TUI menu:
+> - Location based on `dirs::config_dir()` (e.g. `C:/User/username/AppData/Roaming/.tetro-tui_1.0_savefile.json` or `/home/username/.config/.tetro-tui_1.0_savefile.json`),
 > - Otherwise directory of execution.
 > 
-> Savefile size may grow primarily due to saved replays (though good care has been taken to compress those well). You can choose past games to delete in the *Scores and Replays* menu.
+> Savefile size may grow primarily due to saved replays (though good care has been taken to compress those well).
+> The *Scores and Replays* menu can be used to delete past games or only their replay (`[Del]` or `[Alt+Del]` respectively).
 
 
-### *Experienced Stackers:* Why do timing-settings (DAS/ARR/SDF etc.) not always apply?
+### *Experienced Stackers:* Why do timing-settings (DAS/ARR/SDF etc.) not apply for me?
 
-> *TL;DR* use a terminal like [kitty](<https://sw.kovidgoyal.net/kitty/>) (or [some other](https://docs.rs/crossterm/latest/crossterm/event/struct.PushKeyboardEnhancementFlags.html)) for 'true' (smooth) gameplay experience.
-> In all other cases some timing configurations depend on how your terminal/keyboard/OS simulates key-repetitions.
+> *TL;DR* use a terminal like [kitty](<https://sw.kovidgoyal.net/kitty/>) or [Alacritty](<https://alacritty.org/>) (or [->other](https://docs.rs/crossterm/latest/crossterm/event/struct.PushKeyboardEnhancementFlags.html)) for 'true'/smoother handling in the terminal.
+> Otherwise timings might solely depend on how quickly your terminal sends key-repetition events.
 > 
-> The problem lies in how terminals only send 'key-pressed-once' signals, but none 'key-released-again'.
+> The real problem lies in how terminals normally send "key pressed" signals, but no "key released again" signals.
 > This makes it impossible to implement mechanics like: "If `[←]` is pressed, move left repeatedly *until key is released again*".
 > Precisely this issue is fixed with 'kitty protocol' / ['progressive enhancement'](<https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement>) / 'enhanced keyboard events'.
 
