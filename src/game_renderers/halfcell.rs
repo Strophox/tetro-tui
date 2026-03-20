@@ -62,9 +62,9 @@ impl Renderer for HalfCellRenderer {
         }
 
         // let small_ascii = " .°:".chars().collect::<Vec<char>>();
-        let small_ascii = match settings.graphics().glyphset {
-            Glyphset::Elektronika_60 | Glyphset::ASCII => [' ', '.', '°', ':'],
-            Glyphset::Unicode => [' ', '▄', '▀', '█'],
+        let (halfcell, delim_l, delim_r) = match settings.graphics().glyphset {
+            Glyphset::Elektronika_60 | Glyphset::ASCII => ([' ', '.', '°', ':'], '#', '#'),
+            Glyphset::Unicode => ([' ', '▄', '▀', '█'], '░', '░'),
         };
 
         let btxt_lines = [
@@ -87,23 +87,27 @@ impl Renderer for HalfCellRenderer {
                 .map(|j0| {
                     let b0 = if l0[*j0].is_some() { 1 } else { 0 };
                     let b1 = if l1[*j0].is_some() { 2 } else { 0 };
-                    small_ascii[b0 + b1]
+                    halfcell[b0 + b1]
                 })
                 .collect::<String>()
         });
 
         term.queue(terminal::Clear(terminal::ClearType::All))?;
-        term.queue(cursor::MoveTo(
-            u16::try_from(self.x_draw).unwrap(),
-            u16::try_from(self.y_draw).unwrap(),
-        ))?;
+
+        let (w_term, h_term) = terminal::size()?;
+        let (w_render, h_render) = (1 + 10 + 1, 10);
+
+        let (x_render, y_render) = (
+            w_term.saturating_sub(w_render) / 2,
+            h_term.saturating_sub(h_render) / 2,
+        );
 
         for (dy, b_line) in btxt_lines.enumerate() {
             term.queue(cursor::MoveTo(
-                u16::try_from(self.x_draw).unwrap(),
-                u16::try_from(self.y_draw + dy).unwrap(),
+                x_render,
+                y_render + u16::try_from(dy).unwrap(),
             ))?
-            .queue(style::Print(format!("|{b_line}|")))?;
+            .queue(style::Print(format!("{delim_l}{b_line}{delim_r}")))?;
         }
 
         term.flush()?;

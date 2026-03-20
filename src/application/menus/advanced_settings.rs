@@ -55,7 +55,7 @@ impl<T: Write> Application<T> {
                 ),
                 format!("Blindfold gameplay = {}", self.temp_data.blindfold_enabled),
                 format!(
-                    "Renderertype = {}  (applies on New Game)",
+                    "Renderertype = {} (applies on New Game)",
                     TetroTUIRenderer::with_number(self.temp_data.renderernumber).name()
                 ),
             ];

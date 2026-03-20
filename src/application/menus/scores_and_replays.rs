@@ -19,6 +19,7 @@ use crate::{
         ScoresSorting,
     },
     fmt_helpers::fmt_duration,
+    game_renderers::TetroTUIRenderer,
 };
 
 impl<T: Write> Application<T> {
@@ -331,7 +332,10 @@ impl<T: Write> Application<T> {
                             game_restoration_data: Box::new(game_restoration_data),
                             game_meta_data,
                             replay_length: *time_elapsed,
-                            game_renderer: Default::default(),
+                            game_renderer: TetroTUIRenderer::with_number(
+                                self.temp_data.renderernumber,
+                            )
+                            .into(),
                         }));
                     } else {
                         // FIXME: Handle game-replay-unavailable?

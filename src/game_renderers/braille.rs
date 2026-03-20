@@ -54,9 +54,7 @@ impl Renderer for BrailleRenderer {
         _keybinds_legend: &KeybindsLegend,
         _replay_extra: Option<(InGameTime, f64)>,
     ) -> io::Result<()> {
-        let falling_tetromino_engine::State { board, .. } = game.state();
-
-        let mut board = *board;
+        let mut board = game.state().board;
         if let Some(piece) = game.phase().piece() {
             for ((x, y), tile_type_id) in piece.tiles() {
                 board[y as usize][x as usize] = Some(tile_type_id);
@@ -64,6 +62,7 @@ impl Renderer for BrailleRenderer {
         }
 
         let braille = BRAILLE.chars().collect::<Vec<char>>();
+        let (delim_l, delim_r) = ('▐', '▌'); //'░';
 
         let btxt_lines = [
             [19, 18, 17, 16],
@@ -93,12 +92,20 @@ impl Renderer for BrailleRenderer {
 
         term.queue(terminal::Clear(terminal::ClearType::All))?;
 
+        let (w_term, h_term) = terminal::size()?;
+        let (w_render, h_render) = (1 + 5 + 1, 5);
+
+        let (x_render, y_render) = (
+            w_term.saturating_sub(w_render) / 2,
+            h_term.saturating_sub(h_render) / 2,
+        );
+
         for (dy, b_line) in btxt_lines.enumerate() {
             term.queue(cursor::MoveTo(
-                u16::try_from(self.x_draw).unwrap(),
-                u16::try_from(self.y_draw + dy).unwrap(),
+                x_render,
+                y_render + u16::try_from(dy).unwrap(),
             ))?
-            .queue(style::Print(format!("|{b_line}|")))?;
+            .queue(style::Print(format!("{delim_l}{b_line}{delim_r}")))?;
         }
 
         term.flush()?;

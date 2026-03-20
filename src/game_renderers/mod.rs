@@ -78,9 +78,9 @@ impl TetroTUIRenderer {
 
     pub fn name(&self) -> &str {
         match self {
-            Self::DiffPrint(_) => "Main (diff-print)",
-            Self::Debug(_) => "Alpha/Debug",
-            Self::HalfCell(_) => "Half cell",
+            Self::DiffPrint(_) => "Default",
+            Self::Debug(_) => "Legacy debug",
+            Self::HalfCell(_) => "Halfcell",
             Self::Braille(_) => "Braille",
         }
     }

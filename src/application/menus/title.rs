@@ -76,8 +76,8 @@ impl<T: Write> Application<T> {
 
                             let color = color_tetromino_rainbow[(((dx + dy) as isize
                                 + dynamic_color_offset)
-                                / 2)
-                            .rem_euclid(color_tetromino_rainbow.len() as isize)
+                                / (dynamic_title_style.rem_euclid(Self::W_MAIN as isize) + 1))
+                                .rem_euclid(color_tetromino_rainbow.len() as isize)
                                 as usize];
 
                             self.term
