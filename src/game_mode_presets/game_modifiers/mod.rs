@@ -160,32 +160,35 @@ pub mod print_recency_tet_gen_stats {
                     return;
                 }
                 let TetrominoGenerator::Recency {
-                    last_generated,
-                    snap: _,
+                    tets_last_emitted,
+                    factor,
+                    is_base_not_exp,
                 } = state.piece_generator
                 else {
                     return;
                 };
-                let mut pieces_played_strs = Tetromino::VARIANTS;
-                pieces_played_strs.sort_by_key(|&tet| last_generated[tet as usize]);
+                let mut tets_played_strs = Tetromino::VARIANTS;
+                tets_played_strs.sort_by_key(|&tet| tets_last_emitted[tet as usize]);
 
                 let [o, i, s, z, t, l, j] = state.pieces_locked;
                 let str_piece_tallies = format!("{o}o {i}i {s}s {z}z {t}t {l}l {j}j");
-                let str_piece_likelihood = pieces_played_strs
+                let str_piece_likelihood = tets_played_strs
                     .map(|tet| {
+                        let get_weight = |n| {
+                            if is_base_not_exp {
+                                // Ensure weight is positive.
+                                factor.get().powf(f64::from(n)).max(f64::MIN_POSITIVE)
+                            } else {
+                                f64::from(n).powf(factor.get())
+                            }
+                        };
                         format!(
                             "{tet:?}{}{}{}",
-                            last_generated[tet as usize],
+                            tets_last_emitted[tet as usize],
                             // "█".repeat(lg[t] as usize),
-                            "█".repeat(
-                                (last_generated[tet as usize] * last_generated[tet as usize])
-                                    as usize
-                                    / 8
-                            ),
-                            [" ", "▏", "▎", "▍", "▌", "▋", "▊", "▉"][(last_generated[tet as usize]
-                                * last_generated[tet as usize])
-                                as usize
-                                % 8]
+                            "█".repeat(get_weight(tets_last_emitted[tet as usize]) as usize / 8),
+                            [" ", "▏", "▎", "▍", "▌", "▋", "▊", "▉"]
+                                [get_weight(tets_last_emitted[tet as usize]) as usize % 8]
                         )
                         .to_ascii_lowercase()
                     })

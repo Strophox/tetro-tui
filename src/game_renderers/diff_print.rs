@@ -681,8 +681,8 @@ impl Renderer for DiffPrintRenderer {
 
             Phase::GameEnd { cause, is_win: _ } => {
                 match cause {
-                    GameEndCause::LockOut { locked_out_piece } => {
-                        for (tile_pos, tile_type_id) in locked_out_piece.tiles() {
+                    GameEndCause::LockOut { locking_piece } => {
+                        for (tile_pos, tile_type_id) in locking_piece.tiles() {
                             if let Some(xy) = pos_board(tile_pos) {
                                 self.screen.buffer_str(
                                     "XX",

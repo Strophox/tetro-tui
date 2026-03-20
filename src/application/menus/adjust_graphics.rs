@@ -105,7 +105,7 @@ impl<T: Write> Application<T> {
                     self.settings.graphics().show_button_state
                 ),
                 format!("Max framerate = {}", self.settings.graphics().game_fps),
-                format!("Show fps = {}", self.settings.graphics().show_fps),
+                format!("Show FPS = {}", self.settings.graphics().show_fps),
             ];
 
             for (i, label) in labels.into_iter().enumerate() {

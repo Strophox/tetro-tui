@@ -254,7 +254,7 @@ impl<T: Write> Application<T> {
                     ..
                 }) => {
                     selected += selection.len() - 1;
-                    dynamic_color_offset -= 1;
+                    dynamic_color_offset += 1;
                 }
 
                 // Move selector down.
@@ -264,7 +264,7 @@ impl<T: Write> Application<T> {
                     ..
                 }) => {
                     selected += 1;
-                    dynamic_color_offset += 1;
+                    dynamic_color_offset -= 1;
                 }
 
                 // Move l.

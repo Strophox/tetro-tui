@@ -61,7 +61,7 @@ impl GameplaySettings {
     pub fn nes() -> GameplaySettings {
         GameplaySettings {
             rotation_system: RotationSystem::ClassicR,
-            tetromino_generator: TetrominoGenerator::uniform(),
+            tetromino_generator: TetrominoGenerator::Uniform,
             delayed_auto_shift: Duration::from_millis(266), // ≈ 16 /60.0988
             piece_preview_count: 1,
             auto_repeat_rate: Duration::from_millis(100), // ≈ 6 /60.0988
@@ -75,7 +75,7 @@ impl GameplaySettings {
     pub fn gameboy() -> GameplaySettings {
         GameplaySettings {
             rotation_system: RotationSystem::ClassicL,
-            tetromino_generator: TetrominoGenerator::uniform(),
+            tetromino_generator: TetrominoGenerator::Uniform,
             delayed_auto_shift: Duration::from_millis(400), // ≈ 24 /59.73
             piece_preview_count: 1,
             auto_repeat_rate: Duration::from_millis(150), // ≈ 9 /59.73

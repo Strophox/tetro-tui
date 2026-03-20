@@ -286,7 +286,9 @@ dependencies = [
 
 [[package]]
 name = "falling-tetromino-engine"
-version = "1.1.0"
+version = "1.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cfdc48efed2c1e9fbfb68f8fce1088e8d944fe67e8967079542b173b50a675b0"
 dependencies = [
  "rand",
  "rand_chacha",
