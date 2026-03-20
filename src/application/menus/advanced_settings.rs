@@ -12,7 +12,10 @@ use crossterm::{
     QueueableCommand,
 };
 
-use crate::application::{Application, Menu, MenuUpdate, SavefileGranularity};
+use crate::{
+    application::{Application, Menu, MenuUpdate, SavefileGranularity},
+    game_renderers::TetroTUIRenderer,
+};
 
 impl<T: Write> Application<T> {
     pub(in crate::application) fn run_menu_advanced_settings(&mut self) -> io::Result<MenuUpdate> {
@@ -51,7 +54,10 @@ impl<T: Write> Application<T> {
                     self.temp_data.kitty_assumed
                 ),
                 format!("Blindfold gameplay = {}", self.temp_data.blindfold_enabled),
-                // format!("Renderertype = {}", self.temp_data.renderertype),
+                format!(
+                    "Renderertype = {}  (applies on New Game)",
+                    TetroTUIRenderer::with_number(self.temp_data.renderernumber).name()
+                ),
             ];
 
             let selection_len = labels.len();
@@ -137,6 +143,9 @@ impl<T: Write> Application<T> {
                     2 => {
                         self.temp_data.blindfold_enabled = false;
                     }
+                    3 => {
+                        self.temp_data.renderernumber = 0;
+                    }
                     _ => {}
                 },
 
@@ -183,6 +192,10 @@ impl<T: Write> Application<T> {
                     2 => {
                         self.temp_data.blindfold_enabled ^= true;
                     }
+                    3 => {
+                        self.temp_data.renderernumber += 1;
+                        self.temp_data.renderernumber %= TetroTUIRenderer::NUM_VARIANTS;
+                    }
                     _ => {}
                 },
                 Event::Key(KeyEvent {
@@ -211,6 +224,10 @@ impl<T: Write> Application<T> {
                     }
                     2 => {
                         self.temp_data.blindfold_enabled ^= true;
+                    }
+                    3 => {
+                        self.temp_data.renderernumber += TetroTUIRenderer::NUM_VARIANTS - 1;
+                        self.temp_data.renderernumber %= TetroTUIRenderer::NUM_VARIANTS;
                     }
                     _ => {}
                 },

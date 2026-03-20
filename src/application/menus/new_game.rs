@@ -28,7 +28,7 @@ use crate::{
     game_mode_presets::{
         self, game_modifiers::combo_board::LAYOUTS as COMBO_STARTLAYOUTS, GameModePreset,
     },
-    game_renderers::Renderer,
+    game_renderers::{Renderer, TetroTUIRenderer},
 };
 
 impl<T: Write> Application<T> {
@@ -807,8 +807,8 @@ impl<T: Write> Application<T> {
                 // game.modifiers.push(game_mode_presets::game_modifiers::misc_modifiers::print_recency_tet_gen_stats::modifier());
                 // game.modifiers.push(falling_tetromino_engine::Modifier { descriptor: "always_clear_board".to_owned(), mod_function: Box::new(|_c, _i, s, _m, _f| { s.board = Default::default(); })});
 
-                let mut game_renderer: Box<crate::game_renderers::DiffPrintRenderer> =
-                    Default::default();
+                let mut game_renderer =
+                    TetroTUIRenderer::with_number(self.temp_data.renderernumber);
 
                 // We do an initial update, which allows a piece to spawn and queue to get generated.
                 // We do this so the renderer does not render a first frame when game is in its raw start state.
@@ -821,10 +821,10 @@ impl<T: Write> Application<T> {
                 }
 
                 break Ok(MenuUpdate::Push(Menu::PlayGame {
-                    game: Box::new(game),
+                    game: game.into(),
                     game_input_history,
                     game_meta_data,
-                    game_renderer,
+                    game_renderer: game_renderer.into(),
                 }));
             }
         }

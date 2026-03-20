@@ -23,8 +23,8 @@ use falling_tetromino_engine::{
 };
 
 use crate::{
-    game_mode_presets, game_renderers, gameplay_settings::*, graphics_settings::*, keybinds::*,
-    palette::*,
+    game_mode_presets, game_renderers::TetroTUIRenderer, gameplay_settings::*,
+    graphics_settings::*, keybinds::*, palette::*,
 };
 
 pub type Slots<T> = Vec<(String, T)>;
@@ -520,7 +520,7 @@ pub struct TemporaryData {
     pub kitty_detected: bool,
     pub kitty_assumed: bool,
     pub blindfold_enabled: bool,
-    // pub renderertype: u32,
+    pub renderernumber: usize,
     pub save_on_exit: SavefileGranularity,
     pub savefile_path: PathBuf, // This should technically be the same for a given compiled binary, but we compute it at runtime.
 }
@@ -533,7 +533,7 @@ enum Menu {
         game: Box<Game>,
         game_input_history: UncompressedInputHistory,
         game_meta_data: GameMetaData,
-        game_renderer: Box<game_renderers::DiffPrintRenderer>,
+        game_renderer: Box<TetroTUIRenderer>,
     },
     Pause,
     Settings,
@@ -551,7 +551,7 @@ enum Menu {
         game_restoration_data: Box<GameRestorationData<UncompressedInputHistory>>,
         game_meta_data: GameMetaData,
         replay_length: InGameTime,
-        game_renderer: Box<game_renderers::DiffPrintRenderer>,
+        game_renderer: Box<TetroTUIRenderer>,
     },
     About,
     Quit,
@@ -700,7 +700,7 @@ impl<T: Write> Application<T> {
             kitty_detected,
             kitty_assumed: kitty_detected,
             blindfold_enabled: false,
-            // renderertype: 0,
+            renderernumber: 0,
             save_on_exit: new.temp_data.save_on_exit,
             savefile_path,
         };
@@ -837,12 +837,9 @@ impl<T: Write> Application<T> {
                     game_input_history,
                     game_meta_data,
                     game_renderer,
-                } => self.run_menu_play_game(
-                    game,
-                    game_input_history,
-                    game_meta_data,
-                    game_renderer.as_mut(),
-                ),
+                } => {
+                    self.run_menu_play_game(game, game_input_history, game_meta_data, game_renderer)
+                }
                 Menu::Pause => self.run_menu_pause(),
                 Menu::Settings => self.run_menu_settings(),
                 Menu::AdjustGraphics => self.run_menu_adjust_graphics(),

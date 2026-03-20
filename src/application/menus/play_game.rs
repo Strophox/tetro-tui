@@ -20,7 +20,7 @@ use crate::{
         MenuUpdate, ScoresEntry, UncompressedInputHistory,
     },
     fmt_helpers::get_play_keybinds_legend,
-    game_renderers::Renderer,
+    game_renderers::{Renderer, TetroTUIRenderer},
     live_input_handler::{self, LiveTermSignal},
 };
 
@@ -30,7 +30,7 @@ impl<T: Write> Application<T> {
         game: &mut Game,
         game_input_history: &mut UncompressedInputHistory,
         game_meta_data: &mut GameMetaData,
-        game_renderer: &mut impl Renderer,
+        game_renderer: &mut TetroTUIRenderer,
     ) -> io::Result<MenuUpdate> {
         /* Our game loop recipe looks like this:
           * Enter 'update_and_render loop:
