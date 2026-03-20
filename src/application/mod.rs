@@ -506,10 +506,11 @@ impl Settings {
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]
-pub struct SessionData {
+pub struct TemporaryData {
     pub kitty_detected: bool,
     pub kitty_assumed: bool,
     pub blindfold_enabled: bool,
+    pub save_on_exit: SavefileGranularity,
     pub savefile_path: PathBuf, // This should technically be the same for a given compiled binary, but we compute it at runtime.
 }
 
@@ -581,11 +582,11 @@ enum MenuUpdate {
 // FIXME: Move tui application into `main` instead of artifically having it in one module below `tetro-tui::main`.
 #[derive(PartialEq, Clone, Debug)]
 pub struct Application<T: Write> {
-    session_data: SessionData,
     term: T,
-    save_on_exit: SavefileGranularity,
+    temp_data: TemporaryData,
     settings: Settings,
     scores_and_replays: ScoresAndReplays,
+    // FIXME: Currently one can only access one without resorting to manually editing the savefile.
     game_saves: (usize, Vec<GameSave<UncompressedInputHistory>>),
 }
 
@@ -597,19 +598,19 @@ impl<T: Write> Drop for Application<T> {
         let _ = self.term.execute(cursor::Show);
         let _ = self.term.execute(terminal::LeaveAlternateScreen);
 
-        if self.save_on_exit != SavefileGranularity::NoSavefile {
+        if self.temp_data.save_on_exit != SavefileGranularity::NoSavefile {
             // If the user wants any of their data stored, try to do so.
             if let Err(e) = self.store_savefile() {
                 eprintln!("{e}");
             }
         } else if self
-            .session_data
+            .temp_data
             .savefile_path
             .try_exists()
             .is_ok_and(|exists| exists)
         {
             // Otherwise explicitly check for savefile and try to make sure we don't leave it around.
-            if let Err(e) = std::fs::remove_file(self.session_data.savefile_path.clone()) {
+            if let Err(e) = std::fs::remove_file(self.temp_data.savefile_path.clone()) {
                 eprintln!("{e}");
             }
         }
@@ -639,42 +640,43 @@ impl<T: Write> Application<T> {
         let _v = term.execute(terminal::SetTitle("Tetro Terminal User Interface"));
         let _v = term.execute(cursor::Hide);
         let _v = terminal::enable_raw_mode();
-        let mut app = Self {
-            session_data: SessionData {
+        let mut new = Self {
+            temp_data: TemporaryData {
                 kitty_detected: false,
                 kitty_assumed: false,
                 blindfold_enabled: false,
+                save_on_exit: SavefileGranularity::NoSavefile,
                 savefile_path: savefile_path.clone(),
             },
             term,
             settings: Settings::default(),
             scores_and_replays: ScoresAndReplays::default(),
             game_saves: (0, Vec::new()),
-            save_on_exit: SavefileGranularity::NoSavefile,
         };
 
         // Actually load in settings.
         // FIXME: Handle io::Error? If not, why not?
-        if app.load_savefile().is_err() {
+        if new.load_savefile().is_err() {
             //eprintln!("Could not load settings: {e}");
             //std::thread::sleep(Duration::from_secs(5));
         }
 
         // Now that the settings are loaded, we handle separate flags set for this session.
         let kitty_detected = terminal::supports_keyboard_enhancement().unwrap_or(false);
-        app.session_data = SessionData {
+        new.temp_data = TemporaryData {
             kitty_detected,
             kitty_assumed: kitty_detected,
             blindfold_enabled: false,
+            save_on_exit: new.temp_data.save_on_exit,
             savefile_path,
         };
         if custom_start_board.is_some() {
-            app.settings.new_game.custom_board = custom_start_board;
+            new.settings.new_game.custom_board = custom_start_board;
         }
         if custom_start_seed.is_some() {
-            app.settings.new_game.custom_seed = custom_start_seed;
+            new.settings.new_game.custom_seed = custom_start_seed;
         }
-        app
+        new
     }
 
     pub(crate) fn fetch_main_xy() -> (u16, u16) {
@@ -686,10 +688,10 @@ impl<T: Write> Application<T> {
     }
 
     fn store_savefile(&mut self) -> io::Result<()> {
-        if self.save_on_exit < SavefileGranularity::RememberSettingsScores {
+        if self.temp_data.save_on_exit < SavefileGranularity::RememberSettingsScores {
             // Clear scoreboard if no game data is wished to be stored.
             self.scores_and_replays.entries.clear();
-        } else if self.save_on_exit < SavefileGranularity::RememberSettingsScoresReplays {
+        } else if self.temp_data.save_on_exit < SavefileGranularity::RememberSettingsScoresReplays {
             // Clear past game inputs if no game input data is wished to be stored.
             for (_entry, restoration_data) in &mut self.scores_and_replays.entries {
                 restoration_data.take();
@@ -706,17 +708,15 @@ impl<T: Write> Application<T> {
                 .collect::<Vec<_>>(),
         );
 
-        let save_state = (
-            &self.save_on_exit,
+        let save_str = serde_json::to_string(&(
+            self.temp_data.save_on_exit,
             &self.settings,
             &self.scores_and_replays,
             compressed_game_saves,
-        );
-        let save_str = serde_json::to_string(&save_state)?;
-        let mut file = File::create(self.session_data.savefile_path.clone())?;
+        ))?;
 
+        let mut file = File::create(self.temp_data.savefile_path.clone())?;
         let n_written = file.write(save_str.as_bytes())?;
-
         // Attempt at additionally handling the case when save_str could not be written entirely.
         if n_written < save_str.len() {
             Err(std::io::Error::other(
@@ -728,19 +728,18 @@ impl<T: Write> Application<T> {
     }
 
     fn load_savefile(&mut self) -> io::Result<()> {
-        let mut file = File::open(self.session_data.savefile_path.clone())?;
+        let mut file = File::open(self.temp_data.savefile_path.clone())?;
         let mut save_str = String::new();
         file.read_to_string(&mut save_str)?;
-        let save_state = serde_json::from_str(&save_str)?;
 
         let compressed_game_saves: (usize, Vec<GameSave<CompressedInputHistory>>);
 
         (
-            self.save_on_exit,
+            self.temp_data.save_on_exit,
             self.settings,
             self.scores_and_replays,
             compressed_game_saves,
-        ) = save_state;
+        ) = serde_json::from_str(&save_str)?;
 
         self.game_saves = (
             compressed_game_saves.0,

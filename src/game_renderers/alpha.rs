@@ -50,13 +50,13 @@ impl Renderer for DebugRenderer {
 
     fn render<T>(
         &mut self,
+        term: &mut T,
         game: &Game,
         _meta_data: &GameMetaData,
         _settings: &Settings,
-        _session_data: &SessionData,
+        _temp_data: &TemporaryData,
         _keybinds_legend: &KeybindsLegend,
         _replay_extra: Option<(InGameTime, f64)>,
-        term: &mut T,
     ) -> io::Result<()>
     where
         T: Write,

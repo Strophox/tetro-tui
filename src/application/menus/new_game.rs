@@ -740,7 +740,12 @@ impl<T: Write> Application<T> {
                     // Mark restored game as such.
                     restored_game_meta_data.title.push('\'');
 
-                    let restored_input_history = game_restoration_data.input_history.clone();
+                    let restored_input_history = game_restoration_data
+                        .input_history
+                        .iter()
+                        .take(*inputs_to_load)
+                        .copied()
+                        .collect();
 
                     (
                         restored_game_meta_data,

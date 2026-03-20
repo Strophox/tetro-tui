@@ -169,7 +169,7 @@ impl<T: Write> Application<T> {
                 .queue(PrintStyledContent(
                     format!(
                         "{:^w_main$}",
-                        if self.session_data.kitty_detected {
+                        if self.temp_data.kitty_detected {
                             "(*Should apply, since terminal seems to support enhanced-key-events)"
                         } else {
                             "(*Unlikely to apply, enhanced-key-events seem unsupported by terminal)"

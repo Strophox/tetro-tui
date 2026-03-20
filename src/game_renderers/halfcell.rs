@@ -1,8 +1,8 @@
 use crossterm::{cursor, style, terminal, QueueableCommand};
 
-use super::*;
+use crate::graphics_settings::Glyphset;
 
-const SMALL_ASCII: &str = " .°:";
+use super::*;
 
 #[derive(
     PartialEq,
@@ -17,12 +17,12 @@ const SMALL_ASCII: &str = " .°:";
     serde::Serialize,
     serde::Deserialize,
 )]
-pub struct SmallAsciiRenderer {
+pub struct HalfCellRenderer {
     x_draw: usize,
     y_draw: usize,
 }
 
-impl Renderer for SmallAsciiRenderer {
+impl Renderer for HalfCellRenderer {
     fn push_game_feedback_msgs(
         &mut self,
         _feedback_msgs: impl IntoIterator<Item = (InGameTime, Feedback)>,
@@ -45,24 +45,27 @@ impl Renderer for SmallAsciiRenderer {
 
     fn render<T: Write>(
         &mut self,
+        term: &mut T,
         game: &Game,
         _meta_data: &GameMetaData,
-        _settings: &Settings,
-        _session_data: &SessionData,
+        settings: &Settings,
+        _temp_data: &TemporaryData,
         _keybinds_legend: &KeybindsLegend,
         _replay_extra: Option<(InGameTime, f64)>,
-        term: &mut T,
     ) -> io::Result<()> {
-        let falling_tetromino_engine::State { board, .. } = game.state();
+        let mut board = game.state().board;
 
-        let mut board = *board;
         if let Some(piece) = game.phase().piece() {
             for ((x, y), tile_type_id) in piece.tiles() {
                 board[y as usize][x as usize] = Some(tile_type_id);
             }
         }
 
-        let small_ascii = SMALL_ASCII.chars().collect::<Vec<char>>();
+        // let small_ascii = " .°:".chars().collect::<Vec<char>>();
+        let small_ascii = match settings.graphics().glyphset {
+            Glyphset::Elektronika_60 | Glyphset::ASCII => [' ', '.', '°', ':'],
+            Glyphset::Unicode => [' ', '▄', '▀', '█'],
+        };
 
         let btxt_lines = [
             [18, 19],

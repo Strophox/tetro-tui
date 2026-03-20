@@ -46,13 +46,13 @@ impl Renderer for BrailleRenderer {
 
     fn render<T: Write>(
         &mut self,
+        term: &mut T,
         game: &Game,
         _meta_data: &GameMetaData,
         _settings: &Settings,
-        _session_data: &SessionData,
+        _temp_data: &TemporaryData,
         _keybinds_legend: &KeybindsLegend,
         _replay_extra: Option<(InGameTime, f64)>,
-        term: &mut T,
     ) -> io::Result<()> {
         let falling_tetromino_engine::State { board, .. } = game.state();
 

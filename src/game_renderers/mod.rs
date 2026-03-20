@@ -3,16 +3,16 @@ pub mod braille;
 'underlying' game logic: An idealized renderer might actually figure out before that which game
 state changes lead to exactly which minimal changes in visuals, and save itself the effort of
 simulating everything it wants to print and manually diffing that like we do now? (diff_state) */
+mod alpha;
 mod diff_print;
-mod legacy_debug;
-mod smallascii;
+mod halfcell;
 
 use std::io::{self, Write};
 
 use falling_tetromino_engine::{Feedback, Game, InGameTime};
 
 use crate::{
-    application::{GameMetaData, SessionData, Settings},
+    application::{GameMetaData, Settings, TemporaryData},
     fmt_helpers::KeybindsLegend,
 };
 
@@ -22,10 +22,10 @@ pub use braille::BrailleRenderer;
 pub use diff_print::DiffPrintRenderer;
 
 #[allow(unused)]
-pub use legacy_debug::DebugRenderer;
+pub use alpha::DebugRenderer;
 
 #[allow(unused)]
-pub use smallascii::SmallAsciiRenderer;
+pub use halfcell::HalfCellRenderer;
 
 pub trait Renderer: Default {
     fn push_game_feedback_msgs(
@@ -42,12 +42,12 @@ pub trait Renderer: Default {
     #[allow(clippy::too_many_arguments)]
     fn render<T: Write>(
         &mut self,
+        term: &mut T,
         game: &Game,
         meta_data: &GameMetaData,
         settings: &Settings,
-        session_data: &SessionData,
+        temp_data: &TemporaryData,
         keybinds_legend: &KeybindsLegend,
         replay_extra: Option<(InGameTime, f64)>,
-        term: &mut T,
     ) -> io::Result<()>;
 }

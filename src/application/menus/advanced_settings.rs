@@ -36,7 +36,7 @@ impl<T: Write> Application<T> {
             let labels = [
                 format!(
                     "Save contents: {}",
-                    match self.save_on_exit {
+                    match self.temp_data.save_on_exit {
                         SavefileGranularity::NoSavefile => "Nothing",
                         SavefileGranularity::RememberSettings =>
                             "Only settings - No scores,replays",
@@ -48,12 +48,9 @@ impl<T: Write> Application<T> {
                 ),
                 format!(
                     "Assume enhanced-key-events work = {} *",
-                    self.session_data.kitty_assumed
+                    self.temp_data.kitty_assumed
                 ),
-                format!(
-                    "Blindfold gameplay = {}",
-                    self.session_data.blindfold_enabled
-                ),
+                format!("Blindfold gameplay = {}", self.temp_data.blindfold_enabled),
             ];
 
             let selection_len = labels.len();
@@ -82,7 +79,7 @@ impl<T: Write> Application<T> {
                 .queue(PrintStyledContent(
                     format!(
                         "{:^w_main$}",
-                        if self.session_data.kitty_detected {
+                        if self.temp_data.kitty_detected {
                             "(*Should apply, since terminal seems to support enhanced-key-events)"
                         } else {
                             "(*Unlikely to apply, enhanced-key-events seem unsupported by terminal)"
@@ -90,6 +87,24 @@ impl<T: Write> Application<T> {
                     )
                     .italic(),
                 ))?;
+
+            if self.temp_data.save_on_exit != SavefileGranularity::NoSavefile {
+                self.term
+                    .queue(MoveTo(
+                        x_main,
+                        y_main + y_selection + 4 + u16::try_from(selection_len).unwrap() + 3,
+                    ))?
+                    .queue(PrintStyledContent(
+                        format!(
+                            "{:^w_main$}",
+                            format!(
+                                "(Save location: {})",
+                                self.temp_data.savefile_path.display()
+                            )
+                        )
+                        .italic(),
+                    ))?;
+            }
 
             self.term.flush()?;
             // Wait for new input.
@@ -113,13 +128,13 @@ impl<T: Write> Application<T> {
                     ..
                 }) => match selected {
                     0 => {
-                        self.save_on_exit = SavefileGranularity::NoSavefile;
+                        self.temp_data.save_on_exit = SavefileGranularity::NoSavefile;
                     }
                     1 => {
-                        self.session_data.kitty_assumed = self.session_data.kitty_detected;
+                        self.temp_data.kitty_assumed = self.temp_data.kitty_detected;
                     }
                     2 => {
-                        self.session_data.blindfold_enabled = false;
+                        self.temp_data.blindfold_enabled = false;
                     }
                     _ => {}
                 },
@@ -146,7 +161,7 @@ impl<T: Write> Application<T> {
                     ..
                 }) => match selected {
                     0 => {
-                        self.save_on_exit = match self.save_on_exit {
+                        self.temp_data.save_on_exit = match self.temp_data.save_on_exit {
                             SavefileGranularity::NoSavefile => {
                                 SavefileGranularity::RememberSettings
                             }
@@ -162,10 +177,10 @@ impl<T: Write> Application<T> {
                         };
                     }
                     1 => {
-                        self.session_data.kitty_assumed ^= true;
+                        self.temp_data.kitty_assumed ^= true;
                     }
                     2 => {
-                        self.session_data.blindfold_enabled ^= true;
+                        self.temp_data.blindfold_enabled ^= true;
                     }
                     _ => {}
                 },
@@ -175,7 +190,7 @@ impl<T: Write> Application<T> {
                     ..
                 }) => match selected {
                     0 => {
-                        self.save_on_exit = match self.save_on_exit {
+                        self.temp_data.save_on_exit = match self.temp_data.save_on_exit {
                             SavefileGranularity::NoSavefile => {
                                 SavefileGranularity::RememberSettingsScoresReplays
                             }
@@ -191,10 +206,10 @@ impl<T: Write> Application<T> {
                         };
                     }
                     1 => {
-                        self.session_data.kitty_assumed ^= true;
+                        self.temp_data.kitty_assumed ^= true;
                     }
                     2 => {
-                        self.session_data.blindfold_enabled ^= true;
+                        self.temp_data.blindfold_enabled ^= true;
                     }
                     _ => {}
                 },

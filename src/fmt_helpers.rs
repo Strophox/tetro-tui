@@ -140,7 +140,7 @@ pub fn fmt_button_ascii(b: Button) -> &'static str {
 pub fn fmt_button_input(input: Input, as_ascii: bool) -> String {
     match input {
         Input::Activate(b) => format!(
-            "+({})+",
+            "++|{}|",
             if as_ascii {
                 fmt_button_ascii
             } else {
@@ -148,7 +148,7 @@ pub fn fmt_button_input(input: Input, as_ascii: bool) -> String {
             }(b)
         ),
         Input::Deactivate(b) => format!(
-            "-({})-",
+            "--|{}|",
             if as_ascii {
                 fmt_button_ascii
             } else {

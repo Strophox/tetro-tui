@@ -44,7 +44,7 @@ impl<T: Write> Application<T> {
                 ),
                 format!(
                     "Keep save file: {}",
-                    match self.save_on_exit {
+                    match self.temp_data.save_on_exit {
                         SavefileGranularity::NoSavefile => "No *",
                         SavefileGranularity::RememberSettings
                         | SavefileGranularity::RememberSettingsScores
@@ -90,20 +90,20 @@ impl<T: Write> Application<T> {
                 .queue(PrintStyledContent(
                     format!(
                         "{:^w_main$}",
-                        if self.save_on_exit == SavefileGranularity::NoSavefile {
+                        if self.temp_data.save_on_exit == SavefileGranularity::NoSavefile {
                             "(*Caution: data will be wiped on exit)".to_owned()
                         } else {
                             "".to_owned()
                             // FIXME: Remove unused code eventually.
                             // format!(
                             //     "(Savefile: \"{}\")",
-                            //     self.session_data.savefile_path.display()
+                            //     self.temp_data.savefile_path.display()
                             // )
                         },
                     )
                     .italic()
                     .with(
-                        if self.save_on_exit == SavefileGranularity::NoSavefile {
+                        if self.temp_data.save_on_exit == SavefileGranularity::NoSavefile {
                             crossterm::style::Color::Yellow
                         } else {
                             crossterm::style::Color::Reset
@@ -135,7 +135,8 @@ impl<T: Write> Application<T> {
                     1 => break Ok(MenuUpdate::Push(Menu::AdjustKeybinds)),
                     2 => break Ok(MenuUpdate::Push(Menu::AdjustGameplay)),
                     3 => {
-                        self.save_on_exit = SavefileGranularity::RememberSettingsScoresReplays;
+                        self.temp_data.save_on_exit =
+                            SavefileGranularity::RememberSettingsScoresReplays;
                     }
                     4 => break Ok(MenuUpdate::Push(Menu::AdvancedSettings)),
                     _ => {}
@@ -181,7 +182,7 @@ impl<T: Write> Application<T> {
                                 self.settings.gameplay_slots.len();
                         }
                         3 => {
-                            self.save_on_exit = match self.save_on_exit {
+                            self.temp_data.save_on_exit = match self.temp_data.save_on_exit {
                                 SavefileGranularity::NoSavefile
                                 | SavefileGranularity::RememberSettingsScores
                                 | SavefileGranularity::RememberSettings => {
@@ -223,7 +224,7 @@ impl<T: Write> Application<T> {
                                 self.settings.gameplay_slots.len();
                         }
                         3 => {
-                            self.save_on_exit = match self.save_on_exit {
+                            self.temp_data.save_on_exit = match self.temp_data.save_on_exit {
                                 SavefileGranularity::NoSavefile => {
                                     SavefileGranularity::RememberSettingsScoresReplays
                                 }
@@ -257,7 +258,7 @@ impl<T: Write> Application<T> {
                             self.settings.gameplay_slot_active = 0;
                         }
                         3 => {
-                            self.save_on_exit = SavefileGranularity::NoSavefile;
+                            self.temp_data.save_on_exit = SavefileGranularity::NoSavefile;
                         }
                         4 => {}
                         // No accessible options beyond.

@@ -59,7 +59,7 @@ impl<T: Write> Application<T> {
         // Prepare everything to enter the game (react & render) loop.
 
         // Toggle on enhanced-keyboard-events.
-        if self.session_data.kitty_assumed {
+        if self.temp_data.kitty_assumed {
             let f = Self::KEYBOARD_ENHANCEMENT_FLAGS;
             // FIXME: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm doesn't like operating on Windows.
             let _v = self.term.execute(event::PushKeyboardEnhancementFlags(f));
@@ -128,13 +128,13 @@ impl<T: Write> Application<T> {
         game_renderer.set_render_offset(usize::from(x_main), usize::from(y_main));
         game_renderer.reset_view_diff_state();
         game_renderer.render(
+            &mut self.term,
             &game,
             game_meta_data,
             &self.settings,
-            &self.session_data,
+            &self.temp_data,
             &keybinds_legend,
             Some((replay_length, calc_speed(replay_speed_stepper))),
-            &mut self.term,
         )?;
 
         // The 'real-life' time at which we enter the game loop.
@@ -405,12 +405,14 @@ impl<T: Write> Application<T> {
                                                         }
                                                     }
 
+                                                    // Note how we use `inputs_loaded` as because this automatically corresponds to the *index* of the next desired input.
                                                     if let Some((next_input_time, input)) =
                                                         game_restoration_data
                                                             .input_history
                                                             .get(inputs_loaded)
                                                     {
-                                                        if *next_input_time <= update_target_time {
+                                                        // By using 'less than' we can actually load the environmental game effects and user inputs separately!
+                                                        if *next_input_time < update_target_time {
                                                             update_target_time = *next_input_time;
                                                             do_forfeit = false;
                                                             opt_input = Some(*input);
@@ -538,7 +540,7 @@ impl<T: Write> Application<T> {
                                                             .input_history
                                                             .iter()
                                                             .take(inputs_loaded)
-                                                            .cloned()
+                                                            .copied()
                                                             .collect(),
                                                         game_meta_data: the_meta_data,
                                                         // FIXME: Clone renderer when entering live game from here?
@@ -619,6 +621,8 @@ impl<T: Write> Application<T> {
                         inputs_loaded = *anchor_inputs_loaded;
                     }
                 } else {
+                    // Workaround for if we o not have a game anchor available: Restore the game from scratch actually.
+                    // Note that this is currently only required for modded games.
                     let tgt_time = ANCHOR_INTERVAL.mul_f64(anchor_index as f64);
                     let idx = match game_restoration_data
                         .input_history
@@ -640,13 +644,13 @@ impl<T: Write> Application<T> {
 
                 // Re-render full state.
                 game_renderer.render(
+                    &mut self.term,
                     &game,
                     game_meta_data,
                     &self.settings,
-                    &self.session_data,
+                    &self.temp_data,
                     &keybinds_legend,
                     Some((replay_length, calc_speed(replay_speed_stepper))),
-                    &mut self.term,
                 )?;
 
                 renders_per_second_counter += 1;
@@ -672,6 +676,7 @@ impl<T: Write> Application<T> {
                 }
 
                 'feed_inputs: loop {
+                    // Note how we use `inputs_loaded` as because this automatically corresponds to the *index* of the next desired input.
                     let Some((next_input_time, button_change)) =
                         game_restoration_data.input_history.get(inputs_loaded)
                     else {
@@ -718,13 +723,13 @@ impl<T: Write> Application<T> {
             if !paused || next_paused_with_extra_render_request == Some(true) {
                 // Render current state of the game.
                 game_renderer.render(
+                    &mut self.term,
                     &game,
                     game_meta_data,
                     &self.settings,
-                    &self.session_data,
+                    &self.temp_data,
                     &keybinds_legend,
                     Some((replay_length, calc_speed(replay_speed_stepper))),
-                    &mut self.term,
                 )?;
 
                 renders_per_second_counter += 1;
@@ -796,7 +801,7 @@ impl<T: Write> Application<T> {
             }
         ``` */
 
-        if self.session_data.kitty_assumed {
+        if self.temp_data.kitty_assumed {
             // FIXME: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm doesn't like operating on Windows.
             let _v = self.term.execute(event::PopKeyboardEnhancementFlags);
         }
