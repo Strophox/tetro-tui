@@ -16,7 +16,7 @@ use crossterm::{
     QueueableCommand,
 };
 use falling_tetromino_engine::{
-    DelayParameters, ExtDuration, ExtNonNegF64, Game, InGameTime, Stat,
+    DelayParameters, ExtDuration, ExtNonNegF64, Game, GameLimits, InGameTime, Stat,
 };
 
 use crate::{
@@ -28,6 +28,7 @@ use crate::{
     game_mode_presets::{
         self, game_modifiers::combo_board::LAYOUTS as COMBO_STARTLAYOUTS, GameModePreset,
     },
+    game_renderers::Renderer,
 };
 
 impl<T: Write> Application<T> {
@@ -691,7 +692,7 @@ impl<T: Write> Application<T> {
                     soft_drop_factor,
                     line_clear_duration,
                     spawn_delay,
-                    allow_prespawn_actions,
+                    allow_initial_actions,
                 } = *self.settings.gameplay();
 
                 let mut builder = Game::builder();
@@ -702,20 +703,18 @@ impl<T: Write> Application<T> {
                     .piece_preview_count(piece_preview_count)
                     .delayed_auto_shift(delayed_auto_shift)
                     .auto_repeat_rate(auto_repeat_rate)
-                    .soft_drop_divisor(soft_drop_factor)
+                    .soft_drop_factor(soft_drop_factor)
                     .line_clear_duration(line_clear_duration)
                     .spawn_delay(spawn_delay)
-                    .allow_prespawn_actions(allow_prespawn_actions);
+                    .allow_initial_actions(allow_initial_actions);
 
-                let (game_meta_data, game, game_input_history) = if selected < game_presets.len() {
+                let (game_meta_data, mut game, game_input_history) = if selected
+                    < game_presets.len()
+                {
                     // Build one of the selected game modes.
                     let ((title, comparison_stat, build), _desc) = &game_presets[selected];
 
-                    let mut preset_game = build(&builder);
-
-                    // We do an initial update, which allows the piece to spawn and queue to get generated.
-                    // We do this so the renderer does not render a first frame of no pieces.
-                    let _v = preset_game.update(InGameTime::ZERO, None);
+                    let preset_game = build(&builder);
 
                     let preset_game_meta_data = GameMetaData {
                         datetime: chrono::Utc::now().format("%Y-%m-%d_%H:%M").to_string(),
@@ -754,9 +753,9 @@ impl<T: Write> Application<T> {
 
                     builder
                         .fall_delay_params(n.custom_fall_delay_params)
-                        .end_conditions(match n.custom_win_condition {
-                            Some(stat) => vec![(stat, true)],
-                            None => vec![],
+                        .game_limits(match n.custom_win_condition {
+                            Some(stat) => GameLimits::single(stat, true),
+                            None => GameLimits::new(),
                         });
 
                     // Make lock delay decrease if fall delay was chosen to decrease.
@@ -770,7 +769,7 @@ impl<T: Write> Application<T> {
                     }
 
                     // Optionally load custom board.
-                    let mut new_custom_game = if let Some(board) = &n.custom_board {
+                    let new_custom_game = if let Some(board) = &n.custom_board {
                         builder.build_modded([
                             game_mode_presets::game_modifiers::custom_start_board::modifier(board),
                         ])
@@ -789,10 +788,6 @@ impl<T: Write> Application<T> {
                         None => "Limitless".to_owned(),
                     };
 
-                    // We do an initial update, which allows the piece to spawn and queue to get generated.
-                    // We do this so the renderer does not render a first frame of no pieces.
-                    let _v = new_custom_game.update(InGameTime::ZERO, None);
-
                     let custom_game_meta_data = GameMetaData {
                         datetime: chrono::Utc::now().format("%Y-%m-%d_%H:%M").to_string(),
                         title,
@@ -806,11 +801,25 @@ impl<T: Write> Application<T> {
                 // game.modifiers.push(game_mode_presets::game_modifiers::print_fall_delay::modifier());
                 // game.modifiers.push(game_mode_presets::game_modifiers::misc_modifiers::print_recency_tet_gen_stats::modifier());
                 // game.modifiers.push(falling_tetromino_engine::Modifier { descriptor: "always_clear_board".to_owned(), mod_function: Box::new(|_c, _i, s, _m, _f| { s.board = Default::default(); })});
+
+                let mut game_renderer: Box<crate::game_renderers::DiffPrintRenderer> =
+                    Default::default();
+
+                // We do an initial update, which allows a piece to spawn and queue to get generated.
+                // We do this so the renderer does not render a first frame when game is in its raw start state.
+                if game.state().time.is_zero() {
+                    match game.update(InGameTime::ZERO, None) {
+                        Ok(msgs) => game_renderer.push_game_feedback_msgs(msgs),
+                        // Screw us I guess
+                        Err(_update_game_error) => {}
+                    }
+                }
+
                 break Ok(MenuUpdate::Push(Menu::PlayGame {
                     game: Box::new(game),
                     game_input_history,
                     game_meta_data,
-                    game_renderer: Default::default(),
+                    game_renderer,
                 }));
             }
         }

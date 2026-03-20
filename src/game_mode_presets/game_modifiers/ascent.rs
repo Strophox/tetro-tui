@@ -3,8 +3,8 @@ use std::{num::NonZeroU8, time::Duration};
 use rand::Rng;
 
 use falling_tetromino_engine::{
-    Button, DelayParameters, ExtDuration, Game, GameBuilder, GameModFn, GameRng, InGameTime, Input,
-    Line, Modifier, Phase, Piece, PieceData, Stat, Tetromino, UpdatePoint,
+    Button, DelayParameters, ExtDuration, Game, GameBuilder, GameLimits, GameModFn, GameRng,
+    InGameTime, Input, Line, Modifier, Phase, Piece, PieceData, Stat, Tetromino, UpdatePoint,
 };
 
 pub const MOD_ID: &str = "ascent";
@@ -41,7 +41,7 @@ pub fn build(builder: &GameBuilder) -> Game {
                         fall_or_lock_time: Duration::MAX,
                         is_fall_not_lock: false,
                         lowest_y: 0,
-                        capped_lock_time: Duration::MAX,
+                        lock_time_cap: Duration::MAX,
                         auto_move_scheduled: None,
                     },
                 };
@@ -135,7 +135,10 @@ pub fn build(builder: &GameBuilder) -> Game {
     builder
         .clone()
         .lock_delay_params(DelayParameters::constant(ExtDuration::Infinite))
-        .end_conditions(vec![(Stat::TimeElapsed(Duration::from_secs(2 * 60)), true)])
+        .game_limits(GameLimits::single(
+            Stat::TimeElapsed(Duration::from_secs(2 * 60)),
+            true,
+        ))
         .build_modded([Modifier {
             descriptor: MOD_ID.to_owned(),
             mod_function,

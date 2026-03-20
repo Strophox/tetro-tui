@@ -1,8 +1,8 @@
 use std::num::{NonZeroU32, NonZeroU8, NonZeroUsize};
 
 use falling_tetromino_engine::{
-    DelayParameters, ExtDuration, Game, GameBuilder, GameModFn, GameRng, Line, Modifier, Stat,
-    UpdatePoint,
+    DelayParameters, ExtDuration, Game, GameBuilder, GameLimits, GameModFn, GameRng, Line,
+    Modifier, Stat, UpdatePoint,
 };
 use rand::seq::SliceRandom;
 
@@ -70,9 +70,9 @@ pub fn build(
         .clone()
         .fall_delay_params(DelayParameters::constant(fall_lock_delay))
         .lock_delay_params(DelayParameters::constant(fall_lock_delay))
-        .end_conditions(match linelimit {
-            Some(c) => vec![(Stat::LinesCleared(c.get()), true)],
-            None => vec![],
+        .game_limits(match linelimit {
+            Some(c) => GameLimits::single(Stat::LinesCleared(c.get()), true),
+            None => GameLimits::new(),
         })
         .build_modded([Modifier {
             descriptor: format!(

@@ -142,8 +142,8 @@ impl<T: Write> Application<T> {
                     self.settings.gameplay().spawn_delay
                 ),
                 format!(
-                    "Allow pre-spawn rotation/hold (IRS/IHS) = {:?} *",
-                    self.settings.gameplay().allow_prespawn_actions
+                    "Allow initial rotation/hold (IRS/IHS) = {:?} *",
+                    self.settings.gameplay().allow_initial_actions
                 ),
             ];
             for (i, label) in labels.into_iter().enumerate() {
@@ -289,7 +289,7 @@ impl<T: Write> Application<T> {
                     }
                     9 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                        self.settings.gameplay_mut().allow_prespawn_actions ^= true;
+                        self.settings.gameplay_mut().allow_initial_actions ^= true;
                     }
                     _ => {}
                 },
@@ -375,7 +375,7 @@ impl<T: Write> Application<T> {
                     }
                     9 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                        self.settings.gameplay_mut().allow_prespawn_actions ^= true;
+                        self.settings.gameplay_mut().allow_initial_actions ^= true;
                     }
                     _ => {}
                 },

@@ -151,8 +151,7 @@ impl Renderer for DebugRenderer {
                         18 => "Octodecuple",
                         19 => "Novemdecuple",
                         20 => "Vigintuple",
-                        21 => "Kirbtris",
-                        _ => "Unreachable",
+                        _ => "Absurduple",
                     }
                     .to_string();
                     msg.push(clear_action);

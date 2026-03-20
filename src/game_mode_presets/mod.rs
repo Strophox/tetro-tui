@@ -3,7 +3,7 @@ use std::{
     time::Duration,
 };
 
-use falling_tetromino_engine::{DelayParameters, ExtDuration, Game, GameBuilder, Stat};
+use falling_tetromino_engine::{DelayParameters, ExtDuration, Game, GameBuilder, GameLimits, Stat};
 
 pub mod game_modifiers;
 
@@ -17,7 +17,7 @@ pub fn swift() -> GameModePreset {
             builder
                 .clone()
                 .fall_delay_params(DelayParameters::constant(Duration::from_millis(667).into()))
-                .end_conditions(vec![(Stat::LinesCleared(40), true)])
+                .game_limits(GameLimits::single(Stat::LinesCleared(40), true))
                 .build()
         }),
     )
@@ -32,7 +32,7 @@ pub fn classic() -> GameModePreset {
                 .clone()
                 .fall_delay_params(DelayParameters::standard_fall())
                 .lock_delay_params(DelayParameters::standard_lock())
-                .end_conditions(vec![(Stat::LinesCleared(150), true)])
+                .game_limits(GameLimits::single(Stat::LinesCleared(150), true))
                 .build()
         }),
     )
@@ -61,7 +61,7 @@ pub fn master() -> GameModePreset {
                 .clone()
                 .fall_delay_params(DelayParameters::constant(ExtDuration::ZERO))
                 .lock_delay_params(DelayParameters::standard_lock())
-                .end_conditions(vec![(Stat::LinesCleared(150), true)])
+                .game_limits(GameLimits::single(Stat::LinesCleared(150), true))
                 .build()
         }),
     )
@@ -116,9 +116,9 @@ pub fn combo_n(linelimit: Option<NonZeroU32>, startlayout: u16) -> GameModePrese
                     .fall_delay_params(DelayParameters::constant(
                         Duration::from_millis(1000).into(),
                     ))
-                    .end_conditions(match linelimit {
-                        Some(l) => vec![(Stat::LinesCleared(l.get()), true)], // FIXME: Technically, this should count combo, not lines.
-                        None => vec![],
+                    .game_limits(match linelimit {
+                        Some(l) => GameLimits::single(Stat::LinesCleared(l.get()), true), // FIXME: Technically, this should count combo, not lines.
+                        None => GameLimits::new(),
                     })
                     .build_modded([game_modifiers::combo_board::modifier(startlayout)])
             }

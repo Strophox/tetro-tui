@@ -148,7 +148,7 @@ impl<T: Write> Application<T> {
                     .queue(PrintStyledContent(
                         format!(
                             "{:^w_main$}",
-                            format!("-- Game Over ({}): {end_cause} --", game_meta_data.title)
+                            format!("-- Game Over: {end_cause} ({}) --", game_meta_data.title)
                         )
                         .bold(),
                     ))?;

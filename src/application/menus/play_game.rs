@@ -535,7 +535,7 @@ impl<T: Write> Application<T> {
             // Manually release any pressed buttons to avoid weird persistent-buttonpress behavior.
             let unpress_time = game.state().time;
             'button_unpressing: for button in Button::VARIANTS {
-                if game.state().buttons_pressed[button].is_some() {
+                if game.state().active_buttons[button].is_some() {
                     let button_change = Input::Deactivate(button);
 
                     let update_result = game.update(unpress_time, Some(button_change));

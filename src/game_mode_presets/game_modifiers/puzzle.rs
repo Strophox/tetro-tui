@@ -2,7 +2,7 @@ use std::{collections::VecDeque, num::NonZeroU8, time::Duration};
 
 use falling_tetromino_engine::{
     Button, DelayParameters, Feedback, FeedbackMsg, Game, GameBuilder, GameEndCause, GameModFn,
-    Input, Line, Modifier, Phase, Stat, State, Tetromino, UpdatePoint,
+    Input, Line, Modifier, Phase, State, Tetromino, UpdatePoint,
 };
 
 pub const MOD_ID: &str = "puzzle";
@@ -19,22 +19,32 @@ pub fn build(builder: &GameBuilder) -> Game {
           -> usize {
         let (puzzle_name, puzzle_lines, puzzle_pieces) = &puzzles[current_puzzle_idx];
         // Game message.
-        feedback_msgs.push((
-            state.time,
-            Feedback::Message(if attempt == 1 {
-                format!(
-                    "Stage {}: {}",
-                    current_puzzle_idx + 1,
-                    puzzle_name.to_ascii_uppercase()
-                )
+        if attempt == 1 {
+            let s1 = format!(
+                "Stage {}",
+                current_puzzle_idx + 1,
+                // puzzles_len,
+            );
+
+            let s2 = format!("{:?}", puzzle_name);
+
+            // Push in reverse order so it displays correctly in newest-to-oldest~top-to-bottom order.
+            feedback_msgs.push((state.time, Feedback::Message(s2)));
+            feedback_msgs.push((state.time, Feedback::Message(s1)));
+        } else {
+            let s = if attempt == MAX_STAGE_ATTEMPTS {
+                "last attempt".to_owned()
             } else {
                 format!(
-                    "{} ATT. LEFT ({})",
-                    MAX_STAGE_ATTEMPTS + 1 - attempt,
-                    puzzle_name.to_ascii_uppercase()
+                    "{} att. left",
+                    // puzzle_name,
+                    MAX_STAGE_ATTEMPTS + 1 - attempt
                 )
-            }),
-        ));
+            };
+
+            feedback_msgs.push((state.time, Feedback::Message(s)));
+        }
+
         state.piece_preview.clone_from(puzzle_pieces);
         for (load_line, board_line) in puzzle_lines
             .iter()
@@ -92,11 +102,11 @@ pub fn build(builder: &GameBuilder) -> Game {
                     if current_puzzle_idx == puzzles_len {
                         // Done with all puzzles, game completed.
                         *phase = Phase::GameEnd {
-                            cause: GameEndCause::Limit(Stat::PointsScored(
-                                puzzles_len.try_into().unwrap(),
-                            )),
+                            cause: GameEndCause::Custom("All stages completed".to_owned()),
                             is_win: true,
                         };
+                        // Do this so when there's 24 puzzles, we display "24" at the end instead of "25".
+                        current_puzzle_idx = puzzles_len - 1;
                     } else {
                         // Load in new puzzle.
                         let piececnt =
@@ -110,12 +120,14 @@ pub fn build(builder: &GameBuilder) -> Game {
             msgs.retain(|evt| !matches!(evt, (_, Feedback::Accolade { .. })));
 
             // Remove ability to hold.
-            if let UpdatePoint::MainLoopHead(button_changes) = point {
-                if matches!(button_changes, Some(Input::Activate(Button::HoldPiece))) {
+            if let UpdatePoint::MainLoopHead(player_input) = point {
+                if matches!(player_input, Some(Input::Activate(Button::HoldPiece))) {
                     // Remove hold input to stop engine from processing it.
-                    button_changes.take();
+                    player_input.take();
                 }
             }
+
+            state.score = u32::try_from(current_puzzle_idx + 1).unwrap();
         });
     builder
         .clone()
@@ -159,13 +171,13 @@ fn puzzle_list() -> [(&'static str, Vec<&'static [u8; 10]>, VecDeque<Tetromino>)
             b"OOOOO OOOO",
             b"OOOO    OO",
             ], VecDeque::from([Tetromino::I,Tetromino::I])),
-        ("I-spin", vec![
+        ("I-spin II", vec![
             b"OOOOO  OOO",
             b"OOOOO OOOO",
             b"OOOOO OOOO",
             b"OO    OOOO",
             ], VecDeque::from([Tetromino::I,Tetromino::J])),
-        ("I-spin Triple", vec![
+        ("I-spin III", vec![
             b"OO  O   OO",
             b"OO    OOOO",
             b"OOOO OOOOO",
@@ -184,7 +196,7 @@ fn puzzle_list() -> [(&'static str, Vec<&'static [u8; 10]>, VecDeque<Tetromino>)
             b"OOOO  OOOO",
             b"OOO  OOOOO",
             ], VecDeque::from([Tetromino::S,])),
-        ("S-spins", vec![
+        ("S-spin II", vec![
             b"OOOO    OO",
             b"OOO    OOO",
             b"OOOOO  OOO",
@@ -214,7 +226,7 @@ fn puzzle_list() -> [(&'static str, Vec<&'static [u8; 10]>, VecDeque<Tetromino>)
             b"OOOOOO OOO",
             b"OOOOO  OOO",
             ], VecDeque::from([Tetromino::J,Tetromino::I,])),
-        ("L_J-spin", vec![
+        ("L/J-spins", vec![
             b"OO      OO",
             b"OO OOOO OO",
             b"OO  OO  OO",
@@ -223,13 +235,13 @@ fn puzzle_list() -> [(&'static str, Vec<&'static [u8; 10]>, VecDeque<Tetromino>)
             b"OOOOO OOOO",
             b"OOO   OOOO",
             ], VecDeque::from([Tetromino::L,])),
-        ("L/J-spins", vec![
+        ("L/J-spins II", vec![
             b"O   OO   O",
             b"O O OO O O",
             b"O   OO   O",
             ], VecDeque::from([Tetromino::J,Tetromino::L,Tetromino::J,Tetromino::L,])),
         // 4 L/J-turns.
-        ("77", vec![
+        ("7-7", vec![
             b"OOOO  OOOO",
             b"OOOOO OOOO",
             b"OOO   OOOO",
@@ -261,7 +273,7 @@ fn puzzle_list() -> [(&'static str, Vec<&'static [u8; 10]>, VecDeque<Tetromino>)
             b"OOO   OOOO",
             b"OOOO OOOOO",
             ], VecDeque::from([Tetromino::T,Tetromino::I])),
-        ("T-spin pt.2", vec![
+        ("T-spin II", vec![
             b"OOOO    OO",
             b"OOO   OOOO",
             b"OOOO OOOOO",
@@ -283,13 +295,13 @@ fn puzzle_list() -> [(&'static str, Vec<&'static [u8; 10]>, VecDeque<Tetromino>)
             b"OOOOO  OOO",
             b"OOOOO OOOO",
             ], VecDeque::from([Tetromino::T,Tetromino::O])),
-        ("T T-spin Setup", vec![
+        ("T-spin Tri. setup", vec![
             b"OOOOO  OOO",
             b"OOOOO  OOO",
             b"OOO   OOOO",
             b"OOOO OOOOO",
             ], VecDeque::from([Tetromino::T,Tetromino::O])),
-        ("T T-spin Triple", vec![
+        ("T-spin Triple", vec![
             b"OOOO   OOO",
             b"OOOOO  OOO",
             b"OOO   OOOO",
@@ -297,7 +309,7 @@ fn puzzle_list() -> [(&'static str, Vec<&'static [u8; 10]>, VecDeque<Tetromino>)
             b"OOO  OOOOO",
             b"OOOO OOOOO",
             ], VecDeque::from([Tetromino::T,Tetromino::L,Tetromino::J])),
-        ("~ Finale ~", vec![ // v2.2.1
+        ("Final Crossover", vec![ // v2.2.1
             b"OOOO  OOOO",
             b"O  O  OOOO",
             b"  OOO OOOO",

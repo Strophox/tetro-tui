@@ -286,9 +286,10 @@ impl Renderer for DiffPrintRenderer {
         let gravity = game.state().fall_delay.as_hertz();
         // Screen: some titles.
         let modename_len = meta_data.title.len().max(14);
+        // FIXME: Only displays the first (of up to four) limits found.
         let (endcond_title, endcond_value) = if let Some((c, _)) = game
             .config
-            .end_conditions
+            .game_limits
             .iter()
             .find(|(_stat, to_win)| *to_win)
         {
@@ -485,7 +486,7 @@ impl Renderer for DiffPrintRenderer {
             let n253 = NonZeroU8::try_from(253).unwrap();
             let n255 = NonZeroU8::try_from(255).unwrap();
             let bc = |b: Button| {
-                get_color(if game.state().buttons_pressed[b].is_some() {
+                get_color(if game.state().active_buttons[b].is_some() {
                     n255
                 } else {
                     n253
@@ -858,14 +859,14 @@ impl Renderer for DiffPrintRenderer {
                 }
 
                 Feedback::HardDrop {
-                    old_piece: _,
-                    new_piece,
+                    previous_piece: _,
+                    updated_piece,
                 } => {
                     if !settings.graphics().show_effects {
                         *active = false;
                         continue;
                     }
-                    for ((x_tile, y_tile), tile_type_id) in new_piece.tiles() {
+                    for ((x_tile, y_tile), tile_type_id) in updated_piece.tiles() {
                         for dy in (y_tile as usize)..Game::LOCK_OUT_HEIGHT {
                             self.hard_drop_tiles.push((
                                 HardDropTile {
@@ -890,45 +891,44 @@ impl Renderer for DiffPrintRenderer {
                     is_perfect_clear: perfect_clear,
                     combo,
                 } => {
-                    let mut text = Vec::new();
-                    text.push(format!("+{score_bonus}"));
+                    let mut tokens = Vec::new();
+                    tokens.push(format!("+{score_bonus}"));
                     if *perfect_clear {
-                        text.push("Perfect".to_owned());
+                        tokens.push("PERFECT".to_owned());
                     }
                     if *spin {
-                        text.push(format!("{tetromino:?}-Spin"));
+                        tokens.push(format!("{tetromino:?}-Spin"));
                     }
                     let clear_action = match lineclears {
                         1 => "Single",
                         2 => "Double",
                         3 => "Triple",
-                        4 => "Quadruple",
-                        5 => "Quintuple",
-                        6 => "Sextuple",
-                        7 => "Septuple",
-                        8 => "Octuple",
-                        9 => "Nonuple",
-                        10 => "Decuple",
-                        11 => "Undecuple",
-                        12 => "Duodecuple",
-                        13 => "Tredecuple",
-                        14 => "Quattuordecuple",
-                        15 => "Quindecuple",
-                        16 => "Sexdecuple",
-                        17 => "Septendecuple",
-                        18 => "Octodecuple",
-                        19 => "Novemdecuple",
-                        20 => "Vigintuple",
-                        21 => "Kirbtris",
-                        _ => "Unreachable",
+                        4 => "Quad",
+                        5 => "Penta",
+                        6 => "Hexa",
+                        7 => "Hepta",
+                        8 => "Octa",
+                        9 => "Ennea",
+                        10 => "Deca",
+                        11 => "Hendeca",
+                        12 => "Dodeca",
+                        13 => "Triadeca",
+                        14 => "Tessaradeca",
+                        15 => "Penteeca",
+                        16 => "Hexadeca",
+                        17 => "Heptadeca",
+                        18 => "Octadeca",
+                        19 => "Enneadeca",
+                        20 => "Eicosa",
+                        _ => "Absurdclear",
                     }
                     .to_string();
-                    text.push(clear_action);
+                    tokens.push(clear_action);
                     if *combo > 1 {
-                        text.push(format!("#{combo}."));
+                        tokens.push(format!("#{combo}"));
                     }
                     self.buffered_text_msgs
-                        .push((*feedback_time, text.join(" ")));
+                        .push((*feedback_time, tokens.join(" ")));
 
                     *active = false;
                 }
@@ -940,9 +940,8 @@ impl Renderer for DiffPrintRenderer {
                     *active = false;
                 }
 
-                Feedback::Debug(update_point) => {
-                    self.buffered_text_msgs
-                        .push((*feedback_time, format!("{update_point:?}")));
+                Feedback::Debug(s) => {
+                    self.buffered_text_msgs.push((*feedback_time, s.clone()));
 
                     *active = false;
                 }
