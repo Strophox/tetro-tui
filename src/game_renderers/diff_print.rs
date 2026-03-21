@@ -900,10 +900,10 @@ impl Renderer for DiffPrintRenderer {
                         tokens.push(format!("{tetromino:?}-Spin"));
                     }
                     let clear_action = match lineclears {
-                        1 => "Single",
-                        2 => "Double",
-                        3 => "Triple",
-                        4 => "Quad",
+                        1 => "Mono",
+                        2 => "Duo",
+                        3 => "Tri",
+                        4 => "Tetra",
                         5 => "Penta",
                         6 => "Hexa",
                         7 => "Hepta",
@@ -920,7 +920,7 @@ impl Renderer for DiffPrintRenderer {
                         18 => "Octadeca",
                         19 => "Enneadeca",
                         20 => "Eicosa",
-                        _ => "Absurdclear",
+                        _ => "Paralogo",
                     }
                     .to_string();
                     tokens.push(clear_action);

@@ -33,13 +33,13 @@ impl<T: Write> Application<T> {
                 total_pieces_locked,
                 total_points_scored: _,
                 total_lines_cleared,
-                total_singles,
-                total_doubles,
-                total_triples,
-                total_quads,
-                total_spins,
-                total_perfect_clears,
-                total_combos: _,
+                total_mono,
+                total_duo,
+                total_tri,
+                total_tetra,
+                total_spin,
+                total_perfect_clear,
+                total_combo: _,
             } = &self.statistics;
 
             let lines = [
@@ -49,12 +49,12 @@ impl<T: Write> Application<T> {
                 format!("Total pieces locked: {total_pieces_locked}"),
                 // format!("Total points scored: {total_points_scored}"),
                 format!("Total lines cleared: {total_lines_cleared}"),
-                format!("Total Singles: {total_singles}"),
-                format!("Total Doubles: {total_doubles}"),
-                format!("Total Triples: {total_triples}"),
-                format!("Total Quads: {total_quads}"),
-                format!("Total Spins: {total_spins}"),
-                format!("Total Perfect Clears: {total_perfect_clears}"),
+                format!("Total Mono clears: {total_mono}"),
+                format!("Total Duo clears: {total_duo}"),
+                format!("Total Tri clears: {total_tri}"),
+                format!("Total Tetra clears: {total_tetra}"),
+                format!("Total Spins: {total_spin}"),
+                format!("Total Perfect clears: {total_perfect_clear}"),
             ]
             .into_iter();
 

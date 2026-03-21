@@ -315,13 +315,13 @@ pub struct Statistics {
     total_pieces_locked: u32,
     total_points_scored: u32,
     total_lines_cleared: u32,
-    total_singles: u32,
-    total_doubles: u32,
-    total_triples: u32,
-    total_quads: u32,
-    total_spins: u32,
-    total_perfect_clears: u32,
-    total_combos: u32,
+    total_mono: u32,
+    total_duo: u32,
+    total_tri: u32,
+    total_tetra: u32,
+    total_spin: u32,
+    total_perfect_clear: u32,
+    total_combo: u32,
 }
 
 impl Statistics {
@@ -343,15 +343,15 @@ impl Statistics {
                     self.total_points_scored += score_bonus;
                     self.total_lines_cleared += lineclears;
                     match lineclears {
-                        1 => self.total_singles += 1,
-                        2 => self.total_doubles += 1,
-                        3 => self.total_triples += 1,
-                        4 => self.total_quads += 1,
+                        1 => self.total_mono += 1,
+                        2 => self.total_duo += 1,
+                        3 => self.total_tri += 1,
+                        4 => self.total_tetra += 1,
                         _ => {}
                     }
-                    self.total_spins += if *is_spin { 1 } else { 0 };
-                    self.total_perfect_clears += if *is_perfect_clear { 1 } else { 0 };
-                    self.total_combos += if *combo > 1 { 1 } else { 0 };
+                    self.total_spin += if *is_spin { 1 } else { 0 };
+                    self.total_perfect_clear += if *is_perfect_clear { 1 } else { 0 };
+                    self.total_combo += if *combo > 1 { 1 } else { 0 };
                 }
 
                 _ => {}
@@ -367,13 +367,13 @@ impl Statistics {
             total_pieces_locked,
             total_points_scored,
             total_lines_cleared,
-            total_singles,
-            total_doubles,
-            total_triples,
-            total_quads,
-            total_spins,
-            total_perfect_clears,
-            total_combos,
+            total_mono,
+            total_duo,
+            total_tri,
+            total_tetra,
+            total_spin,
+            total_perfect_clear,
+            total_combo,
         } = self;
 
         *total_new_games_started += other.total_new_games_started;
@@ -382,13 +382,13 @@ impl Statistics {
         *total_pieces_locked += other.total_pieces_locked;
         *total_points_scored += other.total_points_scored;
         *total_lines_cleared += other.total_lines_cleared;
-        *total_singles += other.total_singles;
-        *total_doubles += other.total_doubles;
-        *total_triples += other.total_triples;
-        *total_quads += other.total_quads;
-        *total_spins += other.total_spins;
-        *total_perfect_clears += other.total_perfect_clears;
-        *total_combos += other.total_combos;
+        *total_mono += other.total_mono;
+        *total_duo += other.total_duo;
+        *total_tri += other.total_tri;
+        *total_tetra += other.total_tetra;
+        *total_spin += other.total_spin;
+        *total_perfect_clear += other.total_perfect_clear;
+        *total_combo += other.total_combo;
     }
 }
 

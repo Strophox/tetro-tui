@@ -22,11 +22,11 @@ use super::*;
     serde::Serialize,
     serde::Deserialize,
 )]
-pub struct DebugRenderer {
+pub struct PrototypeRenderer {
     feedback_msgs_buffer: VecDeque<(InGameTime, Feedback)>,
 }
 
-impl Renderer for DebugRenderer {
+impl Renderer for PrototypeRenderer {
     fn push_game_feedback_msgs(
         &mut self,
         feedback_msgs: impl IntoIterator<Item = (InGameTime, Feedback)>,
