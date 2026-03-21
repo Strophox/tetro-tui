@@ -26,8 +26,88 @@ use crossterm::{
     terminal::{Clear, ClearType},
     QueueableCommand,
 };
+use falling_tetromino_engine::{Game, InGameTime};
 
-use crate::application::{Application, Menu, MenuUpdate};
+use crate::{
+    application::{
+        Application, GameMetaData, GameRestorationData, ScoresEntry, UncompressedInputHistory,
+    },
+    game_renderers::TetroTUIRenderer,
+};
+
+#[derive(Debug)]
+pub enum MenuUpdate {
+    Pop,
+    Push(Menu),
+}
+
+#[derive(Debug)]
+pub enum Menu {
+    Title,
+    NewGame,
+    PlayGame {
+        game: Box<Game>,
+        game_input_history: UncompressedInputHistory,
+        game_meta_data: GameMetaData,
+        // game_statistics: Statistics,
+        game_renderer: Box<TetroTUIRenderer>,
+    },
+    Pause,
+    Settings,
+    AdjustGraphics,
+    AdjustKeybinds,
+    AdjustGameplay,
+    AdvancedSettings,
+    GameOver {
+        game_scoring: Box<ScoresEntry>,
+        // game_statistics: Statistics,
+    },
+    GameComplete {
+        game_scoring: Box<ScoresEntry>,
+        // game_statistics: Statistics,
+    },
+    ScoresAndReplays {
+        cursor_pos: usize,
+        camera_pos: usize,
+    },
+    ReplayGame {
+        game_restoration_data: Box<GameRestorationData<UncompressedInputHistory>>,
+        game_meta_data: GameMetaData,
+        replay_length: InGameTime,
+        game_renderer: Box<TetroTUIRenderer>,
+    },
+    Statistics,
+    About,
+    Quit,
+}
+
+impl std::fmt::Display for Menu {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let name = match self {
+            Menu::Title => "Title Screen",
+            Menu::NewGame => "New Game",
+            Menu::PlayGame { game_meta_data, .. } => {
+                &format!("Playing Game ({})", game_meta_data.title)
+            }
+            Menu::Pause => "Pause",
+            Menu::Settings => "Settings",
+            Menu::AdjustGraphics => "Adjust Graphics",
+            Menu::AdjustKeybinds => "Adjust Keybinds",
+            Menu::AdjustGameplay => "Adjust Gameplay",
+            Menu::AdvancedSettings => "Advanced Settings",
+            Menu::GameOver { .. } => "Game Over",
+            Menu::GameComplete { .. } => "Game Completed",
+            Menu::ScoresAndReplays { .. } => "Scores and Replays",
+            Menu::ReplayGame { game_meta_data, .. } => {
+                &format!("Replaying Game ({})", game_meta_data.title)
+            }
+            Menu::Statistics => "Statistics",
+            Menu::About => "About",
+            Menu::Quit => "Quit",
+        };
+        write!(f, "{name}")
+    }
+}
 
 impl<T: Write> Application<T> {
     pub(in crate::application) fn generic_menu(

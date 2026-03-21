@@ -13,7 +13,10 @@ use crossterm::{
 };
 
 use crate::{
-    application::{Application, Menu, MenuUpdate, SavefileGranularity},
+    application::{
+        menus::{Menu, MenuUpdate},
+        Application, SavefileGranularity,
+    },
     fmt_helpers::FmtBool,
     game_renderers::TetroTUIRenderer,
 };

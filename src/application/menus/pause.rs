@@ -1,6 +1,9 @@
 use std::io::{self, Write};
 
-use crate::application::{Application, Menu, MenuUpdate};
+use crate::application::{
+    menus::{Menu, MenuUpdate},
+    Application,
+};
 
 impl<T: Write> Application<T> {
     pub(in crate::application) fn run_menu_pause(&mut self) -> io::Result<MenuUpdate> {

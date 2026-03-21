@@ -13,7 +13,10 @@ use crossterm::{
 };
 
 use crate::{
-    application::{Application, Menu, MenuUpdate, Statistics},
+    application::{
+        menus::{Menu, MenuUpdate},
+        Application, Statistics,
+    },
     fmt_helpers::fmt_duration,
 };
 

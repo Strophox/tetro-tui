@@ -18,8 +18,8 @@ use falling_tetromino_engine::{
 
 use crate::{
     application::{
-        Application, GameMetaData, GameRestorationData, GameSave, Menu, MenuUpdate,
-        UncompressedInputHistory,
+        menus::{Menu, MenuUpdate},
+        Application, GameMetaData, GameRestorationData, GameSave, UncompressedInputHistory,
     },
     fmt_helpers::{fmt_duration, replay_keybinds_legend},
     game_renderers::Renderer,

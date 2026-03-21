@@ -7,6 +7,7 @@ use falling_tetromino_engine::{DelayParameters, ExtDuration, Game, GameBuilder, 
 
 pub mod game_modifiers;
 
+// Name, (Stat-to-sort-by, is-order-desc), game-builder-struct-finalizer).
 pub type GameModePreset = (String, (Stat, bool), Box<dyn Fn(&GameBuilder) -> Game>);
 
 pub fn swift() -> GameModePreset {

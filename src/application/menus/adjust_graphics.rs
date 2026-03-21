@@ -14,7 +14,10 @@ use crossterm::{
 use falling_tetromino_engine::Tetromino;
 
 use crate::{
-    application::{Application, Glyphset, Menu, MenuUpdate, Settings},
+    application::{
+        menus::{Menu, MenuUpdate},
+        Application, Glyphset, Settings,
+    },
     fmt_helpers::{arabic_to_roman, FmtBool, FmtTetromino},
 };
 

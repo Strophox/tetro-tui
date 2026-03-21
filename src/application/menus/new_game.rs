@@ -21,8 +21,9 @@ use falling_tetromino_engine::{
 
 use crate::{
     application::{
-        Application, GameMetaData, GameRestorationData, GameSave, GameplaySettings, Glyphset, Menu,
-        MenuUpdate, NewGameSettings, UncompressedInputHistory,
+        menus::{Menu, MenuUpdate},
+        Application, GameMetaData, GameRestorationData, GameSave, GameplaySettings, Glyphset,
+        NewGameSettings, UncompressedInputHistory,
     },
     fmt_helpers::{fmt_button_input, fmt_duration, fmt_hertz, FmtBool},
     game_mode_presets::{

@@ -12,7 +12,10 @@ use crossterm::{
     QueueableCommand,
 };
 
-use crate::application::{Application, Menu, MenuUpdate, SavefileGranularity};
+use crate::application::{
+    menus::{Menu, MenuUpdate},
+    Application, SavefileGranularity,
+};
 
 impl<T: Write> Application<T> {
     pub(in crate::application) fn run_menu_settings(&mut self) -> io::Result<MenuUpdate> {

@@ -15,8 +15,8 @@ use falling_tetromino_engine::Stat;
 
 use crate::{
     application::{
-        Application, CompressedInputHistory, GameRestorationData, Menu, MenuUpdate, ScoresEntry,
-        ScoresSorting,
+        menus::{Menu, MenuUpdate},
+        Application, CompressedInputHistory, GameRestorationData, ScoresEntry, ScoresSorting,
     },
     fmt_helpers::fmt_duration,
     game_renderers::TetroTUIRenderer,

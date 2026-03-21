@@ -9,7 +9,10 @@ use crossterm::{
 };
 
 use crate::{
-    application::{Application, Menu, MenuUpdate},
+    application::{
+        menus::{Menu, MenuUpdate},
+        Application,
+    },
     graphics_settings::Glyphset,
 };
 

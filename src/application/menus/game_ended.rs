@@ -13,7 +13,10 @@ use crossterm::{
 };
 
 use crate::{
-    application::{Application, Menu, MenuUpdate, ScoresEntry},
+    application::{
+        menus::{Menu, MenuUpdate},
+        Application, ScoresEntry,
+    },
     fmt_helpers::{fmt_duration, fmt_hertz, fmt_tetromino_counts},
 };
 

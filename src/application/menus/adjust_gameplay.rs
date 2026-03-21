@@ -18,7 +18,10 @@ use crossterm::{
 use falling_tetromino_engine::{ExtNonNegF64, RotationSystem, TetrominoGenerator};
 
 use crate::{
-    application::{Application, Menu, MenuUpdate, Settings},
+    application::{
+        menus::{Menu, MenuUpdate},
+        Application, Settings,
+    },
     fmt_helpers::{arabic_to_roman, FmtBool},
 };
 

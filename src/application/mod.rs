@@ -23,8 +23,12 @@ use falling_tetromino_engine::{
 };
 
 use crate::{
-    game_mode_presets, game_renderers::TetroTUIRenderer, gameplay_settings::*,
-    graphics_settings::*, keybinds::*, palette::*,
+    application::menus::{Menu, MenuUpdate},
+    game_mode_presets,
+    gameplay_settings::*,
+    graphics_settings::*,
+    keybinds::*,
+    palette::*,
 };
 
 pub type Slots<T> = Vec<(String, T)>;
@@ -476,27 +480,6 @@ impl NewGameSettings {
     }
 }
 
-#[derive(
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    Clone,
-    Copy,
-    Debug,
-    Default,
-    serde::Serialize,
-    serde::Deserialize,
-)]
-pub enum SavefileGranularity {
-    #[default]
-    NoSavefile,
-    RememberSettings,
-    RememberSettingsScores,
-    RememberSettingsScoresReplays,
-}
-
 #[serde_with::serde_as]
 #[derive(PartialEq, Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Settings {
@@ -606,12 +589,33 @@ impl Settings {
     Ord,
     Hash,
     Clone,
+    Copy,
     Debug,
     Default,
     serde::Serialize,
     serde::Deserialize,
 )]
-pub struct TemporaryData {
+pub enum SavefileGranularity {
+    #[default]
+    NoSavefile,
+    RememberSettings,
+    RememberSettingsScores,
+    RememberSettingsScoresReplays,
+}
+
+#[derive(
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Clone,
+    Debug,
+    Default,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+pub struct TemporaryAppData {
     pub custom_terminal_state_initialized: bool,
     pub kitty_detected: bool,
     pub kitty_assumed: bool,
@@ -621,85 +625,11 @@ pub struct TemporaryData {
     pub savefile_path: PathBuf, // This should technically be the same for a given compiled binary, but we compute it at runtime.
 }
 
-#[derive(Debug)]
-enum Menu {
-    Title,
-    NewGame,
-    PlayGame {
-        game: Box<Game>,
-        game_input_history: UncompressedInputHistory,
-        game_meta_data: GameMetaData,
-        // game_statistics: Statistics,
-        game_renderer: Box<TetroTUIRenderer>,
-    },
-    Pause,
-    Settings,
-    AdjustGraphics,
-    AdjustKeybinds,
-    AdjustGameplay,
-    AdvancedSettings,
-    GameOver {
-        game_scoring: Box<ScoresEntry>,
-        // game_statistics: Statistics,
-    },
-    GameComplete {
-        game_scoring: Box<ScoresEntry>,
-        // game_statistics: Statistics,
-    },
-    ScoresAndReplays {
-        cursor_pos: usize,
-        camera_pos: usize,
-    },
-    ReplayGame {
-        game_restoration_data: Box<GameRestorationData<UncompressedInputHistory>>,
-        game_meta_data: GameMetaData,
-        replay_length: InGameTime,
-        game_renderer: Box<TetroTUIRenderer>,
-    },
-    Statistics,
-    About,
-    Quit,
-}
-
-impl std::fmt::Display for Menu {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let name = match self {
-            Menu::Title => "Title Screen",
-            Menu::NewGame => "New Game",
-            Menu::PlayGame { game_meta_data, .. } => {
-                &format!("Playing Game ({})", game_meta_data.title)
-            }
-            Menu::Pause => "Pause",
-            Menu::Settings => "Settings",
-            Menu::AdjustGraphics => "Adjust Graphics",
-            Menu::AdjustKeybinds => "Adjust Keybinds",
-            Menu::AdjustGameplay => "Adjust Gameplay",
-            Menu::AdvancedSettings => "Advanced Settings",
-            Menu::GameOver { .. } => "Game Over",
-            Menu::GameComplete { .. } => "Game Completed",
-            Menu::ScoresAndReplays { .. } => "Scores and Replays",
-            Menu::ReplayGame { game_meta_data, .. } => {
-                &format!("Replaying Game ({})", game_meta_data.title)
-            }
-            Menu::Statistics => "Statistics",
-            Menu::About => "About",
-            Menu::Quit => "Quit",
-        };
-        write!(f, "{name}")
-    }
-}
-
-#[derive(Debug)]
-enum MenuUpdate {
-    Pop,
-    Push(Menu),
-}
-
 // FIXME: Move tui application into `main` instead of artifically having it in one module below `tetro-tui::main`.
 #[derive(PartialEq, Clone, Debug)]
 pub struct Application<T: Write> {
     term: T,
-    temp_data: TemporaryData,
+    temp_data: TemporaryAppData,
     settings: Settings,
     scores_and_replays: ScoresAndReplays,
     // FIXME: Currently one can only access one without resorting to manually editing the savefile.
@@ -784,7 +714,7 @@ impl<T: Write> Application<T> {
         custom_start_board: Option<String>,
     ) -> Self {
         let mut new = Self {
-            temp_data: TemporaryData::default(),
+            temp_data: TemporaryAppData::default(),
             term,
             settings: Settings::default(),
             scores_and_replays: ScoresAndReplays::default(),
@@ -802,7 +732,7 @@ impl<T: Write> Application<T> {
         // Now that the settings are loaded, we handle separate flags set for this session.
         let kitty_detected = terminal::supports_keyboard_enhancement().unwrap_or(false);
 
-        new.temp_data = TemporaryData {
+        new.temp_data = TemporaryAppData {
             custom_terminal_state_initialized: false,
             kitty_detected,
             kitty_assumed: kitty_detected,
@@ -1086,7 +1016,7 @@ impl<T: Write> Application<T> {
             }
         }
 
-        // Console prologue: Initialization.
+        // Console epilogue: Deinitialization.
         // FIXME: Handle io::Error? If not, why not?
         self.deinitialize_terminal_state()
     }

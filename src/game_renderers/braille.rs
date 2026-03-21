@@ -50,7 +50,7 @@ impl Renderer for BrailleRenderer {
         game: &Game,
         _meta_data: &GameMetaData,
         _settings: &Settings,
-        _temp_data: &TemporaryData,
+        _temp_data: &TemporaryAppData,
         _keybinds_legend: &KeybindsLegend,
         _replay_extra: Option<(InGameTime, f64)>,
     ) -> io::Result<()> {

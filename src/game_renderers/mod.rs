@@ -12,7 +12,7 @@ use std::io::{self, Write};
 use falling_tetromino_engine::{Feedback, Game, InGameTime};
 
 use crate::{
-    application::{GameMetaData, Settings, TemporaryData},
+    application::{GameMetaData, Settings, TemporaryAppData},
     fmt_helpers::KeybindsLegend,
 };
 
@@ -46,7 +46,7 @@ pub trait Renderer: Default {
         game: &Game,
         meta_data: &GameMetaData,
         settings: &Settings,
-        temp_data: &TemporaryData,
+        temp_data: &TemporaryAppData,
         keybinds_legend: &KeybindsLegend,
         replay_extra: Option<(InGameTime, f64)>,
     ) -> io::Result<()>;
@@ -138,7 +138,7 @@ impl Renderer for TetroTUIRenderer {
         game: &Game,
         meta_data: &GameMetaData,
         settings: &Settings,
-        temp_data: &TemporaryData,
+        temp_data: &TemporaryAppData,
         keybinds_legend: &KeybindsLegend,
         replay_extra: Option<(InGameTime, f64)>,
     ) -> io::Result<()> {

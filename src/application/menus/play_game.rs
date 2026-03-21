@@ -16,8 +16,9 @@ use falling_tetromino_engine::{
 
 use crate::{
     application::{
-        Application, CompressedInputHistory, GameMetaData, GameRestorationData, GameSave, Menu,
-        MenuUpdate, ScoresEntry, Statistics, UncompressedInputHistory,
+        menus::{Menu, MenuUpdate},
+        Application, CompressedInputHistory, GameMetaData, GameRestorationData, GameSave,
+        ScoresEntry, Statistics, UncompressedInputHistory,
     },
     fmt_helpers::get_play_keybinds_legend,
     game_renderers::{Renderer, TetroTUIRenderer},

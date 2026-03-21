@@ -19,7 +19,7 @@ use falling_tetromino_engine::{
 use super::*;
 
 use crate::{
-    application::TemporaryData,
+    application::TemporaryAppData,
     fmt_helpers::{fmt_button, fmt_button_ascii, fmt_duration, fmt_hertz, FmtTetromino},
     graphics_settings::Glyphset,
 };
@@ -275,7 +275,7 @@ impl Renderer for DiffPrintRenderer {
         game: &Game,
         meta_data: &GameMetaData,
         settings: &Settings,
-        temp_data: &TemporaryData,
+        temp_data: &TemporaryAppData,
         keybinds_legend: &KeybindsLegend,
         replay_extra: Option<(InGameTime, f64)>,
     ) -> io::Result<()>

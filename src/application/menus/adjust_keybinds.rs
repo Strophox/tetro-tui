@@ -14,7 +14,10 @@ use crossterm::{
 use falling_tetromino_engine::Button;
 
 use crate::{
-    application::{Application, Menu, MenuUpdate, Settings},
+    application::{
+        menus::{Menu, MenuUpdate},
+        Application, Settings,
+    },
     fmt_helpers::{arabic_to_roman, fmt_keybinds_of},
     keybinds::normalize,
 };
