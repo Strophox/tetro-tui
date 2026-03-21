@@ -7,6 +7,20 @@ use crate::keybinds::Keybinds;
 
 pub type KeybindsLegend = Vec<(/*(KeyCode, KeyModifiers)*/ String, &'static str)>;
 
+pub trait FmtBool {
+    fn fmt_on_off(self) -> &'static str;
+}
+
+impl FmtBool for bool {
+    fn fmt_on_off(self) -> &'static str {
+        if self {
+            "on"
+        } else {
+            "off"
+        }
+    }
+}
+
 pub fn fmt_duration(dur: Duration) -> String {
     format!(
         "{}min {}.{:02}s",

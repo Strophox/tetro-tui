@@ -19,7 +19,7 @@ use falling_tetromino_engine::{ExtNonNegF64, RotationSystem, TetrominoGenerator}
 
 use crate::{
     application::{Application, Menu, MenuUpdate, Settings},
-    fmt_helpers::arabic_to_roman,
+    fmt_helpers::{arabic_to_roman, FmtBool},
 };
 
 impl<T: Write> Application<T> {
@@ -159,7 +159,7 @@ impl<T: Write> Application<T> {
                 ),
                 format!(
                     "Allow initial rotation/hold (IRS/IHS) = {:?} *",
-                    self.settings.gameplay().allow_initial_actions
+                    self.settings.gameplay().allow_initial_actions.fmt_on_off()
                 ),
             ];
             for (i, label) in labels.into_iter().enumerate() {

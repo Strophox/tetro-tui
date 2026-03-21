@@ -15,7 +15,7 @@ use falling_tetromino_engine::Tetromino;
 
 use crate::{
     application::{Application, Glyphset, Menu, MenuUpdate, Settings},
-    fmt_helpers::{arabic_to_roman, FmtTetromino},
+    fmt_helpers::{arabic_to_roman, FmtBool, FmtTetromino},
 };
 
 impl<T: Write> Application<T> {
@@ -93,19 +93,25 @@ impl<T: Write> Application<T> {
                 ),
                 format!(
                     "Color locked tiles = {}",
-                    self.settings.graphics().palette_active_lockedtiles != 0
+                    (self.settings.graphics().palette_active_lockedtiles != 0).fmt_on_off()
                 ),
-                format!("Show effects = {}", self.settings.graphics().show_effects),
+                format!(
+                    "Show effects = {}",
+                    self.settings.graphics().show_effects.fmt_on_off()
+                ),
                 format!(
                     "Show shadow piece = {}",
-                    self.settings.graphics().show_shadow_piece
+                    self.settings.graphics().show_shadow_piece.fmt_on_off()
                 ),
                 format!(
                     "Show button state = {}",
-                    self.settings.graphics().show_button_state
+                    self.settings.graphics().show_button_state.fmt_on_off()
                 ),
                 format!("Max framerate = {}", self.settings.graphics().game_fps),
-                format!("Show FPS = {}", self.settings.graphics().show_fps),
+                format!(
+                    "Show FPS = {}",
+                    self.settings.graphics().show_fps.fmt_on_off()
+                ),
             ];
 
             for (i, label) in labels.into_iter().enumerate() {

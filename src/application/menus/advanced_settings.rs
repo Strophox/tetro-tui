@@ -14,6 +14,7 @@ use crossterm::{
 
 use crate::{
     application::{Application, Menu, MenuUpdate, SavefileGranularity},
+    fmt_helpers::FmtBool,
     game_renderers::TetroTUIRenderer,
 };
 
@@ -51,9 +52,12 @@ impl<T: Write> Application<T> {
                 ),
                 format!(
                     "Assume enhanced-key-events work = {} *",
-                    self.temp_data.kitty_assumed
+                    self.temp_data.kitty_assumed.fmt_on_off()
                 ),
-                format!("Blindfold gameplay = {}", self.temp_data.blindfold_enabled),
+                format!(
+                    "Blindfold gameplay = {}",
+                    self.temp_data.blindfold_enabled.fmt_on_off()
+                ),
                 format!(
                     "Renderertype = {} (applies on New Game)",
                     TetroTUIRenderer::with_number(self.temp_data.renderernumber).name()

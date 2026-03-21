@@ -24,7 +24,7 @@ use crate::{
         Application, GameMetaData, GameRestorationData, GameSave, GameplaySettings, Glyphset, Menu,
         MenuUpdate, NewGameSettings, UncompressedInputHistory,
     },
-    fmt_helpers::{fmt_button_input, fmt_duration, fmt_hertz},
+    fmt_helpers::{fmt_button_input, fmt_duration, fmt_hertz, FmtBool},
     game_mode_presets::{
         self, game_modifiers::combo_board::LAYOUTS as COMBO_STARTLAYOUTS, GameModePreset,
     },
@@ -234,11 +234,12 @@ impl<T: Write> Application<T> {
                     ),
                     format!(
                         "| Progressive gravity = {}",
-                        !self
+                        (!self
                             .settings
                             .new_game
                             .custom_fall_delay_params
-                            .is_constant()
+                            .is_constant())
+                        .fmt_on_off()
                     ),
                     format!(
                         "| Limit = {:?} [→]",
