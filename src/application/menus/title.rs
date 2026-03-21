@@ -22,6 +22,7 @@ impl<T: Write> Application<T> {
                 cursor_pos: 0,
                 camera_pos: 0,
             },
+            Menu::Statistics,
             Menu::About,
             Menu::Quit,
         ];
@@ -234,7 +235,7 @@ impl<T: Write> Application<T> {
                     kind: KeyEventKind::Press,
                     ..
                 }) => {
-                    selected = 4;
+                    selected = selection.len() - 1;
                 }
                 // Select next menu.
                 Event::Key(KeyEvent {

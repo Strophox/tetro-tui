@@ -10,6 +10,7 @@ pub mod play_game;
 pub mod replay_game;
 pub mod scores_and_replays;
 pub mod settings;
+pub mod statistics;
 pub mod title;
 
 use std::io::{self, Write};

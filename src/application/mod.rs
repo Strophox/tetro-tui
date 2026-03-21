@@ -18,8 +18,8 @@ use crossterm::{
 };
 
 use falling_tetromino_engine::{
-    Board, Button, DelayParameters, ExtDuration, FeedbackVerbosity, Game, GameBuilder,
-    GameEndCause, InGameTime, Input, Stat, Tetromino,
+    Board, Button, DelayParameters, ExtDuration, Feedback, FeedbackMsg, FeedbackVerbosity, Game,
+    GameBuilder, GameEndCause, InGameTime, Input, Stat, Tetromino,
 };
 
 use crate::{
@@ -293,6 +293,102 @@ impl Default for ScoresAndReplays {
 }
 
 #[derive(
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Clone,
+    Debug,
+    Default,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+pub struct Statistics {
+    total_new_games_started: u32,
+    total_games_ended: u32,
+    total_play_time: Duration,
+    total_pieces_locked: u32,
+    total_points_scored: u32,
+    total_lines_cleared: u32,
+    total_singles: u32,
+    total_doubles: u32,
+    total_triples: u32,
+    total_quads: u32,
+    total_spins: u32,
+    total_perfect_clears: u32,
+    total_combos: u32,
+}
+
+impl Statistics {
+    fn acc_feedback_msgs(&mut self, feedback_msgs: &Vec<FeedbackMsg>) {
+        for (_, feedback) in feedback_msgs {
+            match feedback {
+                Feedback::PieceLocked { .. } => {
+                    self.total_pieces_locked += 1;
+                }
+
+                Feedback::Accolade {
+                    score_bonus,
+                    lineclears,
+                    combo,
+                    is_spin,
+                    is_perfect_clear,
+                    tetromino: _,
+                } => {
+                    self.total_points_scored += score_bonus;
+                    self.total_lines_cleared += lineclears;
+                    match lineclears {
+                        1 => self.total_singles += 1,
+                        2 => self.total_doubles += 1,
+                        3 => self.total_triples += 1,
+                        4 => self.total_quads += 1,
+                        _ => {}
+                    }
+                    self.total_spins += if *is_spin { 1 } else { 0 };
+                    self.total_perfect_clears += if *is_perfect_clear { 1 } else { 0 };
+                    self.total_combos += if *combo > 1 { 1 } else { 0 };
+                }
+
+                _ => {}
+            }
+        }
+    }
+
+    fn accumulate(&mut self, other: &Statistics) {
+        let Statistics {
+            total_new_games_started,
+            total_games_ended,
+            total_play_time,
+            total_pieces_locked,
+            total_points_scored,
+            total_lines_cleared,
+            total_singles,
+            total_doubles,
+            total_triples,
+            total_quads,
+            total_spins,
+            total_perfect_clears,
+            total_combos,
+        } = self;
+
+        *total_new_games_started += other.total_new_games_started;
+        *total_games_ended += other.total_games_ended;
+        *total_play_time += other.total_play_time;
+        *total_pieces_locked += other.total_pieces_locked;
+        *total_points_scored += other.total_points_scored;
+        *total_lines_cleared += other.total_lines_cleared;
+        *total_singles += other.total_singles;
+        *total_doubles += other.total_doubles;
+        *total_triples += other.total_triples;
+        *total_quads += other.total_quads;
+        *total_spins += other.total_spins;
+        *total_perfect_clears += other.total_perfect_clears;
+        *total_combos += other.total_combos;
+    }
+}
+
+#[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]
 pub struct NewGameSettings {
@@ -533,6 +629,7 @@ enum Menu {
         game: Box<Game>,
         game_input_history: UncompressedInputHistory,
         game_meta_data: GameMetaData,
+        // game_statistics: Statistics,
         game_renderer: Box<TetroTUIRenderer>,
     },
     Pause,
@@ -541,8 +638,14 @@ enum Menu {
     AdjustKeybinds,
     AdjustGameplay,
     AdvancedSettings,
-    GameOver(Box<ScoresEntry>),
-    GameComplete(Box<ScoresEntry>),
+    GameOver {
+        game_scoring: Box<ScoresEntry>,
+        // game_statistics: Statistics,
+    },
+    GameComplete {
+        game_scoring: Box<ScoresEntry>,
+        // game_statistics: Statistics,
+    },
     ScoresAndReplays {
         cursor_pos: usize,
         camera_pos: usize,
@@ -553,6 +656,7 @@ enum Menu {
         replay_length: InGameTime,
         game_renderer: Box<TetroTUIRenderer>,
     },
+    Statistics,
     About,
     Quit,
 }
@@ -571,12 +675,13 @@ impl std::fmt::Display for Menu {
             Menu::AdjustKeybinds => "Adjust Keybinds",
             Menu::AdjustGameplay => "Adjust Gameplay",
             Menu::AdvancedSettings => "Advanced Settings",
-            Menu::GameOver(_) => "Game Over",
-            Menu::GameComplete(_) => "Game Completed",
+            Menu::GameOver { .. } => "Game Over",
+            Menu::GameComplete { .. } => "Game Completed",
             Menu::ScoresAndReplays { .. } => "Scores and Replays",
             Menu::ReplayGame { game_meta_data, .. } => {
                 &format!("Replaying Game ({})", game_meta_data.title)
             }
+            Menu::Statistics => "Statistics",
             Menu::About => "About",
             Menu::Quit => "Quit",
         };
@@ -599,6 +704,7 @@ pub struct Application<T: Write> {
     scores_and_replays: ScoresAndReplays,
     // FIXME: Currently one can only access one without resorting to manually editing the savefile.
     game_saves: (usize, Vec<GameSave<UncompressedInputHistory>>),
+    statistics: Statistics,
 }
 
 impl<T: Write> Drop for Application<T> {
@@ -683,6 +789,7 @@ impl<T: Write> Application<T> {
             settings: Settings::default(),
             scores_and_replays: ScoresAndReplays::default(),
             game_saves: (0, Vec::new()),
+            statistics: Statistics::default(),
         };
 
         // Actually load in settings.
@@ -727,6 +834,7 @@ impl<T: Write> Application<T> {
             self.settings,
             self.scores_and_replays,
             compressed_game_saves,
+            self.statistics,
         ) = serde_json::from_str(&save_str)?;
 
         self.game_saves = (
@@ -767,6 +875,7 @@ impl<T: Write> Application<T> {
             &self.settings,
             &self.scores_and_replays,
             compressed_game_saves,
+            &self.statistics,
         ))?;
 
         let mut file = File::create(self.temp_data.savefile_path.clone())?;
@@ -846,8 +955,8 @@ impl<T: Write> Application<T> {
                 Menu::AdjustKeybinds => self.run_menu_adjust_keybinds(),
                 Menu::AdjustGameplay => self.run_menu_adjust_gameplay(),
                 Menu::AdvancedSettings => self.run_menu_advanced_settings(),
-                Menu::GameOver(past_game) => self.run_menu_game_ended(past_game),
-                Menu::GameComplete(past_game) => self.run_menu_game_ended(past_game),
+                Menu::GameOver { game_scoring } => self.run_menu_game_ended(game_scoring),
+                Menu::GameComplete { game_scoring } => self.run_menu_game_ended(game_scoring),
                 Menu::ScoresAndReplays {
                     cursor_pos,
                     camera_pos,
@@ -863,6 +972,7 @@ impl<T: Write> Application<T> {
                     *replay_length,
                     game_renderer.as_mut(),
                 ),
+                Menu::Statistics => self.run_menu_statistics(),
                 Menu::About => self.run_menu_about(),
                 Menu::Quit => break,
             }?;
@@ -915,13 +1025,13 @@ impl<T: Write> Application<T> {
                         menu,
                         Menu::Title
                             | Menu::PlayGame { .. }
-                            | Menu::GameOver(_)
-                            | Menu::GameComplete(_)
+                            | Menu::GameOver { .. }
+                            | Menu::GameComplete { .. }
                     ) {
                         menu_stack.clear();
                     }
 
-                    if matches!(menu, Menu::GameOver(_)) {
+                    if matches!(menu, Menu::GameOver { .. }) {
                         let h_console = terminal::size()?.1;
                         for y in (0..h_console).rev() {
                             self.term
@@ -929,7 +1039,7 @@ impl<T: Write> Application<T> {
                                 .execute(Clear(ClearType::CurrentLine))?;
                             std::thread::sleep(Duration::from_secs_f32(1. / 60.0));
                         }
-                    } else if matches!(menu, Menu::GameComplete(_)) {
+                    } else if matches!(menu, Menu::GameComplete { .. }) {
                         let h_console = terminal::size()?.1;
                         for y in 0..h_console {
                             self.term

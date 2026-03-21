@@ -533,6 +533,9 @@ impl<T: Write> Application<T> {
                                                 let mut the_meta_data = game_meta_data.clone();
                                                 the_meta_data.title.push('\'');
 
+                                                // Accumulate this specific state here. TODO what if we want to tho? like when playing a game and discarding it nevertheless
+                                                self.statistics.total_new_games_started += 1;
+
                                                 break 'update_and_render MenuUpdate::Push(
                                                     Menu::PlayGame {
                                                         game: Box::new(the_game),

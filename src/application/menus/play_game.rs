@@ -17,7 +17,7 @@ use falling_tetromino_engine::{
 use crate::{
     application::{
         Application, CompressedInputHistory, GameMetaData, GameRestorationData, GameSave, Menu,
-        MenuUpdate, ScoresEntry, UncompressedInputHistory,
+        MenuUpdate, ScoresEntry, Statistics, UncompressedInputHistory,
     },
     fmt_helpers::get_play_keybinds_legend,
     game_renderers::{Renderer, TetroTUIRenderer},
@@ -78,6 +78,8 @@ impl<T: Write> Application<T> {
             is_stop_keybind,
         );
 
+        let mut statistics = Statistics::default();
+
         let keybinds_legend = get_play_keybinds_legend(self.settings.keybinds());
 
         // FPS counter.
@@ -116,6 +118,8 @@ impl<T: Write> Application<T> {
             // Start new iteration of [render->input->] loop.
 
             if let Phase::GameEnd { cause, is_win } = game.phase() {
+                statistics.total_games_ended += 1;
+
                 // Game ended, cannot actually continue playing;
                 // Convert to scoreboard entry and return appropriate game-ended menu.
                 let scores_entry = ScoresEntry {
@@ -146,11 +150,13 @@ impl<T: Write> Application<T> {
                     .entries
                     .push((scores_entry.clone(), Some(game_restoration_data)));
 
+                let game_scoring = Box::new(scores_entry);
+
                 let menu = if *is_win {
-                    Menu::GameComplete
+                    Menu::GameComplete { game_scoring }
                 } else {
-                    Menu::GameOver
-                }(Box::new(scores_entry));
+                    Menu::GameOver { game_scoring }
+                };
 
                 break 'update_and_render MenuUpdate::Push(menu);
             }
@@ -212,7 +218,10 @@ impl<T: Write> Application<T> {
                                     game_input_history.push((update_target_time, button_change));
 
                                     match game.update(update_target_time, Some(button_change)) {
-                                        Ok(msgs) => game_renderer.push_game_feedback_msgs(msgs),
+                                        Ok(msgs) => {
+                                            statistics.acc_feedback_msgs(&msgs);
+                                            game_renderer.push_game_feedback_msgs(msgs)
+                                        }
                                         Err(UpdateGameError::AlreadyEnded) => break 'wait,
                                         Err(UpdateGameError::TargetTimeInPast) => unreachable!(),
                                     }
@@ -229,7 +238,10 @@ impl<T: Write> Application<T> {
                                     game_input_history.push((update_target_time, button_change));
 
                                     match game.update(update_target_time, Some(button_change)) {
-                                        Ok(msgs) => game_renderer.push_game_feedback_msgs(msgs),
+                                        Ok(msgs) => {
+                                            statistics.acc_feedback_msgs(&msgs);
+                                            game_renderer.push_game_feedback_msgs(msgs);
+                                        }
                                         Err(UpdateGameError::AlreadyEnded) => break 'wait,
                                         Err(UpdateGameError::TargetTimeInPast) => unreachable!(),
                                     }
@@ -243,7 +255,10 @@ impl<T: Write> Application<T> {
                                         game.update(update_target_time, Some(button_change));
 
                                     match update_result {
-                                        Ok(msgs) => game_renderer.push_game_feedback_msgs(msgs),
+                                        Ok(msgs) => {
+                                            statistics.acc_feedback_msgs(&msgs);
+                                            game_renderer.push_game_feedback_msgs(msgs)
+                                        }
                                         Err(UpdateGameError::AlreadyEnded) => break 'wait,
                                         Err(UpdateGameError::TargetTimeInPast) => unreachable!(),
                                     }
@@ -284,7 +299,8 @@ impl<T: Write> Application<T> {
                                             (KeyCode::Char('d' | 'D'), KeyModifiers::CONTROL) => {
                                                 match game.forfeit() {
                                                     Ok(msgs) => {
-                                                        game_renderer.push_game_feedback_msgs(msgs)
+                                                        statistics.acc_feedback_msgs(&msgs);
+                                                        game_renderer.push_game_feedback_msgs(msgs);
                                                     }
 
                                                     // We do not care if game ended or time is in past here.
@@ -292,7 +308,7 @@ impl<T: Write> Application<T> {
                                                         UpdateGameError::AlreadyEnded
                                                         | UpdateGameError::TargetTimeInPast,
                                                     ) => {}
-                                                };
+                                                }
 
                                                 break 'wait;
                                             }
@@ -364,6 +380,11 @@ impl<T: Write> Application<T> {
                                                 )]);
 
                                                 // What we do here is rather unholy, so we have to adapt the game loop state itself.
+                                                self.statistics.total_play_time += Instant::now()
+                                                    .saturating_duration_since(
+                                                        time_game_loop_entered,
+                                                    );
+
                                                 ingametime_when_game_loop_entered =
                                                     game.state().time;
                                                 time_game_loop_entered = Instant::now();
@@ -461,7 +482,10 @@ impl<T: Write> Application<T> {
 
             match game.update(update_target_time, None) {
                 // Update.
-                Ok(msgs) => game_renderer.push_game_feedback_msgs(msgs),
+                Ok(msgs) => {
+                    statistics.acc_feedback_msgs(&msgs);
+                    game_renderer.push_game_feedback_msgs(msgs)
+                }
 
                 // We do not care if game ended or time is in past here:
                 // We just care about best-effort updating state to show it to player.
@@ -542,13 +566,20 @@ impl<T: Write> Application<T> {
 
                     game_input_history.push((unpress_time, button_change));
                     match update_result {
-                        Ok(msgs) => game_renderer.push_game_feedback_msgs(msgs),
+                        Ok(msgs) => {
+                            statistics.acc_feedback_msgs(&msgs);
+                            game_renderer.push_game_feedback_msgs(msgs);
+                        }
                         Err(UpdateGameError::AlreadyEnded) => break 'button_unpressing,
                         Err(UpdateGameError::TargetTimeInPast) => unreachable!(),
                     }
                 }
             }
         }
+
+        statistics.total_play_time +=
+            Instant::now().saturating_duration_since(time_game_loop_entered);
+        self.statistics.accumulate(&statistics);
 
         Ok(menu_update)
     }

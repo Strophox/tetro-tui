@@ -11,6 +11,7 @@ impl<T: Write> Application<T> {
                 cursor_pos: 0,
                 camera_pos: 0,
             },
+            Menu::Statistics,
             Menu::About,
             Menu::Quit,
         ];

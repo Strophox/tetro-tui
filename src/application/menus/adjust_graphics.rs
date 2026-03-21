@@ -36,6 +36,9 @@ impl<T: Write> Application<T> {
                 settings.graphics_slot_active = settings.graphics_slots.len() - 1;
             }
         };
+
+        let d_fps = 5.0;
+
         let selection_len = 9;
         let mut selected = 1usize;
         loop {
@@ -239,7 +242,7 @@ impl<T: Write> Application<T> {
                     }
                     7 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().game_fps += 1.0;
+                        self.settings.graphics_mut().game_fps += d_fps;
                     }
                     8 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
@@ -299,8 +302,8 @@ impl<T: Write> Application<T> {
                     }
                     7 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
-                        if self.settings.graphics().game_fps > 1.0 {
-                            self.settings.graphics_mut().game_fps -= 1.0;
+                        if self.settings.graphics().game_fps > d_fps {
+                            self.settings.graphics_mut().game_fps -= d_fps;
                         }
                     }
                     8 => {

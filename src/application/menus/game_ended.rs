@@ -20,7 +20,7 @@ use crate::{
 impl<T: Write> Application<T> {
     pub(in crate::application) fn run_menu_game_ended(
         &mut self,
-        past_game: &ScoresEntry,
+        game_scoring: &ScoresEntry,
     ) -> io::Result<MenuUpdate> {
         let ScoresEntry {
             game_meta_data,
@@ -32,7 +32,7 @@ impl<T: Write> Application<T> {
             pieces_locked,
             fall_delay_reached,
             lock_delay_reached,
-        } = past_game;
+        } = game_scoring;
         let selection = vec![
             Menu::NewGame,
             Menu::Settings,

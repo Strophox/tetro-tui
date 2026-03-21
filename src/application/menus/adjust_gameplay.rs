@@ -47,7 +47,6 @@ impl<T: Write> Application<T> {
         let d_lcd = Duration::from_millis(5);
         let d_are = Duration::from_millis(5);
 
-        let selection_len = 11;
         let mut selected = 1usize;
         loop {
             let w_main = Self::W_MAIN.into();
@@ -158,10 +157,14 @@ impl<T: Write> Application<T> {
                     self.settings.gameplay().spawn_delay
                 ),
                 format!(
-                    "Allow initial rotation/hold (IRS/IHS) = {:?} *",
+                    "Allow initial rotation/hold (IRS/IHS) = {} *",
                     self.settings.gameplay().allow_initial_actions.fmt_on_off()
                 ),
             ];
+
+            // For slot, +1
+            let selection_len = labels.len() + 1;
+
             for (i, label) in labels.into_iter().enumerate() {
                 self.term
                     .queue(MoveTo(
@@ -180,7 +183,7 @@ impl<T: Write> Application<T> {
             self.term
                 .queue(MoveTo(
                     x_main,
-                    y_main + y_selection + 5 + u16::try_from(selection_len).unwrap(),
+                    y_main + y_selection + 6 + u16::try_from(selection_len).unwrap(),
                 ))?
                 .queue(PrintStyledContent(
                     format!(
