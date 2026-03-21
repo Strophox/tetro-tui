@@ -208,23 +208,23 @@ https://aur.archlinux.org/packages/tetro-tui-bin
 > <details>
 > <summary>General TUI menu controls:</summary>
 > 
-> | Keys | ~Meaning |
+> | Keys | ≈Meaning |
 > | -: | :- |
 > | `↓`/`↑`, `j`/`k` | Navigate up/down |
 > | `←`/`→`, `h`/`l` | Change value |
 > | `Enter`, `e` | Select |
 > | `Esc`, `q`, `Back`, | Go back |
 > | `Del`, `d` | Delete/reset |
-> | `1`/`2`/`3`... | Quickselect option 1/2/3/... (in Start Game)|
-> | `Alt`+... | Alt. value changes (in { Start Game ⇝ {Combo, Savepoint, Custom Mode}, Gameplay settings ⇝ Tetromino Generation}) |
-> | `Alt`+`Del`, `Alt`+`d` | Delete replay  (in Scores and Replays) |
+> | `1`/`2`/`3`... | Quickselect option (⇝'New game')|
+> | `Alt`+? | Different value change' (⇝'New game'⇝['Combo','Savepoint','Custom'], ⇝'Gameplay settings'⇝'Tetromino generation') |
+> | `Alt`+`Del`, `Alt`+`d` | Delete replay  (⇝'Scores and replays') |
 > | `Ctrl`+`C` | Exit application (respects save preferences) |
 > 
 > </details>
 > 
 >
 > <details>
-> <summary>Default game controls:</summary>
+> <summary>Default live Game controls:</summary>
 > 
 > | Key | Action |
 > | -: | :- |
@@ -241,33 +241,33 @@ https://aur.archlinux.org/packages/tetro-tui-bin
 > | - | Teleport right |
 > | `Space` | Hold piece |
 > | `Ctrl`+`D` | Forfeit game |
-> | `Ctrl`+`E` | Store seed (accessible in Start Game⇝Custom Mode) |
-> | `Ctrl`+`S` | Store savepoint (accessible in Start Game⇝Savepoint or in Live Game) |
+> | `Ctrl`+`E` | Store seed (accessible in ⇝'New game'⇝'Custom') |
+> | `Ctrl`+`S` | Store savepoint (accessible in ⇝'New game'⇝'Savepoint', ⇝(live) 'Game'⇝`Ctrl`+`L`) |
 > | `Ctrl`+`L` | Load savepoint (Caution: overwrites live game) |
-> | `Ctrl`+`Alt`+`B` | Toggle on/off visibility of tiles ('Blindfold') |
+> | `Ctrl`+`Alt`+`B` | Toggle on/off visibility of tiles ('Blindfolded') |
 > | `Ctrl`+`C` | Exit application (respects save preferences) |
 > 
 > </details>
 > 
 >
 > <details>
-> <summary>Replay controls:</summary>
+> <summary>Replay Game controls:</summary>
 > 
 > | Key | Action |
 > | -: | :- |
 > | `Esc`, `q`, `Back` | Exit replay |
 > | `Space` | Pause replay |
-> | `↓`/`↑` , `j`/`k` | Speed up / Slow down replay by 0.25 |
-> | `Alt`+`↓`/`↑`, `Alt`+`j`/`k` | Speed up / Slow down replay by 0.05 |
-> | `-` | Reset replay speed to 1.0 |
+> | `↓`/`↑` , `j`/`k` | Speed up / Slow down replay by ±0.25x |
+> | `Alt`+`↓`/`↑`, `Alt`+`j`/`k` | Speed up / Slow down replay by ±0.05x |
+> | `-` | Reset replay speed to =1.0x |
 > | `←`/`→` , `h`/`l` | Skip forward/backward 1s in time |
 > | `1`/`2`/`3`... | Jump to 10%/20%/30%/... |
-> | `.` | Skip forward one user input and pause |
-> | `Alt`+`.` | Skip forward one game state change\* and pause (\*Experimental, might not work properly for modded games) |
-> | `Enter`, `e` | Enter live game (from current replay position) |
-> | `Ctrl`+`E` | Store seed (accessible in Start Game⇝Custom Mode) |
-> | `Ctrl`+`S` | Store savepoint (accessible in Start Game→Savepoint or in Live Game) |
-> | `Ctrl`+`I` | Enter/exit Instant Interactive Input Intervention mode (experimental) |
+> | `.` | Skip forward one player input and pause |
+> | `Alt`+`.` | Skip forward one game state change\* and pause (experimental, might not work properly for modded games) |
+> | `Enter`, `e` | Start (live) Game from current replay state |
+> | `Ctrl`+`E` | Store seed (accessible in ⇝'New game'⇝'Custom') |
+> | `Ctrl`+`S` | Store savepoint (accessible in ⇝'New game'⇝'Savepoint', ⇝(live) 'Game'⇝`Ctrl`+`L`) |
+> | `Ctrl`+`I` | Toggle Instant Interactive Input Intervention mode (experimental) |
 > | `Ctrl`+`C` | Exit application (respects save preferences) |
 > 
 > </details>

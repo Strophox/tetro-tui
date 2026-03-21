@@ -367,6 +367,7 @@ impl<T: Write> Application<T> {
                             };
                     }
                     2 => {
+                        if_slot_is_default_then_copy_and_switch(&mut self.settings);
                         if modifiers.contains(KeyModifiers::ALT) {
                             match &mut self.settings.gameplay_mut().tetromino_generator {
                                 TetrominoGenerator::Uniform => {}
@@ -395,7 +396,6 @@ impl<T: Write> Application<T> {
                                 } => {}
                             };
                         } else {
-                            if_slot_is_default_then_copy_and_switch(&mut self.settings);
                             self.settings.gameplay_mut().tetromino_generator =
                                 match self.settings.gameplay().tetromino_generator {
                                     TetrominoGenerator::Uniform => {

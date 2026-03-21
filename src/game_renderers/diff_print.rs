@@ -468,7 +468,7 @@ impl Renderer for DiffPrintRenderer {
 
             // Replay speed.
             self.screen.buffer_str(
-                &format!("Replay speed: {:.2}", replay_speed),
+                &format!("Replay speed: {:.2}x", replay_speed),
                 None,
                 (x_rep_spd, y_rep_spd),
             );
