@@ -891,7 +891,7 @@ impl Renderer for DiffPrintRenderer {
                 } => {
                     let mut tokens = Vec::new();
 
-                    tokens.push(format!("+{score_bonus}"));
+                    tokens.push(format!("+{score_bonus},"));
 
                     if *perfect_clear {
                         tokens.push("PERFECT".to_owned());
