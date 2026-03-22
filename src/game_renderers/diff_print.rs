@@ -890,13 +890,13 @@ impl Renderer for DiffPrintRenderer {
                     combo,
                 } => {
                     let mut tokens = Vec::new();
+
                     tokens.push(format!("+{score_bonus}"));
+
                     if *perfect_clear {
                         tokens.push("PERFECT".to_owned());
                     }
-                    if *spin {
-                        tokens.push(format!("{tetromino:?}-Spin"));
-                    }
+
                     let clear_action = match lineclears {
                         1 => "Mono",
                         2 => "Duo",
@@ -922,9 +922,15 @@ impl Renderer for DiffPrintRenderer {
                     }
                     .to_string();
                     tokens.push(clear_action);
-                    if *combo > 1 {
-                        tokens.push(format!("#{combo}"));
+
+                    if *spin {
+                        tokens.push(format!("{tetromino:?}-Spin"));
                     }
+
+                    if *combo > 1 {
+                        tokens.push(format!("[{combo}]"));
+                    }
+
                     self.buffered_text_msgs
                         .push((*feedback_time, tokens.join(" ")));
 
