@@ -894,7 +894,7 @@ impl Renderer for DiffPrintRenderer {
                     tokens.push(format!("+{score_bonus},"));
 
                     if *perfect_clear {
-                        tokens.push("PERFECT".to_owned());
+                        tokens.push("Perfect".to_owned());
                     }
 
                     let clear_action = match lineclears {
