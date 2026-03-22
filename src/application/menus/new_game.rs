@@ -695,6 +695,7 @@ impl<T: Write> Application<T> {
                     line_clear_duration,
                     spawn_delay,
                     allow_initial_actions,
+                    double_tap_move_finesse: _,
                 } = *self.settings.gameplay();
 
                 let mut builder = Game::builder();

@@ -4,7 +4,7 @@ use rand::Rng;
 
 use falling_tetromino_engine::{
     Button, DelayParameters, ExtDuration, Game, GameBuilder, GameLimits, GameModFn, GameRng,
-    InGameTime, Input, Line, Modifier, Phase, Piece, PieceData, Stat, Tetromino, UpdatePoint,
+    InGameTime, Input, Line, Modifier, Phase, Piece, Stat, Tetromino, UpdatePoint,
 };
 
 pub const MOD_ID: &str = "ascent";
@@ -32,18 +32,15 @@ pub fn build(builder: &GameBuilder) -> Game {
                 let asc_tet_01 = Tetromino::L;
                 let asc_tet_02 = Tetromino::J;
                 *phase = Phase::PieceInPlay {
-                    piece_data: PieceData {
-                        piece: Piece {
-                            tetromino: asc_tet_01,
-                            orientation: falling_tetromino_engine::Orientation::N,
-                            position: (0, 0),
-                        },
-                        fall_or_lock_time: Duration::MAX,
-                        is_fall_not_lock: false,
-                        lowest_y: 0,
-                        lock_time_cap: Duration::MAX,
-                        auto_move_scheduled: None,
+                    piece: Piece {
+                        tetromino: asc_tet_01,
+                        orientation: falling_tetromino_engine::Orientation::N,
+                        position: (0, 0),
                     },
+                    auto_move_scheduled: None,
+                    fall_or_lock_time: Duration::MAX,
+                    lowest_y: 0,
+                    lock_time_cap: Duration::MAX,
                 };
                 state.piece_held = Some((asc_tet_02, true));
                 // No further pieces required.

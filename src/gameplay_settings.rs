@@ -15,6 +15,7 @@ pub struct GameplaySettings {
     pub line_clear_duration: Duration,
     pub spawn_delay: Duration,
     pub allow_initial_actions: bool,
+    pub double_tap_move_finesse: Option<Duration>,
 }
 
 impl Default for GameplaySettings {
@@ -30,6 +31,7 @@ impl Default for GameplaySettings {
             line_clear_duration: c.line_clear_duration,
             spawn_delay: c.spawn_delay,
             allow_initial_actions: c.allow_initial_actions,
+            double_tap_move_finesse: None,
         }
     }
 }
@@ -55,6 +57,7 @@ impl GameplaySettings {
             line_clear_duration: Duration::from_millis(200), // (See spawn_delay.)
             spawn_delay: Duration::from_millis(50), // (Should be =0.2s but use that for line clear duration.)
             allow_initial_actions: true,
+            double_tap_move_finesse: None,
         }
     }
 
@@ -69,6 +72,7 @@ impl GameplaySettings {
             line_clear_duration: Duration::from_millis(283), // ≈ 17(~20) /60.0988
             soft_drop_factor: ExtNonNegF64::new(20.0).unwrap(), // ≈ 60.0988 * (1/2 G)
             allow_initial_actions: false,
+            double_tap_move_finesse: None,
         }
     }
 
@@ -83,6 +87,7 @@ impl GameplaySettings {
             line_clear_duration: Duration::from_millis(1500), // ≈ 91 /59.73
             soft_drop_factor: ExtNonNegF64::new(5.0).unwrap(), // !≈ 59.73 * (1/3 G)
             allow_initial_actions: false,
+            double_tap_move_finesse: None,
         }
     }
 }

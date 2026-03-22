@@ -68,11 +68,7 @@ impl Renderer for PrototypeRenderer {
             ..
         } = game.state();
         let mut board = *board;
-        if let falling_tetromino_engine::Phase::PieceInPlay {
-            piece_data: falling_tetromino_engine::PieceData { piece, .. },
-            ..
-        } = game.phase()
-        {
+        if let Some(piece) = game.phase().piece() {
             for ((x, y), tile_type_id) in piece.tiles() {
                 board[y as usize][x as usize] = Some(tile_type_id);
             }

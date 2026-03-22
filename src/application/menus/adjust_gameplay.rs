@@ -50,6 +50,8 @@ impl<T: Write> Application<T> {
         let d_lcd = Duration::from_millis(5);
         let d_are = Duration::from_millis(5);
 
+        let d_tmf = Duration::from_millis(5);
+
         let mut selected = 1usize;
         loop {
             let w_main = Self::W_MAIN.into();
@@ -162,6 +164,10 @@ impl<T: Write> Application<T> {
                 format!(
                     "Allow initial rotation/hold (IRS/IHS) = {} *",
                     self.settings.gameplay().allow_initial_actions.fmt_on_off()
+                ),
+                format!(
+                    "Double-tap movement finesse = {:?}",
+                    self.settings.gameplay().double_tap_move_finesse
                 ),
             ];
 
@@ -342,6 +348,16 @@ impl<T: Write> Application<T> {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
                         self.settings.gameplay_mut().allow_initial_actions ^= true;
                     }
+                    10 => {
+                        if_slot_is_default_then_copy_and_switch(&mut self.settings);
+                        self.settings.gameplay_mut().double_tap_move_finesse = Some(
+                            self.settings
+                                .gameplay_mut()
+                                .double_tap_move_finesse
+                                .unwrap_or_default()
+                                + d_tmf,
+                        );
+                    }
                     _ => {}
                 },
                 Event::Key(KeyEvent {
@@ -457,6 +473,15 @@ impl<T: Write> Application<T> {
                     9 => {
                         if_slot_is_default_then_copy_and_switch(&mut self.settings);
                         self.settings.gameplay_mut().allow_initial_actions ^= true;
+                    }
+                    10 => {
+                        if_slot_is_default_then_copy_and_switch(&mut self.settings);
+                        self.settings.gameplay_mut().double_tap_move_finesse = self
+                            .settings
+                            .gameplay()
+                            .double_tap_move_finesse
+                            .unwrap_or_default()
+                            .checked_sub(d_tmf);
                     }
                     _ => {}
                 },

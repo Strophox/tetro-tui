@@ -652,13 +652,11 @@ impl Renderer for DiffPrintRenderer {
             Phase::Spawning { spawn_time: _ } => {}
 
             // If a piece is in play.
-            Phase::PieceInPlay { piece_data } => {
+            Phase::PieceInPlay { piece, .. } => {
                 // Draw shadow piece.
                 if settings.graphics().show_shadow_piece {
-                    for (tile_pos, tile_type_id) in piece_data
-                        .piece
-                        .teleported(&game.state().board, (0, -1))
-                        .tiles()
+                    for (tile_pos, tile_type_id) in
+                        piece.teleported(&game.state().board, (0, -1)).tiles()
                     {
                         if let Some(xy) = pos_board(tile_pos) {
                             self.screen
@@ -668,7 +666,7 @@ impl Renderer for DiffPrintRenderer {
                 }
 
                 // Draw active piece.
-                for (tile_pos, tile_type_id) in piece_data.piece.tiles() {
+                for (tile_pos, tile_type_id) in piece.tiles() {
                     if let Some(xy) = pos_board(tile_pos) {
                         self.screen
                             .buffer_str(tile_active, get_color(tile_type_id), xy);
