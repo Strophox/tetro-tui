@@ -22,12 +22,20 @@ impl FmtBool for bool {
 }
 
 pub fn fmt_duration(dur: Duration) -> String {
-    format!(
-        "{}min {}.{:02}s",
-        dur.as_secs() / 60,
-        dur.as_secs() % 60,
-        dur.as_millis() % 1000 / 10
-    )
+    if dur.as_secs() / 60 == 0 {
+        format!(
+            "{}.{:02}s",
+            dur.as_secs() % 60,
+            dur.as_millis() % 1000 / 10
+        )
+    } else {
+        format!(
+            "{}min {}.{:02}s",
+            dur.as_secs() / 60,
+            dur.as_secs() % 60,
+            dur.as_millis() % 1000 / 10
+        )
+    }
 }
 
 pub fn fmt_hertz(f: ExtNonNegF64) -> String {
