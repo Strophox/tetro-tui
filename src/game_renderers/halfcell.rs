@@ -23,9 +23,9 @@ pub struct HalfCellRenderer {
 }
 
 impl Renderer for HalfCellRenderer {
-    fn push_game_feedback_msgs(
+    fn push_game_notification_feed(
         &mut self,
-        _feedback_msgs: impl IntoIterator<Item = (InGameTime, Feedback)>,
+        _feed: impl IntoIterator<Item = (Notification, InGameTime)>,
     ) {
         // We do not use/display feedback_msg-related things for this renderer at this time.
     }

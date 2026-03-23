@@ -12,8 +12,7 @@ use crossterm::{
 };
 
 use falling_tetromino_engine::{
-    Button, Coord, Feedback, GameEndCause, InGameTime, Orientation, Phase, Stat, Tetromino,
-    TileTypeID,
+    Button, Coord, GameEndCause, InGameTime, Orientation, Phase, Stat, Tetromino, TileTypeID,
 };
 
 use super::*;
@@ -237,26 +236,23 @@ struct HardDropTile {
 )]
 pub struct DiffPrintRenderer {
     screen: TerminalScreenBuffer,
-    buffered_feedback_msgs: Vec<(InGameTime, Feedback, bool)>,
+    notification_feed_buffer: Vec<(Notification, InGameTime, bool)>,
     buffered_text_msgs: Vec<(InGameTime, String)>,
     hard_drop_tiles: Vec<(HardDropTile, bool)>,
 }
 
 impl Renderer for DiffPrintRenderer {
-    fn push_game_feedback_msgs(
+    fn push_game_notification_feed(
         &mut self,
-        new_msgs: impl IntoIterator<Item = (InGameTime, Feedback)>,
+        feed: impl IntoIterator<Item = (Notification, InGameTime)>,
     ) {
         // Update stored events.
-        self.buffered_feedback_msgs.extend(
-            new_msgs
-                .into_iter()
-                .map(|(time, event)| (time, event, true)),
-        );
+        self.notification_feed_buffer
+            .extend(feed.into_iter().map(|(notif, time)| (notif, time, true)));
     }
 
     fn reset_game_associated_state(&mut self) {
-        self.buffered_feedback_msgs.clear();
+        self.notification_feed_buffer.clear();
         self.buffered_text_msgs.clear();
         self.hard_drop_tiles.clear();
     }
@@ -692,10 +688,10 @@ impl Renderer for DiffPrintRenderer {
                     }
                     GameEndCause::BlockOut { blocked_piece } => {
                         // Special hack to make block-out piece more visible.
-                        for (_feedback_time, feedback, active) in
-                            self.buffered_feedback_msgs.iter_mut()
+                        for (notification, _notif_time, active) in
+                            self.notification_feed_buffer.iter_mut()
                         {
-                            if matches!(feedback, Feedback::PieceLocked { .. }) {
+                            if matches!(notification, Notification::PieceLocked { .. }) {
                                 *active = false;
                             }
                         }
@@ -742,10 +738,10 @@ impl Renderer for DiffPrintRenderer {
         }
 
         // Handle feedback.
-        for (feedback_time, feedback, active) in self.buffered_feedback_msgs.iter_mut() {
-            let elapsed = game.state().time.saturating_sub(*feedback_time);
-            match feedback {
-                Feedback::PieceLocked { piece } => {
+        for (notification, notif_time, active) in self.notification_feed_buffer.iter_mut() {
+            let elapsed = game.state().time.saturating_sub(*notif_time);
+            match notification {
+                Notification::PieceLocked { piece } => {
                     if !settings.graphics().show_effects {
                         *active = false;
                         continue;
@@ -793,7 +789,7 @@ impl Renderer for DiffPrintRenderer {
                     }
                 }
 
-                Feedback::LinesClearing {
+                Notification::LinesClearing {
                     y_coords,
                     line_clear_start: line_clear_duration,
                 } => {
@@ -856,7 +852,7 @@ impl Renderer for DiffPrintRenderer {
                     }
                 }
 
-                Feedback::HardDrop {
+                Notification::HardDrop {
                     previous_piece: _,
                     updated_piece,
                 } => {
@@ -868,7 +864,7 @@ impl Renderer for DiffPrintRenderer {
                         for dy in (y_tile as usize)..Game::LOCK_OUT_HEIGHT {
                             self.hard_drop_tiles.push((
                                 HardDropTile {
-                                    creation_time: *feedback_time,
+                                    creation_time: *notif_time,
                                     pos: (x_tile, isize::try_from(dy).unwrap()),
                                     y_offset: dy - (y_tile as usize),
                                     tile_type_id,
@@ -881,7 +877,7 @@ impl Renderer for DiffPrintRenderer {
                     *active = false;
                 }
 
-                Feedback::Accolade {
+                Notification::Accolade {
                     score_bonus,
                     tetromino,
                     is_spin: spin,
@@ -928,29 +924,28 @@ impl Renderer for DiffPrintRenderer {
                     }
 
                     if *combo > 1 {
-                        tokens.push(format!("[{combo}]"));
+                        tokens.push(format!("x{combo}"));
                     }
 
                     self.buffered_text_msgs
-                        .push((*feedback_time, tokens.join(" ")));
+                        .push((*notif_time, tokens.join(" ")));
 
                     *active = false;
                 }
 
-                Feedback::Message(string) => {
-                    self.buffered_text_msgs
-                        .push((*feedback_time, string.clone()));
+                Notification::Custom(string) => {
+                    self.buffered_text_msgs.push((*notif_time, string.clone()));
 
                     *active = false;
                 }
 
-                Feedback::Debug(s) => {
-                    self.buffered_text_msgs.push((*feedback_time, s.clone()));
+                Notification::Debug(s) => {
+                    self.buffered_text_msgs.push((*notif_time, s.clone()));
 
                     *active = false;
                 }
 
-                Feedback::GameEnded { is_win } => {
+                Notification::GameEnded { is_win } => {
                     let text = if *is_win {
                         "Game Complete!".to_owned()
                     } else {
@@ -962,14 +957,14 @@ impl Renderer for DiffPrintRenderer {
                         }
                     };
 
-                    self.buffered_text_msgs.push((*feedback_time, text));
+                    self.buffered_text_msgs.push((*notif_time, text));
                     *active = false;
                 }
             }
         }
 
         // Purge
-        self.buffered_feedback_msgs.retain(|elt| elt.2);
+        self.notification_feed_buffer.retain(|elt| elt.2);
 
         // Draw messages.
         for (dy, (_timestamp, message)) in self.buffered_text_msgs.iter().rev().enumerate() {

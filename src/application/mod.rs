@@ -18,13 +18,13 @@ use crossterm::{
 };
 
 use falling_tetromino_engine::{
-    Board, Button, DelayParameters, ExtDuration, Feedback, FeedbackMsg, FeedbackVerbosity, Game,
-    GameBuilder, GameEndCause, InGameTime, Input, Stat, Tetromino,
+    Board, Button, DelayParameters, ExtDuration, Game, GameBuilder, GameEndCause, InGameTime,
+    Input, Notification, NotificationFeed, NotificationLevel, Stat, Tetromino,
 };
 
 use crate::{
     application::menus::{Menu, MenuUpdate},
-    game_mode_presets,
+    game_modes::{self, game_modifiers, GameMode},
     gameplay_settings::*,
     graphics_settings::*,
     keybinds::*,
@@ -144,17 +144,18 @@ impl CompressedInputHistory {
 )]
 pub struct GameRestorationData<T> {
     builder: GameBuilder,
-    mod_descriptors: Vec<String>,
+    mod_ids_args: Vec<(String, String)>,
     input_history: T,
     forfeit: Option<InGameTime>,
 }
 
 impl<T> GameRestorationData<T> {
     fn new(game: &Game, input_history: T, forfeit: Option<InGameTime>) -> GameRestorationData<T> {
-        let (builder, mod_descriptors) = game.blueprint();
+        let (builder, mod_ids_args) = game.blueprint();
+
         GameRestorationData {
             builder,
-            mod_descriptors: mod_descriptors.map(str::to_owned).collect(),
+            mod_ids_args,
             input_history,
             forfeit,
         }
@@ -163,7 +164,7 @@ impl<T> GameRestorationData<T> {
     fn map<U>(self, f: impl Fn(T) -> U) -> GameRestorationData<U> {
         GameRestorationData::<U> {
             builder: self.builder,
-            mod_descriptors: self.mod_descriptors,
+            mod_ids_args: self.mod_ids_args,
             input_history: f(self.input_history),
             forfeit: self.forfeit,
         }
@@ -175,24 +176,22 @@ impl GameRestorationData<UncompressedInputHistory> {
         // Step 1: Prepare builder.
         let builder = self.builder.clone();
         // Step 2: Build actual game by possibly reconstructing mods to finalize builder with.
-        let mut game = if self.mod_descriptors.is_empty() {
+        let mut game = if self.mod_ids_args.is_empty() {
             builder.build()
         } else {
-            match game_mode_presets::game_modifiers::reconstruct_build_modded(
-                &builder,
-                self.mod_descriptors.iter().map(String::as_str),
-            ) {
-                Ok((mut modded_game, unrecognized_mod_descriptors)) => {
-                    if !unrecognized_mod_descriptors.is_empty() {
+            match game_modes::game_modifiers::reconstruct_build_modded(&builder, &self.mod_ids_args)
+            {
+                Ok((mut modded_game, unrecognized_mod_ids)) => {
+                    if !unrecognized_mod_ids.is_empty() {
                         // Add warning messages if certain mods could not be recognized.
                         // This should never happen in our application.
-                        let warn_messages = unrecognized_mod_descriptors
+                        let warn_messages = unrecognized_mod_ids
                             .into_iter()
                             .map(|mod_desc| format!("WARNING: idk mod {mod_desc:?}"))
                             .collect();
 
                         let print_warn_msgs_mod =
-                            game_mode_presets::game_modifiers::print_msgs::modifier(warn_messages);
+                            game_modifiers::PrintMsgs::modifier(warn_messages);
 
                         modded_game.modifiers.push(print_warn_msgs_mod);
                     }
@@ -202,24 +201,23 @@ impl GameRestorationData<UncompressedInputHistory> {
                 Err(msg) => {
                     let error_messages = vec![format!("ERROR: {msg}")];
 
-                    let print_error_msg_mod =
-                        game_mode_presets::game_modifiers::print_msgs::modifier(error_messages);
+                    let print_error_msg_mod = game_modifiers::PrintMsgs::modifier(error_messages);
 
-                    builder.build_modded([print_error_msg_mod])
+                    builder.build_modded(vec![print_error_msg_mod])
                 }
             }
         };
 
         // Step 3: Reenact recorded game inputs.
-        let restore_feedback_verbosity = game.config.feedback_verbosity;
+        let restore_notification_level = game.config.notification_level;
 
-        game.config.feedback_verbosity = FeedbackVerbosity::Silent;
+        game.config.notification_level = NotificationLevel::Silent;
         for (update_time, button_change) in self.input_history.iter().take(input_index) {
             // FIXME: Handle UpdateGameError? If not, why not?
             let _v = game.update(*update_time, Some(*button_change));
         }
 
-        game.config.feedback_verbosity = restore_feedback_verbosity;
+        game.config.notification_level = restore_notification_level;
 
         game
     }
@@ -325,14 +323,17 @@ pub struct Statistics {
 }
 
 impl Statistics {
-    fn acc_feedback_msgs(&mut self, feedback_msgs: &Vec<FeedbackMsg>) {
-        for (_, feedback) in feedback_msgs {
-            match feedback {
-                Feedback::PieceLocked { .. } => {
+    // This simple blacklist is used to prevent certain game modes from being counted toward stats (e.g. Puzzle's perfect clears).
+    const BLACKLIST_TITLE_PREFIXES: &[&str] = &[GameMode::TITLE_PUZZLE, GameMode::TITLE_COMBO];
+
+    fn accumulate_from_feed(&mut self, feed: &NotificationFeed) {
+        for (notification, _notif_time) in feed {
+            match notification {
+                Notification::PieceLocked { .. } => {
                     self.total_pieces_locked += 1;
                 }
 
-                Feedback::Accolade {
+                Notification::Accolade {
                     score_bonus,
                     lineclears,
                     combo,
@@ -399,16 +400,16 @@ pub struct NewGameSettings {
     custom_fall_delay_params: DelayParameters,
     custom_win_condition: Option<Stat>,
     custom_seed: Option<u64>,
-    custom_board: Option<String>, // For more compact serialization of NewGameSettings, we store an encoded `Board` (see `encode_board`).
+    custom_encoded_board: Option<String>, // For more compact serialization of NewGameSettings, we store an encoded `Board` (see `encode_board`).
 
-    cheese_linelimit: Option<NonZeroU32>,
-    cheese_fall_delay: ExtDuration,
     cheese_tiles_per_line: NonZeroUsize,
+    cheese_fall_lock_delays: (ExtDuration, ExtDuration),
+    cheese_limit: Option<NonZeroU32>,
 
-    combo_linelimit: Option<NonZeroU32>,
+    combo_limit: Option<NonZeroU32>,
     /// Custom starting layout when playing Combo mode (4-wide rows), encoded as binary.
     /// Example: '▀▄▄▀' => 0b_1001_0110 = 150
-    combo_startlayout: u16,
+    combo_initial_layout: u16,
 
     master_mode_unlocked: bool,
     experimental_mode_unlocked: bool,
@@ -420,14 +421,14 @@ impl Default for NewGameSettings {
             custom_fall_delay_params: DelayParameters::standard_fall(),
             custom_win_condition: None,
             custom_seed: None,
-            custom_board: None,
+            custom_encoded_board: None,
 
-            cheese_linelimit: Some(NonZeroU32::try_from(20).unwrap()),
-            cheese_fall_delay: ExtDuration::Infinite,
+            cheese_limit: Some(NonZeroU32::try_from(20).unwrap()),
+            cheese_fall_lock_delays: (ExtDuration::Infinite, ExtDuration::Infinite),
             cheese_tiles_per_line: NonZeroUsize::new(Game::WIDTH - 1).unwrap(),
 
-            combo_linelimit: Some(NonZeroU32::try_from(30).unwrap()),
-            combo_startlayout: game_mode_presets::game_modifiers::combo_board::LAYOUTS[0],
+            combo_limit: Some(NonZeroU32::try_from(30).unwrap()),
+            combo_initial_layout: game_modifiers::Combo::LAYOUTS[0],
 
             master_mode_unlocked: false,
             experimental_mode_unlocked: false,
@@ -743,7 +744,7 @@ impl<T: Write> Application<T> {
         };
 
         if custom_start_board.is_some() {
-            new.settings.new_game.custom_board = custom_start_board;
+            new.settings.new_game.custom_encoded_board = custom_start_board;
         }
         if custom_start_seed.is_some() {
             new.settings.new_game.custom_seed = custom_start_seed;

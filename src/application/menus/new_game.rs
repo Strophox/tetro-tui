@@ -26,8 +26,9 @@ use crate::{
         NewGameSettings, UncompressedInputHistory,
     },
     fmt_helpers::{fmt_button_input, fmt_duration, fmt_hertz, FmtBool},
-    game_mode_presets::{
-        self, game_modifiers::combo_board::LAYOUTS as COMBO_STARTLAYOUTS, GameModePreset,
+    game_modes::{
+        game_modifiers::{self, Combo},
+        GameMode,
     },
     game_renderers::{Renderer, TetroTUIRenderer},
 };
@@ -52,72 +53,36 @@ impl<T: Write> Application<T> {
 
         loop {
             #[allow(clippy::type_complexity)]
-            let mut game_presets: Vec<(GameModePreset, String)> = vec![
-                (
-                    game_mode_presets::swift(),
-                    "How fast can you clear 40 lines?".to_owned(),
+            let mut game_modes = vec![
+                GameMode::swift(),
+                GameMode::classic(),
+                GameMode::puzzle(),
+                GameMode::cheese(
+                    self.settings.new_game.cheese_tiles_per_line,
+                    self.settings.new_game.cheese_limit,
+                    self.settings.new_game.cheese_fall_lock_delays,
                 ),
-                (
-                    game_mode_presets::classic(),
-                    "Clear 150 lines at increasing gravity.".to_owned(),
-                ),
-                // (
-                //     game_mode_presets::time_trial(),
-                //     "What highscore can you get in 3min.?".to_owned(),
-                // ),
-                (
-                    game_mode_presets::puzzle(),
-                    "Clear 24 hand-crafted puzzles.".to_owned(),
-                ),
-                (
-                    game_mode_presets::cheese_n(
-                        self.settings.new_game.cheese_linelimit,
-                        self.settings.new_game.cheese_tiles_per_line,
-                        self.settings.new_game.cheese_fall_delay,
-                    ),
-                    format!(
-                        "Eat through lines like Swiss cheese. Limit={:?}",
-                        self.settings.new_game.cheese_linelimit
-                    ),
-                ),
-                (
-                    game_mode_presets::combo_n(
-                        self.settings.new_game.combo_linelimit,
-                        self.settings.new_game.combo_startlayout,
-                    ),
-                    format!(
-                        "Get consecutive line clears. Limit={:?}{}",
-                        self.settings.new_game.combo_linelimit,
-                        if self.settings.new_game.combo_startlayout != COMBO_STARTLAYOUTS[0] {
-                            format!(", Layout={:b}", self.settings.new_game.combo_startlayout)
-                        } else {
-                            "".to_owned()
-                        }
-                    ),
+                GameMode::combo(
+                    self.settings.new_game.combo_initial_layout,
+                    self.settings.new_game.combo_limit,
                 ),
             ];
+
             if self.settings.new_game.master_mode_unlocked {
-                game_presets.insert(
-                    2,
-                    (
-                        game_mode_presets::master(),
-                        "Clear 150 lines at instant gravity.".to_owned(),
-                    ),
-                );
+                game_modes.insert(2, GameMode::master());
             }
+
             if self.settings.new_game.experimental_mode_unlocked {
-                game_presets.push((
-                    game_mode_presets::ascent(),
-                    "(experimental; req. Ocular + 180° rot.)".to_owned(),
-                ))
+                game_modes.push(GameMode::ascent())
             }
+
             // First part: rendering the menu.
             let w_main = Self::W_MAIN.into();
             let (x_main, y_main) = Self::fetch_main_xy();
             let y_selection = Self::H_MAIN / 5;
             let savepoint_available = if !self.game_saves.1.is_empty() { 1 } else { 0 };
             // Normal presets + 2 spaces if savepoint option available + custom preset.
-            let selection_len = game_presets.len() + savepoint_available + 1;
+            let selection_len = game_modes.len() + savepoint_available + 1;
             // There are four columns for the custom stat selection.
             let customization_selection_size = 4;
             selected %= selection_len;
@@ -132,7 +97,16 @@ impl<T: Write> Application<T> {
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
                 .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
             // Render normal and special gamemodes.
-            for (i, ((title, _cmp_stat, _build), description)) in game_presets.iter().enumerate() {
+            for (
+                i,
+                GameMode {
+                    title,
+                    description,
+                    stat_and_order_desc: _,
+                    build: _,
+                },
+            ) in game_modes.iter().enumerate()
+            {
                 self.term
                     .queue(MoveTo(
                         x_main,
@@ -159,7 +133,7 @@ impl<T: Write> Application<T> {
                 self.term
                     .queue(MoveTo(
                         x_main,
-                        y_main + y_selection + 4 + u16::try_from(game_presets.len() + 1).unwrap(),
+                        y_main + y_selection + 4 + u16::try_from(game_modes.len() + 1).unwrap(),
                     ))?
                     .queue(Print(format!(
                         "{:^w_main$}",
@@ -203,7 +177,7 @@ impl<T: Write> Application<T> {
                                 } else {
                                     ""
                                 },
-                                if self.settings.new_game.custom_board.is_some() {
+                                if self.settings.new_game.custom_encoded_board.is_some() {
                                     " *board"
                                 } else {
                                     ""
@@ -503,33 +477,37 @@ impl<T: Write> Application<T> {
                 }) => {
                     if selected == selection_len - 1 && customization_selected > 0 {
                         customization_selected += customization_selection_size - 1
-                    } else if selected < game_presets.len()
-                        && game_presets[selected].0 .0.starts_with("Cheese")
+                    } else if selected < game_modes.len()
+                        && game_modes[selected]
+                            .title
+                            .starts_with(GameMode::TITLE_CHEESE)
                     {
-                        if let Some(limit) = self.settings.new_game.cheese_linelimit {
-                            self.settings.new_game.cheese_linelimit = if limit > lowerbound_cheese {
+                        if let Some(limit) = self.settings.new_game.cheese_limit {
+                            self.settings.new_game.cheese_limit = if limit > lowerbound_cheese {
                                 NonZeroU32::try_from(limit.get() - 1).ok()
                             } else {
                                 None
                             };
                         }
-                    } else if selected < game_presets.len()
-                        && game_presets[selected].0 .0.starts_with("Combo")
+                    } else if selected < game_modes.len()
+                        && game_modes[selected]
+                            .title
+                            .starts_with(GameMode::TITLE_COMBO)
                     {
                         if modifiers.contains(KeyModifiers::ALT) {
-                            let new_layout_idx = if let Some(i) = COMBO_STARTLAYOUTS
+                            let new_layout_idx = if let Some(i) = Combo::LAYOUTS
                                 .iter()
-                                .position(|lay| *lay == self.settings.new_game.combo_startlayout)
+                                .position(|lay| *lay == self.settings.new_game.combo_initial_layout)
                             {
-                                let layout_cnt = COMBO_STARTLAYOUTS.len();
+                                let layout_cnt = Combo::LAYOUTS.len();
                                 (i + layout_cnt - 1) % layout_cnt
                             } else {
                                 0
                             };
-                            self.settings.new_game.combo_startlayout =
-                                COMBO_STARTLAYOUTS[new_layout_idx];
-                        } else if let Some(limit) = self.settings.new_game.combo_linelimit {
-                            self.settings.new_game.combo_linelimit = if limit > lowerbound_combo {
+                            self.settings.new_game.combo_initial_layout =
+                                Combo::LAYOUTS[new_layout_idx];
+                        } else if let Some(limit) = self.settings.new_game.combo_limit {
+                            self.settings.new_game.combo_limit = if limit > lowerbound_combo {
                                 NonZeroU32::try_from(limit.get() - 1).ok()
                             } else {
                                 None
@@ -575,33 +553,37 @@ impl<T: Write> Application<T> {
                         } else {
                             customization_selected += 1
                         }
-                    } else if selected < game_presets.len()
-                        && game_presets[selected].0 .0.starts_with("Cheese")
+                    } else if selected < game_modes.len()
+                        && game_modes[selected]
+                            .title
+                            .starts_with(GameMode::TITLE_CHEESE)
                     {
-                        self.settings.new_game.cheese_linelimit =
-                            if let Some(limit) = self.settings.new_game.cheese_linelimit {
+                        self.settings.new_game.cheese_limit =
+                            if let Some(limit) = self.settings.new_game.cheese_limit {
                                 limit.checked_add(1)
                             } else {
                                 Some(lowerbound_cheese)
                             };
-                    } else if selected < game_presets.len()
-                        && game_presets[selected].0 .0.starts_with("Combo")
+                    } else if selected < game_modes.len()
+                        && game_modes[selected]
+                            .title
+                            .starts_with(GameMode::TITLE_COMBO)
                     {
                         if modifiers.contains(KeyModifiers::ALT) {
-                            let new_layout_idx = if let Some(i) = COMBO_STARTLAYOUTS
+                            let new_layout_idx = if let Some(i) = Combo::LAYOUTS
                                 .iter()
-                                .position(|lay| *lay == self.settings.new_game.combo_startlayout)
+                                .position(|lay| *lay == self.settings.new_game.combo_initial_layout)
                             {
-                                let layout_cnt = COMBO_STARTLAYOUTS.len();
+                                let layout_cnt = Combo::LAYOUTS.len();
                                 (i + 1) % layout_cnt
                             } else {
                                 0
                             };
-                            self.settings.new_game.combo_startlayout =
-                                COMBO_STARTLAYOUTS[new_layout_idx];
+                            self.settings.new_game.combo_initial_layout =
+                                Combo::LAYOUTS[new_layout_idx];
                         } else {
-                            self.settings.new_game.combo_linelimit =
-                                if let Some(limit) = self.settings.new_game.combo_linelimit {
+                            self.settings.new_game.combo_limit =
+                                if let Some(limit) = self.settings.new_game.combo_limit {
                                     limit.checked_add(1)
                                 } else {
                                     Some(lowerbound_combo)
@@ -633,23 +615,27 @@ impl<T: Write> Application<T> {
                 }) => {
                     if selected == selection_len - 1 {
                         self.settings.new_game.custom_seed = None;
-                        self.settings.new_game.custom_board = None;
+                        self.settings.new_game.custom_encoded_board = None;
                         self.settings.new_game.custom_fall_delay_params =
                             DelayParameters::standard_fall();
                         self.settings.new_game.custom_win_condition = None;
-                    } else if selected < game_presets.len()
-                        && game_presets[selected].0 .0.starts_with("Cheese")
+                    } else if selected < game_modes.len()
+                        && game_modes[selected]
+                            .title
+                            .starts_with(GameMode::TITLE_CHEESE)
                     {
-                        self.settings.new_game.cheese_linelimit =
-                            NewGameSettings::default().cheese_linelimit;
-                    } else if selected < game_presets.len()
-                        && game_presets[selected].0 .0.starts_with("Combo")
+                        self.settings.new_game.cheese_limit =
+                            NewGameSettings::default().cheese_limit;
+                    } else if selected < game_modes.len()
+                        && game_modes[selected]
+                            .title
+                            .starts_with(GameMode::TITLE_COMBO)
                     {
                         if modifiers.contains(KeyModifiers::ALT) {
-                            self.settings.new_game.combo_startlayout = COMBO_STARTLAYOUTS[0];
+                            self.settings.new_game.combo_initial_layout = Combo::LAYOUTS[0];
                         } else {
-                            self.settings.new_game.combo_linelimit =
-                                NewGameSettings::default().combo_linelimit;
+                            self.settings.new_game.combo_limit =
+                                NewGameSettings::default().combo_limit;
                         }
                     } else if selected == selection_len - 2 {
                         self.game_saves.1.remove(self.game_saves.0);
@@ -711,18 +697,22 @@ impl<T: Write> Application<T> {
                     .spawn_delay(spawn_delay)
                     .allow_initial_actions(allow_initial_actions);
 
-                let (game_meta_data, mut game, game_input_history) = if selected
-                    < game_presets.len()
+                let (game_meta_data, mut game, game_input_history) = if selected < game_modes.len()
                 {
                     // Build one of the selected game modes.
-                    let ((title, comparison_stat, build), _desc) = &game_presets[selected];
+                    let GameMode {
+                        title,
+                        description: _,
+                        stat_and_order_desc,
+                        build,
+                    } = &game_modes[selected];
 
                     let preset_game = build(&builder);
 
                     let preset_game_meta_data = GameMetaData {
                         datetime: chrono::Utc::now().format("%Y-%m-%d_%H:%M").to_string(),
                         title: title.to_owned(),
-                        comparison_stat: comparison_stat.to_owned(),
+                        comparison_stat: *stat_and_order_desc,
                     };
 
                     let fresh_input_history = UncompressedInputHistory::default();
@@ -777,10 +767,8 @@ impl<T: Write> Application<T> {
                     }
 
                     // Optionally load custom board.
-                    let new_custom_game = if let Some(board) = &n.custom_board {
-                        builder.build_modded([
-                            game_mode_presets::game_modifiers::custom_start_board::modifier(board),
-                        ])
+                    let new_custom_game = if let Some(encoded_board) = &n.custom_encoded_board {
+                        game_modifiers::StartBoard::build(&builder, encoded_board.clone())
                     // Otherwise just build a normal custom game.
                     } else {
                         builder.build()
@@ -817,7 +805,7 @@ impl<T: Write> Application<T> {
                 // We do this so the renderer does not render a first frame when game is in its raw start state.
                 if game.state().time.is_zero() {
                     match game.update(InGameTime::ZERO, None) {
-                        Ok(msgs) => game_renderer.push_game_feedback_msgs(msgs),
+                        Ok(msgs) => game_renderer.push_game_notification_feed(msgs),
                         // Screw us I guess
                         Err(_update_game_error) => {}
                     }

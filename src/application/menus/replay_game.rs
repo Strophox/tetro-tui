@@ -13,7 +13,7 @@ use crossterm::{
     ExecutableCommand,
 };
 use falling_tetromino_engine::{
-    Feedback, Game, GameEndCause, InGameTime, Input, Phase, UpdateGameError,
+    Game, GameEndCause, InGameTime, Input, Notification, Phase, UpdateGameError,
 };
 
 use crate::{
@@ -222,9 +222,9 @@ impl<T: Write> Application<T> {
                                                     "(Disabled inputs)"
                                                 };
 
-                                                game_renderer.push_game_feedback_msgs([(
+                                                game_renderer.push_game_notification_feed([(
+                                                    Notification::Custom(str.to_owned()),
                                                     game.state().time,
-                                                    Feedback::Message(str.to_owned()),
                                                 )]);
 
                                                 next_paused_with_extra_render_request = Some(true);
@@ -248,7 +248,7 @@ impl<T: Write> Application<T> {
                                                             Some(Input::Activate(button)),
                                                         ) {
                                                             Ok(msgs) => game_renderer
-                                                                .push_game_feedback_msgs(msgs),
+                                                                .push_game_notification_feed(msgs),
                                                             // FIXME: Handle UpdateGameError::TargetTimeInPast? If not, why not?
                                                             Err(
                                                                 UpdateGameError::TargetTimeInPast,
@@ -261,7 +261,7 @@ impl<T: Write> Application<T> {
                                                             Some(Input::Deactivate(button)),
                                                         ) {
                                                             Ok(msgs) => game_renderer
-                                                                .push_game_feedback_msgs(msgs),
+                                                                .push_game_notification_feed(msgs),
                                                             // FIXME: Handle UpdateGameError::TargetTimeInPast? If not, why not?
                                                             Err(
                                                                 UpdateGameError::TargetTimeInPast,
@@ -303,11 +303,11 @@ impl<T: Write> Application<T> {
                                                     }],
                                                 );
 
-                                                game_renderer.push_game_feedback_msgs([(
-                                                    game.state().time,
-                                                    Feedback::Message(
+                                                game_renderer.push_game_notification_feed([(
+                                                    Notification::Custom(
                                                         "(Stored savepoint)".to_owned(),
                                                     ),
+                                                    game.state().time,
                                                 )]);
 
                                                 if paused {
@@ -322,12 +322,12 @@ impl<T: Write> Application<T> {
                                                 self.settings.new_game.custom_seed =
                                                     Some(game.state_init().seed);
 
-                                                game_renderer.push_game_feedback_msgs([(
-                                                    game.state().time,
-                                                    Feedback::Message(format!(
+                                                game_renderer.push_game_notification_feed([(
+                                                    Notification::Custom(format!(
                                                         "(Seed stored: {}.)",
                                                         game.state_init().seed
                                                     )),
+                                                    game.state().time,
                                                 )]);
 
                                                 if paused {
@@ -423,7 +423,7 @@ impl<T: Write> Application<T> {
                                                     match game.update(update_target_time, opt_input)
                                                     {
                                                         Ok(msgs) => game_renderer
-                                                            .push_game_feedback_msgs(msgs),
+                                                            .push_game_notification_feed(msgs),
                                                         // FIXME: Handle UpdateGameError::TargetTimeInPast? If not, why not?
                                                         Err(UpdateGameError::TargetTimeInPast) => {}
                                                         // Game ended, no more inputs.
@@ -433,7 +433,7 @@ impl<T: Write> Application<T> {
                                                     if do_forfeit {
                                                         match game.forfeit() {
                                                             Ok(msgs) => game_renderer
-                                                                .push_game_feedback_msgs(msgs),
+                                                                .push_game_notification_feed(msgs),
 
                                                             // We do not care if game ended or time is in past here.
                                                             Err(
@@ -463,7 +463,7 @@ impl<T: Write> Application<T> {
                                                         Some(*button_change),
                                                     ) {
                                                         Ok(msgs) => game_renderer
-                                                            .push_game_feedback_msgs(msgs),
+                                                            .push_game_notification_feed(msgs),
                                                         // FIXME: Handle UpdateGameError::TargetTimeInPast? If not, why not?
                                                         Err(UpdateGameError::TargetTimeInPast) => {}
                                                         // Game ended, no more inputs.
@@ -620,7 +620,7 @@ impl<T: Write> Application<T> {
                         inputs_loaded: anchor_inputs_loaded,
                     }) = game_save_anchors.get(anchor_index)
                     {
-                        game = anchor_game.clone_unmodded();
+                        game = anchor_game.try_clone().unwrap();
                         inputs_loaded = *anchor_inputs_loaded;
                     }
                 } else {
@@ -635,7 +635,7 @@ impl<T: Write> Application<T> {
                     };
                     game = game_restoration_data.restore(idx);
                     match game.update(tgt_time, None) {
-                        Ok(msgs) => game_renderer.push_game_feedback_msgs(msgs),
+                        Ok(msgs) => game_renderer.push_game_notification_feed(msgs),
                         // FIXME: Handle UpdateGameError? If not, why not?
                         Err(_e) => {}
                     }
@@ -693,7 +693,7 @@ impl<T: Write> Application<T> {
                     }
 
                     match game.update(*next_input_time, Some(*button_change)) {
-                        Ok(msgs) => game_renderer.push_game_feedback_msgs(msgs),
+                        Ok(msgs) => game_renderer.push_game_notification_feed(msgs),
                         // FIXME: Handle UpdateGameError::TargetTimeInPast? If not, why not?
                         Err(UpdateGameError::TargetTimeInPast) => {}
                         // Game ended? Do not attempt to feed more inputs.
@@ -705,7 +705,7 @@ impl<T: Write> Application<T> {
 
                 match game.update(update_target_time, None) {
                     // Update.
-                    Ok(msgs) => game_renderer.push_game_feedback_msgs(msgs),
+                    Ok(msgs) => game_renderer.push_game_notification_feed(msgs),
 
                     // We do not care if game ended or time is in past here:
                     // We just care about best-effort updating state to show it to player.
@@ -714,7 +714,7 @@ impl<T: Write> Application<T> {
 
                 if do_forfeit {
                     match game.forfeit() {
-                        Ok(msgs) => game_renderer.push_game_feedback_msgs(msgs),
+                        Ok(msgs) => game_renderer.push_game_notification_feed(msgs),
 
                         // We do not care if game ended or time is in past here.
                         Err(UpdateGameError::AlreadyEnded | UpdateGameError::TargetTimeInPast) => {}
@@ -820,22 +820,21 @@ impl<T: Write> Application<T> {
     ) -> io::Result<(Game, Option<Vec<GameSaveAnchor>>)> {
         let initial_game = game_restoration_data.restore(0);
 
-        // We don't have replay anchors for modded games, because we can't even attempt to clone the mods' internal states at time of writing.
-        if !game_restoration_data.mod_descriptors.is_empty() {
-            return Ok((initial_game, None));
-        }
-
         let replay_length = game_restoration_data
             .input_history
             .last()
             .map(|x| x.0)
             .unwrap_or_default();
 
-        let mut game = initial_game.clone_unmodded();
+        let mut game = match initial_game.try_clone() {
+            Ok(game) => game,
+            // We don't have replay anchors for modded games, because we can't even attempt to clone the mods' internal states at time of writing.
+            Err(_e) => return Ok((initial_game, None)),
+        };
         let mut inputs_loaded = 0usize;
 
         let mut game_save_anchors = vec![GameSaveAnchor {
-            game: game.clone_unmodded(),
+            game: game.try_clone().unwrap(),
             inputs_loaded,
         }];
 
@@ -891,7 +890,7 @@ impl<T: Write> Application<T> {
             }
 
             game_save_anchors.push(GameSaveAnchor {
-                game: game.clone_unmodded(),
+                game: game.try_clone().unwrap(),
                 inputs_loaded,
             });
 

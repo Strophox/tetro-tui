@@ -1,6 +1,6 @@
 mod application;
 mod fmt_helpers;
-mod game_mode_presets;
+mod game_modes;
 mod game_renderers;
 mod gameplay_settings;
 mod graphics_settings;

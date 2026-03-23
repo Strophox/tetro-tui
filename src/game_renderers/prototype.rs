@@ -6,7 +6,7 @@ use crossterm::{
     terminal, QueueableCommand,
 };
 
-use falling_tetromino_engine::{Feedback, InGameTime, State};
+use falling_tetromino_engine::{InGameTime, Notification, State};
 
 use super::*;
 
@@ -23,21 +23,21 @@ use super::*;
     serde::Deserialize,
 )]
 pub struct PrototypeRenderer {
-    feedback_msgs_buffer: VecDeque<(InGameTime, Feedback)>,
+    notification_feed_buffer: VecDeque<(Notification, InGameTime)>,
 }
 
 impl Renderer for PrototypeRenderer {
-    fn push_game_feedback_msgs(
+    fn push_game_notification_feed(
         &mut self,
-        feedback_msgs: impl IntoIterator<Item = (InGameTime, Feedback)>,
+        feed: impl IntoIterator<Item = (Notification, InGameTime)>,
     ) {
-        for x in feedback_msgs {
-            self.feedback_msgs_buffer.push_front(x);
+        for x in feed {
+            self.notification_feed_buffer.push_front(x);
         }
     }
 
     fn reset_game_associated_state(&mut self) {
-        self.feedback_msgs_buffer.clear();
+        self.notification_feed_buffer.clear();
     }
 
     fn reset_view_diff_state(&mut self) {
@@ -108,9 +108,9 @@ impl Renderer for PrototypeRenderer {
 
         // Draw feedback stuf
         let mut feed_evt_msgs = Vec::new();
-        for (_, feedback) in self.feedback_msgs_buffer.iter() {
-            feed_evt_msgs.push(match feedback {
-                Feedback::Accolade {
+        for (notification, _) in self.notification_feed_buffer.iter() {
+            feed_evt_msgs.push(match notification {
+                Notification::Accolade {
                     score_bonus,
                     tetromino,
                     is_spin: spin,

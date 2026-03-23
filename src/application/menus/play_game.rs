@@ -11,7 +11,7 @@ use crossterm::{
     ExecutableCommand,
 };
 use falling_tetromino_engine::{
-    Button, Feedback, Game, GameEndCause, InGameTime, Input, Phase, UpdateGameError,
+    Button, Game, GameEndCause, InGameTime, Input, Notification, Phase, UpdateGameError,
 };
 
 use crate::{
@@ -124,7 +124,7 @@ impl<T: Write> Application<T> {
             // Start new iteration of [render->input->] loop.
 
             if let Phase::GameEnd { cause, is_win } = game.phase() {
-                temp_statistics.total_games_ended += 1;
+                self.statistics.total_games_ended += 1;
 
                 // Game ended, cannot actually continue playing;
                 // Convert to scoreboard entry and return appropriate game-ended menu.
@@ -258,8 +258,8 @@ impl<T: Write> Application<T> {
 
                                     match game.update(update_target_time, Some(player_input)) {
                                         Ok(msgs) => {
-                                            temp_statistics.acc_feedback_msgs(&msgs);
-                                            game_renderer.push_game_feedback_msgs(msgs)
+                                            temp_statistics.accumulate_from_feed(&msgs);
+                                            game_renderer.push_game_notification_feed(msgs)
                                         }
                                         Err(UpdateGameError::AlreadyEnded) => break 'wait,
                                         Err(UpdateGameError::TargetTimeInPast) => unreachable!(),
@@ -307,8 +307,8 @@ impl<T: Write> Application<T> {
 
                                     match game.update(update_target_time, Some(button_change)) {
                                         Ok(msgs) => {
-                                            temp_statistics.acc_feedback_msgs(&msgs);
-                                            game_renderer.push_game_feedback_msgs(msgs);
+                                            temp_statistics.accumulate_from_feed(&msgs);
+                                            game_renderer.push_game_notification_feed(msgs);
                                         }
                                         Err(UpdateGameError::AlreadyEnded) => break 'wait,
                                         Err(UpdateGameError::TargetTimeInPast) => unreachable!(),
@@ -324,8 +324,8 @@ impl<T: Write> Application<T> {
 
                                     match update_result {
                                         Ok(msgs) => {
-                                            temp_statistics.acc_feedback_msgs(&msgs);
-                                            game_renderer.push_game_feedback_msgs(msgs)
+                                            temp_statistics.accumulate_from_feed(&msgs);
+                                            game_renderer.push_game_notification_feed(msgs)
                                         }
                                         Err(UpdateGameError::AlreadyEnded) => break 'wait,
                                         Err(UpdateGameError::TargetTimeInPast) => unreachable!(),
@@ -367,8 +367,9 @@ impl<T: Write> Application<T> {
                                             (KeyCode::Char('d' | 'D'), KeyModifiers::CONTROL) => {
                                                 match game.forfeit() {
                                                     Ok(msgs) => {
-                                                        temp_statistics.acc_feedback_msgs(&msgs);
-                                                        game_renderer.push_game_feedback_msgs(msgs);
+                                                        temp_statistics.accumulate_from_feed(&msgs);
+                                                        game_renderer
+                                                            .push_game_notification_feed(msgs);
                                                     }
 
                                                     // We do not care if game ended or time is in past here.
@@ -405,11 +406,11 @@ impl<T: Write> Application<T> {
                                                     }],
                                                 );
 
-                                                game_renderer.push_game_feedback_msgs([(
-                                                    game.state().time,
-                                                    Feedback::Message(
+                                                game_renderer.push_game_notification_feed([(
+                                                    Notification::Custom(
                                                         "(Stored savepoint)".to_owned(),
                                                     ),
+                                                    game.state().time,
                                                 )]);
                                             }
 
@@ -440,11 +441,11 @@ impl<T: Write> Application<T> {
                                                     .collect();
 
                                                 game_renderer.reset_game_associated_state();
-                                                game_renderer.push_game_feedback_msgs([(
-                                                    game.state().time,
-                                                    Feedback::Message(
+                                                game_renderer.push_game_notification_feed([(
+                                                    Notification::Custom(
                                                         "(Loaded savepoint)".to_owned(),
                                                     ),
+                                                    game.state().time,
                                                 )]);
 
                                                 // What we do here is rather unholy, so we have to adapt the game loop state itself.
@@ -463,12 +464,12 @@ impl<T: Write> Application<T> {
                                                 self.settings.new_game.custom_seed =
                                                     Some(game.state_init().seed);
 
-                                                game_renderer.push_game_feedback_msgs([(
-                                                    game.state().time,
-                                                    Feedback::Message(format!(
+                                                game_renderer.push_game_notification_feed([(
+                                                    Notification::Custom(format!(
                                                         "(Seed stored: {})",
                                                         game.state_init().seed
                                                     )),
+                                                    game.state().time,
                                                 )]);
                                             }
 
@@ -483,19 +484,19 @@ impl<T: Write> Application<T> {
                                             {
                                                 self.temp_data.blindfold_enabled ^= true;
                                                 if self.temp_data.blindfold_enabled {
-                                                    game_renderer.push_game_feedback_msgs([(
-                                                        game.state().time,
-                                                        Feedback::Message(
+                                                    game_renderer.push_game_notification_feed([(
+                                                        Notification::Custom(
                                                             "Blindfolded! [Ctrl+Alt+B]".to_owned(),
                                                         ),
+                                                        game.state().time,
                                                     )]);
                                                 } else {
-                                                    game_renderer.push_game_feedback_msgs([(
-                                                        game.state().time,
-                                                        Feedback::Message(
+                                                    game_renderer.push_game_notification_feed([(
+                                                        Notification::Custom(
                                                             "Blindfolds removed [Ctrl+Alt+B]"
                                                                 .to_owned(),
                                                         ),
+                                                        game.state().time,
                                                     )]);
                                                 }
                                             }
@@ -551,8 +552,8 @@ impl<T: Write> Application<T> {
             match game.update(update_target_time, None) {
                 // Update.
                 Ok(msgs) => {
-                    temp_statistics.acc_feedback_msgs(&msgs);
-                    game_renderer.push_game_feedback_msgs(msgs)
+                    temp_statistics.accumulate_from_feed(&msgs);
+                    game_renderer.push_game_notification_feed(msgs)
                 }
 
                 // We do not care if game ended or time is in past here:
@@ -635,8 +636,8 @@ impl<T: Write> Application<T> {
                     game_input_history.push((unpress_time, button_change));
                     match update_result {
                         Ok(msgs) => {
-                            temp_statistics.acc_feedback_msgs(&msgs);
-                            game_renderer.push_game_feedback_msgs(msgs);
+                            temp_statistics.accumulate_from_feed(&msgs);
+                            game_renderer.push_game_notification_feed(msgs);
                         }
                         Err(UpdateGameError::AlreadyEnded) => break 'button_unpressing,
                         Err(UpdateGameError::TargetTimeInPast) => unreachable!(),
@@ -645,9 +646,15 @@ impl<T: Write> Application<T> {
             }
         }
 
-        temp_statistics.total_play_time +=
+        self.statistics.total_play_time +=
             Instant::now().saturating_duration_since(time_game_loop_entered);
-        self.statistics.accumulate(&temp_statistics);
+
+        if !Statistics::BLACKLIST_TITLE_PREFIXES
+            .iter()
+            .any(|prefix| game_meta_data.title.starts_with(prefix))
+        {
+            self.statistics.accumulate(&temp_statistics);
+        }
 
         Ok(menu_update)
     }

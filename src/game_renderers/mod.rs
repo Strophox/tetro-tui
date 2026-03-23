@@ -9,7 +9,7 @@ mod prototype;
 
 use std::io::{self, Write};
 
-use falling_tetromino_engine::{Feedback, Game, InGameTime};
+use falling_tetromino_engine::{Game, InGameTime, Notification};
 
 use crate::{
     application::{GameMetaData, Settings, TemporaryAppData},
@@ -28,9 +28,9 @@ pub use prototype::PrototypeRenderer;
 pub use halfcell::HalfCellRenderer;
 
 pub trait Renderer: Default {
-    fn push_game_feedback_msgs(
+    fn push_game_notification_feed(
         &mut self,
-        feedback_msgs: impl IntoIterator<Item = (InGameTime, Feedback)>,
+        feed: impl IntoIterator<Item = (Notification, InGameTime)>,
     );
 
     fn reset_game_associated_state(&mut self);
@@ -93,15 +93,15 @@ impl Default for TetroTUIRenderer {
 }
 
 impl Renderer for TetroTUIRenderer {
-    fn push_game_feedback_msgs(
+    fn push_game_notification_feed(
         &mut self,
-        feedback_msgs: impl IntoIterator<Item = (InGameTime, Feedback)>,
+        feed: impl IntoIterator<Item = (Notification, InGameTime)>,
     ) {
         match self {
-            TetroTUIRenderer::DiffPrint(r) => r.push_game_feedback_msgs(feedback_msgs),
-            TetroTUIRenderer::HalfCell(r) => r.push_game_feedback_msgs(feedback_msgs),
-            TetroTUIRenderer::Braille(r) => r.push_game_feedback_msgs(feedback_msgs),
-            TetroTUIRenderer::Prototype(r) => r.push_game_feedback_msgs(feedback_msgs),
+            TetroTUIRenderer::DiffPrint(r) => r.push_game_notification_feed(feed),
+            TetroTUIRenderer::HalfCell(r) => r.push_game_notification_feed(feed),
+            TetroTUIRenderer::Braille(r) => r.push_game_notification_feed(feed),
+            TetroTUIRenderer::Prototype(r) => r.push_game_notification_feed(feed),
         }
     }
 
