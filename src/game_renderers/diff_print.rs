@@ -880,16 +880,16 @@ impl Renderer for DiffPrintRenderer {
                 Notification::Accolade {
                     score_bonus,
                     tetromino,
-                    is_spin: spin,
+                    is_spin,
                     lineclears,
-                    is_perfect_clear: perfect_clear,
+                    is_perfect_clear,
                     combo,
                 } => {
                     let mut tokens = Vec::new();
 
                     tokens.push(format!("+{score_bonus},"));
 
-                    if *perfect_clear {
+                    if *is_perfect_clear {
                         tokens.push("Perfect".to_owned());
                     }
 
@@ -919,8 +919,8 @@ impl Renderer for DiffPrintRenderer {
                     .to_string();
                     tokens.push(clear_action);
 
-                    if *spin {
-                        tokens.push(format!("{tetromino:?}-Spin"));
+                    if *is_spin {
+                        tokens.push(format!("{tetromino:?}-spin"));
                     }
 
                     if *combo > 1 {
