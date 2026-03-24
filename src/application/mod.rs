@@ -83,7 +83,7 @@ impl<T: Clone> SlotMachine<T> {
 
 pub type UncompressedInputHistory = Vec<(InGameTime, Input)>;
 
-//TODO:#[serde_with::serde_as]
+#[serde_with::serde_as]
 #[derive(
     PartialEq,
     Eq,
@@ -97,48 +97,64 @@ pub type UncompressedInputHistory = Vec<(InGameTime, Input)>;
     serde::Deserialize,
 )]
 pub struct CompressedInputHistory {
-    //TODO:#[serde_as(as = "serde_with::base64::Base64")]
-    inputbuf: Vec<u128>
+    #[serde_as(as = "serde_with::base64::Base64")]
+    inputdata: Vec<u8>
 }
 
 impl CompressedInputHistory {
     // How many bits it takes to encode a `ButtonChange`:
     // - 1 bit for Press/Release,
     // - At time of writing: 4 bits for the 11 `Button` variants.
-    pub const BUTTON_CHANGE_BITSIZE: usize =
+    pub const INPUTTYPE_BITSIZE: usize =
         1 + Button::VARIANTS.len().next_power_of_two().ilog2() as usize;
 
-    //TODO:pub const NUM_BYTES_PER_INPUT: usize = 5; // N=5; This should give around 2 ^ (5*8 - BUT_CHG_BITSZ) = 34359738368 milliseconds. 
+    pub const NUM_BYTES_PER_ENTRY: usize = 5; // N=5; This should give around 2 ^ (5*8 - BUT_CHG_BITSZ) = 34359738368 milliseconds. 
 
     pub fn new(game_input_history: &UncompressedInputHistory) -> Self {
-        let mut inputbuf = Vec::new();
+        let mut inputbytebuf = Vec::new();
 
         let mut update_time_0 = InGameTime::ZERO;
 
-        for (update_time_1, button_change) in game_input_history.iter() {
+        for (update_time_1, input) in game_input_history.iter() {
+            // Compress time using diffing.
             let time_diff = update_time_1.saturating_sub(update_time_0);
-            let i = Self::compress_input((time_diff, *button_change));
+            // Compress to bit representation.
+            let bits = Self::compress_input((time_diff, *input));
+            // Split into bytes.
+            let bytes = bits.to_le_bytes().into_iter().take(Self::NUM_BYTES_PER_ENTRY).collect::<Vec<u8>>();
 
-            // Add further input.
-            inputbuf.push(i);
-
+            inputbytebuf.extend(bytes);
             update_time_0 = *update_time_1;
         }
 
-        Self { inputbuf }
+        let inputdata = miniz_oxide::deflate::compress_to_vec(inputbytebuf.as_slice(), 10);
+
+        Self { inputdata }
     }
 
     pub fn decompress(&self) -> UncompressedInputHistory {
+        let inputbytebuf: Vec<u8> = miniz_oxide::inflate::decompress_to_vec_with_limit(self.inputdata.as_slice(), 60000).expect("TODO");
+
+        let (byte_chunks, remainder) = inputbytebuf.as_chunks::<{Self::NUM_BYTES_PER_ENTRY}>();
+
+        // Invalid input.
+        if remainder.len() != 0 {
+            panic!("TODO");
+        }
+
         let mut decompressed_inputs = Vec::new();
         
         let mut update_time_0 = InGameTime::ZERO;
-        for i in self.inputbuf.iter() {
-            let (time_diff, button_change) = Self::decompress_input(*i);
+        for bytes in byte_chunks {
+            let mut bytes16 = [0; 16];
+            bytes16[0..Self::NUM_BYTES_PER_ENTRY].copy_from_slice(bytes);
+            let bits = u128::from_le_bytes(bytes16);
+            // Decompress from bit representation
+            let (time_diff, input) = Self::decompress_input(bits);
+            // Decompress time based on previous input.
             let update_time_1 = update_time_0.saturating_add(time_diff);
 
-            // Add further input.
-            decompressed_inputs.push((update_time_1, button_change));
-
+            decompressed_inputs.push((update_time_1, input));
             update_time_0 = update_time_1;
         }
 
@@ -153,13 +169,13 @@ impl CompressedInputHistory {
         let millis: u128 = update_target_time.as_millis();
         // Encode `falling_tetromino_engine::ButtonChange` using `Self::encode_button_change`.
         let bc_bits: u8 = Self::compress_buttonchange(&button_change);
-        (millis << Self::BUTTON_CHANGE_BITSIZE) | u128::from(bc_bits)
+        (millis << Self::INPUTTYPE_BITSIZE) | u128::from(bc_bits)
     }
 
     fn decompress_input(i: u128) -> (InGameTime, Input) {
-        let mask = u128::MAX >> (128 - Self::BUTTON_CHANGE_BITSIZE);
+        let mask = u128::MAX >> (128 - Self::INPUTTYPE_BITSIZE);
         let bc_bits = u8::try_from(i & mask).unwrap();
-        let millis = u64::try_from(i >> Self::BUTTON_CHANGE_BITSIZE).unwrap();
+        let millis = u64::try_from(i >> Self::INPUTTYPE_BITSIZE).unwrap();
         (
             std::time::Duration::from_millis(millis),
             Self::decompress_buttonchange(bc_bits),
