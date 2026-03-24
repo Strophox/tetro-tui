@@ -15,6 +15,13 @@ categories = ["games", "command-line-utilities"]
 exclude = ["demo_assets/*", ".github/", "RELEASE-CHECKLIST.md"]
 
 
+[profile.release]
+strip = true  # Automatically strip symbols from the binary.
+#opt-level = "z"  # Optimize for size.
+lto = true # Enable link-time optimization.
+#codegen-units = 1 # Use fewer than 16 threads for compilation, but enable some optimizations.
+
+
 [dependencies]
 chrono = "0.4.38" # Generating timestamps.
 clap = { version = "4.5.9", features = ["derive", "cargo"] } # Parsing command-line arguments.

@@ -37,7 +37,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Savefile is now versioned using only `MAJOR.MINOR` (e.g. `/home/meee/.config/.tetro-tui_v2.0_savefile.json`) (i.e. should not break on simple `.PATCH` releases).
-- 
 - List of some renames:
     * '16-Color' palette -> 'ANSI' palette
     * '40-Lines' gamemode -> 'Swift' gamemode
@@ -57,6 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Scores-and-Replays menu:
     * Now remembers which game you had selected when you return from watching a replay.
     * Switching between scoreboard ordering automatically keeps selection on same game as well.
+- Changes/refactors of in the game engine (falling-tetromino-engine v1.4) should make it more robust now; bugs fixed/prevented.
 - `Ctrl`+`C` should now consistently exit program + save (if applicable) from all menus.
 - 'ASCII' graphics should now properly only use ASCII graphics even for small tetromino previews, button state icons.
 
