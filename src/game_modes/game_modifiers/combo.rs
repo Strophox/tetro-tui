@@ -12,7 +12,6 @@ pub struct Combo {
     combo_limit: Option<NonZeroU32>,
 
     height_loaded: usize,
-    combo_reached: usize,
 }
 
 impl Combo {
@@ -27,7 +26,6 @@ impl Combo {
             initial_layout,
             combo_limit,
             height_loaded: 0,
-            combo_reached: 0,
         });
 
         builder
@@ -53,6 +51,7 @@ impl GameModifier for Combo {
         Ok(Box::new(self.clone()))
     }
 
+    // Initialize board.
     fn on_game_built(&mut self, game: GameAccess) {
         for (line, four_well_line) in game
             .state
@@ -87,9 +86,10 @@ impl GameModifier for Combo {
         }
     }
 
+    // Check game condition.
     fn on_lock_post(&mut self, game: GameAccess, _feed: &mut NotificationFeed) {
         // If combo broken.
-        if !matches!(game.phase, Phase::LinesClearing { .. }) {
+        if game.state.consecutive_line_clears == 0 {
             *game.phase = Phase::GameEnd {
                 cause: GameEndCause::Custom("Combo broken".to_owned()),
                 is_win: false,
@@ -98,13 +98,13 @@ impl GameModifier for Combo {
             return;
         }
 
-        // Store combo reached and overwrite game score with it.
-        self.combo_reached += 1;
-        game.state.score = u32::try_from(self.combo_reached).unwrap();
+        // Overwrite game score with combo length.
+        // FIXME: Remove this at some point with a proper solution for displaying progress?
+        game.state.score = game.state.consecutive_line_clears;
     }
 
+    // Insert new line.
     fn on_lines_clear_post(&mut self, game: GameAccess, _feed: &mut NotificationFeed) {
-        // Insert new line.
         game.state.board[Game::HEIGHT - 1] =
             Self::combo_lines(&mut self.height_loaded).next().unwrap();
     }
@@ -137,17 +137,18 @@ impl Combo {
 
         let grey_tile = Some(NonZeroU8::try_from(254).unwrap());
 
-        let indices_0 = (*height_loaded..).map(|i| i % 7);
-        let indices_1 = indices_0.clone().skip(1);
+        let color_tiles_0 = (*height_loaded..).map(move |i| color_tiles[i/2 % 7]);
 
-        indices_0.zip(indices_1).map(move |(i_0, i_1)| {
+        let color_tiles_1 = color_tiles_0.clone().skip(1);
+
+        color_tiles_0.zip(color_tiles_1).map(move |(color_tile_0, color_tile_1)| {
             let mut line = [None; Game::WIDTH];
-            line[0] = color_tiles[i_0];
-            line[1] = color_tiles[i_1];
+            line[0] = color_tile_0;
+            line[1] = color_tile_1;
             line[2] = grey_tile;
             line[7] = grey_tile;
-            line[8] = color_tiles[i_1];
-            line[9] = color_tiles[i_0];
+            line[8] = color_tile_1;
+            line[9] = color_tile_0;
 
             *height_loaded += 1;
             line

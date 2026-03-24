@@ -112,7 +112,7 @@ impl<T: Write> Application<T> {
                         format!(
                             "{:^w_main$}",
                             format!(
-                                "(Save location: {})",
+                                "Save location: {}",
                                 self.temp_data.savefile_path.display()
                             )
                         )
