@@ -540,7 +540,7 @@ impl<T: Write> Application<T> {
                                                     );
 
                                                 // Accumulate this specific state here. TODO what if we want to tho? like when playing a game and discarding it nevertheless
-                                                self.statistics.total_new_games_started += 1;
+                                                self.statistics.total_new_games += 1;
 
                                                 break 'update_and_render MenuUpdate::Push(
                                                     Menu::PlayGame {

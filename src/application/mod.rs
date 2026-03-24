@@ -355,7 +355,7 @@ impl Default for Scoreboard {
     serde::Deserialize,
 )]
 pub struct Statistics {
-    total_new_games_started: u32,
+    total_new_games: u32,
     total_games_ended: u32,
     total_play_time: Duration,
     total_pieces_locked: u32,
@@ -410,7 +410,7 @@ impl Statistics {
 
     fn accumulate(&mut self, other: &Statistics) {
         let Statistics {
-            total_new_games_started,
+            total_new_games: total_new_games_started,
             total_games_ended,
             total_play_time,
             total_pieces_locked,
@@ -425,7 +425,7 @@ impl Statistics {
             total_combo,
         } = self;
 
-        *total_new_games_started += other.total_new_games_started;
+        *total_new_games_started += other.total_new_games;
         *total_games_ended += other.total_games_ended;
         *total_play_time += other.total_play_time;
         *total_pieces_locked += other.total_pieces_locked;

@@ -93,7 +93,9 @@ impl Keybinds {
         ]
         .map(|(k, b)| ((k, KeyModifiers::NONE), b));
 
-        Keybinds { mapping: keys.into() }
+        Keybinds {
+            mapping: keys.into(),
+        }
     }
 
     pub fn extra_control() -> Keybinds {
@@ -112,7 +114,9 @@ impl Keybinds {
         ]
         .map(|(k, b)| ((k, KeyModifiers::NONE), b));
 
-        Keybinds { mapping: keys.into() }
+        Keybinds {
+            mapping: keys.into(),
+        }
     }
 
     pub fn guideline() -> Keybinds {
@@ -134,7 +138,9 @@ impl Keybinds {
         ]
         .map(|(k, b)| ((k, KeyModifiers::NONE), b));
 
-        Keybinds { mapping: keys.into() }
+        Keybinds {
+            mapping: keys.into(),
+        }
     }
 
     pub fn vim() -> Keybinds {
@@ -149,6 +155,8 @@ impl Keybinds {
         ]
         .map(|(k, b)| ((k, KeyModifiers::NONE), b));
 
-        Keybinds { mapping: keys.into() }
+        Keybinds {
+            mapping: keys.into(),
+        }
     }
 }

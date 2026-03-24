@@ -801,7 +801,7 @@ impl<T: Write> Application<T> {
                     }
                 }
 
-                self.statistics.total_new_games_started += 1;
+                self.statistics.total_new_games += 1;
 
                 break Ok(MenuUpdate::Push(Menu::PlayGame {
                     game: game.into(),

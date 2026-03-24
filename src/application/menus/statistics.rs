@@ -27,7 +27,7 @@ impl<T: Write> Application<T> {
             let (x_main, y_main) = Self::fetch_main_xy();
 
             let Statistics {
-                total_new_games_started: _,
+                total_new_games: _,
                 total_games_ended,
                 total_play_time,
                 total_pieces_locked,
