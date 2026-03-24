@@ -132,7 +132,7 @@ https://aur.archlinux.org/packages/tetro-tui-bin
 > - Simple but flexible programming of **custom fall and lock delay progressions** (`DelayParameters`),
 > - (Arbitrary) **piece preview**,
 > - **Pre-spawn actions** toggle ('Initial Hold/Rotation System'),
-> - **Rotation systems**: 'Ocular' (engine-specific, playtested), 'Classic', 'Super',
+> - **Rotation systems**: 'Ocular' (engine-specific, playtested), 'ClassicL', 'ClassicR', 'Super',
 > - **Tetromino generators**: 'Uniform', 'Stock' (generalized Bag), 'Recency' (history), 'Balancerelative',
 > - **Spawn delay** (ARE),
 > - **Delayed auto-shift** (DAS),
