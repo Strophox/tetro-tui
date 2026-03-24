@@ -109,11 +109,11 @@ impl<T: Write> Application<T> {
             // Draw config selection.
             let labels = [
                 format!(
-                    "Rotation system = {:?}",
+                    "Piece rotation system = {:?}",
                     self.settings.gameplay().rotation_system
                 ),
                 format!(
-                    "Tetromino randomization = {}",
+                    "Piece randomization = {}",
                     match &self.settings.gameplay().tetromino_generator {
                         TetrominoGenerator::Uniform => "Completely random".to_owned(),
                         TetrominoGenerator::Stock {
@@ -142,15 +142,15 @@ impl<T: Write> Application<T> {
                     self.settings.gameplay().piece_preview_count
                 ),
                 format!(
-                    "Delayed auto shift (DAS) = {:?} *",
+                    "Delayed auto move (DAS) = {:?} *",
                     self.settings.gameplay().delayed_auto_shift
                 ),
                 format!(
-                    "Auto repeat rate (ARR) = {:?} *",
+                    "Auto move rate (ARR) = {:?} *",
                     self.settings.gameplay().auto_repeat_rate
                 ),
                 format!(
-                    "Soft drop factor (SDF) = {} *",
+                    "Soft drop speedup (SDF) = {}x *",
                     self.settings.gameplay().soft_drop_factor.get()
                 ),
                 format!(
@@ -166,7 +166,7 @@ impl<T: Write> Application<T> {
                     self.settings.gameplay().allow_initial_actions.fmt_on_off()
                 ),
                 format!(
-                    "Double-tap movement finesse = {:?}",
+                    "Convert double-tap to teleport = {:?}",
                     self.settings.gameplay().double_tap_move_finesse
                 ),
             ];

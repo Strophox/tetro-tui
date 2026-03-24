@@ -66,12 +66,68 @@ https://aur.archlinux.org/packages/tetro-tui-bin
 > <details>
 > <summary>
 >
-> Game aesthetics are mostly based on / can be customized using own terminal settings, e.g. bigger font, or use of [cool-retro-term](<https://github.com/Swordfish90/cool-retro-term>);
+> Game aesthetics are mostly based on / can be customized/influenced using own terminal settings.
+> E.g., using a bigger font, or using [cool-retro-term](<https://github.com/Swordfish90/cool-retro-term>);
 >
 > </summary>
 >
 > !["tetro-tui running in cool-retro-term"](https://github.com/Strophox/tetro-tui/blob/011251ba7cbfaca03414c910c5483791f3fef737/assets/tetro-tui_cool-retro-term.jpg?raw=true)
 >
+> </details>
+> 
+> <details> <summary>Comprehensive Overview of featureful Menus in Tetro TUI v2.0.1</summary>
+> 
+> **New game/**
+> - Swift: How fast can you clear 40 lines?
+> - Classic: Clear 150 lines at increasing gravity.
+> - Master: Clear 150 lines at instant gravity.
+> - Puzzle: Clear 24 hand-crafted puzzles.
+> - Cheese-20: Eat through lines like Swiss cheese. Limit∈[None, Some(10), Some(11), .., Some(20), ..]
+> - Combo-30: Get consecutive line clears. Limit∈[None, Some(10), Some(11), .., Some(30), ..]
+> - Ascent*: (experimental, req. Ocular + 180° rot.)
+> - Custom: [Del]=reset
+>   * Initial fall delay = 1.0s (Gravity: 1.0 Hz)
+>   * Progressive gravity ∈ [on, off]
+>   * Limit ∈ [None, TimeElapsed(300s), .., PointsScored(200), .., PiecesLocked(100), .., LinesCleared(40), ..]
+> 
+> **Settings/Adjust-Graphics/**
+> * Slot ∈ ['Default', 'Focus+', 'Guideline', 'High Compat.', 'Elektronika 60', 'Custom I'/'II'/..]
+> * Glyphset ∈ [Unicode, ASCII, Elektronika_60]
+> * Color Palette (modifiable presets) ∈ ['Monochrome', 'ANSI', 'Fullcolor', 'Okpalette', 'Gruvbox', 'Solarized', 'Terafox', 'Fahrenheit', 'The Matrix', 'Sequoia']
+> * Color locked tiles ∈ [on, off]
+> * Show effects ∈ [on, off]
+> * Show shadow piece ∈ [on, off]
+> * Show button state ∈ [on, off]
+> * Max framerate ∈ [1, .., 60, ..]
+> * Show FPS ∈ [on, off]
+> 
+> **Settings/Adjust-Keybinds/**
+> * Slot (modifiable preset) ∈ ['Default', 'Control+', 'Guideline', 'Vim', 'Custom I'/'II'/..]
+> * MoveLeft, MoveRight
+> * RotateLeft, RotateRight, Rotate180
+> * DropSoft, DropHard
+> * TeleDown, TeleLeft, TeleRight
+> * HoldPiece
+> 
+> **Settings/Adjust-Gameplay/**
+> * Slot ∈ ['Default', 'Finesse+', 'Guideline', 'NES', 'Gameboy', 'Custom I'/'II'/..]
+> * Piece rotation system ∈ [Ocular, ClassicL, ClassicR, Super]
+> * Piece randomization ∈ [Completely random, 7-Bag, 14-Bag, .., Recency (^2.5), Recency (^2.6), .., Balance out]
+> * Piece preview count ∈ [0, 1, .., 3, ..]
+> * Delayed auto move (DAS) ∈ [0ms, 1ms, .., 167ms, ..]
+> * Auto move rate (ARR) ∈ [0ms, 1ms, .., 33ms, ..]
+> * Soft drop speedup (SDF) ∈ [0x, 0.25x, .., 15x, ..]
+> * Line clear duration (LCD) ∈ [0ms, 5ms, .., 200ms, ..]
+> * Spawn delay (ARE) ∈ [0ms, 5ms, .., 50ms, ..]
+> * Allow initial rotation/hold (IRS/IHS) ∈ [on, off]
+> * Convert double-tap to teleport ∈ [None, Some(5ms), Some(10ms), ..]
+> 
+> **Settings/Advanced-Settings/**
+> * Save contents ∈ ["Nothing", "Only settings - No scores,replays", "Only settings,scres - No replays", "Everything (settings,scores,replays)"]
+> * Assume enhanced-key-events available ∈ [on, off]
+> * Blindfold gameplay ∈ [on, off]
+> * Renderertype ∈ [Default, Legacy debug, Halfcell, Braille]
+> 
 > </details>
 
 

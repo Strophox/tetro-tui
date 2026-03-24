@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -
 
 
+## [2.0.1] - 2026-03-23
+
+### Changed
+- Tweaked gameplay settings names.
+- Bumped dependencies.
+
+### Fixed
+- Made it possible to copy+paste text from menus (e.g. ⇝'Advanced Settings'⇝'Savefile location')
+
+
 ## [2.0.0] - 2026-03-23
 
 ### Added
