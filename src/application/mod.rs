@@ -83,6 +83,7 @@ impl<T: Clone> SlotMachine<T> {
 
 pub type UncompressedInputHistory = Vec<(InGameTime, Input)>;
 
+//TODO:#[serde_with::serde_as]
 #[derive(
     PartialEq,
     Eq,
@@ -95,7 +96,10 @@ pub type UncompressedInputHistory = Vec<(InGameTime, Input)>;
     serde::Serialize,
     serde::Deserialize,
 )]
-pub struct CompressedInputHistory(Vec<u128>);
+pub struct CompressedInputHistory {
+    //TODO:#[serde_as(as = "serde_with::base64::Base64")]
+    inputbuf: Vec<u128>
+}
 
 impl CompressedInputHistory {
     // How many bits it takes to encode a `ButtonChange`:
@@ -104,47 +108,38 @@ impl CompressedInputHistory {
     pub const BUTTON_CHANGE_BITSIZE: usize =
         1 + Button::VARIANTS.len().next_power_of_two().ilog2() as usize;
 
+    //TODO:pub const NUM_BYTES_PER_INPUT: usize = 5; // N=5; This should give around 2 ^ (5*8 - BUT_CHG_BITSZ) = 34359738368 milliseconds. 
+
     pub fn new(game_input_history: &UncompressedInputHistory) -> Self {
-        let mut compressed_inputs = Vec::new();
+        let mut inputbuf = Vec::new();
 
-        if let Some((mut update_time_0, button_change)) = game_input_history.first() {
-            let i = Self::compress_input((update_time_0, *button_change));
+        let mut update_time_0 = InGameTime::ZERO;
 
-            // Add first input.
-            compressed_inputs.push(i);
+        for (update_time_1, button_change) in game_input_history.iter() {
+            let time_diff = update_time_1.saturating_sub(update_time_0);
+            let i = Self::compress_input((time_diff, *button_change));
 
-            for (update_time_1, button_change) in game_input_history.iter().skip(1) {
-                let time_diff = update_time_1.saturating_sub(update_time_0);
-                let i = Self::compress_input((time_diff, *button_change));
+            // Add further input.
+            inputbuf.push(i);
 
-                // Add further input.
-                compressed_inputs.push(i);
+            update_time_0 = *update_time_1;
+        }
 
-                update_time_0 = *update_time_1;
-            }
-        };
-
-        Self(compressed_inputs)
+        Self { inputbuf }
     }
 
     pub fn decompress(&self) -> UncompressedInputHistory {
         let mut decompressed_inputs = Vec::new();
+        
+        let mut update_time_0 = InGameTime::ZERO;
+        for i in self.inputbuf.iter() {
+            let (time_diff, button_change) = Self::decompress_input(*i);
+            let update_time_1 = update_time_0.saturating_add(time_diff);
 
-        if let Some(i) = self.0.first() {
-            let (mut update_time_0, button_change) = Self::decompress_input(*i);
+            // Add further input.
+            decompressed_inputs.push((update_time_1, button_change));
 
-            // Add first input.
-            decompressed_inputs.push((update_time_0, button_change));
-
-            for i in self.0.iter().skip(1) {
-                let (time_diff, button_change) = Self::decompress_input(*i);
-                let update_time_1 = update_time_0.saturating_add(time_diff);
-
-                // Add further input.
-                decompressed_inputs.push((update_time_1, button_change));
-
-                update_time_0 = update_time_1;
-            }
+            update_time_0 = update_time_1;
         }
 
         decompressed_inputs
