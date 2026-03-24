@@ -113,7 +113,7 @@ impl<T: Write> Application<T> {
                     self.settings.gameplay().rotation_system
                 ),
                 format!(
-                    "Tetromino generation = {}",
+                    "Tetromino randomization = {}",
                     match &self.settings.gameplay().tetromino_generator {
                         TetrominoGenerator::Uniform => "Completely random".to_owned(),
                         TetrominoGenerator::Stock {

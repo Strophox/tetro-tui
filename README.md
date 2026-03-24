@@ -29,11 +29,11 @@ A cross-platform terminal game where tetrominos fall and stack.
 
 ### Install via cargo
 
-Tetro TUI is available on [crates.io](<https://crates.io/crates/tetro-tui>). It can be installed via [cargo](<https://doc.rust-lang.org/cargo/>) like so:
+Tetro TUI is available on [crates.io](<https://crates.io/crates/tetro-tui>). It can be installed via [cargo](<https://doc.rust-lang.org/cargo/>):
 ```
 cargo install tetro-tui
 ```
-Then you can run the game with `tetro-tui`.
+This makes `tetro-tui` available to run on your terminal.
 
 
 <!-- TODO: Elaborate.
@@ -51,21 +51,22 @@ https://aur.archlinux.org/packages/tetro-tui-bin
 > *Tetro* is about [tetromino](<https://en.wikipedia.org/wiki/Tetromino>) pieces falling from the sky and stacking on a rectangular playing field.
 > 
 > Whenever a line is filled up horizontally, it clears away, and the rest of what you 'stacked' moves down.
-> This way a skilled player can keep playing without Blocking Out the entire board.
+> This way a skilled player can keep playing without blocking out the entire board.
 
 
-### How good is customization?
+### How good is Customization? Features?
 
-> For what started as a small project, solid:
-> - **Graphics:** Unicode/ASCII/Electronika, a handful of default color palettes, FPS, toggle effects...
-> - **Game Keybinds:** to your heart's desire.
-> - **Gameplay/Handling:** Rotation system, tetromino generator, preview count; DAS, ARR, SDF, LDC, ARE (timings), IRS/IHS
-> - **Gamemode selection:** Swift (40 lines), Classic ('marathon'), Master, Puzzle, Cheese-X, Combo-X; Custom (choose start gravity, toggle gravity progress, select goal, *advanced flags:* start board or seed).
+> For what originally started as a small/proof-of-concept, solid.
+> - **Graphics:** Unicode/ASCII/Electronika; Handful of default color palettes, FPS, toggle effects, ...
+> - **Game keybinds:** to your heart's desire. (\*Note: `Shift`/`Alt`/.. might not work due to terminal limitations.)
+> - **Gameplay/handling:** Rotation system, tetromino randomization, preview count, DAS, ARR, SDF, LDC, ARE (timings), IRS/IHS.
+> - **Gamemode selection:** Swift ('40lines'), Classic ('marathon'), Master, Puzzle, Cheese, Combo, Custom (select goal, start gravity, toggle gravity progress, *cmdline flags:* start board, seed).
+> - **Scoreboard, Replays, Statistics**: Can all be accessed and automatically stored in savefile.
 >
 > <details>
 > <summary>
 >
-> Terminal customizations can carry over to game graphics, e.g. using [cool-retro-term](<https://github.com/Swordfish90/cool-retro-term>):
+> Game aesthetics are mostly based on / can be customized using own terminal settings, e.g. bigger font, or use of [cool-retro-term](<https://github.com/Swordfish90/cool-retro-term>);
 >
 > </summary>
 >
@@ -76,33 +77,43 @@ https://aur.archlinux.org/packages/tetro-tui-bin
 
 ### What was the motivation behind this project?
 
-> This is a passion project.
-> The addition of the many features stem from personal motivation to make them available and make things enjoyable.
+> This is a passion project!
+> The additions of all the many features stem from personal motivation to make them available and make things enjoyable/customizable.
 > 
-> The result is (hopefully!) solid customizability; Editable json savefiles, compressed game replays, nontrivial gamemodes, a compile-time modding system, and almost as many modern stacker game mechanics as one could fit.
+> The result is hopefully decent customizability, advanced game mechanics, technical solutions across the board:
+> Swappable settings slots/profiles to deal with all the knobs and buttons (manual json editing possible), basic game replay compression; nontrivial gamemodes, a compile-time modding system, and almost all the modern stacker game mechanics I saw fit.
 > 
 > Maintaining high Rust code quality, especially in the [game logic](<https://crates.io/crates/falling-tetromino-engine>), was also important.
 
 
-### Where's the config file? Will it bloat or clutter my system?
+### Where's the config file? Will it clutter my system?
 
-> The application will not store anything UNLESS 'Keep save file' is opted in.
+> <details>
+> <summary>
 > 
-> The exact location of the config file is visible in the *Advanced settings* TUI menu:
-> - Location based on `dirs::config_dir()` (e.g. `C:/User/username/AppData/Roaming/.tetro-tui_1.0_savefile.json` or `/home/username/.config/.tetro-tui_1.0_savefile.json`),
+> The application will **not** store anything by default; 'Keep save file' needs to be opted in.
+>
+> </summary>
+> 
+> The exact location of the config file is visible in the *Advanced settings* TUI menu.
+> The location based on the `dirs::config_dir()` implemented, e.g. `C:/User/myuser/AppData/Roaming/.tetro-tui_v1.0_savefile.json` or `/home/myuser/.config/.tetro-tui_v1.0_savefile.json`),
 > - Otherwise directory of execution.
 > 
-> Savefile size may grow primarily due to saved replays (though good care has been taken to compress those well).
-> The *Scores and Replays* menu can be used to delete past games or only their replay (`[Del]` or `[Alt+Del]` respectively).
+> Savefile size grows primarily with number of saved replays (for which custom input compression *is* used however).
+> The *Scores and Replays* menu can be used to select and delete entries or their replay (`[Del]` or `[Alt+Del]`, respectively).
+>
+> </details>
 
 
 ### *Experienced Stackers:* Why do timing-settings (DAS/ARR/SDF etc.) not apply for me?
 
+> <details>
+> <summary>
+> 
 > *TL;DR* use a terminal like [kitty](<https://sw.kovidgoyal.net/kitty/>) or [Alacritty](<https://alacritty.org/>) (or [->other](https://docs.rs/crossterm/latest/crossterm/event/struct.PushKeyboardEnhancementFlags.html)) for 'true'/smoother handling in the terminal.
 > Otherwise timings might solely depend on how quickly your terminal sends key-repetition events.
 > 
-> <details>
-> <summary> Explanation. </summary>
+> </summary>
 > 
 > The real problem lies in how terminals normally send "key pressed" signals, but no "key released again" signals.
 > This makes it impossible to implement mechanics like: "If `[←]` is pressed, move left repeatedly *until key is released again*".
@@ -121,7 +132,7 @@ https://aur.archlinux.org/packages/tetro-tui-bin
 > <details>
 > <summary>
 > 
-> Quote from the [Falling Tetromino Engine](<https://crates.io/crates/falling-tetromino-engine>) powering the actual game logic:
+> Copy of the feature list from the [Falling Tetromino Engine](<https://crates.io/crates/falling-tetromino-engine>) powering the game logic:
 >
 > </summary>
 > 
@@ -156,20 +167,21 @@ https://aur.archlinux.org/packages/tetro-tui-bin
 > <details>
 > <summary>
 > 
-> The project took its liberties to adapt/experiment with certain aspects of game mechanics (to try and improve it):
+> This project took its liberties to adapt/experiment with certain aspects of the game, although it should still feel as familiar as it can:
 > 
 > </summary>
 > 
-> - Use of the intuitive/symmetrical **Ocular Rotation** System, instead of the 'odd' industry standard.
-> - Default controls set to **WASD + Arrow**.
-> - **Recency/History generator** instead of 'overdeterministic' 7-bag.
-> - **Scoring** system is different, more **simplified**.
->   - 'Allspin' (no 'minis') instead of preoccupation with 'T-spins'.
->   - Combos, but no back-to-back.
->   - Exact formula is: `score_bonus = if is_perfect_clear{ 4 }else{ 1 } * if is_spin{ 2 }else{ 1 } * lineclears * 2 - 1 + (combo - 1)`
+> - Default controls set to **WASD + Arrow keys**.
+> - Use of the symmetrical and flexible **Ocular Rotation** System as default (instead of the arguably quirky industry standard).
+> - Default **Recency (History) randomizer** (instead of 'overdeterministic' 7-Bag).
+> - **Scoring** system is custom and kept simple.
+>   - "1pt for simple line clear, increasing score incentivizing higher clears, spins, perfects and combos."
+>   - 'Allspin' (instead of preoccupation with 'T-spins'), but no 'minis' (TBD).
+>   - Combos, but no 'back-to-back'.
+>   - ...Exact formula: `score_bonus = if is_perfect_clear{ 4 }else{ 1 } * if is_spin{ 2 }else{ 1 } * lineclears * 2 - 1 + (combo - 1)`
 > - Additional controls for Teleport Down (a.k.a. 'Sonic Drop') / Left / Right.
-> - Different lock reset implementation ('max 15 moves' instead of 'max 10⋅current lock delay')
-> - Speed/Gravity/Fall curve slightly adapted.
+> - Different lock reset / lock-down cutoff: 'max time = 10⋅current lock delay' (instead of 'max 15 moves with current lock delay').
+> - Speed/Gravity/Fall curve practically the same but technically slightly adapted.
 > 
 > </details>
 
@@ -197,13 +209,15 @@ https://aur.archlinux.org/packages/tetro-tui-bin
 > </details>
 
 
-### *CLI Enthusiasts:* How was the Terminal User Interface (TUI) programmed?
+### *CLI Enthusiasts:* How was the Terminal User Interface (TUI) programmed and why isn't it [Ratatui](<https://ratatui.rs/>)?
 
-> This basic but hopefully decent TUI was programmed directly using the amazing [Crossterm](<https://crates.io/crates/crossterm>).
-> Crossterm handles all the placement of (colored) characters and reading inputs from the terminal. We implement custom diff'ing so I/O does not bottleneck smooth rendering.
+> The project started out simple and has been directly using the amazing [Crossterm](<https://crates.io/crates/crossterm>) since then.
+> Crossterm handles all the placement of (colored) characters and reading inputs from the terminal. We implement custom diff'ing so I/O does not bottleneck smooth rendering. We find TUI should generally stay in its current, minimalistic form, although a rewrite with Ratatui might be considered. 
 
 
 ### How do I navigate the TUI? Can I see a table of all the controls?
+
+Refer to the following tables for comprehensive controls:
 
 > <details>
 > <summary>General TUI menu controls:</summary>
@@ -218,6 +232,7 @@ https://aur.archlinux.org/packages/tetro-tui-bin
 > | `1`/`2`/`3`... | Quickselect option (⇝'New game')|
 > | `Alt`+? | Different value change' (⇝'New game'⇝['Combo','Savepoint','Custom'], ⇝'Gameplay settings'⇝'Tetromino generation') |
 > | `Alt`+`Del`, `Alt`+`d` | Delete replay  (⇝'Scores and replays') |
+> | `Ctrl`+`U` | (For experienced/impatient people) unlock all gamemodes (⇝'New game') |
 > | `Ctrl`+`C` | Exit application (respects save preferences) |
 > 
 > </details>
