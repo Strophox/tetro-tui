@@ -272,7 +272,7 @@ impl<T: Write> Application<T> {
                     kind: Press,
                     ..
                 }) => {
-                    // FIXME: Remove or reinstate code: Unused because replaying savepoint from this menu feels a bit out of place.
+                    // FIXME: Unused replay-savepoint because feels a bit out of place to allow that from this menu.
                     // if modifiers.contains(KeyModifiers::ALT) {
                     //     if let Some(GameSave {
                     //         game_meta_data,
@@ -792,7 +792,7 @@ impl<T: Write> Application<T> {
                     let fresh_input_history = UncompressedInputHistory::default();
                     (custom_game_meta_data, new_custom_game, fresh_input_history)
                 };
-                // FIXME: Remove eventually.
+                // FIXME: Abandoned modifier addition code.
                 // let mut game = game;
                 // game.modifiers.push(game_mode_presets::game_modifiers::print_fall_delay::modifier());
                 // game.modifiers.push(game_mode_presets::game_modifiers::misc_modifiers::print_recency_tet_gen_stats::modifier());

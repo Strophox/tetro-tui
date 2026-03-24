@@ -52,14 +52,14 @@ pub fn fmt_hertz(f: ExtNonNegF64) -> String {
 //    u8 --b.into()--> char --c.to_string()--> String ------------------s.as_str()--> &str
 //    u8 --------------------------------------------str::from_utf8(&[b]).unwrap()--> &str
 pub trait FmtTetromino {
-    fn fmt_small(&self) -> &str;
-    fn fmt_small_ascii(&self) -> &str;
-    fn fmt_mini(&self) -> &str;
-    fn fmt_mini_ascii(&self) -> &str;
+    fn linestr(&self) -> &str;
+    fn linestr_ascii(&self) -> &str;
+    fn charstr(&self) -> &str;
+    fn charstr_ascii(&self) -> &str;
 }
 
 impl FmtTetromino for Tetromino {
-    fn fmt_small(&self) -> &'static str {
+    fn linestr(&self) -> &'static str {
         use Tetromino::*;
         match self {
             O => "██",
@@ -72,7 +72,7 @@ impl FmtTetromino for Tetromino {
         }
     }
 
-    fn fmt_small_ascii(&self) -> &'static str {
+    fn linestr_ascii(&self) -> &'static str {
         use Tetromino::*;
         match self {
             O => "::",
@@ -85,7 +85,7 @@ impl FmtTetromino for Tetromino {
         }
     }
 
-    fn fmt_mini(&self) -> &'static str {
+    fn charstr(&self) -> &'static str {
         use Tetromino::*;
         match self {
             O => "⠶", //"⠶",
@@ -98,7 +98,7 @@ impl FmtTetromino for Tetromino {
         }
     }
 
-    fn fmt_mini_ascii(&self) -> &'static str {
+    fn charstr_ascii(&self) -> &'static str {
         use Tetromino::*;
         match self {
             O => "O",
@@ -116,7 +116,7 @@ pub fn fmt_tetromino_counts(counts: &[u32; Tetromino::VARIANTS.len()]) -> String
     counts
         .iter()
         .zip(Tetromino::VARIANTS)
-        .map(|(n, t)| format!("{n}{}", t.fmt_mini_ascii().to_ascii_lowercase()))
+        .map(|(n, t)| format!("{n}{}", t.charstr_ascii().to_ascii_lowercase()))
         .collect::<Vec<_>>()
         .join(" ")
 }

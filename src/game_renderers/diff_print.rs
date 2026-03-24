@@ -282,7 +282,7 @@ impl Renderer for DiffPrintRenderer {
         let gravity = game.state().fall_delay.as_hertz();
         // Screen: some titles.
         let modename_len = meta_data.title.len().max(14);
-        // FIXME: Only displays the first (of up to four) limits found.
+        // FIXME: Only displaying the first (of up to four) limits found.
         let (endcond_title, endcond_value) = if let Some((c, _)) = game
             .config
             .game_limits
@@ -413,9 +413,8 @@ impl Renderer for DiffPrintRenderer {
         let (x_rep_spd, y_rep_spd) = (1, 11);
         let (x_rep_len, y_rep_len) = (1, 12);
         let (x_buttonst, y_buttonst) = (48, 17);
-        // FIXME: This is limited insofar that this returns `None` as soon as it is OOB for the
-        // rectangle of our custom game screen buffer. But there might be space in the TUI above
-        // so we cut off 'for no reason'!
+        // FIXME: Returning `None` as soon as it is OOB for the rectangle of our custom game screen buffer.
+        // But this is wasteful if there's actual space in the TUI above and we cut off 'for no reason'.
         let pos_board = |(x, y)| {
             Some((
                 x_board + 2 * (x as usize),
@@ -548,9 +547,9 @@ impl Renderer for DiffPrintRenderer {
         let mut x_offset_small = 0;
         for tet in game.state().piece_preview.iter().skip(1).take(3) {
             let str = if settings.graphics().glyphset == Glyphset::Unicode {
-                tet.fmt_small()
+                tet.linestr()
             } else {
-                tet.fmt_small_ascii()
+                tet.linestr_ascii()
             };
             self.screen.buffer_str(
                 str,
@@ -565,9 +564,9 @@ impl Renderer for DiffPrintRenderer {
         for tet in game.state().piece_preview.iter().skip(4) {
             //.take(5) {
             let str = String::from(if settings.graphics().glyphset == Glyphset::Unicode {
-                tet.fmt_mini()
+                tet.charstr()
             } else {
-                tet.fmt_mini_ascii()
+                tet.charstr_ascii()
             });
             self.screen.buffer_str(
                 &str,
@@ -580,9 +579,9 @@ impl Renderer for DiffPrintRenderer {
         // Draw held piece.
         if let Some((tet, swap_allowed)) = game.state().piece_held {
             let str = if settings.graphics().glyphset == Glyphset::Unicode {
-                tet.fmt_small()
+                tet.linestr()
             } else {
-                tet.fmt_small_ascii()
+                tet.linestr_ascii()
             };
             let color = get_color(if swap_allowed {
                 tet.tiletypeid()
@@ -644,7 +643,7 @@ impl Renderer for DiffPrintRenderer {
         }
 
         match game.phase() {
-            // FIXME: Spawn phase does not have a visual indicator?
+            // FIXME: No visual indicator for spawn phase currently.
             Phase::Spawning { spawn_time: _ } => {}
 
             // If a piece is in play.
@@ -670,7 +669,7 @@ impl Renderer for DiffPrintRenderer {
                 }
             }
 
-            // FIXME: Line clear effect is independent of game phase? Should it be?
+            // FIXME: No visual indicator for lineclear phase currently.
             Phase::LinesClearing { .. } => {}
 
             Phase::GameEnd { cause, is_win: _ } => {
@@ -711,10 +710,10 @@ impl Renderer for DiffPrintRenderer {
                         }
                     }
 
-                    // FIXME: Game end by top out does not have a visual indicator.
+                    // FIXME: No visual indicator for topout currently.
                     GameEndCause::TopOut { blocked_lines: _ } => {}
 
-                    // FIXME: Game end by limit reached does not have a visual indicator.
+                    // FIXME: No visual indicator for gameover-by-some-limit currently.
                     GameEndCause::Limit(_) => {}
 
                     GameEndCause::Forfeit { piece_in_play } => {
@@ -952,8 +951,8 @@ impl Renderer for DiffPrintRenderer {
                         if let Phase::GameEnd { cause, .. } = game.phase() {
                             format!("{cause}...")
                         } else {
-                            // FIXME: This should never happen.
-                            "Game Over!".to_owned()
+                            // FIXME: This should never happen. Change engine to return the cause in the notification?
+                            "Game Over...".to_owned()
                         }
                     };
 

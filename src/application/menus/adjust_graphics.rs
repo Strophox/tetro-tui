@@ -144,9 +144,9 @@ impl<T: Write> Application<T> {
             for tet in Tetromino::VARIANTS {
                 self.term.queue(PrintStyledContent(
                     if self.settings.graphics().glyphset == Glyphset::Unicode {
-                        tet.fmt_small()
+                        tet.linestr()
                     } else {
-                        tet.fmt_small_ascii()
+                        tet.linestr_ascii()
                     }
                     .with(
                         *self

@@ -62,7 +62,7 @@ impl GameModifier for PrintRecencyStats {
 
         let text_tetrominos_last_emitted = tetrominos_data
             .iter()
-            .map(|(t, t_last_emitted, _)| format!("{}{}", t.fmt_mini_ascii(), t_last_emitted,))
+            .map(|(t, t_last_emitted, _)| format!("{}{}", t.charstr_ascii(), t_last_emitted,))
             .collect::<Vec<String>>()
             .join(" ");
 
@@ -71,7 +71,7 @@ impl GameModifier for PrintRecencyStats {
             .map(|(t, _, t_weight)| {
                 format!(
                     "{}{}{}",
-                    t.fmt_mini_ascii(),
+                    t.charstr_ascii(),
                     "█".repeat(t_weight as usize / 8),
                     [" ", "▏", "▎", "▍", "▌", "▋", "▊", "▉"][t_weight as usize % 8]
                 )

@@ -52,14 +52,7 @@ impl<T: Write> Application<T> {
                         SavefileGranularity::RememberSettings
                         | SavefileGranularity::RememberSettingsScores
                         | SavefileGranularity::RememberSettingsScoresReplays => "Yes",
-                    } // FIXME: Remove unused code eventually.
-                      // match self.save_on_exit {
-                      //     SavefileGranularity::NoSavefile => "No*",
-                      //     SavefileGranularity::RememberSettings => "Yes (only settings)",
-                      //     SavefileGranularity::RememberSettingsScores => "Yes (only settings,scores)",
-                      //     SavefileGranularity::RememberSettingsScoresReplays =>
-                      //         "Yes (save settings,scores,replays)",
-                      // }
+                    }
                 ),
                 "Advanced settings...".to_owned(),
             ];
@@ -97,11 +90,6 @@ impl<T: Write> Application<T> {
                             "(*Caution: data will be wiped on exit)".to_owned()
                         } else {
                             "".to_owned()
-                            // FIXME: Remove unused code eventually.
-                            // format!(
-                            //     "(Savefile: \"{}\")",
-                            //     self.temp_data.savefile_path.display()
-                            // )
                         },
                     )
                     .italic()

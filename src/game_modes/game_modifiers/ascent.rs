@@ -88,7 +88,7 @@ impl GameModifier for Ascent {
         input: Input,
     ) {
         // In this mode, only rotating the pieces can change it.
-        // FIXME: 'Hold' could as well (think: touches new gem!).
+        // FIXME: We're forgetting 'Hold' could as well (e.g. when swap touches new gem). Experimental gamemode though.
         if !matches!(
             input,
             Input::Activate(Button::RotateLeft | Button::Rotate180 | Button::RotateRight)
@@ -189,7 +189,7 @@ impl Ascent {
     // Playable width needs to be odd.
     const PLAYABLE_WIDTH: usize = Game::WIDTH - (1 - Game::WIDTH % 2);
 
-    // FIXME: consider reintroducing: const CAMERA_ADJUST_DELAY: Duration = Duration::from_millis(125);
+    // FIXME: Consider reintroducing: const CAMERA_ADJUST_DELAY: Duration = Duration::from_millis(125);
     const CAMERA_MARGIN_TOP: usize = 5;
 
     fn prng_ascent_lines<'a>(

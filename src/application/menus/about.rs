@@ -4,7 +4,7 @@ use crate::application::{menus::MenuUpdate, Application};
 
 impl<T: Write> Application<T> {
     pub(in crate::application) fn run_menu_about(&mut self) -> io::Result<MenuUpdate> {
-        /* FIXME: About menu. */
+        /* FIXME: Implement About section. */
         self.generic_menu(
             concat!(
                 "About Tetro TUI ",

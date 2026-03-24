@@ -625,7 +625,7 @@ pub struct TemporaryAppData {
     pub savefile_path: PathBuf, // This should technically be the same for a given compiled binary, but we compute it at runtime.
 }
 
-// FIXME: Move tui application into `main` instead of artifically having it in one module below `tetro-tui::main`.
+// FIXME: Move tui application into `main` instead of artifically having it in one module below `tetro-tui::main`?
 #[derive(PartialEq, Clone, Debug)]
 pub struct Application<T: Write> {
     term: T,
@@ -670,8 +670,8 @@ impl<T: Write> Application<T> {
 
     pub const TERMINAL_TITLE: &str = "Tetro TUI";
 
-    // FIXME: Could we ever get any undesirable results from pushing *all* enhancement flags?
-    pub const KEYBOARD_ENHANCEMENT_FLAGS: KeyboardEnhancementFlags =
+    // FIXME: Could we get any undesirable results from pushing all() enhancement flags?
+    pub const GAME_KEYBOARD_ENHANCEMENT_FLAGS: KeyboardEnhancementFlags =
         KeyboardEnhancementFlags::all();
 
     pub fn fetch_main_xy() -> (u16, u16) {
@@ -702,7 +702,8 @@ impl<T: Write> Application<T> {
             // 2d. For technical reasons we do not want default keyboard enhancement in the TUI's menus.
             // - Default enhancement trigger screen refreshes, discarding text selection and preventing Ctrl+Shift+C (copy, e.g. of savefile path in Advanced Settings menu).
             // - Enhancement-sensitive menus (e.g. game, replay, keybind settings) should set their own custom enhancement flags if applicable, so this should really only affect menus which rely on the "default" terminal enhancement state.
-            self.term.execute(PushKeyboardEnhancementFlags(
+            // FIXME: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm minds if we do this on Windows.
+            let _v = self.term.execute(PushKeyboardEnhancementFlags(
                 KeyboardEnhancementFlags::empty(),
             ))?;
         }
@@ -714,7 +715,8 @@ impl<T: Write> Application<T> {
             // (Try to) undo terminal setup.
 
             // 2d.
-            self.term.execute(PopKeyboardEnhancementFlags)?;
+            // FIXME: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm minds if we do this on Windows.
+            let _v = self.term.execute(PopKeyboardEnhancementFlags)?;
 
             // 2b.
             self.term.execute(cursor::Show)?;
@@ -937,7 +939,7 @@ impl<T: Write> Application<T> {
                     if menu_stack.len() > 1 {
                         menu_stack.pop();
 
-                        // FIXME: Abandoned menu transition 2.
+                        // FIXME: Unused exit menu transition "DIAG".
                         // let (x_main, y_main) = Self::fetch_main_xy();
                         // /*
                         //  0      /1   /2   /3
@@ -957,7 +959,7 @@ impl<T: Write> Application<T> {
                         //     std::thread::sleep(Duration::from_secs_f32(1./120.0));
                         // }
 
-                        // FIXME: Abandoned menu transition 1.
+                        // FIXME: Unused exit menu transition "SIDE".
                         // let (x_main, y_main) = Self::fetch_main_xy();
                         // for x in 0..Self::W_MAIN/2 {
                         //     for y in 0..Self::H_MAIN {
@@ -1002,7 +1004,7 @@ impl<T: Write> Application<T> {
                             std::thread::sleep(Duration::from_secs_f32(1. / 60.0));
                         }
                     } else {
-                        // FIXME: Abandoned menu transition 2.
+                        // FIXME: Unused enter menu transition "DIAG".
                         // let (x_main, y_main) = Self::fetch_main_xy();
                         // /*
                         //  0      /1   /2   /3
@@ -1022,7 +1024,7 @@ impl<T: Write> Application<T> {
                         //     std::thread::sleep(Duration::from_secs_f32(1./120.0));
                         // }
 
-                        // FIXME: Abandoned menu transition 1.
+                        // FIXME: Unused enter menu transition "SIDE".
                         // let (x_main, y_main) = Self::fetch_main_xy();
                         // for x in (0..Self::W_MAIN/2).rev() {
                         //     for y in 0..Self::H_MAIN {
@@ -1041,7 +1043,6 @@ impl<T: Write> Application<T> {
         }
 
         // Console epilogue: Deinitialization.
-        // FIXME: Handle io::Error? If not, why not?
         self.deinitialize_terminal_state()
     }
 }

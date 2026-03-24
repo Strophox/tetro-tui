@@ -18,11 +18,10 @@ use falling_tetromino_engine::{
 
 use crate::{
     application::{
-        menus::{Menu, MenuUpdate},
-        Application, GameMetaData, GameRestorationData, GameSave, UncompressedInputHistory,
+        Application, GameMetaData, GameRestorationData, GameSave, UncompressedInputHistory, menus::{Menu, MenuUpdate}
     },
     fmt_helpers::{fmt_duration, replay_keybinds_legend},
-    game_renderers::Renderer,
+    game_renderers::{Renderer, TetroTUIRenderer},
     keybinds::normalize,
     live_input_handler::{self, LiveTermSignal},
 };
@@ -38,7 +37,7 @@ impl<T: Write> Application<T> {
         game_restoration_data: &GameRestorationData<UncompressedInputHistory>,
         game_meta_data: &GameMetaData,
         replay_length: InGameTime,
-        game_renderer: &mut impl Renderer,
+        game_renderer: &mut TetroTUIRenderer,
     ) -> io::Result<MenuUpdate> {
         /* Our game loop recipe looks like this:
           * Enter 'update_and_render loop:
@@ -60,7 +59,7 @@ impl<T: Write> Application<T> {
 
         // Toggle on enhanced-keyboard-events.
         if self.temp_data.kitty_assumed {
-            let f = Self::KEYBOARD_ENHANCEMENT_FLAGS;
+            let f = Self::GAME_KEYBOARD_ENHANCEMENT_FLAGS;
             // FIXME: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm doesn't like operating on Windows.
             let _v = self.term.execute(event::PushKeyboardEnhancementFlags(f));
         }
@@ -93,14 +92,16 @@ impl<T: Write> Application<T> {
         // This toggle enables users to actually do inputs on the game.
         let mut enable_game_intervention_inputs = false;
 
-        /* FIXME: This is a workaround for FLOATING POINT INPRECISION.
+        /*
+        FIXME: This is a workaround for floating point imprecision.
            Originally we had `let replay_speed = 1.0f64;` but then we had issues such as:
         ```
         // Carefully don't go below desired minimum delta...
         if replay_speed > speed_delta {  /* <- rep_spd = 0.05000000000002 > 0.05; */
             replay_speed -= speed_delta; /* <- rep_spd = 0.00000000000002 OOF.    */
         }
-        ``` */
+        ```
+        */
         const REPLAY_SPEED_STEP_EQUIVALENT_TO_SPEED_MULTIPLIER_1: u32 = 20;
         const REPLAY_SPEED_STEPSIZE: f64 =
             1.0 / (REPLAY_SPEED_STEP_EQUIVALENT_TO_SPEED_MULTIPLIER_1 as f64);
@@ -398,7 +399,6 @@ impl<T: Write> Application<T> {
                                                     if let Some(forfeit_time) =
                                                         game_restoration_data.forfeit
                                                     {
-                                                        // FIXME: I'm actually not sure about the semantics of whether forfeit or game-update is handled in such a case. Forfeiting is weird I guess.
                                                         if forfeit_time <= update_target_time {
                                                             update_target_time = forfeit_time;
                                                             do_forfeit = true;
@@ -533,6 +533,10 @@ impl<T: Write> Application<T> {
                                                 let mut the_meta_data = game_meta_data.clone();
                                                 the_meta_data.title.push('\'');
 
+                                                // FIXME: Clone renderer when entering live game from here?
+                                                let the_game_renderer =
+                                                    TetroTUIRenderer::with_number(self.temp_data.renderernumber);
+
                                                 // Accumulate this specific state here. TODO what if we want to tho? like when playing a game and discarding it nevertheless
                                                 self.statistics.total_new_games_started += 1;
 
@@ -546,8 +550,7 @@ impl<T: Write> Application<T> {
                                                             .copied()
                                                             .collect(),
                                                         game_meta_data: the_meta_data,
-                                                        // FIXME: Clone renderer when entering live game from here?
-                                                        game_renderer: Default::default(),
+                                                        game_renderer: Box::new(the_game_renderer),
                                                     },
                                                 );
                                             }
@@ -590,8 +593,9 @@ impl<T: Write> Application<T> {
 
                             // Input handler thread died... Pop replay for now.
                             mpsc::RecvTimeoutError::Disconnected => {
-                                // FIXME: Maybe we could try restarting the thread manually?
-                                // Although this error 'seems rare', and pausing the game like so fixes this with just an extra step.
+                                // FIXME: This 'extremely' rare error is currently fixed by pausing the game
+                                // which means no extra work for us and just one extra step for the user.
+                                // But maybe properly try restarting the thread manually?...
                                 break 'update_and_render MenuUpdate::Pop;
                             }
                         }

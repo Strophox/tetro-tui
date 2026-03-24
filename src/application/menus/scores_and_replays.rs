@@ -338,7 +338,7 @@ impl<T: Write> Application<T> {
                             .into(),
                         }));
                     } else {
-                        // FIXME: Handle game-replay-unavailable?
+                        // Game-replay unavailable.
                     }
                 }
 

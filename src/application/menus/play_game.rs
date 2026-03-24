@@ -53,7 +53,7 @@ impl<T: Write> Application<T> {
 
         // Toggle on enhanced-keyboard-events.
         if self.temp_data.kitty_assumed {
-            let f = Self::KEYBOARD_ENHANCEMENT_FLAGS;
+            let f = Self::GAME_KEYBOARD_ENHANCEMENT_FLAGS;
             // FIXME: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm doesn't like operating on Windows.
             let _v = self.term.execute(event::PushKeyboardEnhancementFlags(f));
         }
@@ -82,7 +82,7 @@ impl<T: Write> Application<T> {
         let mut temp_statistics = Statistics::default();
 
         // Stores `(last_time_move_pressed, was_left_not_right)`.
-        // FIXME: This might falsely lead to a teleport if the player pressed move within the time window at the beginning.
+        // FIXME: Might falsely lead to a teleport if the player pressed move within the time window at the beginning.
         // But we don't care much, as for 'usual' values this should not really happen (worst case they lose a few ms in overall run).
         let mut temp_last_move = (Instant::now(), false);
 
@@ -221,7 +221,7 @@ impl<T: Write> Application<T> {
                                             KeyEventKind::Release => Input::Deactivate,
                                         })(button);
 
-                                    // FIXME: The current issue is that we only transform `Activate`s into teleports,
+                                    // FIXME: We only transform `Activate`s into teleports currently,
                                     // but we forget the release events (which will just be move releases,
                                     // i.e. teleport will remain active).
                                     // In usual games this will not lead to issues but logically unclean (also, modding behavior).
@@ -534,8 +534,9 @@ impl<T: Write> Application<T> {
 
                             // Input handler thread died... Pause game for now.
                             mpsc::RecvTimeoutError::Disconnected => {
-                                // FIXME: Maybe we could try restarting the thread manually?
-                                // Although this error 'seems rare', and pausing the game like so fixes this with just an extra step.
+                                // FIXME: This 'extremely' rare error is currently fixed by pausing the game
+                                // which means no extra work for us and just one extra step for the user.
+                                // But maybe properly try restarting the thread manually?...
                                 break 'update_and_render MenuUpdate::Push(Menu::Pause);
                             }
                         }

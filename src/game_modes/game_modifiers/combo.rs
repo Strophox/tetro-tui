@@ -31,7 +31,7 @@ impl Combo {
         builder
             .clone()
             .game_limits(match combo_limit {
-                Some(c) => GameLimits::single(Stat::PointsScored(c.get()), true), // FIXME: Technically, this should count combo, not lines.
+                Some(c) => GameLimits::single(Stat::PointsScored(c.get()), true),
                 None => GameLimits::new(),
             })
             .build_modded(vec![modifier])
@@ -99,7 +99,7 @@ impl GameModifier for Combo {
         }
 
         // Overwrite game score with combo length.
-        // FIXME: Remove this at some point with a proper solution for displaying progress?
+        // FIXME: Proper solution for displaying progress instead of overwriting score?
         game.state.score = game.state.consecutive_line_clears;
     }
 

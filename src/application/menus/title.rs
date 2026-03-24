@@ -171,7 +171,6 @@ impl<T: Write> Application<T> {
                                             as usize]
                                     }
                                 }
-                                // FIXME: unused code.
                                 n => {
                                     let width = n - 1;
                                     color_tetromino_rainbow[(((dx + dy) as isize

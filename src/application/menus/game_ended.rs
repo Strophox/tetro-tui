@@ -77,7 +77,7 @@ impl<T: Write> Application<T> {
             && !self.settings.new_game.experimental_mode_unlocked
         {
             self.settings.new_game.experimental_mode_unlocked = true;
-            // FIXME: Remove unused code or reinstate it: hacky 'notification' screen for unlocking.
+            // FIXME: Unused 'notification' screen for unlocking, but due to technicality eats too many user inputs for good UX.
             // let w_main = Self::W_MAIN.into();
             // let (x_main, y_main) = Self::fetch_main_xy();
             // let y_half = (Self::H_MAIN / 2).saturating_sub(1);

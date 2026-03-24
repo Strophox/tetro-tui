@@ -179,7 +179,7 @@ impl<T: Write> Application<T> {
                             .execute(Clear(ClearType::CurrentLine))?;
                         // Wait until appropriate keypress detected.
                         if self.temp_data.kitty_assumed {
-                            let f = Self::KEYBOARD_ENHANCEMENT_FLAGS;
+                            let f = Self::GAME_KEYBOARD_ENHANCEMENT_FLAGS;
                             // FIXME: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm doesn't like operating on Windows.
                             let _v = self.term.execute(event::PushKeyboardEnhancementFlags(f));
                         }
