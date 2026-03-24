@@ -11,7 +11,7 @@ use crate::application::SlotMachine;
 pub struct Keybinds {
     // Note: the alternative has ugly double-escaped quotation marks: #[serde_as(as = "std::collections::HashMap<serde_with::json::JsonString, _>")]
     #[serde_as(as = "Vec<(_, _)>")]
-    map: HashMap<(KeyCode, KeyModifiers), Button>,
+    mapping: HashMap<(KeyCode, KeyModifiers), Button>,
 }
 
 pub fn default_keybinds_slots() -> SlotMachine<Keybinds> {
@@ -59,21 +59,21 @@ pub fn normalize((mut code, mut modifiers): (KeyCode, KeyModifiers)) -> (KeyCode
 
 impl Keybinds {
     pub fn get(&self, (code, modifiers): (KeyCode, KeyModifiers)) -> Option<&Button> {
-        self.map.get(&normalize((code, modifiers)))
+        self.mapping.get(&normalize((code, modifiers)))
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (&(KeyCode, KeyModifiers), &Button)> {
-        self.map.iter()
+        self.mapping.iter()
     }
 
     /// This provides unstable but direct access to the internal representation for special purposes.
     pub fn unstable_access(&mut self) -> &mut HashMap<(KeyCode, KeyModifiers), Button> {
-        &mut self.map
+        &mut self.mapping
     }
 
     pub fn empty() -> Keybinds {
         Keybinds {
-            map: HashMap::new(),
+            mapping: HashMap::new(),
         }
     }
 
@@ -93,7 +93,7 @@ impl Keybinds {
         ]
         .map(|(k, b)| ((k, KeyModifiers::NONE), b));
 
-        Keybinds { map: keys.into() }
+        Keybinds { mapping: keys.into() }
     }
 
     pub fn extra_control() -> Keybinds {
@@ -112,7 +112,7 @@ impl Keybinds {
         ]
         .map(|(k, b)| ((k, KeyModifiers::NONE), b));
 
-        Keybinds { map: keys.into() }
+        Keybinds { mapping: keys.into() }
     }
 
     pub fn guideline() -> Keybinds {
@@ -134,7 +134,7 @@ impl Keybinds {
         ]
         .map(|(k, b)| ((k, KeyModifiers::NONE), b));
 
-        Keybinds { map: keys.into() }
+        Keybinds { mapping: keys.into() }
     }
 
     pub fn vim() -> Keybinds {
@@ -149,6 +149,6 @@ impl Keybinds {
         ]
         .map(|(k, b)| ((k, KeyModifiers::NONE), b));
 
-        Keybinds { map: keys.into() }
+        Keybinds { mapping: keys.into() }
     }
 }
