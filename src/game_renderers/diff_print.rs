@@ -423,14 +423,7 @@ impl Renderer for DiffPrintRenderer {
         };
 
         // Color helpers.
-        let get_color =
-            |tile_type_id: TileTypeID| settings.palette().get(&tile_type_id.get()).copied();
-        let get_color_locked = |tile_type_id: &TileTypeID| {
-            settings
-                .palette_lockedtiles()
-                .get(&tile_type_id.get())
-                .copied()
-        };
+        let get_color = |tile_type_id: TileTypeID| settings.palette().get(&tile_type_id).copied();
 
         // Print keybinds legend.
         const W_KEYBINDS: usize = 23;
@@ -634,8 +627,9 @@ impl Renderer for DiffPrintRenderer {
                         if let Some(xy) =
                             pos_board((isize::try_from(x).unwrap(), isize::try_from(y).unwrap()))
                         {
-                            self.screen
-                                .buffer_str(tile_ground, get_color_locked(tile_type_id), xy);
+                            let color_locked =
+                                settings.palette_lockedtiles().get(tile_type_id).copied();
+                            self.screen.buffer_str(tile_ground, color_locked, xy);
                         }
                     }
                 }

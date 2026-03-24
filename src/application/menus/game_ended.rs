@@ -15,7 +15,7 @@ use crossterm::{
 use crate::{
     application::{
         menus::{Menu, MenuUpdate},
-        Application, ScoresEntry,
+        Application, ScoreEntry,
     },
     fmt_helpers::{fmt_duration, fmt_hertz, fmt_tetromino_counts},
     game_modes::GameMode,
@@ -24,9 +24,9 @@ use crate::{
 impl<T: Write> Application<T> {
     pub(in crate::application) fn run_menu_game_ended(
         &mut self,
-        game_scoring: &ScoresEntry,
+        game_scoring: &ScoreEntry,
     ) -> io::Result<MenuUpdate> {
-        let ScoresEntry {
+        let ScoreEntry {
             game_meta_data,
             end_cause,
             is_win,
@@ -55,8 +55,7 @@ impl<T: Write> Application<T> {
                     .get(
                         &falling_tetromino_engine::Tetromino::VARIANTS
                             [ch.to_string().parse::<usize>().unwrap()]
-                        .tiletypeid()
-                        .get(),
+                        .tiletypeid(),
                     )
                     .unwrap_or(&Color::Reset)
             })
@@ -69,14 +68,14 @@ impl<T: Write> Application<T> {
 
         if *is_win
             && game_meta_data.title == GameMode::TITLE_CLASSIC
-            && !self.settings.new_game.master_mode_unlocked
+            && !self.settings.newgame.master_mode_unlocked
         {
-            self.settings.new_game.master_mode_unlocked = true;
+            self.settings.newgame.master_mode_unlocked = true;
         } else if *is_win
             && game_meta_data.title == GameMode::TITLE_PUZZLE
-            && !self.settings.new_game.experimental_mode_unlocked
+            && !self.settings.newgame.experimental_mode_unlocked
         {
-            self.settings.new_game.experimental_mode_unlocked = true;
+            self.settings.newgame.experimental_mode_unlocked = true;
             // FIXME: Unused 'notification' screen for unlocking, but due to technicality eats too many user inputs for good UX.
             // let w_main = Self::W_MAIN.into();
             // let (x_main, y_main) = Self::fetch_main_xy();

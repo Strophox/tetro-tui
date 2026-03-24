@@ -1,5 +1,4 @@
 use std::{
-    collections::HashMap,
     io::{self, Write},
     sync::mpsc,
     time::{Duration, Instant},
@@ -18,11 +17,12 @@ use falling_tetromino_engine::{
 
 use crate::{
     application::{
-        Application, GameMetaData, GameRestorationData, GameSave, UncompressedInputHistory, menus::{Menu, MenuUpdate}
+        menus::{Menu, MenuUpdate},
+        Application, GameMetaData, GameRestorationData, GameSave, UncompressedInputHistory,
     },
     fmt_helpers::{fmt_duration, replay_keybinds_legend},
     game_renderers::{Renderer, TetroTUIRenderer},
-    keybinds::normalize,
+    keybinds::Keybinds,
     live_input_handler::{self, LiveTermSignal},
 };
 
@@ -68,7 +68,7 @@ impl<T: Write> Application<T> {
         let (input_sender, input_receiver) = mpsc::channel();
 
         // Spawn input handler thread.
-        let empty_game_control_keybinds = HashMap::new();
+        let empty_game_control_keybinds = Keybinds::empty();
         let is_stop_keybind = |code: KeyCode, modifiers: KeyModifiers| {
             matches!(code, KeyCode::Esc)
                 || matches!(code, KeyCode::Char('q' | 'Q'))
@@ -237,7 +237,7 @@ impl<T: Write> Application<T> {
                                                 match self
                                                     .settings
                                                     .keybinds()
-                                                    .get(&normalize((code, modifiers)))
+                                                    .get((code, modifiers))
                                                 {
                                                     // No binding: Just ignore.
                                                     None => {}
@@ -320,7 +320,7 @@ impl<T: Write> Application<T> {
 
                                             // [Ctrl+E]: Store seed.
                                             (KeyCode::Char('e' | 'E'), KeyModifiers::CONTROL) => {
-                                                self.settings.new_game.custom_seed =
+                                                self.settings.newgame.custom_seed =
                                                     Some(game.state_init().seed);
 
                                                 game_renderer.push_game_notification_feed([(
@@ -535,7 +535,9 @@ impl<T: Write> Application<T> {
 
                                                 // FIXME: Clone renderer when entering live game from here?
                                                 let the_game_renderer =
-                                                    TetroTUIRenderer::with_number(self.temp_data.renderernumber);
+                                                    TetroTUIRenderer::with_number(
+                                                        self.temp_data.renderernumber,
+                                                    );
 
                                                 // Accumulate this specific state here. TODO what if we want to tho? like when playing a game and discarding it nevertheless
                                                 self.statistics.total_new_games_started += 1;

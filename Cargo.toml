@@ -1,6 +1,6 @@
 [package]
 name = "tetro-tui"
-version = "2.0.1"
+version = "2.1.0"
 edition = "2021"
 rust-version = "1.90.0"
 authors = ["Strophox"]

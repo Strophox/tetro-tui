@@ -58,21 +58,21 @@ impl<T: Write> Application<T> {
                 GameMode::classic(),
                 GameMode::puzzle(),
                 GameMode::cheese(
-                    self.settings.new_game.cheese_tiles_per_line,
-                    self.settings.new_game.cheese_limit,
-                    self.settings.new_game.cheese_fall_lock_delays,
+                    self.settings.newgame.cheese_tiles_per_line,
+                    self.settings.newgame.cheese_limit,
+                    self.settings.newgame.cheese_fall_lock_delays,
                 ),
                 GameMode::combo(
-                    self.settings.new_game.combo_initial_layout,
-                    self.settings.new_game.combo_limit,
+                    self.settings.newgame.combo_initial_layout,
+                    self.settings.newgame.combo_limit,
                 ),
             ];
 
-            if self.settings.new_game.master_mode_unlocked {
+            if self.settings.newgame.master_mode_unlocked {
                 game_modes.insert(2, GameMode::master());
             }
 
-            if self.settings.new_game.experimental_mode_unlocked {
+            if self.settings.newgame.experimental_mode_unlocked {
                 game_modes.push(GameMode::ascent())
             }
 
@@ -172,12 +172,12 @@ impl<T: Write> Application<T> {
                                 } else {
                                     " |"
                                 },
-                                if self.settings.new_game.custom_seed.is_some() {
+                                if self.settings.newgame.custom_seed.is_some() {
                                     " *seed"
                                 } else {
                                     ""
                                 },
-                                if self.settings.new_game.custom_encoded_board.is_some() {
+                                if self.settings.newgame.custom_encoded_board.is_some() {
                                     " *board"
                                 } else {
                                     ""
@@ -194,14 +194,14 @@ impl<T: Write> Application<T> {
                     format!(
                         "| Initial fall delay = {:?}s (Gravity: {})",
                         self.settings
-                            .new_game
+                            .newgame
                             .custom_fall_delay_params
                             .base_delay()
                             .as_secs_ennf64()
                             .get(),
                         fmt_hertz(
                             self.settings
-                                .new_game
+                                .newgame
                                 .custom_fall_delay_params
                                 .base_delay()
                                 .as_hertz()
@@ -209,16 +209,12 @@ impl<T: Write> Application<T> {
                     ),
                     format!(
                         "| Progressive gravity = {}",
-                        (!self
-                            .settings
-                            .new_game
-                            .custom_fall_delay_params
-                            .is_constant())
-                        .fmt_on_off()
+                        (!self.settings.newgame.custom_fall_delay_params.is_constant())
+                            .fmt_on_off()
                     ),
                     format!(
                         "| Limit = {:?} [→]",
-                        self.settings.new_game.custom_win_condition
+                        self.settings.newgame.custom_win_condition
                     ),
                 ];
                 for (j, stat_str) in stats_strs.into_iter().enumerate() {
@@ -235,7 +231,7 @@ impl<T: Write> Application<T> {
                             format!(
                                 ">{stat_str}{}",
                                 if customization_selected != 3
-                                    || self.settings.new_game.custom_win_condition.is_some()
+                                    || self.settings.newgame.custom_win_condition.is_some()
                                 {
                                     " [↓|↑]"
                                 } else {
@@ -307,7 +303,7 @@ impl<T: Write> Application<T> {
                             1 => {
                                 // Increase custom fall delay.
                                 let base_delay =
-                                    self.settings.new_game.custom_fall_delay_params.base_delay();
+                                    self.settings.newgame.custom_fall_delay_params.base_delay();
 
                                 let new_base_delay = if base_delay.is_zero() {
                                     lowerbound_fall_delay.max(d_fall_delay)
@@ -327,37 +323,34 @@ impl<T: Write> Application<T> {
                                 };
 
                                 let lowerbound =
-                                    self.settings.new_game.custom_fall_delay_params.lowerbound();
-                                self.settings.new_game.custom_fall_delay_params = self
+                                    self.settings.newgame.custom_fall_delay_params.lowerbound();
+                                self.settings.newgame.custom_fall_delay_params = self
                                     .settings
-                                    .new_game
+                                    .newgame
                                     .custom_fall_delay_params
                                     .with_bounds(new_base_delay, lowerbound)
                                     .unwrap();
                             }
                             2 => {
                                 // Toggle increasing fall delay.
-                                let (new_factor, new_subtrahend) = if self
+                                let (new_factor, new_subtrahend) =
+                                    if self.settings.newgame.custom_fall_delay_params.is_constant()
+                                    {
+                                        let d = DelayParameters::standard_fall();
+                                        (d.factor(), d.subtrahend())
+                                    } else {
+                                        let c = DelayParameters::constant(Default::default());
+                                        (c.factor(), c.subtrahend())
+                                    };
+                                self.settings.newgame.custom_fall_delay_params = self
                                     .settings
-                                    .new_game
-                                    .custom_fall_delay_params
-                                    .is_constant()
-                                {
-                                    let d = DelayParameters::standard_fall();
-                                    (d.factor(), d.subtrahend())
-                                } else {
-                                    let c = DelayParameters::constant(Default::default());
-                                    (c.factor(), c.subtrahend())
-                                };
-                                self.settings.new_game.custom_fall_delay_params = self
-                                    .settings
-                                    .new_game
+                                    .newgame
                                     .custom_fall_delay_params
                                     .with_coefficients(new_factor, new_subtrahend)
                                     .unwrap();
                             }
                             3 => {
-                                match self.settings.new_game.custom_win_condition {
+                                match self.settings.newgame.custom_win_condition {
                                     Some(Stat::TimeElapsed(ref mut t)) => {
                                         *t += d_time;
                                     }
@@ -393,7 +386,7 @@ impl<T: Write> Application<T> {
                             1 => {
                                 // Increase custom fall delay.
                                 let base_delay =
-                                    self.settings.new_game.custom_fall_delay_params.base_delay();
+                                    self.settings.newgame.custom_fall_delay_params.base_delay();
 
                                 let new_base_delay = if base_delay.is_zero() {
                                     base_delay
@@ -413,38 +406,35 @@ impl<T: Write> Application<T> {
                                 };
 
                                 let lowerbound =
-                                    self.settings.new_game.custom_fall_delay_params.lowerbound();
+                                    self.settings.newgame.custom_fall_delay_params.lowerbound();
 
-                                self.settings.new_game.custom_fall_delay_params = self
+                                self.settings.newgame.custom_fall_delay_params = self
                                     .settings
-                                    .new_game
+                                    .newgame
                                     .custom_fall_delay_params
                                     .with_bounds(new_base_delay, lowerbound)
                                     .unwrap();
                             }
                             2 => {
                                 // Toggle increasing fall delay.
-                                let (new_factor, new_subtrahend) = if self
+                                let (new_factor, new_subtrahend) =
+                                    if self.settings.newgame.custom_fall_delay_params.is_constant()
+                                    {
+                                        let d = DelayParameters::standard_fall();
+                                        (d.factor(), d.subtrahend())
+                                    } else {
+                                        let c = DelayParameters::constant(Default::default());
+                                        (c.factor(), c.subtrahend())
+                                    };
+                                self.settings.newgame.custom_fall_delay_params = self
                                     .settings
-                                    .new_game
-                                    .custom_fall_delay_params
-                                    .is_constant()
-                                {
-                                    let d = DelayParameters::standard_fall();
-                                    (d.factor(), d.subtrahend())
-                                } else {
-                                    let c = DelayParameters::constant(Default::default());
-                                    (c.factor(), c.subtrahend())
-                                };
-                                self.settings.new_game.custom_fall_delay_params = self
-                                    .settings
-                                    .new_game
+                                    .newgame
                                     .custom_fall_delay_params
                                     .with_coefficients(new_factor, new_subtrahend)
                                     .unwrap();
                             }
                             3 => {
-                                match self.settings.new_game.custom_win_condition {
+                                match self.settings.newgame.custom_win_condition {
                                     Some(Stat::TimeElapsed(ref mut t)) => {
                                         *t = t.saturating_sub(d_time);
                                     }
@@ -482,8 +472,8 @@ impl<T: Write> Application<T> {
                             .title
                             .starts_with(GameMode::TITLE_CHEESE)
                     {
-                        if let Some(limit) = self.settings.new_game.cheese_limit {
-                            self.settings.new_game.cheese_limit = if limit > lowerbound_cheese {
+                        if let Some(limit) = self.settings.newgame.cheese_limit {
+                            self.settings.newgame.cheese_limit = if limit > lowerbound_cheese {
                                 NonZeroU32::try_from(limit.get() - 1).ok()
                             } else {
                                 None
@@ -497,17 +487,17 @@ impl<T: Write> Application<T> {
                         if modifiers.contains(KeyModifiers::ALT) {
                             let new_layout_idx = if let Some(i) = Combo::LAYOUTS
                                 .iter()
-                                .position(|lay| *lay == self.settings.new_game.combo_initial_layout)
+                                .position(|lay| *lay == self.settings.newgame.combo_initial_layout)
                             {
                                 let layout_cnt = Combo::LAYOUTS.len();
                                 (i + layout_cnt - 1) % layout_cnt
                             } else {
                                 0
                             };
-                            self.settings.new_game.combo_initial_layout =
+                            self.settings.newgame.combo_initial_layout =
                                 Combo::LAYOUTS[new_layout_idx];
-                        } else if let Some(limit) = self.settings.new_game.combo_limit {
-                            self.settings.new_game.combo_limit = if limit > lowerbound_combo {
+                        } else if let Some(limit) = self.settings.newgame.combo_limit {
+                            self.settings.newgame.combo_limit = if limit > lowerbound_combo {
                                 NonZeroU32::try_from(limit.get() - 1).ok()
                             } else {
                                 None
@@ -542,8 +532,8 @@ impl<T: Write> Application<T> {
                     if selected == selection_len - 1 {
                         // If reached last stat, cycle through stats for limit.
                         if customization_selected == customization_selection_size - 1 {
-                            self.settings.new_game.custom_win_condition =
-                                match self.settings.new_game.custom_win_condition {
+                            self.settings.newgame.custom_win_condition =
+                                match self.settings.newgame.custom_win_condition {
                                     Some(Stat::TimeElapsed(_)) => Some(Stat::PointsScored(200)),
                                     Some(Stat::PointsScored(_)) => Some(Stat::PiecesLocked(100)),
                                     Some(Stat::PiecesLocked(_)) => Some(Stat::LinesCleared(40)),
@@ -558,8 +548,8 @@ impl<T: Write> Application<T> {
                             .title
                             .starts_with(GameMode::TITLE_CHEESE)
                     {
-                        self.settings.new_game.cheese_limit =
-                            if let Some(limit) = self.settings.new_game.cheese_limit {
+                        self.settings.newgame.cheese_limit =
+                            if let Some(limit) = self.settings.newgame.cheese_limit {
                                 limit.checked_add(1)
                             } else {
                                 Some(lowerbound_cheese)
@@ -572,18 +562,18 @@ impl<T: Write> Application<T> {
                         if modifiers.contains(KeyModifiers::ALT) {
                             let new_layout_idx = if let Some(i) = Combo::LAYOUTS
                                 .iter()
-                                .position(|lay| *lay == self.settings.new_game.combo_initial_layout)
+                                .position(|lay| *lay == self.settings.newgame.combo_initial_layout)
                             {
                                 let layout_cnt = Combo::LAYOUTS.len();
                                 (i + 1) % layout_cnt
                             } else {
                                 0
                             };
-                            self.settings.new_game.combo_initial_layout =
+                            self.settings.newgame.combo_initial_layout =
                                 Combo::LAYOUTS[new_layout_idx];
                         } else {
-                            self.settings.new_game.combo_limit =
-                                if let Some(limit) = self.settings.new_game.combo_limit {
+                            self.settings.newgame.combo_limit =
+                                if let Some(limit) = self.settings.newgame.combo_limit {
                                     limit.checked_add(1)
                                 } else {
                                     Some(lowerbound_combo)
@@ -614,17 +604,17 @@ impl<T: Write> Application<T> {
                     ..
                 }) => {
                     if selected == selection_len - 1 {
-                        self.settings.new_game.custom_seed = None;
-                        self.settings.new_game.custom_encoded_board = None;
-                        self.settings.new_game.custom_fall_delay_params =
+                        self.settings.newgame.custom_seed = None;
+                        self.settings.newgame.custom_encoded_board = None;
+                        self.settings.newgame.custom_fall_delay_params =
                             DelayParameters::standard_fall();
-                        self.settings.new_game.custom_win_condition = None;
+                        self.settings.newgame.custom_win_condition = None;
                     } else if selected < game_modes.len()
                         && game_modes[selected]
                             .title
                             .starts_with(GameMode::TITLE_CHEESE)
                     {
-                        self.settings.new_game.cheese_limit =
+                        self.settings.newgame.cheese_limit =
                             NewGameSettings::default().cheese_limit;
                     } else if selected < game_modes.len()
                         && game_modes[selected]
@@ -632,9 +622,9 @@ impl<T: Write> Application<T> {
                             .starts_with(GameMode::TITLE_COMBO)
                     {
                         if modifiers.contains(KeyModifiers::ALT) {
-                            self.settings.new_game.combo_initial_layout = Combo::LAYOUTS[0];
+                            self.settings.newgame.combo_initial_layout = Combo::LAYOUTS[0];
                         } else {
-                            self.settings.new_game.combo_limit =
+                            self.settings.newgame.combo_limit =
                                 NewGameSettings::default().combo_limit;
                         }
                     } else if selected == selection_len - 2 {
@@ -662,8 +652,8 @@ impl<T: Write> Application<T> {
                     kind: Press | Repeat,
                     ..
                 }) => {
-                    self.settings.new_game.master_mode_unlocked = true;
-                    self.settings.new_game.experimental_mode_unlocked = true;
+                    self.settings.newgame.master_mode_unlocked = true;
+                    self.settings.newgame.experimental_mode_unlocked = true;
                 }
 
                 // Other event: don't care.
@@ -672,16 +662,16 @@ impl<T: Write> Application<T> {
 
             if immediately_start_new_game {
                 let GameplaySettings {
-                    rotation_system,
-                    tetromino_generator,
-                    piece_preview_count,
-                    delayed_auto_shift,
-                    auto_repeat_rate,
-                    soft_drop_factor,
-                    line_clear_duration,
-                    spawn_delay,
-                    allow_initial_actions,
-                    double_tap_move_finesse: _,
+                    rotsys: rotation_system,
+                    randomizer: tetromino_generator,
+                    preview: piece_preview_count,
+                    das: delayed_auto_shift,
+                    arr: auto_repeat_rate,
+                    sdf: soft_drop_factor,
+                    lcd: line_clear_duration,
+                    are: spawn_delay,
+                    initsys: allow_initial_actions,
+                    dtapfinesse: _,
                 } = *self.settings.gameplay();
 
                 let mut builder = Game::builder();
@@ -747,7 +737,7 @@ impl<T: Write> Application<T> {
                     )
                 } else {
                     // Build custom game.
-                    let n = &self.settings.new_game;
+                    let n = &self.settings.newgame;
 
                     builder
                         .fall_delay_params(n.custom_fall_delay_params)

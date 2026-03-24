@@ -8,7 +8,7 @@ use crossterm::event::{self, Event, KeyEvent, KeyEventKind};
 
 use falling_tetromino_engine::Button;
 
-use crate::keybinds::{normalize, Keybinds};
+use crate::keybinds::Keybinds;
 
 pub enum LiveTermSignal {
     RecognizedButton(Button, KeyEventKind),
@@ -47,7 +47,7 @@ pub fn spawn(
                                 stop_thread = true;
                             }
 
-                            match keybinds.get(&normalize((code, modifiers))) {
+                            match keybinds.get((code, modifiers)) {
                                 // No binding: Just send directly transmit whatever the event was.
                                 None => LiveTermSignal::RawEvent(event),
 

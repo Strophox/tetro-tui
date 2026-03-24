@@ -137,21 +137,23 @@ impl Combo {
 
         let grey_tile = Some(NonZeroU8::try_from(254).unwrap());
 
-        let color_tiles_0 = (*height_loaded..).map(move |i| color_tiles[i/2 % 7]);
+        let color_tiles_0 = (*height_loaded..).map(move |i| color_tiles[i / 2 % 7]);
 
         let color_tiles_1 = color_tiles_0.clone().skip(1);
 
-        color_tiles_0.zip(color_tiles_1).map(move |(color_tile_0, color_tile_1)| {
-            let mut line = [None; Game::WIDTH];
-            line[0] = color_tile_0;
-            line[1] = color_tile_1;
-            line[2] = grey_tile;
-            line[7] = grey_tile;
-            line[8] = color_tile_1;
-            line[9] = color_tile_0;
+        color_tiles_0
+            .zip(color_tiles_1)
+            .map(move |(color_tile_0, color_tile_1)| {
+                let mut line = [None; Game::WIDTH];
+                line[0] = color_tile_0;
+                line[1] = color_tile_1;
+                line[2] = grey_tile;
+                line[7] = grey_tile;
+                line[8] = color_tile_1;
+                line[9] = color_tile_0;
 
-            *height_loaded += 1;
-            line
-        })
+                *height_loaded += 1;
+                line
+            })
     }
 }

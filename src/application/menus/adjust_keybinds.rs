@@ -18,29 +18,21 @@ use crate::{
         menus::{Menu, MenuUpdate},
         Application, Settings,
     },
-    fmt_helpers::{arabic_to_roman, fmt_keybinds_of},
+    fmt_helpers::fmt_keybinds_of,
     keybinds::normalize,
 };
 
 impl<T: Write> Application<T> {
     pub(in crate::application) fn run_menu_adjust_keybinds(&mut self) -> io::Result<MenuUpdate> {
-        // "Trying to modify a default slot: create copy of slot to allow safely modifying that."
-        let if_slot_is_default_then_copy_and_switch = |settings: &mut Settings| {
-            if settings.keybinds_slot_active < settings.keybinds_slots_that_should_not_be_changed {
-                let mut n = 1;
-                let new_custom_slot_name = loop {
-                    let name = format!("Custom {}", arabic_to_roman(n));
-                    if settings.keybinds_slots.iter().any(|s| s.0 == name) {
-                        n += 1;
-                    } else {
-                        break name;
-                    }
-                };
-                let new_slot = (new_custom_slot_name, settings.keybinds().clone());
-                settings.keybinds_slots.push(new_slot);
-                settings.keybinds_slot_active = settings.keybinds_slots.len() - 1;
+        let if_unmodifiable_clone_and_switch = |s: &mut Settings| {
+            if let Some(cloned_slot_idx) = s
+                .keybinds_slotmachine
+                .clone_slot_if_unmodifiable(s.keybinds_pick)
+            {
+                s.keybinds_pick = cloned_slot_idx;
             }
         };
+
         let buttons_available = Button::VARIANTS;
         // +1 for available slot selection.
         let selection_len = 1 + buttons_available.len();
@@ -62,17 +54,17 @@ impl<T: Write> Application<T> {
 
             // Draw slot label.
             let slot_label = format!(
-                "Slot ({}/{}): \"{}\"{}",
-                self.settings.keybinds_slot_active + 1,
-                self.settings.keybinds_slots.len(),
-                self.settings.keybinds_slots[self.settings.keybinds_slot_active].0,
-                if self.settings.keybinds_slots.len() < 2 {
+                "Slot {}/{}: '{}'{}",
+                self.settings.keybinds_pick + 1,
+                self.settings.keybinds_slotmachine.slots.len(),
+                self.settings.keybinds_slotmachine.slots[self.settings.keybinds_pick].0,
+                if self.settings.keybinds_slotmachine.slots.len() < 2 {
                     "".to_owned()
                 } else {
                     format!(
                         " [←|{}→] ",
-                        if self.settings.keybinds_slot_active
-                            < self.settings.keybinds_slots_that_should_not_be_changed
+                        if self.settings.keybinds_pick
+                            < self.settings.keybinds_slotmachine.unmodifiable
                         {
                             ""
                         } else {
@@ -180,7 +172,7 @@ impl<T: Write> Application<T> {
                         // Wait until appropriate keypress detected.
                         if self.temp_data.kitty_assumed {
                             let f = Self::GAME_KEYBOARD_ENHANCEMENT_FLAGS;
-                            // FIXME: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm doesn't like operating on Windows.
+                            // FIXME: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm minds if we do this on Windows.
                             let _v = self.term.execute(event::PushKeyboardEnhancementFlags(f));
                         }
                         loop {
@@ -198,9 +190,10 @@ impl<T: Write> Application<T> {
                                 ) {
                                     return Ok(MenuUpdate::Push(Menu::Quit));
                                 } else if !matches!(code, KeyCode::Esc) {
-                                    if_slot_is_default_then_copy_and_switch(&mut self.settings);
+                                    if_unmodifiable_clone_and_switch(&mut self.settings);
                                     self.settings
                                         .keybinds_mut()
+                                        .unstable_access()
                                         .insert(normalize((code, modifiers)), current_button);
                                 }
                                 break;
@@ -208,7 +201,7 @@ impl<T: Write> Application<T> {
                         }
                         // Console epilogue: De-initialization.
                         if self.temp_data.kitty_assumed {
-                            // FIXME: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm doesn't like operating on Windows.
+                            // FIXME: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm minds if we do this on Windows.
                             let _v = self.term.execute(event::PopKeyboardEnhancementFlags);
                         }
                     }
@@ -222,21 +215,29 @@ impl<T: Write> Application<T> {
                 }) => {
                     if selected == 0 {
                         // If a custom slot, then remove it (and return to the 'default' 0th slot).
-                        if self.settings.keybinds_slot_active
-                            >= self.settings.keybinds_slots_that_should_not_be_changed
+                        if self.settings.keybinds_pick
+                            >= self.settings.keybinds_slotmachine.unmodifiable
                         {
                             self.settings
-                                .keybinds_slots
-                                .remove(self.settings.keybinds_slot_active);
-                            self.settings.keybinds_slot_active = 0;
+                                .keybinds_slotmachine
+                                .slots
+                                .remove(self.settings.keybinds_pick);
+                            self.settings.keybinds_pick = 0;
                         }
                     } else {
                         // Trying to modify a default slot: create copy of slot to allow safely modifying that.
-                        if_slot_is_default_then_copy_and_switch(&mut self.settings);
+                        if let Some(cloned_slot_idx) = self
+                            .settings
+                            .keybinds_slotmachine
+                            .clone_slot_if_unmodifiable(self.settings.keybinds_pick)
+                        {
+                            self.settings.keybinds_pick = cloned_slot_idx;
+                        }
                         // Remove all keys bound to the selected action button.
                         let button_selected = buttons_available[selected - 1];
                         self.settings
                             .keybinds_mut()
+                            .unstable_access()
                             .retain(|_code, button| *button != button_selected);
                     }
                 }
@@ -266,8 +267,9 @@ impl<T: Write> Application<T> {
                     ..
                 }) => {
                     if selected == 0 {
-                        self.settings.keybinds_slot_active += 1;
-                        self.settings.keybinds_slot_active %= self.settings.keybinds_slots.len();
+                        self.settings.keybinds_pick += 1;
+                        self.settings.keybinds_pick %=
+                            self.settings.keybinds_slotmachine.slots.len();
                     }
                 }
 
@@ -278,9 +280,10 @@ impl<T: Write> Application<T> {
                     ..
                 }) => {
                     if selected == 0 {
-                        self.settings.keybinds_slot_active +=
-                            self.settings.keybinds_slots.len() - 1;
-                        self.settings.keybinds_slot_active %= self.settings.keybinds_slots.len();
+                        self.settings.keybinds_pick +=
+                            self.settings.keybinds_slotmachine.slots.len() - 1;
+                        self.settings.keybinds_pick %=
+                            self.settings.keybinds_slotmachine.slots.len();
                     }
                 }
 

@@ -30,7 +30,7 @@ use falling_tetromino_engine::{Game, InGameTime};
 
 use crate::{
     application::{
-        Application, GameMetaData, GameRestorationData, ScoresEntry, UncompressedInputHistory,
+        Application, GameMetaData, GameRestorationData, ScoreEntry, UncompressedInputHistory,
     },
     game_renderers::TetroTUIRenderer,
 };
@@ -59,11 +59,11 @@ pub enum Menu {
     AdjustGameplay,
     AdvancedSettings,
     GameOver {
-        game_scoring: Box<ScoresEntry>,
+        game_scoring: Box<ScoreEntry>,
         // game_statistics: Statistics,
     },
     GameComplete {
-        game_scoring: Box<ScoresEntry>,
+        game_scoring: Box<ScoreEntry>,
         // game_statistics: Statistics,
     },
     ScoresAndReplays {

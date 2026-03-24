@@ -18,7 +18,7 @@ use crate::{
     application::{
         menus::{Menu, MenuUpdate},
         Application, CompressedInputHistory, GameMetaData, GameRestorationData, GameSave,
-        ScoresEntry, Statistics, UncompressedInputHistory,
+        ScoreEntry, Statistics, UncompressedInputHistory,
     },
     fmt_helpers::get_play_keybinds_legend,
     game_renderers::{Renderer, TetroTUIRenderer},
@@ -128,7 +128,7 @@ impl<T: Write> Application<T> {
 
                 // Game ended, cannot actually continue playing;
                 // Convert to scoreboard entry and return appropriate game-ended menu.
-                let scores_entry = ScoresEntry {
+                let scores_entry = ScoreEntry {
                     game_meta_data: game_meta_data.clone(),
                     is_win: *is_win,
                     end_cause: cause.clone(),
@@ -227,7 +227,7 @@ impl<T: Write> Application<T> {
                                     // In usual games this will not lead to issues but logically unclean (also, modding behavior).
                                     // We expect primary users of double-tap finesse to be non-enhanced-terminal users anyway.
                                     if let Some(tap_move_delay) =
-                                        self.settings.gameplay().double_tap_move_finesse
+                                        self.settings.gameplay().dtapfinesse
                                     {
                                         match player_input {
                                             Input::Activate(Button::MoveLeft) => {
@@ -275,7 +275,7 @@ impl<T: Write> Application<T> {
                                     }
 
                                     if let Some(tap_move_delay) =
-                                        self.settings.gameplay().double_tap_move_finesse
+                                        self.settings.gameplay().dtapfinesse
                                     {
                                         match button {
                                             Button::MoveLeft => {
@@ -461,7 +461,7 @@ impl<T: Write> Application<T> {
 
                                             // [Ctrl+E]: Store seed.
                                             (KeyCode::Char('e' | 'E'), KeyModifiers::CONTROL) => {
-                                                self.settings.new_game.custom_seed =
+                                                self.settings.newgame.custom_seed =
                                                     Some(game.state_init().seed);
 
                                                 game_renderer.push_game_notification_feed([(

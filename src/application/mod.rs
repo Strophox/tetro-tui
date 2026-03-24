@@ -1,9 +1,9 @@
 mod menus;
+mod savefile_load_store;
 
 use std::{
     fmt::Debug,
-    fs::File,
-    io::{self, Read, Write},
+    io::{self, Write},
     num::{NonZeroU32, NonZeroUsize},
     path::PathBuf,
     time::Duration,
@@ -22,7 +22,11 @@ use falling_tetromino_engine::{
 };
 
 use crate::{
-    application::menus::{Menu, MenuUpdate},
+    application::{
+        menus::{Menu, MenuUpdate},
+        savefile_load_store::SavefileGranularity,
+    },
+    fmt_helpers::arabic_to_roman,
     game_modes::{self, game_modifiers, GameMode},
     gameplay_settings::*,
     graphics_settings::*,
@@ -30,7 +34,52 @@ use crate::{
     palette::*,
 };
 
-pub type Slots<T> = Vec<(String, T)>;
+/// This struct allows storing 'slots' (elements of some kind), where a certain
+/// number of elements is considere as 'unmodifiable' (should not be modified)
+/// but can be automatically cloned to a new slot and then modified for ease of use.
+#[derive(PartialEq, Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct SlotMachine<T> {
+    /// The number of slots considered unmodifiable.
+    unmodifiable: usize,
+    slots: Vec<(String, T)>,
+    // The string that is used as base to generate a name for duplicate slots.
+    clone_name_template: String,
+}
+
+impl<T: Clone> SlotMachine<T> {
+    pub fn with_unmodifiable_slots(
+        slots: Vec<(String, T)>,
+        cloned_slot_name_template: String,
+    ) -> Self {
+        let num_unmodifiable_slots = slots.len();
+        Self {
+            slots,
+            unmodifiable: num_unmodifiable_slots,
+            clone_name_template: cloned_slot_name_template,
+        }
+    }
+
+    /// Given a valid index, clones and appends to itself of the corresponding slot if it is considered unmodifiable.
+    /// Otherwise return `None` and does nothing (i.e. slot is 'modifiable' or index invalid).
+    pub fn clone_slot_if_unmodifiable(&mut self, slot_idx: usize) -> Option<usize> {
+        slot_idx.lt(&self.unmodifiable).then(|| {
+            let cloned_slot_content = self.slots[slot_idx].1.clone();
+
+            let mut n = 1;
+            let cloned_slot_name = loop {
+                let name = format!("{} {}", self.clone_name_template, arabic_to_roman(n));
+                if self.slots.iter().all(|s| s.0 != name) {
+                    break name;
+                }
+                n += 1;
+            };
+
+            self.slots.push((cloned_slot_name, cloned_slot_content));
+
+            self.slots.len() - 1
+        })
+    }
+}
 
 pub type UncompressedInputHistory = Vec<(InGameTime, Input)>;
 
@@ -253,7 +302,7 @@ impl<T> GameSave<T> {
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]
-pub struct ScoresEntry {
+pub struct ScoreEntry {
     game_meta_data: GameMetaData,
     end_cause: GameEndCause,
     is_win: bool,
@@ -268,7 +317,7 @@ pub struct ScoresEntry {
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug, serde::Serialize, serde::Deserialize,
 )]
-pub enum ScoresSorting {
+pub enum GameSorting {
     Chronological,
     Scoring,
 }
@@ -276,18 +325,18 @@ pub enum ScoresSorting {
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]
-pub struct ScoresAndReplays {
-    sorting: ScoresSorting,
+pub struct Scoreboard {
     entries: Vec<(
-        ScoresEntry,
+        ScoreEntry,
         Option<GameRestorationData<CompressedInputHistory>>,
     )>,
+    sorting: GameSorting,
 }
 
-impl Default for ScoresAndReplays {
+impl Default for Scoreboard {
     fn default() -> Self {
         Self {
-            sorting: ScoresSorting::Scoring,
+            sorting: GameSorting::Scoring,
             entries: Vec::new(),
         }
     }
@@ -480,141 +529,69 @@ impl NewGameSettings {
     }
 }
 
-#[serde_with::serde_as]
+// #[serde_with::serde_as]
 #[derive(PartialEq, Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Settings {
-    graphics_slot_active: usize,
-    keybinds_slot_active: usize,
-    gameplay_slot_active: usize,
-    graphics_slots_that_should_not_be_changed: usize,
-    palette_slots_that_should_not_be_changed: usize,
-    keybinds_slots_that_should_not_be_changed: usize,
-    gameplay_slots_that_should_not_be_changed: usize,
-    graphics_slots: Slots<GraphicsSettings>,
-    palette_slots: Slots<Palette>,
-    gameplay_slots: Slots<GameplaySettings>,
+    graphics_pick: usize,
+    graphics_slotmachine: SlotMachine<GraphicsSettings>,
+
     // NOTE: Reconsider #[serde_as(as = "Vec<(_, std::collections::HashMap<serde_with::json::JsonString, _>)>")]
-    #[serde_as(as = "Vec<(_, Vec<(_, _)>)>")]
-    keybinds_slots: Slots<Keybinds>,
-    new_game: NewGameSettings,
+    // FIXME: Unused #[serde_as(as = "Vec<(_, Vec<(_, _)>)>")]
+    keybinds_pick: usize,
+    keybinds_slotmachine: SlotMachine<Keybinds>,
+
+    gameplay_pick: usize,
+    gameplay_slotmachine: SlotMachine<GameplaySettings>,
+
+    palette_slotmachine: SlotMachine<Palette>,
+
+    newgame: NewGameSettings,
 }
 
 impl Default for Settings {
     fn default() -> Self {
-        let graphics_slots = vec![
-            ("Default".to_owned(), GraphicsSettings::default()),
-            ("Focus+".to_owned(), GraphicsSettings::extra_focus()),
-            ("Guideline".to_owned(), GraphicsSettings::guideline()),
-            ("High Compat.".to_owned(), GraphicsSettings::compatibility()),
-            (
-                "Elektronika 60".to_owned(),
-                GraphicsSettings::elektronika_60(),
-            ),
-        ];
-        let palette_slots = vec![
-            ("Monochrome".to_owned(), Palette::monochrome()), // NOTE: The slot at index 0 is the special 'monochrome'/no palette slot.
-            ("ANSI".to_owned(), Palette::ansi()),
-            ("Fullcolor".to_owned(), Palette::fullcolor()),
-            ("Okpalette".to_owned(), Palette::okpalette()),
-            ("Gruvbox".to_owned(), Palette::gruvbox()),
-            ("Solarized".to_owned(), Palette::solarized()),
-            ("Terafox".to_owned(), Palette::terafox()),
-            ("Fahrenheit".to_owned(), Palette::fahrenheit()),
-            ("The Matrix".to_owned(), Palette::matrix()),
-            ("Sequoia".to_owned(), Palette::sequoia()),
-        ];
-        let keybinds_slots = vec![
-            ("Default".to_owned(), Keybinds::default_tetro()),
-            ("Control+".to_owned(), Keybinds::extra_control()),
-            ("Guideline".to_owned(), Keybinds::guideline()),
-            ("Vim".to_owned(), Keybinds::vim()),
-        ];
-        let gameplay_slots = vec![
-            ("Default".to_owned(), GameplaySettings::default()),
-            ("Finesse+".to_owned(), GameplaySettings::extra_finesse()),
-            ("Guideline".to_owned(), GameplaySettings::guideline()),
-            ("NES".to_owned(), GameplaySettings::nes()),
-            ("Gameboy".to_owned(), GameplaySettings::gameboy()),
-        ];
-
         Self {
-            graphics_slot_active: 0,
-            keybinds_slot_active: 0,
-            gameplay_slot_active: 0,
-            graphics_slots_that_should_not_be_changed: graphics_slots.len(),
-            palette_slots_that_should_not_be_changed: palette_slots.len(),
-            keybinds_slots_that_should_not_be_changed: keybinds_slots.len(),
-            gameplay_slots_that_should_not_be_changed: gameplay_slots.len(),
-            graphics_slots,
-            palette_slots,
-            keybinds_slots,
-            gameplay_slots,
-            new_game: NewGameSettings::default(),
+            graphics_pick: 0,
+            keybinds_pick: 0,
+            gameplay_pick: 0,
+            graphics_slotmachine: default_graphics_slots(),
+            palette_slotmachine: default_palette_slots(),
+            keybinds_slotmachine: default_keybinds_slots(),
+            gameplay_slotmachine: default_gameplay_slots(),
+            newgame: NewGameSettings::default(),
         }
     }
 }
 
 impl Settings {
     pub fn graphics(&self) -> &GraphicsSettings {
-        &self.graphics_slots[self.graphics_slot_active].1
+        &self.graphics_slotmachine.slots[self.graphics_pick].1
     }
     pub fn keybinds(&self) -> &Keybinds {
-        &self.keybinds_slots[self.keybinds_slot_active].1
+        &self.keybinds_slotmachine.slots[self.keybinds_pick].1
     }
     pub fn gameplay(&self) -> &GameplaySettings {
-        &self.gameplay_slots[self.gameplay_slot_active].1
+        &self.gameplay_slotmachine.slots[self.gameplay_pick].1
     }
     fn graphics_mut(&mut self) -> &mut GraphicsSettings {
-        &mut self.graphics_slots[self.graphics_slot_active].1
+        &mut self.graphics_slotmachine.slots[self.graphics_pick].1
     }
     fn keybinds_mut(&mut self) -> &mut Keybinds {
-        &mut self.keybinds_slots[self.keybinds_slot_active].1
+        &mut self.keybinds_slotmachine.slots[self.keybinds_pick].1
     }
     fn gameplay_mut(&mut self) -> &mut GameplaySettings {
-        &mut self.gameplay_slots[self.gameplay_slot_active].1
+        &mut self.gameplay_slotmachine.slots[self.gameplay_pick].1
     }
 
     pub fn palette(&self) -> &Palette {
-        &self.palette_slots[self.graphics().palette_active].1
+        &self.palette_slotmachine.slots[self.graphics().palette_pick].1
     }
     pub fn palette_lockedtiles(&self) -> &Palette {
-        &self.palette_slots[self.graphics().palette_active_lockedtiles].1
+        &self.palette_slotmachine.slots[self.graphics().lockpalette_pick].1
     }
 }
 
-#[derive(
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    Clone,
-    Copy,
-    Debug,
-    Default,
-    serde::Serialize,
-    serde::Deserialize,
-)]
-pub enum SavefileGranularity {
-    #[default]
-    NoSavefile,
-    RememberSettings,
-    RememberSettingsScores,
-    RememberSettingsScoresReplays,
-}
-
-#[derive(
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    Clone,
-    Debug,
-    Default,
-    serde::Serialize,
-    serde::Deserialize,
-)]
+#[derive(Debug)]
 pub struct TemporaryAppData {
     pub custom_terminal_state_initialized: bool,
     pub kitty_detected: bool,
@@ -623,18 +600,24 @@ pub struct TemporaryAppData {
     pub renderernumber: usize,
     pub save_on_exit: SavefileGranularity,
     pub savefile_path: PathBuf, // This should technically be the same for a given compiled binary, but we compute it at runtime.
+    pub loadfile_result: io::Result<()>,
 }
 
 // FIXME: Move tui application into `main` instead of artifically having it in one module below `tetro-tui::main`?
-#[derive(PartialEq, Clone, Debug)]
+#[derive(Debug)]
 pub struct Application<T: Write> {
     term: T,
+
     temp_data: TemporaryAppData,
+
     settings: Settings,
-    scores_and_replays: ScoresAndReplays,
+
+    scores_and_replays: Scoreboard,
+
+    statistics: Statistics,
+
     // FIXME: Currently one can only access one without resorting to manually editing the savefile.
     game_saves: (usize, Vec<GameSave<UncompressedInputHistory>>),
-    statistics: Statistics,
 }
 
 impl<T: Write> Drop for Application<T> {
@@ -739,111 +722,43 @@ impl<T: Write> Application<T> {
         custom_start_seed: Option<u64>,
         custom_start_board: Option<String>,
     ) -> Self {
-        let mut new = Self {
-            temp_data: TemporaryAppData::default(),
-            term,
-            settings: Settings::default(),
-            scores_and_replays: ScoresAndReplays::default(),
-            game_saves: (0, Vec::new()),
-            statistics: Statistics::default(),
-        };
-
-        // Actually load in settings.
-        // FIXME: Handle io::Error? If not, why not?
-        if new.load_from_savefile(savefile_path.clone()).is_err() {
-            //eprintln!("Could not load settings: {e}");
-            //std::thread::sleep(Duration::from_secs(5));
-        }
-
         // Now that the settings are loaded, we handle separate flags set for this session.
         let kitty_detected = terminal::supports_keyboard_enhancement().unwrap_or(false);
 
-        new.temp_data = TemporaryAppData {
+        let temp_data = TemporaryAppData {
             custom_terminal_state_initialized: false,
             kitty_detected,
             kitty_assumed: kitty_detected,
             blindfold_enabled: false,
             renderernumber: 0,
-            save_on_exit: new.temp_data.save_on_exit,
+            save_on_exit: SavefileGranularity::default(),
             savefile_path,
+            loadfile_result: Ok(()),
         };
 
+        let mut new = Self {
+            term,
+            temp_data,
+            settings: Settings::default(),
+            scores_and_replays: Scoreboard::default(),
+            game_saves: (0, Vec::new()),
+            statistics: Statistics::default(),
+        };
+
+        // Load in actual settings.
+        new.temp_data.loadfile_result = new.load_from_savefile();
+
+        // Special: Overwrite specifically requested cmdline flags.
+
         if custom_start_board.is_some() {
-            new.settings.new_game.custom_encoded_board = custom_start_board;
+            new.settings.newgame.custom_encoded_board = custom_start_board;
         }
+
         if custom_start_seed.is_some() {
-            new.settings.new_game.custom_seed = custom_start_seed;
+            new.settings.newgame.custom_seed = custom_start_seed;
         }
 
         new
-    }
-
-    fn load_from_savefile(&mut self, savefile_path: PathBuf) -> io::Result<()> {
-        let mut file = File::open(savefile_path)?;
-        let mut save_str = String::new();
-        file.read_to_string(&mut save_str)?;
-
-        let compressed_game_saves: (usize, Vec<GameSave<CompressedInputHistory>>);
-
-        (
-            self.temp_data.save_on_exit,
-            self.settings,
-            self.scores_and_replays,
-            compressed_game_saves,
-            self.statistics,
-        ) = serde_json::from_str(&save_str)?;
-
-        self.game_saves = (
-            compressed_game_saves.0,
-            compressed_game_saves
-                .1
-                .into_iter()
-                .map(|save| save.map(|input_history| input_history.decompress()))
-                .collect::<Vec<_>>(),
-        );
-
-        Ok(())
-    }
-
-    fn store_to_savefile(&mut self) -> io::Result<()> {
-        if self.temp_data.save_on_exit < SavefileGranularity::RememberSettingsScores {
-            // Clear scoreboard if no game data is wished to be stored.
-            self.scores_and_replays.entries.clear();
-        } else if self.temp_data.save_on_exit < SavefileGranularity::RememberSettingsScoresReplays {
-            // Clear past game inputs if no game input data is wished to be stored.
-            for (_entry, restoration_data) in &mut self.scores_and_replays.entries {
-                restoration_data.take();
-            }
-        }
-
-        let compressed_game_saves = (
-            self.game_saves.0,
-            self.game_saves
-                .1
-                .iter()
-                .cloned()
-                .map(|save| save.map(|input_history| CompressedInputHistory::new(&input_history)))
-                .collect::<Vec<_>>(),
-        );
-
-        let save_str = serde_json::to_string(&(
-            self.temp_data.save_on_exit,
-            &self.settings,
-            &self.scores_and_replays,
-            compressed_game_saves,
-            &self.statistics,
-        ))?;
-
-        let mut file = File::create(self.temp_data.savefile_path.clone())?;
-        let n_written = file.write(save_str.as_bytes())?;
-        // Attempt at additionally handling the case when save_str could not be written entirely.
-        if n_written < save_str.len() {
-            Err(std::io::Error::other(
-                "attempt to write to file consumed `n < save_str.len()` bytes",
-            ))
-        } else {
-            Ok(())
-        }
     }
 
     fn sort_past_games_chronologically(&mut self) {

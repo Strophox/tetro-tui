@@ -63,8 +63,7 @@ impl<T: Write> Application<T> {
                                 .get(
                                     &falling_tetromino_engine::Tetromino::VARIANTS
                                         [ch.to_string().parse::<usize>().unwrap()]
-                                    .tiletypeid()
-                                    .get(),
+                                    .tiletypeid(),
                                 )
                                 .unwrap_or(&Color::Reset)
                         })
@@ -113,8 +112,7 @@ impl<T: Write> Application<T> {
                                 .get(
                                     &falling_tetromino_engine::Tetromino::VARIANTS
                                         [ch.to_string().parse::<usize>().unwrap()]
-                                    .tiletypeid()
-                                    .get(),
+                                    .tiletypeid(),
                                 )
                                 .unwrap_or(&Color::Reset)
                         })
@@ -152,8 +150,7 @@ impl<T: Write> Application<T> {
                                             .get(
                                                 &falling_tetromino_engine::Tetromino::VARIANTS
                                                     [c_char.to_string().parse::<usize>().unwrap()]
-                                                .tiletypeid()
-                                                .get(),
+                                                .tiletypeid(),
                                             )
                                             .unwrap_or(&Color::Reset)
                                     }

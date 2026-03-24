@@ -3,7 +3,27 @@ use std::collections::HashMap;
 use crossterm::event::{KeyCode, KeyModifiers};
 use falling_tetromino_engine::Button;
 
-pub type Keybinds = HashMap<(KeyCode, KeyModifiers), Button>;
+use crate::application::SlotMachine;
+
+#[derive(PartialEq, Eq, Clone, Debug)]
+#[serde_with::serde_as] // Do **NOT** place this after #[derive(..)] !!
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct Keybinds {
+    // Note: the alternative has ugly double-escaped quotation marks: #[serde_as(as = "std::collections::HashMap<serde_with::json::JsonString, _>")]
+    #[serde_as(as = "Vec<(_, _)>")]
+    map: HashMap<(KeyCode, KeyModifiers), Button>,
+}
+
+pub fn default_keybinds_slots() -> SlotMachine<Keybinds> {
+    let slots = vec![
+        ("Default".to_owned(), Keybinds::default_tetro()),
+        ("Control+".to_owned(), Keybinds::extra_control()),
+        ("Guideline".to_owned(), Keybinds::guideline()),
+        ("Vim".to_owned(), Keybinds::vim()),
+    ];
+
+    SlotMachine::with_unmodifiable_slots(slots, "Keybinds".to_owned())
+}
 
 pub fn normalize((mut code, mut modifiers): (KeyCode, KeyModifiers)) -> (KeyCode, KeyModifiers) {
     match code {
@@ -37,16 +57,28 @@ pub fn normalize((mut code, mut modifiers): (KeyCode, KeyModifiers)) -> (KeyCode
     (code, modifiers)
 }
 
-pub trait KeybindsExt {
-    fn default_tetro() -> Self;
-    fn extra_control() -> Self;
-    fn guideline() -> Self;
-    fn vim() -> Self;
-}
+impl Keybinds {
+    pub fn get(&self, (code, modifiers): (KeyCode, KeyModifiers)) -> Option<&Button> {
+        self.map.get(&normalize((code, modifiers)))
+    }
 
-impl KeybindsExt for Keybinds {
-    fn default_tetro() -> Keybinds {
-        let keybinds_tetro: [((KeyCode, KeyModifiers), Button); 7] = [
+    pub fn iter(&self) -> impl Iterator<Item = (&(KeyCode, KeyModifiers), &Button)> {
+        self.map.iter()
+    }
+
+    /// This provides unstable but direct access to the internal representation for special purposes.
+    pub fn unstable_access(&mut self) -> &mut HashMap<(KeyCode, KeyModifiers), Button> {
+        &mut self.map
+    }
+
+    pub fn empty() -> Keybinds {
+        Keybinds {
+            map: HashMap::new(),
+        }
+    }
+
+    pub fn default_tetro() -> Keybinds {
+        let keys = [
             (KeyCode::Left, Button::MoveLeft),
             (KeyCode::Right, Button::MoveRight),
             (KeyCode::Char('a'), Button::RotateLeft),
@@ -60,11 +92,12 @@ impl KeybindsExt for Keybinds {
             (KeyCode::Char(' '), Button::HoldPiece),
         ]
         .map(|(k, b)| ((k, KeyModifiers::NONE), b));
-        HashMap::from(keybinds_tetro)
+
+        Keybinds { map: keys.into() }
     }
 
-    fn extra_control() -> Keybinds {
-        let keybinds_tetro: [((KeyCode, KeyModifiers), Button); 11] = [
+    pub fn extra_control() -> Keybinds {
+        let keys = [
             (KeyCode::Left, Button::MoveLeft),
             (KeyCode::Right, Button::MoveRight),
             (KeyCode::Char('a'), Button::RotateLeft),
@@ -78,12 +111,13 @@ impl KeybindsExt for Keybinds {
             (KeyCode::Char(' '), Button::HoldPiece),
         ]
         .map(|(k, b)| ((k, KeyModifiers::NONE), b));
-        HashMap::from(keybinds_tetro)
+
+        Keybinds { map: keys.into() }
     }
 
-    fn guideline() -> Keybinds {
+    pub fn guideline() -> Keybinds {
         use crossterm::event::ModifierKeyCode as M;
-        let keybinds_guidelinle: [((KeyCode, KeyModifiers), Button); 13] = [
+        let keys = [
             (KeyCode::Left, Button::MoveLeft),
             (KeyCode::Right, Button::MoveRight),
             (KeyCode::Char('z'), Button::RotateLeft),
@@ -99,11 +133,12 @@ impl KeybindsExt for Keybinds {
             (KeyCode::Modifier(M::RightShift), Button::HoldPiece),
         ]
         .map(|(k, b)| ((k, KeyModifiers::NONE), b));
-        HashMap::from(keybinds_guidelinle)
+
+        Keybinds { map: keys.into() }
     }
 
-    fn vim() -> Keybinds {
-        let keybinds_vim: [((KeyCode, KeyModifiers), Button); 7] = [
+    pub fn vim() -> Keybinds {
+        let keys = [
             (KeyCode::Char('h'), Button::MoveLeft),
             (KeyCode::Char('l'), Button::MoveRight),
             (KeyCode::Char('a'), Button::RotateLeft),
@@ -113,6 +148,7 @@ impl KeybindsExt for Keybinds {
             (KeyCode::Char(' '), Button::HoldPiece),
         ]
         .map(|(k, b)| ((k, KeyModifiers::NONE), b));
-        HashMap::from(keybinds_vim)
+
+        Keybinds { map: keys.into() }
     }
 }

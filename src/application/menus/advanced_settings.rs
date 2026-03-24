@@ -102,6 +102,7 @@ impl<T: Write> Application<T> {
                     .italic(),
                 ))?;
 
+            let mut temp_offset = 0;
             if self.temp_data.save_on_exit != SavefileGranularity::NoSavefile {
                 self.term
                     .queue(MoveTo(
@@ -111,12 +112,43 @@ impl<T: Write> Application<T> {
                     .queue(PrintStyledContent(
                         format!(
                             "{:^w_main$}",
-                            format!(
-                                "Save location: {}",
-                                self.temp_data.savefile_path.display()
-                            )
+                            format!("Save location: {}", self.temp_data.savefile_path.display())
                         )
                         .italic(),
+                    ))?;
+                temp_offset += 1;
+            }
+
+            if let Err(e) = &self.temp_data.loadfile_result {
+                self.term
+                    .queue(MoveTo(
+                        x_main,
+                        y_main
+                            + y_selection
+                            + 4
+                            + u16::try_from(selection_len).unwrap()
+                            + 3
+                            + temp_offset,
+                    ))?
+                    .queue(PrintStyledContent(
+                        format!(
+                            "{:^w_main$}",
+                            format!("Trying to load savefile on start caused this error:")
+                        )
+                        .italic(),
+                    ))?
+                    .queue(MoveTo(
+                        x_main,
+                        y_main
+                            + y_selection
+                            + 4
+                            + u16::try_from(selection_len).unwrap()
+                            + 3
+                            + temp_offset
+                            + 1,
+                    ))?
+                    .queue(PrintStyledContent(
+                        format!("{:^w_main$}", format!("{e}")).italic(),
                     ))?;
             }
 

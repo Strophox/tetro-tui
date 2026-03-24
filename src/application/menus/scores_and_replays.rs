@@ -16,7 +16,7 @@ use falling_tetromino_engine::Stat;
 use crate::{
     application::{
         menus::{Menu, MenuUpdate},
-        Application, CompressedInputHistory, GameRestorationData, ScoresEntry, ScoresSorting,
+        Application, CompressedInputHistory, GameRestorationData, GameSorting, ScoreEntry,
     },
     fmt_helpers::fmt_duration,
     game_renderers::TetroTUIRenderer,
@@ -45,7 +45,7 @@ impl<T: Write> Application<T> {
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
                 .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
 
-            let fmt_comparison_stat = |p: &ScoresEntry| match p.game_meta_data.comparison_stat.0 {
+            let fmt_comparison_stat = |p: &ScoreEntry| match p.game_meta_data.comparison_stat.0 {
                 Stat::TimeElapsed(_) => format!("time: {}", fmt_duration(p.time_elapsed)),
                 Stat::PiecesLocked(_) => format!("pieces: {}", p.pieces_locked.iter().sum::<u32>()),
                 Stat::LinesCleared(_) => format!("lines: {}", p.lineclears),
@@ -56,13 +56,13 @@ impl<T: Write> Application<T> {
             let fmt_past_game = |(rank, (entry, opt_rep)): (
                 usize,
                 &(
-                    ScoresEntry,
+                    ScoreEntry,
                     Option<GameRestorationData<CompressedInputHistory>>,
                 ),
             )| {
                 let lhs_annotation = match sorting {
-                    ScoresSorting::Chronological => entry.game_meta_data.datetime.to_owned(),
-                    ScoresSorting::Scoring => {
+                    GameSorting::Chronological => entry.game_meta_data.datetime.to_owned(),
+                    GameSorting::Scoring => {
                         format!("{rank: >2}{}", if rank == 1 { '#' } else { '.' })
                     }
                 };
@@ -94,8 +94,8 @@ impl<T: Write> Application<T> {
                 let old_hash = std::hash::Hasher::finish(&h);
 
                 match self.scores_and_replays.sorting {
-                    ScoresSorting::Chronological => self.sort_past_games_chronologically(),
-                    ScoresSorting::Scoring => self.sort_past_games_semantically(),
+                    GameSorting::Chronological => self.sort_past_games_chronologically(),
+                    GameSorting::Scoring => self.sort_past_games_semantically(),
                 };
 
                 // let d_pos = cursor_pos.saturating_sub(*camera_pos);
@@ -271,8 +271,8 @@ impl<T: Write> Application<T> {
                     ..
                 }) => {
                     self.scores_and_replays.sorting = match self.scores_and_replays.sorting {
-                        ScoresSorting::Chronological => ScoresSorting::Scoring,
-                        ScoresSorting::Scoring => ScoresSorting::Chronological,
+                        GameSorting::Chronological => GameSorting::Scoring,
+                        GameSorting::Scoring => GameSorting::Chronological,
                     };
                     re_sort_scoreboard = true;
                 }
@@ -283,8 +283,8 @@ impl<T: Write> Application<T> {
                     ..
                 }) => {
                     self.scores_and_replays.sorting = match self.scores_and_replays.sorting {
-                        ScoresSorting::Chronological => ScoresSorting::Scoring,
-                        ScoresSorting::Scoring => ScoresSorting::Chronological,
+                        GameSorting::Chronological => GameSorting::Scoring,
+                        GameSorting::Scoring => GameSorting::Chronological,
                     };
                     re_sort_scoreboard = true;
                 }
@@ -314,7 +314,7 @@ impl<T: Write> Application<T> {
                     ..
                 }) if self.scores_and_replays.entries.len() > 0 => {
                     if let (
-                        ScoresEntry {
+                        ScoreEntry {
                             game_meta_data,
                             time_elapsed,
                             ..

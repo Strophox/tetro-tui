@@ -34,16 +34,16 @@ impl<T: Write> Application<T> {
                 .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
             let labels = [
                 format!(
-                    "Adjust graphics ({:?}) ...",
-                    self.settings.graphics_slots[self.settings.graphics_slot_active].0
+                    "Adjust graphics ({}) ...",
+                    self.settings.graphics_slotmachine.slots[self.settings.graphics_pick].0
                 ),
                 format!(
-                    "Adjust keybinds ({:?}) ...",
-                    self.settings.keybinds_slots[self.settings.keybinds_slot_active].0
+                    "Adjust keybinds ({}) ...",
+                    self.settings.keybinds_slotmachine.slots[self.settings.keybinds_pick].0
                 ),
                 format!(
-                    "Adjust gameplay ({:?}) ...",
-                    self.settings.gameplay_slots[self.settings.gameplay_slot_active].0
+                    "Adjust gameplay ({}) ...",
+                    self.settings.gameplay_slotmachine.slots[self.settings.gameplay_pick].0
                 ),
                 format!(
                     "Keep save file: {}",
@@ -155,22 +155,22 @@ impl<T: Write> Application<T> {
                 }) => {
                     match selected {
                         0 => {
-                            self.settings.graphics_slot_active +=
-                                self.settings.graphics_slots.len() + 1;
-                            self.settings.graphics_slot_active %=
-                                self.settings.graphics_slots.len();
+                            self.settings.graphics_pick +=
+                                self.settings.graphics_slotmachine.slots.len() + 1;
+                            self.settings.graphics_pick %=
+                                self.settings.graphics_slotmachine.slots.len();
                         }
                         1 => {
-                            self.settings.keybinds_slot_active +=
-                                self.settings.keybinds_slots.len() + 1;
-                            self.settings.keybinds_slot_active %=
-                                self.settings.keybinds_slots.len();
+                            self.settings.keybinds_pick +=
+                                self.settings.keybinds_slotmachine.slots.len() + 1;
+                            self.settings.keybinds_pick %=
+                                self.settings.keybinds_slotmachine.slots.len();
                         }
                         2 => {
-                            self.settings.gameplay_slot_active +=
-                                self.settings.gameplay_slots.len() + 1;
-                            self.settings.gameplay_slot_active %=
-                                self.settings.gameplay_slots.len();
+                            self.settings.gameplay_pick +=
+                                self.settings.gameplay_slotmachine.slots.len() + 1;
+                            self.settings.gameplay_pick %=
+                                self.settings.gameplay_slotmachine.slots.len();
                         }
                         3 => {
                             self.temp_data.save_on_exit = match self.temp_data.save_on_exit {
@@ -197,22 +197,22 @@ impl<T: Write> Application<T> {
                 }) => {
                     match selected {
                         0 => {
-                            self.settings.graphics_slot_active +=
-                                self.settings.graphics_slots.len() - 1;
-                            self.settings.graphics_slot_active %=
-                                self.settings.graphics_slots.len();
+                            self.settings.graphics_pick +=
+                                self.settings.graphics_slotmachine.slots.len() - 1;
+                            self.settings.graphics_pick %=
+                                self.settings.graphics_slotmachine.slots.len();
                         }
                         1 => {
-                            self.settings.keybinds_slot_active +=
-                                self.settings.keybinds_slots.len() - 1;
-                            self.settings.keybinds_slot_active %=
-                                self.settings.keybinds_slots.len();
+                            self.settings.keybinds_pick +=
+                                self.settings.keybinds_slotmachine.slots.len() - 1;
+                            self.settings.keybinds_pick %=
+                                self.settings.keybinds_slotmachine.slots.len();
                         }
                         2 => {
-                            self.settings.gameplay_slot_active +=
-                                self.settings.gameplay_slots.len() - 1;
-                            self.settings.gameplay_slot_active %=
-                                self.settings.gameplay_slots.len();
+                            self.settings.gameplay_pick +=
+                                self.settings.gameplay_slotmachine.slots.len() - 1;
+                            self.settings.gameplay_pick %=
+                                self.settings.gameplay_slotmachine.slots.len();
                         }
                         3 => {
                             self.temp_data.save_on_exit = match self.temp_data.save_on_exit {
@@ -240,13 +240,13 @@ impl<T: Write> Application<T> {
                 }) => {
                     match selected {
                         0 => {
-                            self.settings.graphics_slot_active = 0;
+                            self.settings.graphics_pick = 0;
                         }
                         1 => {
-                            self.settings.keybinds_slot_active = 0;
+                            self.settings.keybinds_pick = 0;
                         }
                         2 => {
-                            self.settings.gameplay_slot_active = 0;
+                            self.settings.gameplay_pick = 0;
                         }
                         3 => {
                             self.temp_data.save_on_exit = SavefileGranularity::NoSavefile;

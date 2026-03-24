@@ -1,29 +1,49 @@
 use std::collections::HashMap;
 
 use crossterm::style::Color;
+use falling_tetromino_engine::TileTypeID;
 
-pub type Palette = HashMap<u8, Color>;
+use crate::application::SlotMachine;
 
-pub trait PaletteExt {
-    fn monochrome() -> Self;
-    fn ansi() -> Self;
-    fn fullcolor() -> Self;
-    fn okpalette() -> Self;
-    fn fahrenheit() -> Self;
-    fn gruvbox() -> Self;
-    fn sequoia() -> Self;
-    fn solarized() -> Self;
-    fn terafox() -> Self;
-    fn matrix() -> Self;
+#[derive(PartialEq, Eq, Clone, Debug)]
+#[serde_with::serde_as] // Do **NOT** place this after #[derive(..)] !!
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct Palette {
+    #[serde_as(as = "Vec<(_, _)>")]
+    // #[serde_as(as = "std::collections::HashMap<serde_with::json::JsonString, _>")]
+    tile_to_col: HashMap<u8, Color>,
 }
 
-impl PaletteExt for Palette {
-    fn monochrome() -> Palette {
-        HashMap::new()
+pub fn default_palette_slots() -> SlotMachine<Palette> {
+    let slots = vec![
+        ("Monochrome".to_owned(), Palette::monochrome()), // NOTE: The slot at index 0 is the special 'monochrome'/no palette slot.
+        ("ANSI".to_owned(), Palette::ansi()),
+        ("Fullcolor".to_owned(), Palette::fullcolor()),
+        ("Okpalette".to_owned(), Palette::okpalette()),
+        ("Gruvbox".to_owned(), Palette::gruvbox()),
+        ("Solarized".to_owned(), Palette::solarized()),
+        ("Terafox".to_owned(), Palette::terafox()),
+        ("Fahrenheit".to_owned(), Palette::fahrenheit()),
+        ("The Matrix".to_owned(), Palette::matrix()),
+        ("Sequoia".to_owned(), Palette::sequoia()),
+    ];
+
+    SlotMachine::with_unmodifiable_slots(slots, "Palette".to_owned())
+}
+
+impl Palette {
+    pub fn get(&self, x: &TileTypeID) -> Option<&Color> {
+        self.tile_to_col.get(&x.get())
     }
 
-    fn ansi() -> Palette {
-        const COLORS_COLOR16: [(u8, Color); 7 + 3] = [
+    pub fn monochrome() -> Palette {
+        Palette {
+            tile_to_col: HashMap::new(),
+        }
+    }
+
+    pub fn ansi() -> Palette {
+        let colors = [
             (1, Color::Yellow),
             (2, Color::DarkCyan),
             (3, Color::Green),
@@ -35,7 +55,9 @@ impl PaletteExt for Palette {
             (254, Color::DarkGrey),
             (255, Color::White),
         ];
-        HashMap::from(COLORS_COLOR16)
+        Palette {
+            tile_to_col: colors.into(),
+        }
     }
 
     // pub fn oklch0_palette() -> Palette {
@@ -55,9 +77,9 @@ impl PaletteExt for Palette {
     //     ];
     //     HashMap::from(COLORS_OKLCH)
     // }
-    fn okpalette() -> Palette {
+    pub fn okpalette() -> Palette {
         #[rustfmt::skip]
-        const COLORS_OKLCH_INCRSAT: [(u8, Color); 7 + 3] = [
+        let colors = [
             (  1, Color::Rgb{r:239,g:175,b: 50}), // #EFAF32
             (  2, Color::Rgb{r:  0,g:199,b:198}), // #00C7C6
             (  3, Color::Rgb{r:108,g:189,b: 70}), // #6CBD46
@@ -70,12 +92,14 @@ impl PaletteExt for Palette {
             (254, Color::Rgb{r:127,g:127,b:127}), // #7F7F7F
             (255, Color::Rgb{r:255,g:255,b:255}), // #FFFFFF
         ];
-        HashMap::from(COLORS_OKLCH_INCRSAT)
+        Palette {
+            tile_to_col: colors.into(),
+        }
     }
 
-    fn fullcolor() -> Palette {
+    pub fn fullcolor() -> Palette {
         #[rustfmt::skip]
-        const COLORS: [(u8, Color); 7 + 3] = [
+        let colors = [
             (  1, Color::Rgb{r:254,g:203,b:  1}), // #FECB01
             (  2, Color::Rgb{r:  0,g:159,b:219}), // #009FDB
             (  3, Color::Rgb{r:105,g:190,b: 41}), // #69BE29
@@ -88,12 +112,14 @@ impl PaletteExt for Palette {
             (254, Color::Rgb{r:127,g:127,b:127}), // #7F7F7F
             (255, Color::Rgb{r:255,g:255,b:255}), // #FFFFFF
         ];
-        HashMap::from(COLORS)
+        Palette {
+            tile_to_col: colors.into(),
+        }
     }
 
-    fn fahrenheit() -> Palette {
+    pub fn fahrenheit() -> Palette {
         #[rustfmt::skip]
-        const COLORS_FAHRENHEIT: [(u8, Color); 7 + 3] = [
+        let colors = [
             (  1, Color::Rgb{r:253,g:159,b: 77}), // #FD9F4D
             (  2, Color::Rgb{r:151,g:151,b:150}), // #979796
             (  3, Color::Rgb{r:254,g:206,b:160}), // #FECEA0
@@ -106,7 +132,9 @@ impl PaletteExt for Palette {
             (254, Color::Rgb{r:127,g:127,b:127}), // #7F7F7F
             (255, Color::Rgb{r:255,g:255,b:206}), // #FFFFCE
         ];
-        HashMap::from(COLORS_FAHRENHEIT)
+        Palette {
+            tile_to_col: colors.into(),
+        }
     }
 
     /*pub fn gruvbox_palette() -> Palette {
@@ -126,9 +154,9 @@ impl PaletteExt for Palette {
         ];
         HashMap::from(COLORS_GRUVBOX0)
     }*/
-    fn gruvbox() -> Palette {
+    pub fn gruvbox() -> Palette {
         #[rustfmt::skip]
-        const COLORS_GRUVBOX1: [(u8, Color); 7 + 3] = [
+        let colors = [
             (  1, Color::Rgb{r:250,g:189,b: 47}), // #FABD2F
             (  2, Color::Rgb{r:142,g:192,b:124}), // #8EC07C
             (  3, Color::Rgb{r:184,g:187,b: 38}), // #B8BB26
@@ -141,10 +169,12 @@ impl PaletteExt for Palette {
             (254, Color::Rgb{r:127,g:127,b:127}), // #7F7F7F
             (255, Color::Rgb{r:255,g:255,b:255}), // #FFFFFF
         ];
-        HashMap::from(COLORS_GRUVBOX1)
+        Palette {
+            tile_to_col: colors.into(),
+        }
     }
 
-    /*fn lavendel() -> Palette {
+    /*pub fn lavendel() -> Palette {
         #[rustfmt::skip]
         const COLORS_LAVENDEL: [(u8, Color); 7 + 3] = [
             (  1, Color::Rgb{r:196,g:145,b:222}), // #C491DE
@@ -162,7 +192,7 @@ impl PaletteExt for Palette {
         HashMap::from(COLORS_LAVENDEL)
     }*/
 
-    /*fn nature_suede() -> Palette {
+    /*pub fn nature_suede() -> Palette {
         #[rustfmt::skip]
         const COLORS_NATURE_SUEDE: [(u8, Color); 7 + 3] = [
             (  1, Color::Rgb{r:200,g:157,b: 91}), // #C89D5B
@@ -180,7 +210,7 @@ impl PaletteExt for Palette {
         HashMap::from(COLORS_NATURE_SUEDE)
     }*/
 
-    /*fn papercolor() -> Palette {
+    /*pub fn papercolor() -> Palette {
         #[rustfmt::skip]
         const COLORS_PAPERCOLOR: [(u8, Color); 7 + 3] = [
             (  1, Color::Rgb{r:255,g:175,b:  0}), // #FFAF00
@@ -198,9 +228,9 @@ impl PaletteExt for Palette {
         HashMap::from(COLORS_PAPERCOLOR)
     }*/
 
-    fn sequoia() -> Palette {
+    pub fn sequoia() -> Palette {
         #[rustfmt::skip]
-        const COLORS_SEQUOIA: [(u8, Color); 7 + 3] = [
+        let colors = [
             (  1, Color::Rgb{r:226,g:228,b:237}), // #E2E4ED
             (  2, Color::Rgb{r:148,g:152,b:169}), // #9498A9
             (  3, Color::Rgb{r:211,g:213,b:222}), // #D3D5DE
@@ -213,12 +243,14 @@ impl PaletteExt for Palette {
             (254, Color::Rgb{r:134,g:134,b:144}), // #868690
             (255, Color::Rgb{r:232,g:234,b:242}), // #E8EAF2
         ];
-        HashMap::from(COLORS_SEQUOIA)
+        Palette {
+            tile_to_col: colors.into(),
+        }
     }
 
-    fn solarized() -> Palette {
+    pub fn solarized() -> Palette {
         #[rustfmt::skip]
-        const COLORS_SOLARIZED: [(u8, Color); 7 + 3] = [
+        let colors = [
             (  1, Color::Rgb{r:181,g:137,b:  0}), // #b58900
             (  2, Color::Rgb{r: 42,g:161,b:152}), // #2aa198
             (  3, Color::Rgb{r:133,g:153,b:  0}), // #859900
@@ -231,12 +263,14 @@ impl PaletteExt for Palette {
             (254, Color::Rgb{r:101,g:123,b:131}), // #657b83
             (255, Color::Rgb{r:253,g:246,b:227}), // #fdf6e3
         ];
-        HashMap::from(COLORS_SOLARIZED)
+        Palette {
+            tile_to_col: colors.into(),
+        }
     }
 
-    fn terafox() -> Palette {
+    pub fn terafox() -> Palette {
         #[rustfmt::skip]
-        const COLORS_TERAFOX: [(u8, Color); 7 + 3] = [
+        let colors = [
             (  1, Color::Rgb{r:253,g:178,b:146}), // #FDB292
             (  2, Color::Rgb{r:161,g:205,b:216}), // #A1CDD8
             (  3, Color::Rgb{r:142,g:178,b:175}), // #8EB2AF
@@ -249,12 +283,14 @@ impl PaletteExt for Palette {
             (254, Color::Rgb{r: 78,g: 81,b: 87}), // #4E5157
             (255, Color::Rgb{r:222,g:228,b:230}), // #DEE4E6
         ];
-        HashMap::from(COLORS_TERAFOX)
+        Palette {
+            tile_to_col: colors.into(),
+        }
     }
 
-    fn matrix() -> Palette {
+    pub fn matrix() -> Palette {
         #[rustfmt::skip]
-        const COLORS_THE_MATRIX: [(u8, Color); 7 + 3] = [
+        let colors = [
             (  1, Color::Rgb{r:233,g:226,b:  0}), // #E9E200
             (  2, Color::Rgb{r: 47,g:192,b:121}), // #2FC079
             (  3, Color::Rgb{r: 64,g:153,b: 49}), // #409931
@@ -267,6 +303,8 @@ impl PaletteExt for Palette {
             (254, Color::Rgb{r:113,g:127,b:115}), // #717F73
             (255, Color::Rgb{r:234,g:255,b:244}), // #EAFFF4
         ];
-        HashMap::from(COLORS_THE_MATRIX)
+        Palette {
+            tile_to_col: colors.into(),
+        }
     }
 }
