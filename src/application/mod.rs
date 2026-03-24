@@ -11,8 +11,7 @@ use std::{
 
 use crossterm::{
     cursor::{self, MoveTo},
-    event::KeyboardEnhancementFlags,
-    style,
+    event::{KeyboardEnhancementFlags, PopKeyboardEnhancementFlags, PushKeyboardEnhancementFlags},
     terminal::{self, Clear, ClearType},
     ExecutableCommand,
 };
@@ -669,11 +668,13 @@ impl<T: Write> Application<T> {
     pub const W_MAIN: u16 = 62;
     pub const H_MAIN: u16 = 23;
 
+    pub const TERMINAL_TITLE: &str = "Tetro TUI";
+
     // FIXME: Could we ever get any undesirable results from pushing *all* enhancement flags?
     pub const KEYBOARD_ENHANCEMENT_FLAGS: KeyboardEnhancementFlags =
         KeyboardEnhancementFlags::all();
 
-    pub(crate) fn fetch_main_xy() -> (u16, u16) {
+    pub fn fetch_main_xy() -> (u16, u16) {
         let (w_console, h_console) = terminal::size().unwrap_or((0, 0));
         (
             w_console.saturating_sub(Self::W_MAIN) / 2,
@@ -681,25 +682,47 @@ impl<T: Write> Application<T> {
         )
     }
 
-    pub(crate) fn initialize_terminal_state(&mut self) -> io::Result<()> {
+    fn initialize_terminal_state(&mut self) -> io::Result<()> {
         if !self.temp_data.custom_terminal_state_initialized {
             self.temp_data.custom_terminal_state_initialized = true;
 
+            // 1. Enter alternate screen. This allows us not to trash the terminal's contents from before the app is run.
             self.term.execute(terminal::EnterAlternateScreen)?;
+
+            // 2a. Enable raw input mode (no enter required to read keyboard input).
             terminal::enable_raw_mode()?;
+
+            // 2b. Hide cursor.
             self.term.execute(cursor::Hide)?;
+
+            // 2c. Set title.
             self.term
-                .execute(terminal::SetTitle("Tetro Terminal User Interface"))?;
+                .execute(terminal::SetTitle(Self::TERMINAL_TITLE))?;
+
+            // 2d. For technical reasons we do not want default keyboard enhancement in the TUI's menus.
+            // - Default enhancement trigger screen refreshes, discarding text selection and preventing Ctrl+Shift+C (copy, e.g. of savefile path in Advanced Settings menu).
+            // - Enhancement-sensitive menus (e.g. game, replay, keybind settings) should set their own custom enhancement flags if applicable, so this should really only affect menus which rely on the "default" terminal enhancement state.
+            self.term.execute(PushKeyboardEnhancementFlags(
+                KeyboardEnhancementFlags::empty(),
+            ))?;
         }
         Ok(())
     }
 
-    pub(crate) fn deinitialize_terminal_state(&mut self) -> io::Result<()> {
+    fn deinitialize_terminal_state(&mut self) -> io::Result<()> {
         if self.temp_data.custom_terminal_state_initialized {
             // (Try to) undo terminal setup.
-            self.term.execute(style::ResetColor)?;
+
+            // 2d.
+            self.term.execute(PopKeyboardEnhancementFlags)?;
+
+            // 2b.
             self.term.execute(cursor::Show)?;
+
+            // 2a.
             terminal::disable_raw_mode()?;
+
+            // 1.
             self.term.execute(terminal::LeaveAlternateScreen)?;
 
             self.temp_data.custom_terminal_state_initialized = true;

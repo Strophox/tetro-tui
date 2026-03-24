@@ -7,7 +7,7 @@
 [![License](https://img.shields.io/crates/l/tetro-tui)](https://github.com/Strophox/tetro-tui#license)
 <!--[![Documentation](https://docs.rs/tetro-tui/badge.svg)](https://docs.rs/tetro-tui)-->
 
-A cross-platform terminal game where tetrominos fall and stack.
+A cross-platform<!--, very customizable--> terminal game where tetrominos fall and stack.
 
 !["tetro-tui demonstration GIF"](https://github.com/Strophox/tetro-tui/blob/ec952782218e360e38efb945c849cfe69c3f00c3/assets/tetro-tui_demo-1.0.0.gif?raw=true)
 
