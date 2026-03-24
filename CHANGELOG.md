@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -
 
 
-## [1.2.0] - 2026-03-23
+## [2.0.0] - 2026-03-23
 
 ### Added
 - Settings menu:
@@ -36,8 +36,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     * Skip **forward one state change** using `Alt`+`.`
 
 ### Changed
-- Savefile is now versioned using only `MAJOR.MINOR` (i.e. should not break on `.PATCH` releases).
-- List of relevant renames:
+- Savefile is now versioned using only `MAJOR.MINOR` (e.g. `/home/meee/.config/.tetro-tui_v2.0_savefile.json`) (i.e. should not break on simple `.PATCH` releases).
+- 
+- List of some renames:
     * '16-Color' palette -> 'ANSI' palette
     * '40-Lines' gamemode -> 'Swift' gamemode
     * 'Marathon' -> 'Classic'
