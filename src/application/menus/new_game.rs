@@ -806,7 +806,7 @@ impl<T: Write> Application<T> {
                 if game.state().time.is_zero() {
                     match game.update(InGameTime::ZERO, None) {
                         Ok(msgs) => game_renderer.push_game_notification_feed(msgs),
-                        // Screw us I guess
+                        // ?? but i didn't even do anything yet
                         Err(_update_game_error) => {}
                     }
                 }

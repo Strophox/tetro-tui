@@ -18,6 +18,7 @@ use crate::{
         Application, ScoresEntry,
     },
     fmt_helpers::{fmt_duration, fmt_hertz, fmt_tetromino_counts},
+    game_modes::GameMode,
 };
 
 impl<T: Write> Application<T> {
@@ -67,12 +68,12 @@ impl<T: Write> Application<T> {
             std::time::Duration::from_secs_f64(1. / self.settings.graphics().game_fps);
 
         if *is_win
-            && game_meta_data.title == "Marathon"
+            && game_meta_data.title == GameMode::TITLE_CLASSIC
             && !self.settings.new_game.master_mode_unlocked
         {
             self.settings.new_game.master_mode_unlocked = true;
         } else if *is_win
-            && game_meta_data.title == "Puzzle"
+            && game_meta_data.title == GameMode::TITLE_PUZZLE
             && !self.settings.new_game.experimental_mode_unlocked
         {
             self.settings.new_game.experimental_mode_unlocked = true;
