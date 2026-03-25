@@ -11,6 +11,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -
 
 
+## [2.1.0] - 2026-03-25
+
+### Added
+- Experimental: **New lineclear effect!**
+- When loading savefile fails on startup, the exact error can be viewed in the Advanced Settings menu.
+
+### Changed
+- Palette colors are now stored formatted as hex in savefile.
+
+### Fixed
+- Cheese mode bugs fixed.
+- Enabling override-enhanced-keyboard-events on Windows shouldn't lead to spurious error on program exit.
+- Faulty replay data should not lead to infinite load screen anymore.
+- Kitty: menu texts can now be properly selected and copied.
+
+### Removed
+-
+
+
+
 ## [2.0.1] - 2026-03-23
 
 ### Changed
