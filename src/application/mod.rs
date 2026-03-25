@@ -96,7 +96,7 @@ pub type UncompressedInputHistory = Vec<(InGameTime, Input)>;
     serde::Deserialize,
 )]
 pub struct CompressedInputHistory {
-    inputbuf: Vec<u128>
+    inputbuf: Vec<u128>,
 }
 
 impl CompressedInputHistory {
@@ -126,7 +126,7 @@ impl CompressedInputHistory {
 
     pub fn decompress(&self) -> UncompressedInputHistory {
         let mut decompressed_inputs = Vec::new();
-        
+
         let mut update_time_0 = InGameTime::ZERO;
         for i in self.inputbuf.iter() {
             let (time_diff, button_change) = Self::decompress_input(*i);

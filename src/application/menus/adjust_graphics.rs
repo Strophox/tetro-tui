@@ -34,7 +34,6 @@ impl<T: Write> Application<T> {
 
         let d_fps = 5.0;
 
-        let selection_len = 9;
         let mut selected = 1usize;
         loop {
             let w_main = Self::W_MAIN.into();
@@ -111,7 +110,14 @@ impl<T: Write> Application<T> {
                     "Show FPS = {}",
                     self.settings.graphics().show_fps.fmt_on_off()
                 ),
+                format!(
+                    "(WIP) lineclear style = {}",
+                    self.settings.graphics().lineclear_style
+                ),
             ];
+
+            // +1 For slot.
+            let selection_len = labels.len() + 1;
 
             for (i, label) in labels.into_iter().enumerate() {
                 self.term
@@ -245,6 +251,11 @@ impl<T: Write> Application<T> {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.graphics_mut().show_fps ^= true;
                     }
+                    9 => {
+                        if_unmodifiable_clone_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().lineclear_style += 1;
+                        self.settings.graphics_mut().lineclear_style %= 2;
+                    }
                     _ => {}
                 },
 
@@ -307,6 +318,11 @@ impl<T: Write> Application<T> {
                     8 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.graphics_mut().show_fps ^= true;
+                    }
+                    9 => {
+                        if_unmodifiable_clone_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().lineclear_style += 1;
+                        self.settings.graphics_mut().lineclear_style %= 2;
                     }
                     _ => {}
                 },

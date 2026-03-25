@@ -14,6 +14,7 @@ use crossterm::{
 use falling_tetromino_engine::{
     Button, Coord, GameEndCause, InGameTime, Orientation, Phase, Stat, Tetromino, TileTypeID,
 };
+use rand::Rng;
 
 use super::*;
 
@@ -213,7 +214,7 @@ impl TerminalScreenBuffer {
 }
 
 #[derive(
-    PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug, serde::Serialize, serde::Deserialize,
+    PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]
 struct HardDropTile {
     creation_time: InGameTime,
@@ -222,23 +223,23 @@ struct HardDropTile {
     tile_type_id: TileTypeID,
 }
 
-#[derive(
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    Clone,
-    Debug,
-    Default,
-    serde::Serialize,
-    serde::Deserialize,
-)]
+#[derive(PartialEq, PartialOrd, Clone, Debug, serde::Serialize, serde::Deserialize)]
+struct MinoParticle {
+    creation_time: InGameTime,
+    origin: (usize, usize),
+    momentum: (f32, f32),
+    acceleration: (f32, f32),
+    actually_render: bool,
+    tile_id: TileTypeID,
+}
+
+#[derive(PartialEq, PartialOrd, Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct DiffPrintRenderer {
     screen: TerminalScreenBuffer,
     notification_feed_buffer: Vec<(Notification, InGameTime, bool)>,
     buffered_text_msgs: Vec<(InGameTime, String)>,
     hard_drop_tiles: Vec<(HardDropTile, bool)>,
+    mino_particles: Vec<(MinoParticle, bool)>,
 }
 
 impl Renderer for DiffPrintRenderer {
@@ -255,6 +256,7 @@ impl Renderer for DiffPrintRenderer {
         self.notification_feed_buffer.clear();
         self.buffered_text_msgs.clear();
         self.hard_drop_tiles.clear();
+        self.mino_particles.clear();
     }
 
     fn reset_view_diff_state(&mut self) {
@@ -664,7 +666,12 @@ impl Renderer for DiffPrintRenderer {
             }
 
             // FIXME: No visual indicator for lineclear phase currently.
-            Phase::LinesClearing { .. } => {}
+            Phase::LinesClearing { .. } => {
+                // TODO: Hack.
+                for m in &self.mino_particles {
+                    self.screen.buffer_str("  ", None, m.0.origin);
+                }
+            }
 
             Phase::GameEnd { cause, is_win: _ } => {
                 match cause {
@@ -730,7 +737,63 @@ impl Renderer for DiffPrintRenderer {
             }
         }
 
+        let (w_term, h_term) = terminal::size()?; // FIXME: Hack.
+        for (
+            MinoParticle {
+                creation_time,
+                origin: (x_o, y_o),
+                momentum: (m_x, m_y),
+                acceleration: (a_x, a_y),
+                actually_render,
+                tile_id,
+            },
+            active,
+        ) in &mut self.mino_particles
+        {
+            if !*actually_render {
+                continue;
+            }
+
+            let mut t_elapsed = game
+                .state()
+                .time
+                .saturating_sub(*creation_time)
+                .as_secs_f32();
+            if t_elapsed > 3. {
+                *active = false;
+                continue;
+            }
+
+            // Keep particle at original position for a bit.
+            t_elapsed -= 0.005;
+            if t_elapsed < 0. {
+                t_elapsed = 0.;
+            }
+
+            // FIXME: This `as` cast is annoying. Why isn't there a `try_from` at the least?
+            let pos_x = (*x_o as f32) + (t_elapsed * *m_x + t_elapsed.powf(2.) * *a_x / 2.);
+            let pos_y = (*y_o as f32) - (t_elapsed * *m_y + t_elapsed.powf(2.) * *a_y / 2.);
+
+            // TODO: PLEASE refactor all code not to use `as` casts.
+            if !(0..w_term).contains(&(pos_x.round() as u16))
+                || !(0..h_term).contains(&(pos_y.round() as u16))
+            {
+                *active = false;
+                continue;
+            }
+
+            self.screen.buffer_str(
+                tile_ground,
+                get_color(*tile_id /*NonZeroU8::new(254).unwrap()*/),
+                (pos_x.round() as usize, pos_y.round() as usize),
+            );
+        }
+
+        self.mino_particles.retain(|elt| elt.1);
+
         // Handle feedback.
+        // TODO: This stuff should be processed before drawing...
+        // Ideally we'll have buffers for every type of effect, properly.
         for (notification, notif_time, active) in self.notification_feed_buffer.iter_mut() {
             let elapsed = game.state().time.saturating_sub(*notif_time);
             match notification {
@@ -742,28 +805,28 @@ impl Renderer for DiffPrintRenderer {
                     #[rustfmt::skip]
                     let animation_locking = match settings.graphics().glyphset {
                         Glyphset::Elektronika_60 => [
+                            ( 25, "▮▮"),
                             ( 50, "▮▮"),
                             ( 75, "▮▮"),
                             (100, "▮▮"),
                             (125, "▮▮"),
                             (150, "▮▮"),
-                            (175, "▮▮"),
                         ],
                         Glyphset::ASCII => [
+                            ( 25, "()"),
                             ( 50, "()"),
-                            ( 75, "()"),
+                            ( 75, "{}"),
                             (100, "{}"),
-                            (125, "{}"),
+                            (125, "<>"),
                             (150, "<>"),
-                            (175, "<>"),
                         ],
                         Glyphset::Unicode => [
-                            ( 50, "██"),
-                            ( 75, "▓▓"),
-                            (100, "▒▒"),
-                            (125, "░░"),
-                            (150, "▒▒"),
-                            (175, "▓▓"),
+                            ( 25, "██"),
+                            ( 50, "▓▓"),
+                            ( 75, "▒▒"),
+                            (100, "░░"),
+                            (125, "▒▒"),
+                            (150, "▓▓"),
                         ],
                     };
                     let color_locking = get_color(NonZeroU8::try_from(255).unwrap());
@@ -786,62 +849,90 @@ impl Renderer for DiffPrintRenderer {
                     y_coords,
                     line_clear_start: line_clear_duration,
                 } => {
-                    if !settings.graphics().show_effects || line_clear_duration.is_zero() {
-                        *active = false;
-                        continue;
-                    }
-                    let animation_lineclear = match settings.graphics().glyphset {
-                        Glyphset::Elektronika_60 => [
-                            "▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮",
-                            "  ▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮",
-                            "    ▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮",
-                            "      ▮▮▮▮▮▮▮▮▮▮▮▮▮▮",
-                            "        ▮▮▮▮▮▮▮▮▮▮▮▮",
-                            "          ▮▮▮▮▮▮▮▮▮▮",
-                            "            ▮▮▮▮▮▮▮▮",
-                            "              ▮▮▮▮▮▮",
-                            "                ▮▮▮▮",
-                            "                  ▮▮",
-                        ],
-                        Glyphset::ASCII => [
-                            "$$$$$$$$$$$$$$$$$$$$",
-                            "$$$$$$$$$$$$$$$$$$$$",
-                            "                    ",
-                            "                    ",
-                            "$$$$$$$$$$$$$$$$$$$$",
-                            "$$$$$$$$$$$$$$$$$$$$",
-                            "                    ",
-                            "                    ",
-                            "$$$$$$$$$$$$$$$$$$$$",
-                            "$$$$$$$$$$$$$$$$$$$$",
-                        ],
-                        Glyphset::Unicode => [
-                            "████████████████████",
-                            " ██████████████████ ",
-                            "  ████████████████  ",
-                            "   ██████████████   ",
-                            "    ████████████    ",
-                            "     ██████████     ",
-                            "      ████████      ",
-                            "       ██████       ",
-                            "        ████        ",
-                            "         ██         ",
-                        ],
-                    };
-                    let color_lineclear = get_color(NonZeroU8::try_from(255).unwrap());
-                    let percent = elapsed.as_secs_f64() / line_clear_duration.as_secs_f64();
-                    let max_idx = f64::from(i32::try_from(animation_lineclear.len() - 1).unwrap());
-                    let idx = if (0.0..=1.0).contains(&percent) {
-                        // SAFETY: `0.0 <= percent && percent <= 1.0`.
-                        unsafe { (percent * max_idx).round().to_int_unchecked::<usize>() }
+                    if settings.graphics().lineclear_style == 0 {
+                        if !settings.graphics().show_effects || line_clear_duration.is_zero() {
+                            *active = false;
+                            continue;
+                        }
+                        let animation_lineclear = match settings.graphics().glyphset {
+                            Glyphset::Elektronika_60 => [
+                                "▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮",
+                                "  ▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮",
+                                "    ▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮",
+                                "      ▮▮▮▮▮▮▮▮▮▮▮▮▮▮",
+                                "        ▮▮▮▮▮▮▮▮▮▮▮▮",
+                                "          ▮▮▮▮▮▮▮▮▮▮",
+                                "            ▮▮▮▮▮▮▮▮",
+                                "              ▮▮▮▮▮▮",
+                                "                ▮▮▮▮",
+                                "                  ▮▮",
+                            ],
+                            Glyphset::ASCII => [
+                                "$$$$$$$$$$$$$$$$$$$$",
+                                "$$$$$$$$$$$$$$$$$$$$",
+                                "                    ",
+                                "                    ",
+                                "$$$$$$$$$$$$$$$$$$$$",
+                                "$$$$$$$$$$$$$$$$$$$$",
+                                "                    ",
+                                "                    ",
+                                "$$$$$$$$$$$$$$$$$$$$",
+                                "$$$$$$$$$$$$$$$$$$$$",
+                            ],
+                            Glyphset::Unicode => [
+                                "████████████████████",
+                                " ██████████████████ ",
+                                "  ████████████████  ",
+                                "   ██████████████   ",
+                                "    ████████████    ",
+                                "     ██████████     ",
+                                "      ████████      ",
+                                "       ██████       ",
+                                "        ████        ",
+                                "         ██         ",
+                            ],
+                        };
+                        let color_lineclear = get_color(NonZeroU8::try_from(255).unwrap());
+                        let percent = elapsed.as_secs_f64() / line_clear_duration.as_secs_f64();
+                        let max_idx =
+                            f64::from(i32::try_from(animation_lineclear.len() - 1).unwrap());
+                        let idx = if (0.0..=1.0).contains(&percent) {
+                            // SAFETY: `0.0 <= percent && percent <= 1.0`.
+                            unsafe { (percent * max_idx).round().to_int_unchecked::<usize>() }
+                        } else {
+                            *active = false;
+                            continue;
+                        };
+                        for y_line in y_coords {
+                            let pos = (x_board, y_board + Game::LOCK_OUT_HEIGHT - *y_line);
+                            self.screen
+                                .buffer_str(animation_lineclear[idx], color_lineclear, pos);
+                        }
                     } else {
+                        for y in y_coords.iter().copied() {
+                            for x in 0..Game::WIDTH {
+                                if let Some(origin) = pos_board((
+                                    isize::try_from(x).unwrap(),
+                                    isize::try_from(y).unwrap(),
+                                )) {
+                                    let mult_m_x = rand::rng().random_range(-1.0..1.0);
+                                    let mult_m_y = rand::rng().random_range(0.8..1.0);
+                                    let new_particle = MinoParticle {
+                                        creation_time: *notif_time,
+                                        origin,
+                                        momentum: (mult_m_x * 60.0, mult_m_y * 50.0),
+                                        acceleration: (0.0, -200.0),
+                                        actually_render: true, /*(x /*+ rand::rng().random_range(0..=1)*/).is_multiple_of(2),*/
+                                        tile_id: game.state().board[y][x]
+                                            .unwrap_or(NonZeroU8::new(254).unwrap()),
+                                    };
+
+                                    self.mino_particles.push((new_particle, true));
+                                }
+                            }
+                        }
+
                         *active = false;
-                        continue;
-                    };
-                    for y_line in y_coords {
-                        let pos = (x_board, y_board + Game::LOCK_OUT_HEIGHT - *y_line);
-                        self.screen
-                            .buffer_str(animation_lineclear[idx], color_lineclear, pos);
                     }
                 }
 

@@ -52,9 +52,7 @@ pub trait Renderer: Default {
     ) -> io::Result<()>;
 }
 
-#[derive(
-    PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
-)]
+#[derive(PartialEq, PartialOrd, Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub enum TetroTUIRenderer {
     DiffPrint(DiffPrintRenderer),
     HalfCell(HalfCellRenderer),
