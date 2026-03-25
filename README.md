@@ -1,13 +1,13 @@
 !["tetro-tui logo"](https://github.com/Strophox/tetro-tui/blob/a78483f9ba145798201f83ad2e4dc760ba918916/assets/tetro_logo_glow.png?raw=true)
 
 
-# Tetro TUI - Cross-platform Terminal Game
+# Tetro TUI - Terminal User Interface Game
 
 [![Crates.io](https://img.shields.io/crates/v/tetro-tui.svg)](https://crates.io/crates/tetro-tui)
 [![License](https://img.shields.io/crates/l/tetro-tui)](https://github.com/Strophox/tetro-tui#license)
 <!--[![Documentation](https://docs.rs/tetro-tui/badge.svg)](https://docs.rs/tetro-tui)-->
 
-A cross-platform<!--, very customizable--> terminal game where tetrominos fall and stack.
+Tetro TUI is a terminal-based but modern tetromino-stacking game that is very customizable and runs cross-platform.
 
 !["tetro-tui demonstration GIF"](https://github.com/Strophox/tetro-tui/blob/ec952782218e360e38efb945c849cfe69c3f00c3/assets/tetro-tui_demo-1.0.0.gif?raw=true)
 
@@ -46,12 +46,11 @@ https://aur.archlinux.org/packages/tetro-tui-bin
 ## FAQ
 
 
-### How does the game work?
+### How does the base game work?
 
-> *Tetro* is about [tetromino](<https://en.wikipedia.org/wiki/Tetromino>) pieces falling from the sky and stacking on a rectangular playing field.
+> *Tetro* is about [tetromino](<https://en.wikipedia.org/wiki/Tetromino>) pieces falling from the sky and stacking inside a 2D playing field. Whenever a horizontal line is full, it automatically clears away, and everything 'stacked' above shifts down.
 > 
-> Whenever a line is filled up horizontally, it clears away, and the rest of what you 'stacked' moves down.
-> This way a skilled player can keep playing without blocking out the entire board.
+> A skilled player may keep playing without blocking out the entire board, and different gamemodes put twists on these basic puzzle-like mechanics.
 
 
 ### How good is Customization? Features?
