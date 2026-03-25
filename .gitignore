@@ -29,3 +29,7 @@ target/
 # macOS ?
 
 .DS_Store
+
+
+# Custom
+dbg.txt
