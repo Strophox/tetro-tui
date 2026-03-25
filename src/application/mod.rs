@@ -679,7 +679,7 @@ impl<T: Write> Application<T> {
             // FIXME: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm minds if we do this on Windows.
             let _v = self.term.execute(PushKeyboardEnhancementFlags(
                 KeyboardEnhancementFlags::empty(),
-            ))?;
+            ));
         }
         Ok(())
     }
@@ -690,7 +690,7 @@ impl<T: Write> Application<T> {
 
             // 2d.
             // FIXME: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm minds if we do this on Windows.
-            let _v = self.term.execute(PopKeyboardEnhancementFlags)?;
+            let _v = self.term.execute(PopKeyboardEnhancementFlags);
 
             // 2b.
             self.term.execute(cursor::Show)?;
