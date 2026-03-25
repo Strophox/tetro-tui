@@ -80,17 +80,18 @@ impl GameModifier for Puzzle {
             usize::try_from(game.state.pieces_locked.iter().sum::<u32>()).unwrap();
 
         // We're only interested in updating the game if the end of a puzzle stage has been reached.
-        if current_piece_count < self.stage_tet_count {
+        let stage_ended = current_piece_count >= self.stage_tet_count;
+        if !stage_ended {
             return;
         }
 
         // From here assume player used up all pieces.
 
         // A stage has been successfully finished if every line on the board is empty.
-        let stage_success = game.state.board.iter().all(|line| *line == Line::default());
+        let stage_is_success = game.state.board.iter().all(|line| *line == Line::default());
 
         // Failed on last attempt, this is game over.
-        if !stage_success && self.stage_attempts == Self::MAX_STAGE_ATTEMPTS {
+        if !stage_is_success && self.stage_attempts == Self::MAX_STAGE_ATTEMPTS {
             self.end_post_spawn = Some(false);
 
             return;
@@ -98,7 +99,7 @@ impl GameModifier for Puzzle {
 
         // May have failed or succeeded, load in correct puzzle for each case.
 
-        if stage_success {
+        if stage_is_success {
             // Move on to new stage.
             self.stage_attempts = 0;
             self.stage_idx += 1;
@@ -139,7 +140,7 @@ impl GameModifier for Puzzle {
         self.load_stage(game.state);
 
         // Reset some game state.
-        game.state.score = 0;
+        game.state.points = 0;
         game.state.lineclears = 0;
         game.state.pieces_locked = Default::default();
     }

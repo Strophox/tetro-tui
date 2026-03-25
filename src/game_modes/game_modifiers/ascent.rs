@@ -95,6 +95,7 @@ impl GameModifier for Ascent {
         ) {
             return;
         }
+        
         // Guaranteed to be in `Phase::PieceInPlay`.
         let piece = game.phase.piece_mut().unwrap();
 
@@ -114,7 +115,7 @@ impl GameModifier for Ascent {
                         (x_p as usize).abs_diff(x) + (y_p as usize).abs_diff(y) <= 1
                     }) {
                         // Increase score.s
-                        game.state.score += 1;
+                        game.state.points += 1;
                         254
                     } else {
                         match i {

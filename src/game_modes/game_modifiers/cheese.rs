@@ -103,7 +103,7 @@ impl GameModifier for Cheese {
             game.state.board[0] = cheese;
         }
 
-        game.state.score = self.cheese_eaten;
+        game.state.points = self.cheese_eaten;
     }
 }
 

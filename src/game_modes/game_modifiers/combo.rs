@@ -97,16 +97,16 @@ impl GameModifier for Combo {
 
             return;
         }
-
-        // Overwrite game score with combo length.
-        // FIXME: Proper solution for displaying progress instead of overwriting score?
-        game.state.score = game.state.consecutive_line_clears;
     }
 
     // Insert new line.
     fn on_lines_clear_post(&mut self, game: GameAccess, _feed: &mut NotificationFeed) {
         game.state.board[Game::HEIGHT - 1] =
             Self::combo_lines(&mut self.height_loaded).next().unwrap();
+
+        // Overwrite game score with combo length.
+        // FIXME: Proper solution for displaying progress instead of overwriting score?
+        game.state.points = game.state.consecutive_line_clears;
     }
 }
 

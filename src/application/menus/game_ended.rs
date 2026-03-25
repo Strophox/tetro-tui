@@ -265,6 +265,8 @@ impl<T: Write> Application<T> {
                     selected += 1;
                 }
 
+                Event::Resize(..) => {}
+
                 // Other event: don't care.
                 _ => {}
             }

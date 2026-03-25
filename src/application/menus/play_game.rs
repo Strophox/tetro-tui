@@ -142,7 +142,7 @@ impl<T: Write> Application<T> {
                         .is_some()
                         && !game.config.lock_delay_params.is_constant())
                     .then_some(game.state().lock_delay),
-                    points_scored: game.state().score,
+                    points_scored: game.state().points,
                 };
 
                 let compressed_game_input_history = CompressedInputHistory::new(game_input_history);
