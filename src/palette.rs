@@ -191,7 +191,7 @@ impl Palette {
             (  7, Color::Rgb{r: 49,g:159,b:253}), // #319FFD
 
             (253, Color::Rgb{r:  0,g:  0,b:  0}), // #000000
-            (254, Color::Rgb{r:127,g:127,b:127}), // #7F7F7F
+            (254, Color::Rgb{r:143,g:143,b:143}), // #8F8F8F
             (255, Color::Rgb{r:255,g:255,b:255}), // #FFFFFF
         ];
         Palette {
