@@ -37,7 +37,7 @@ impl Cheese {
         builder
             .clone()
             .game_limits(match cheese_limit {
-                Some(l) => GameLimits::single(Stat::LinesCleared(l.get()), true),
+                Some(c) => GameLimits::single(Stat::PointsScored(c.get()), true),
                 None => GameLimits::new(),
             })
             .build_modded(vec![modifier])
@@ -103,7 +103,7 @@ impl GameModifier for Cheese {
             game.state.board[0] = cheese;
         }
 
-        game.state.lineclears = self.cheese_eaten;
+        game.state.score = self.cheese_eaten;
     }
 }
 

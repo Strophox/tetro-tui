@@ -40,12 +40,12 @@ impl serde_with::SerializeAs<Color> for ColorDummyType {
     fn serialize_as<S: serde::ser::Serializer>(c: &Color, s: S) -> Result<S::Ok, S::Error> {
         use Color as C;
         match *c {
-            C::AnsiValue(value) => return s.serialize_str(&format!("ansi_({})", value)),
+            C::AnsiValue(value) => s.serialize_str(&format!("ansi_({})", value)),
             C::Rgb { r, g, b } => {
-                return s.serialize_str(&format!("#{r:02x}{g:02x}{b:02x}"))
+                s.serialize_str(&format!("#{r:02x}{g:02x}{b:02x}"))
             }
             c => {
-                s.serialize_str(&match c {
+                s.serialize_str(match c {
                     C::Reset => "reset",
                     C::Black => "black",
                     C::DarkGrey => "dark_grey",
