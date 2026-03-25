@@ -73,7 +73,7 @@ impl Keybinds {
 
     pub fn empty() -> Keybinds {
         Keybinds {
-            mapping: HashMap::new(),
+            mapping: Default::default(),
         }
     }
 

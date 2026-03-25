@@ -9,8 +9,8 @@ use crate::application::SlotMachine;
 #[serde_with::serde_as] // Do **NOT** place this after #[derive(..)] !!
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct Palette {
-    #[serde_as(as = "Vec<(_, _)>")]
-    // #[serde_as(as = "std::collections::HashMap<serde_with::json::JsonString, _>")]
+    // #[serde_as(as = "Vec<(_, ColorDummyType)>")]
+    #[serde_as(as = "std::collections::HashMap<serde_with::json::JsonString, ColorDummyType>")]
     tile_to_col: HashMap<u8, Color>,
 }
 
@@ -31,6 +31,108 @@ pub fn default_palette_slots() -> SlotMachine<Palette> {
     SlotMachine::with_unmodifiable_slots(slots, "Palette".to_owned())
 }
 
+// FIXME: The following boilerplate is minimally adapted from Crossterm,
+// https://github.com/crossterm-rs/crossterm/blob/master/src/style/types/color.rs#L260
+// and should maybe be changed or accredited better.
+struct ColorDummyType;
+#[rustfmt::skip]
+impl serde_with::SerializeAs<Color> for ColorDummyType {
+    fn serialize_as<S: serde::ser::Serializer>(c: &Color, s: S) -> Result<S::Ok, S::Error> {
+        use Color as C;
+        match *c {
+            C::AnsiValue(value) => return s.serialize_str(&format!("ansi_({})", value)),
+            C::Rgb { r, g, b } => {
+                return s.serialize_str(&format!("#{r:02x}{g:02x}{b:02x}"))
+            }
+            c => {
+                s.serialize_str(&match c {
+                    C::Reset => "reset",
+                    C::Black => "black",
+                    C::DarkGrey => "dark_grey",
+                    C::Red => "red",
+                    C::DarkRed => "dark_red",
+                    C::Green => "green",
+                    C::DarkGreen => "dark_green",
+                    C::Yellow => "yellow",
+                    C::DarkYellow => "dark_yellow",
+                    C::Blue => "blue",
+                    C::DarkBlue => "dark_blue",
+                    C::Magenta => "magenta",
+                    C::DarkMagenta => "dark_magenta",
+                    C::Cyan => "cyan",
+                    C::DarkCyan => "dark_cyan",
+                    C::White => "white",
+                    C::Grey => "grey",
+                    _ => unreachable!(),
+                })
+            }
+        }
+    }
+}
+
+#[rustfmt::skip]
+impl<'de> serde_with::DeserializeAs<'de, Color> for ColorDummyType {
+    fn deserialize_as<D: serde::de::Deserializer<'de>>(d: D) -> Result<Color, D::Error> {
+        struct ColorVisitor;
+        impl serde::de::Visitor<'_> for ColorVisitor {
+            type Value = Color;
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str(
+                    "`reset`, `black`, `blue`, `dark_blue`, `cyan`, `dark_cyan`, `green`, `dark_green`, `grey`, `dark_grey`, `magenta`, `dark_magenta`, `red`, `dark_red`, `white`, `yellow`, `dark_yellow`, `ansi_(value)`, or `#rgbhex`",
+                )
+            }
+            fn visit_str<E: serde::de::Error>(self, value: &str) -> Result<Color, E> {
+                if let Ok(c) = Color::try_from(value) {
+                    Ok(c)
+                } else {
+                    if value.contains("ansi") {
+                        // strip away `ansi_(..)' and get the inner value between parenthesis.
+                        let results = value.replace("ansi_(", "").replace(")", "");
+
+                        let ansi_val = results.parse::<u8>();
+
+                        if let Ok(ansi) = ansi_val {
+                            return Ok(Color::AnsiValue(ansi));
+                        }
+                    } else if value.contains("rgb") {
+                        // strip away `rgb_(..)' and get the inner values between parenthesis.
+                        let results = value
+                            .replace("rgb_(", "")
+                            .replace(")", "")
+                            .split(',')
+                            .map(|x| x.to_string())
+                            .collect::<Vec<String>>();
+
+                        if results.len() == 3 {
+                            let r = results[0].parse::<u8>();
+                            let g = results[1].parse::<u8>();
+                            let b = results[2].parse::<u8>();
+
+                            if let (Ok(r), Ok(g), Ok(b)) = (r, g, b) {
+                                return Ok(Color::Rgb { r, g, b });
+                            }
+                        }
+                    } else if let Some(hex) = value.strip_prefix('#') {
+                        if hex.is_ascii() && hex.len() == 6 {
+                            let r = u8::from_str_radix(&hex[0..2], 16);
+                            let g = u8::from_str_radix(&hex[2..4], 16);
+                            let b = u8::from_str_radix(&hex[4..6], 16);
+
+                            if let (Ok(r), Ok(g), Ok(b)) = (r, g, b) {
+                                return Ok(Color::Rgb { r, g, b });
+                            }
+                        }
+                    }
+
+                    Err(E::invalid_value(serde::de::Unexpected::Str(value), &self))
+                }
+            }
+        }
+
+        d.deserialize_str(ColorVisitor)
+    }
+}
+
 impl Palette {
     pub fn get(&self, x: &TileTypeID) -> Option<&Color> {
         self.tile_to_col.get(&x.get())
@@ -38,7 +140,7 @@ impl Palette {
 
     pub fn monochrome() -> Palette {
         Palette {
-            tile_to_col: HashMap::new(),
+            tile_to_col: Default::default(),
         }
     }
 

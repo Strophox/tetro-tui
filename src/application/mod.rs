@@ -83,7 +83,6 @@ impl<T: Clone> SlotMachine<T> {
 
 pub type UncompressedInputHistory = Vec<(InGameTime, Input)>;
 
-//TODO:#[serde_with::serde_as]
 #[derive(
     PartialEq,
     Eq,
@@ -97,7 +96,6 @@ pub type UncompressedInputHistory = Vec<(InGameTime, Input)>;
     serde::Deserialize,
 )]
 pub struct CompressedInputHistory {
-    //TODO:#[serde_as(as = "serde_with::base64::Base64")]
     inputbuf: Vec<u128>
 }
 
@@ -107,8 +105,6 @@ impl CompressedInputHistory {
     // - At time of writing: 4 bits for the 11 `Button` variants.
     pub const BUTTON_CHANGE_BITSIZE: usize =
         1 + Button::VARIANTS.len().next_power_of_two().ilog2() as usize;
-
-    //TODO:pub const NUM_BYTES_PER_INPUT: usize = 5; // N=5; This should give around 2 ^ (5*8 - BUT_CHG_BITSZ) = 34359738368 milliseconds. 
 
     pub fn new(game_input_history: &UncompressedInputHistory) -> Self {
         let mut inputbuf = Vec::new();
