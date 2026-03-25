@@ -114,8 +114,11 @@ impl<T: Write> Application<T> {
 
         // Initialized/load game and generate game_save_anchors if possible.
         const ANCHOR_INTERVAL: Duration = Duration::from_millis(1000);
-        let (mut game, game_save_anchors) =
-            self.calculate_game_save_anchors(game_restoration_data, ANCHOR_INTERVAL)?;
+        let (mut game, game_save_anchors) = self.calculate_game_save_anchors(
+            game_restoration_data,
+            ANCHOR_INTERVAL,
+            replay_length,
+        )?;
 
         let mut inputs_loaded = 0usize;
 
@@ -818,19 +821,15 @@ impl<T: Write> Application<T> {
         Ok(menu_update)
     }
 
-    // NOTE: We do not treat degenerate games that end immediately (total time = 0).
+    // FIXME: Add better error detection for fail cases, probably use renderer feed.
+    // FIXME: We do not treat degenerate games that end immediately (total time = 0).
     fn calculate_game_save_anchors(
         &mut self,
         game_restoration_data: &GameRestorationData<UncompressedInputHistory>,
         anchor_interval: Duration,
+        replay_length: InGameTime,
     ) -> io::Result<(Game, Option<Vec<GameSaveAnchor>>)> {
         let initial_game = game_restoration_data.restore(0);
-
-        let replay_length = game_restoration_data
-            .input_history
-            .last()
-            .map(|x| x.0)
-            .unwrap_or_default();
 
         let mut game = match initial_game.try_clone() {
             Ok(game) => game,
@@ -855,6 +854,7 @@ impl<T: Write> Application<T> {
                     fmt_duration(replay_length)
                 ))))?;
 
+            // FIXME: Malformed input may not interact nicely with other things, e.g. forfeiting below.
             'feed_inputs: loop {
                 let Some((next_input_time, button_change)) =
                     game_restoration_data.input_history.get(inputs_loaded)
@@ -900,7 +900,12 @@ impl<T: Write> Application<T> {
                 inputs_loaded,
             });
 
-            next_anchor_time = game.state().time + anchor_interval
+            next_anchor_time = game.state().time + anchor_interval;
+
+            // Stop generation.
+            if next_anchor_time > replay_length {
+                break 'calculate_anchors;
+            }
         }
 
         Ok((initial_game, Some(game_save_anchors)))
