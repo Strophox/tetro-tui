@@ -847,7 +847,7 @@ impl Renderer for DiffPrintRenderer {
 
                 Notification::LinesClearing {
                     y_coords,
-                    line_clear_start: line_clear_duration,
+                    line_clear_duration,
                 } => {
                     if settings.graphics().lineclear_style == 0 {
                         if !settings.graphics().show_effects || line_clear_duration.is_zero() {
