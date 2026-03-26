@@ -157,7 +157,8 @@ https://aur.archlinux.org/packages/tetro-tui-bin
 > 
 > Savefile grows mostly with number/length of replays saved.
 > If you end up with a lot of play time but don't want to spare the KBs/MBs required, you can
-> Delect select entries (or just their replay data) in *Scores and Replays* using `[Del]` (or `[Alt+Del]`, respectively).
+> - Delete select entries (or just their replay data) in *Scores and Replays* using `[Del]` (or `[Alt+Del]`, respectively).
+> - Configure granularly which data gets stored by the application in the first place (in *Advanced Settings*).
 >
 > </details>
 
