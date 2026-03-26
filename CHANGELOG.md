@@ -26,9 +26,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Faulty replay data should not lead to infinite load screen anymore.
 - Kitty: menu texts can now be properly selected and copied.
 
-### Removed
--
-
 
 
 ## [2.0.1] - 2026-03-23
