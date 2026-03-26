@@ -23,7 +23,7 @@ impl GameModifier for StartBoard {
     }
 
     fn args(&self) -> String {
-        self.encoded_board.clone()
+        serde_json::to_string(&self.encoded_board).unwrap()
     }
 
     fn try_clone(&self) -> Result<Box<dyn GameModifier>, String> {
