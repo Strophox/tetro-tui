@@ -162,7 +162,7 @@ https://aur.archlinux.org/packages/tetro-tui-bin
 > </details>
 
 
-### *Experienced Stackers:* Why do some gameplay settings (DAS/ARR/SDF etc.) not work for me?
+### Why do some of the gameplay settings (DAS/ARR/SDF etc.) not work for me?
 
 > <details>
 > <summary>
@@ -185,7 +185,7 @@ https://aur.archlinux.org/packages/tetro-tui-bin
 > </details>
 
 
-### *Experienced Stackers:* How 'deep'/extensive are the precise stacker mechanics?
+### *Experienced players:* How 'deep'/extensive are the precise stacker mechanics?
 
 > <details>
 > <summary>
@@ -220,7 +220,7 @@ https://aur.archlinux.org/packages/tetro-tui-bin
 > </details>
 
 
-### *Experienced Stackers:* In which ways is it unlike familiar stacker games?
+### *Experienced players:* In which ways is it unlike familiar stacker games?
 
 > <details>
 > <summary>
@@ -244,7 +244,7 @@ https://aur.archlinux.org/packages/tetro-tui-bin
 > </details>
 
 
-### *Experienced Stackers:* What's the 'Ocular Rotation System'?
+### *Experienced players:* What is the 'Ocular Rotation System'?
 
 > <details>
 > <summary>
@@ -267,7 +267,7 @@ https://aur.archlinux.org/packages/tetro-tui-bin
 > </details>
 
 
-### *CLI Enthusiasts:* How was the TUI programmed and why isn't it [Ratatui](<https://ratatui.rs/>)?
+### *CLI enthusiasts:* How was the TUI programmed and why isn't it [Ratatui](<https://ratatui.rs/>)?
 
 > This project started as small proof-of-concept that directly used [Crossterm](<https://crates.io/crates/crossterm>).
 > Crossterm handles all the placing of (styled) characters and reading inputs from the terminal and we mostly implement custom diff'ing so I/O does not bottleneck game rendering (smooth/no flicker).
