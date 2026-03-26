@@ -55,9 +55,9 @@ https://aur.archlinux.org/packages/tetro-tui-bin
 > Different gamemodes may put slight twists on the base mechanics.
 
 
-### How good are the features / customization?
+### How good are the features / customization options?
 
-> "Solid":
+> We've come some ways to have a solid set:
 > - **Graphics:** Unicode/ASCII/Electronika, a handful of provided color palettes, FPS, toggle effects, ...
 > - **Game keybinds:** to your heart's desire. (\*Note: `Shift`/`Alt`/.. might not work due to terminal limitations.)
 > - **Gameplay/handling:** Rotation systems, randomizers, preview, timings (DAS, ARR, SDF, LDC, ARE), IRS/IHS.
