@@ -133,36 +133,6 @@ https://aur.archlinux.org/packages/tetro-tui-bin
 > </details>
 
 
-### What's the motivation behind this project?
-
-> This is a passion project!
-> Personal motivation drove me to implement most of the current features to make things more enjoyable/customizable for myself and others.
-> 
-> The result is hopefully decent customization, advanced game mechanics, technical solutions across the board:
-> Swappable settings slots/profiles to deal with all the knobs and buttons (manual json editing possible), basic game replay compression; nontrivial gamemodes, a compile-time modding system, and almost all the modern stacker game mechanics I saw fit.
-> 
-> Maintaining high Rust code quality, especially in the [game logic](<https://crates.io/crates/falling-tetromino-engine>), was also important.
-
-
-### Where's the config file? Will it clutter my system?
-
-> <details>
-> <summary>
-> 
-> The application will **not** store anything by default, 'Keep save file' needs to be opted in to persist data.
->
-> </summary>
-> 
-> The exact location of the config file is shown in the *Advanced Settings* menu and is based on `dirs::config_dir()` (usually `C:/User/yourname/AppData/Roaming/.tetro-tui_v1.0_savefile.json` or `/home/yourname/.config/.tetro-tui_v1.0_savefile.json`).
-> 
-> Savefile grows mostly with number/length of replays saved.
-> If you end up with a lot of play time but don't want to spare the KBs/MBs required, you can
-> - Delete select entries (or just their replay data) in *Scores and Replays* using `[Del]` (or `[Alt+Del]`, respectively).
-> - Configure granularly which data gets stored by the application in the first place (in *Advanced Settings*).
->
-> </details>
-
-
 ### Why do some of the gameplay settings (DAS/ARR/SDF etc.) not work for me?
 
 > <details>
@@ -186,99 +156,10 @@ https://aur.archlinux.org/packages/tetro-tui-bin
 > </details>
 
 
-### *Experienced players:* How 'deep'/extensive are the precise stacker mechanics?
-
-> <details>
-> <summary>
-> 
-> See this feature list from the [Falling Tetromino Engine](<https://crates.io/crates/falling-tetromino-engine>) backend powering the game logic:
->
-> </summary>
-> 
-> The engine aims to compete on the order of modern tetromino stackers;
-> It incorporates many features found in such games.
-> Experienced players may be familiar with most of the following mechanics:
-> - **Variable gravity/fall delay** (frame-agnostic); '20G' (= 0s fall delay),
-> - Simple but flexible programming of **custom fall and lock delay progressions** (`DelayParameters`),
-> - (Arbitrary) **piece preview**,
-> - **Pre-spawn actions** toggle ('Initial Hold/Rotation System'),
-> - **Rotation systems**: 'Ocular' (engine-specific, playtested), 'ClassicL', 'ClassicR', 'Super',
-> - **Tetromino generators**: 'Uniform', 'Stock' (generalized Bag), 'Recency' (history), 'Balancerelative',
-> - **Spawn delay** (ARE),
-> - **Delayed auto-shift** (DAS),
-> - **Auto-repeat rate** (ARR),
-> - **Soft drop factor** (SDF),
-> - **Lenient lock delay reset** toggle (reset lock delay even if rotate/move fails),
-> - **Ensure move delay less than lock delay** toggle (DAS/ARR automatically shortened when lock delay is very low),
-> - **Lock-reset-cap factor** (~maximum time before lock delay cannot be reset),
-> - **Line clear duration** (LCD),
-> - Custom **win/loss conditions based on stats**: time, pieces, lines, score,
-> - **Hold** piece,
-> - Higher **score** for larger lineclears and spins ('allspin')
-> - Game **reproducibility** (PRNG),
-> - Available player actions: MoveLeft, MoveRight; RotateLeft, RotateRight, Rotate180; DropSoft, DropHard, TeleDown ('Sonic drop'), TeleLeft, TeleRight, HoldPiece.
-> 
-> </details>
-
-
-### *Experienced players:* In which ways is it unlike familiar stacker games?
-
-> <details>
-> <summary>
-> 
-> This project takes some liberties to adapt/experiment with certain aspects of the game, though it should feel extremely familiar:
-> 
-> </summary>
-> 
-> - Default controls set to **WASD + Arrow keys** (swappable).
-> - Default use of the symmetrical and flexible **Ocular Rotation** System (instead of the sometimeis quirky industry standard) (swappable).
-> - Default **Recency (History) Randomizer** (instead of 'overdeterministic' 7-Bag) (swappable).
-> - **Score bonus** system is custom and kept simple.
->   - "1pt for simple line clear, increasing score incentivizing higher clears, spins, perfects and combos."
->   - 'Allspin' (instead of preoccupation with 'T-spins'), currently no 'minis'.
->   - Combos (but no 'back-to-back').
->   - ...Exact formula: `score_bonus = if is_perfect_clear{ 4 }else{ 1 } * if is_spin{ 2 }else{ 1 } * (lineclears * 2 - 1) + (combo - 1)`
-> - Controls availble for **Teleport Down ('Sonic Drop')** / Left / Right.
-> - Different **lock reset** / lock-down cutoff: 'max time = 10⋅current lock delay' (instead of 'max 15 moves with current lock delay').
-> - Speed/Gravity/Fall curve practically same but technically slightly adapted (adjustable for custom game via savefile).
-> 
-> </details>
-
-
-### *Experienced players:* What is the 'Ocular Rotation System'?
-
-> <details>
-> <summary>
-> 
-> A serious attempt at better tetromino rotation, based on visual intuition and symmetry:
-> 
-> </summary>
->
-> The Ocular rotation system affords:
-> - Rotation generally based on 'proximity where it looks like the piece should be able to go'.
-> - Symmetric/mirrored situations should lead to symmetric/mirrored outcomes.
-> - Pieces should not 'teleport up' a lot.
->
-> See visual 'heatmap' comparison of Super vs. Ocular rotation:
-> 
-> !["super rotation system heatmap"](https://github.com/Strophox/tetro-tui/blob/3d98435167c779cb57651383d6b290d31e015013/demo_assets/super-rotation_heatmap.png?raw=true)
-> 
-> !["ocular rotation system heatmap"](https://github.com/Strophox/tetro-tui/blob/3d98435167c779cb57651383d6b290d31e015013/demo_assets/ocular-rotation_heatmap.png?raw=true)
-> 
-> </details>
-
-
-### *CLI enthusiasts:* How was the TUI programmed and why isn't it [Ratatui](<https://ratatui.rs/>)?
-
-> This project started as small proof-of-concept that directly used [Crossterm](<https://crates.io/crates/crossterm>).
-> Crossterm handles all the placing of (styled) characters and reading inputs from the terminal and we mostly implement custom diff'ing so I/O does not bottleneck game rendering (smooth/no flicker).
-> There are currently no plans to stray from the minimal design intended. It is not easy to justify large rewrites  with not much gain, but Ratatui may be reconsidered.
-
-
 ### How to navigate the terminal user interface (TUI) – is there a table of all controls?
 
-Refer to the following tables for all available controls:
-
+> Refer to the following tables for all available controls:
+> 
 > <details>
 > <summary>General TUI menu controls:</summary>
 > 
@@ -348,6 +229,125 @@ Refer to the following tables for all available controls:
 > </details>
 
 
+### Where's the config file? Will it clutter my system?
+
+> <details>
+> <summary>
+> 
+> The application will **not** store anything by default, 'Keep save file' needs to be opted in to persist data.
+>
+> </summary>
+> 
+> The exact location of the config file is shown in the *Advanced Settings* menu and is based on `dirs::config_dir()` (usually `C:/User/yourname/AppData/Roaming/.tetro-tui_v1.0_savefile.json` or `/home/yourname/.config/.tetro-tui_v1.0_savefile.json`).
+> 
+> Savefile grows mostly with number/length of replays saved.
+> If you end up with a lot of play time but don't want to spare the KBs/MBs required, you can
+> - Delete select entries (or just their replay data) in *Scores and Replays* using `[Del]` (or `[Alt+Del]`, respectively).
+> - Configure granularly which data gets stored by the application in the first place (in *Advanced Settings*).
+>
+> </details>
+
+
+### *Experienced players:* How 'deep'/extensive are the precise stacker mechanics?
+
+> <details>
+> <summary>
+> 
+> See this feature list from the [Falling Tetromino Engine](<https://crates.io/crates/falling-tetromino-engine>) backend powering the game logic:
+>
+> </summary>
+> 
+> The engine aims to compete on the order of modern tetromino stackers;
+> It should incorporate many mechanics desired by familiar/experienced players, such as:
+> - Available player actions:
+>     - Move left/right,
+>     - Rotate left/right/180°
+>     - Drop soft/hard
+>     - Teleport down(='Sonic drop')/left/right
+>     - Hold piece,
+> - **Tetromino randomizers**: 'Uniform', 'Stock' (generalized Bag), 'Recency' (history), 'Balance-out',
+> - **Piece preview** (arbitrary size),
+> - **Spawn delay** (ARE),
+> - **Initial actions** on-piece-spawn toggle ('Initial Hold/Rotation System'),
+> - **Rotation systems**: 'Ocular' (engine-specific, playtested), 'Classic', 'Super',
+> - **Delayed auto-move** (DAS),
+> - **Auto-move rate** (ARR),
+> - **Soft drop factor** (SDF),
+> - **Customizable gravity/fall and lock delay curves** (including '20G' = 0s fall delay),
+> - **Ensure move delay less than lock delay** toggle (i.e. DAS/ARR are automatically shortened when lock delay is very low),
+> - **Allow lenient lock-reset** toggle (i.e. reset lock delay even if rotate/move fails),
+> - **Lock-reset cap factor** (i.e. maximum time before lock delay cannot be reset),
+> - **Line clear duration** (LCD),
+> - **Customizable win/loss conditions** based on the time, pieces, lines, score,
+> - Higher **score** for larger lineclears and spins ('allspin'),
+> - Game **reproducibility** (PRNG).
+> 
+> </details>
+
+
+### *Experienced players:* In which ways is it unlike familiar stacker games?
+
+> <details>
+> <summary>
+> 
+> This project takes some liberties to adapt/experiment with certain aspects of the game, though it should feel extremely familiar:
+> 
+> </summary>
+> 
+> - Default controls set to **WASD + Arrow keys** (swappable).
+> - Default use of the symmetrical and flexible **Ocular Rotation** System (instead of the sometimeis quirky industry standard) (swappable).
+> - Default **Recency (History) Randomizer** (instead of 'overdeterministic' 7-Bag) (swappable).
+> - **Score bonus** system is custom and kept simple.
+>   - "1pt for simple line clear, increasing score incentivizing higher clears, spins, perfects and combos."
+>   - 'Allspin' (instead of preoccupation with 'T-spins'), currently no 'minis'.
+>   - Combos (but no 'back-to-back').
+>   - ...Exact formula: `score_bonus = if is_perfect_clear{ 4 }else{ 1 } * if is_spin{ 2 }else{ 1 } * (lineclears * 2 - 1) + (combo - 1)`
+> - Controls availble for **Teleport Down ('Sonic Drop')** / Left / Right.
+> - Different **lock reset** / lock-down cutoff: 'max time = 10⋅current lock delay' (instead of 'max 15 moves with current lock delay').
+> - Speed/Gravity/Fall curve practically same but technically slightly adapted (adjustable for custom game via savefile).
+> 
+> </details>
+
+
+### *Experienced players:* What is the 'Ocular Rotation System'?
+
+> <details>
+> <summary>
+> 
+> A serious attempt at better tetromino rotation, based on visual intuition and symmetry:
+> 
+> </summary>
+>
+> The Ocular rotation system affords:
+> - Rotation generally based on 'proximity where it looks like the piece should be able to go'.
+> - Symmetric/mirrored situations should lead to symmetric/mirrored outcomes.
+> - Pieces should not 'teleport up' a lot.
+>
+> See visual 'heatmap' comparison of Super vs. Ocular rotation:
+> 
+> !["super rotation system heatmap"](https://github.com/Strophox/tetro-tui/blob/3d98435167c779cb57651383d6b290d31e015013/demo_assets/super-rotation_heatmap.png?raw=true)
+> 
+> !["ocular rotation system heatmap"](https://github.com/Strophox/tetro-tui/blob/3d98435167c779cb57651383d6b290d31e015013/demo_assets/ocular-rotation_heatmap.png?raw=true)
+> 
+> </details>
+
+
+### *CLI enthusiasts:* How was the TUI programmed and why isn't it [Ratatui](<https://ratatui.rs/>)?
+
+> This project started as small proof-of-concept that directly used [Crossterm](<https://crates.io/crates/crossterm>).
+> Crossterm handles all the placing of (styled) characters and reading inputs from the terminal and we mostly implement custom diff'ing so I/O does not bottleneck game rendering (smooth/no flicker).
+> There are currently no plans to stray from the minimal design intended. It is not easy to justify large rewrites  with not much gain, but Ratatui may be reconsidered.
+
+
+### What is the goal of this project?
+
+> This started as a passion project!
+> Personal motivation drove me to research this type of simple yet deep game, and put in my best efforts to implement a featureful and customizable form of it that can be played in its full glory on any mere terminal.
+> 
+> The turnout is solid customization, advanced/modern game mechanics, and other technical solutions:
+> Basic replay compression, Swappable slots/profiles for settings, interesting game modes that remain close to the original based on a modding system in the [concisely-kept game engine](<https://crates.io/crates/falling-tetromino-engine>).
+
+
 ## License
 
 Licensed under MIT.
@@ -368,4 +368,4 @@ Special Thanks go to:
 - madkiwi – for advice regarding 4wide-6residual combo layouts
 - Apostolos Kousoukos – for making [Apotris](<https://apotris.com/>)
 - Martín G – for inspiration regarding new line clear effect from his own PICO-8 game
-- and RayZN and ˗ˋˏthe One and Onlyˎˊ˗ – for advice regarding the Tetro logo
+- and RayZN and ˗ˋˏthe One and Onlyˎˊ˗ – for advice regarding the Tetro logo!
