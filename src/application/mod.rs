@@ -342,13 +342,12 @@ impl Scoreboard {
     }
 
     fn sort_chronologically(&mut self) {
-        self.entries
-            .sort_by(|(pg1, _), (pg2, _)| {
-                pg1.game_meta_data
-                    .datetime
-                    .cmp(&pg2.game_meta_data.datetime)
-                    .reverse()
-            });
+        self.entries.sort_by(|(pg1, _), (pg2, _)| {
+            pg1.game_meta_data
+                .datetime
+                .cmp(&pg2.game_meta_data.datetime)
+                .reverse()
+        });
     }
 
     #[rustfmt::skip]

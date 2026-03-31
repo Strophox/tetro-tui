@@ -32,17 +32,26 @@ impl<T: Write> Application<T> {
         let mut save_str = String::new();
         file.read_to_string(&mut save_str)?;
 
+        // Make sure no field is forgotten by explicitly unpacking.
+        let Application {
+            term: _,
+            temp_data,
+            settings,
+            scores_and_replays,
+            statistics,
+            game_saves,
+        } = self;
         let compressed_game_saves: (usize, Vec<GameSave<CompressedInputHistory>>);
 
         (
-            self.temp_data.save_on_exit,
-            self.settings,
-            self.scores_and_replays,
-            self.statistics,
+            temp_data.save_on_exit,
+            *settings,
+            *scores_and_replays,
+            *statistics,
             compressed_game_saves,
         ) = serde_json::from_str(&save_str)?;
 
-        self.game_saves = (
+        *game_saves = (
             compressed_game_saves.0,
             compressed_game_saves
                 .1

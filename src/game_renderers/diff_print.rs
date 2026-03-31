@@ -14,7 +14,7 @@ use crossterm::{
 use falling_tetromino_engine::{
     Button, Coord, GameEndCause, InGameTime, Orientation, Phase, Stat, Tetromino, TileTypeID,
 };
-use rand::{Rng, RngExt};
+use rand::RngExt;
 
 use super::*;
 

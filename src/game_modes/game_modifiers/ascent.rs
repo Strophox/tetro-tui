@@ -1,6 +1,6 @@
 use std::{num::NonZeroU8, time::Duration};
 
-use rand::{Rng, RngExt};
+use rand::RngExt;
 
 use falling_tetromino_engine::{
     Button, DelayParameters, ExtDuration, Game, GameAccess, GameBuilder, GameLimits, GameModifier,
