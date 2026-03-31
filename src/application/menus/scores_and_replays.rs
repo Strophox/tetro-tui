@@ -93,10 +93,7 @@ impl<T: Write> Application<T> {
                 std::hash::Hash::hash(&self.scores_and_replays.entries[*cursor_pos], &mut h);
                 let old_hash = std::hash::Hasher::finish(&h);
 
-                match self.scores_and_replays.sorting {
-                    GameSorting::Chronological => self.sort_past_games_chronologically(),
-                    GameSorting::Scoring => self.sort_past_games_semantically(),
-                };
+                self.scores_and_replays.sort();
 
                 // let d_pos = cursor_pos.saturating_sub(*camera_pos);
                 *cursor_pos = self
@@ -237,6 +234,16 @@ impl<T: Write> Application<T> {
                     }
                 }
 
+                // Move selector top.
+                Event::Key(KeyEvent {
+                    code: KeyCode::Home,
+                    kind: Press | Repeat,
+                    ..
+                }) if self.scores_and_replays.entries.len() > 0 => {
+                    *cursor_pos = 0;
+                    *camera_pos = 0;
+                }
+
                 // Move selector down.
                 Event::Key(KeyEvent {
                     code: KeyCode::Down | KeyCode::Char('j' | 'J'),
@@ -263,6 +270,20 @@ impl<T: Write> Application<T> {
                             *camera_pos += 1;
                         }
                     }
+                }
+
+                // Move selector bottom.
+                Event::Key(KeyEvent {
+                    code: KeyCode::End,
+                    kind: Press | Repeat,
+                    ..
+                }) if self.scores_and_replays.entries.len() > 0 => {
+                    *cursor_pos = self.scores_and_replays.entries.len() - 1;
+                    *camera_pos = self
+                        .scores_and_replays
+                        .entries
+                        .len()
+                        .saturating_sub(CAMERA_SIZE);
                 }
 
                 Event::Key(KeyEvent {

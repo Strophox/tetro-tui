@@ -48,7 +48,7 @@ impl<T: Write> Application<T> {
                         SavefileGranularity::RememberSettings =>
                             "Only settings - No scores,replays",
                         SavefileGranularity::RememberSettingsScores =>
-                            "Only settings,scores - No replays)",
+                            "Only settings,scores - No replays",
                         SavefileGranularity::RememberSettingsScoresReplays =>
                             "Everything (settings,scores,replays)",
                     }

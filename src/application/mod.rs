@@ -333,6 +333,50 @@ impl Default for Scoreboard {
     }
 }
 
+impl Scoreboard {
+    fn sort(&mut self) {
+        match self.sorting {
+            GameSorting::Chronological => self.sort_chronologically(),
+            GameSorting::Scoring => self.sort_semantically(),
+        }
+    }
+
+    fn sort_chronologically(&mut self) {
+        self.entries
+            .sort_by(|(pg1, _), (pg2, _)| {
+                pg1.game_meta_data
+                    .datetime
+                    .cmp(&pg2.game_meta_data.datetime)
+                    .reverse()
+            });
+    }
+
+    #[rustfmt::skip]
+    fn sort_semantically(&mut self) {
+        self.entries.sort_by(|(pg1, _), (pg2, _)|
+            // Sort by gamemode (name).
+            pg1.game_meta_data.title.cmp(&pg2.game_meta_data.title).then_with(||
+            // Sort by if gamemode was finished successfully.
+            pg1.is_win.cmp(&pg2.is_win).reverse().then_with(|| {
+                // Sort by comparison stat...
+                let o = match pg1.game_meta_data.comparison_stat.0 {
+                    Stat::TimeElapsed(_)    => pg1.time_elapsed.cmp(&pg2.time_elapsed),
+                    Stat::PiecesLocked(_)   => pg1.pieces_locked.cmp(&pg2.pieces_locked),
+                    Stat::LinesCleared(_)   => pg1.lineclears.cmp(&pg2.lineclears),
+                    Stat::PointsScored(_)   => pg1.points_scored.cmp(&pg2.points_scored),
+                };
+                // Comparison stat is used positively/negatively (minimize or maximize) depending on
+                // how comparison stat compares to 'most important'(??) (often sole) end condition.
+                // This is shady, but the special order we subtly chose and never publicly document
+                // makes this make sense...
+                if pg1.game_meta_data.comparison_stat.1
+                    { o } else { o.reverse() }
+            })
+            )
+        );
+    }
+}
+
 #[derive(
     PartialEq,
     Eq,
@@ -750,42 +794,6 @@ impl<T: Write> Application<T> {
         }
 
         new
-    }
-
-    fn sort_past_games_chronologically(&mut self) {
-        self.scores_and_replays
-            .entries
-            .sort_by(|(pg1, _), (pg2, _)| {
-                pg1.game_meta_data
-                    .datetime
-                    .cmp(&pg2.game_meta_data.datetime)
-                    .reverse()
-            });
-    }
-
-    #[rustfmt::skip]
-    fn sort_past_games_semantically(&mut self) {
-        self.scores_and_replays.entries.sort_by(|(pg1, _), (pg2, _)|
-            // Sort by gamemode (name).
-            pg1.game_meta_data.title.cmp(&pg2.game_meta_data.title).then_with(||
-            // Sort by if gamemode was finished successfully.
-            pg1.is_win.cmp(&pg2.is_win).reverse().then_with(|| {
-                // Sort by comparison stat...
-                let o = match pg1.game_meta_data.comparison_stat.0 {
-                    Stat::TimeElapsed(_)    => pg1.time_elapsed.cmp(&pg2.time_elapsed),
-                    Stat::PiecesLocked(_)   => pg1.pieces_locked.cmp(&pg2.pieces_locked),
-                    Stat::LinesCleared(_)   => pg1.lineclears.cmp(&pg2.lineclears),
-                    Stat::PointsScored(_)   => pg1.points_scored.cmp(&pg2.points_scored),
-                };
-                // Comparison stat is used positively/negatively (minimize or maximize) depending on
-                // how comparison stat compares to 'most important'(??) (often sole) end condition.
-                // This is shady, but the special order we subtly chose and never publicly document
-                // makes this make sense...
-                if pg1.game_meta_data.comparison_stat.1
-                    { o } else { o.reverse() }
-            })
-            )
-        );
     }
 
     pub fn run(&mut self) -> io::Result<()> {

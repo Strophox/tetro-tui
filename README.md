@@ -170,9 +170,10 @@ https://aur.archlinux.org/packages/tetro-tui-bin
 > | `Enter`, `e` | Select |
 > | `Esc`, `q`, `Back`, | Go back |
 > | `Del`, `d` | Delete/reset |
-> | `1`/`2`/`3`... | Quickselect option (in 'New game')|
+> | `1`/`2`/`3`... | Quickselect option (in 'New game') |
+> | `Home`/`End` | Navigate to top/bottom in 'Scores & Replays' |
 > | `Alt`+? | Different value change' (in 'New game'⇝['Combo','Savepoint','Custom'], in 'Gameplay settings'⇝'Tetromino generation') |
-> | `Alt`+`Del`, `Alt`+`d` | Delete replay  (in 'Scores and replays') |
+> | `Alt`+`Del`, `Alt`+`d` | Delete replay  (in 'Scores and Replays') |
 > | `Ctrl`+`U` | (For experienced/impatient players) unlock all gamemodes (in 'New game') |
 > | `Ctrl`+`C` | Exit application (respects save preferences) |
 > 
@@ -241,9 +242,9 @@ https://aur.archlinux.org/packages/tetro-tui-bin
 > The exact location of the config file is shown in the *Advanced Settings* menu and is based on `dirs::config_dir()` (usually `C:/User/yourname/AppData/Roaming/.tetro-tui_v1.0_savefile.json` or `/home/yourname/.config/.tetro-tui_v1.0_savefile.json`).
 > 
 > Savefile grows mostly with number/length of replays saved.
-> If you end up with a lot of play time but don't want to spare the KBs/MBs required, you can
+> If you end up with a lot of play time but don't want to spare the kBs/MBs, you can
 > - Delete select entries (or just their replay data) in *Scores and Replays* using `[Del]` (or `[Alt+Del]`, respectively).
-> - Configure granularly which data gets stored by the application in the first place (in *Advanced Settings*).
+> - Configure which data gets stored in the first place by the application (in *Advanced Settings*).
 >
 > </details>
 

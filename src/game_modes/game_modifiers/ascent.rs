@@ -1,6 +1,6 @@
 use std::{num::NonZeroU8, time::Duration};
 
-use rand::Rng;
+use rand::{Rng, RngExt};
 
 use falling_tetromino_engine::{
     Button, DelayParameters, ExtDuration, Game, GameAccess, GameBuilder, GameLimits, GameModifier,
@@ -95,7 +95,7 @@ impl GameModifier for Ascent {
         ) {
             return;
         }
-        
+
         // Guaranteed to be in `Phase::PieceInPlay`.
         let piece = game.phase.piece_mut().unwrap();
 

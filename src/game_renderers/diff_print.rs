@@ -14,7 +14,7 @@ use crossterm::{
 use falling_tetromino_engine::{
     Button, Coord, GameEndCause, InGameTime, Orientation, Phase, Stat, Tetromino, TileTypeID,
 };
-use rand::Rng;
+use rand::{Rng, RngExt};
 
 use super::*;
 
@@ -712,7 +712,7 @@ impl Renderer for DiffPrintRenderer {
                     }
 
                     // FIXME: No visual indicator for topout currently.
-                    GameEndCause::TopOut { blocked_lines: _ } => {}
+                    GameEndCause::TopOut { top_lines: _ } => {}
 
                     // FIXME: No visual indicator for gameover-by-some-limit currently.
                     GameEndCause::Limit(_) => {}

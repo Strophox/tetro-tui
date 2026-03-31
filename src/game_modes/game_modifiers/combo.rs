@@ -94,8 +94,6 @@ impl GameModifier for Combo {
                 cause: GameEndCause::Custom("Combo broken".to_owned()),
                 is_win: false,
             };
-
-            return;
         }
     }
 
