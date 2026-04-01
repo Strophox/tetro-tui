@@ -81,8 +81,14 @@ impl<T: Clone> SlotMachine<T> {
     }
 }
 
+/// Raw, uncompressed representation of a partial or complete input history.
+///
+/// We normally presuppose this is sorted by timestamps.
 pub type UncompressedInputHistory = Vec<(InGameTime, Input)>;
 
+/// Compressed verson of an input history.
+///
+/// Currently done using deltatime and assumption that inputs have millisecond precision at most.
 #[derive(
     PartialEq,
     Eq,
@@ -178,6 +184,7 @@ impl CompressedInputHistory {
     }
 }
 
+/// All the data required to functionally reconstruct gameplay.
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]
@@ -262,6 +269,7 @@ impl GameRestorationData<UncompressedInputHistory> {
     }
 }
 
+/// Data associated with a Tetro TUI game.
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]
@@ -271,6 +279,8 @@ pub struct GameMetaData {
     pub comparison_stat: (Stat, bool),
 }
 
+// FIXME: Currently an ad-hoc struct to store game saves.
+// The exact mechanism to ergonomically store and access several of these is subject to study.
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]
@@ -290,6 +300,7 @@ impl<T> GameSave<T> {
     }
 }
 
+/// An entry for the scoreboard. Store all the basic, cheap stats required for proper scoreboard entry display and sorting.
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]
