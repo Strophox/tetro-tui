@@ -308,9 +308,10 @@ pub struct ScoreEntry {
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug, serde::Serialize, serde::Deserialize,
 )]
-pub enum GameSorting {
+pub enum ScoreEntrySorting {
+    ModeDependent,
     Chronological,
-    Scoring,
+    GameStat(Stat),
 }
 
 #[derive(
@@ -321,13 +322,13 @@ pub struct Scoreboard {
         ScoreEntry,
         Option<GameRestorationData<CompressedInputHistory>>,
     )>,
-    sorting: GameSorting,
+    sorting: ScoreEntrySorting,
 }
 
 impl Default for Scoreboard {
     fn default() -> Self {
         Self {
-            sorting: GameSorting::Scoring,
+            sorting: ScoreEntrySorting::ModeDependent,
             entries: Vec::new(),
         }
     }
@@ -336,8 +337,9 @@ impl Default for Scoreboard {
 impl Scoreboard {
     fn sort(&mut self) {
         match self.sorting {
-            GameSorting::Chronological => self.sort_chronologically(),
-            GameSorting::Scoring => self.sort_semantically(),
+            ScoreEntrySorting::Chronological => self.sort_chronologically(),
+            ScoreEntrySorting::ModeDependent => self.sort_semantically(),
+            ScoreEntrySorting::GameStat(stat) => self.sort_by_stat(stat),
         }
     }
 
@@ -373,6 +375,15 @@ impl Scoreboard {
             })
             )
         );
+    }
+
+    fn sort_by_stat(&mut self, stat: Stat) {
+        self.entries.sort_by(|(pg1, _), (pg2, _)| match stat {
+            Stat::TimeElapsed(_) => pg1.time_elapsed.cmp(&pg2.time_elapsed),
+            Stat::PiecesLocked(_) => pg1.pieces_locked.cmp(&pg2.pieces_locked),
+            Stat::LinesCleared(_) => pg1.lineclears.cmp(&pg2.lineclears),
+            Stat::PointsScored(_) => pg1.points_scored.cmp(&pg2.points_scored),
+        });
     }
 }
 

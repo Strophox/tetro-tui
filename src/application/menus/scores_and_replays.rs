@@ -16,7 +16,7 @@ use falling_tetromino_engine::Stat;
 use crate::{
     application::{
         menus::{Menu, MenuUpdate},
-        Application, CompressedInputHistory, GameRestorationData, GameSorting, ScoreEntry,
+        Application, CompressedInputHistory, GameRestorationData, ScoreEntry, ScoreEntrySorting,
     },
     fmt_helpers::fmt_duration,
     game_renderers::TetroTUIRenderer,
@@ -45,14 +45,29 @@ impl<T: Write> Application<T> {
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
                 .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
 
-            let fmt_comparison_stat = |p: &ScoreEntry| match p.game_meta_data.comparison_stat.0 {
-                Stat::TimeElapsed(_) => format!("time: {}", fmt_duration(p.time_elapsed)),
-                Stat::PiecesLocked(_) => format!("pieces: {}", p.pieces_locked.iter().sum::<u32>()),
-                Stat::LinesCleared(_) => format!("lines: {}", p.lineclears),
-                Stat::PointsScored(_) => format!("score: {}", p.points_scored),
-            };
-
             let sorting = self.scores_and_replays.sorting;
+            let fmt_stat = |p: &ScoreEntry| {
+                let show_stat = match sorting {
+                    ScoreEntrySorting::Chronological | ScoreEntrySorting::ModeDependent => {
+                        p.game_meta_data.comparison_stat.0
+                    }
+                    ScoreEntrySorting::GameStat(stat) => stat,
+                };
+                match show_stat {
+                    Stat::TimeElapsed(_) => fmt_duration(p.time_elapsed),
+                    Stat::PiecesLocked(_) => {
+                        format!("{} tetrominos", p.pieces_locked.iter().sum::<u32>())
+                    }
+                    Stat::LinesCleared(_) => format!("{} lines", p.lineclears),
+                    Stat::PointsScored(_) => format!("{} points", p.points_scored),
+                }
+                // match show_stat {
+                //     Stat::TimeElapsed(_) => format!("time: {}", fmt_duration(p.time_elapsed)),
+                //     Stat::PiecesLocked(_) => format!("pieces: {}", p.pieces_locked.iter().sum::<u32>()),
+                //     Stat::LinesCleared(_) => format!("lines: {}", p.lineclears),
+                //     Stat::PointsScored(_) => format!("points: {}", p.points_scored),
+                // }
+            };
             let fmt_past_game = |(rank, (entry, opt_rep)): (
                 usize,
                 &(
@@ -61,18 +76,18 @@ impl<T: Write> Application<T> {
                 ),
             )| {
                 let lhs_annotation = match sorting {
-                    GameSorting::Chronological => entry.game_meta_data.datetime.to_owned(),
-                    GameSorting::Scoring => {
+                    ScoreEntrySorting::Chronological => entry.game_meta_data.datetime.to_owned(),
+                    ScoreEntrySorting::ModeDependent | ScoreEntrySorting::GameStat(_) => {
                         format!("{rank: >2}{}", if rank == 1 { '#' } else { '.' })
                     }
                 };
                 format!(
-                    "{} {} | {}{}{}",
+                    "{} {}{} | {}{}",
                     lhs_annotation,
-                    entry.game_meta_data.title,
                     if entry.is_win { "" } else { "unf." },
-                    fmt_comparison_stat(entry),
-                    if opt_rep.is_some() { " | RP" } else { "" }
+                    entry.game_meta_data.title,
+                    fmt_stat(entry),
+                    if opt_rep.is_some() { "°" } else { "" }
                 )
             };
 
@@ -188,7 +203,7 @@ impl<T: Write> Application<T> {
                 .queue(PrintStyledContent(
                     format!(
                         "{:^w_main$}",
-                        "(Controls: [↓|↑]=scroll [Del]=delete [Enter]=replay)"
+                        "(Controls: [↓|↑]=scroll [Del]=delete [Enter]=replay°)"
                     )
                     .italic(),
                 ))?;
@@ -292,8 +307,22 @@ impl<T: Write> Application<T> {
                     ..
                 }) => {
                     self.scores_and_replays.sorting = match self.scores_and_replays.sorting {
-                        GameSorting::Chronological => GameSorting::Scoring,
-                        GameSorting::Scoring => GameSorting::Chronological,
+                        ScoreEntrySorting::Chronological => ScoreEntrySorting::ModeDependent,
+                        ScoreEntrySorting::ModeDependent => {
+                            ScoreEntrySorting::GameStat(Stat::LinesCleared(0))
+                        }
+                        ScoreEntrySorting::GameStat(Stat::LinesCleared(_)) => {
+                            ScoreEntrySorting::GameStat(Stat::PiecesLocked(0))
+                        }
+                        ScoreEntrySorting::GameStat(Stat::PiecesLocked(_)) => {
+                            ScoreEntrySorting::GameStat(Stat::PointsScored(0))
+                        }
+                        ScoreEntrySorting::GameStat(Stat::PointsScored(_)) => {
+                            ScoreEntrySorting::GameStat(Stat::TimeElapsed(Default::default()))
+                        }
+                        ScoreEntrySorting::GameStat(Stat::TimeElapsed(_)) => {
+                            ScoreEntrySorting::Chronological
+                        }
                     };
                     re_sort_scoreboard = true;
                 }
@@ -304,8 +333,22 @@ impl<T: Write> Application<T> {
                     ..
                 }) => {
                     self.scores_and_replays.sorting = match self.scores_and_replays.sorting {
-                        GameSorting::Chronological => GameSorting::Scoring,
-                        GameSorting::Scoring => GameSorting::Chronological,
+                        ScoreEntrySorting::Chronological => {
+                            ScoreEntrySorting::GameStat(Stat::TimeElapsed(Default::default()))
+                        }
+                        ScoreEntrySorting::ModeDependent => ScoreEntrySorting::Chronological,
+                        ScoreEntrySorting::GameStat(Stat::LinesCleared(_)) => {
+                            ScoreEntrySorting::ModeDependent
+                        }
+                        ScoreEntrySorting::GameStat(Stat::PiecesLocked(_)) => {
+                            ScoreEntrySorting::GameStat(Stat::LinesCleared(0))
+                        }
+                        ScoreEntrySorting::GameStat(Stat::PointsScored(_)) => {
+                            ScoreEntrySorting::GameStat(Stat::PiecesLocked(0))
+                        }
+                        ScoreEntrySorting::GameStat(Stat::TimeElapsed(_)) => {
+                            ScoreEntrySorting::GameStat(Stat::PointsScored(0))
+                        }
                     };
                     re_sort_scoreboard = true;
                 }
