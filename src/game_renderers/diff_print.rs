@@ -12,7 +12,7 @@ use crossterm::{
 };
 
 use falling_tetromino_engine::{
-    Button, Coord, GameEndCause, InGameTime, Orientation, Phase, Stat, Tetromino, TileTypeID,
+    Button, Coord, GameEndCause, InGameTime, Orientation, Phase, Stat, Tetromino, TileID,
 };
 use rand::RngExt;
 
@@ -220,7 +220,7 @@ struct HardDropTile {
     creation_time: InGameTime,
     pos: Coord,
     y_offset: usize,
-    tile_type_id: TileTypeID,
+    tile_id: TileID,
 }
 
 #[derive(PartialEq, PartialOrd, Clone, Debug, serde::Serialize, serde::Deserialize)]
@@ -230,7 +230,7 @@ struct MinoParticle {
     momentum: (f32, f32),
     acceleration: (f32, f32),
     actually_render: bool,
-    tile_id: TileTypeID,
+    tile_id: TileID,
 }
 
 #[derive(PartialEq, PartialOrd, Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
@@ -425,7 +425,7 @@ impl Renderer for DiffPrintRenderer {
         };
 
         // Color helpers.
-        let get_color = |tile_type_id: TileTypeID| settings.palette().get(&tile_type_id).copied();
+        let get_color = |tile_id: TileID| settings.palette().get(&tile_id).copied();
 
         // Print keybinds legend.
         const W_KEYBINDS: usize = 23;
@@ -528,7 +528,7 @@ impl Renderer for DiffPrintRenderer {
 
         // Draw preview.
         if let Some(next_piece) = game.state().piece_preview.front() {
-            let color = get_color(next_piece.tiletypeid());
+            let color = get_color(next_piece.tile_id());
             for (x, y) in next_piece.minos(Orientation::N) {
                 let pos = (
                     (if *next_piece == Tetromino::O { 2 } else { 0 } + x_preview + 2 * x) as usize,
@@ -548,7 +548,7 @@ impl Renderer for DiffPrintRenderer {
             };
             self.screen.buffer_str(
                 str,
-                get_color(tet.tiletypeid()),
+                get_color(tet.tile_id()),
                 (x_preview_small + x_offset_small, y_preview_small),
             );
             x_offset_small += str.chars().count() + 1;
@@ -565,7 +565,7 @@ impl Renderer for DiffPrintRenderer {
             });
             self.screen.buffer_str(
                 &str,
-                get_color(tet.tiletypeid()),
+                get_color(tet.tile_id()),
                 (x_preview_mini + x_offset_minuscule, y_preview_mini),
             );
             x_offset_minuscule += str.chars().count() + 1;
@@ -579,7 +579,7 @@ impl Renderer for DiffPrintRenderer {
                 tet.linestr_ascii()
             };
             let color = get_color(if swap_allowed {
-                tet.tiletypeid()
+                tet.tile_id()
             } else {
                 NonZeroU8::try_from(254).unwrap()
             });
@@ -592,7 +592,7 @@ impl Renderer for DiffPrintRenderer {
                 creation_time,
                 pos,
                 y_offset,
-                tile_type_id,
+                tile_id,
             },
             active,
         ) in self.hard_drop_tiles.iter_mut()
@@ -615,7 +615,7 @@ impl Renderer for DiffPrintRenderer {
                 continue;
             };
             if let Some(xy) = pos_board(*pos) {
-                self.screen.buffer_str(tile, get_color(*tile_type_id), xy);
+                self.screen.buffer_str(tile, get_color(*tile_id), xy);
             }
         }
 
@@ -625,12 +625,11 @@ impl Renderer for DiffPrintRenderer {
         if !temp_data.blindfold_enabled {
             for (y, line) in game.state().board.iter().enumerate().rev() {
                 for (x, cell) in line.iter().enumerate() {
-                    if let Some(tile_type_id) = cell {
+                    if let Some(tile_id) = cell {
                         if let Some(xy) =
                             pos_board((isize::try_from(x).unwrap(), isize::try_from(y).unwrap()))
                         {
-                            let color_locked =
-                                settings.palette_lockedtiles().get(tile_type_id).copied();
+                            let color_locked = settings.palette_lockedtiles().get(tile_id).copied();
                             self.screen.buffer_str(tile_ground, color_locked, xy);
                         }
                     }
@@ -646,21 +645,19 @@ impl Renderer for DiffPrintRenderer {
             Phase::PieceInPlay { piece, .. } => {
                 // Draw shadow piece.
                 if settings.graphics().show_shadow_piece {
-                    for (tile_pos, tile_type_id) in
+                    for (tile_pos, tile_id) in
                         piece.teleported(&game.state().board, (0, -1)).tiles()
                     {
                         if let Some(xy) = pos_board(tile_pos) {
-                            self.screen
-                                .buffer_str(tile_shadow, get_color(tile_type_id), xy);
+                            self.screen.buffer_str(tile_shadow, get_color(tile_id), xy);
                         }
                     }
                 }
 
                 // Draw active piece.
-                for (tile_pos, tile_type_id) in piece.tiles() {
+                for (tile_pos, tile_id) in piece.tiles() {
                     if let Some(xy) = pos_board(tile_pos) {
-                        self.screen
-                            .buffer_str(tile_active, get_color(tile_type_id), xy);
+                        self.screen.buffer_str(tile_active, get_color(tile_id), xy);
                     }
                 }
             }
@@ -676,11 +673,11 @@ impl Renderer for DiffPrintRenderer {
             Phase::GameEnd { cause, is_win: _ } => {
                 match cause {
                     GameEndCause::LockOut { locking_piece } => {
-                        for (tile_pos, tile_type_id) in locking_piece.tiles() {
+                        for (tile_pos, tile_id) in locking_piece.tiles() {
                             if let Some(xy) = pos_board(tile_pos) {
                                 self.screen.buffer_str(
                                     "XX",
-                                    get_color(tile_type_id), /*Some(Color::Red)*/
+                                    get_color(tile_id), /*Some(Color::Red)*/
                                     xy,
                                 );
                             }
@@ -696,14 +693,14 @@ impl Renderer for DiffPrintRenderer {
                             }
                         }
 
-                        for (tile_pos @ (x, y), tile_type_id) in blocked_piece.tiles() {
+                        for (tile_pos @ (x, y), tile_id) in blocked_piece.tiles() {
                             if let Some(xy) = pos_board(tile_pos) {
                                 let (t, c) = if let Some(board_tile) =
                                     game.state().board[y as usize][x as usize]
                                 {
                                     ("XX", get_color(board_tile))
                                 } else {
-                                    ("XX", get_color(tile_type_id) /*Some(Color::Red)*/)
+                                    ("XX", get_color(tile_id) /*Some(Color::Red)*/)
                                 };
 
                                 self.screen.buffer_str(t, c, xy);
@@ -719,11 +716,11 @@ impl Renderer for DiffPrintRenderer {
 
                     GameEndCause::Forfeit { piece_in_play } => {
                         if let Some(piece) = piece_in_play {
-                            for (tile_pos, tile_type_id) in piece.tiles() {
+                            for (tile_pos, tile_id) in piece.tiles() {
                                 if let Some(xy) = pos_board(tile_pos) {
                                     self.screen.buffer_str(
                                         "XX",
-                                        get_color(tile_type_id), /*Some(Color::Red)*/
+                                        get_color(tile_id), /*Some(Color::Red)*/
                                         xy,
                                     );
                                 }
@@ -838,7 +835,7 @@ impl Renderer for DiffPrintRenderer {
                         continue;
                     };
 
-                    for (tile_pos, _tile_type_id) in piece.tiles() {
+                    for (tile_pos, _tile_id) in piece.tiles() {
                         if let Some(xy) = pos_board(tile_pos) {
                             self.screen.buffer_str(tile, color_locking, xy);
                         }
@@ -937,21 +934,21 @@ impl Renderer for DiffPrintRenderer {
                 }
 
                 Notification::HardDrop {
-                    previous_piece: _,
-                    updated_piece,
+                    height_dropped: _,
+                    dropped_piece,
                 } => {
                     if !settings.graphics().show_effects {
                         *active = false;
                         continue;
                     }
-                    for ((x_tile, y_tile), tile_type_id) in updated_piece.tiles() {
+                    for ((x_tile, y_tile), tile_id) in dropped_piece.tiles() {
                         for dy in (y_tile as usize)..Game::LOCK_OUT_HEIGHT {
                             self.hard_drop_tiles.push((
                                 HardDropTile {
                                     creation_time: *notif_time,
                                     pos: (x_tile, isize::try_from(dy).unwrap()),
                                     y_offset: dy - (y_tile as usize),
-                                    tile_type_id,
+                                    tile_id,
                                 },
                                 true,
                             ));
@@ -962,7 +959,7 @@ impl Renderer for DiffPrintRenderer {
                 }
 
                 Notification::Accolade {
-                    score_bonus,
+                    points_bonus,
                     tetromino,
                     is_spin,
                     lineclears,
@@ -971,7 +968,7 @@ impl Renderer for DiffPrintRenderer {
                 } => {
                     let mut tokens = Vec::new();
 
-                    tokens.push(format!("+{score_bonus},"));
+                    tokens.push(format!("+{points_bonus},"));
 
                     if *is_perfect_clear {
                         tokens.push("Perfect".to_owned());

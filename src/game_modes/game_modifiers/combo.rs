@@ -131,7 +131,7 @@ impl Combo {
             Tetromino::J,
             Tetromino::T,
         ]
-        .map(|tet| Some(tet.tiletypeid()));
+        .map(|tet| Some(tet.tile_id()));
 
         let grey_tile = Some(NonZeroU8::try_from(254).unwrap());
 

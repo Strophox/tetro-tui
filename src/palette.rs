@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crossterm::style::Color;
-use falling_tetromino_engine::TileTypeID;
+use falling_tetromino_engine::TileID;
 
 use crate::application::SlotMachine;
 
@@ -134,7 +134,7 @@ impl<'de> serde_with::DeserializeAs<'de, Color> for ColorDummyType {
 }
 
 impl Palette {
-    pub fn get(&self, x: &TileTypeID) -> Option<&Color> {
+    pub fn get(&self, x: &TileID) -> Option<&Color> {
         self.tile_to_col.get(&x.get())
     }
 

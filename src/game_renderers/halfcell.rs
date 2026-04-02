@@ -56,8 +56,8 @@ impl Renderer for HalfCellRenderer {
         let mut board = game.state().board;
 
         if let Some(piece) = game.phase().piece() {
-            for ((x, y), tile_type_id) in piece.tiles() {
-                board[y as usize][x as usize] = Some(tile_type_id);
+            for ((x, y), tile_id) in piece.tiles() {
+                board[y as usize][x as usize] = Some(tile_id);
             }
         }
 

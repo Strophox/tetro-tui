@@ -69,8 +69,8 @@ impl Renderer for PrototypeRenderer {
         } = game.state();
         let mut board = *board;
         if let Some(piece) = game.phase().piece() {
-            for ((x, y), tile_type_id) in piece.tiles() {
-                board[y as usize][x as usize] = Some(tile_type_id);
+            for ((x, y), tile_id) in piece.tiles() {
+                board[y as usize][x as usize] = Some(tile_id);
             }
         }
         term.queue(cursor::MoveTo(0, 0))?
@@ -111,7 +111,7 @@ impl Renderer for PrototypeRenderer {
         for (notification, _) in self.notification_feed_buffer.iter() {
             feed_evt_msgs.push(match notification {
                 Notification::Accolade {
-                    score_bonus,
+                    points_bonus,
                     tetromino,
                     is_spin: spin,
                     lineclears,
@@ -119,7 +119,7 @@ impl Renderer for PrototypeRenderer {
                     combo,
                 } => {
                     let mut msg = Vec::new();
-                    msg.push(format!("+{score_bonus}"));
+                    msg.push(format!("+{points_bonus}"));
                     if *perfect_clear {
                         msg.push("Perfect".to_owned());
                     }

@@ -438,14 +438,14 @@ impl Statistics {
                 }
 
                 Notification::Accolade {
-                    score_bonus,
+                    points_bonus,
                     lineclears,
                     combo,
                     is_spin,
                     is_perfect_clear,
                     tetromino: _,
                 } => {
-                    self.total_points_scored += score_bonus;
+                    self.total_points_scored += points_bonus;
                     self.total_lines_cleared += lineclears;
                     match lineclears {
                         1 => self.total_mono += 1,

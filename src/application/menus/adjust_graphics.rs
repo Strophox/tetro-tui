@@ -151,7 +151,7 @@ impl<T: Write> Application<T> {
                         *self
                             .settings
                             .palette()
-                            .get(&tet.tiletypeid())
+                            .get(&tet.tile_id())
                             .unwrap_or(&style::Color::Reset),
                     ),
                 ))?;
