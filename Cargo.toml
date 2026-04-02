@@ -25,7 +25,7 @@ lto = true # Enable link-time optimization.
 [dependencies]
 chrono = "0.4.38" # Generating timestamps.
 clap = { version = "4.5.9", features = ["derive", "cargo"] } # Parsing command-line arguments.
-crossterm = { version = "0.27.0", features = ["serde"] } # Cross-platform terminal handling.
+crossterm = { version = "0.29.0", features = ["serde"] } # Cross-platform terminal handling.
 dirs = "6.0.0"    # Cross-platform "Find the standard 'applications config' folder" functionality.
 rand = "0.10.0"    # Expose `random_range` for ChaCha8Rng.
 
