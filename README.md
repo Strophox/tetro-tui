@@ -164,7 +164,7 @@ https://aur.archlinux.org/packages/tetro-tui-bin
 > General TUI menu controls:
 > </summary>
 > 
-> | Keys | ≈Meaning |
+> | Keys | ≈ Meaning |
 > | -: | :- |
 > | `↓`/`↑`, `j`/`k` | Navigate up/down |
 > | `←`/`→`, `h`/`l` | Change value |
@@ -173,7 +173,7 @@ https://aur.archlinux.org/packages/tetro-tui-bin
 > | `Del`, `d` | Delete/reset |
 > | `1`/`2`/`3`... | Quickselect option (in 'New game') |
 > | `Home`/`End` | Navigate to top/bottom in 'Scores & Replays' |
-> | `Alt`+? | Different value change' (in 'New game'⇝['Combo','Savepoint','Custom'], in 'Gameplay settings'⇝'Tetromino generation') |
+> | `Alt`+? | Change value but differently (in 'New game'⇝['Combo','Savepoint','Custom'], in 'Gameplay settings'⇝'Tetromino generation') |
 > | `Alt`+`Del`, `Alt`+`d` | Delete replay  (in 'Scores and Replays') |
 > | `Ctrl`+`U` | (For experienced/impatient players) unlock all gamemodes (in 'New game') |
 > | `Ctrl`+`C` | Exit application (respects save preferences) |

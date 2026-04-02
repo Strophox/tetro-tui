@@ -588,25 +588,21 @@ impl NewGameSettings {
 // #[serde_with::serde_as]
 #[derive(PartialEq, Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Settings {
-    graphics_pick: usize,
-    graphics_slotmachine: SlotMachine<GraphicsSettings>,
-
-    // NOTE: Reconsider #[serde_as(as = "Vec<(_, std::collections::HashMap<serde_with::json::JsonString, _>)>")]
-    // FIXME: Unused #[serde_as(as = "Vec<(_, Vec<(_, _)>)>")]
-    keybinds_pick: usize,
-    keybinds_slotmachine: SlotMachine<Keybinds>,
-
-    gameplay_pick: usize,
-    gameplay_slotmachine: SlotMachine<GameplaySettings>,
-
-    palette_slotmachine: SlotMachine<Palette>,
-
     newgame: NewGameSettings,
+    graphics_pick: usize,
+    keybinds_pick: usize,
+    gameplay_pick: usize,
+
+    graphics_slotmachine: SlotMachine<GraphicsSettings>,
+    keybinds_slotmachine: SlotMachine<Keybinds>,
+    gameplay_slotmachine: SlotMachine<GameplaySettings>,
+    palette_slotmachine: SlotMachine<Palette>,
 }
 
 impl Default for Settings {
     fn default() -> Self {
         Self {
+            newgame: NewGameSettings::default(),
             graphics_pick: 0,
             keybinds_pick: 0,
             gameplay_pick: 0,
@@ -614,7 +610,6 @@ impl Default for Settings {
             palette_slotmachine: default_palette_slots(),
             keybinds_slotmachine: default_keybinds_slots(),
             gameplay_slotmachine: default_gameplay_slots(),
-            newgame: NewGameSettings::default(),
         }
     }
 }

@@ -522,7 +522,7 @@ impl Renderer for DiffPrintRenderer {
         let (tile_ground, tile_shadow, tile_active, tile_preview) =
             match settings.graphics().glyphset {
                 Glyphset::Elektronika_60 => ("▮▮", " .", "▮▮", "▮▮"),
-                Glyphset::ASCII => ("##", "::", "[]", "[]"),
+                Glyphset::ASCII => ("##" /*"$$"*/, "::", "[]", "[]"),
                 Glyphset::Unicode => ("██", "░░", "▓▓", "██" /*"▒▒"*/),
             };
 
