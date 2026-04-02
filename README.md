@@ -256,9 +256,7 @@ https://aur.archlinux.org/packages/tetro-tui-bin
 
 > <details>
 > <summary>
-> 
 > See this feature list from the <a href="https://crates.io/crates/falling-tetromino-engine">Falling Tetromino Engine</a> that powers the actual game logic:
->
 > </summary>
 > 
 > The engine aims to compete on the order of modern tetromino stackers;
@@ -334,18 +332,26 @@ https://aur.archlinux.org/packages/tetro-tui-bin
 
 ### *CLI enthusiasts:* How was the TUI programmed and why isn't it [Ratatui](<https://ratatui.rs/>)?
 
-> This project started as small proof-of-concept that directly used [Crossterm](<https://crates.io/crates/crossterm>).
-> Crossterm handles all the placing of (styled) characters and reading inputs from the terminal and we mostly implement custom diff'ing so I/O does not bottleneck game rendering (smooth/no flicker).
-> There are currently no plans to stray from the minimal design intended. It is not easy to justify large rewrites  with not much gain, but Ratatui may be reconsidered.
+> Since its origin as a proof-of-concept this project has directly used [Crossterm](<https://crates.io/crates/crossterm>).
+> As of writing, the most complicated terminal interaction is custom diff'ing so the game is rendered smoothly (no flicker).
+> Currently there appears no need to change this situation, though Ratatui will be reconsidered if necessary.
 
 
 ### What is the background behind this project?
 
-> **Tetro TUI** started as a passion project from someone who loves programming, minimalistic games and ASCII art.
+> <details>
+> <summary>
+> Tetro TUI started as a passion project from someone who loves programming, minimalistic games and ASCII art.
+> </summary>
+> 
 > Personal motivation drove me to research 'Tetr\*slikes':
 > Basic versions are simple to code up, yet it can get surprisingly nontrivial when it comes to comprehensive support of modern/advanced/'quality of life' mechanics!
+> 
 > In the end I've put in my best effort to implement a most featureful and customizable version that not only remains totally faithful to the [basic idea of the game](<https://github.com/Strophox/falling-tetromino-engine>), but also fulfils the requirement that it should run and look nice in any mere terminal!
+> 
 > Enjoy :-). --Strophox
+> 
+> </details>
 
 
 ## License
