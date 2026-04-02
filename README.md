@@ -57,7 +57,7 @@ https://aur.archlinux.org/packages/tetro-tui-bin
 
 ### How good are the features / customization options?
 
-> We've come some ways to have a solid set:
+> A solid amount is available:
 > - **Graphics:** Unicode/ASCII/Electronika, a handful of provided color palettes, FPS, toggle effects, ...
 > - **Game keybinds:** to your heart's desire. (\*Note: `Shift`/`Alt`/.. might not work due to terminal limitations.)
 > - **Gameplay/handling:** Rotation systems, randomizers, preview, timings (DAS, ARR, SDF, LDC, ARE), IRS/IHS.
@@ -68,16 +68,17 @@ https://aur.archlinux.org/packages/tetro-tui-bin
 >
 > <details>
 > <summary>
->
-> For example: Use a bigger font to scale game, Use [cool-retro-term](<https://github.com/Swordfish90/cool-retro-term>) for retro look;
->
+> For example: Use a bigger font to scale the game, Use <a href="https://github.com/Swordfish90/cool-retro-term">cool-retro-term</a> for a retro look;
 > </summary>
 >
 > !["tetro-tui running in cool-retro-term"](https://github.com/Strophox/tetro-tui/blob/3d98435167c779cb57651383d6b290d31e015013/demo_assets/tetro-tui_cool-retro-term.jpg?raw=true)
 >
 > </details>
 > 
-> <details> <summary>Full overview of featureful menus in Tetro TUI v2.0</summary>
+> <details>
+> <summary>
+> Full overview of featureful menus in Tetro TUI v2.0
+> </summary>
 > 
 > **New game/**
 > - Swift: How fast can you clear 40 lines?
@@ -137,10 +138,8 @@ https://aur.archlinux.org/packages/tetro-tui-bin
 
 > <details>
 > <summary>
-> 
-> *In Brief:* Use an enhanced terminal like [Kitty](<https://sw.kovidgoyal.net/kitty/>) or [Alacritty](<https://alacritty.org/>) (or [others](https://docs.rs/crossterm/latest/crossterm/event/struct.PushKeyboardEnhancementFlags.html)) for 'true' (smoother) game handling.
-> Otherwise timings might depend solely on how quickly your *terminal* sends key-repeat events.
-> 
+> *In short:* Use an enhanced terminal like <a href="https://sw.kovidgoyal.net/kitty/">Kitty</a> or <a href="https://alacritty.org/">Alacritty</a> (also <a href="https://docs.rs/crossterm/latest/crossterm/event/struct.PushKeyboardEnhancementFlags.html">others</a>) for 'true' (smoother) game handling.
+> Otherwise timings might depend solely on how quickly your terminal sends key-repeat events.
 > </summary>
 > 
 > The fundamental problem lies in how terminals usually send signals for "key pressed", but not "key released again".
@@ -161,7 +160,9 @@ https://aur.archlinux.org/packages/tetro-tui-bin
 > Refer to the following tables for all available controls:
 > 
 > <details>
-> <summary>General TUI menu controls:</summary>
+> <summary>
+> General TUI menu controls:
+> </summary>
 > 
 > | Keys | ≈Meaning |
 > | -: | :- |
@@ -181,7 +182,9 @@ https://aur.archlinux.org/packages/tetro-tui-bin
 > 
 >
 > <details>
-> <summary>Default live Game controls:</summary>
+> <summary>
+> Default live Game controls:
+> </summary>
 > 
 > | Key | Action |
 > | -: | :- |
@@ -208,7 +211,9 @@ https://aur.archlinux.org/packages/tetro-tui-bin
 > 
 >
 > <details>
-> <summary>Replay Game controls:</summary>
+> <summary>
+> Replay Game controls:
+> </summary>
 > 
 > | Key | Action |
 > | -: | :- |
@@ -234,9 +239,7 @@ https://aur.archlinux.org/packages/tetro-tui-bin
 
 > <details>
 > <summary>
-> 
-> The application will **not** store anything by default, 'Keep save file' needs to be opted in to persist data.
->
+> The application will not store anything by default and 'Keep save file' needs to be opted in.
 > </summary>
 > 
 > The exact location of the config file is shown in the *Advanced Settings* menu and is based on `dirs::config_dir()` (usually `C:/User/yourname/AppData/Roaming/.tetro-tui_v1.0_savefile.json` or `/home/yourname/.config/.tetro-tui_v1.0_savefile.json`).
@@ -254,7 +257,7 @@ https://aur.archlinux.org/packages/tetro-tui-bin
 > <details>
 > <summary>
 > 
-> See this feature list from the [Falling Tetromino Engine](<https://crates.io/crates/falling-tetromino-engine>) backend powering the game logic:
+> See this feature list from the <a href="https://crates.io/crates/falling-tetromino-engine">Falling Tetromino Engine</a> that powers the actual game logic:
 >
 > </summary>
 > 
@@ -280,7 +283,7 @@ https://aur.archlinux.org/packages/tetro-tui-bin
 > - **Lock-reset cap factor** (i.e. maximum time before lock delay cannot be reset),
 > - **Line clear duration** (LCD),
 > - **Customizable win/loss conditions** based on the time, pieces, lines, score,
-> - Higher **score** for larger lineclears and spins ('allspin'),
+> - Score more **points** for larger lineclears and spins ('allspin'),
 > - Game **reproducibility** (PRNG).
 > 
 > </details>
@@ -290,19 +293,17 @@ https://aur.archlinux.org/packages/tetro-tui-bin
 
 > <details>
 > <summary>
-> 
 > This project takes some liberties to adapt/experiment with certain aspects of the game, though it should feel extremely familiar:
-> 
 > </summary>
 > 
 > - Default controls set to **WASD + Arrow keys** (swappable).
 > - Default use of the symmetrical and flexible **Ocular Rotation** System (instead of the sometimeis quirky industry standard) (swappable).
 > - Default **Recency (History) Randomizer** (instead of 'overdeterministic' 7-Bag) (swappable).
-> - **Score bonus** system is custom and kept simple.
->   - "1pt for simple line clear, increasing score incentivizing higher clears, spins, perfects and combos."
+> - **Points (score) bonus** system is custom and kept simple.
+>   - "1pt for simple line clear, more points incentivizing larger lineclears, spins, perfects and combos."
 >   - 'Allspin' (instead of preoccupation with 'T-spins'), currently no 'minis'.
 >   - Combos (but no 'back-to-back').
->   - ...Exact formula: `score_bonus = if is_perfect_clear{ 4 }else{ 1 } * if is_spin{ 2 }else{ 1 } * (lineclears * 2 - 1) + (combo - 1)`
+>   - ...Exact formula: `points_bonus = if is_perfect_clear{ 4 }else{ 1 } * if is_spin{ 2 }else{ 1 } * (lineclears * 2 - 1) + (combo - 1)`
 > - Controls availble for **Teleport Down ('Sonic Drop')** / Left / Right.
 > - Different **lock reset** / lock-down cutoff: 'max time = 10⋅current lock delay' (instead of 'max 15 moves with current lock delay').
 > - Speed/Gravity/Fall curve practically same but technically slightly adapted (adjustable for custom game via savefile).
@@ -314,9 +315,7 @@ https://aur.archlinux.org/packages/tetro-tui-bin
 
 > <details>
 > <summary>
-> 
 > A serious attempt at better tetromino rotation, based on visual intuition and symmetry:
-> 
 > </summary>
 >
 > The Ocular rotation system affords:
@@ -340,13 +339,13 @@ https://aur.archlinux.org/packages/tetro-tui-bin
 > There are currently no plans to stray from the minimal design intended. It is not easy to justify large rewrites  with not much gain, but Ratatui may be reconsidered.
 
 
-### What is the goal of this project?
+### What is the background behind this project?
 
-> This started as a passion project!
-> Personal motivation drove me to research this type of simple yet deep game, and put in my best efforts to implement a featureful and customizable form of it that can be played in its full glory on any mere terminal.
-> 
-> The turnout is solid customization, advanced/modern game mechanics, and other technical solutions:
-> Basic replay compression, Swappable slots/profiles for settings, interesting game modes that remain close to the original based on a modding system in the [concisely-kept game engine](<https://crates.io/crates/falling-tetromino-engine>).
+> **Tetro TUI** started as a passion project from someone who loves programming, minimalistic games and ASCII art.
+> Personal motivation drove me to research 'Tetr\*slikes':
+> Basic versions are simple to code up, yet it can get surprisingly nontrivial when it comes to comprehensive support of modern/advanced/'quality of life' mechanics!
+> In the end I've put in my best effort to implement a most featureful and customizable version that not only remains totally faithful to the [basic idea of the game](<https://github.com/Strophox/falling-tetromino-engine>), but also fulfils the requirement that it should run and look nice in any mere terminal!
+> Enjoy :-). --Strophox
 
 
 ## License
@@ -364,7 +363,7 @@ Color palettes used: [Gruvbox](<https://github.com/morhetz/gruvbox>), [Solarized
 ## Acknowledgements
 
 Special Thanks go to:
-- GrBtAce, KonSola5 and bennxt – for support early in development
+- GrBtAce, KonSola5 and bennxt – for early support
 - Dunspixel – for inspiration regarding ['O'-spins](<https://dunspixel.github.io/ospin-guide/chapter4.html#tetro-tui>)
 - madkiwi – for advice regarding 4wide-6residual combo layouts
 - Apostolos Kousoukos – for making [Apotris](<https://apotris.com/>)

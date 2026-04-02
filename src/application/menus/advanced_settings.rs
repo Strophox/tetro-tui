@@ -44,11 +44,11 @@ impl<T: Write> Application<T> {
                 format!(
                     "Save contents: {}",
                     match self.temp_data.save_on_exit {
-                        SavefileGranularity::NoSavefile => "Nothing",
+                        SavefileGranularity::NoSavefile => "--Nothing",
                         SavefileGranularity::RememberSettings =>
-                            "Only settings - No scores,replays",
+                            "Only settings --No scores,replays",
                         SavefileGranularity::RememberSettingsScores =>
-                            "Only settings,scores - No replays",
+                            "Only settings,scores --No replays",
                         SavefileGranularity::RememberSettingsScoresReplays =>
                             "Everything (settings,scores,replays)",
                     }
