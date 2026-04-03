@@ -16,15 +16,18 @@ Tetro TUI is a terminal-based but modern tetromino-stacking game that is very cu
 
 ### Download & run
 
-1. [Download a release](<https://github.com/Strophox/tetro-tui/releases>) for your platform (Windows, MacOS, Linux, ..) if available.
-2. Navigate to and run the application (`tetro-tui`)
+1. [Download a release](<https://github.com/Strophox/tetro-tui/releases>) for your platform (Linux/MacOS/Windows/...) if available.
+2. Navigate to the application (`tetro-tui`/`tetro-tui.exe`/...) and run it
 
 
 ### Compile from source
 
-1. Ensure [Rust](<https://doc.rust-lang.org/book/ch01-01-installation.html>) is installed.
-2. `git clone https://github.com/Strophox/tetro-tui` or otherwise download this repository.
-3. Navigate inside `tetro-tui/` and do `cargo run`.
+Tetro TUI is written in [Rust](<https://doc.rust-lang.org/book/ch01-01-installation.html>) and can be compiled as usual:
+```
+git clone https://github.com/Strophox/tetro-tui # Or otherwise download source code.
+cd tetro-tui
+cargo run
+```
 
 
 ### Install via cargo
@@ -37,11 +40,13 @@ cargo install tetro-tui
 This makes `tetro-tui` available to run for your terminal.
 
 
-<!-- TODO: Elaborate.
-### AUR Package
+### Install on Arch Linux
 
-https://aur.archlinux.org/packages/tetro-tui-bin
--->
+Tetro TUI is available on [aur.archlinux.org](<https://aur.archlinux.org/packages?K=tetro-tui>).
+It can be installed e.g. via [yay](<https://github.com/Jguer/yay>) or [paru](<https://github.com/Morganamilo/paru>):
+```
+yay -S tetro-tui
+```
 
 
 ## FAQ
@@ -369,9 +374,10 @@ Color palettes used: [Gruvbox](<https://github.com/morhetz/gruvbox>), [Solarized
 ## Acknowledgements
 
 Special Thanks go to:
+- [wcasanova](<https://github.com/wcasanova>) and [druxorey](<https://github.com/druxorey>) – AUR package maintainers
 - GrBtAce, KonSola5 and bennxt – for early support
-- Dunspixel – for inspiration regarding ['O'-spins](<https://dunspixel.github.io/ospin-guide/chapter4.html#tetro-tui>)
 - madkiwi – for advice regarding 4wide-6residual combo layouts
-- Apostolos Kousoukos – for making [Apotris](<https://apotris.com/>)
+- Dunspixel – for inspiration regarding ['O'-spins](<https://dunspixel.github.io/ospin-guide/chapter4.html#tetro-tui>)
 - Martín G – for inspiration regarding new line clear effect from his own PICO-8 game
-- and RayZN and ˗ˋˏthe One and Onlyˎˊ˗ – for advice regarding the Tetro logo!
+- Akousoukos – for making [Apotris](<https://apotris.com/>)
+- and RayZN and ˗ˋˏthe One and Onlyˎˊ˗ – for advice regarding the Tetro logo
