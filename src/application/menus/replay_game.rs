@@ -21,8 +21,8 @@ use crate::{
         Application, GameMetaData, GameRestorationData, GameSave, UncompressedInputHistory,
     },
     fmt_helpers::{fmt_duration, replay_keybinds_legend},
+    game_keybinds::GameKeybinds,
     game_renderers::{Renderer, TetroTUIRenderer},
-    keybinds::Keybinds,
     live_input_handler::{self, LiveTermSignal},
 };
 
@@ -68,7 +68,7 @@ impl<T: Write> Application<T> {
         let (input_sender, input_receiver) = mpsc::channel();
 
         // Spawn input handler thread.
-        let empty_game_control_keybinds = Keybinds::empty();
+        let empty_game_control_keybinds = GameKeybinds::empty();
         let is_stop_keybind = |code: KeyCode, modifiers: KeyModifiers| {
             matches!(code, KeyCode::Esc)
                 || matches!(code, KeyCode::Char('q' | 'Q'))

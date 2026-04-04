@@ -3,7 +3,7 @@ use std::time::Duration;
 use crossterm::event::{KeyCode, KeyModifiers};
 use falling_tetromino_engine::{Button, ExtNonNegF64, Input, Tetromino};
 
-use crate::keybinds::Keybinds;
+use crate::game_keybinds::GameKeybinds;
 
 pub type KeybindsLegend = Vec<(/*(KeyCode, KeyModifiers)*/ String, &'static str)>;
 
@@ -244,7 +244,7 @@ pub fn fmt_key_keymods((key, keymods): (KeyCode, KeyModifiers)) -> String {
     }
 }
 
-pub fn fmt_keybinds_of(button: Button, keybinds: &Keybinds) -> String {
+pub fn fmt_keybinds_of(button: Button, keybinds: &GameKeybinds) -> String {
     keybinds
         .iter()
         .filter_map(|(key_keymods, b)| (*b == button).then_some(fmt_key_keymods(*key_keymods)))
@@ -252,7 +252,7 @@ pub fn fmt_keybinds_of(button: Button, keybinds: &Keybinds) -> String {
         .join("")
 }
 
-pub fn get_play_keybinds_legend(keybinds: &Keybinds) -> KeybindsLegend {
+pub fn get_play_keybinds_legend(keybinds: &GameKeybinds) -> KeybindsLegend {
     let fk = |k| fmt_key_keymods((k, KeyModifiers::NONE));
     let fb = |b| fmt_keybinds_of(b, keybinds);
 

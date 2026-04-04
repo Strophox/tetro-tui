@@ -8,18 +8,18 @@ use crate::application::SlotMachine;
 #[derive(PartialEq, Eq, Clone, Debug)]
 #[serde_with::serde_as] // Do **NOT** place this after #[derive(..)] !!
 #[derive(serde::Serialize, serde::Deserialize)]
-pub struct Keybinds {
+pub struct GameKeybinds {
     // Note: the alternative has ugly double-escaped quotation marks: #[serde_as(as = "std::collections::HashMap<serde_with::json::JsonString, _>")]
     #[serde_as(as = "Vec<(_, _)>")]
-    mapping: HashMap<(KeyCode, KeyModifiers), Button>,
+    map: HashMap<(KeyCode, KeyModifiers), Button>,
 }
 
-pub fn default_keybinds_slots() -> SlotMachine<Keybinds> {
+pub fn default_keybinds_slots() -> SlotMachine<GameKeybinds> {
     let slots = vec![
-        ("Default".to_owned(), Keybinds::default_tetro()),
-        ("Control+".to_owned(), Keybinds::extra_control()),
-        ("Guideline".to_owned(), Keybinds::guideline()),
-        ("Vim".to_owned(), Keybinds::vim()),
+        ("Default".to_owned(), GameKeybinds::default_tetro()),
+        ("Control+".to_owned(), GameKeybinds::extra_control()),
+        ("Guideline".to_owned(), GameKeybinds::guideline()),
+        ("Vim".to_owned(), GameKeybinds::vim()),
     ];
 
     SlotMachine::with_unmodifiable_slots(slots, "Keybinds".to_owned())
@@ -57,27 +57,27 @@ pub fn normalize((mut code, mut modifiers): (KeyCode, KeyModifiers)) -> (KeyCode
     (code, modifiers)
 }
 
-impl Keybinds {
+impl GameKeybinds {
     pub fn get(&self, (code, modifiers): (KeyCode, KeyModifiers)) -> Option<&Button> {
-        self.mapping.get(&normalize((code, modifiers)))
+        self.map.get(&normalize((code, modifiers)))
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (&(KeyCode, KeyModifiers), &Button)> {
-        self.mapping.iter()
+        self.map.iter()
     }
 
     /// This provides unstable but direct access to the internal representation for special purposes.
     pub fn unstable_access(&mut self) -> &mut HashMap<(KeyCode, KeyModifiers), Button> {
-        &mut self.mapping
+        &mut self.map
     }
 
-    pub fn empty() -> Keybinds {
-        Keybinds {
-            mapping: Default::default(),
+    pub fn empty() -> GameKeybinds {
+        GameKeybinds {
+            map: Default::default(),
         }
     }
 
-    pub fn default_tetro() -> Keybinds {
+    pub fn default_tetro() -> GameKeybinds {
         let keys = [
             (KeyCode::Left, Button::MoveLeft),
             (KeyCode::Right, Button::MoveRight),
@@ -93,12 +93,10 @@ impl Keybinds {
         ]
         .map(|(k, b)| ((k, KeyModifiers::NONE), b));
 
-        Keybinds {
-            mapping: keys.into(),
-        }
+        GameKeybinds { map: keys.into() }
     }
 
-    pub fn extra_control() -> Keybinds {
+    pub fn extra_control() -> GameKeybinds {
         let keys = [
             (KeyCode::Left, Button::MoveLeft),
             (KeyCode::Right, Button::MoveRight),
@@ -114,12 +112,10 @@ impl Keybinds {
         ]
         .map(|(k, b)| ((k, KeyModifiers::NONE), b));
 
-        Keybinds {
-            mapping: keys.into(),
-        }
+        GameKeybinds { map: keys.into() }
     }
 
-    pub fn guideline() -> Keybinds {
+    pub fn guideline() -> GameKeybinds {
         use crossterm::event::ModifierKeyCode as M;
         let keys = [
             (KeyCode::Left, Button::MoveLeft),
@@ -138,12 +134,10 @@ impl Keybinds {
         ]
         .map(|(k, b)| ((k, KeyModifiers::NONE), b));
 
-        Keybinds {
-            mapping: keys.into(),
-        }
+        GameKeybinds { map: keys.into() }
     }
 
-    pub fn vim() -> Keybinds {
+    pub fn vim() -> GameKeybinds {
         let keys = [
             (KeyCode::Char('h'), Button::MoveLeft),
             (KeyCode::Char('l'), Button::MoveRight),
@@ -155,8 +149,6 @@ impl Keybinds {
         ]
         .map(|(k, b)| ((k, KeyModifiers::NONE), b));
 
-        Keybinds {
-            mapping: keys.into(),
-        }
+        GameKeybinds { map: keys.into() }
     }
 }

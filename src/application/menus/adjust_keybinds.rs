@@ -19,7 +19,7 @@ use crate::{
         Application, Settings,
     },
     fmt_helpers::fmt_keybinds_of,
-    keybinds::normalize,
+    game_keybinds::normalize,
 };
 
 impl<T: Write> Application<T> {

@@ -8,7 +8,7 @@ use crossterm::event::{self, Event, KeyEvent, KeyEventKind};
 
 use falling_tetromino_engine::Button;
 
-use crate::keybinds::Keybinds;
+use crate::game_keybinds::GameKeybinds;
 
 pub enum LiveTermSignal {
     RecognizedButton(Button, KeyEventKind),
@@ -17,7 +17,7 @@ pub enum LiveTermSignal {
 
 pub fn spawn(
     input_sender: Sender<(LiveTermSignal, Instant)>,
-    keybinds: Keybinds,
+    keybinds: GameKeybinds,
     is_stop_key: impl Fn(crossterm::event::KeyCode, crossterm::event::KeyModifiers) -> bool
         + Send
         + 'static,

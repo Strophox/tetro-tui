@@ -27,10 +27,10 @@ use crate::{
         savefile_load_store::SavefileGranularity,
     },
     fmt_helpers::arabic_to_roman,
+    game_keybinds::*,
     game_modes::{self, game_modifiers, GameMode},
     gameplay_settings::*,
     graphics_settings::*,
-    keybinds::*,
     palette::*,
 };
 
@@ -594,7 +594,7 @@ pub struct Settings {
     gameplay_pick: usize,
 
     graphics_slotmachine: SlotMachine<GraphicsSettings>,
-    keybinds_slotmachine: SlotMachine<Keybinds>,
+    keybinds_slotmachine: SlotMachine<GameKeybinds>,
     gameplay_slotmachine: SlotMachine<GameplaySettings>,
     palette_slotmachine: SlotMachine<Palette>,
 }
@@ -618,7 +618,7 @@ impl Settings {
     pub fn graphics(&self) -> &GraphicsSettings {
         &self.graphics_slotmachine.slots[self.graphics_pick].1
     }
-    pub fn keybinds(&self) -> &Keybinds {
+    pub fn keybinds(&self) -> &GameKeybinds {
         &self.keybinds_slotmachine.slots[self.keybinds_pick].1
     }
     pub fn gameplay(&self) -> &GameplaySettings {
@@ -627,7 +627,7 @@ impl Settings {
     fn graphics_mut(&mut self) -> &mut GraphicsSettings {
         &mut self.graphics_slotmachine.slots[self.graphics_pick].1
     }
-    fn keybinds_mut(&mut self) -> &mut Keybinds {
+    fn keybinds_mut(&mut self) -> &mut GameKeybinds {
         &mut self.keybinds_slotmachine.slots[self.keybinds_pick].1
     }
     fn gameplay_mut(&mut self) -> &mut GameplaySettings {
