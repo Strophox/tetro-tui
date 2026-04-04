@@ -71,12 +71,6 @@ impl GameKeybinds {
         &mut self.map
     }
 
-    pub fn empty() -> GameKeybinds {
-        GameKeybinds {
-            map: Default::default(),
-        }
-    }
-
     pub fn default_tetro() -> GameKeybinds {
         let keys = [
             (KeyCode::Left, Button::MoveLeft),
