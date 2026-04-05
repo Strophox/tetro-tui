@@ -442,37 +442,37 @@ impl<T: Write> Application<T> {
 
                             // [Ctrl+L]: Load savepoint.
                             (KeyCode::Char('l' | 'L'), KeyModifiers::CONTROL) => {
-                                let GameSave {
+                                if let Some(GameSave {
                                     game_meta_data: saved_meta_data,
                                     game_restoration_data,
                                     inputs_to_load,
-                                } = &self.game_saves.1.get(self.game_saves.0).unwrap();
-
-                                *game = game_restoration_data.restore(*inputs_to_load);
-
-                                *game_meta_data = saved_meta_data.clone();
-                                // Mark restored game as such.
-                                game_meta_data.title.push('\'');
-
-                                *game_input_history = game_restoration_data
-                                    .input_history
-                                    .iter()
-                                    .take(*inputs_to_load)
-                                    .copied()
-                                    .collect();
-
-                                game_renderer.reset_game_associated_state();
-                                game_renderer.push_game_notification_feed([(
-                                    Notification::Custom("(Loaded savepoint)".to_owned()),
-                                    game.state().time,
-                                )]);
-
-                                // What we do here is rather unholy, so we have to adapt the game loop state itself.
-                                self.statistics.total_play_time += Instant::now()
-                                    .saturating_duration_since(time_game_loop_entered);
-
-                                ingametime_when_game_loop_entered = game.state().time;
-                                time_game_loop_entered = Instant::now();
+                                }) = &self.game_saves.1.get(self.game_saves.0) {
+                                    *game = game_restoration_data.restore(*inputs_to_load);
+    
+                                    *game_meta_data = saved_meta_data.clone();
+                                    // Mark restored game as such.
+                                    game_meta_data.title.push('\'');
+    
+                                    *game_input_history = game_restoration_data
+                                        .input_history
+                                        .iter()
+                                        .take(*inputs_to_load)
+                                        .copied()
+                                        .collect();
+    
+                                    game_renderer.reset_game_associated_state();
+                                    game_renderer.push_game_notification_feed([(
+                                        Notification::Custom("(Loaded savepoint)".to_owned()),
+                                        game.state().time,
+                                    )]);
+    
+                                    // What we do here is rather unholy, so we have to adapt the game loop state itself.
+                                    self.statistics.total_play_time += Instant::now()
+                                        .saturating_duration_since(time_game_loop_entered);
+    
+                                    ingametime_when_game_loop_entered = game.state().time;
+                                    time_game_loop_entered = Instant::now();
+                                }
                             }
 
                             // [Ctrl+E]: Store seed.
