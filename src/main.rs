@@ -5,7 +5,6 @@ mod game_modes;
 mod game_renderers;
 mod gameplay_settings;
 mod graphics_settings;
-mod live_input_handler;
 mod palette;
 
 use std::{io, path::PathBuf};
