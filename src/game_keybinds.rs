@@ -20,6 +20,7 @@ pub fn default_keybinds_slots() -> SlotMachine<GameKeybinds> {
         ("Control+".to_owned(), GameKeybinds::extra_control()),
         ("Guideline".to_owned(), GameKeybinds::guideline()),
         ("Vim".to_owned(), GameKeybinds::vim()),
+        ("Terminal Finesse".to_owned(), GameKeybinds::terminal_fin()),
     ];
 
     SlotMachine::with_unmodifiable_slots(slots, "Keybinds".to_owned())
@@ -140,6 +141,26 @@ impl GameKeybinds {
             (KeyCode::Char('j'), Button::DropSoft),
             (KeyCode::Char('k'), Button::DropHard),
             (KeyCode::Char(' '), Button::HoldPiece),
+        ]
+        .map(|(k, b)| ((k, KeyModifiers::NONE), b));
+
+        GameKeybinds { map: keys.into() }
+    }
+
+    pub fn terminal_fin() -> GameKeybinds {
+        let keys = [
+            (KeyCode::Char('e'), Button::HoldPiece),
+            (KeyCode::Char('a'), Button::Rotate180),
+            (KeyCode::Char('s'), Button::TeleRight),
+            (KeyCode::Char('d'), Button::MoveLeft),
+            (KeyCode::Char('f'), Button::RotateLeft),
+            (KeyCode::Char('j'), Button::DropHard),
+            (KeyCode::Char('k'), Button::RotateRight),
+            (KeyCode::Char('l'), Button::MoveRight),
+            (KeyCode::Char(';'), Button::TeleLeft),
+            (KeyCode::Char('ö'), Button::TeleLeft),
+            (KeyCode::Char('i'), Button::DropSoft),
+            (KeyCode::Char(' '), Button::TeleDown),
         ]
         .map(|(k, b)| ((k, KeyModifiers::NONE), b));
 
