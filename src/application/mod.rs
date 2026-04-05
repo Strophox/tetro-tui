@@ -17,8 +17,8 @@ use crossterm::{
 };
 
 use falling_tetromino_engine::{
-    Board, Button, DelayParameters, ExtDuration, Game, GameBuilder, GameEndCause, InGameTime,
-    Input, Notification, NotificationFeed, NotificationLevel, Stat, Tetromino,
+    Button, DelayParameters, ExtDuration, Game, GameBuilder, GameEndCause, InGameTime, Input,
+    Notification, NotificationFeed, NotificationLevel, Stat, Tetromino,
 };
 
 use crate::{
@@ -537,51 +537,6 @@ impl Default for NewGameSettings {
             master_mode_unlocked: false,
             experimental_mode_unlocked: false,
         }
-    }
-}
-
-impl NewGameSettings {
-    #[allow(dead_code)]
-    pub fn encode_board(board: &Board) -> String {
-        board
-            .iter()
-            .map(|line| {
-                line.iter()
-                    .map(|tile| if tile.is_some() { 'X' } else { ' ' })
-                    .collect::<String>()
-            })
-            .collect::<String>()
-            .trim_end()
-            .to_owned()
-    }
-
-    pub fn decode_board(board_str: &str) -> Board {
-        let grey_tile = Some(std::num::NonZeroU8::try_from(254).unwrap());
-
-        let mut new_board = Board::default();
-
-        let mut chars = board_str.chars();
-
-        for line in &mut new_board {
-            for tile in line {
-                for char in chars.by_ref() {
-                    if char == ' ' {
-                        // Space = empty tile.
-                        *tile = None;
-                        break;
-                    } else if char == '\n' {
-                        // Newline = ignore, stay at tile but move on to next char.
-                        continue;
-                    } else {
-                        // Otherwise = filled tile.
-                        *tile = grey_tile;
-                        break;
-                    }
-                }
-            }
-        }
-
-        new_board
     }
 }
 
