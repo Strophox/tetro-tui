@@ -17,8 +17,8 @@ use crossterm::{
 };
 
 use falling_tetromino_engine::{
-    Board, Button, DelayParameters, ExtDuration, Game, GameBuilder, GameEndCause, InGameTime,
-    Input, Notification, NotificationFeed, NotificationLevel, Stat, Tetromino,
+    Button, DelayParameters, ExtDuration, Game, GameBuilder, GameEndCause, InGameTime, Input,
+    Notification, NotificationFeed, NotificationLevel, Stat, Tetromino,
 };
 
 use crate::{
@@ -27,10 +27,10 @@ use crate::{
         savefile_load_store::SavefileGranularity,
     },
     fmt_helpers::arabic_to_roman,
+    game_keybinds::*,
     game_modes::{self, game_modifiers, GameMode},
     gameplay_settings::*,
     graphics_settings::*,
-    keybinds::*,
     palette::*,
 };
 
@@ -540,51 +540,6 @@ impl Default for NewGameSettings {
     }
 }
 
-impl NewGameSettings {
-    #[allow(dead_code)]
-    pub fn encode_board(board: &Board) -> String {
-        board
-            .iter()
-            .map(|line| {
-                line.iter()
-                    .map(|tile| if tile.is_some() { 'X' } else { ' ' })
-                    .collect::<String>()
-            })
-            .collect::<String>()
-            .trim_end()
-            .to_owned()
-    }
-
-    pub fn decode_board(board_str: &str) -> Board {
-        let grey_tile = Some(std::num::NonZeroU8::try_from(254).unwrap());
-
-        let mut new_board = Board::default();
-
-        let mut chars = board_str.chars();
-
-        for line in &mut new_board {
-            for tile in line {
-                for char in chars.by_ref() {
-                    if char == ' ' {
-                        // Space = empty tile.
-                        *tile = None;
-                        break;
-                    } else if char == '\n' {
-                        // Newline = ignore, stay at tile but move on to next char.
-                        continue;
-                    } else {
-                        // Otherwise = filled tile.
-                        *tile = grey_tile;
-                        break;
-                    }
-                }
-            }
-        }
-
-        new_board
-    }
-}
-
 // #[serde_with::serde_as]
 #[derive(PartialEq, Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Settings {
@@ -594,7 +549,7 @@ pub struct Settings {
     gameplay_pick: usize,
 
     graphics_slotmachine: SlotMachine<GraphicsSettings>,
-    keybinds_slotmachine: SlotMachine<Keybinds>,
+    keybinds_slotmachine: SlotMachine<GameKeybinds>,
     gameplay_slotmachine: SlotMachine<GameplaySettings>,
     palette_slotmachine: SlotMachine<Palette>,
 }
@@ -618,7 +573,7 @@ impl Settings {
     pub fn graphics(&self) -> &GraphicsSettings {
         &self.graphics_slotmachine.slots[self.graphics_pick].1
     }
-    pub fn keybinds(&self) -> &Keybinds {
+    pub fn keybinds(&self) -> &GameKeybinds {
         &self.keybinds_slotmachine.slots[self.keybinds_pick].1
     }
     pub fn gameplay(&self) -> &GameplaySettings {
@@ -627,7 +582,7 @@ impl Settings {
     fn graphics_mut(&mut self) -> &mut GraphicsSettings {
         &mut self.graphics_slotmachine.slots[self.graphics_pick].1
     }
-    fn keybinds_mut(&mut self) -> &mut Keybinds {
+    fn keybinds_mut(&mut self) -> &mut GameKeybinds {
         &mut self.keybinds_slotmachine.slots[self.keybinds_pick].1
     }
     fn gameplay_mut(&mut self) -> &mut GameplaySettings {

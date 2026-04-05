@@ -1,6 +1,5 @@
 use std::{
     io::{self, Write},
-    sync::mpsc,
     time::{Duration, Instant},
 };
 
@@ -22,8 +21,6 @@ use crate::{
     },
     fmt_helpers::{fmt_duration, replay_keybinds_legend},
     game_renderers::{Renderer, TetroTUIRenderer},
-    keybinds::Keybinds,
-    live_input_handler::{self, LiveTermSignal},
 };
 
 struct GameSaveAnchor {
@@ -63,23 +60,6 @@ impl<T: Write> Application<T> {
             // FIXME: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm doesn't like operating on Windows.
             let _v = self.term.execute(event::PushKeyboardEnhancementFlags(f));
         }
-
-        // Prepare channel from which to receive terminal inputs.
-        let (input_sender, input_receiver) = mpsc::channel();
-
-        // Spawn input handler thread.
-        let empty_game_control_keybinds = Keybinds::empty();
-        let is_stop_keybind = |code: KeyCode, modifiers: KeyModifiers| {
-            matches!(code, KeyCode::Esc)
-                || matches!(code, KeyCode::Char('q' | 'Q'))
-                || matches!(code, KeyCode::Backspace)
-                || matches!(
-                    (code, modifiers),
-                    (KeyCode::Char('c' | 'C'), KeyModifiers::CONTROL)
-                )
-        };
-        let _join_handle =
-            live_input_handler::spawn(input_sender, empty_game_control_keybinds, is_stop_keybind);
 
         // Replay data/variables setup:
 
@@ -174,439 +154,364 @@ impl<T: Write> Application<T> {
 
             'wait: loop {
                 // Compute time left until we should stop waiting.
-                let refresh_time_budget_remaining = time_next_refresh - Instant::now();
+                let Some(refresh_time_budget_remaining) =
+                    time_next_refresh.checked_duration_since(Instant::now())
+                else {
+                    break 'wait;
+                };
 
-                // Read terminal signal or finish waiting.
-                match input_receiver.recv_timeout(refresh_time_budget_remaining) {
-                    Ok((signal, _timestamp)) => {
-                        match signal {
-                            // Found a recognized game input??: DO NOT use it, we're in a game replay.
-                            LiveTermSignal::RecognizedButton(_button, _key_event_kind) => {}
+                // Wait for poll response.
+                let event_available = event::poll(refresh_time_budget_remaining)?;
 
-                            // Some other input that does not cause an 'in-game action': Process it.
-                            LiveTermSignal::RawEvent(event) => {
-                                match event {
-                                    event::Event::Key(KeyEvent {
-                                        code,
-                                        modifiers,
-                                        kind,
-                                        state: _,
-                                    }) => {
-                                        if matches!(kind, KeyEventKind::Release) {
-                                            // It just so happens that, once we're done considering in-game-relevant presses,
-                                            // for the remaining controls we only care about key*down*s.
-                                            continue 'wait;
+                // Finished waiting with no terminal signal available.
+                if !event_available {
+                    break 'wait;
+                }
+
+                let event = event::read()?;
+                match event {
+                    event::Event::Key(KeyEvent {
+                        code,
+                        modifiers,
+                        kind,
+                        state: _,
+                    }) => {
+                        if matches!(kind, KeyEventKind::Release) {
+                            // It just so happens that, once we're done considering in-game-relevant presses,
+                            // for the remaining controls we only care about key*down*s.
+                            continue 'wait;
+                        }
+
+                        match (code, modifiers) {
+                            // [Esc]: Stop.
+                            (KeyCode::Esc | KeyCode::Char('q' | 'Q') | KeyCode::Backspace, _) => {
+                                break 'update_and_render MenuUpdate::Pop;
+                            }
+
+                            // [Ctrl+C]: Exit program.
+                            (KeyCode::Char('c' | 'C'), KeyModifiers::CONTROL) => {
+                                break 'update_and_render MenuUpdate::Push(Menu::Quit);
+                            }
+
+                            // [Ctrl+I]: Enable Interactive Instant-Input Intervention.
+                            (KeyCode::Char('i' | 'I'), KeyModifiers::CONTROL) => {
+                                enable_game_intervention_inputs ^= true;
+
+                                let str = if enable_game_intervention_inputs {
+                                    "(Enabled inputs)"
+                                } else {
+                                    "(Disabled inputs)"
+                                };
+
+                                game_renderer.push_game_notification_feed([(
+                                    Notification::Custom(str.to_owned()),
+                                    game.state().time,
+                                )]);
+
+                                next_paused_with_extra_render_request = Some(true);
+                            }
+
+                            (code, modifiers) if enable_game_intervention_inputs => {
+                                match self.settings.keybinds().get((code, modifiers)) {
+                                    // No binding: Just ignore.
+                                    None => {}
+
+                                    // Binding found: Usebutton un-/press.
+                                    Some(&button) => {
+                                        match game.update(
+                                            game.state().time,
+                                            Some(Input::Activate(button)),
+                                        ) {
+                                            Ok(msgs) => {
+                                                game_renderer.push_game_notification_feed(msgs)
+                                            }
+                                            // FIXME: Handle UpdateGameError::TargetTimeInPast? If not, why not?
+                                            Err(UpdateGameError::TargetTimeInPast) => {}
+                                            // Game ended.
+                                            Err(UpdateGameError::AlreadyEnded) => {}
                                         }
-
-                                        match (code, modifiers) {
-                                            // [Esc]: Stop.
-                                            (
-                                                KeyCode::Esc
-                                                | KeyCode::Char('q' | 'Q')
-                                                | KeyCode::Backspace,
-                                                _,
-                                            ) => {
-                                                break 'update_and_render MenuUpdate::Pop;
+                                        match game.update(
+                                            game.state().time,
+                                            Some(Input::Deactivate(button)),
+                                        ) {
+                                            Ok(msgs) => {
+                                                game_renderer.push_game_notification_feed(msgs)
                                             }
-
-                                            // [Ctrl+C]: Exit program.
-                                            (KeyCode::Char('c' | 'C'), KeyModifiers::CONTROL) => {
-                                                break 'update_and_render MenuUpdate::Push(
-                                                    Menu::Quit,
-                                                );
-                                            }
-
-                                            // [Ctrl+I]: Enable Interactive Instant-Input Intervention.
-                                            (KeyCode::Char('i' | 'I'), KeyModifiers::CONTROL) => {
-                                                enable_game_intervention_inputs ^= true;
-
-                                                let str = if enable_game_intervention_inputs {
-                                                    "(Enabled inputs)"
-                                                } else {
-                                                    "(Disabled inputs)"
-                                                };
-
-                                                game_renderer.push_game_notification_feed([(
-                                                    Notification::Custom(str.to_owned()),
-                                                    game.state().time,
-                                                )]);
-
-                                                next_paused_with_extra_render_request = Some(true);
-                                            }
-
-                                            (code, modifiers)
-                                                if enable_game_intervention_inputs =>
-                                            {
-                                                match self
-                                                    .settings
-                                                    .keybinds()
-                                                    .get((code, modifiers))
-                                                {
-                                                    // No binding: Just ignore.
-                                                    None => {}
-
-                                                    // Binding found: Usebutton un-/press.
-                                                    Some(&button) => {
-                                                        match game.update(
-                                                            game.state().time,
-                                                            Some(Input::Activate(button)),
-                                                        ) {
-                                                            Ok(msgs) => game_renderer
-                                                                .push_game_notification_feed(msgs),
-                                                            // FIXME: Handle UpdateGameError::TargetTimeInPast? If not, why not?
-                                                            Err(
-                                                                UpdateGameError::TargetTimeInPast,
-                                                            ) => {}
-                                                            // Game ended.
-                                                            Err(UpdateGameError::AlreadyEnded) => {}
-                                                        }
-                                                        match game.update(
-                                                            game.state().time,
-                                                            Some(Input::Deactivate(button)),
-                                                        ) {
-                                                            Ok(msgs) => game_renderer
-                                                                .push_game_notification_feed(msgs),
-                                                            // FIXME: Handle UpdateGameError::TargetTimeInPast? If not, why not?
-                                                            Err(
-                                                                UpdateGameError::TargetTimeInPast,
-                                                            ) => {}
-                                                            // Game ended.
-                                                            Err(UpdateGameError::AlreadyEnded) => {}
-                                                        }
-                                                    }
-                                                }
-
-                                                // Pause and render.
-                                                next_paused_with_extra_render_request = Some(true);
-                                                break 'wait;
-                                            }
-
-                                            // [Ctrl+S]: Store savepoint.
-                                            (KeyCode::Char('s' | 'S'), KeyModifiers::CONTROL) => {
-                                                self.game_saves = (
-                                                    0,
-                                                    vec![GameSave {
-                                                        game_meta_data: game_meta_data.clone(),
-                                                        game_restoration_data:
-                                                            GameRestorationData::new(
-                                                                &game,
-                                                                game_restoration_data
-                                                                    .input_history
-                                                                    .clone(),
-                                                                matches!(
-                                                                    game.phase(),
-                                                                    Phase::GameEnd {
-                                                                        cause:
-                                                                            GameEndCause::Forfeit { .. },
-                                                                        ..
-                                                                    }
-                                                                )
-                                                                .then_some(game.state().time),
-                                                            ),
-                                                        inputs_to_load: inputs_loaded,
-                                                    }],
-                                                );
-
-                                                game_renderer.push_game_notification_feed([(
-                                                    Notification::Custom(
-                                                        "(Stored savepoint)".to_owned(),
-                                                    ),
-                                                    game.state().time,
-                                                )]);
-
-                                                if paused {
-                                                    next_paused_with_extra_render_request =
-                                                        Some(true);
-                                                    break 'wait;
-                                                }
-                                            }
-
-                                            // [Ctrl+E]: Store seed.
-                                            (KeyCode::Char('e' | 'E'), KeyModifiers::CONTROL) => {
-                                                self.settings.newgame.custom_seed =
-                                                    Some(game.state_init().seed);
-
-                                                game_renderer.push_game_notification_feed([(
-                                                    Notification::Custom(format!(
-                                                        "(Seed stored: {}.)",
-                                                        game.state_init().seed
-                                                    )),
-                                                    game.state().time,
-                                                )]);
-
-                                                if paused {
-                                                    next_paused_with_extra_render_request =
-                                                        Some(true);
-                                                    break 'wait;
-                                                }
-                                            }
-
-                                            // [Space]: (Un-)Pause replay.
-                                            (KeyCode::Char(' '), _) => {
-                                                next_paused_with_extra_render_request =
-                                                    if paused { None } else { Some(true) };
-                                                break 'wait;
-                                            }
-
-                                            // [↓][↑]: Adjust replay speed.
-                                            (
-                                                KeyCode::Down
-                                                | KeyCode::Char('j' | 'J')
-                                                | KeyCode::Up
-                                                | KeyCode::Char('k' | 'K'),
-                                                modifier,
-                                            ) => {
-                                                let speed_delta =
-                                                    if modifier.contains(KeyModifiers::ALT) {
-                                                        SPEED_SMALL_STEPPER_DELTA
-                                                    } else {
-                                                        SPEED_NORMAL_STEPPER_DELTA
-                                                    };
-
-                                                if matches!(
-                                                    code,
-                                                    KeyCode::Up | KeyCode::Char('k' | 'K')
-                                                ) {
-                                                    replay_speed_stepper += speed_delta;
-                                                } else if replay_speed_stepper > speed_delta {
-                                                    replay_speed_stepper -= speed_delta;
-                                                };
-
-                                                if paused {
-                                                    next_paused_with_extra_render_request =
-                                                        Some(true);
-                                                    break 'wait;
-                                                }
-                                            }
-
-                                            // [-]: Reset replay speed to 1.
-                                            (KeyCode::Char('-'), _) => {
-                                                replay_speed_stepper = REPLAY_SPEED_STEP_EQUIVALENT_TO_SPEED_MULTIPLIER_1;
-
-                                                if paused {
-                                                    next_paused_with_extra_render_request =
-                                                        Some(true);
-                                                    break 'wait;
-                                                }
-                                            }
-
-                                            // [Alt+.]: Skip one *update?* forward.
-                                            (KeyCode::Char('.'), KeyModifiers::ALT) => {
-                                                if let Some(mut update_target_time) =
-                                                    game.peek_next_update_time()
-                                                {
-                                                    let mut opt_input = None;
-
-                                                    let mut do_forfeit = false;
-
-                                                    if let Some(forfeit_time) =
-                                                        game_restoration_data.forfeit
-                                                    {
-                                                        if forfeit_time <= update_target_time {
-                                                            update_target_time = forfeit_time;
-                                                            do_forfeit = true;
-                                                        }
-                                                    }
-
-                                                    // Note how we use `inputs_loaded` as because this automatically corresponds to the *index* of the next desired input.
-                                                    if let Some((next_input_time, input)) =
-                                                        game_restoration_data
-                                                            .input_history
-                                                            .get(inputs_loaded)
-                                                    {
-                                                        // By using 'less than' we can actually load the environmental game effects and user inputs separately!
-                                                        if *next_input_time < update_target_time {
-                                                            update_target_time = *next_input_time;
-                                                            do_forfeit = false;
-                                                            opt_input = Some(*input);
-                                                            inputs_loaded += 1;
-                                                        }
-                                                    }
-
-                                                    match game.update(update_target_time, opt_input)
-                                                    {
-                                                        Ok(msgs) => game_renderer
-                                                            .push_game_notification_feed(msgs),
-                                                        // FIXME: Handle UpdateGameError::TargetTimeInPast? If not, why not?
-                                                        Err(UpdateGameError::TargetTimeInPast) => {}
-                                                        // Game ended, no more inputs.
-                                                        Err(UpdateGameError::AlreadyEnded) => {}
-                                                    }
-
-                                                    if do_forfeit {
-                                                        match game.forfeit() {
-                                                            Ok(msgs) => game_renderer
-                                                                .push_game_notification_feed(msgs),
-
-                                                            // We do not care if game ended or time is in past here.
-                                                            Err(
-                                                                UpdateGameError::AlreadyEnded
-                                                                | UpdateGameError::TargetTimeInPast,
-                                                            ) => {}
-                                                        };
-                                                    }
-
-                                                    next_paused_with_extra_render_request =
-                                                        Some(true);
-                                                    break 'wait;
-                                                }
-                                            }
-
-                                            // [.]: Skip one input forward.
-                                            (KeyCode::Char('.'), _) => {
-                                                if let Some((next_input_time, button_change)) =
-                                                    game_restoration_data
-                                                        .input_history
-                                                        .get(inputs_loaded)
-                                                {
-                                                    // FIXME: We do not handle degenerate cases where input is available even tho game should forfeit.
-
-                                                    match game.update(
-                                                        *next_input_time,
-                                                        Some(*button_change),
-                                                    ) {
-                                                        Ok(msgs) => game_renderer
-                                                            .push_game_notification_feed(msgs),
-                                                        // FIXME: Handle UpdateGameError::TargetTimeInPast? If not, why not?
-                                                        Err(UpdateGameError::TargetTimeInPast) => {}
-                                                        // Game ended, no more inputs.
-                                                        Err(UpdateGameError::AlreadyEnded) => {}
-                                                    }
-                                                    inputs_loaded += 1;
-                                                    next_paused_with_extra_render_request =
-                                                        Some(true);
-                                                    break 'wait;
-                                                }
-                                            }
-
-                                            // [←][→]: Skip to anchor save.
-                                            (
-                                                KeyCode::Left
-                                                | KeyCode::Char('h' | 'H')
-                                                | KeyCode::Right
-                                                | KeyCode::Char('l' | 'L'),
-                                                _,
-                                            ) => {
-                                                let mut anchor_index =
-                                                    (game.state().time.as_secs_f64()
-                                                        / ANCHOR_INTERVAL.as_secs_f64())
-                                                    .floor()
-                                                        as usize;
-
-                                                if matches!(
-                                                    code,
-                                                    KeyCode::Left | KeyCode::Char('h' | 'H')
-                                                ) {
-                                                    anchor_index = anchor_index.saturating_sub(1);
-                                                } else {
-                                                    anchor_index += 1;
-                                                }
-
-                                                jump_to_anchor = Some(anchor_index);
-
-                                                break 'wait;
-                                            }
-
-                                            // [0]-[9]: Skip to X0% anchor save.
-                                            (KeyCode::Char(c @ '0'..='9'), _) => {
-                                                let n = c.to_string().parse::<u32>().unwrap();
-
-                                                // n/10 * (No.anchors := replen/anchor_interval)
-                                                let anchor_index = (f64::from(n) / 10.0
-                                                    * (replay_length.as_secs_f64()
-                                                        / ANCHOR_INTERVAL.as_secs_f64()))
-                                                .floor()
-                                                    as usize;
-
-                                                jump_to_anchor = Some(anchor_index);
-
-                                                break 'wait;
-                                            }
-
-                                            // [Enter]: Start playable game from here!
-                                            (KeyCode::Enter | KeyCode::Char('e' | 'E'), _)
-                                                if !game.has_ended() =>
-                                            {
-                                                // We yank the *exact* gamestate. Leave some dummy in its place that shouldn't be used/relevant...
-                                                let the_game = std::mem::replace(
-                                                    &mut game,
-                                                    Game::builder().build(),
-                                                );
-
-                                                let mut the_meta_data = game_meta_data.clone();
-                                                the_meta_data.title.push('\'');
-
-                                                // FIXME: Clone renderer when entering live game from here?
-                                                let the_game_renderer =
-                                                    TetroTUIRenderer::with_number(
-                                                        self.temp_data.renderernumber,
-                                                    );
-
-                                                // Accumulate this specific state here. TODO what if we want to tho? like when playing a game and discarding it nevertheless
-                                                self.statistics.total_new_games += 1;
-
-                                                break 'update_and_render MenuUpdate::Push(
-                                                    Menu::PlayGame {
-                                                        game: Box::new(the_game),
-                                                        game_input_history: game_restoration_data
-                                                            .input_history
-                                                            .iter()
-                                                            .take(inputs_loaded)
-                                                            .copied()
-                                                            .collect(),
-                                                        game_meta_data: the_meta_data,
-                                                        game_renderer: Box::new(the_game_renderer),
-                                                    },
-                                                );
-                                            }
-
-                                            // Other misc. key event: We don't care.
-                                            _ => continue 'wait,
+                                            // FIXME: Handle UpdateGameError::TargetTimeInPast? If not, why not?
+                                            Err(UpdateGameError::TargetTimeInPast) => {}
+                                            // Game ended.
+                                            Err(UpdateGameError::AlreadyEnded) => {}
                                         }
-                                    }
-
-                                    event::Event::Mouse(_) => {}
-                                    event::Event::Paste(_) => {}
-                                    event::Event::FocusGained => {}
-                                    event::Event::FocusLost => {}
-                                    event::Event::Resize(_, _) => {
-                                        // Need to redraw screen for proper centering etc.
-                                        let (x_main, y_main) = Application::<T>::fetch_main_xy();
-                                        game_renderer.set_render_offset(
-                                            usize::from(x_main),
-                                            usize::from(y_main),
-                                        );
-                                        game_renderer.reset_view_diff_state();
-
-                                        if paused {
-                                            next_paused_with_extra_render_request = Some(true);
-                                        }
-
-                                        break 'wait;
                                     }
                                 }
-                            }
-                        }
-                    }
 
-                    Err(recv_timeout_error) => {
-                        match recv_timeout_error {
-                            // Frame idle/budget expired on its own: leave wait loop.
-                            mpsc::RecvTimeoutError::Timeout => {
+                                // Pause and render.
+                                next_paused_with_extra_render_request = Some(true);
                                 break 'wait;
                             }
 
-                            // Input handler thread died... Pop replay for now.
-                            mpsc::RecvTimeoutError::Disconnected => {
-                                // FIXME: This 'extremely' rare error is currently fixed by pausing the game
-                                // which means no extra work for us and just one extra step for the user.
-                                // But maybe properly try restarting the thread manually?...
-                                break 'update_and_render MenuUpdate::Pop;
+                            // [Ctrl+S]: Store savepoint.
+                            (KeyCode::Char('s' | 'S'), KeyModifiers::CONTROL) => {
+                                self.game_saves = (
+                                    0,
+                                    vec![GameSave {
+                                        game_meta_data: game_meta_data.clone(),
+                                        game_restoration_data: GameRestorationData::new(
+                                            &game,
+                                            game_restoration_data.input_history.clone(),
+                                            matches!(
+                                                game.phase(),
+                                                Phase::GameEnd {
+                                                    cause: GameEndCause::Forfeit { .. },
+                                                    ..
+                                                }
+                                            )
+                                            .then_some(game.state().time),
+                                        ),
+                                        inputs_to_load: inputs_loaded,
+                                    }],
+                                );
+
+                                game_renderer.push_game_notification_feed([(
+                                    Notification::Custom("(Stored savepoint)".to_owned()),
+                                    game.state().time,
+                                )]);
+
+                                if paused {
+                                    next_paused_with_extra_render_request = Some(true);
+                                    break 'wait;
+                                }
                             }
+
+                            // [Ctrl+E]: Store seed.
+                            (KeyCode::Char('e' | 'E'), KeyModifiers::CONTROL) => {
+                                self.settings.newgame.custom_seed = Some(game.state_init().seed);
+
+                                game_renderer.push_game_notification_feed([(
+                                    Notification::Custom(format!(
+                                        "(Seed stored: {}.)",
+                                        game.state_init().seed
+                                    )),
+                                    game.state().time,
+                                )]);
+
+                                if paused {
+                                    next_paused_with_extra_render_request = Some(true);
+                                    break 'wait;
+                                }
+                            }
+
+                            // [Space]: (Un-)Pause replay.
+                            (KeyCode::Char(' '), _) => {
+                                next_paused_with_extra_render_request =
+                                    if paused { None } else { Some(true) };
+                                break 'wait;
+                            }
+
+                            // [↓][↑]: Adjust replay speed.
+                            (
+                                KeyCode::Down
+                                | KeyCode::Char('j' | 'J')
+                                | KeyCode::Up
+                                | KeyCode::Char('k' | 'K'),
+                                modifier,
+                            ) => {
+                                let speed_delta = if modifier.contains(KeyModifiers::ALT) {
+                                    SPEED_SMALL_STEPPER_DELTA
+                                } else {
+                                    SPEED_NORMAL_STEPPER_DELTA
+                                };
+
+                                if matches!(code, KeyCode::Up | KeyCode::Char('k' | 'K')) {
+                                    replay_speed_stepper += speed_delta;
+                                } else if replay_speed_stepper > speed_delta {
+                                    replay_speed_stepper -= speed_delta;
+                                };
+
+                                if paused {
+                                    next_paused_with_extra_render_request = Some(true);
+                                    break 'wait;
+                                }
+                            }
+
+                            // [-]: Reset replay speed to 1.
+                            (KeyCode::Char('-'), _) => {
+                                replay_speed_stepper =
+                                    REPLAY_SPEED_STEP_EQUIVALENT_TO_SPEED_MULTIPLIER_1;
+
+                                if paused {
+                                    next_paused_with_extra_render_request = Some(true);
+                                    break 'wait;
+                                }
+                            }
+
+                            // [Alt+.]: Skip one *update?* forward.
+                            (KeyCode::Char('.'), KeyModifiers::ALT) => {
+                                if let Some(mut update_target_time) = game.peek_next_update_time() {
+                                    let mut opt_input = None;
+
+                                    let mut do_forfeit = false;
+
+                                    if let Some(forfeit_time) = game_restoration_data.forfeit {
+                                        if forfeit_time <= update_target_time {
+                                            update_target_time = forfeit_time;
+                                            do_forfeit = true;
+                                        }
+                                    }
+
+                                    // Note how we use `inputs_loaded` as because this automatically corresponds to the *index* of the next desired input.
+                                    if let Some((next_input_time, input)) =
+                                        game_restoration_data.input_history.get(inputs_loaded)
+                                    {
+                                        // By using 'less than' we can actually load the environmental game effects and user inputs separately!
+                                        if *next_input_time < update_target_time {
+                                            update_target_time = *next_input_time;
+                                            do_forfeit = false;
+                                            opt_input = Some(*input);
+                                            inputs_loaded += 1;
+                                        }
+                                    }
+
+                                    match game.update(update_target_time, opt_input) {
+                                        Ok(msgs) => game_renderer.push_game_notification_feed(msgs),
+                                        // FIXME: Handle UpdateGameError::TargetTimeInPast? If not, why not?
+                                        Err(UpdateGameError::TargetTimeInPast) => {}
+                                        // Game ended, no more inputs.
+                                        Err(UpdateGameError::AlreadyEnded) => {}
+                                    }
+
+                                    if do_forfeit {
+                                        match game.forfeit() {
+                                            Ok(msgs) => {
+                                                game_renderer.push_game_notification_feed(msgs)
+                                            }
+
+                                            // We do not care if game ended or time is in past here.
+                                            Err(
+                                                UpdateGameError::AlreadyEnded
+                                                | UpdateGameError::TargetTimeInPast,
+                                            ) => {}
+                                        };
+                                    }
+
+                                    next_paused_with_extra_render_request = Some(true);
+                                    break 'wait;
+                                }
+                            }
+
+                            // [.]: Skip one input forward.
+                            (KeyCode::Char('.'), _) => {
+                                if let Some((next_input_time, button_change)) =
+                                    game_restoration_data.input_history.get(inputs_loaded)
+                                {
+                                    // FIXME: We do not handle degenerate cases where input is available even tho game should forfeit.
+
+                                    match game.update(*next_input_time, Some(*button_change)) {
+                                        Ok(msgs) => game_renderer.push_game_notification_feed(msgs),
+                                        // FIXME: Handle UpdateGameError::TargetTimeInPast? If not, why not?
+                                        Err(UpdateGameError::TargetTimeInPast) => {}
+                                        // Game ended, no more inputs.
+                                        Err(UpdateGameError::AlreadyEnded) => {}
+                                    }
+                                    inputs_loaded += 1;
+                                    next_paused_with_extra_render_request = Some(true);
+                                    break 'wait;
+                                }
+                            }
+
+                            // [←][→]: Skip to anchor save.
+                            (
+                                KeyCode::Left
+                                | KeyCode::Char('h' | 'H')
+                                | KeyCode::Right
+                                | KeyCode::Char('l' | 'L'),
+                                _,
+                            ) => {
+                                let mut anchor_index = (game.state().time.as_secs_f64()
+                                    / ANCHOR_INTERVAL.as_secs_f64())
+                                .floor()
+                                    as usize;
+
+                                if matches!(code, KeyCode::Left | KeyCode::Char('h' | 'H')) {
+                                    anchor_index = anchor_index.saturating_sub(1);
+                                } else {
+                                    anchor_index += 1;
+                                }
+
+                                jump_to_anchor = Some(anchor_index);
+
+                                break 'wait;
+                            }
+
+                            // [0]-[9]: Skip to X0% anchor save.
+                            (KeyCode::Char(c @ '0'..='9'), _) => {
+                                let n = c.to_string().parse::<u32>().unwrap();
+
+                                // n/10 * (No.anchors := replen/anchor_interval)
+                                let anchor_index = (f64::from(n) / 10.0
+                                    * (replay_length.as_secs_f64() / ANCHOR_INTERVAL.as_secs_f64()))
+                                .floor()
+                                    as usize;
+
+                                jump_to_anchor = Some(anchor_index);
+
+                                break 'wait;
+                            }
+
+                            // [Enter]: Start playable game from here!
+                            (KeyCode::Enter | KeyCode::Char('e' | 'E'), _) if !game.has_ended() => {
+                                // We yank the *exact* gamestate. Leave some dummy in its place that shouldn't be used/relevant...
+                                let the_game =
+                                    std::mem::replace(&mut game, Game::builder().build());
+
+                                let mut the_meta_data = game_meta_data.clone();
+                                the_meta_data.title.push('\'');
+
+                                // FIXME: Clone renderer when entering live game from here?
+                                let the_game_renderer =
+                                    TetroTUIRenderer::with_number(self.temp_data.renderernumber);
+
+                                // Accumulate this specific state here. TODO what if we want to tho? like when playing a game and discarding it nevertheless
+                                self.statistics.total_new_games += 1;
+
+                                break 'update_and_render MenuUpdate::Push(Menu::PlayGame {
+                                    game: Box::new(the_game),
+                                    game_input_history: game_restoration_data
+                                        .input_history
+                                        .iter()
+                                        .take(inputs_loaded)
+                                        .copied()
+                                        .collect(),
+                                    game_meta_data: the_meta_data,
+                                    game_renderer: Box::new(the_game_renderer),
+                                });
+                            }
+
+                            // Other misc. key event: We don't care.
+                            _ => continue 'wait,
                         }
+                    }
+
+                    event::Event::Mouse(_) => {}
+                    event::Event::Paste(_) => {}
+                    event::Event::FocusGained => {}
+                    event::Event::FocusLost => {}
+                    event::Event::Resize(_, _) => {
+                        // Need to redraw screen for proper centering etc.
+                        let (x_main, y_main) = Application::<T>::fetch_main_xy();
+                        game_renderer.set_render_offset(usize::from(x_main), usize::from(y_main));
+                        game_renderer.reset_view_diff_state();
+
+                        if paused {
+                            next_paused_with_extra_render_request = Some(true);
+                        }
+
+                        break 'wait;
                     }
                 }
             }
+
+            // Outside of render wait loop. Begin render.
 
             let now = Instant::now();
 
