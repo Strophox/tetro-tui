@@ -89,7 +89,7 @@ impl GameModifier for Combo {
     // Check game condition.
     fn on_lock_post(&mut self, game: GameAccess, _feed: &mut NotificationFeed) {
         // If combo broken.
-        if game.state.consecutive_line_clears == 0 {
+        if game.state.consecutive_lineclears == 0 {
             *game.phase = Phase::GameEnd {
                 cause: GameEndCause::Custom("Combo broken".to_owned()),
                 is_win: false,
@@ -104,7 +104,7 @@ impl GameModifier for Combo {
 
         // Overwrite game score with combo length.
         // FIXME: Proper solution for displaying progress instead of overwriting score?
-        game.state.points = game.state.consecutive_line_clears;
+        game.state.points = game.state.consecutive_lineclears;
     }
 }
 

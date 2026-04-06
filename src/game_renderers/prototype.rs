@@ -108,22 +108,22 @@ impl Renderer for PrototypeRenderer {
 
         // Draw feedback stuf
         let mut feed_evt_msgs = Vec::new();
-        for (notification, _) in self.notification_feed_buffer.iter() {
-            feed_evt_msgs.push(match notification {
+        for (notif, _) in self.notification_feed_buffer.iter() {
+            feed_evt_msgs.push(match notif {
                 Notification::Accolade {
-                    points_bonus,
+                    point_bonus,
                     tetromino,
-                    is_spin: spin,
+                    is_spin,
                     lineclears,
-                    is_perfect_clear: perfect_clear,
+                    is_perfect,
                     combo,
                 } => {
                     let mut msg = Vec::new();
-                    msg.push(format!("+{points_bonus}"));
-                    if *perfect_clear {
+                    msg.push(format!("+{point_bonus}"));
+                    if *is_perfect {
                         msg.push("Perfect".to_owned());
                     }
-                    if *spin {
+                    if *is_spin {
                         msg.push(format!("{tetromino:?}-Spin"));
                     }
                     let clear_action = match lineclears {

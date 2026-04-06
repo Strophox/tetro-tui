@@ -154,13 +154,13 @@ impl GameKeybinds {
             (KeyCode::Char('s'), Button::TeleRight),
             (KeyCode::Char('d'), Button::MoveLeft),
             (KeyCode::Char('f'), Button::RotateLeft),
+            (KeyCode::Char(' '), Button::TeleDown),
             (KeyCode::Char('j'), Button::DropHard),
             (KeyCode::Char('k'), Button::RotateRight),
             (KeyCode::Char('l'), Button::MoveRight),
             (KeyCode::Char(';'), Button::TeleLeft),
             (KeyCode::Char('ö'), Button::TeleLeft),
             (KeyCode::Char('i'), Button::DropSoft),
-            (KeyCode::Char(' '), Button::TeleDown),
         ]
         .map(|(k, b)| ((k, KeyModifiers::NONE), b));
 

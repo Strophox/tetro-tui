@@ -44,13 +44,13 @@ impl Default for GameplaySettings {
         Self {
             rotsys: c.rotation_system,
             randomizer: TetrominoGenerator::default(),
-            preview: c.piece_preview_count,
+            preview: c.generate_piece_preview,
             das: c.delayed_auto_shift,
             arr: c.auto_repeat_rate,
             sdf: c.soft_drop_factor,
             lcd: c.line_clear_duration,
             are: c.spawn_delay,
-            initsys: c.allow_initial_actions,
+            initsys: c.allow_spawn_actions,
             dtapfinesse: None,
         }
     }

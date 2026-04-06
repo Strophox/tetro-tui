@@ -438,14 +438,14 @@ impl Statistics {
                 }
 
                 Notification::Accolade {
-                    points_bonus,
+                    point_bonus,
                     lineclears,
                     combo,
                     is_spin,
-                    is_perfect_clear,
+                    is_perfect,
                     tetromino: _,
                 } => {
-                    self.total_points_scored += points_bonus;
+                    self.total_points_scored += point_bonus;
                     self.total_lines_cleared += lineclears;
                     match lineclears {
                         1 => self.total_mono += 1,
@@ -455,7 +455,7 @@ impl Statistics {
                         _ => {}
                     }
                     self.total_spin += if *is_spin { 1 } else { 0 };
-                    self.total_perfect_clear += if *is_perfect_clear { 1 } else { 0 };
+                    self.total_perfect_clear += if *is_perfect { 1 } else { 0 };
                     self.total_combo += if *combo > 1 { 1 } else { 0 };
                 }
 

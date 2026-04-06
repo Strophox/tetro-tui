@@ -662,30 +662,30 @@ impl<T: Write> Application<T> {
 
             if immediately_start_new_game {
                 let GameplaySettings {
-                    rotsys: rotation_system,
-                    randomizer: tetromino_generator,
-                    preview: piece_preview_count,
-                    das: delayed_auto_shift,
-                    arr: auto_repeat_rate,
-                    sdf: soft_drop_factor,
-                    lcd: line_clear_duration,
-                    are: spawn_delay,
-                    initsys: allow_initial_actions,
+                    rotsys,
+                    randomizer,
+                    preview,
+                    das,
+                    arr,
+                    sdf,
+                    lcd,
+                    are,
+                    initsys,
                     dtapfinesse: _,
                 } = *self.settings.gameplay();
 
                 let mut builder = Game::builder();
 
                 builder
-                    .rotation_system(rotation_system)
-                    .tetromino_generator(tetromino_generator)
-                    .piece_preview_count(piece_preview_count)
-                    .delayed_auto_shift(delayed_auto_shift)
-                    .auto_repeat_rate(auto_repeat_rate)
-                    .soft_drop_factor(soft_drop_factor)
-                    .line_clear_duration(line_clear_duration)
-                    .spawn_delay(spawn_delay)
-                    .allow_initial_actions(allow_initial_actions);
+                    .rotation_system(rotsys)
+                    .tetromino_generator(randomizer)
+                    .generate_piece_preview(preview)
+                    .delayed_auto_shift(das)
+                    .auto_repeat_rate(arr)
+                    .soft_drop_factor(sdf)
+                    .line_clear_duration(lcd)
+                    .spawn_delay(are)
+                    .allow_spawn_actions(initsys);
 
                 let (game_meta_data, mut game, game_input_history) = if selected < game_modes.len()
                 {

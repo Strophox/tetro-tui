@@ -16,15 +16,12 @@ use crate::{
     fmt_helpers::KeybindsLegend,
 };
 
-#[allow(unused)]
 pub use braille::BrailleRenderer;
 
 pub use diff_print::DiffPrintRenderer;
 
-#[allow(unused)]
 pub use prototype::PrototypeRenderer;
 
-#[allow(unused)]
 pub use halfcell::HalfCellRenderer;
 
 pub trait Renderer: Default {

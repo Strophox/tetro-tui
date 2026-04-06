@@ -66,17 +66,17 @@ impl GameModifier for Ascent {
                 orientation: falling_tetromino_engine::Orientation::N,
                 position: (0, 0),
             },
-            auto_move_scheduled: None,
+            autoshift_scheduled: None,
             fall_or_lock_time: Duration::MAX,
             lowest_y: 0,
-            lock_time_cap: Duration::MAX,
+            lock_cap_time: Duration::MAX,
         };
 
         // Provide hold piece.
         game.state.piece_held = Some((asc_tet_02, true));
 
         // No other pieces required.
-        game.config.piece_preview_count = 0;
+        game.config.generate_piece_preview = 0;
     }
 
     // The Ascent mod must keep scoring after each piece change.

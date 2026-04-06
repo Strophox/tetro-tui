@@ -33,7 +33,7 @@ impl Puzzle {
             .fall_delay_params(DelayParameters::constant(
                 Duration::from_millis(1000).into(),
             ))
-            .piece_preview_count(0)
+            .generate_piece_preview(0)
             .build_modded(vec![modifier])
     }
 }
