@@ -4,7 +4,9 @@ use std::{
     path::PathBuf,
 };
 
-use crate::{Application, CompressedInputHistory, GameSave};
+use crate::{
+    game_restoration::RawInputHistory, Application, CompressedInputHistory, GameSave, GameSaves,
+};
 
 pub fn savefile_name() -> String {
     format!(".tetro-tui_v{}_savefile.json", crate::VERSION_MAJOR_MINOR)
@@ -52,7 +54,7 @@ impl<T: Write> Application<T> {
             statistics,
             game_saves,
         } = self;
-        let compressed_game_saves: (usize, Vec<GameSave<CompressedInputHistory>>);
+        let compressed_game_saves: GameSaves<CompressedInputHistory>;
 
         (
             temp_data.save_on_exit,
@@ -62,14 +64,16 @@ impl<T: Write> Application<T> {
             compressed_game_saves,
         ) = serde_json::from_str(&save_str)?;
 
-        *game_saves = (
-            compressed_game_saves.0,
-            compressed_game_saves
-                .1
-                .into_iter()
-                .map(|save| save.map(|input_history| input_history.decompress()))
-                .collect::<Vec<_>>(),
-        );
+        let raw_game_saves = compressed_game_saves
+            .slots
+            .into_iter()
+            .filter_map(|save| save.decompress())
+            .collect::<Vec<GameSave<RawInputHistory>>>();
+
+        game_saves.pick = compressed_game_saves
+            .pick
+            .min(raw_game_saves.len().saturating_sub(1));
+        game_saves.slots = raw_game_saves;
 
         Ok(())
     }
@@ -85,15 +89,16 @@ impl<T: Write> Application<T> {
             }
         }
 
-        let compressed_game_saves = (
-            self.game_saves.0,
-            self.game_saves
-                .1
+        let compressed_game_saves = GameSaves {
+            pick: self.game_saves.pick,
+            slots: self
+                .game_saves
+                .slots
                 .iter()
                 .cloned()
-                .map(|save| save.map(|input_history| CompressedInputHistory::new(&input_history)))
+                .map(|save| save.compress())
                 .collect::<Vec<_>>(),
-        );
+        };
 
         let save_str = serde_json::to_string(&(
             self.temp_data.save_on_exit,

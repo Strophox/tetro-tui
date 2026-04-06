@@ -18,15 +18,15 @@ use crate::{
     fmt_helpers::get_play_keybinds_legend,
     game_renderers::{Renderer, TetroTUIRenderer},
     menus::{Menu, MenuUpdate},
-    Application, CompressedInputHistory, GameMetaData, GameRestorationData, GameSave, ScoreEntry,
-    Statistics, UncompressedInputHistory,
+    Application, CompressedInputHistory, GameMetaData, GameRestorationData, GameSave,
+    RawInputHistory, ScoreEntry, Statistics,
 };
 
 impl<T: Write> Application<T> {
     pub fn run_menu_play_game(
         &mut self,
         game: &mut Game,
-        game_input_history: &mut UncompressedInputHistory,
+        game_input_history: &mut RawInputHistory,
         game_meta_data: &mut GameMetaData,
         game_renderer: &mut TetroTUIRenderer,
     ) -> io::Result<MenuUpdate> {
@@ -147,7 +147,8 @@ impl<T: Write> Application<T> {
                     points_scored: game.state().points,
                 };
 
-                let compressed_game_input_history = CompressedInputHistory::new(game_input_history);
+                let compressed_game_input_history =
+                    CompressedInputHistory::with_raw(game_input_history);
                 let forfeit =
                     matches!(cause, GameEndCause::Forfeit { .. }).then_some(game.state().time);
 
@@ -412,25 +413,24 @@ impl<T: Write> Application<T> {
 
                             // [Ctrl+S]: Store savepoint.
                             (KeyCode::Char('s' | 'S'), KeyModifiers::CONTROL) => {
-                                self.game_saves = (
-                                    0,
-                                    vec![GameSave {
-                                        game_meta_data: game_meta_data.clone(),
-                                        game_restoration_data: GameRestorationData::new(
-                                            game,
-                                            game_input_history.clone(),
-                                            matches!(
-                                                game.phase(),
-                                                Phase::GameEnd {
-                                                    cause: GameEndCause::Forfeit { .. },
-                                                    ..
-                                                }
-                                            )
-                                            .then_some(game.state().time),
-                                        ),
-                                        inputs_to_load: game_input_history.len(),
-                                    }],
-                                );
+                                // FIXME: Store more than one savepoint?
+                                self.game_saves.pick = 0;
+                                self.game_saves.slots = vec![GameSave {
+                                    game_meta_data: game_meta_data.clone(),
+                                    game_restoration_data: GameRestorationData::new(
+                                        game,
+                                        game_input_history.clone(),
+                                        matches!(
+                                            game.phase(),
+                                            Phase::GameEnd {
+                                                cause: GameEndCause::Forfeit { .. },
+                                                ..
+                                            }
+                                        )
+                                        .then_some(game.state().time),
+                                    ),
+                                    inputs_to_load: game_input_history.len(),
+                                }];
 
                                 game_renderer.push_game_notification_feed([(
                                     Notification::Custom("(Stored savepoint)".to_owned()),
@@ -444,7 +444,7 @@ impl<T: Write> Application<T> {
                                     game_meta_data: saved_meta_data,
                                     game_restoration_data,
                                     inputs_to_load,
-                                }) = &self.game_saves.1.get(self.game_saves.0)
+                                }) = &self.game_saves.get()
                                 {
                                     *game = game_restoration_data.restore(*inputs_to_load);
 

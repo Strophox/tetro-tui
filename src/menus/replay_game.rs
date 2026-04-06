@@ -17,7 +17,7 @@ use falling_tetromino_engine::{
 use crate::{
     fmt_helpers::{fmt_duration, replay_keybinds_legend},
     game_renderers::{Renderer, TetroTUIRenderer},
-    game_restoration::{GameRestorationData, UncompressedInputHistory},
+    game_restoration::{GameRestorationData, RawInputHistory},
     menus::{Menu, MenuUpdate},
     Application, GameMetaData, GameSave,
 };
@@ -30,7 +30,7 @@ struct GameSaveAnchor {
 impl<T: Write> Application<T> {
     pub fn run_menu_replay_game(
         &mut self,
-        game_restoration_data: &GameRestorationData<UncompressedInputHistory>,
+        game_restoration_data: &GameRestorationData<RawInputHistory>,
         game_meta_data: &GameMetaData,
         replay_length: InGameTime,
         game_renderer: &mut TetroTUIRenderer,
@@ -251,25 +251,24 @@ impl<T: Write> Application<T> {
 
                             // [Ctrl+S]: Store savepoint.
                             (KeyCode::Char('s' | 'S'), KeyModifiers::CONTROL) => {
-                                self.game_saves = (
-                                    0,
-                                    vec![GameSave {
-                                        game_meta_data: game_meta_data.clone(),
-                                        game_restoration_data: GameRestorationData::new(
-                                            &game,
-                                            game_restoration_data.input_history.clone(),
-                                            matches!(
-                                                game.phase(),
-                                                Phase::GameEnd {
-                                                    cause: GameEndCause::Forfeit { .. },
-                                                    ..
-                                                }
-                                            )
-                                            .then_some(game.state().time),
-                                        ),
-                                        inputs_to_load: inputs_loaded,
-                                    }],
-                                );
+                                // FIXME: Store more than one savepoint?
+                                self.game_saves.pick = 0;
+                                self.game_saves.slots = vec![GameSave {
+                                    game_meta_data: game_meta_data.clone(),
+                                    game_restoration_data: GameRestorationData::new(
+                                        &game,
+                                        game_restoration_data.input_history.clone(),
+                                        matches!(
+                                            game.phase(),
+                                            Phase::GameEnd {
+                                                cause: GameEndCause::Forfeit { .. },
+                                                ..
+                                            }
+                                        )
+                                        .then_some(game.state().time),
+                                    ),
+                                    inputs_to_load: inputs_loaded,
+                                }];
 
                                 game_renderer.push_game_notification_feed([(
                                     Notification::Custom("(Stored savepoint)".to_owned()),
@@ -470,8 +469,9 @@ impl<T: Write> Application<T> {
                                 let the_game_renderer =
                                     TetroTUIRenderer::with_number(self.temp_data.renderernumber);
 
-                                // Accumulate this specific state here. TODO what if we want to tho? like when playing a game and discarding it nevertheless
-                                self.statistics.total_new_games += 1;
+                                // FIXME: Should we count this as new game started?
+                                // Accumulate this specific state here.
+                                // self.statistics.total_new_games += 1;
 
                                 break 'update_and_render MenuUpdate::Push(Menu::PlayGame {
                                     game: Box::new(the_game),
@@ -729,7 +729,7 @@ impl<T: Write> Application<T> {
     // FIXME: We do not treat degenerate games that end immediately (total time = 0).
     fn calculate_game_save_anchors(
         &mut self,
-        game_restoration_data: &GameRestorationData<UncompressedInputHistory>,
+        game_restoration_data: &GameRestorationData<RawInputHistory>,
         anchor_interval: Duration,
         replay_length: InGameTime,
     ) -> io::Result<(Game, Option<Vec<GameSaveAnchor>>)> {

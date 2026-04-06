@@ -29,8 +29,8 @@ use crossterm::{
 use falling_tetromino_engine::{Game, InGameTime};
 
 use crate::{
-    game_renderers::TetroTUIRenderer, Application, GameMetaData, GameRestorationData, ScoreEntry,
-    UncompressedInputHistory,
+    game_renderers::TetroTUIRenderer, Application, GameMetaData, GameRestorationData,
+    RawInputHistory, ScoreEntry,
 };
 
 #[derive(Debug)]
@@ -45,7 +45,7 @@ pub enum Menu {
     NewGame,
     PlayGame {
         game: Box<Game>,
-        game_input_history: UncompressedInputHistory,
+        game_input_history: RawInputHistory,
         game_meta_data: GameMetaData,
         // game_statistics: Statistics,
         game_renderer: Box<TetroTUIRenderer>,
@@ -69,7 +69,7 @@ pub enum Menu {
         camera_pos: usize,
     },
     ReplayGame {
-        game_restoration_data: Box<GameRestorationData<UncompressedInputHistory>>,
+        game_restoration_data: Box<GameRestorationData<RawInputHistory>>,
         game_meta_data: GameMetaData,
         replay_length: InGameTime,
         game_renderer: Box<TetroTUIRenderer>,

@@ -24,7 +24,7 @@ use crate::{
     game_modes::GameMode,
     game_modifiers::{self, Combo},
     game_renderers::{Renderer, TetroTUIRenderer},
-    game_restoration::{GameRestorationData, UncompressedInputHistory},
+    game_restoration::{GameRestorationData, RawInputHistory},
     menus::{Menu, MenuUpdate},
     settings::{GameplaySettings, Glyphset, NewGameSettings},
     Application, GameMetaData, GameSave,
@@ -77,7 +77,11 @@ impl<T: Write> Application<T> {
             let w_main = Self::W_MAIN.into();
             let (x_main, y_main) = Self::fetch_main_xy();
             let y_selection = Self::H_MAIN / 5;
-            let savepoint_available = if !self.game_saves.1.is_empty() { 1 } else { 0 };
+            let savepoint_available = if !self.game_saves.slots.is_empty() {
+                1
+            } else {
+                0
+            };
             // Normal presets + 2 spaces if savepoint option available + custom preset.
             let selection_len = game_modes.len() + savepoint_available + 1;
             // There are four columns for the custom stat selection.
@@ -123,7 +127,7 @@ impl<T: Write> Application<T> {
                 game_meta_data,
                 game_restoration_data: GameRestorationData { input_history, .. },
                 inputs_to_load,
-            }) = &self.game_saves.1.get(self.game_saves.0)
+            }) = &self.game_saves.get()
             {
                 let load_title = &game_meta_data.title;
                 let load_offset_max = input_history.len();
@@ -504,7 +508,7 @@ impl<T: Write> Application<T> {
                         game_restoration_data: GameRestorationData { input_history, .. },
                         inputs_to_load,
                         ..
-                    }) = self.game_saves.1.get_mut(self.game_saves.0)
+                    }) = self.game_saves.get_mut()
                     {
                         if selected == selection_len - 2 {
                             *inputs_to_load += input_history.len()
@@ -580,7 +584,7 @@ impl<T: Write> Application<T> {
                         game_restoration_data: GameRestorationData { input_history, .. },
                         inputs_to_load,
                         ..
-                    }) = self.game_saves.1.get_mut(self.game_saves.0)
+                    }) = self.game_saves.get_mut()
                     {
                         if selected == selection_len - 2 {
                             *inputs_to_load += if modifiers.contains(KeyModifiers::ALT) {
@@ -625,8 +629,8 @@ impl<T: Write> Application<T> {
                                 NewGameSettings::default().combo_limit;
                         }
                     } else if selected == selection_len - 2 {
-                        self.game_saves.1.remove(self.game_saves.0);
-                        self.game_saves.0 = 0;
+                        self.game_saves.slots.remove(self.game_saves.pick);
+                        self.game_saves.pick = 0;
                     }
                 }
 
@@ -702,17 +706,17 @@ impl<T: Write> Application<T> {
                         comparison_stat: *stat_and_order_desc,
                     };
 
-                    let fresh_input_history = UncompressedInputHistory::default();
+                    let fresh_input_history = RawInputHistory::default();
 
                     (preset_game_meta_data, preset_game, fresh_input_history)
                 } else if selected == selection_len - 2 {
                     // Load saved game.
-                    // SAFETY: we an only get into this case if save exists!...
+                    // SAFETY: we can only get into this case if save exists!...
                     let GameSave {
                         game_meta_data,
                         game_restoration_data,
                         inputs_to_load,
-                    } = &self.game_saves.1.get(self.game_saves.0).unwrap();
+                    } = &self.game_saves.get().unwrap();
 
                     let restored_game = game_restoration_data.restore(*inputs_to_load);
 
@@ -776,7 +780,7 @@ impl<T: Write> Application<T> {
                         title,
                         comparison_stat: (Stat::PointsScored(0), false),
                     };
-                    let fresh_input_history = UncompressedInputHistory::default();
+                    let fresh_input_history = RawInputHistory::default();
                     (custom_game_meta_data, new_custom_game, fresh_input_history)
                 };
                 // FIXME: Abandoned modifier addition code.

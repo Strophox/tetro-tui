@@ -5,7 +5,7 @@ use crate::game_modifiers;
 /// Raw, uncompressed representation of a partial or complete input history.
 ///
 /// We normally presuppose this is sorted by timestamps.
-pub type UncompressedInputHistory = Vec<(InGameTime, Input)>;
+pub type RawInputHistory = Vec<(InGameTime, Input)>;
 
 /// Compressed verson of an input history.
 ///
@@ -30,10 +30,13 @@ impl CompressedInputHistory {
     // How many bits it takes to encode a `ButtonChange`:
     // - 1 bit for Press/Release,
     // - At time of writing: 4 bits for the 11 `Button` variants.
-    pub const BUTTON_CHANGE_BITSIZE: usize =
-        1 + Button::VARIANTS.len().next_power_of_two().ilog2() as usize;
+    pub const BUTTON_CHANGE_BITSIZE: usize = {
+        let bcb = (Button::VARIANTS.len().next_power_of_two().ilog2() + 1) as usize;
+        assert!(bcb <= 8);
+        bcb
+    };
 
-    pub fn new(game_input_history: &UncompressedInputHistory) -> Self {
+    pub fn with_raw(game_input_history: &RawInputHistory) -> Self {
         let mut inputbuf = Vec::new();
 
         let mut update_time_0 = InGameTime::ZERO;
@@ -51,12 +54,12 @@ impl CompressedInputHistory {
         Self { inputbuf }
     }
 
-    pub fn decompress(&self) -> UncompressedInputHistory {
+    pub fn decompress(&self) -> Option<RawInputHistory> {
         let mut decompressed_inputs = Vec::new();
 
         let mut update_time_0 = InGameTime::ZERO;
         for i in self.inputbuf.iter() {
-            let (time_diff, button_change) = Self::decompress_input(*i);
+            let (time_diff, button_change) = Self::decompress_input(*i)?;
             let update_time_1 = update_time_0.saturating_add(time_diff);
 
             // Add further input.
@@ -65,7 +68,7 @@ impl CompressedInputHistory {
             update_time_0 = update_time_1;
         }
 
-        decompressed_inputs
+        Some(decompressed_inputs)
     }
 
     // For serialization reasons, we encode a single user input as `u128` instead of
@@ -79,14 +82,15 @@ impl CompressedInputHistory {
         (millis << Self::BUTTON_CHANGE_BITSIZE) | u128::from(bc_bits)
     }
 
-    fn decompress_input(i: u128) -> (InGameTime, Input) {
+    fn decompress_input(i: u128) -> Option<(InGameTime, Input)> {
+        // Generate mask for lower bits.
         let mask = u128::MAX >> (128 - Self::BUTTON_CHANGE_BITSIZE);
         let bc_bits = u8::try_from(i & mask).unwrap();
         let millis = u64::try_from(i >> Self::BUTTON_CHANGE_BITSIZE).unwrap();
-        (
+        Some((
             std::time::Duration::from_millis(millis),
-            Self::decompress_buttonchange(bc_bits),
-        )
+            Self::decompress_buttonchange(bc_bits)?,
+        ))
     }
 
     fn compress_buttonchange(button_change: &Input) -> u8 {
@@ -96,12 +100,13 @@ impl CompressedInputHistory {
         }
     }
 
-    fn decompress_buttonchange(b: u8) -> Input {
-        (if b.is_multiple_of(2) {
+    fn decompress_buttonchange(b: u8) -> Option<Input> {
+        let inp = if b.is_multiple_of(2) {
             Input::Deactivate
         } else {
             Input::Activate
-        })(Button::VARIANTS[usize::from(b >> 1)])
+        };
+        Some(inp(*Button::VARIANTS.get(usize::from(b >> 1))?))
     }
 }
 
@@ -131,18 +136,31 @@ impl<T> GameRestorationData<T> {
             forfeit,
         }
     }
+}
 
-    pub fn map<U>(self, f: impl Fn(T) -> U) -> GameRestorationData<U> {
-        GameRestorationData::<U> {
+impl GameRestorationData<RawInputHistory> {
+    pub fn compress(self) -> GameRestorationData<CompressedInputHistory> {
+        GameRestorationData {
             builder: self.builder,
+            input_history: CompressedInputHistory::with_raw(&self.input_history),
             mod_ids_args: self.mod_ids_args,
-            input_history: f(self.input_history),
             forfeit: self.forfeit,
         }
     }
 }
 
-impl GameRestorationData<UncompressedInputHistory> {
+impl GameRestorationData<CompressedInputHistory> {
+    pub fn decompress(self) -> Option<GameRestorationData<RawInputHistory>> {
+        Some(GameRestorationData {
+            builder: self.builder,
+            input_history: self.input_history.decompress()?,
+            mod_ids_args: self.mod_ids_args,
+            forfeit: self.forfeit,
+        })
+    }
+}
+
+impl GameRestorationData<RawInputHistory> {
     pub fn restore(&self, input_index: usize) -> Game {
         // Step 1: Prepare builder.
         let builder = self.builder.clone();

@@ -385,23 +385,20 @@ impl<T: Write> Application<T> {
                         Some(game_restoration_data),
                     ) = &self.scores_and_replays.entries[*cursor_pos]
                     {
-                        let game_meta_data = game_meta_data.clone();
-
-                        let game_restoration_data = game_restoration_data
-                            .clone()
-                            .map(|input_history| input_history.decompress());
-
-                        break Ok(MenuUpdate::Push(Menu::ReplayGame {
-                            game_restoration_data: Box::new(game_restoration_data),
-                            game_meta_data,
-                            replay_length: *time_elapsed,
-                            game_renderer: TetroTUIRenderer::with_number(
-                                self.temp_data.renderernumber,
-                            )
-                            .into(),
-                        }));
-                    } else {
-                        // Game-replay unavailable.
+                        if let Some(game_restoration_data) =
+                            game_restoration_data.clone().decompress()
+                        {
+                            let game_meta_data = game_meta_data.clone();
+                            break Ok(MenuUpdate::Push(Menu::ReplayGame {
+                                game_restoration_data: Box::new(game_restoration_data),
+                                game_meta_data,
+                                replay_length: *time_elapsed,
+                                game_renderer: TetroTUIRenderer::with_number(
+                                    self.temp_data.renderernumber,
+                                )
+                                .into(),
+                            }));
+                        }
                     }
                 }
 

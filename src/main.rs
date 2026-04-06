@@ -26,7 +26,7 @@ use falling_tetromino_engine::{
 
 use crate::{
     game_modes::GameMode,
-    game_restoration::{CompressedInputHistory, GameRestorationData, UncompressedInputHistory},
+    game_restoration::{CompressedInputHistory, GameRestorationData, RawInputHistory},
     menus::{Menu, MenuUpdate},
     savefile_logic::SavefileGranularity,
     settings::Settings,
@@ -102,8 +102,6 @@ pub struct GameMetaData {
     pub comparison_stat: (Stat, bool),
 }
 
-// FIXME: Currently an ad-hoc struct to store game saves.
-// The exact mechanism to ergonomically store and access several of these is subject to study.
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]
@@ -113,13 +111,50 @@ pub struct GameSave<T> {
     inputs_to_load: usize,
 }
 
-impl<T> GameSave<T> {
-    fn map<U>(self, f: impl Fn(T) -> U) -> GameSave<U> {
+impl GameSave<RawInputHistory> {
+    fn compress(self) -> GameSave<CompressedInputHistory> {
         GameSave {
-            game_restoration_data: self.game_restoration_data.map(f),
+            game_restoration_data: self.game_restoration_data.compress(),
             game_meta_data: self.game_meta_data,
             inputs_to_load: self.inputs_to_load,
         }
+    }
+}
+
+impl GameSave<CompressedInputHistory> {
+    fn decompress(self) -> Option<GameSave<RawInputHistory>> {
+        Some(GameSave {
+            game_restoration_data: self.game_restoration_data.decompress()?,
+            game_meta_data: self.game_meta_data,
+            inputs_to_load: self.inputs_to_load,
+        })
+    }
+}
+
+#[derive(
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Clone,
+    Debug,
+    Default,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+pub struct GameSaves<T> {
+    pick: usize,
+    slots: Vec<GameSave<T>>,
+}
+
+impl<T> GameSaves<T> {
+    pub fn get(&self) -> Option<&GameSave<T>> {
+        self.slots.get(self.pick)
+    }
+
+    pub fn get_mut(&mut self) -> Option<&mut GameSave<T>> {
+        self.slots.get_mut(self.pick)
     }
 }
 
@@ -346,7 +381,8 @@ pub struct Application<T: Write> {
     statistics: Statistics,
 
     // FIXME: Currently one can only access one without resorting to manually editing the savefile.
-    game_saves: (usize, Vec<GameSave<UncompressedInputHistory>>),
+    // The exact mechanism to ergonomically store and access several of these is subject to study.
+    game_saves: GameSaves<RawInputHistory>,
 }
 
 impl<T: Write> Drop for Application<T> {
@@ -511,7 +547,7 @@ impl<T: Write> Application<T> {
             temp_data,
             settings: Settings::default(),
             scores_and_replays: Scoreboard::default(),
-            game_saves: (0, Vec::new()),
+            game_saves: GameSaves::default(),
             statistics: Statistics::default(),
         };
 
