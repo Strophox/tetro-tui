@@ -20,7 +20,7 @@ use super::*;
 
 use crate::{
     fmt_helpers::{fmt_button, fmt_button_ascii, fmt_duration, fmt_hertz, FmtTetromino},
-    graphics_settings::Glyphset,
+    settings::Glyphset,
     TemporaryAppData,
 };
 

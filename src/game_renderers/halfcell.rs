@@ -1,6 +1,6 @@
 use crossterm::{cursor, style, terminal, QueueableCommand};
 
-use crate::graphics_settings::Glyphset;
+use crate::settings::Glyphset;
 
 use super::*;
 

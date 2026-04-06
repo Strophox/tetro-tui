@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use falling_tetromino_engine::{Configuration, ExtNonNegF64, RotationSystem, TetrominoGenerator};
 
-use crate::SlotMachine;
+use crate::settings::SlotMachine;
 
 #[serde_with::serde_as]
 #[derive(

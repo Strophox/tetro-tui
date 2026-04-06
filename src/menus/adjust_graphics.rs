@@ -15,8 +15,8 @@ use falling_tetromino_engine::Tetromino;
 
 use crate::{
     fmt_helpers::{FmtBool, FmtTetromino},
-    graphics_settings::Glyphset,
     menus::{Menu, MenuUpdate},
+    settings::Glyphset,
     Application, Settings,
 };
 

@@ -9,8 +9,8 @@ use crossterm::{
 };
 
 use crate::{
-    graphics_settings::Glyphset,
     menus::{Menu, MenuUpdate},
+    settings::Glyphset,
     Application,
 };
 

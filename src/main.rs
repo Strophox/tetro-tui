@@ -1,13 +1,10 @@
 mod fmt_helpers;
-mod game_keybinds;
 mod game_modes;
 mod game_modifiers;
 mod game_renderers;
-mod gameplay_settings;
-mod graphics_settings;
 mod menus;
-mod palette;
 mod savefile_logic;
+mod settings;
 
 use std::{io, path::PathBuf};
 
@@ -34,13 +31,10 @@ use falling_tetromino_engine::{
 
 use crate::{
     fmt_helpers::arabic_to_roman,
-    game_keybinds::{default_keybinds_slots, GameKeybinds},
     game_modes::GameMode,
-    gameplay_settings::{default_gameplay_slots, GameplaySettings},
-    graphics_settings::{default_graphics_slots, GraphicsSettings},
     menus::{Menu, MenuUpdate},
-    palette::{default_palette_slots, Palette},
     savefile_logic::{savefile_path, SavefileGranularity},
+    settings::Settings,
 };
 
 // Same as `clap::crate_version!()`.
@@ -101,53 +95,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     app.run()?;
 
     Ok(())
-}
-
-/// This struct allows storing 'slots' (elements of some kind), where a certain
-/// number of elements is considere as 'unmodifiable' (should not be modified)
-/// but can be automatically cloned to a new slot and then modified for ease of use.
-#[derive(PartialEq, Clone, Debug, serde::Serialize, serde::Deserialize)]
-pub struct SlotMachine<T> {
-    /// The number of slots considered unmodifiable.
-    unmodifiable: usize,
-    slots: Vec<(String, T)>,
-    // The string that is used as base to generate a name for duplicate slots.
-    clone_name_template: String,
-}
-
-impl<T: Clone> SlotMachine<T> {
-    pub fn with_unmodifiable_slots(
-        slots: Vec<(String, T)>,
-        cloned_slot_name_template: String,
-    ) -> Self {
-        let num_unmodifiable_slots = slots.len();
-        Self {
-            slots,
-            unmodifiable: num_unmodifiable_slots,
-            clone_name_template: cloned_slot_name_template,
-        }
-    }
-
-    /// Given a valid index, clones and appends to itself of the corresponding slot if it is considered unmodifiable.
-    /// Otherwise return `None` and does nothing (i.e. slot is 'modifiable' or index invalid).
-    pub fn clone_slot_if_unmodifiable(&mut self, slot_idx: usize) -> Option<usize> {
-        slot_idx.lt(&self.unmodifiable).then(|| {
-            let cloned_slot_content = self.slots[slot_idx].1.clone();
-
-            let mut n = 1;
-            let cloned_slot_name = loop {
-                let name = format!("{} {}", self.clone_name_template, arabic_to_roman(n));
-                if self.slots.iter().all(|s| s.0 != name) {
-                    break name;
-                }
-                n += 1;
-            };
-
-            self.slots.push((cloned_slot_name, cloned_slot_content));
-
-            self.slots.len() - 1
-        })
-    }
 }
 
 /// Raw, uncompressed representation of a partial or complete input history.
@@ -562,106 +509,6 @@ impl Statistics {
         *total_spin += other.total_spin;
         *total_perfect_clear += other.total_perfect_clear;
         *total_combo += other.total_combo;
-    }
-}
-
-#[derive(
-    PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
-)]
-pub struct NewGameSettings {
-    custom_fall_delay_params: DelayParameters,
-    custom_win_condition: Option<Stat>,
-    custom_seed: Option<u64>,
-    custom_encoded_board: Option<String>, // For more compact serialization of NewGameSettings, we store an encoded `Board` (see `encode_board`).
-
-    cheese_tiles_per_line: NonZeroUsize,
-    cheese_fall_lock_delays: (ExtDuration, ExtDuration),
-    cheese_limit: Option<NonZeroU32>,
-
-    combo_limit: Option<NonZeroU32>,
-    /// Custom starting layout when playing Combo mode (4-wide rows), encoded as binary.
-    /// Example: '▀▄▄▀' => 0b_1001_0110 = 150
-    combo_initial_layout: u16,
-
-    master_mode_unlocked: bool,
-    experimental_mode_unlocked: bool,
-}
-
-impl Default for NewGameSettings {
-    fn default() -> Self {
-        Self {
-            custom_fall_delay_params: DelayParameters::standard_fall(),
-            custom_win_condition: None,
-            custom_seed: None,
-            custom_encoded_board: None,
-
-            cheese_limit: Some(NonZeroU32::try_from(20).unwrap()),
-            cheese_fall_lock_delays: (ExtDuration::Infinite, ExtDuration::Infinite),
-            cheese_tiles_per_line: NonZeroUsize::new(Game::WIDTH - 1).unwrap(),
-
-            combo_limit: Some(NonZeroU32::try_from(30).unwrap()),
-            combo_initial_layout: game_modifiers::Combo::LAYOUTS[0],
-
-            master_mode_unlocked: false,
-            experimental_mode_unlocked: false,
-        }
-    }
-}
-
-// #[serde_with::serde_as]
-#[derive(PartialEq, Clone, Debug, serde::Serialize, serde::Deserialize)]
-pub struct Settings {
-    newgame: NewGameSettings,
-    graphics_pick: usize,
-    keybinds_pick: usize,
-    gameplay_pick: usize,
-
-    graphics_slotmachine: SlotMachine<GraphicsSettings>,
-    keybinds_slotmachine: SlotMachine<GameKeybinds>,
-    gameplay_slotmachine: SlotMachine<GameplaySettings>,
-    palette_slotmachine: SlotMachine<Palette>,
-}
-
-impl Default for Settings {
-    fn default() -> Self {
-        Self {
-            newgame: NewGameSettings::default(),
-            graphics_pick: 0,
-            keybinds_pick: 0,
-            gameplay_pick: 0,
-            graphics_slotmachine: default_graphics_slots(),
-            palette_slotmachine: default_palette_slots(),
-            keybinds_slotmachine: default_keybinds_slots(),
-            gameplay_slotmachine: default_gameplay_slots(),
-        }
-    }
-}
-
-impl Settings {
-    pub fn graphics(&self) -> &GraphicsSettings {
-        &self.graphics_slotmachine.slots[self.graphics_pick].1
-    }
-    pub fn keybinds(&self) -> &GameKeybinds {
-        &self.keybinds_slotmachine.slots[self.keybinds_pick].1
-    }
-    pub fn gameplay(&self) -> &GameplaySettings {
-        &self.gameplay_slotmachine.slots[self.gameplay_pick].1
-    }
-    fn graphics_mut(&mut self) -> &mut GraphicsSettings {
-        &mut self.graphics_slotmachine.slots[self.graphics_pick].1
-    }
-    fn keybinds_mut(&mut self) -> &mut GameKeybinds {
-        &mut self.keybinds_slotmachine.slots[self.keybinds_pick].1
-    }
-    fn gameplay_mut(&mut self) -> &mut GameplaySettings {
-        &mut self.gameplay_slotmachine.slots[self.gameplay_pick].1
-    }
-
-    pub fn palette(&self) -> &Palette {
-        &self.palette_slotmachine.slots[self.graphics().palette_pick].1
-    }
-    pub fn palette_lockedtiles(&self) -> &Palette {
-        &self.palette_slotmachine.slots[self.graphics().lockpalette_pick].1
     }
 }
 

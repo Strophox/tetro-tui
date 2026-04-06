@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crossterm::event::{KeyCode, KeyModifiers};
 use falling_tetromino_engine::Button;
 
-use crate::SlotMachine;
+use crate::settings::SlotMachine;
 
 #[derive(PartialEq, Eq, Clone, Debug)]
 #[serde_with::serde_as] // Do **NOT** place this after #[derive(..)] !!
@@ -26,41 +26,9 @@ pub fn default_keybinds_slots() -> SlotMachine<GameKeybinds> {
     SlotMachine::with_unmodifiable_slots(slots, "Keybinds".to_owned())
 }
 
-pub fn normalize((mut code, mut modifiers): (KeyCode, KeyModifiers)) -> (KeyCode, KeyModifiers) {
-    match code {
-        KeyCode::Modifier(modifier_key_code) => {
-            // If a *modifier-as-keycode* is being handled, remove 'unnecessary'/duplicate modifier flag.
-            // (It's just duplicate information that might unintuitively influence keybind detection.)
-            use crossterm::event::ModifierKeyCode as MKC;
-            let modifier = match modifier_key_code {
-                MKC::LeftShift | MKC::RightShift => KeyModifiers::SHIFT,
-                MKC::LeftControl | MKC::RightControl => KeyModifiers::CONTROL,
-                MKC::LeftAlt | MKC::RightAlt => KeyModifiers::ALT,
-                MKC::LeftSuper | MKC::RightSuper => KeyModifiers::SUPER,
-                MKC::LeftHyper | MKC::RightHyper => KeyModifiers::HYPER,
-                MKC::LeftMeta | MKC::RightMeta => KeyModifiers::META,
-                MKC::IsoLevel3Shift | MKC::IsoLevel5Shift => KeyModifiers::NONE,
-            };
-
-            modifiers.remove(modifier);
-        }
-
-        // Normalize character enum to store a lowercase `char`.
-        // FIXME: Could this somehow have undesirable effects?
-        KeyCode::Char(ref mut char) => {
-            *char = char.to_ascii_lowercase();
-        }
-
-        // No changes for other keycodes.
-        _ => {}
-    }
-
-    (code, modifiers)
-}
-
 impl GameKeybinds {
     pub fn get(&self, (code, modifiers): (KeyCode, KeyModifiers)) -> Option<&Button> {
-        self.map.get(&normalize((code, modifiers)))
+        self.map.get(&Self::normalize((code, modifiers)))
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (&(KeyCode, KeyModifiers), &Button)> {
@@ -70,6 +38,40 @@ impl GameKeybinds {
     /// This provides unstable but direct access to the internal representation for special purposes.
     pub fn unstable_access(&mut self) -> &mut HashMap<(KeyCode, KeyModifiers), Button> {
         &mut self.map
+    }
+
+    pub fn normalize(
+        (mut code, mut modifiers): (KeyCode, KeyModifiers),
+    ) -> (KeyCode, KeyModifiers) {
+        match code {
+            KeyCode::Modifier(modifier_key_code) => {
+                // If a *modifier-as-keycode* is being handled, remove 'unnecessary'/duplicate modifier flag.
+                // (It's just duplicate information that might unintuitively influence keybind detection.)
+                use crossterm::event::ModifierKeyCode as MKC;
+                let modifier = match modifier_key_code {
+                    MKC::LeftShift | MKC::RightShift => KeyModifiers::SHIFT,
+                    MKC::LeftControl | MKC::RightControl => KeyModifiers::CONTROL,
+                    MKC::LeftAlt | MKC::RightAlt => KeyModifiers::ALT,
+                    MKC::LeftSuper | MKC::RightSuper => KeyModifiers::SUPER,
+                    MKC::LeftHyper | MKC::RightHyper => KeyModifiers::HYPER,
+                    MKC::LeftMeta | MKC::RightMeta => KeyModifiers::META,
+                    MKC::IsoLevel3Shift | MKC::IsoLevel5Shift => KeyModifiers::NONE,
+                };
+
+                modifiers.remove(modifier);
+            }
+
+            // Normalize character enum to store a lowercase `char`.
+            // FIXME: Could this somehow have undesirable effects?
+            KeyCode::Char(ref mut char) => {
+                *char = char.to_ascii_lowercase();
+            }
+
+            // No changes for other keycodes.
+            _ => {}
+        }
+
+        (code, modifiers)
     }
 
     pub fn default_tetro() -> GameKeybinds {

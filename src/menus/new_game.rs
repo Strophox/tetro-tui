@@ -24,10 +24,9 @@ use crate::{
     game_modes::GameMode,
     game_modifiers::{self, Combo},
     game_renderers::{Renderer, TetroTUIRenderer},
-    graphics_settings::Glyphset,
     menus::{Menu, MenuUpdate},
-    Application, GameMetaData, GameRestorationData, GameSave, GameplaySettings, NewGameSettings,
-    UncompressedInputHistory,
+    settings::{GameplaySettings, Glyphset, NewGameSettings},
+    Application, GameMetaData, GameRestorationData, GameSave, UncompressedInputHistory,
 };
 
 impl<T: Write> Application<T> {

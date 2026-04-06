@@ -15,8 +15,8 @@ use falling_tetromino_engine::Button;
 
 use crate::{
     fmt_helpers::fmt_keybinds_of,
-    game_keybinds::normalize,
     menus::{Menu, MenuUpdate},
+    settings::GameKeybinds,
     Application, Settings,
 };
 
@@ -189,10 +189,10 @@ impl<T: Write> Application<T> {
                                     return Ok(MenuUpdate::Push(Menu::Quit));
                                 } else if !matches!(code, KeyCode::Esc) {
                                     if_unmodifiable_clone_and_switch(&mut self.settings);
-                                    self.settings
-                                        .keybinds_mut()
-                                        .unstable_access()
-                                        .insert(normalize((code, modifiers)), current_button);
+                                    self.settings.keybinds_mut().unstable_access().insert(
+                                        GameKeybinds::normalize((code, modifiers)),
+                                        current_button,
+                                    );
                                 }
                                 break;
                             }

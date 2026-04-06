@@ -1,0 +1,123 @@
+mod game_keybinds;
+mod gameplay_settings;
+mod graphics_settings;
+mod new_game;
+mod palette;
+
+pub use game_keybinds::GameKeybinds;
+pub use gameplay_settings::GameplaySettings;
+pub use graphics_settings::{Glyphset, GraphicsSettings};
+pub use new_game::NewGameSettings;
+pub use palette::Palette;
+
+use crate::{
+    fmt_helpers::arabic_to_roman,
+    settings::{
+        game_keybinds::default_keybinds_slots, gameplay_settings::default_gameplay_slots,
+        graphics_settings::default_graphics_slots, palette::default_palette_slots,
+    },
+};
+
+/// This struct allows storing 'slots' (elements of some kind), where a certain
+/// number of elements is considere as 'unmodifiable' (should not be modified)
+/// but can be automatically cloned to a new slot and then modified for ease of use.
+#[derive(PartialEq, Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct SlotMachine<T> {
+    /// The number of slots considered unmodifiable.
+    pub unmodifiable: usize,
+    pub slots: Vec<(String, T)>,
+    // The string that is used as base to generate a name for duplicate slots.
+    pub clone_name_template: String,
+}
+
+impl<T: Clone> SlotMachine<T> {
+    pub fn with_unmodifiable_slots(
+        slots: Vec<(String, T)>,
+        cloned_slot_name_template: String,
+    ) -> Self {
+        let num_unmodifiable_slots = slots.len();
+        Self {
+            slots,
+            unmodifiable: num_unmodifiable_slots,
+            clone_name_template: cloned_slot_name_template,
+        }
+    }
+
+    /// Given a valid index, clones and appends to itself of the corresponding slot if it is considered unmodifiable.
+    /// Otherwise return `None` and does nothing (i.e. slot is 'modifiable' or index invalid).
+    pub fn clone_slot_if_unmodifiable(&mut self, slot_idx: usize) -> Option<usize> {
+        slot_idx.lt(&self.unmodifiable).then(|| {
+            let cloned_slot_content = self.slots[slot_idx].1.clone();
+
+            let mut n = 1;
+            let cloned_slot_name = loop {
+                let name = format!("{} {}", self.clone_name_template, arabic_to_roman(n));
+                if self.slots.iter().all(|s| s.0 != name) {
+                    break name;
+                }
+                n += 1;
+            };
+
+            self.slots.push((cloned_slot_name, cloned_slot_content));
+
+            self.slots.len() - 1
+        })
+    }
+}
+
+// #[serde_with::serde_as]
+#[derive(PartialEq, Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct Settings {
+    pub newgame: NewGameSettings,
+    pub graphics_pick: usize,
+    pub keybinds_pick: usize,
+    pub gameplay_pick: usize,
+
+    pub graphics_slotmachine: SlotMachine<GraphicsSettings>,
+    pub keybinds_slotmachine: SlotMachine<GameKeybinds>,
+    pub gameplay_slotmachine: SlotMachine<GameplaySettings>,
+    pub palette_slotmachine: SlotMachine<Palette>,
+}
+
+impl Default for Settings {
+    fn default() -> Self {
+        Self {
+            newgame: NewGameSettings::default(),
+            graphics_pick: 0,
+            keybinds_pick: 0,
+            gameplay_pick: 0,
+            graphics_slotmachine: default_graphics_slots(),
+            palette_slotmachine: default_palette_slots(),
+            keybinds_slotmachine: default_keybinds_slots(),
+            gameplay_slotmachine: default_gameplay_slots(),
+        }
+    }
+}
+
+impl Settings {
+    pub fn graphics(&self) -> &GraphicsSettings {
+        &self.graphics_slotmachine.slots[self.graphics_pick].1
+    }
+    pub fn keybinds(&self) -> &GameKeybinds {
+        &self.keybinds_slotmachine.slots[self.keybinds_pick].1
+    }
+    pub fn gameplay(&self) -> &GameplaySettings {
+        &self.gameplay_slotmachine.slots[self.gameplay_pick].1
+    }
+    pub fn graphics_mut(&mut self) -> &mut GraphicsSettings {
+        &mut self.graphics_slotmachine.slots[self.graphics_pick].1
+    }
+    pub fn keybinds_mut(&mut self) -> &mut GameKeybinds {
+        &mut self.keybinds_slotmachine.slots[self.keybinds_pick].1
+    }
+    pub fn gameplay_mut(&mut self) -> &mut GameplaySettings {
+        &mut self.gameplay_slotmachine.slots[self.gameplay_pick].1
+    }
+
+    pub fn palette(&self) -> &Palette {
+        &self.palette_slotmachine.slots[self.graphics().palette_pick].1
+    }
+    pub fn palette_lockedtiles(&self) -> &Palette {
+        &self.palette_slotmachine.slots[self.graphics().lockpalette_pick].1
+    }
+}

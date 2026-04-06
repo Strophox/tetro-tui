@@ -3,7 +3,7 @@ use std::time::Duration;
 use crossterm::event::{KeyCode, KeyModifiers};
 use falling_tetromino_engine::{Button, ExtNonNegF64, Input, Tetromino};
 
-use crate::game_keybinds::GameKeybinds;
+use crate::settings::GameKeybinds;
 
 pub type KeybindsLegend = Vec<(/*(KeyCode, KeyModifiers)*/ String, &'static str)>;
 

@@ -1,0 +1,48 @@
+use std::num::{NonZeroU32, NonZeroUsize};
+
+use falling_tetromino_engine::{DelayParameters, ExtDuration, Game, Stat};
+
+use crate::game_modifiers::Combo;
+
+#[derive(
+    PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
+)]
+pub struct NewGameSettings {
+    pub custom_fall_delay_params: DelayParameters,
+    pub custom_win_condition: Option<Stat>,
+    pub custom_seed: Option<u64>,
+    pub custom_encoded_board: Option<String>, // For more compact serialization of NewGameSettings, we store an encoded `Board` (see `encode_board`).
+
+    pub cheese_tiles_per_line: NonZeroUsize,
+    pub cheese_fall_lock_delays: (ExtDuration, ExtDuration),
+    pub cheese_limit: Option<NonZeroU32>,
+
+    pub combo_limit: Option<NonZeroU32>,
+    /// Custom starting layout when playing Combo mode (4-wide rows), encoded as binary.
+    /// Example: '▀▄▄▀' => 0b_1001_0110 = 150
+    pub combo_initial_layout: u16,
+
+    pub master_mode_unlocked: bool,
+    pub experimental_mode_unlocked: bool,
+}
+
+impl Default for NewGameSettings {
+    fn default() -> Self {
+        Self {
+            custom_fall_delay_params: DelayParameters::standard_fall(),
+            custom_win_condition: None,
+            custom_seed: None,
+            custom_encoded_board: None,
+
+            cheese_limit: Some(NonZeroU32::try_from(20).unwrap()),
+            cheese_fall_lock_delays: (ExtDuration::Infinite, ExtDuration::Infinite),
+            cheese_tiles_per_line: NonZeroUsize::new(Game::WIDTH - 1).unwrap(),
+
+            combo_limit: Some(NonZeroU32::try_from(30).unwrap()),
+            combo_initial_layout: Combo::LAYOUTS[0],
+
+            master_mode_unlocked: false,
+            experimental_mode_unlocked: false,
+        }
+    }
+}
