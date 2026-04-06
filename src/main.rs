@@ -99,7 +99,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 pub struct GameMetaData {
     pub datetime: String,
     pub title: String,
-    pub comparison_stat: (Stat, bool),
+    pub stat_and_desc_order: (Stat, bool),
 }
 
 #[derive(
@@ -144,17 +144,17 @@ impl GameSave<CompressedInputHistory> {
     serde::Deserialize,
 )]
 pub struct GameSaves<T> {
-    pick: usize,
+    picked: usize,
     slots: Vec<GameSave<T>>,
 }
 
 impl<T> GameSaves<T> {
     pub fn get(&self) -> Option<&GameSave<T>> {
-        self.slots.get(self.pick)
+        self.slots.get(self.picked)
     }
 
     pub fn get_mut(&mut self) -> Option<&mut GameSave<T>> {
-        self.slots.get_mut(self.pick)
+        self.slots.get_mut(self.picked)
     }
 }
 
@@ -166,10 +166,10 @@ pub struct ScoreEntry {
     game_meta_data: GameMetaData,
     end_cause: GameEndCause,
     is_win: bool,
-    time_elapsed: InGameTime,
+    time: InGameTime,
     lineclears: u32,
-    points_scored: u32,
-    pieces_locked: [u32; Tetromino::VARIANTS.len()],
+    points: u32,
+    pieces: [u32; Tetromino::VARIANTS.len()],
     fall_delay_reached: ExtDuration,
     lock_delay_reached: Option<ExtDuration>,
 }
@@ -229,17 +229,17 @@ impl Scoreboard {
             // Sort by if gamemode was finished successfully.
             pg1.is_win.cmp(&pg2.is_win).reverse().then_with(|| {
                 // Sort by comparison stat...
-                let o = match pg1.game_meta_data.comparison_stat.0 {
-                    Stat::TimeElapsed(_)    => pg1.time_elapsed.cmp(&pg2.time_elapsed),
-                    Stat::PiecesLocked(_)   => pg1.pieces_locked.cmp(&pg2.pieces_locked),
+                let o = match pg1.game_meta_data.stat_and_desc_order.0 {
+                    Stat::TimeElapsed(_)    => pg1.time.cmp(&pg2.time),
+                    Stat::PiecesLocked(_)   => pg1.pieces.cmp(&pg2.pieces),
                     Stat::LinesCleared(_)   => pg1.lineclears.cmp(&pg2.lineclears),
-                    Stat::PointsScored(_)   => pg1.points_scored.cmp(&pg2.points_scored),
+                    Stat::PointsScored(_)   => pg1.points.cmp(&pg2.points),
                 };
                 // Comparison stat is used positively/negatively (minimize or maximize) depending on
                 // how comparison stat compares to 'most important'(??) (often sole) end condition.
                 // This is shady, but the special order we subtly chose and never publicly document
                 // makes this make sense...
-                if pg1.game_meta_data.comparison_stat.1
+                if pg1.game_meta_data.stat_and_desc_order.1
                     { o } else { o.reverse() }
             })
             )
@@ -248,10 +248,10 @@ impl Scoreboard {
 
     fn sort_by_stat(&mut self, stat: Stat) {
         self.entries.sort_by(|(pg1, _), (pg2, _)| match stat {
-            Stat::TimeElapsed(_) => pg1.time_elapsed.cmp(&pg2.time_elapsed),
-            Stat::PiecesLocked(_) => pg1.pieces_locked.cmp(&pg2.pieces_locked),
+            Stat::TimeElapsed(_) => pg1.time.cmp(&pg2.time),
+            Stat::PiecesLocked(_) => pg1.pieces.cmp(&pg2.pieces),
             Stat::LinesCleared(_) => pg1.lineclears.cmp(&pg2.lineclears),
-            Stat::PointsScored(_) => pg1.points_scored.cmp(&pg2.points_scored),
+            Stat::PointsScored(_) => pg1.points.cmp(&pg2.points),
         });
     }
 }
@@ -280,7 +280,7 @@ pub struct Statistics {
     total_tri: u32,
     total_tetra: u32,
     total_spin: u32,
-    total_perfect_clear: u32,
+    total_perfect: u32,
     total_combo: u32,
 }
 
@@ -313,7 +313,7 @@ impl Statistics {
                         _ => {}
                     }
                     self.total_spin += if *is_spin { 1 } else { 0 };
-                    self.total_perfect_clear += if *is_perfect { 1 } else { 0 };
+                    self.total_perfect += if *is_perfect { 1 } else { 0 };
                     self.total_combo += if *combo > 1 { 1 } else { 0 };
                 }
 
@@ -335,7 +335,7 @@ impl Statistics {
             total_tri,
             total_tetra,
             total_spin,
-            total_perfect_clear,
+            total_perfect: total_perfect_clear,
             total_combo,
         } = self;
 
@@ -350,7 +350,7 @@ impl Statistics {
         *total_tri += other.total_tri;
         *total_tetra += other.total_tetra;
         *total_spin += other.total_spin;
-        *total_perfect_clear += other.total_perfect_clear;
+        *total_perfect_clear += other.total_perfect;
         *total_combo += other.total_combo;
     }
 }
@@ -557,7 +557,7 @@ impl<T: Write> Application<T> {
         // Special: Overwrite specifically requested cmdline flags.
 
         if custom_start_board.is_some() {
-            new.settings.newgame.custom_encoded_board = custom_start_board;
+            new.settings.newgame.custom_start_board = custom_start_board;
         }
 
         if custom_start_seed.is_some() {

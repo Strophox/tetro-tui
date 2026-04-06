@@ -25,9 +25,9 @@ impl<T: Write> Application<T> {
         let if_unmodifiable_clone_and_switch = |s: &mut Settings| {
             if let Some(cloned_slot_idx) = s
                 .keybinds_slotmachine
-                .clone_slot_if_unmodifiable(s.keybinds_pick)
+                .clone_slot_if_unmodifiable(s.keybinds_picked)
             {
-                s.keybinds_pick = cloned_slot_idx;
+                s.keybinds_picked = cloned_slot_idx;
             }
         };
 
@@ -53,15 +53,15 @@ impl<T: Write> Application<T> {
             // Draw slot label.
             let slot_label = format!(
                 "Slot {}/{}: '{}'{}",
-                self.settings.keybinds_pick + 1,
+                self.settings.keybinds_picked + 1,
                 self.settings.keybinds_slotmachine.slots.len(),
-                self.settings.keybinds_slotmachine.slots[self.settings.keybinds_pick].0,
+                self.settings.keybinds_slotmachine.slots[self.settings.keybinds_picked].0,
                 if self.settings.keybinds_slotmachine.slots.len() < 2 {
                     "".to_owned()
                 } else {
                     format!(
                         " [←|{}→] ",
-                        if self.settings.keybinds_pick
+                        if self.settings.keybinds_picked
                             < self.settings.keybinds_slotmachine.unmodifiable
                         {
                             ""
@@ -213,23 +213,23 @@ impl<T: Write> Application<T> {
                 }) => {
                     if selected == 0 {
                         // If a custom slot, then remove it (and return to the 'default' 0th slot).
-                        if self.settings.keybinds_pick
+                        if self.settings.keybinds_picked
                             >= self.settings.keybinds_slotmachine.unmodifiable
                         {
                             self.settings
                                 .keybinds_slotmachine
                                 .slots
-                                .remove(self.settings.keybinds_pick);
-                            self.settings.keybinds_pick = 0;
+                                .remove(self.settings.keybinds_picked);
+                            self.settings.keybinds_picked = 0;
                         }
                     } else {
                         // Trying to modify a default slot: create copy of slot to allow safely modifying that.
                         if let Some(cloned_slot_idx) = self
                             .settings
                             .keybinds_slotmachine
-                            .clone_slot_if_unmodifiable(self.settings.keybinds_pick)
+                            .clone_slot_if_unmodifiable(self.settings.keybinds_picked)
                         {
-                            self.settings.keybinds_pick = cloned_slot_idx;
+                            self.settings.keybinds_picked = cloned_slot_idx;
                         }
                         // Remove all keys bound to the selected action button.
                         let button_selected = buttons_available[selected - 1];
@@ -265,8 +265,8 @@ impl<T: Write> Application<T> {
                     ..
                 }) => {
                     if selected == 0 {
-                        self.settings.keybinds_pick += 1;
-                        self.settings.keybinds_pick %=
+                        self.settings.keybinds_picked += 1;
+                        self.settings.keybinds_picked %=
                             self.settings.keybinds_slotmachine.slots.len();
                     }
                 }
@@ -278,9 +278,9 @@ impl<T: Write> Application<T> {
                     ..
                 }) => {
                     if selected == 0 {
-                        self.settings.keybinds_pick +=
+                        self.settings.keybinds_picked +=
                             self.settings.keybinds_slotmachine.slots.len() - 1;
-                        self.settings.keybinds_pick %=
+                        self.settings.keybinds_picked %=
                             self.settings.keybinds_slotmachine.slots.len();
                     }
                 }

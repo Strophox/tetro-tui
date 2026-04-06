@@ -13,13 +13,13 @@ pub enum Glyphset {
 
 #[derive(PartialEq, PartialOrd, Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
 pub struct GraphicsSettings {
-    pub palette_pick: usize,
-    pub lockpalette_pick: usize,
+    pub palette_picked: usize,
+    pub boardpalette_picked: usize,
     pub glyphset: Glyphset,
-    pub show_effects: bool,
+    pub effects: bool,
     pub lineclear_style: u8,
-    pub show_shadow_piece: bool,
-    pub show_button_state: bool,
+    pub shadow_piece: bool,
+    pub button_state: bool,
     pub game_fps: f64,
     pub show_fps: bool,
 }
@@ -43,12 +43,12 @@ impl Default for GraphicsSettings {
     fn default() -> Self {
         Self {
             glyphset: Glyphset::Unicode,
-            palette_pick: 3,
-            lockpalette_pick: 3,
-            show_effects: true,
+            palette_picked: 3,
+            boardpalette_picked: 3,
+            effects: true,
             lineclear_style: 0,
-            show_shadow_piece: true,
-            show_button_state: false,
+            shadow_piece: true,
+            button_state: false,
             game_fps: 30.0,
             show_fps: false,
         }
@@ -58,14 +58,14 @@ impl Default for GraphicsSettings {
 impl GraphicsSettings {
     pub fn extra_focus() -> Self {
         Self {
-            palette_pick: 2,
-            lockpalette_pick: 0,
-            show_effects: false,
+            palette_picked: 2,
+            boardpalette_picked: 0,
+            effects: false,
             lineclear_style: 0,
             game_fps: 60.0,
             glyphset: Glyphset::Unicode,
-            show_shadow_piece: true,
-            show_button_state: false,
+            shadow_piece: true,
+            button_state: false,
             show_fps: false,
         }
     }
@@ -73,12 +73,12 @@ impl GraphicsSettings {
     pub fn guideline() -> Self {
         Self {
             glyphset: Glyphset::Unicode,
-            palette_pick: 2,
-            lockpalette_pick: 2,
-            show_effects: true,
+            palette_picked: 2,
+            boardpalette_picked: 2,
+            effects: true,
             lineclear_style: 0,
-            show_shadow_piece: true,
-            show_button_state: false,
+            shadow_piece: true,
+            button_state: false,
             game_fps: 60.0,
             show_fps: false,
         }
@@ -86,28 +86,28 @@ impl GraphicsSettings {
 
     pub fn compatibility() -> Self {
         Self {
-            palette_pick: 1,
-            lockpalette_pick: 1,
-            show_effects: true,
+            palette_picked: 1,
+            boardpalette_picked: 1,
+            effects: true,
             lineclear_style: 0,
             game_fps: 30.0,
             glyphset: Glyphset::ASCII,
-            show_shadow_piece: true,
-            show_button_state: false,
+            shadow_piece: true,
+            button_state: false,
             show_fps: false,
         }
     }
 
     pub fn elektronika_60() -> Self {
         Self {
-            palette_pick: 0,
-            lockpalette_pick: 0,
-            show_effects: true,
+            palette_picked: 0,
+            boardpalette_picked: 0,
+            effects: true,
             lineclear_style: 0,
             game_fps: 24.0,
             glyphset: Glyphset::Elektronika_60,
-            show_shadow_piece: false,
-            show_button_state: false,
+            shadow_piece: false,
+            button_state: false,
             show_fps: false,
         }
     }

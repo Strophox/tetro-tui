@@ -20,6 +20,7 @@ pub fn savefile_path() -> PathBuf {
         .join(savefile_name())
 }
 
+// FIXME: Use biflags instead? C.f. https://docs.rs/crossterm/0.29.0/src/crossterm/event.rs.html#832-849
 #[derive(
     PartialEq,
     Eq,
@@ -45,8 +46,8 @@ pub enum SavefileGranularity {
 struct SavefileContents<'a> {
     save_on_exit: SavefileGranularity,
     statistics: Cow<'a, Statistics>,
-    game_saves: GameSaves<CompressedInputHistory>,
     settings: Cow<'a, Settings>,
+    compressed_game_saves: GameSaves<CompressedInputHistory>,
     scores_and_replays: Cow<'a, Scoreboard>,
 }
 
@@ -73,14 +74,14 @@ impl<T: Write> Application<T> {
         *scores_and_replays = save_loaded.scores_and_replays.into_owned();
         *statistics = save_loaded.statistics.into_owned();
         game_saves.slots = save_loaded
-            .game_saves
+            .compressed_game_saves
             .slots
             .into_iter()
             .filter_map(|save| save.decompress())
             .collect::<Vec<GameSave<RawInputHistory>>>();
-        game_saves.pick = save_loaded
-            .game_saves
-            .pick
+        game_saves.picked = save_loaded
+            .compressed_game_saves
+            .picked
             .min(game_saves.slots.len().saturating_sub(1));
 
         Ok(())
@@ -98,7 +99,7 @@ impl<T: Write> Application<T> {
         }
 
         let compressed_game_saves = GameSaves {
-            pick: self.game_saves.pick,
+            picked: self.game_saves.picked,
             slots: self
                 .game_saves
                 .slots
@@ -113,7 +114,7 @@ impl<T: Write> Application<T> {
             settings: Cow::Borrowed(&self.settings),
             scores_and_replays: Cow::Borrowed(&self.scores_and_replays),
             statistics: Cow::Borrowed(&self.statistics),
-            game_saves: compressed_game_saves,
+            compressed_game_saves,
         };
 
         let save_str = serde_json::to_string(&savefile_contents)?;

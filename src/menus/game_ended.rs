@@ -25,10 +25,10 @@ impl<T: Write> Application<T> {
             game_meta_data,
             end_cause,
             is_win,
-            time_elapsed,
+            time: time_elapsed,
             lineclears,
-            points_scored,
-            pieces_locked,
+            points: points_scored,
+            pieces: pieces_locked,
             fall_delay_reached,
             lock_delay_reached,
         } = game_scoring;

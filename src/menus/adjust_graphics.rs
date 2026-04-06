@@ -25,9 +25,9 @@ impl<T: Write> Application<T> {
         let if_unmodifiable_clone_and_switch = |s: &mut Settings| {
             if let Some(cloned_slot_idx) = s
                 .graphics_slotmachine
-                .clone_slot_if_unmodifiable(s.graphics_pick)
+                .clone_slot_if_unmodifiable(s.graphics_picked)
             {
-                s.graphics_pick = cloned_slot_idx;
+                s.graphics_picked = cloned_slot_idx;
             }
         };
 
@@ -50,15 +50,15 @@ impl<T: Write> Application<T> {
             // Draw slot label.
             let slot_label = format!(
                 "Slot {}/{}: '{}'{}",
-                self.settings.graphics_pick + 1,
+                self.settings.graphics_picked + 1,
                 self.settings.graphics_slotmachine.slots.len(),
-                self.settings.graphics_slotmachine.slots[self.settings.graphics_pick].0,
+                self.settings.graphics_slotmachine.slots[self.settings.graphics_picked].0,
                 if self.settings.graphics_slotmachine.slots.len() < 2 {
                     "".to_owned()
                 } else {
                     format!(
                         " [←|{}→] ",
-                        if self.settings.graphics_pick
+                        if self.settings.graphics_picked
                             < self.settings.graphics_slotmachine.unmodifiable
                         {
                             ""
@@ -85,24 +85,25 @@ impl<T: Write> Application<T> {
                 format!("Glyphset = {:?}", self.settings.graphics().glyphset),
                 format!(
                     "Color palette = '{}'",
-                    self.settings.palette_slotmachine.slots[self.settings.graphics().palette_pick]
+                    self.settings.palette_slotmachine.slots
+                        [self.settings.graphics().palette_picked]
                         .0
                 ),
                 format!(
                     "Color locked tiles = {}",
-                    (self.settings.graphics().lockpalette_pick != 0).fmt_on_off()
+                    (self.settings.graphics().boardpalette_picked != 0).fmt_on_off()
                 ),
                 format!(
                     "Show effects = {}",
-                    self.settings.graphics().show_effects.fmt_on_off()
+                    self.settings.graphics().effects.fmt_on_off()
                 ),
                 format!(
                     "Show shadow piece = {}",
-                    self.settings.graphics().show_shadow_piece.fmt_on_off()
+                    self.settings.graphics().shadow_piece.fmt_on_off()
                 ),
                 format!(
                     "Show button state = {}",
-                    self.settings.graphics().show_button_state.fmt_on_off()
+                    self.settings.graphics().button_state.fmt_on_off()
                 ),
                 format!("Max framerate = {}", self.settings.graphics().game_fps),
                 format!(
@@ -200,8 +201,8 @@ impl<T: Write> Application<T> {
                     ..
                 }) => match selected {
                     0 => {
-                        self.settings.graphics_pick += 1;
-                        self.settings.graphics_pick %=
+                        self.settings.graphics_picked += 1;
+                        self.settings.graphics_picked %=
                             self.settings.graphics_slotmachine.slots.len();
                     }
                     1 => {
@@ -215,32 +216,32 @@ impl<T: Write> Application<T> {
                     }
                     2 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().palette_pick += 1;
-                        self.settings.graphics_mut().palette_pick %=
+                        self.settings.graphics_mut().palette_picked += 1;
+                        self.settings.graphics_mut().palette_picked %=
                             self.settings.palette_slotmachine.slots.len();
-                        self.settings.graphics_mut().lockpalette_pick =
-                            self.settings.graphics_mut().palette_pick;
+                        self.settings.graphics_mut().boardpalette_picked =
+                            self.settings.graphics_mut().palette_picked;
                     }
                     3 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().lockpalette_pick =
-                            if self.settings.graphics().lockpalette_pick == 0 {
-                                self.settings.graphics_mut().palette_pick
+                        self.settings.graphics_mut().boardpalette_picked =
+                            if self.settings.graphics().boardpalette_picked == 0 {
+                                self.settings.graphics_mut().palette_picked
                             } else {
                                 0
                             };
                     }
                     4 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().show_effects ^= true;
+                        self.settings.graphics_mut().effects ^= true;
                     }
                     5 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().show_shadow_piece ^= true;
+                        self.settings.graphics_mut().shadow_piece ^= true;
                     }
                     6 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().show_button_state ^= true;
+                        self.settings.graphics_mut().button_state ^= true;
                     }
                     7 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
@@ -264,9 +265,9 @@ impl<T: Write> Application<T> {
                     ..
                 }) => match selected {
                     0 => {
-                        self.settings.graphics_pick +=
+                        self.settings.graphics_picked +=
                             self.settings.graphics_slotmachine.slots.len() - 1;
-                        self.settings.graphics_pick %=
+                        self.settings.graphics_picked %=
                             self.settings.graphics_slotmachine.slots.len();
                     }
                     1 => {
@@ -280,33 +281,33 @@ impl<T: Write> Application<T> {
                     }
                     2 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().palette_pick +=
+                        self.settings.graphics_mut().palette_picked +=
                             self.settings.palette_slotmachine.slots.len() - 1;
-                        self.settings.graphics_mut().palette_pick %=
+                        self.settings.graphics_mut().palette_picked %=
                             self.settings.palette_slotmachine.slots.len();
-                        self.settings.graphics_mut().lockpalette_pick =
-                            self.settings.graphics_mut().palette_pick;
+                        self.settings.graphics_mut().boardpalette_picked =
+                            self.settings.graphics_mut().palette_picked;
                     }
                     3 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().lockpalette_pick =
-                            if self.settings.graphics().lockpalette_pick == 0 {
-                                self.settings.graphics_mut().palette_pick
+                        self.settings.graphics_mut().boardpalette_picked =
+                            if self.settings.graphics().boardpalette_picked == 0 {
+                                self.settings.graphics_mut().palette_picked
                             } else {
                                 0
                             };
                     }
                     4 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().show_effects ^= true;
+                        self.settings.graphics_mut().effects ^= true;
                     }
                     5 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().show_shadow_piece ^= true;
+                        self.settings.graphics_mut().shadow_piece ^= true;
                     }
                     6 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().show_button_state ^= true;
+                        self.settings.graphics_mut().button_state ^= true;
                     }
                     7 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
@@ -334,14 +335,14 @@ impl<T: Write> Application<T> {
                 }) => {
                     if selected == 0 {
                         // If a custom slot, then remove it (and return to the 'default' 0th slot).
-                        if self.settings.graphics_pick
+                        if self.settings.graphics_picked
                             >= self.settings.graphics_slotmachine.unmodifiable
                         {
                             self.settings
                                 .graphics_slotmachine
                                 .slots
-                                .remove(self.settings.graphics_pick);
-                            self.settings.graphics_pick = 0;
+                                .remove(self.settings.graphics_picked);
+                            self.settings.graphics_picked = 0;
                         }
                     }
                 }

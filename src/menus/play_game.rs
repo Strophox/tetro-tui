@@ -134,8 +134,8 @@ impl<T: Write> Application<T> {
                     game_meta_data: game_meta_data.clone(),
                     is_win: *is_win,
                     end_cause: cause.clone(),
-                    time_elapsed: game.state().time,
-                    pieces_locked: game.state().pieces_locked,
+                    time: game.state().time,
+                    pieces: game.state().pieces_locked,
                     lineclears: game.state().lineclears,
                     fall_delay_reached: game.state().fall_delay,
                     lock_delay_reached: (game
@@ -144,7 +144,7 @@ impl<T: Write> Application<T> {
                         .is_some()
                         && !game.config.lock_delay_params.is_constant())
                     .then_some(game.state().lock_delay),
-                    points_scored: game.state().points,
+                    points: game.state().points,
                 };
 
                 let compressed_game_input_history =
@@ -414,7 +414,7 @@ impl<T: Write> Application<T> {
                             // [Ctrl+S]: Store savepoint.
                             (KeyCode::Char('s' | 'S'), KeyModifiers::CONTROL) => {
                                 // FIXME: Store more than one savepoint?
-                                self.game_saves.pick = 0;
+                                self.game_saves.picked = 0;
                                 self.game_saves.slots = vec![GameSave {
                                     game_meta_data: game_meta_data.clone(),
                                     game_restoration_data: GameRestorationData::new(

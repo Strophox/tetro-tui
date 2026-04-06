@@ -48,17 +48,17 @@ impl<T: Write> Application<T> {
             let fmt_stat = |p: &ScoreEntry| {
                 let show_stat = match sorting {
                     ScoreEntrySorting::Chronological | ScoreEntrySorting::ModeDependent => {
-                        p.game_meta_data.comparison_stat.0
+                        p.game_meta_data.stat_and_desc_order.0
                     }
                     ScoreEntrySorting::GameStat(stat) => stat,
                 };
                 match show_stat {
-                    Stat::TimeElapsed(_) => fmt_duration(p.time_elapsed),
+                    Stat::TimeElapsed(_) => fmt_duration(p.time),
                     Stat::PiecesLocked(_) => {
-                        format!("{} tetrominos", p.pieces_locked.iter().sum::<u32>())
+                        format!("{} tetrominos", p.pieces.iter().sum::<u32>())
                     }
                     Stat::LinesCleared(_) => format!("{} lines", p.lineclears),
-                    Stat::PointsScored(_) => format!("{} points", p.points_scored),
+                    Stat::PointsScored(_) => format!("{} points", p.points),
                 }
                 // match show_stat {
                 //     Stat::TimeElapsed(_) => format!("time: {}", fmt_duration(p.time_elapsed)),
@@ -379,7 +379,7 @@ impl<T: Write> Application<T> {
                     if let (
                         ScoreEntry {
                             game_meta_data,
-                            time_elapsed,
+                            time: time_elapsed,
                             ..
                         },
                         Some(game_restoration_data),

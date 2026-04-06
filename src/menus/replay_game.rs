@@ -252,7 +252,7 @@ impl<T: Write> Application<T> {
                             // [Ctrl+S]: Store savepoint.
                             (KeyCode::Char('s' | 'S'), KeyModifiers::CONTROL) => {
                                 // FIXME: Store more than one savepoint?
-                                self.game_saves.pick = 0;
+                                self.game_saves.picked = 0;
                                 self.game_saves.slots = vec![GameSave {
                                     game_meta_data: game_meta_data.clone(),
                                     game_restoration_data: GameRestorationData::new(

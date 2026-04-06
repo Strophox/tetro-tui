@@ -36,7 +36,7 @@ impl<T: Write> Application<T> {
                 total_tri,
                 total_tetra,
                 total_spin,
-                total_perfect_clear,
+                total_perfect: total_perfect_clear,
                 total_combo: _,
             } = &self.statistics;
 

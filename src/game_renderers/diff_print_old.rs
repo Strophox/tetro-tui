@@ -472,7 +472,7 @@ impl Renderer for DiffPrintOldRenderer {
         }
 
         // Draw button state.
-        if settings.graphics().show_button_state || replay_extra.is_some() {
+        if settings.graphics().button_state || replay_extra.is_some() {
             let n253 = NonZeroU8::try_from(253).unwrap();
             let n255 = NonZeroU8::try_from(255).unwrap();
             let bc = |b: Button| {
@@ -644,7 +644,7 @@ impl Renderer for DiffPrintOldRenderer {
             // If a piece is in play.
             Phase::PieceInPlay { piece, .. } => {
                 // Draw shadow piece.
-                if settings.graphics().show_shadow_piece {
+                if settings.graphics().shadow_piece {
                     for (tile_pos, tile_id) in
                         piece.teleported(&game.state().board, (0, -1)).tiles()
                     {
@@ -795,7 +795,7 @@ impl Renderer for DiffPrintOldRenderer {
             let elapsed = game.state().time.saturating_sub(*notif_time);
             match notification {
                 Notification::PieceLocked { piece } => {
-                    if !settings.graphics().show_effects {
+                    if !settings.graphics().effects {
                         *active = false;
                         continue;
                     }
@@ -847,7 +847,7 @@ impl Renderer for DiffPrintOldRenderer {
                     line_clear_duration,
                 } => {
                     if settings.graphics().lineclear_style == 0 {
-                        if !settings.graphics().show_effects || line_clear_duration.is_zero() {
+                        if !settings.graphics().effects || line_clear_duration.is_zero() {
                             *active = false;
                             continue;
                         }
@@ -937,7 +937,7 @@ impl Renderer for DiffPrintOldRenderer {
                     height_dropped: _,
                     dropped_piece,
                 } => {
-                    if !settings.graphics().show_effects {
+                    if !settings.graphics().effects {
                         *active = false;
                         continue;
                     }

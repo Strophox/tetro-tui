@@ -11,7 +11,7 @@ use crate::settings::SlotMachine;
 pub struct Palette {
     // #[serde_as(as = "Vec<(_, ColorDummyType)>")]
     #[serde_as(as = "std::collections::HashMap<serde_with::json::JsonString, ColorDummyType>")]
-    tile_to_col: HashMap<u8, Color>,
+    colormap: HashMap<u8, Color>,
 }
 
 pub fn default_palette_slots() -> SlotMachine<Palette> {
@@ -135,12 +135,12 @@ impl<'de> serde_with::DeserializeAs<'de, Color> for ColorDummyType {
 
 impl Palette {
     pub fn get(&self, x: &TileID) -> Option<&Color> {
-        self.tile_to_col.get(&x.get())
+        self.colormap.get(&x.get())
     }
 
     pub fn monochrome() -> Palette {
         Palette {
-            tile_to_col: Default::default(),
+            colormap: Default::default(),
         }
     }
 
@@ -158,7 +158,7 @@ impl Palette {
             (255, Color::White),
         ];
         Palette {
-            tile_to_col: colors.into(),
+            colormap: colors.into(),
         }
     }
 
@@ -195,7 +195,7 @@ impl Palette {
             (255, Color::Rgb{r:255,g:255,b:255}), // #FFFFFF
         ];
         Palette {
-            tile_to_col: colors.into(),
+            colormap: colors.into(),
         }
     }
 
@@ -215,7 +215,7 @@ impl Palette {
             (255, Color::Rgb{r:255,g:255,b:255}), // #FFFFFF
         ];
         Palette {
-            tile_to_col: colors.into(),
+            colormap: colors.into(),
         }
     }
 
@@ -235,7 +235,7 @@ impl Palette {
             (255, Color::Rgb{r:255,g:255,b:206}), // #FFFFCE
         ];
         Palette {
-            tile_to_col: colors.into(),
+            colormap: colors.into(),
         }
     }
 
@@ -272,7 +272,7 @@ impl Palette {
             (255, Color::Rgb{r:255,g:255,b:255}), // #FFFFFF
         ];
         Palette {
-            tile_to_col: colors.into(),
+            colormap: colors.into(),
         }
     }
 
@@ -346,7 +346,7 @@ impl Palette {
             (255, Color::Rgb{r:232,g:234,b:242}), // #E8EAF2
         ];
         Palette {
-            tile_to_col: colors.into(),
+            colormap: colors.into(),
         }
     }
 
@@ -366,7 +366,7 @@ impl Palette {
             (255, Color::Rgb{r:253,g:246,b:227}), // #fdf6e3
         ];
         Palette {
-            tile_to_col: colors.into(),
+            colormap: colors.into(),
         }
     }
 
@@ -386,7 +386,7 @@ impl Palette {
             (255, Color::Rgb{r:222,g:228,b:230}), // #DEE4E6
         ];
         Palette {
-            tile_to_col: colors.into(),
+            colormap: colors.into(),
         }
     }
 
@@ -406,7 +406,7 @@ impl Palette {
             (255, Color::Rgb{r:234,g:255,b:244}), // #EAFFF4
         ];
         Palette {
-            tile_to_col: colors.into(),
+            colormap: colors.into(),
         }
     }
 }

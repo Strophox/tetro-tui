@@ -68,24 +68,25 @@ impl<T: Clone> SlotMachine<T> {
 // #[serde_with::serde_as]
 #[derive(PartialEq, Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Settings {
-    pub newgame: NewGameSettings,
-    pub graphics_pick: usize,
-    pub keybinds_pick: usize,
-    pub gameplay_pick: usize,
+    pub graphics_picked: usize,
+    pub keybinds_picked: usize,
+    pub gameplay_picked: usize,
 
+    pub newgame: NewGameSettings,
+
+    pub palette_slotmachine: SlotMachine<Palette>,
     pub graphics_slotmachine: SlotMachine<GraphicsSettings>,
     pub keybinds_slotmachine: SlotMachine<GameKeybinds>,
     pub gameplay_slotmachine: SlotMachine<GameplaySettings>,
-    pub palette_slotmachine: SlotMachine<Palette>,
 }
 
 impl Default for Settings {
     fn default() -> Self {
         Self {
             newgame: NewGameSettings::default(),
-            graphics_pick: 0,
-            keybinds_pick: 0,
-            gameplay_pick: 0,
+            graphics_picked: 0,
+            keybinds_picked: 0,
+            gameplay_picked: 0,
             graphics_slotmachine: default_graphics_slots(),
             palette_slotmachine: default_palette_slots(),
             keybinds_slotmachine: default_keybinds_slots(),
@@ -96,28 +97,28 @@ impl Default for Settings {
 
 impl Settings {
     pub fn graphics(&self) -> &GraphicsSettings {
-        &self.graphics_slotmachine.slots[self.graphics_pick].1
+        &self.graphics_slotmachine.slots[self.graphics_picked].1
     }
     pub fn keybinds(&self) -> &GameKeybinds {
-        &self.keybinds_slotmachine.slots[self.keybinds_pick].1
+        &self.keybinds_slotmachine.slots[self.keybinds_picked].1
     }
     pub fn gameplay(&self) -> &GameplaySettings {
-        &self.gameplay_slotmachine.slots[self.gameplay_pick].1
+        &self.gameplay_slotmachine.slots[self.gameplay_picked].1
     }
     pub fn graphics_mut(&mut self) -> &mut GraphicsSettings {
-        &mut self.graphics_slotmachine.slots[self.graphics_pick].1
+        &mut self.graphics_slotmachine.slots[self.graphics_picked].1
     }
     pub fn keybinds_mut(&mut self) -> &mut GameKeybinds {
-        &mut self.keybinds_slotmachine.slots[self.keybinds_pick].1
+        &mut self.keybinds_slotmachine.slots[self.keybinds_picked].1
     }
     pub fn gameplay_mut(&mut self) -> &mut GameplaySettings {
-        &mut self.gameplay_slotmachine.slots[self.gameplay_pick].1
+        &mut self.gameplay_slotmachine.slots[self.gameplay_picked].1
     }
 
     pub fn palette(&self) -> &Palette {
-        &self.palette_slotmachine.slots[self.graphics().palette_pick].1
+        &self.palette_slotmachine.slots[self.graphics().palette_picked].1
     }
     pub fn palette_lockedtiles(&self) -> &Palette {
-        &self.palette_slotmachine.slots[self.graphics().lockpalette_pick].1
+        &self.palette_slotmachine.slots[self.graphics().boardpalette_picked].1
     }
 }
