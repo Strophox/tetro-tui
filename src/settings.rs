@@ -43,8 +43,17 @@ impl<T: Clone> SlotMachine<T> {
         }
     }
 
-    /// Given a valid index, clones and appends to itself of the corresponding slot if it is considered unmodifiable.
-    /// Otherwise return `None` and does nothing (i.e. slot is 'modifiable' or index invalid).
+    // FIXME: Remove unused code or reconsider. Not ergonomic enough for current usecase: `self.settings.gameplay_picked = self.settings.gameplay_slotmachine.increment_cyclic(self.settings.gameplay_picked);`
+    // pub fn increment_cyclic(&self, slot_idx: usize) -> usize {
+    //     (slot_idx + 1) % self.slots.len()
+    // }
+    // pub fn decrement_cyclic(&self, slot_idx: usize) -> usize {
+    //     (slot_idx + self.slots.len() - 1) % self.slots.len()
+    // }
+
+    /// Given a valid index, clones and appends to itself of the corresponding slot if it is considered unmodifiable,
+    /// and returns the index of the new slot.
+    /// Otherwise return `None` and do nothing (i.e. slot is 'modifiable' or index invalid).
     pub fn clone_slot_if_unmodifiable(&mut self, slot_idx: usize) -> Option<usize> {
         slot_idx.lt(&self.unmodifiable).then(|| {
             let cloned_slot_content = self.slots[slot_idx].1.clone();
@@ -88,12 +97,14 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Self {
-            newgame: NewGameSettings::default(),
             graphics_picked: 0,
             keybinds_picked: 0,
             gameplay_picked: 0,
-            graphics_slotmachine: default_graphics_slots(),
+
+            newgame: NewGameSettings::default(),
+
             palette_slotmachine: default_palette_slots(),
+            graphics_slotmachine: default_graphics_slots(),
             keybinds_slotmachine: default_keybinds_slots(),
             gameplay_slotmachine: default_gameplay_slots(),
         }
@@ -101,6 +112,13 @@ impl Default for Settings {
 }
 
 impl Settings {
+    pub fn palette(&self) -> &Palette {
+        &self.palette_slotmachine.slots[self.graphics().palette_picked].1
+    }
+    pub fn palette_lockedtiles(&self) -> &Palette {
+        &self.palette_slotmachine.slots[self.graphics().boardpalette_picked].1
+    }
+
     pub fn graphics(&self) -> &GraphicsSettings {
         &self.graphics_slotmachine.slots[self.graphics_picked].1
     }
@@ -118,12 +136,5 @@ impl Settings {
     }
     pub fn gameplay_mut(&mut self) -> &mut GameplaySettings {
         &mut self.gameplay_slotmachine.slots[self.gameplay_picked].1
-    }
-
-    pub fn palette(&self) -> &Palette {
-        &self.palette_slotmachine.slots[self.graphics().palette_picked].1
-    }
-    pub fn palette_lockedtiles(&self) -> &Palette {
-        &self.palette_slotmachine.slots[self.graphics().boardpalette_picked].1
     }
 }

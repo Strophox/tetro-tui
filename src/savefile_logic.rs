@@ -101,29 +101,27 @@ impl<T: Write> Application<T> {
             // Clear scoreboard if no game data is wished to be stored.
             self.scores_and_replays.entries.clear();
         } else if self.temp_data.save_on_exit < SavefileGranularity::RememberSettingsScoresReplays {
-            // Clear past game inputs if no game input data is wished to be stored.
+            // Clear past game restoration data if no game replay data is wished to be stored.
             for (_entry, restoration_data) in &mut self.scores_and_replays.entries {
                 restoration_data.take();
             }
         }
-
-        let compressed_game_saves = GameSaves {
-            picked: self.game_saves.picked,
-            slots: self
-                .game_saves
-                .slots
-                .iter()
-                .cloned()
-                .map(|save| save.compress())
-                .collect::<Vec<_>>(),
-        };
 
         let save_contents = SaveContents {
             save_on_exit: self.temp_data.save_on_exit,
             settings: Cow::Borrowed(&self.settings),
             scores_and_replays: Cow::Borrowed(&self.scores_and_replays),
             statistics: Cow::Borrowed(&self.statistics),
-            compressed_game_saves,
+            compressed_game_saves: GameSaves {
+                picked: self.game_saves.picked,
+                slots: self
+                    .game_saves
+                    .slots
+                    .iter()
+                    .cloned()
+                    .map(|save| save.compress())
+                    .collect::<Vec<_>>(),
+            },
         };
 
         let save_str = serde_json::to_string(&save_contents)?;
