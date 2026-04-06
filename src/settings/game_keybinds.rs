@@ -11,7 +11,7 @@ use crate::settings::SlotMachine;
 pub struct GameKeybinds {
     // Note: the alternative has ugly double-escaped quotation marks: #[serde_as(as = "std::collections::HashMap<serde_with::json::JsonString, _>")]
     #[serde_as(as = "Vec<(_, _)>")]
-    map: HashMap<(KeyCode, KeyModifiers), Button>,
+    keymap: HashMap<(KeyCode, KeyModifiers), Button>,
 }
 
 pub fn default_keybinds_slots() -> SlotMachine<GameKeybinds> {
@@ -28,16 +28,16 @@ pub fn default_keybinds_slots() -> SlotMachine<GameKeybinds> {
 
 impl GameKeybinds {
     pub fn get(&self, (code, modifiers): (KeyCode, KeyModifiers)) -> Option<&Button> {
-        self.map.get(&Self::normalize((code, modifiers)))
+        self.keymap.get(&Self::normalize((code, modifiers)))
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (&(KeyCode, KeyModifiers), &Button)> {
-        self.map.iter()
+        self.keymap.iter()
     }
 
     /// This provides unstable but direct access to the internal representation for special purposes.
     pub fn unstable_access(&mut self) -> &mut HashMap<(KeyCode, KeyModifiers), Button> {
-        &mut self.map
+        &mut self.keymap
     }
 
     pub fn normalize(
@@ -90,7 +90,9 @@ impl GameKeybinds {
         ]
         .map(|(k, b)| ((k, KeyModifiers::NONE), b));
 
-        GameKeybinds { map: keys.into() }
+        GameKeybinds {
+            keymap: keys.into(),
+        }
     }
 
     pub fn extra_control() -> GameKeybinds {
@@ -109,7 +111,9 @@ impl GameKeybinds {
         ]
         .map(|(k, b)| ((k, KeyModifiers::NONE), b));
 
-        GameKeybinds { map: keys.into() }
+        GameKeybinds {
+            keymap: keys.into(),
+        }
     }
 
     pub fn guideline() -> GameKeybinds {
@@ -131,7 +135,9 @@ impl GameKeybinds {
         ]
         .map(|(k, b)| ((k, KeyModifiers::NONE), b));
 
-        GameKeybinds { map: keys.into() }
+        GameKeybinds {
+            keymap: keys.into(),
+        }
     }
 
     pub fn vim() -> GameKeybinds {
@@ -146,7 +152,9 @@ impl GameKeybinds {
         ]
         .map(|(k, b)| ((k, KeyModifiers::NONE), b));
 
-        GameKeybinds { map: keys.into() }
+        GameKeybinds {
+            keymap: keys.into(),
+        }
     }
 
     pub fn terminal_fin() -> GameKeybinds {
@@ -166,6 +174,8 @@ impl GameKeybinds {
         ]
         .map(|(k, b)| ((k, KeyModifiers::NONE), b));
 
-        GameKeybinds { map: keys.into() }
+        GameKeybinds {
+            keymap: keys.into(),
+        }
     }
 }

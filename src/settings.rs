@@ -72,11 +72,16 @@ pub struct Settings {
     pub keybinds_picked: usize,
     pub gameplay_picked: usize,
 
+    #[serde(rename = "NEW_GAME_SETTINGS")]
     pub newgame: NewGameSettings,
 
+    #[serde(rename = "PALETTE_SLOTS")]
     pub palette_slotmachine: SlotMachine<Palette>,
+    #[serde(rename = "GRAPHICS_SLOTS")]
     pub graphics_slotmachine: SlotMachine<GraphicsSettings>,
+    #[serde(rename = "GAME_KEYBINDS_SLOTS")]
     pub keybinds_slotmachine: SlotMachine<GameKeybinds>,
+    #[serde(rename = "GAMEPLAY_CONFIG_SLOTS")]
     pub gameplay_slotmachine: SlotMachine<GameplaySettings>,
 }
 

@@ -43,11 +43,20 @@ pub enum SavefileGranularity {
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
-struct SavefileContents<'a> {
+struct SaveContents<'a> {
+    #[serde(rename = "save_on_exit")]
     save_on_exit: SavefileGranularity,
-    statistics: Cow<'a, Statistics>,
+
+    #[serde(rename = "SETTINGS")]
     settings: Cow<'a, Settings>,
+
+    #[serde(rename = "STATISTICS")]
+    statistics: Cow<'a, Statistics>,
+
+    #[serde(rename = "GAME_SAVE_SLOTS")]
     compressed_game_saves: GameSaves<CompressedInputHistory>,
+
+    #[serde(rename = "SCORES_AND_REPLAYS")]
     scores_and_replays: Cow<'a, Scoreboard>,
 }
 
@@ -57,7 +66,7 @@ impl<T: Write> Application<T> {
         let mut save_str = String::new();
         file.read_to_string(&mut save_str)?;
 
-        let save_loaded: SavefileContents = serde_json::from_str(&save_str)?;
+        let save_contents: SaveContents = serde_json::from_str(&save_str)?;
 
         // Make sure no field is forgotten by explicitly unpacking.
         let Application {
@@ -69,17 +78,17 @@ impl<T: Write> Application<T> {
             game_saves,
         } = self;
 
-        temp_data.save_on_exit = save_loaded.save_on_exit;
-        *settings = save_loaded.settings.into_owned();
-        *scores_and_replays = save_loaded.scores_and_replays.into_owned();
-        *statistics = save_loaded.statistics.into_owned();
-        game_saves.slots = save_loaded
+        temp_data.save_on_exit = save_contents.save_on_exit;
+        *settings = save_contents.settings.into_owned();
+        *scores_and_replays = save_contents.scores_and_replays.into_owned();
+        *statistics = save_contents.statistics.into_owned();
+        game_saves.slots = save_contents
             .compressed_game_saves
             .slots
             .into_iter()
             .filter_map(|save| save.decompress())
             .collect::<Vec<GameSave<RawInputHistory>>>();
-        game_saves.picked = save_loaded
+        game_saves.picked = save_contents
             .compressed_game_saves
             .picked
             .min(game_saves.slots.len().saturating_sub(1));
@@ -109,7 +118,7 @@ impl<T: Write> Application<T> {
                 .collect::<Vec<_>>(),
         };
 
-        let savefile_contents = SavefileContents {
+        let save_contents = SaveContents {
             save_on_exit: self.temp_data.save_on_exit,
             settings: Cow::Borrowed(&self.settings),
             scores_and_replays: Cow::Borrowed(&self.scores_and_replays),
@@ -117,7 +126,7 @@ impl<T: Write> Application<T> {
             compressed_game_saves,
         };
 
-        let save_str = serde_json::to_string(&savefile_contents)?;
+        let save_str = serde_json::to_string(&save_contents)?;
 
         let mut file = File::create(self.temp_data.savefile_path.clone())?;
         let n_written = file.write(save_str.as_bytes())?;

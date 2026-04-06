@@ -101,7 +101,7 @@ yay -S tetro-tui
 > **Settings/Adjust-Graphics/**
 > * Slot ∈ ['Default', 'Focus+', 'Guideline', 'High Compat.', 'Elektronika 60', 'Custom I'/'II'/..]
 > * Glyphset ∈ [Unicode, ASCII, Elektronika_60]
-> * Color Palette (modifiable presets) ∈ ['Monochrome', 'ANSI', 'Fullcolor', 'Okpalette', 'Gruvbox', 'Solarized', 'Terafox', 'Fahrenheit', 'The Matrix', 'Sequoia']
+> * Color Palette (modifiable presets) ∈ ['Monochrome', 'ANSI', 'Standard', 'Okpalette', 'Gruvbox', 'Solarized', 'Terafox', 'Fahrenheit', 'The Matrix', 'Sequoia']
 > * Color locked tiles ∈ [on, off]
 > * Show effects ∈ [on, off]
 > * Show shadow piece ∈ [on, off]
