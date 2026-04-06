@@ -28,7 +28,7 @@ use crate::{
     game_modes::GameMode,
     game_restoration::{CompressedInputHistory, GameRestorationData, UncompressedInputHistory},
     menus::{Menu, MenuUpdate},
-    savefile_logic::{savefile_path, SavefileGranularity},
+    savefile_logic::SavefileGranularity,
     settings::Settings,
 };
 
@@ -81,7 +81,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize main application.
     let mut app = Application::with_savefile_and_cmdlineoptions(
         stdout,
-        savefile_path(),
+        savefile_logic::savefile_path(),
         args.seed,
         args.board,
     );

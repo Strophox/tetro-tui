@@ -17,8 +17,9 @@ use falling_tetromino_engine::{
 use crate::{
     fmt_helpers::{fmt_duration, replay_keybinds_legend},
     game_renderers::{Renderer, TetroTUIRenderer},
+    game_restoration::{GameRestorationData, UncompressedInputHistory},
     menus::{Menu, MenuUpdate},
-    Application, GameMetaData, GameRestorationData, GameSave, UncompressedInputHistory,
+    Application, GameMetaData, GameSave,
 };
 
 struct GameSaveAnchor {
