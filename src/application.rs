@@ -27,11 +27,12 @@ use crate::{
         savefile_load_store::SavefileGranularity,
     },
     fmt_helpers::arabic_to_roman,
-    game_keybinds::*,
-    game_modes::{self, game_modifiers, GameMode},
-    gameplay_settings::*,
-    graphics_settings::*,
-    palette::*,
+    game_keybinds::{default_keybinds_slots, GameKeybinds},
+    game_modes::GameMode,
+    game_modifiers,
+    gameplay_settings::{default_gameplay_slots, GameplaySettings},
+    graphics_settings::{default_graphics_slots, GraphicsSettings},
+    palette::{default_palette_slots, Palette},
 };
 
 /// This struct allows storing 'slots' (elements of some kind), where a certain
@@ -225,8 +226,7 @@ impl GameRestorationData<UncompressedInputHistory> {
         let mut game = if self.mod_ids_args.is_empty() {
             builder.build()
         } else {
-            match game_modes::game_modifiers::reconstruct_build_modded(&builder, &self.mod_ids_args)
-            {
+            match game_modifiers::reconstruct_build_modded(&builder, &self.mod_ids_args) {
                 Ok((mut modded_game, unrecognized_mod_ids)) => {
                     if !unrecognized_mod_ids.is_empty() {
                         // Add warning messages if certain mods could not be recognized.

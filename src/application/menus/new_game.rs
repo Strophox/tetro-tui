@@ -22,15 +22,14 @@ use falling_tetromino_engine::{
 use crate::{
     application::{
         menus::{Menu, MenuUpdate},
-        Application, GameMetaData, GameRestorationData, GameSave, GameplaySettings, Glyphset,
+        Application, GameMetaData, GameRestorationData, GameSave, GameplaySettings,
         NewGameSettings, UncompressedInputHistory,
     },
     fmt_helpers::{fmt_button_input, fmt_duration, fmt_hertz, FmtBool},
-    game_modes::{
-        game_modifiers::{self, Combo},
-        GameMode,
-    },
+    game_modes::GameMode,
+    game_modifiers::{self, Combo},
     game_renderers::{Renderer, TetroTUIRenderer},
+    graphics_settings::Glyphset,
 };
 
 impl<T: Write> Application<T> {

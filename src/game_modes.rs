@@ -5,7 +5,7 @@ use std::{
 
 use falling_tetromino_engine::{DelayParameters, ExtDuration, Game, GameBuilder, GameLimits, Stat};
 
-pub mod game_modifiers;
+use crate::game_modifiers;
 
 // Name, (Stat-to-sort-by, is-order-desc), game-builder-struct-finalizer).
 pub struct GameMode {

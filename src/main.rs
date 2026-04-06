@@ -2,6 +2,7 @@ mod application;
 mod fmt_helpers;
 mod game_keybinds;
 mod game_modes;
+mod game_modifiers;
 mod game_renderers;
 mod gameplay_settings;
 mod graphics_settings;

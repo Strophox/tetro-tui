@@ -16,9 +16,10 @@ use falling_tetromino_engine::Tetromino;
 use crate::{
     application::{
         menus::{Menu, MenuUpdate},
-        Application, Glyphset, Settings,
+        Application, Settings,
     },
     fmt_helpers::{FmtBool, FmtTetromino},
+    graphics_settings::Glyphset,
 };
 
 impl<T: Write> Application<T> {
