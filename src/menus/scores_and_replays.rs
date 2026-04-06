@@ -14,17 +14,15 @@ use crossterm::{
 use falling_tetromino_engine::Stat;
 
 use crate::{
-    application::{
-        menus::{Menu, MenuUpdate},
-        Application, CompressedInputHistory, GameRestorationData, ScoreEntry, ScoreEntrySorting,
-    },
     fmt_helpers::fmt_duration,
     game_renderers::TetroTUIRenderer,
+    menus::{Menu, MenuUpdate},
+    Application, CompressedInputHistory, GameRestorationData, ScoreEntry, ScoreEntrySorting,
 };
 
 impl<T: Write> Application<T> {
     #[allow(clippy::len_zero)]
-    pub(in crate::application) fn run_menu_scores_and_replays(
+    pub fn run_menu_scores_and_replays(
         &mut self,
         cursor_pos: &mut usize,
         camera_pos: &mut usize,

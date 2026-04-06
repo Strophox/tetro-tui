@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crossterm::style::Color;
 use falling_tetromino_engine::TileID;
 
-use crate::application::SlotMachine;
+use crate::SlotMachine;
 
 #[derive(PartialEq, Eq, Clone, Debug)]
 #[serde_with::serde_as] // Do **NOT** place this after #[derive(..)] !!

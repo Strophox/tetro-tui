@@ -15,17 +15,15 @@ use falling_tetromino_engine::{
 };
 
 use crate::{
-    application::{
-        menus::{Menu, MenuUpdate},
-        Application, CompressedInputHistory, GameMetaData, GameRestorationData, GameSave,
-        ScoreEntry, Statistics, UncompressedInputHistory,
-    },
     fmt_helpers::get_play_keybinds_legend,
     game_renderers::{Renderer, TetroTUIRenderer},
+    menus::{Menu, MenuUpdate},
+    Application, CompressedInputHistory, GameMetaData, GameRestorationData, GameSave, ScoreEntry,
+    Statistics, UncompressedInputHistory,
 };
 
 impl<T: Write> Application<T> {
-    pub(in crate::application) fn run_menu_play_game(
+    pub fn run_menu_play_game(
         &mut self,
         game: &mut Game,
         game_input_history: &mut UncompressedInputHistory,

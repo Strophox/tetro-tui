@@ -14,16 +14,14 @@ use crossterm::{
 use falling_tetromino_engine::Tetromino;
 
 use crate::{
-    application::{
-        menus::{Menu, MenuUpdate},
-        Application, Settings,
-    },
     fmt_helpers::{FmtBool, FmtTetromino},
     graphics_settings::Glyphset,
+    menus::{Menu, MenuUpdate},
+    Application, Settings,
 };
 
 impl<T: Write> Application<T> {
-    pub(in crate::application) fn run_menu_adjust_graphics(&mut self) -> io::Result<MenuUpdate> {
+    pub fn run_menu_adjust_graphics(&mut self) -> io::Result<MenuUpdate> {
         let if_unmodifiable_clone_and_switch = |s: &mut Settings| {
             if let Some(cloned_slot_idx) = s
                 .graphics_slotmachine

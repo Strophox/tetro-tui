@@ -13,15 +13,13 @@ use crossterm::{
 };
 
 use crate::{
-    application::{
-        menus::{Menu, MenuUpdate},
-        Application, Statistics,
-    },
     fmt_helpers::fmt_duration,
+    menus::{Menu, MenuUpdate},
+    Application, Statistics,
 };
 
 impl<T: Write> Application<T> {
-    pub(in crate::application) fn run_menu_statistics(&mut self) -> io::Result<MenuUpdate> {
+    pub fn run_menu_statistics(&mut self) -> io::Result<MenuUpdate> {
         loop {
             let w_main = Self::W_MAIN.into();
             let (x_main, y_main) = Self::fetch_main_xy();

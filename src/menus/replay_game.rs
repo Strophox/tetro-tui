@@ -15,12 +15,10 @@ use falling_tetromino_engine::{
 };
 
 use crate::{
-    application::{
-        menus::{Menu, MenuUpdate},
-        Application, GameMetaData, GameRestorationData, GameSave, UncompressedInputHistory,
-    },
     fmt_helpers::{fmt_duration, replay_keybinds_legend},
     game_renderers::{Renderer, TetroTUIRenderer},
+    menus::{Menu, MenuUpdate},
+    Application, GameMetaData, GameRestorationData, GameSave, UncompressedInputHistory,
 };
 
 struct GameSaveAnchor {
@@ -29,7 +27,7 @@ struct GameSaveAnchor {
 }
 
 impl<T: Write> Application<T> {
-    pub(in crate::application) fn run_menu_replay_game(
+    pub fn run_menu_replay_game(
         &mut self,
         game_restoration_data: &GameRestorationData<UncompressedInputHistory>,
         game_meta_data: &GameMetaData,

@@ -20,20 +20,18 @@ use falling_tetromino_engine::{
 };
 
 use crate::{
-    application::{
-        menus::{Menu, MenuUpdate},
-        Application, GameMetaData, GameRestorationData, GameSave, GameplaySettings,
-        NewGameSettings, UncompressedInputHistory,
-    },
     fmt_helpers::{fmt_button_input, fmt_duration, fmt_hertz, FmtBool},
     game_modes::GameMode,
     game_modifiers::{self, Combo},
     game_renderers::{Renderer, TetroTUIRenderer},
     graphics_settings::Glyphset,
+    menus::{Menu, MenuUpdate},
+    Application, GameMetaData, GameRestorationData, GameSave, GameplaySettings, NewGameSettings,
+    UncompressedInputHistory,
 };
 
 impl<T: Write> Application<T> {
-    pub(in crate::application) fn run_menu_new_game(&mut self) -> io::Result<MenuUpdate> {
+    pub fn run_menu_new_game(&mut self) -> io::Result<MenuUpdate> {
         let mut selected = 0usize;
         let mut customization_selected = 0usize;
 

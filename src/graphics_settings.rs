@@ -1,4 +1,4 @@
-use crate::application::SlotMachine;
+use crate::SlotMachine;
 
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug, serde::Serialize, serde::Deserialize,

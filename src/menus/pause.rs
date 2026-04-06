@@ -1,12 +1,12 @@
 use std::io::{self, Write};
 
-use crate::application::{
+use crate::{
     menus::{Menu, MenuUpdate},
     Application,
 };
 
 impl<T: Write> Application<T> {
-    pub(in crate::application) fn run_menu_pause(&mut self) -> io::Result<MenuUpdate> {
+    pub fn run_menu_pause(&mut self) -> io::Result<MenuUpdate> {
         let selection = vec![
             Menu::NewGame,
             Menu::Settings,

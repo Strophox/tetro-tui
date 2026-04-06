@@ -13,19 +13,14 @@ use crossterm::{
 };
 
 use crate::{
-    application::{
-        menus::{Menu, MenuUpdate},
-        Application, ScoreEntry,
-    },
     fmt_helpers::{fmt_duration, fmt_hertz, fmt_tetromino_counts},
     game_modes::GameMode,
+    menus::{Menu, MenuUpdate},
+    Application, ScoreEntry,
 };
 
 impl<T: Write> Application<T> {
-    pub(in crate::application) fn run_menu_game_ended(
-        &mut self,
-        game_scoring: &ScoreEntry,
-    ) -> io::Result<MenuUpdate> {
+    pub fn run_menu_game_ended(&mut self, game_scoring: &ScoreEntry) -> io::Result<MenuUpdate> {
         let ScoreEntry {
             game_meta_data,
             end_cause,

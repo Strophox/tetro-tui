@@ -11,10 +11,7 @@ use std::io::{self, Write};
 
 use falling_tetromino_engine::{Game, InGameTime, Notification};
 
-use crate::{
-    application::{GameMetaData, Settings, TemporaryAppData},
-    fmt_helpers::KeybindsLegend,
-};
+use crate::{fmt_helpers::KeybindsLegend, GameMetaData, Settings, TemporaryAppData};
 
 pub use braille::BrailleRenderer;
 

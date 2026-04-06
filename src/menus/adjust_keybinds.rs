@@ -14,16 +14,14 @@ use crossterm::{
 use falling_tetromino_engine::Button;
 
 use crate::{
-    application::{
-        menus::{Menu, MenuUpdate},
-        Application, Settings,
-    },
     fmt_helpers::fmt_keybinds_of,
     game_keybinds::normalize,
+    menus::{Menu, MenuUpdate},
+    Application, Settings,
 };
 
 impl<T: Write> Application<T> {
-    pub(in crate::application) fn run_menu_adjust_keybinds(&mut self) -> io::Result<MenuUpdate> {
+    pub fn run_menu_adjust_keybinds(&mut self) -> io::Result<MenuUpdate> {
         let if_unmodifiable_clone_and_switch = |s: &mut Settings| {
             if let Some(cloned_slot_idx) = s
                 .keybinds_slotmachine

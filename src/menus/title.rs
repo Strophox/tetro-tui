@@ -9,15 +9,13 @@ use crossterm::{
 };
 
 use crate::{
-    application::{
-        menus::{Menu, MenuUpdate},
-        Application,
-    },
     graphics_settings::Glyphset,
+    menus::{Menu, MenuUpdate},
+    Application,
 };
 
 impl<T: Write> Application<T> {
-    pub(in crate::application) fn run_menu_title(&mut self) -> io::Result<MenuUpdate> {
+    pub fn run_menu_title(&mut self) -> io::Result<MenuUpdate> {
         let selection = vec![
             Menu::NewGame,
             Menu::Settings,

@@ -29,10 +29,8 @@ use crossterm::{
 use falling_tetromino_engine::{Game, InGameTime};
 
 use crate::{
-    application::{
-        Application, GameMetaData, GameRestorationData, ScoreEntry, UncompressedInputHistory,
-    },
-    game_renderers::TetroTUIRenderer,
+    game_renderers::TetroTUIRenderer, Application, GameMetaData, GameRestorationData, ScoreEntry,
+    UncompressedInputHistory,
 };
 
 #[derive(Debug)]
@@ -110,7 +108,7 @@ impl std::fmt::Display for Menu {
 }
 
 impl<T: Write> Application<T> {
-    pub(in crate::application) fn generic_menu(
+    pub fn generic_menu(
         &mut self,
         current_menu_name: &str,
         selection: Vec<Menu>,

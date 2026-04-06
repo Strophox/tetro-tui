@@ -1,9 +1,9 @@
 use std::io::{self, Write};
 
-use crate::application::{menus::MenuUpdate, Application};
+use crate::{menus::MenuUpdate, Application};
 
 impl<T: Write> Application<T> {
-    pub(in crate::application) fn run_menu_about(&mut self) -> io::Result<MenuUpdate> {
+    pub fn run_menu_about(&mut self) -> io::Result<MenuUpdate> {
         /* FIXME: Implement About section. */
         self.generic_menu(
             concat!(

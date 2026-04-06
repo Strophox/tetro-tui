@@ -1,9 +1,20 @@
 use std::{
     fs::File,
     io::{self, Read, Write},
+    path::PathBuf,
 };
 
-use crate::application::{Application, CompressedInputHistory, GameSave};
+use crate::{Application, CompressedInputHistory, GameSave};
+
+pub fn savefile_name() -> String {
+    format!(".tetro-tui_v{}_savefile.json", crate::VERSION_MAJOR_MINOR)
+}
+
+pub fn savefile_path() -> PathBuf {
+    dirs::config_dir()
+        .unwrap_or_else(|| PathBuf::from("."))
+        .join(savefile_name())
+}
 
 #[derive(
     PartialEq,
