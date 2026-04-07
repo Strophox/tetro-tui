@@ -736,7 +736,7 @@ impl<T: Write> Application<T> {
                     kind: Press | Repeat,
                     ..
                 }) => {
-                    let n = c.to_string().parse::<usize>().unwrap();
+                    let n = c.to_digit(10).unwrap() as usize;
                     if n <= selection_len {
                         selected = if n == 0 { 10 - 1 } else { n - 1 };
                         immediately_start_new_game = true;
@@ -763,8 +763,8 @@ impl<T: Write> Application<T> {
             if immediately_start_new_game {
                 let GameplaySettings {
                     rotsys,
-                    randomizer,
-                    preview,
+                    tetgen,
+                    preview: prev,
                     das,
                     arr,
                     sdf,
@@ -778,14 +778,14 @@ impl<T: Write> Application<T> {
 
                 builder
                     .rotation_system(rotsys)
-                    .tetromino_generator(randomizer)
-                    .generate_piece_preview(preview)
+                    .tetromino_generator(tetgen)
+                    .generate_piece_preview(prev)
                     .delayed_auto_shift(das)
                     .auto_repeat_rate(arr)
                     .soft_drop_factor(sdf)
                     .line_clear_duration(lcd)
                     .spawn_delay(are)
-                    .allow_spawn_actions(initsys);
+                    .allow_spawn_manipulation(initsys);
 
                 let (game_meta_data, mut game, game_input_history) = if selected < game_modes.len()
                 {

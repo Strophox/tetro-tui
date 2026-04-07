@@ -104,7 +104,7 @@ impl<T: Write> Application<T> {
                 ),
                 format!(
                     "Piece randomization = {}",
-                    match &self.settings.gameplay().randomizer {
+                    match &self.settings.gameplay().tetgen {
                         TetrominoGenerator::Uniform => "Completely random".to_owned(),
                         TetrominoGenerator::Stock {
                             tets_stocked: _,
@@ -257,7 +257,7 @@ impl<T: Write> Application<T> {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.gameplay_mut().rotsys = match self.settings.gameplay().rotsys
                         {
-                            RotationSystem::Raw => RotationSystem::Ocular, // Set to Ocular.
+                            RotationSystem::Debug => RotationSystem::Ocular, // Set to Ocular.
                             RotationSystem::Ocular => RotationSystem::ClassicL,
                             RotationSystem::ClassicL => RotationSystem::ClassicR,
                             RotationSystem::ClassicR => RotationSystem::Super,
@@ -267,7 +267,7 @@ impl<T: Write> Application<T> {
                     2 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         if modifiers.contains(KeyModifiers::ALT) {
-                            match &mut self.settings.gameplay_mut().randomizer {
+                            match &mut self.settings.gameplay_mut().tetgen {
                                 TetrominoGenerator::Uniform => {}
                                 TetrominoGenerator::Stock {
                                     tets_stocked: _,
@@ -291,8 +291,8 @@ impl<T: Write> Application<T> {
                                 } => {}
                             };
                         } else {
-                            self.settings.gameplay_mut().randomizer =
-                                match self.settings.gameplay().randomizer {
+                            self.settings.gameplay_mut().tetgen =
+                                match self.settings.gameplay().tetgen {
                                     TetrominoGenerator::Uniform => TetrominoGenerator::bag(),
                                     TetrominoGenerator::Stock { .. } => {
                                         TetrominoGenerator::snappy_recency()
@@ -358,7 +358,7 @@ impl<T: Write> Application<T> {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.gameplay_mut().rotsys = match self.settings.gameplay().rotsys
                         {
-                            RotationSystem::Raw => RotationSystem::Ocular, // Set to Ocular.
+                            RotationSystem::Debug => RotationSystem::Ocular, // Set to Ocular.
                             RotationSystem::Ocular => RotationSystem::Super,
                             RotationSystem::Super => RotationSystem::ClassicR,
                             RotationSystem::ClassicR => RotationSystem::ClassicL,
@@ -368,7 +368,7 @@ impl<T: Write> Application<T> {
                     2 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         if modifiers.contains(KeyModifiers::ALT) {
-                            match &mut self.settings.gameplay_mut().randomizer {
+                            match &mut self.settings.gameplay_mut().tetgen {
                                 TetrominoGenerator::Uniform => {}
                                 TetrominoGenerator::Stock {
                                     tets_stocked: _,
@@ -395,8 +395,8 @@ impl<T: Write> Application<T> {
                                 } => {}
                             };
                         } else {
-                            self.settings.gameplay_mut().randomizer =
-                                match self.settings.gameplay().randomizer {
+                            self.settings.gameplay_mut().tetgen =
+                                match self.settings.gameplay().tetgen {
                                     TetrominoGenerator::Uniform => {
                                         TetrominoGenerator::balance_out()
                                     }

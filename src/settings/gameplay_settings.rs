@@ -10,7 +10,7 @@ use crate::settings::SlotMachine;
 )]
 pub struct GameplaySettings {
     pub rotsys: RotationSystem,
-    pub randomizer: TetrominoGenerator,
+    pub tetgen: TetrominoGenerator,
     pub preview: usize,
     #[serde_as(as = "serde_with::DurationSecondsWithFrac<f64>")]
     pub das: Duration,
@@ -43,14 +43,14 @@ impl Default for GameplaySettings {
         let c = Configuration::default();
         Self {
             rotsys: c.rotation_system,
-            randomizer: TetrominoGenerator::default(),
+            tetgen: TetrominoGenerator::default(),
             preview: c.generate_piece_preview,
             das: c.delayed_auto_shift,
             arr: c.auto_repeat_rate,
             sdf: c.soft_drop_factor,
             lcd: c.line_clear_duration,
             are: c.spawn_delay,
-            initsys: c.allow_spawn_actions,
+            initsys: c.allow_spawn_manipulation,
             dtapfinesse: None,
         }
     }
@@ -69,7 +69,7 @@ impl GameplaySettings {
     pub fn guideline() -> GameplaySettings {
         GameplaySettings {
             rotsys: RotationSystem::Super,
-            randomizer: TetrominoGenerator::bag(),
+            tetgen: TetrominoGenerator::bag(),
             preview: 3,
             das: Duration::from_millis(167),       // ≈ 0.3s
             arr: Duration::from_millis(33),        // ≈ 0.5s / 8
@@ -84,7 +84,7 @@ impl GameplaySettings {
     pub fn nes() -> GameplaySettings {
         GameplaySettings {
             rotsys: RotationSystem::ClassicR,
-            randomizer: TetrominoGenerator::Uniform,
+            tetgen: TetrominoGenerator::Uniform,
             das: Duration::from_millis(266), // ≈ 16 /60.0988
             preview: 1,
             arr: Duration::from_millis(100),       // ≈ 6 /60.0988
@@ -99,7 +99,7 @@ impl GameplaySettings {
     pub fn gameboy() -> GameplaySettings {
         GameplaySettings {
             rotsys: RotationSystem::ClassicL,
-            randomizer: TetrominoGenerator::Uniform,
+            tetgen: TetrominoGenerator::Uniform,
             das: Duration::from_millis(400), // ≈ 24 /59.73
             preview: 1,
             arr: Duration::from_millis(150),      // ≈ 9 /59.73
