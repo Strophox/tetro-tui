@@ -7,7 +7,7 @@ use crate::game_modifiers::Combo;
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]
-pub struct NewGameSettings {
+pub struct GameModePreferences {
     pub custom_fall_params: DelayParameters,
     pub custom_win_condition: Option<Stat>,
     pub custom_seed: Option<u64>,
@@ -26,7 +26,7 @@ pub struct NewGameSettings {
     pub experimental_mode_unlocked: bool,
 }
 
-impl Default for NewGameSettings {
+impl Default for GameModePreferences {
     fn default() -> Self {
         Self {
             custom_fall_params: DelayParameters::standard_fall(),

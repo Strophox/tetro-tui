@@ -8,6 +8,7 @@ use crate::settings::SlotMachine;
 #[derive(PartialEq, Eq, Clone, Debug)]
 #[serde_with::serde_as] // Do **NOT** place this after #[derive(..)] !!
 #[derive(serde::Serialize, serde::Deserialize)]
+#[serde(transparent)]
 pub struct GameKeybinds {
     // Note: the alternative has ugly double-escaped quotation marks: #[serde_as(as = "std::collections::HashMap<serde_with::json::JsonString, _>")]
     #[serde_as(as = "Vec<(_, _)>")]

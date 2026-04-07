@@ -62,7 +62,7 @@ impl<T: Write> Application<T> {
                     format!(
                         " [←|{}→] ",
                         if self.settings.keybinds_picked
-                            < self.settings.keybinds_slotmachine.unmodifiable
+                            < self.settings.keybinds_slotmachine.unmodifiable_slots
                         {
                             ""
                         } else {
@@ -214,7 +214,7 @@ impl<T: Write> Application<T> {
                     if selected == 0 {
                         // If a custom slot, then remove it (and return to the 'default' 0th slot).
                         if self.settings.keybinds_picked
-                            >= self.settings.keybinds_slotmachine.unmodifiable
+                            >= self.settings.keybinds_slotmachine.unmodifiable_slots
                         {
                             self.settings
                                 .keybinds_slotmachine

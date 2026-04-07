@@ -1,13 +1,13 @@
 mod game_keybinds;
+mod gamemode_preferences;
 mod gameplay_settings;
 mod graphics_settings;
-mod new_game;
 mod palette;
 
 pub use game_keybinds::GameKeybinds;
+pub use gamemode_preferences::GameModePreferences;
 pub use gameplay_settings::GameplaySettings;
 pub use graphics_settings::{Glyphset, GraphicsSettings};
-pub use new_game::NewGameSettings;
 pub use palette::Palette;
 
 use crate::{
@@ -24,10 +24,11 @@ use crate::{
 #[derive(PartialEq, Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct SlotMachine<T> {
     /// The number of slots considered unmodifiable.
-    pub unmodifiable: usize,
+    pub unmodifiable_slots: usize,
+    /// The string that is used as base to generate a name for duplicate slots.
+    pub name_templating: String,
+    /// The actual contents of the slot machine: the slots (usually 'profiles').
     pub slots: Vec<(String, T)>,
-    // The string that is used as base to generate a name for duplicate slots.
-    pub clone_name_template: String,
 }
 
 impl<T: Clone> SlotMachine<T> {
@@ -38,8 +39,8 @@ impl<T: Clone> SlotMachine<T> {
         let num_unmodifiable_slots = slots.len();
         Self {
             slots,
-            unmodifiable: num_unmodifiable_slots,
-            clone_name_template: cloned_slot_name_template,
+            unmodifiable_slots: num_unmodifiable_slots,
+            name_templating: cloned_slot_name_template,
         }
     }
 
@@ -55,12 +56,12 @@ impl<T: Clone> SlotMachine<T> {
     /// and returns the index of the new slot.
     /// Otherwise return `None` and do nothing (i.e. slot is 'modifiable' or index invalid).
     pub fn clone_slot_if_unmodifiable(&mut self, slot_idx: usize) -> Option<usize> {
-        slot_idx.lt(&self.unmodifiable).then(|| {
+        slot_idx.lt(&self.unmodifiable_slots).then(|| {
             let cloned_slot_content = self.slots[slot_idx].1.clone();
 
             let mut n = 1;
             let cloned_slot_name = loop {
-                let name = format!("{} {}", self.clone_name_template, arabic_to_roman(n));
+                let name = format!("{} {}", self.name_templating, arabic_to_roman(n));
                 if self.slots.iter().all(|s| s.0 != name) {
                     break name;
                 }
@@ -81,9 +82,6 @@ pub struct Settings {
     pub keybinds_picked: usize,
     pub gameplay_picked: usize,
 
-    #[serde(rename = "NEW_GAME_SETTINGS")]
-    pub newgame: NewGameSettings,
-
     #[serde(rename = "PALETTE_SLOTS")]
     pub palette_slotmachine: SlotMachine<Palette>,
     #[serde(rename = "GRAPHICS_SLOTS")]
@@ -92,6 +90,9 @@ pub struct Settings {
     pub keybinds_slotmachine: SlotMachine<GameKeybinds>,
     #[serde(rename = "GAMEPLAY_CONFIG_SLOTS")]
     pub gameplay_slotmachine: SlotMachine<GameplaySettings>,
+
+    #[serde(rename = "GAMEMODE_PREFERENCES")]
+    pub gamemode_preferences: GameModePreferences,
 }
 
 impl Default for Settings {
@@ -101,17 +102,21 @@ impl Default for Settings {
             keybinds_picked: 0,
             gameplay_picked: 0,
 
-            newgame: NewGameSettings::default(),
-
             palette_slotmachine: default_palette_slots(),
             graphics_slotmachine: default_graphics_slots(),
             keybinds_slotmachine: default_keybinds_slots(),
             gameplay_slotmachine: default_gameplay_slots(),
+
+            gamemode_preferences: GameModePreferences::default(),
         }
     }
 }
 
 impl Settings {
+    // NOTE: The common pattern for making use of SlotMachines is currently:
+    // 1. Have a SlotMachine<T>.
+    // 2. Store an index into the slots somewhere.
+    // 3. Implementing 'getter' on the place that owns the slots (not where the index is stored.)
     pub fn palette(&self) -> &Palette {
         &self.palette_slotmachine.slots[self.graphics().palette_picked].1
     }

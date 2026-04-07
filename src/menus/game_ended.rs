@@ -63,14 +63,19 @@ impl<T: Write> Application<T> {
 
         if *is_win
             && game_meta_data.title == GameMode::TITLE_CLASSIC
-            && !self.settings.newgame.master_mode_unlocked
+            && !self.settings.gamemode_preferences.master_mode_unlocked
         {
-            self.settings.newgame.master_mode_unlocked = true;
+            self.settings.gamemode_preferences.master_mode_unlocked = true;
         } else if *is_win
             && game_meta_data.title == GameMode::TITLE_PUZZLE
-            && !self.settings.newgame.experimental_mode_unlocked
+            && !self
+                .settings
+                .gamemode_preferences
+                .experimental_mode_unlocked
         {
-            self.settings.newgame.experimental_mode_unlocked = true;
+            self.settings
+                .gamemode_preferences
+                .experimental_mode_unlocked = true;
             // FIXME: Unused 'notification' screen for unlocking, but due to technicality eats too many user inputs for good UX.
             // let w_main = Self::W_MAIN.into();
             // let (x_main, y_main) = Self::fetch_main_xy();
