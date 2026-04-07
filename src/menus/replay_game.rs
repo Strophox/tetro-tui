@@ -283,7 +283,7 @@ impl<T: Write> Application<T> {
 
                             // [Ctrl+E]: Store seed.
                             (KeyCode::Char('e' | 'E'), KeyModifiers::CONTROL) => {
-                                self.settings.gamemode_preferences.custom_seed =
+                                self.settings.game_mode_preferences.custom_seed =
                                     Some(game.state_init().seed);
 
                                 game_renderer.push_game_notification_feed([(

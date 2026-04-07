@@ -92,7 +92,7 @@ pub struct Settings {
     pub gameplay_slotmachine: SlotMachine<GameplaySettings>,
 
     #[serde(rename = "GAMEMODE_PREFERENCES")]
-    pub gamemode_preferences: GameModePreferences,
+    pub game_mode_preferences: GameModePreferences,
 }
 
 impl Default for Settings {
@@ -107,7 +107,7 @@ impl Default for Settings {
             keybinds_slotmachine: default_keybinds_slots(),
             gameplay_slotmachine: default_gameplay_slots(),
 
-            gamemode_preferences: GameModePreferences::default(),
+            game_mode_preferences: GameModePreferences::default(),
         }
     }
 }

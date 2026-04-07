@@ -573,11 +573,11 @@ impl<T: Write> Application<T> {
         // Special: Overwrite specifically requested cmdline flags.
 
         if custom_start_board.is_some() {
-            new.settings.gamemode_preferences.custom_start_board = custom_start_board;
+            new.settings.game_mode_preferences.custom_start_board = custom_start_board;
         }
 
         if custom_start_seed.is_some() {
-            new.settings.gamemode_preferences.custom_seed = custom_start_seed;
+            new.settings.game_mode_preferences.custom_seed = custom_start_seed;
         }
 
         new

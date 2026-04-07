@@ -149,7 +149,8 @@ impl Cheese {
                         .collect();
                     if !ensure_distinct_holes
                         || hole_pattern_generated != *last_hole_pattern_generated
-                        || hole_pattern_generated.len() == line.len() // If the lines we generate are wholly empty (and cannot possibly be different), give up.
+                        || hole_pattern_generated.len() == line.len()
+                    // If the lines we generate are wholly empty (and cannot possibly be different), give up.
                     {
                         *last_hole_pattern_generated = hole_pattern_generated;
                         break;

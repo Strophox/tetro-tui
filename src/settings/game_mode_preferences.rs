@@ -9,6 +9,7 @@ use crate::game_modifiers::Combo;
 )]
 pub struct GameModePreferences {
     pub custom_fall_params: DelayParameters,
+    pub custom_lock_params: DelayParameters,
     pub custom_win_condition: Option<Stat>,
     pub custom_seed: Option<u64>,
     pub custom_start_board: Option<String>, // For more compact serialization of NewGameSettings, we store an encoded `Board` (see `encode_board`).
@@ -31,6 +32,7 @@ impl Default for GameModePreferences {
     fn default() -> Self {
         Self {
             custom_fall_params: DelayParameters::standard_fall(),
+            custom_lock_params: DelayParameters::standard_lock(),
             custom_win_condition: None,
             custom_seed: None,
             custom_start_board: None,
