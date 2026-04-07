@@ -6,8 +6,10 @@ use falling_tetromino_engine::{
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]
 pub struct PrintMsgs {
+    // Modifier configuration.
     messages: Vec<String>,
 
+    // Modifier state fields.
     init: bool,
 }
 

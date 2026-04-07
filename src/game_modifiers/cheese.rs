@@ -10,28 +10,36 @@ use rand::seq::SliceRandom;
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]
 pub struct Cheese {
-    tiles_per_line: NonZeroUsize,
+    // Modifier configuration.
+    holes_per_line: NonZeroUsize,
+    ensure_distinct_holes: bool,
     cheese_limit: Option<NonZeroU32>,
 
-    cheese_eaten: u32,
-    cheese_last_eaten: usize,
+    // Modifier state fields.
+    cheese_eaten_up: u32,
+    temp_last_clear_actual_cheese_lines: usize,
     cheese_generated: u32,
+    last_hole_pattern_generated: Vec<usize>,
 }
 
 impl Cheese {
-    pub const MOD_ID: &str = stringify!(Cheese);
+    pub const MOD_ID: &str = stringify!(Cheese); // lol.
 
     pub fn build(
         builder: &GameBuilder,
-        tiles_per_line: NonZeroUsize,
+        holes_per_line: NonZeroUsize,
+        ensure_distinct_holes: bool,
         cheese_limit: Option<NonZeroU32>,
     ) -> Game {
         let modifier = Box::new(Self {
-            tiles_per_line,
+            holes_per_line,
+            ensure_distinct_holes,
             cheese_limit,
-            cheese_eaten: 0,
-            cheese_last_eaten: 0,
+
+            cheese_eaten_up: 0,
+            temp_last_clear_actual_cheese_lines: 0,
             cheese_generated: 0,
+            last_hole_pattern_generated: Vec::new(),
         });
 
         builder
@@ -50,7 +58,7 @@ impl GameModifier for Cheese {
     }
 
     fn args(&self) -> String {
-        serde_json::to_string(&(self.tiles_per_line, self.cheese_limit)).unwrap()
+        serde_json::to_string(&(self.holes_per_line, self.cheese_limit)).unwrap()
     }
 
     fn try_clone(&self) -> Result<Box<dyn GameModifier>, String> {
@@ -59,8 +67,10 @@ impl GameModifier for Cheese {
 
     fn on_game_built(&mut self, game: GameAccess) {
         let cheese_lines = Self::prng_cheese_lines(
-            self.tiles_per_line,
-            &self.cheese_limit,
+            self.holes_per_line,
+            self.ensure_distinct_holes,
+            self.cheese_limit,
+            &mut self.last_hole_pattern_generated,
             &mut self.cheese_generated,
             &mut game.state.rng,
         );
@@ -71,7 +81,7 @@ impl GameModifier for Cheese {
     }
 
     fn on_lock_post(&mut self, game: GameAccess, _feed: &mut NotificationFeed) {
-        self.cheese_last_eaten = 0;
+        self.temp_last_clear_actual_cheese_lines = 0;
 
         // Check entire board.
         for line in game.state.board.iter() {
@@ -83,8 +93,8 @@ impl GameModifier for Cheese {
                     .any(|cell| *cell == Some(NonZeroU8::try_from(254).unwrap()))
                 {
                     // In theory would never underflow.
-                    self.cheese_eaten += 1;
-                    self.cheese_last_eaten += 1;
+                    self.cheese_eaten_up += 1;
+                    self.temp_last_clear_actual_cheese_lines += 1;
                 }
             }
         }
@@ -92,25 +102,29 @@ impl GameModifier for Cheese {
 
     fn on_lines_clear_post(&mut self, game: GameAccess, _feed: &mut NotificationFeed) {
         let cheese_lines = Self::prng_cheese_lines(
-            self.tiles_per_line,
-            &self.cheese_limit,
+            self.holes_per_line,
+            self.ensure_distinct_holes,
+            self.cheese_limit,
+            &mut self.last_hole_pattern_generated,
             &mut self.cheese_generated,
             &mut game.state.rng,
         );
 
-        for cheese in cheese_lines.take(self.cheese_last_eaten) {
+        for cheese in cheese_lines.take(self.temp_last_clear_actual_cheese_lines) {
             game.state.board.rotate_right(1);
             game.state.board[0] = cheese;
         }
 
-        game.state.points = self.cheese_eaten;
+        game.state.points = self.cheese_eaten_up;
     }
 }
 
 impl Cheese {
     fn prng_cheese_lines<'a>(
-        tiles_per_line: NonZeroUsize,
-        limit: &'a Option<NonZeroU32>,
+        holes_per_line: NonZeroUsize,
+        ensure_distinct_holes: bool,
+        limit: Option<NonZeroU32>,
+        last_hole_pattern_generated: &'a mut Vec<usize>,
         generated: &'a mut u32,
         rng: &'a mut GameRng,
     ) -> impl Iterator<Item = Line> + 'a {
@@ -119,11 +133,28 @@ impl Cheese {
             limit.is_none_or(|l| *generated < l.get()).then(|| {
                 *generated += 1;
                 let mut line = Line::default();
-                for tile in line.iter_mut().take(tiles_per_line.get()) {
+                for tile in line
+                    .iter_mut()
+                    .take(Game::WIDTH.saturating_sub(holes_per_line.get()))
+                {
                     *tile = grey_tile;
                 }
                 // Currently completely random.
-                line.shuffle(rng);
+                loop {
+                    line.shuffle(rng);
+                    let hole_pattern_generated: Vec<usize> = line
+                        .iter()
+                        .enumerate()
+                        .filter_map(|(i, x)| x.is_some().then_some(i))
+                        .collect();
+                    if !ensure_distinct_holes
+                        || hole_pattern_generated != *last_hole_pattern_generated
+                        || hole_pattern_generated.len() == line.len() // If the lines we generate are wholly empty (and cannot possibly be different), give up.
+                    {
+                        *last_hole_pattern_generated = hole_pattern_generated;
+                        break;
+                    }
+                }
 
                 line
             })

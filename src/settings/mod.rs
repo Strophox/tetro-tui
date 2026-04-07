@@ -1,11 +1,11 @@
 mod game_keybinds;
-mod gamemode_preferences;
+mod game_mode_preferences;
 mod gameplay_settings;
 mod graphics_settings;
 mod palette;
 
 pub use game_keybinds::GameKeybinds;
-pub use gamemode_preferences::GameModePreferences;
+pub use game_mode_preferences::GameModePreferences;
 pub use gameplay_settings::GameplaySettings;
 pub use graphics_settings::{Glyphset, GraphicsSettings};
 pub use palette::Palette;

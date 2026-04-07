@@ -58,10 +58,14 @@ pub fn reconstruct_build_modded<'a>(
             let build = Box::new(Ascent::build);
             store_building_mod(mod_id, build)?;
         } else if mod_id == Cheese::MOD_ID {
-            let (tiles_per_line, cheese_limit): (NonZeroUsize, Option<NonZeroU32>) =
-                get_mod_args(mod_args_str, mod_id)?;
-            let build =
-                Box::new(move |builder| Cheese::build(builder, tiles_per_line, cheese_limit));
+            let (holes_per_line, ensure_distinct_holes, cheese_limit): (
+                NonZeroUsize,
+                bool,
+                Option<NonZeroU32>,
+            ) = get_mod_args(mod_args_str, mod_id)?;
+            let build = Box::new(move |builder| {
+                Cheese::build(builder, holes_per_line, ensure_distinct_holes, cheese_limit)
+            });
             store_building_mod(mod_id, build)?;
         } else if mod_id == Combo::MOD_ID {
             let (initial_layout, combo_limit): (u16, Option<NonZeroU32>) =

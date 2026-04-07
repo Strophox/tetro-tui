@@ -1,6 +1,6 @@
 use std::num::{NonZeroU32, NonZeroUsize};
 
-use falling_tetromino_engine::{DelayParameters, ExtDuration, Game, Stat};
+use falling_tetromino_engine::{DelayParameters, ExtDuration, Stat};
 
 use crate::game_modifiers::Combo;
 
@@ -13,8 +13,9 @@ pub struct GameModePreferences {
     pub custom_seed: Option<u64>,
     pub custom_start_board: Option<String>, // For more compact serialization of NewGameSettings, we store an encoded `Board` (see `encode_board`).
 
-    pub cheese_tiles_per_line: NonZeroUsize,
     pub cheese_fall_and_lock_delays: (ExtDuration, ExtDuration),
+    pub cheese_holes_per_line: NonZeroUsize,
+    pub cheese_ensure_distinct_holes: bool,
     pub cheese_limit: Option<NonZeroU32>,
 
     /// Custom starting layout when playing Combo mode (4-wide rows), encoded as binary.
@@ -34,9 +35,10 @@ impl Default for GameModePreferences {
             custom_seed: None,
             custom_start_board: None,
 
-            cheese_limit: Some(NonZeroU32::try_from(20).unwrap()),
             cheese_fall_and_lock_delays: (ExtDuration::Infinite, ExtDuration::Infinite),
-            cheese_tiles_per_line: NonZeroUsize::new(Game::WIDTH - 1).unwrap(),
+            cheese_holes_per_line: NonZeroUsize::MIN,
+            cheese_ensure_distinct_holes: true,
+            cheese_limit: Some(NonZeroU32::try_from(20).unwrap()),
 
             combo_limit: Some(NonZeroU32::try_from(30).unwrap()),
             combo_start_layout: Combo::LAYOUTS[0],

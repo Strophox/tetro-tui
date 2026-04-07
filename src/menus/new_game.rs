@@ -38,7 +38,7 @@ impl<T: Write> Application<T> {
         let lowerbound_cheese = NonZeroU32::new(10).unwrap();
         let lowerbound_combo = NonZeroU32::new(10).unwrap();
 
-        let d_time = Duration::from_secs(10);
+        let d_time = Duration::from_secs(5);
         let d_score = 10;
         let d_pieces = 1;
         let d_lines = 1;
@@ -55,7 +55,10 @@ impl<T: Write> Application<T> {
                 GameMode::classic(),
                 GameMode::puzzle(),
                 GameMode::cheese(
-                    self.settings.gamemode_preferences.cheese_tiles_per_line,
+                    self.settings.gamemode_preferences.cheese_holes_per_line,
+                    self.settings
+                        .gamemode_preferences
+                        .cheese_ensure_distinct_holes,
                     self.settings.gamemode_preferences.cheese_limit,
                     self.settings
                         .gamemode_preferences

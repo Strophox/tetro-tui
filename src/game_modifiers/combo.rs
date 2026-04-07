@@ -8,9 +8,11 @@ use falling_tetromino_engine::{
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]
 pub struct Combo {
+    // Modifier configuration.
     initial_layout: u16,
     combo_limit: Option<NonZeroU32>,
 
+    // Modifier state fields.
     height_loaded: usize,
 }
 

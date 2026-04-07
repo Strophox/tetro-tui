@@ -95,7 +95,8 @@ impl GameMode {
 
     pub const TITLE_CHEESE: &str = "Cheese";
     pub fn cheese(
-        cheese_tiles_per_line: NonZeroUsize,
+        cheese_holes_per_line: NonZeroUsize,
+        cheese_ensure_distinct_holes: bool,
         cheese_limit: Option<NonZeroU32>,
         fall_lock_delays: (ExtDuration, ExtDuration),
     ) -> Self {
@@ -120,7 +121,12 @@ impl GameMode {
                     builder
                         .fall_delay_params(DelayParameters::constant(fall_lock_delays.0))
                         .lock_delay_params(DelayParameters::constant(fall_lock_delays.1));
-                    game_modifiers::Cheese::build(&builder, cheese_tiles_per_line, cheese_limit)
+                    game_modifiers::Cheese::build(
+                        &builder,
+                        cheese_holes_per_line,
+                        cheese_ensure_distinct_holes,
+                        cheese_limit,
+                    )
                 }
             }),
         }

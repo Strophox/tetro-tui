@@ -9,6 +9,7 @@ use falling_tetromino_engine::{
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]
 pub struct Puzzle {
+    // Modifier state fields.
     init: bool,
     stage_idx: usize,
     stage_tet_count: usize,

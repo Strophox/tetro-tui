@@ -4,6 +4,7 @@ use falling_tetromino_engine::{Board, Game, GameAccess, GameBuilder, GameModifie
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]
 pub struct StartBoard {
+    // Modifier configuration.
     encoded_board: String,
 }
 
