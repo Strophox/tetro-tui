@@ -183,15 +183,31 @@ pub enum ScoreEntrySorting {
     GameStat(Stat),
 }
 
+impl std::fmt::Display for ScoreEntrySorting {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let name = match self {
+            ScoreEntrySorting::ModeDependent => "Mode-dependent",
+            ScoreEntrySorting::Chronological => "Chronological",
+            ScoreEntrySorting::GameStat(stat) => match stat {
+                Stat::TimeElapsed(_) => "Time elapsed",
+                Stat::PiecesLocked(_) => "Pieces locked",
+                Stat::LinesCleared(_) => "Lines cleared",
+                Stat::PointsScored(_) => "Points scored",
+            },
+        };
+        write!(f, "{name}")
+    }
+}
+
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]
 pub struct Scoreboard {
+    sorting: ScoreEntrySorting,
     entries: Vec<(
         ScoreEntry,
         Option<GameRestorationData<CompressedInputHistory>>,
     )>,
-    sorting: ScoreEntrySorting,
 }
 
 impl Default for Scoreboard {

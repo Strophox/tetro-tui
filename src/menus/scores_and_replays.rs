@@ -190,7 +190,7 @@ impl<T: Write> Application<T> {
                 .queue(PrintStyledContent(
                     format!(
                         "{:^w_main$}",
-                        format!("(Order = {:?} [←|→])", self.scores_and_replays.sorting)
+                        format!("(Order = {} [←|→])", self.scores_and_replays.sorting)
                     )
                     .italic(),
                 ))?;
