@@ -114,7 +114,7 @@ pub struct GameSave<IH: InputHistoryEncoder> {
 }
 
 impl GameSave<RawInputHistory> {
-    fn compress(self) -> GameSave<EncodedInputHistory> {
+    fn compress<IH: InputHistoryEncoder>(self) -> GameSave<IH> {
         GameSave {
             game_restoration_data: self.game_restoration_data.encode(),
             game_meta_data: self.game_meta_data,
@@ -123,7 +123,7 @@ impl GameSave<RawInputHistory> {
     }
 }
 
-impl GameSave<EncodedInputHistory> {
+impl<IH: InputHistoryEncoder> GameSave<IH> {
     fn try_decode(self) -> Result<GameSave<RawInputHistory>, String> {
         Ok(GameSave {
             game_restoration_data: self.game_restoration_data.try_decode()?,

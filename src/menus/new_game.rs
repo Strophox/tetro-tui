@@ -43,10 +43,10 @@ impl<T: Write> Application<T> {
         let d_pieces = 1;
         let d_lines = 1;
 
-        let d_fall_delay = Duration::from_millis(100).into();
-        let mult_fall_delay = ExtNonNegF64::from(10);
-        let lowerbound_fall_delay: ExtDuration = Duration::from_millis(1).into();
-        let upperbound_fall_delay: ExtDuration = Duration::from_secs(1000).into();
+        let d_fall_delay: ExtDuration = Duration::from_millis(10).into();
+        let mult_fall_delay: ExtNonNegF64 = ExtNonNegF64::new(10.0).unwrap();
+        let lowerbound_fall_delay: ExtDuration = Duration::from_secs_f64(1e-9).into();
+        let upperbound_fall_delay: ExtDuration = Duration::from_secs_f64(100.0).into();
 
         loop {
             #[allow(clippy::type_complexity)]
@@ -333,7 +333,11 @@ impl<T: Write> Application<T> {
 
                                 let new_base_delay = if base_delay.is_zero() {
                                     // Bootstrap from zero to baseline.
-                                    lowerbound_fall_delay.max(d_fall_delay)
+                                    if modifiers.contains(KeyModifiers::ALT) {
+                                        lowerbound_fall_delay
+                                    } else {
+                                        d_fall_delay
+                                    }
                                 } else if base_delay.is_infinite() {
                                     // Already at max.
                                     base_delay

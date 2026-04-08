@@ -157,7 +157,7 @@ impl<T: Write> Application<T> {
 
                 self.scores_and_replays
                     .entries
-                    .push((scores_entry.clone(), Some(game_restoration_data)));
+                    .insert(0, (scores_entry.clone(), Some(game_restoration_data)));
 
                 let game_scoring = Box::new(scores_entry);
 
