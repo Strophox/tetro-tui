@@ -6,6 +6,7 @@ simulating everything it wants to print and manually diffing that like we do now
 mod diff_print_old;
 mod halfcell;
 mod prototype;
+mod standard_buffered;
 
 use std::io::{self, Write};
 

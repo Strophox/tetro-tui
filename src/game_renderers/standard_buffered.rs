@@ -1,29 +1,35 @@
-use std::{
-    cmp::Ordering,
-    collections::BTreeMap,
-    fmt::{Debug, Display},
-    num::NonZeroU8,
-    time::Duration,
-};
+use std::{cmp::Ordering, collections::BTreeMap, fmt::Debug};
 
 use crossterm::{
     cursor,
-    style::{self, Color, Print, PrintStyledContent, Stylize},
+    style::{Color, Print, PrintStyledContent, Stylize},
     terminal, QueueableCommand,
 };
 
-use falling_tetromino_engine::{
-    Button, Coordinate, GameEndCause, InGameTime, Orientation, Phase, Stat, Tetromino, TileID,
-};
-use rand::RngExt;
-
 use super::*;
 
-use crate::{
-    application::TemporaryAppData,
-    fmt_helpers::{fmt_button, fmt_button_ascii, fmt_duration, fmt_hertz, FmtTetromino},
-    graphics_settings::Glyphset,
+#[derive(
+    PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
+)]
+pub struct TermCell {
+    ch: char,
+    fg: Color,
+}
+
+const EMPTY_CELL: TermCell = TermCell {
+    ch: ' ',
+    fg: Color::Reset,
 };
+
+pub trait TerminalBuffer {
+    fn with_dimensions(width: u16, height: u16) -> Self;
+    fn dimensions(&self) -> (u16, u16);
+    fn reset_with_dimensions(&mut self, width: u16, height: u16);
+
+    fn write(&mut self, x: u16, y: u16, cell: TermCell);
+    fn write_str(&mut self, x: u16, y: u16, str: &str, fg: Color);
+    fn flush(&mut self, term: &mut impl Write) -> io::Result<()>;
+}
 
 #[derive(
     PartialEq,
@@ -37,92 +43,162 @@ use crate::{
     serde::Serialize,
     serde::Deserialize,
 )]
-struct TerminalBuffer1 {
-    pub chars: BTreeMap<(u16, u16), (char, Color)>,
+struct SparseTerminalBuffer {
+    width: u16,
+    height: u16,
+    prev_buf: BTreeMap<(u16, u16), TermCell>,
+    next_buf: BTreeMap<(u16, u16), TermCell>,
 }
 
-impl TerminalBuffer1 {
-    fn get_terminal_size(&self) -> (u16, u16) {
-        terminal::size().unwrap_or_default()
+impl TerminalBuffer for SparseTerminalBuffer {
+    fn with_dimensions(width: u16, height: u16) -> Self {
+        SparseTerminalBuffer {
+            width,
+            height,
+            prev_buf: BTreeMap::new(),
+            next_buf: BTreeMap::new(),
+        }
     }
 
-    fn flush_diff(&self, term: &mut impl Write, previous: TerminalBuffer1) -> io::Result<()> {
+    fn dimensions(&self) -> (u16, u16) {
+        (self.width, self.height)
+    }
+
+    fn reset_with_dimensions(&mut self, width: u16, height: u16) {
+        self.prev_buf.clear();
+        self.next_buf.clear();
+        self.width = width;
+        self.height = height;
+    }
+
+    fn write(&mut self, x: u16, y: u16, cell: TermCell) {
+        if x < self.width && y < self.height {
+            self.next_buf.insert((x, y), cell);
+        }
+    }
+
+    fn write_str(&mut self, x: u16, y: u16, str: &str, fg: Color) {
+        if y >= self.height {
+            return;
+        }
+        for (dx, ch) in str.chars().enumerate() {
+            if x + dx as u16 >= self.width {
+                return;
+            }
+            self.next_buf
+                .insert((x + dx as u16, y), TermCell { ch, fg });
+        }
+    }
+
+    fn flush(&mut self, term: &mut impl Write) -> io::Result<()> {
         term.queue(terminal::BeginSynchronizedUpdate)?;
 
         // We'll be consuming both iterators and compare.
-        let mut old_items = previous.chars.into_iter();
-        let mut new_items = self.chars.iter();
+        let mut old_buffer = self.prev_buf.iter();
+        let mut new_buffer = self.next_buf.iter();
 
-        let mut term_queue =
-            |(x, y): (u16, u16), (c, fg): (char, Option<Color>)| -> io::Result<()> {
-                term.queue(cursor::MoveTo(x, y))?;
+        let mut term_queue = |(x, y): (u16, u16), ch: char, fg: Option<Color>| -> io::Result<()> {
+            term.queue(cursor::MoveTo(x, y))?;
 
-                if let Some(color) = fg {
-                    term.queue(PrintStyledContent(c.with(color)))?;
-                } else {
-                    term.queue(Print(c))?;
-                }
+            if let Some(color) = fg {
+                term.queue(PrintStyledContent(ch.with(color)))?;
+            } else {
+                term.queue(Print(ch))?;
+            }
 
-                Ok(())
-            };
+            Ok(())
+        };
 
-        let mut old_item = old_items.next();
-        let mut new_item = new_items.next();
+        let mut old_pos_cell = old_buffer.next();
+        let mut new_pos_cell = new_buffer.next();
         loop {
-            match (old_item, new_item) {
+            match (old_pos_cell, new_pos_cell) {
                 // Both are empty, nothing to do.
                 (None, None) => break,
 
                 // Old buffer contains something the new one doesn't: Overwrite it to clear it.
-                (Some((old_x_y, (old_c, old_fg))), None) => {
+                (
+                    Some((
+                        old_pos,
+                        TermCell {
+                            ch: _old_ch,
+                            fg: old_fg,
+                        },
+                    )),
+                    None,
+                ) => {
                     // Only explicitly reset color if necessary.
-                    let new_fg = (old_fg != Color::Reset).then_some(Color::Reset);
-                    term_queue(old_x_y, (' ', new_fg))?;
+                    let new_fg = (*old_fg != Color::Reset).then_some(Color::Reset);
+                    term_queue(*old_pos, ' ', new_fg)?;
 
-                    old_item = old_items.next();
+                    old_pos_cell = old_buffer.next();
                 }
 
                 // New buffer contains something the old one doesn't: Write it.
-                (None, Some((new_x_y, (new_c, new_fg)))) => {
+                (
+                    None,
+                    Some((
+                        new_x_y,
+                        TermCell {
+                            ch: new_ch,
+                            fg: new_fg,
+                        },
+                    )),
+                ) => {
                     // Only explicitly reset color if necessary.
                     let new_fg = (*new_fg != Color::Reset).then_some(*new_fg);
-                    term_queue(*new_x_y, (*new_c, new_fg))?;
+                    term_queue(*new_x_y, *new_ch, new_fg)?;
 
-                    new_item = new_items.next();
+                    new_pos_cell = new_buffer.next();
                 }
 
-                (Some((old_x_y, (old_c, old_fg))), Some((new_x_y, (new_c, new_fg)))) => {
-                    match old_x_y.cmp(new_x_y) {
+                (
+                    Some((
+                        old_pos,
+                        TermCell {
+                            ch: old_ch,
+                            fg: old_fg,
+                        },
+                    )),
+                    Some((
+                        new_pos,
+                        TermCell {
+                            ch: new_ch,
+                            fg: new_fg,
+                        },
+                    )),
+                ) => {
+                    match old_pos.cmp(new_pos) {
                         // Old buffer contains something the new one doesn't: Overwrite it to clear it.
                         Ordering::Less => {
                             // Only explicitly reset color if necessary.
-                            let new_fg = (old_fg != Color::Reset).then_some(Color::Reset);
-                            term_queue(old_x_y, (' ', new_fg))?;
+                            let new_fg = (*old_fg != Color::Reset).then_some(Color::Reset);
+                            term_queue(*old_pos, ' ', new_fg)?;
 
-                            old_item = old_items.next();
+                            old_pos_cell = old_buffer.next();
                         }
 
                         // New buffer contains something the old one doesn't: Write it.
                         Ordering::Greater => {
                             // Only explicitly reset color if necessary.
                             let new_fg = (*new_fg != Color::Reset).then_some(*new_fg);
-                            term_queue(*new_x_y, (*new_c, new_fg))?;
+                            term_queue(*new_pos, *new_ch, new_fg)?;
 
-                            new_item = new_items.next();
+                            new_pos_cell = new_buffer.next();
                         }
 
                         // Old and new overlap! Handle possible difference.
                         Ordering::Equal => {
-                            if old_fg != *new_fg {
+                            if *old_fg != *new_fg {
                                 // Definitely need to change if color changed.
-                                term_queue(*new_x_y, (*new_c, Some(*new_fg)))?;
-                            } else if old_c != *new_c {
+                                term_queue(*new_pos, *new_ch, Some(*new_fg))?;
+                            } else if *old_ch != *new_ch {
                                 // Only content changed, just print.
-                                term_queue(*new_x_y, (*new_c, None))?;
+                                term_queue(*new_pos, *new_ch, None)?;
                             }
 
-                            old_item = old_items.next();
-                            new_item = new_items.next();
+                            old_pos_cell = old_buffer.next();
+                            new_pos_cell = new_buffer.next();
                         }
                     }
                 }
@@ -132,6 +208,121 @@ impl TerminalBuffer1 {
         term.queue(cursor::MoveTo(0, 0))?
             .queue(terminal::EndSynchronizedUpdate)?
             .flush()?;
+
+        Ok(())
+    }
+}
+
+#[derive(
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Clone,
+    Debug,
+    Default,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+struct DenseTerminalDoubleBuffer {
+    width: u16,
+    height: u16,
+    /// INVARIANT:
+    /// - `prev_buf.len() == width * height`.
+    prev_buf: Vec<TermCell>,
+    /// INVARIANT:
+    /// - `next_buf.len() == width * height`.
+    next_buf: Vec<TermCell>,
+}
+
+impl TerminalBuffer for DenseTerminalDoubleBuffer {
+    fn with_dimensions(width: u16, height: u16) -> Self {
+        DenseTerminalDoubleBuffer {
+            width,
+            height,
+            prev_buf: vec![EMPTY_CELL; (width * height).into()],
+            next_buf: vec![EMPTY_CELL; (width * height).into()],
+        }
+    }
+
+    fn dimensions(&self) -> (u16, u16) {
+        (self.width, self.height)
+    }
+
+    fn reset_with_dimensions(&mut self, width: u16, height: u16) {
+        let old_len = (self.width * self.height).into();
+        let new_len = (width * height).into();
+        if new_len > old_len {
+            self.prev_buf.fill(EMPTY_CELL);
+            self.next_buf.fill(EMPTY_CELL);
+            self.prev_buf.resize(new_len, EMPTY_CELL);
+            self.next_buf.resize(new_len, EMPTY_CELL);
+        } else {
+            self.prev_buf.fill(EMPTY_CELL);
+            self.next_buf.fill(EMPTY_CELL);
+            self.prev_buf.resize(new_len, EMPTY_CELL);
+            self.next_buf.resize(new_len, EMPTY_CELL);
+        }
+        self.width = width;
+        self.height = height;
+    }
+
+    fn write(&mut self, x: u16, y: u16, cell: TermCell) {
+        if x < self.width && y < self.height {
+            let idx = x as usize + self.width as usize * y as usize;
+            self.next_buf[idx] = cell;
+        }
+    }
+
+    fn write_str(&mut self, x: u16, y: u16, str: &str, fg: Color) {
+        if y >= self.height {
+            return;
+        }
+        for (dx, ch) in str.chars().enumerate() {
+            if x + dx as u16 >= self.width {
+                return;
+            }
+            let idx = x as usize + dx + self.width as usize * y as usize;
+            self.next_buf[idx] = TermCell { ch, fg };
+        }
+    }
+
+    fn flush(&mut self, term: &mut impl Write) -> io::Result<()> {
+        term.queue(terminal::BeginSynchronizedUpdate)?;
+
+        for x in 0..self.width {
+            for y in 0..self.height {
+                let idx = x as usize + self.width as usize * y as usize;
+                let TermCell {
+                    ch: old_ch,
+                    fg: old_fg,
+                } = self.prev_buf[idx];
+                let TermCell {
+                    ch: new_ch,
+                    fg: new_fg,
+                } = self.next_buf[idx];
+
+                term.queue(cursor::MoveTo(x, y))?;
+                if new_fg != old_fg {
+                    // Always reprint styled if style changed.
+                    term.queue(PrintStyledContent(new_ch.with(new_fg)))?;
+                } else if new_ch != old_ch {
+                    // Style did not change, but character did, so reprint it.
+                    term.queue(Print(new_ch))?;
+                }
+            }
+        }
+
+        term.queue(cursor::MoveTo(0, 0))?
+            .queue(terminal::EndSynchronizedUpdate)?
+            .flush()?;
+
+        // Swap buffers so `prev_buf` correctly contains the one we just wrote and want to keep for next time.
+        std::mem::swap(&mut self.prev_buf, &mut self.next_buf);
+
+        // Reset buffer by overwriting nonempty cells.
+        self.next_buf.fill(EMPTY_CELL);
 
         Ok(())
     }
