@@ -64,17 +64,17 @@ impl StartBoard {
             'tiles: for tile in line {
                 'chars: for char in chars.by_ref() {
                     if char == '/' {
-                        // Slash = jump to next line (i.e. above).
+                        // Skip to next line.
                         continue 'lines;
                     } else if char == '\n' {
-                        // Newline = ignore, stay at tile but move on to next char.
+                        // Ignore newline chars.
                         continue 'chars;
-                    } else if char == ' ' {
-                        // Space = empty tile.
+                    } else if char == ' ' || char == '.' || char == '_' {
+                        // Empty tile found.
                         *tile = None;
                         continue 'tiles;
                     } else {
-                        // Otherwise = filled tile.
+                        // Filled tile found. (falltrough)
                         *tile = grey_tile;
                         continue 'tiles;
                     }
