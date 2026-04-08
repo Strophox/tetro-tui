@@ -787,8 +787,7 @@ impl<T: Write> Application<T> {
                     .spawn_delay(are)
                     .allow_spawn_manipulation(initsys);
 
-                let (game_meta_data, mut game, game_input_history) = if selected < game_modes.len()
-                {
+                let (game_meta_data, mut game, raw_input_history) = if selected < game_modes.len() {
                     // Build one of the selected game modes.
                     let GameMode {
                         title,
@@ -805,9 +804,9 @@ impl<T: Write> Application<T> {
                         stat_and_desc_order: *stat_and_order_desc,
                     };
 
-                    let fresh_input_history = RawInputHistory::default();
+                    let blank_input_history = RawInputHistory::default();
 
-                    (preset_game_meta_data, preset_game, fresh_input_history)
+                    (preset_game_meta_data, preset_game, blank_input_history)
                 } else if selected == selection_len - 2 {
                     // Load saved game.
                     // SAFETY: we can only get into this case if save exists!...
@@ -877,8 +876,8 @@ impl<T: Write> Application<T> {
                         title,
                         stat_and_desc_order: (Stat::PointsScored(0), false),
                     };
-                    let fresh_input_history = RawInputHistory::default();
-                    (custom_game_meta_data, new_custom_game, fresh_input_history)
+                    let blank_input_history = RawInputHistory::default();
+                    (custom_game_meta_data, new_custom_game, blank_input_history)
                 };
                 // FIXME: Abandoned modifier addition code.
                 // let mut game = game;
@@ -903,7 +902,7 @@ impl<T: Write> Application<T> {
 
                 break Ok(MenuUpdate::Push(Menu::PlayGame {
                     game: game.into(),
-                    game_input_history,
+                    raw_input_history,
                     game_meta_data,
                     game_renderer: game_renderer.into(),
                 }));

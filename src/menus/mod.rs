@@ -45,7 +45,7 @@ pub enum Menu {
     NewGame,
     PlayGame {
         game: Box<Game>,
-        game_input_history: RawInputHistory,
+        raw_input_history: RawInputHistory,
         game_meta_data: GameMetaData,
         // game_statistics: Statistics,
         game_renderer: Box<TetroTUIRenderer>,

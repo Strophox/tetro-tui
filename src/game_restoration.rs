@@ -5,9 +5,9 @@ use crate::game_modifiers;
 /// Raw, uncompressed representation of a partial or complete input history.
 ///
 /// We normally presuppose this is sorted by timestamps.
-pub use raw::InputHistory as RawInputHistory;
+pub use raw::RawInputHistory;
 
-pub use deltas_bitencoded_base64str::InputHistory as EncodedInputHistory;
+pub use deltas_bitencoded_base64str::DeltasBitencodedBase64strInputHistory as EncodedInputHistory;
 
 /// All the data required to functionally reconstruct gameplay.
 #[derive(
@@ -134,18 +134,18 @@ mod raw {
         serde::Deserialize,
     )]
     #[serde(transparent)]
-    pub struct InputHistory {
+    pub struct RawInputHistory {
         pub inputs: Vec<(InGameTime, Input)>,
     }
-    impl From<Vec<(InGameTime, Input)>> for InputHistory {
+    impl From<Vec<(InGameTime, Input)>> for RawInputHistory {
         fn from(value: Vec<(InGameTime, Input)>) -> Self {
             Self { inputs: value }
         }
     }
 
-    impl InputHistoryEncoder for InputHistory {
-        fn encode(game_input_history: &RawInputHistory) -> Self {
-            game_input_history.clone()
+    impl InputHistoryEncoder for RawInputHistory {
+        fn encode(raw_input_history: &RawInputHistory) -> Self {
+            raw_input_history.clone()
         }
 
         fn try_decode(&self) -> Result<RawInputHistory, String> {
@@ -175,14 +175,14 @@ mod deltas_bitencoded_base64prefixstr {
         serde::Deserialize,
     )]
     #[serde(transparent)]
-    pub struct InputHistory {
+    pub struct DeltasBitencodedBase64PrefixstrInputHistory {
         pub dti_base64prefixstr: String,
     }
-    impl InputHistoryEncoder for InputHistory {
-        fn encode(game_input_history: &RawInputHistory) -> Self {
+    impl InputHistoryEncoder for DeltasBitencodedBase64PrefixstrInputHistory {
+        fn encode(raw_input_history: &RawInputHistory) -> Self {
             let mut dti_base64prefixstr = Vec::new();
             let mut prev_update_time = InGameTime::ZERO;
-            for (next_update_time, input) in game_input_history.inputs.iter() {
+            for (next_update_time, input) in raw_input_history.inputs.iter() {
                 let time_delta = next_update_time.saturating_sub(prev_update_time);
                 let mut dti_bitpattern = timed_input_to_u128((time_delta, *input));
 
@@ -266,31 +266,30 @@ mod deltas_bitencoded_base64str {
         serde::Deserialize,
     )]
     #[serde(transparent)]
-    pub struct InputHistory {
+    pub struct DeltasBitencodedBase64strInputHistory {
         pub dti_base64str: String,
     }
-    impl InputHistoryEncoder for InputHistory {
+    impl InputHistoryEncoder for DeltasBitencodedBase64strInputHistory {
         fn encode(raw_input_history: &RawInputHistory) -> Self {
-            let input_history = deltas_bitencoded::InputHistory::encode(raw_input_history);
-            let dti_base64str = input_history
-                .dti_bitpatterns
-                .into_iter()
-                .map(to_base64)
-                .collect::<Vec<_>>()
-                .join("~");
+            let dti_base64str =
+                deltas_bitencoded::DeltasBitencodedInputHistory::encode(raw_input_history)
+                    .dti_bitpatterns
+                    .into_iter()
+                    .map(to_base64)
+                    .collect::<Vec<_>>()
+                    .join("~");
+
             Self { dti_base64str }
         }
 
         fn try_decode(&self) -> Result<RawInputHistory, String> {
-            let input_nums = self
+            let dti_bitpatterns = self
                 .dti_base64str
                 .split("~")
                 .map(try_from_base64)
                 .collect::<Result<Vec<_>, _>>()?;
-            let delta_input_history = deltas_bitencoded::InputHistory {
-                dti_bitpatterns: input_nums,
-            };
-            delta_input_history.try_decode()
+
+            deltas_bitencoded::DeltasBitencodedInputHistory { dti_bitpatterns }.try_decode()
         }
     }
 }
@@ -315,10 +314,10 @@ mod deltas_bitencoded {
         serde::Deserialize,
     )]
     #[serde(transparent)]
-    pub struct InputHistory {
+    pub struct DeltasBitencodedInputHistory {
         pub dti_bitpatterns: Vec<u128>,
     }
-    impl InputHistoryEncoder for InputHistory {
+    impl InputHistoryEncoder for DeltasBitencodedInputHistory {
         fn encode(raw_input_history: &RawInputHistory) -> Self {
             let mut dti_bitpatterns = Vec::new();
             let mut prev_update_time = InGameTime::ZERO;
@@ -343,6 +342,7 @@ mod deltas_bitencoded {
                 raw_input_history.push((next_update_time, input));
                 prev_update_time = next_update_time;
             }
+
             Ok(raw_input_history.into())
         }
     }
@@ -368,10 +368,10 @@ mod simple_bitencoded {
         serde::Deserialize,
     )]
     #[serde(transparent)]
-    pub struct InputHistory {
+    pub struct SimpleBitencodedInputHistory {
         ti_bitpatterns: Vec<u128>,
     }
-    impl InputHistoryEncoder for InputHistory {
+    impl InputHistoryEncoder for SimpleBitencodedInputHistory {
         fn encode(raw_input_history: &RawInputHistory) -> Self {
             let ti_bitpatterns = raw_input_history
                 .inputs
@@ -379,6 +379,7 @@ mod simple_bitencoded {
                 .copied()
                 .map(timed_input_to_u128)
                 .collect();
+
             Self { ti_bitpatterns }
         }
 
@@ -389,6 +390,7 @@ mod simple_bitencoded {
                 .copied()
                 .map(try_u128_to_timed_input)
                 .collect::<Result<Vec<_>, _>>()?;
+
             Ok(raw_input_history.into())
         }
     }
@@ -517,27 +519,29 @@ mod tests {
 
     #[test]
     fn raw_roundtrip() {
-        run_compressor_test::<raw::InputHistory>();
+        run_compressor_test::<raw::RawInputHistory>();
     }
 
     #[test]
     fn simple_bitencoded_roundtrip() {
-        run_compressor_test::<simple_bitencoded::InputHistory>();
+        run_compressor_test::<simple_bitencoded::SimpleBitencodedInputHistory>();
     }
 
     #[test]
     fn deltas_bitencoded_roundtrip() {
-        run_compressor_test::<deltas_bitencoded::InputHistory>();
+        run_compressor_test::<deltas_bitencoded::DeltasBitencodedInputHistory>();
     }
 
     #[test]
     fn deltas_bitencoded_base64str_roundtrip() {
-        run_compressor_test::<deltas_bitencoded_base64str::InputHistory>();
+        run_compressor_test::<deltas_bitencoded_base64str::DeltasBitencodedBase64strInputHistory>();
     }
 
     #[test]
     fn deltas_bitencoded_base64prefixstr_roundtrip() {
         // TODO: Fix test failure!
-        run_compressor_test::<deltas_bitencoded_base64prefixstr::InputHistory>();
+        run_compressor_test::<
+            deltas_bitencoded_base64prefixstr::DeltasBitencodedBase64PrefixstrInputHistory,
+        >();
     }
 }

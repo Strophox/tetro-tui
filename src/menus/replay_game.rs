@@ -480,7 +480,7 @@ impl<T: Write> Application<T> {
 
                                 break 'update_and_render MenuUpdate::Push(Menu::PlayGame {
                                     game: Box::new(the_game),
-                                    game_input_history: game_restoration_data
+                                    raw_input_history: game_restoration_data
                                         .input_history
                                         .inputs
                                         .iter()

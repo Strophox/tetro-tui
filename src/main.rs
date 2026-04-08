@@ -601,11 +601,11 @@ impl<T: Write> Application<T> {
                 Menu::NewGame => self.run_menu_new_game(),
                 Menu::PlayGame {
                     game,
-                    game_input_history,
+                    raw_input_history,
                     game_meta_data,
                     game_renderer,
                 } => {
-                    self.run_menu_play_game(game, game_input_history, game_meta_data, game_renderer)
+                    self.run_menu_play_game(game, raw_input_history, game_meta_data, game_renderer)
                 }
                 Menu::Pause => self.run_menu_pause(),
                 Menu::Settings => self.run_menu_settings(),

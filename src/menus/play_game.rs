@@ -27,7 +27,7 @@ impl<T: Write> Application<T> {
     pub fn run_menu_play_game(
         &mut self,
         game: &mut Game,
-        game_input_history: &mut RawInputHistory,
+        raw_input_history: &mut RawInputHistory,
         game_meta_data: &mut GameMetaData,
         game_renderer: &mut TetroTUIRenderer,
     ) -> io::Result<MenuUpdate> {
@@ -148,12 +148,12 @@ impl<T: Write> Application<T> {
                     points: game.state().points,
                 };
 
-                let compressed_game_input_history = EncodedInputHistory::encode(game_input_history);
+                let encoded_input_history = EncodedInputHistory::encode(raw_input_history);
                 let forfeit =
                     matches!(cause, GameEndCause::Forfeit { .. }).then_some(game.state().time);
 
                 let game_restoration_data =
-                    GameRestorationData::new(game, compressed_game_input_history, forfeit);
+                    GameRestorationData::new(game, encoded_input_history, forfeit);
 
                 self.scores_and_replays
                     .entries
@@ -281,7 +281,7 @@ impl<T: Write> Application<T> {
                                 }
                             }
 
-                            game_input_history
+                            raw_input_history
                                 .inputs
                                 .push((update_target_time, player_input));
 
@@ -329,7 +329,7 @@ impl<T: Write> Application<T> {
                             // Non-enhanced terminal - since we don't have "release" events, we just assume a button press is an instantaneous sequence of press+release.
                             let input = Input::Activate(button);
 
-                            game_input_history.inputs.push((update_target_time, input));
+                            raw_input_history.inputs.push((update_target_time, input));
 
                             match game.update(update_target_time, Some(input)) {
                                 Ok(msgs) => {
@@ -343,7 +343,7 @@ impl<T: Write> Application<T> {
                             // Note that we do not expect a button release to actually end the game or similar, but we handle things properly anyway.
                             let input = Input::Deactivate(button);
 
-                            game_input_history.inputs.push((update_target_time, input));
+                            raw_input_history.inputs.push((update_target_time, input));
 
                             let update_result = game.update(update_target_time, Some(input));
 
@@ -410,7 +410,7 @@ impl<T: Write> Application<T> {
                                     game_meta_data: game_meta_data.clone(),
                                     game_restoration_data: GameRestorationData::new(
                                         game,
-                                        game_input_history.clone(),
+                                        raw_input_history.clone(),
                                         matches!(
                                             game.phase(),
                                             Phase::GameEnd {
@@ -420,7 +420,7 @@ impl<T: Write> Application<T> {
                                         )
                                         .then_some(game.state().time),
                                     ),
-                                    inputs_to_load: game_input_history.inputs.len(),
+                                    inputs_to_load: raw_input_history.inputs.len(),
                                 }];
 
                                 game_renderer.push_game_notification_feed([(
@@ -443,7 +443,7 @@ impl<T: Write> Application<T> {
                                     // Mark restored game as such.
                                     game_meta_data.title.push('\'');
 
-                                    game_input_history.inputs = game_restoration_data
+                                    raw_input_history.inputs = game_restoration_data
                                         .input_history
                                         .inputs
                                         .iter()
@@ -614,7 +614,7 @@ impl<T: Write> Application<T> {
 
                     let update_result = game.update(unpress_time, Some(input));
 
-                    game_input_history.inputs.push((unpress_time, input));
+                    raw_input_history.inputs.push((unpress_time, input));
                     match update_result {
                         Ok(msgs) => {
                             temp_statistics.accumulate_from_feed(&msgs);
