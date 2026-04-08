@@ -261,9 +261,10 @@ yay -S tetro-tui
 > The exact location of the config file is shown in the *Advanced Settings* menu and is based on `dirs::config_dir()` (usually `C:/User/yourname/AppData/Roaming/.tetro-tui_v1.0_savefile.json` or `/home/yourname/.config/.tetro-tui_v1.0_savefile.json`).
 > 
 > Savefile grows mostly with number/length of replays saved.
-> If you end up with a lot of play time but can't/don't want to spare the kBs/MBs, you can:
+> If you end up with a lot of play time but can't/don't want to spare the kB / MB, you can:
 > - Delete some entries (// just their replay data) in *Scores and Replays* using `[Del]` (// `[Alt+Del]`).
 > - Configure which categories of data get stored in the first place on program exit (see *Advanced Settings*).
+> - As a rule of thumb, 1min of gameplay with fast inputs adds ≈ 1 kB.
 >
 > </details>
 
