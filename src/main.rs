@@ -9,8 +9,6 @@ mod settings;
 
 use std::{io, path::PathBuf};
 
-use clap::Parser;
-
 use std::{fmt::Debug, io::Write, time::Duration};
 
 use crossterm::{
@@ -60,33 +58,42 @@ const VERSION_MAJOR_MINOR: &str = {
 };
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    use clap::Parser;
     #[derive(Parser, Debug)]
     #[command(version, about, long_about = None)]
     struct Args {
-        /// Custom starting seed when playing a custom game, given as a 64-bit integer.
-        /// This influences e.g. the sequence of pieces used and makes it possible to replay
-        /// a run with the same pieces if the same seed is entered.
-        /// Example: `tetro-tui --seed=42` or `tetro-tui -s 42`.
+        /// Initial seed upon starting a custom game, given as a 64-bit integer.
+        ///
+        /// This influences e.g. the sequence of pieces used and
+        /// makes it possible to replay a run with the same pieces.
+        ///
+        /// Example uses:  `tetro-tui --seed=42`
+        ///             or `tetro-tui -s 42`.
         #[arg(short, long)]
         seed: Option<u64>,
-        /// Custom starting board when playing a custom game (10-wide rows), encoded as string.
-        /// Spaces indicate empty cells, any other character is a filled cell.
-        /// The string just represents the row information, starting with the topmost row.
-        /// Example: |█▀ ▄██▀ ▀█| => `tetro-tui --board="O  OOO   OXX  XXX XX"` or `tetro-tui -b "O  OOO   OXX  XXX XX"`.
+
+        /// Initial board upon starting a custom game, encoded as character string.
+        ///
+        /// The string fills the board line-by-line:
+        /// * Left->right; Bottom->top.
+        /// * When end of the board width is reached, the next line is started.
+        ///
+        /// Every character corresponds to exactly one filled board cell *except*:
+        /// * Space (' ') indicates an *empty* cell.
+        /// * Slash ('/') indicates "skip to next line".
+        /// * Newlines ('\n') are ignored completely.
+        ///
+        /// Example uses:  |▄▄▀       |
+        ///            --> `tetro-tui --board="## /  #"`
+        ///             or `tetro-tui -b "XY /  Z"`.     
         #[arg(short, long)]
         board: Option<String>,
     }
-
-    let stdout = io::BufWriter::new(io::stdout());
     let args = Args::parse();
 
     // Initialize main application.
-    let mut app = Application::with_savefile_and_cmdlineoptions(
-        stdout,
-        savefile_logic::savefile_path(),
-        args.seed,
-        args.board,
-    );
+    let stdout = io::BufWriter::new(io::stdout());
+    let mut app = Application::with_cmdlineoptions(stdout, args.seed, args.board);
 
     // Run main application.
     app.run()?;
@@ -537,9 +544,8 @@ impl<T: Write> Application<T> {
         }))
     }
 
-    pub fn with_savefile_and_cmdlineoptions(
+    pub fn with_cmdlineoptions(
         term: T,
-        savefile_path: PathBuf,
         custom_start_seed: Option<u64>,
         custom_start_board: Option<String>,
     ) -> Self {
@@ -553,7 +559,7 @@ impl<T: Write> Application<T> {
             blindfold_enabled: false,
             renderernumber: 0,
             save_on_exit: SavefileGranularity::default(),
-            savefile_path,
+            savefile_path: savefile_logic::savefile_path(),
             loadfile_result: Ok(()),
         };
 
