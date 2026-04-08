@@ -351,7 +351,7 @@ pub fn try_from_base64_charbyte(ch: u8) -> Result<u8, String> {
         b'0'..=b'9' => ch - b'0' + 52,
         b'-' => 62,
         b'_' => 63,
-        _ => return Err(format!("cannnot decode invalid bas64 digit `{ch}`")),
+        _ => return Err(format!("cannot decode byte `{ch}` as base64 char")),
     })
 }
 

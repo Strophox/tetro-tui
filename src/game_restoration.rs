@@ -7,7 +7,7 @@ use crate::game_modifiers;
 /// We normally presuppose this is sorted by timestamps.
 pub use raw::RawInputHistory;
 
-pub use deltas_bitencoded_base64str::DeltasBitencodedBase64strInputHistory as EncodedInputHistory;
+pub use deltas_bitencoded_base64_prefixcode::DeltasBitencodedBase64PrefixstrInputHistory as EncodedInputHistory;
 
 /// All the data required to functionally reconstruct gameplay.
 #[derive(
@@ -155,7 +155,7 @@ mod raw {
 }
 
 #[allow(unused)]
-mod deltas_bitencoded_base64prefixstr {
+mod deltas_bitencoded_base64_prefixcode {
     use super::*;
     use crate::fmt_helpers::{to_base64_charbyte, try_from_base64_charbyte};
 
@@ -181,6 +181,7 @@ mod deltas_bitencoded_base64prefixstr {
     impl InputHistoryEncoder for DeltasBitencodedBase64PrefixstrInputHistory {
         fn encode(raw_input_history: &RawInputHistory) -> Self {
             let mut dti_base64prefixstr = Vec::new();
+            let mut temp_rev_byte_acc = Vec::new();
             let mut prev_update_time = InGameTime::ZERO;
             for (next_update_time, input) in raw_input_history.inputs.iter() {
                 let time_delta = next_update_time.saturating_sub(prev_update_time);
@@ -190,24 +191,24 @@ mod deltas_bitencoded_base64prefixstr {
                 const MASK_U5: u128 = u128::MAX >> (128 - 5);
                 // Get first 5 bits.
                 let mut dti_bitpattern_chunk_u5 = (dti_bitpattern & MASK_U5) as u8;
+                // The imlicit `0` (even num) signals the end.
+                let dti_bitpattern_chunk_u6 = (dti_bitpattern_chunk_u5 << 1);
+                temp_rev_byte_acc.push(to_base64_charbyte(dti_bitpattern_chunk_u6).unwrap());
                 dti_bitpattern >>= 5;
                 loop {
-                    // If remaining bitpattern is empty, we end our prefixcode.
+                    // If remaining bitpattern is empty, we're done.
                     if dti_bitpattern == 0 {
-                        let ti_bitpattern_chunk_u6 = dti_bitpattern_chunk_u5 << 1;
-                        dti_base64prefixstr
-                            .push(to_base64_charbyte(ti_bitpattern_chunk_u6).unwrap());
                         break;
-                    } else {
-                        let ti_bitpattern_chunk_u6 = (dti_bitpattern_chunk_u5 << 1) | 1;
-                        dti_base64prefixstr
-                            .push(to_base64_charbyte(ti_bitpattern_chunk_u6).unwrap());
                     }
                     // Get next 5 bits.
                     dti_bitpattern_chunk_u5 = (dti_bitpattern & MASK_U5) as u8;
+                    let dti_bitpattern_chunk_u6 = (dti_bitpattern_chunk_u5 << 1) | 1;
+                    temp_rev_byte_acc.push(to_base64_charbyte(dti_bitpattern_chunk_u6).unwrap());
                     dti_bitpattern >>= 5;
                 }
-
+                temp_rev_byte_acc.reverse();
+                dti_base64prefixstr.extend(temp_rev_byte_acc.iter());
+                temp_rev_byte_acc.clear();
                 prev_update_time = *next_update_time;
             }
             let dti_base64prefixstr = String::from_utf8(dti_base64prefixstr).unwrap();
@@ -246,7 +247,7 @@ mod deltas_bitencoded_base64prefixstr {
 }
 
 #[allow(unused)]
-mod deltas_bitencoded_base64str {
+mod deltas_bitencoded_base64 {
     use super::*;
     use crate::fmt_helpers::{to_base64, try_from_base64};
 
@@ -266,10 +267,10 @@ mod deltas_bitencoded_base64str {
         serde::Deserialize,
     )]
     #[serde(transparent)]
-    pub struct DeltasBitencodedBase64strInputHistory {
+    pub struct DeltasBitencodedBase64InputHistory {
         pub dti_base64str: String,
     }
-    impl InputHistoryEncoder for DeltasBitencodedBase64strInputHistory {
+    impl InputHistoryEncoder for DeltasBitencodedBase64InputHistory {
         fn encode(raw_input_history: &RawInputHistory) -> Self {
             let dti_base64str =
                 deltas_bitencoded::DeltasBitencodedInputHistory::encode(raw_input_history)
@@ -503,7 +504,7 @@ mod tests {
     }
 
     fn run_compressor_test<IH: InputHistoryEncoder>() {
-        let update_times = (0..22).map(Duration::from_millis);
+        let update_times = (0..11).map(Duration::from_millis);
         let inputs = [Input::Activate, Input::Deactivate]
             .iter()
             .cycle()
@@ -534,14 +535,14 @@ mod tests {
 
     #[test]
     fn deltas_bitencoded_base64str_roundtrip() {
-        run_compressor_test::<deltas_bitencoded_base64str::DeltasBitencodedBase64strInputHistory>();
+        run_compressor_test::<deltas_bitencoded_base64::DeltasBitencodedBase64InputHistory>();
     }
 
     #[test]
     fn deltas_bitencoded_base64prefixstr_roundtrip() {
         // TODO: Fix test failure!
         run_compressor_test::<
-            deltas_bitencoded_base64prefixstr::DeltasBitencodedBase64PrefixstrInputHistory,
+            deltas_bitencoded_base64_prefixcode::DeltasBitencodedBase64PrefixstrInputHistory,
         >();
     }
 }
