@@ -389,9 +389,9 @@ impl<T: Write> Application<T> {
                     kind: Press | Repeat,
                     ..
                 }) if self.scores_and_replays.entries.len() > 0 => {
-                    let (score_entry, opt_restoratin_data) =
+                    let (score_entry, opt_restoration_data) =
                         &self.scores_and_replays.entries[*cursor_pos];
-                    if let Some(game_restoration_data) = opt_restoratin_data {
+                    if let Some(game_restoration_data) = opt_restoration_data {
                         match game_restoration_data.clone().try_decode() {
                             Ok(game_restoration_data) => {
                                 let game_meta_data = score_entry.game_meta_data.clone();
