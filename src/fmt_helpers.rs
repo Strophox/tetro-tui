@@ -219,20 +219,20 @@ pub fn fmt_key(key: KeyCode) -> String {
         K::Modifier(M::RightHyper) => "RHyper",
         K::Modifier(M::LeftMeta) => "LMeta",
         K::Modifier(M::RightMeta) => "RMeta",
-        k => return format!("{:?}", k),
+        keycode => return format!("{keycode:?}"),
     }
     .to_string()
 }
 
-pub fn fmt_keymods(keymod: KeyModifiers) -> String {
+pub fn fmt_keymods(keymods: KeyModifiers) -> String {
     use KeyModifiers as KMs;
     [
-        keymod.contains(KMs::CONTROL).then_some("Ctrl"),
-        keymod.contains(KMs::SHIFT).then_some("Shift"),
-        keymod.contains(KMs::ALT).then_some("Alt"),
-        keymod.contains(KMs::SUPER).then_some("Super"),
-        keymod.contains(KMs::HYPER).then_some("Hyper"),
-        keymod.contains(KMs::META).then_some("Meta"),
+        keymods.contains(KMs::CONTROL).then_some("Ctrl"),
+        keymods.contains(KMs::SHIFT).then_some("Shift"),
+        keymods.contains(KMs::ALT).then_some("Alt"),
+        keymods.contains(KMs::SUPER).then_some("Super"),
+        keymods.contains(KMs::HYPER).then_some("Hyper"),
+        keymods.contains(KMs::META).then_some("Meta"),
     ]
     .into_iter()
     .flatten()
@@ -240,7 +240,7 @@ pub fn fmt_keymods(keymod: KeyModifiers) -> String {
     .join("+")
 }
 
-pub fn fmt_key_keymods((key, keymods): (KeyCode, KeyModifiers)) -> String {
+pub fn fmt_key_with_keymods((key, keymods): (KeyCode, KeyModifiers)) -> String {
     if keymods.is_empty() {
         format!("[{}]", fmt_key(key))
     } else {
@@ -248,17 +248,17 @@ pub fn fmt_key_keymods((key, keymods): (KeyCode, KeyModifiers)) -> String {
     }
 }
 
-pub fn fmt_keybinds_of(button: Button, keybinds: &GameKeybinds) -> String {
+pub fn fmt_button_keybinds(button: Button, keybinds: &GameKeybinds) -> String {
     keybinds
         .iter()
-        .filter_map(|(key_keymods, b)| (*b == button).then_some(fmt_key_keymods(*key_keymods)))
+        .filter_map(|(key_keymods, b)| (*b == button).then_some(fmt_key_with_keymods(*key_keymods)))
         .collect::<Vec<_>>()
         .join("")
 }
 
-pub fn get_play_keybinds_legend(keybinds: &GameKeybinds) -> KeybindsLegend {
-    let fk = |k| fmt_key_keymods((k, KeyModifiers::NONE));
-    let fb = |b| fmt_keybinds_of(b, keybinds);
+pub fn get_game_keybinds_legend(keybinds: &GameKeybinds) -> KeybindsLegend {
+    let fk = |k| fmt_key_with_keymods((k, KeyModifiers::NONE));
+    let fb = |b| fmt_button_keybinds(b, keybinds);
 
     let icon_pause = fk(KeyCode::Esc);
     let icons_move = format!("{}{}", fb(Button::MoveLeft), fb(Button::MoveRight));
@@ -281,7 +281,7 @@ pub fn get_play_keybinds_legend(keybinds: &GameKeybinds) -> KeybindsLegend {
 }
 
 pub fn replay_keybinds_legend() -> KeybindsLegend {
-    let fk = |k| fmt_key_keymods((k, KeyModifiers::NONE));
+    let fk = |k| fmt_key_with_keymods((k, KeyModifiers::NONE));
 
     let icon_pause = fk(KeyCode::Char(' '));
     let icons_speed = format!("{}{}", fk(KeyCode::Down), fk(KeyCode::Up));

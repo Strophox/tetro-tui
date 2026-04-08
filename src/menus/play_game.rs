@@ -15,7 +15,7 @@ use falling_tetromino_engine::{
 };
 
 use crate::{
-    fmt_helpers::get_play_keybinds_legend,
+    fmt_helpers::get_game_keybinds_legend,
     game_renderers::{Renderer, TetroTUIRenderer},
     game_restoration::{InputHistoryEncoder, QuantizeInGameTime},
     menus::{Menu, MenuUpdate},
@@ -89,7 +89,7 @@ impl<T: Write> Application<T> {
         // But we don't care much, as for 'usual' values this should not really happen (worst case they lose a few ms in overall run).
         let mut temp_last_move = (Instant::now(), false);
 
-        let keybinds_legend = get_play_keybinds_legend(self.settings.keybinds());
+        let keybinds_legend = get_game_keybinds_legend(self.settings.keybinds());
 
         // FPS counter.
         let mut renders_per_second_counter = 0u32;

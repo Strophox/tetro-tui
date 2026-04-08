@@ -40,7 +40,7 @@ impl<T: Write> Application<T> {
             let dx_title = w_main.saturating_sub(36) / 2;
 
             match self.settings.graphics().glyphset {
-                Glyphset::Elektronika_60 | Glyphset::ASCII => {
+                Glyphset::Elektronika60 | Glyphset::Ascii => {
                     let title_ascii = [
                         r" / /____ / /________   __ / /___ __(_)",
                         r"/ __/ -_) __/ __/ _ \ /_// __/ // / / ",

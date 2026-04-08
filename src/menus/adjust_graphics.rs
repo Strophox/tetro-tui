@@ -209,9 +209,9 @@ impl<T: Write> Application<T> {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.graphics_mut().glyphset =
                             match self.settings.graphics().glyphset {
-                                Glyphset::Elektronika_60 => Glyphset::ASCII,
-                                Glyphset::ASCII => Glyphset::Unicode,
-                                Glyphset::Unicode => Glyphset::Elektronika_60,
+                                Glyphset::Elektronika60 => Glyphset::Ascii,
+                                Glyphset::Ascii => Glyphset::Unicode,
+                                Glyphset::Unicode => Glyphset::Elektronika60,
                             };
                     }
                     2 => {
@@ -274,9 +274,9 @@ impl<T: Write> Application<T> {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.graphics_mut().glyphset =
                             match self.settings.graphics().glyphset {
-                                Glyphset::Elektronika_60 => Glyphset::Unicode,
-                                Glyphset::ASCII => Glyphset::Elektronika_60,
-                                Glyphset::Unicode => Glyphset::ASCII,
+                                Glyphset::Elektronika60 => Glyphset::Unicode,
+                                Glyphset::Ascii => Glyphset::Elektronika60,
+                                Glyphset::Unicode => Glyphset::Ascii,
                             };
                     }
                     2 => {

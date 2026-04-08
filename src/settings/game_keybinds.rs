@@ -10,7 +10,7 @@ use crate::settings::SlotMachine;
 #[derive(serde::Serialize, serde::Deserialize)]
 #[serde(transparent)]
 pub struct GameKeybinds {
-    // Note: the alternative has ugly double-escaped quotation marks: #[serde_as(as = "std::collections::HashMap<serde_with::json::JsonString, _>")]
+    // Note: the alternative has ugly doubly-escaped quotation marks: #[serde_as(as = "std::collections::HashMap<serde_with::json::JsonString, _>")]
     #[serde_as(as = "Vec<(_, _)>")]
     keymap: HashMap<(KeyCode, KeyModifiers), Button>,
 }

@@ -322,7 +322,7 @@ impl Renderer for DiffPrintOldRenderer {
         #[allow(clippy::useless_format)]
         #[rustfmt::skip]
         let base_screen: &[String] = match settings.graphics().glyphset {
-            Glyphset::Elektronika_60 => &[
+            Glyphset::Elektronika60 => &[
                 format!("                                                              ", ),
                 format!("                                                {: ^w$      } ", "mode:", w=modename_len),
                 format!("                        <! . . . . . . . . . .!>{: ^w$      } ", meta_data.title, w=modename_len),
@@ -348,7 +348,7 @@ impl Renderer for DiffPrintOldRenderer {
                 format!("                        <!====================!>              ", ),
                format!(r"                          \/\/\/\/\/\/\/\/\/\/                ", ),
             ],
-            Glyphset::ASCII => &[
+            Glyphset::Ascii => &[
                 format!("                                                              ", ),
                 format!("                  {     }|- - - - - - - - - - +{:-^w$       }+", if show_hold { "+-hold-" } else {"       "}, "mode", w=modename_len),
                 format!("                  {}     |                    |{: ^w$       }|", if show_hold { "| " } else {"  "}, meta_data.title, w=modename_len),
@@ -521,8 +521,8 @@ impl Renderer for DiffPrintOldRenderer {
 
         let (tile_ground, tile_shadow, tile_active, tile_preview) =
             match settings.graphics().glyphset {
-                Glyphset::Elektronika_60 => ("▮▮", " .", "▮▮", "▮▮"),
-                Glyphset::ASCII => ("##" /*"$$"*/, "::", "[]", "[]"),
+                Glyphset::Elektronika60 => ("▮▮", " .", "▮▮", "▮▮"),
+                Glyphset::Ascii => ("##" /*"$$"*/, "::", "[]", "[]"),
                 Glyphset::Unicode => ("██", "░░", "▓▓", "██" /*"▒▒"*/),
             };
 
@@ -599,9 +599,9 @@ impl Renderer for DiffPrintOldRenderer {
         {
             let elapsed = game.state().time.saturating_sub(*creation_time);
             let luminance_map = match settings.graphics().glyphset {
-                Glyphset::Elektronika_60 => [" .", " .", " .", " .", " .", " .", " .", " ."],
+                Glyphset::Elektronika60 => [" .", " .", " .", " .", " .", " .", " .", " ."],
                 // FIXME: Make this hard drop effect available independently of Glyphset (i.e. also for ASCII).
-                Glyphset::ASCII => ["||", "||", "¦¦", "¦¦", "::", "::", "..", ".."],
+                Glyphset::Ascii => ["||", "||", "¦¦", "¦¦", "::", "::", "..", ".."],
                 Glyphset::Unicode => ["@@", "$$", "##", "%%", "**", "++", "~~", ".."],
             };
             // let Some(&char) = [50, 60, 70, 80, 90, 110, 140, 180]
@@ -801,7 +801,7 @@ impl Renderer for DiffPrintOldRenderer {
                     }
                     #[rustfmt::skip]
                     let animation_locking = match settings.graphics().glyphset {
-                        Glyphset::Elektronika_60 => [
+                        Glyphset::Elektronika60 => [
                             ( 25, "▮▮"),
                             ( 50, "▮▮"),
                             ( 75, "▮▮"),
@@ -809,7 +809,7 @@ impl Renderer for DiffPrintOldRenderer {
                             (125, "▮▮"),
                             (150, "▮▮"),
                         ],
-                        Glyphset::ASCII => [
+                        Glyphset::Ascii => [
                             ( 25, "()"),
                             ( 50, "()"),
                             ( 75, "{}"),
@@ -852,7 +852,7 @@ impl Renderer for DiffPrintOldRenderer {
                             continue;
                         }
                         let animation_lineclear = match settings.graphics().glyphset {
-                            Glyphset::Elektronika_60 => [
+                            Glyphset::Elektronika60 => [
                                 "▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮",
                                 "  ▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮",
                                 "    ▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮",
@@ -864,7 +864,7 @@ impl Renderer for DiffPrintOldRenderer {
                                 "                ▮▮▮▮",
                                 "                  ▮▮",
                             ],
-                            Glyphset::ASCII => [
+                            Glyphset::Ascii => [
                                 "$$$$$$$$$$$$$$$$$$$$",
                                 "$$$$$$$$$$$$$$$$$$$$",
                                 "                    ",
