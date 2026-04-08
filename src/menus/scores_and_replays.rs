@@ -16,7 +16,7 @@ use falling_tetromino_engine::Stat;
 use crate::{
     fmt_helpers::fmt_duration,
     game_renderers::TetroTUIRenderer,
-    game_restoration::{CompressedInputHistory, GameRestorationData},
+    game_restoration::{EncodedInputHistory, GameRestorationData},
     menus::{Menu, MenuUpdate},
     Application, ScoreEntry, ScoreEntrySorting,
 };
@@ -29,6 +29,7 @@ impl<T: Write> Application<T> {
         camera_pos: &mut usize,
     ) -> io::Result<MenuUpdate> {
         let mut re_sort_scoreboard = true;
+        let mut view_replay_error = String::new();
         const CAMERA_SIZE: usize = 11;
         const CAMERA_MARGIN: usize = 2;
         loop {
@@ -69,10 +70,7 @@ impl<T: Write> Application<T> {
             };
             let fmt_past_game = |(rank, (entry, opt_rep)): (
                 usize,
-                &(
-                    ScoreEntry,
-                    Option<GameRestorationData<CompressedInputHistory>>,
-                ),
+                &(ScoreEntry, Option<GameRestorationData<EncodedInputHistory>>),
             )| {
                 let lhs_annotation = match sorting {
                     ScoreEntrySorting::Chronological => entry.game_meta_data.datetime.to_owned(),
@@ -206,6 +204,21 @@ impl<T: Write> Application<T> {
                     )
                     .italic(),
                 ))?;
+            if !view_replay_error.is_empty() {
+                self.term
+                    .queue(MoveTo(
+                        x_main,
+                        y_main + y_selection + 4 + u16::try_from(CAMERA_SIZE).unwrap() + 3,
+                    ))?
+                    .queue(PrintStyledContent(
+                        format!(
+                            "{:^w_main$}",
+                            format!("Error loading replay: {view_replay_error}")
+                        )
+                        .italic(),
+                    ))?;
+            }
+
             self.term.flush()?;
 
             // Wait for new input.
@@ -376,29 +389,27 @@ impl<T: Write> Application<T> {
                     kind: Press | Repeat,
                     ..
                 }) if self.scores_and_replays.entries.len() > 0 => {
-                    if let (
-                        ScoreEntry {
-                            game_meta_data,
-                            time: time_elapsed,
-                            ..
-                        },
-                        Some(game_restoration_data),
-                    ) = &self.scores_and_replays.entries[*cursor_pos]
-                    {
-                        if let Some(game_restoration_data) =
-                            game_restoration_data.clone().decompress()
-                        {
-                            let game_meta_data = game_meta_data.clone();
-                            break Ok(MenuUpdate::Push(Menu::ReplayGame {
-                                game_restoration_data: Box::new(game_restoration_data),
-                                game_meta_data,
-                                replay_length: *time_elapsed,
-                                game_renderer: TetroTUIRenderer::with_number(
-                                    self.temp_data.renderernumber,
-                                )
-                                .into(),
-                            }));
+                    let (score_entry, opt_restoratin_data) =
+                        &self.scores_and_replays.entries[*cursor_pos];
+                    if let Some(game_restoration_data) = opt_restoratin_data {
+                        match game_restoration_data.clone().try_decode() {
+                            Ok(game_restoration_data) => {
+                                let game_meta_data = score_entry.game_meta_data.clone();
+                                break Ok(MenuUpdate::Push(Menu::ReplayGame {
+                                    game_restoration_data: Box::new(game_restoration_data),
+                                    game_meta_data,
+                                    replay_length: score_entry.time,
+                                    game_renderer: TetroTUIRenderer::with_number(
+                                        self.temp_data.renderernumber,
+                                    )
+                                    .into(),
+                                }));
+                            }
+                            Err(e) => view_replay_error = e,
                         }
+                    } else {
+                        view_replay_error =
+                            format!("no data for {}", score_entry.game_meta_data.title)
                     }
                 }
 

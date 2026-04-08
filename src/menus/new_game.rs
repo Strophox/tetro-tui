@@ -139,7 +139,7 @@ impl<T: Write> Application<T> {
             }) = &self.game_saves.get()
             {
                 let load_title = &game_meta_data.title;
-                let load_offset_max = input_history.len();
+                let load_offset_max = input_history.inputs.len();
                 self.term
                     .queue(MoveTo(
                         x_main,
@@ -151,7 +151,7 @@ impl<T: Write> Application<T> {
                             if *inputs_to_load == 0 {
                                 format!(">> Load {load_title} from beginning [Del] <<")
                             } else {
-                                let (load_time, load_input) = input_history[(inputs_to_load - 1) % input_history.len()];
+                                let (load_time, load_input) = input_history.inputs[(inputs_to_load - 1) % input_history.inputs.len()];
                                 let load_time = fmt_duration(load_time);
                                 let load_input = fmt_button_input(load_input, self.settings.graphics().glyphset != Glyphset::Unicode);
                                 format!(">> Load {load_title} from input {inputs_to_load}/{load_offset_max} ({load_input} @ {load_time}) [Del] <<")
@@ -604,13 +604,13 @@ impl<T: Write> Application<T> {
                     }) = self.game_saves.get_mut()
                     {
                         if selected == selection_len - 2 {
-                            *inputs_to_load += input_history.len()
+                            *inputs_to_load += input_history.inputs.len()
                                 * if modifiers.contains(KeyModifiers::ALT) {
                                     20
                                 } else {
                                     1
                                 };
-                            *inputs_to_load %= input_history.len() + 1;
+                            *inputs_to_load %= input_history.inputs.len() + 1;
                         }
                     }
                 }
@@ -686,7 +686,7 @@ impl<T: Write> Application<T> {
                             } else {
                                 1
                             };
-                            *inputs_to_load %= input_history.len() + 1;
+                            *inputs_to_load %= input_history.inputs.len() + 1;
                         }
                     }
                 }
@@ -825,10 +825,12 @@ impl<T: Write> Application<T> {
 
                     let restored_input_history = game_restoration_data
                         .input_history
+                        .inputs
                         .iter()
                         .take(*inputs_to_load)
                         .copied()
-                        .collect();
+                        .collect::<Vec<_>>()
+                        .into();
 
                     (
                         restored_game_meta_data,
@@ -897,7 +899,7 @@ impl<T: Write> Application<T> {
                     }
                 }
 
-                self.statistics.total_new_games += 1;
+                self.statistics.new_games_started += 1;
 
                 break Ok(MenuUpdate::Push(Menu::PlayGame {
                     game: game.into(),

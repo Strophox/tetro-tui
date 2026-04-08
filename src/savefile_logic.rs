@@ -6,8 +6,8 @@ use std::{
 };
 
 use crate::{
-    game_restoration::RawInputHistory, settings::Settings, Application, CompressedInputHistory,
-    GameSave, GameSaves, Scoreboard, Statistics,
+    settings::Settings, Application, EncodedInputHistory, GameSave, GameSaves, RawInputHistory,
+    Scoreboard, Statistics,
 };
 
 pub fn savefile_name() -> String {
@@ -37,9 +37,9 @@ pub fn savefile_path() -> PathBuf {
 pub enum SavefileGranularity {
     #[default]
     NoSavefile,
-    RememberSettings,
-    RememberSettingsScores,
-    RememberSettingsScoresReplays,
+    StoreSettings,
+    StoreSettingsScores,
+    StoreSettingsScoresReplays,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -54,7 +54,7 @@ struct SaveContents<'a> {
     statistics: Cow<'a, Statistics>,
 
     #[serde(rename = "GAME_SAVE_SLOTS")]
-    compressed_game_saves: GameSaves<CompressedInputHistory>,
+    compressed_game_saves: GameSaves<EncodedInputHistory>,
 
     #[serde(rename = "SCORES_AND_REPLAYS")]
     scores_and_replays: Cow<'a, Scoreboard>,
@@ -82,11 +82,12 @@ impl<T: Write> Application<T> {
         *settings = save_contents.settings.into_owned();
         *scores_and_replays = save_contents.scores_and_replays.into_owned();
         *statistics = save_contents.statistics.into_owned();
+        // FIXME: Improve error handling by actually displaying the decompression errors somewhere instead of gobbling them with `.ok()`.
         game_saves.slots = save_contents
             .compressed_game_saves
             .slots
             .into_iter()
-            .filter_map(|save| save.decompress())
+            .filter_map(|save| save.try_decode().ok())
             .collect::<Vec<GameSave<RawInputHistory>>>();
         game_saves.picked = save_contents
             .compressed_game_saves
@@ -97,10 +98,10 @@ impl<T: Write> Application<T> {
     }
 
     pub fn store_to_savefile(&mut self) -> io::Result<()> {
-        if self.temp_data.save_on_exit < SavefileGranularity::RememberSettingsScores {
+        if self.temp_data.save_on_exit < SavefileGranularity::StoreSettingsScores {
             // Clear scoreboard if no game data is wished to be stored.
             self.scores_and_replays.entries.clear();
-        } else if self.temp_data.save_on_exit < SavefileGranularity::RememberSettingsScoresReplays {
+        } else if self.temp_data.save_on_exit < SavefileGranularity::StoreSettingsScoresReplays {
             // Clear past game restoration data if no game replay data is wished to be stored.
             for (_entry, restoration_data) in &mut self.scores_and_replays.entries {
                 restoration_data.take();

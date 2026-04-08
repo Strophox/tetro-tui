@@ -49,9 +49,9 @@ impl<T: Write> Application<T> {
                     "Keep save file: {}",
                     match self.temp_data.save_on_exit {
                         SavefileGranularity::NoSavefile => "No *",
-                        SavefileGranularity::RememberSettings
-                        | SavefileGranularity::RememberSettingsScores
-                        | SavefileGranularity::RememberSettingsScoresReplays => "Yes",
+                        SavefileGranularity::StoreSettings
+                        | SavefileGranularity::StoreSettingsScores
+                        | SavefileGranularity::StoreSettingsScoresReplays => "Yes",
                     }
                 ),
                 "Advanced settings...".to_owned(),
@@ -127,7 +127,7 @@ impl<T: Write> Application<T> {
                     2 => break Ok(MenuUpdate::Push(Menu::AdjustGameplay)),
                     3 => {
                         self.temp_data.save_on_exit =
-                            SavefileGranularity::RememberSettingsScoresReplays;
+                            SavefileGranularity::StoreSettingsScoresReplays;
                     }
                     4 => break Ok(MenuUpdate::Push(Menu::AdvancedSettings)),
                     _ => {}
@@ -175,11 +175,11 @@ impl<T: Write> Application<T> {
                         3 => {
                             self.temp_data.save_on_exit = match self.temp_data.save_on_exit {
                                 SavefileGranularity::NoSavefile
-                                | SavefileGranularity::RememberSettingsScores
-                                | SavefileGranularity::RememberSettings => {
-                                    SavefileGranularity::RememberSettingsScoresReplays
+                                | SavefileGranularity::StoreSettingsScores
+                                | SavefileGranularity::StoreSettings => {
+                                    SavefileGranularity::StoreSettingsScoresReplays
                                 }
-                                SavefileGranularity::RememberSettingsScoresReplays => {
+                                SavefileGranularity::StoreSettingsScoresReplays => {
                                     SavefileGranularity::NoSavefile
                                 }
                             };
@@ -217,11 +217,11 @@ impl<T: Write> Application<T> {
                         3 => {
                             self.temp_data.save_on_exit = match self.temp_data.save_on_exit {
                                 SavefileGranularity::NoSavefile => {
-                                    SavefileGranularity::RememberSettingsScoresReplays
+                                    SavefileGranularity::StoreSettingsScoresReplays
                                 }
-                                SavefileGranularity::RememberSettingsScoresReplays
-                                | SavefileGranularity::RememberSettingsScores
-                                | SavefileGranularity::RememberSettings => {
+                                SavefileGranularity::StoreSettingsScoresReplays
+                                | SavefileGranularity::StoreSettingsScores
+                                | SavefileGranularity::StoreSettings => {
                                     SavefileGranularity::NoSavefile
                                 }
                             };

@@ -296,7 +296,7 @@ pub fn replay_keybinds_legend() -> KeybindsLegend {
     ]
 }
 
-pub fn arabic_to_roman(mut num: u32) -> String {
+pub fn to_roman(mut num: u32) -> String {
     // Large roman numerals should be uncommon and have little convention
     // (<https://en.wikipedia.org/wiki/Roman_numerals#Large_numbers>),
     // return fallback decimal representation.
@@ -329,4 +329,83 @@ pub fn arabic_to_roman(mut num: u32) -> String {
     }
 
     string
+}
+
+// https://en.wikipedia.org/wiki/Base64
+pub fn to_base64_charbyte(u6: u8) -> Option<u8> {
+    Some(match u6 {
+        0..=25 => u6 + b'A',
+        26..=51 => u6 - 26 + b'a',
+        52..=61 => u6 - 52 + b'0',
+        62 => b'-',
+        63 => b'_',
+        _ => return None,
+    })
+}
+
+// https://en.wikipedia.org/wiki/Base64
+pub fn try_from_base64_charbyte(ch: u8) -> Result<u8, String> {
+    Ok(match ch {
+        b'A'..=b'Z' => ch - b'A',
+        b'a'..=b'z' => ch - b'a' + 26,
+        b'0'..=b'9' => ch - b'0' + 52,
+        b'-' => 62,
+        b'_' => 63,
+        _ => return Err(format!("cannnot decode invalid bas64 digit `{ch}`")),
+    })
+}
+
+pub fn to_base64(mut num: u128) -> String {
+    let mut vec = Vec::new();
+
+    if num == 0 {
+        vec.push(b'A');
+    } else {
+        while num != 0 {
+            let u6 = (num % 64) as u8;
+            vec.push(to_base64_charbyte(u6).unwrap());
+            num /= 64;
+        }
+        vec.reverse();
+    }
+
+    String::from_utf8(vec).unwrap()
+}
+
+pub fn try_from_base64(str: &str) -> Result<u128, String> {
+    let mut num = 0;
+    for ch in str.bytes() {
+        // One more digit forces shift, but we would overflow.
+        if num & (1u128 << 122) != 0 {
+            return Err(format!(
+                "cannot decode base64 number overflowing u128: `{str}`"
+            ));
+        }
+        num <<= 6;
+        num += try_from_base64_charbyte(ch)? as u128;
+    }
+
+    Ok(num)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn base64_u6_roundtrips_0_64() {
+        for u6 in 0..64 {
+            assert_eq!(
+                try_from_base64_charbyte(to_base64_charbyte(u6).unwrap()),
+                Ok(u6)
+            );
+        }
+    }
+
+    #[test]
+    fn base64_u128_roundtrips_0_65536() {
+        for num in 0..65536 {
+            assert_eq!(try_from_base64(&to_base64(num)), Ok(num));
+        }
+    }
 }

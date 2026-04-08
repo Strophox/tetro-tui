@@ -359,8 +359,10 @@ impl<T: Write> Application<T> {
                                     }
 
                                     // Note how we use `inputs_loaded` as because this automatically corresponds to the *index* of the next desired input.
-                                    if let Some((next_input_time, input)) =
-                                        game_restoration_data.input_history.get(inputs_loaded)
+                                    if let Some((next_input_time, input)) = game_restoration_data
+                                        .input_history
+                                        .inputs
+                                        .get(inputs_loaded)
                                     {
                                         // By using 'less than' we can actually load the environmental game effects and user inputs separately!
                                         if *next_input_time < update_target_time {
@@ -400,12 +402,14 @@ impl<T: Write> Application<T> {
 
                             // [.]: Skip one input forward.
                             (KeyCode::Char('.'), _) => {
-                                if let Some((next_input_time, button_change)) =
-                                    game_restoration_data.input_history.get(inputs_loaded)
+                                if let Some((next_input_time, input)) = game_restoration_data
+                                    .input_history
+                                    .inputs
+                                    .get(inputs_loaded)
                                 {
                                     // FIXME: We do not handle degenerate cases where input is available even tho game should forfeit.
 
-                                    match game.update(*next_input_time, Some(*button_change)) {
+                                    match game.update(*next_input_time, Some(*input)) {
                                         Ok(msgs) => game_renderer.push_game_notification_feed(msgs),
                                         // FIXME: Handle UpdateGameError::TargetTimeInPast? If not, why not?
                                         Err(UpdateGameError::TargetTimeInPast) => {}
@@ -478,10 +482,12 @@ impl<T: Write> Application<T> {
                                     game: Box::new(the_game),
                                     game_input_history: game_restoration_data
                                         .input_history
+                                        .inputs
                                         .iter()
                                         .take(inputs_loaded)
                                         .copied()
-                                        .collect(),
+                                        .collect::<Vec<_>>()
+                                        .into(),
                                     game_meta_data: the_meta_data,
                                     game_renderer: Box::new(the_game_renderer),
                                 });
@@ -543,6 +549,7 @@ impl<T: Write> Application<T> {
                     let tgt_time = ANCHOR_INTERVAL.mul_f64(anchor_index as f64);
                     let idx = match game_restoration_data
                         .input_history
+                        .inputs
                         .binary_search_by_key(&tgt_time, |d_bc| d_bc.0)
                     {
                         Ok(idx) | Err(idx) => idx,
@@ -594,8 +601,10 @@ impl<T: Write> Application<T> {
 
                 'feed_inputs: loop {
                     // Note how we use `inputs_loaded` as because this automatically corresponds to the *index* of the next desired input.
-                    let Some((next_input_time, button_change)) =
-                        game_restoration_data.input_history.get(inputs_loaded)
+                    let Some((next_input_time, input)) = game_restoration_data
+                        .input_history
+                        .inputs
+                        .get(inputs_loaded)
                     else {
                         // No more inputs.
                         break 'feed_inputs;
@@ -606,7 +615,7 @@ impl<T: Write> Application<T> {
                         break 'feed_inputs;
                     }
 
-                    match game.update(*next_input_time, Some(*button_change)) {
+                    match game.update(*next_input_time, Some(*input)) {
                         Ok(msgs) => game_renderer.push_game_notification_feed(msgs),
                         // FIXME: Handle UpdateGameError::TargetTimeInPast? If not, why not?
                         Err(UpdateGameError::TargetTimeInPast) => {}
@@ -761,8 +770,10 @@ impl<T: Write> Application<T> {
 
             // FIXME: Malformed input may not interact nicely with other things, e.g. forfeiting below.
             'feed_inputs: loop {
-                let Some((next_input_time, button_change)) =
-                    game_restoration_data.input_history.get(inputs_loaded)
+                let Some((next_input_time, input)) = game_restoration_data
+                    .input_history
+                    .inputs
+                    .get(inputs_loaded)
                 else {
                     // No more inputs.
                     break 'feed_inputs;
@@ -773,7 +784,7 @@ impl<T: Write> Application<T> {
                     break 'feed_inputs;
                 }
 
-                match game.update(*next_input_time, Some(*button_change)) {
+                match game.update(*next_input_time, Some(*input)) {
                     Ok(_msgs) => {}
                     // FIXME: Handle UpdateGameError::TargetTimeInPast? If not, why not?
                     Err(UpdateGameError::TargetTimeInPast) => {}
@@ -821,8 +832,8 @@ impl<T: Write> Application<T> {
 // pub fn stream_updates(game: &mut Game, input_stream: impl IntoIterator<Item = (InGameTime, Option<ButtonChange>)>) -> Result<Vec<FeedbackMsg>, UpdateGameError> {
 //     let mut msgs = Vec::new();
 
-//     for (target_time, button_changes) in input_stream {
-//         msgs.extend(game.update(target_time, button_changes)?);
+//     for (target_time, input) in input_stream {
+//         msgs.extend(game.update(target_time, input)?);
 //     }
 
 //     Ok(msgs)

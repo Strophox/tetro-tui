@@ -18,7 +18,7 @@ pub use print_recency_stats::PrintRecencyStats;
 pub use puzzle::Puzzle;
 pub use start_board::StartBoard;
 
-pub fn reconstruct_build_modded<'a>(
+pub fn reconstruct_modded<'a>(
     builder: &'a GameBuilder,
     mod_ids_args: &Vec<(String, String)>,
 ) -> Result<(Game, Vec<String>), String> {

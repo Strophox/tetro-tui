@@ -25,34 +25,33 @@ impl<T: Write> Application<T> {
             let (x_main, y_main) = Self::fetch_main_xy();
 
             let Statistics {
-                total_new_games: _,
-                total_games_ended,
-                total_play_time,
-                total_pieces_locked,
-                total_points_scored: _,
-                total_lines_cleared,
-                total_mono,
-                total_duo,
-                total_tri,
-                total_tetra,
-                total_spin,
-                total_perfect: total_perfect_clear,
-                total_combo: _,
+                new_games_started,
+                games_ended,
+                play_time,
+                pieces_locked,
+                points_scored: _,
+                lines_cleared,
+                monos,
+                duos,
+                tris,
+                tetras,
+                spins,
+                perfect_clears,
+                combo_clears: _,
             } = &self.statistics;
 
             let lines = [
-                // format!("New Games started: {total_new_games_started}"),
-                format!("Games finished: {total_games_ended}"),
-                format!("Total play time: {}", fmt_duration(*total_play_time)),
-                format!("Total pieces locked: {total_pieces_locked}"),
-                // format!("Total points scored: {total_points_scored}"),
-                format!("Total lines cleared: {total_lines_cleared}"),
-                format!("Total Mono clears: {total_mono}"),
-                format!("Total Duo clears: {total_duo}"),
-                format!("Total Tri clears: {total_tri}"),
-                format!("Total Tetra clears: {total_tetra}"),
-                format!("Total Spins: {total_spin}"),
-                format!("Total Perfect clears: {total_perfect_clear}"),
+                format!("New Games started: {new_games_started}"),
+                format!("Games finished: {games_ended}"),
+                format!("Cumulative play time: {}", fmt_duration(*play_time)),
+                format!("Tetrominos locked: {pieces_locked}"),
+                format!("Total lines cleared: {lines_cleared}"),
+                format!("'Mono's: {monos}"),
+                format!("'Duo's: {duos}"),
+                format!("'Tri's: {tris}"),
+                format!("'Tetra's: {tetras}"),
+                format!("Spins: {spins}"),
+                format!("Perfect clears: {perfect_clears}"),
             ]
             .into_iter();
 
@@ -63,7 +62,7 @@ impl<T: Write> Application<T> {
             self.term
                 .queue(MoveTo(x_main, y_main + y_selection))?
                 .queue(PrintStyledContent(
-                    format!("{:^w_main$}", "¦ Statistics ¦").bold(),
+                    format!("{:^w_main$}", "¦ All-Time Player Statistics ¦").bold(),
                 ))?;
 
             self.term

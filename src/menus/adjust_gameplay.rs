@@ -55,7 +55,7 @@ impl<T: Write> Application<T> {
                 .queue(PrintStyledContent(
                     format!(
                         "{:^w_main$}",
-                        "= Gameplay Configuration (apply on New Game) ="
+                        "= Gameplay Configuration (applies on New Game) ="
                     )
                     .bold(),
                 ))?

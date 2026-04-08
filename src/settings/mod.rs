@@ -11,7 +11,7 @@ pub use graphics_settings::{Glyphset, GraphicsSettings};
 pub use palette::Palette;
 
 use crate::{
-    fmt_helpers::arabic_to_roman,
+    fmt_helpers::to_roman,
     settings::{
         game_keybinds::default_keybinds_slots, gameplay_settings::default_gameplay_slots,
         graphics_settings::default_graphics_slots, palette::default_palette_slots,
@@ -61,7 +61,7 @@ impl<T: Clone> SlotMachine<T> {
 
             let mut n = 1;
             let cloned_slot_name = loop {
-                let name = format!("{} {}", self.name_templating, arabic_to_roman(n));
+                let name = format!("{} {}", self.name_templating, to_roman(n));
                 if self.slots.iter().all(|s| s.0 != name) {
                     break name;
                 }

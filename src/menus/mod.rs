@@ -99,7 +99,7 @@ impl std::fmt::Display for Menu {
             Menu::ReplayGame { game_meta_data, .. } => {
                 &format!("Replaying Game ({})", game_meta_data.title)
             }
-            Menu::Statistics => "Statistics",
+            Menu::Statistics => "All-Time Stats",
             Menu::About => "About",
             Menu::Quit => "Quit",
         };

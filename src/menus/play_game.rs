@@ -11,15 +11,16 @@ use crossterm::{
     ExecutableCommand,
 };
 use falling_tetromino_engine::{
-    Button, Game, GameEndCause, InGameTime, Input, Notification, Phase, UpdateGameError,
+    Button, Game, GameEndCause, Input, Notification, Phase, UpdateGameError,
 };
 
 use crate::{
     fmt_helpers::get_play_keybinds_legend,
     game_renderers::{Renderer, TetroTUIRenderer},
+    game_restoration::{InputHistoryEncoder, QuantizeInGameTime},
     menus::{Menu, MenuUpdate},
-    Application, CompressedInputHistory, GameMetaData, GameRestorationData, GameSave,
-    RawInputHistory, ScoreEntry, Statistics,
+    Application, EncodedInputHistory, GameMetaData, GameRestorationData, GameSave, RawInputHistory,
+    ScoreEntry, Statistics,
 };
 
 impl<T: Write> Application<T> {
@@ -126,7 +127,7 @@ impl<T: Write> Application<T> {
             // Start new iteration of [render->input->] loop.
 
             if let Phase::GameEnd { cause, is_win } = game.phase() {
-                self.statistics.total_games_ended += 1;
+                self.statistics.games_ended += 1;
 
                 // Game ended, cannot actually continue playing;
                 // Convert to scoreboard entry and return appropriate game-ended menu.
@@ -147,8 +148,7 @@ impl<T: Write> Application<T> {
                     points: game.state().points,
                 };
 
-                let compressed_game_input_history =
-                    CompressedInputHistory::with_raw(game_input_history);
+                let compressed_game_input_history = EncodedInputHistory::encode(game_input_history);
                 let forfeit =
                     matches!(cause, GameEndCause::Forfeit { .. }).then_some(game.state().time);
 
@@ -239,18 +239,8 @@ impl<T: Write> Application<T> {
                         // Worst case react to player input as quickly as possible now.
                         let update_target_time = game.state().time.max(update_target_time);
 
-                        // Lastly we (artificially) compress the information of when an input happened:
-                        // We round it to milliseconds (manually do ceiling rounding, to not be in game's past).
-                        let nanos = update_target_time.as_nanos();
-                        const NANOS_PER_MILLI: u128 = 1_000_000;
-                        let update_target_time = InGameTime::from_millis(
-                            (nanos / NANOS_PER_MILLI
-                                + if nanos.is_multiple_of(NANOS_PER_MILLI) {
-                                    0
-                                } else {
-                                    1
-                                }) as u64,
-                        );
+                        // Lastly we (artificially) compress the information of when an input happened (we essentially round it).
+                        let update_target_time = update_target_time.quantize();
 
                         if self.temp_data.kitty_assumed {
                             // Enhanced keyboard events: determinedly send a single press or release.
@@ -291,7 +281,9 @@ impl<T: Write> Application<T> {
                                 }
                             }
 
-                            game_input_history.push((update_target_time, player_input));
+                            game_input_history
+                                .inputs
+                                .push((update_target_time, player_input));
 
                             match game.update(update_target_time, Some(player_input)) {
                                 Ok(msgs) => {
@@ -335,11 +327,11 @@ impl<T: Write> Application<T> {
                             }
 
                             // Non-enhanced terminal - since we don't have "release" events, we just assume a button press is an instantaneous sequence of press+release.
-                            let button_change = Input::Activate(button);
+                            let input = Input::Activate(button);
 
-                            game_input_history.push((update_target_time, button_change));
+                            game_input_history.inputs.push((update_target_time, input));
 
-                            match game.update(update_target_time, Some(button_change)) {
+                            match game.update(update_target_time, Some(input)) {
                                 Ok(msgs) => {
                                     temp_statistics.accumulate_from_feed(&msgs);
                                     game_renderer.push_game_notification_feed(msgs);
@@ -349,12 +341,11 @@ impl<T: Write> Application<T> {
                             }
 
                             // Note that we do not expect a button release to actually end the game or similar, but we handle things properly anyway.
-                            let button_change = Input::Deactivate(button);
+                            let input = Input::Deactivate(button);
 
-                            game_input_history.push((update_target_time, button_change));
+                            game_input_history.inputs.push((update_target_time, input));
 
-                            let update_result =
-                                game.update(update_target_time, Some(button_change));
+                            let update_result = game.update(update_target_time, Some(input));
 
                             match update_result {
                                 Ok(msgs) => {
@@ -429,7 +420,7 @@ impl<T: Write> Application<T> {
                                         )
                                         .then_some(game.state().time),
                                     ),
-                                    inputs_to_load: game_input_history.len(),
+                                    inputs_to_load: game_input_history.inputs.len(),
                                 }];
 
                                 game_renderer.push_game_notification_feed([(
@@ -452,8 +443,9 @@ impl<T: Write> Application<T> {
                                     // Mark restored game as such.
                                     game_meta_data.title.push('\'');
 
-                                    *game_input_history = game_restoration_data
+                                    game_input_history.inputs = game_restoration_data
                                         .input_history
+                                        .inputs
                                         .iter()
                                         .take(*inputs_to_load)
                                         .copied()
@@ -466,7 +458,7 @@ impl<T: Write> Application<T> {
                                     )]);
 
                                     // What we do here is rather unholy, so we have to adapt the game loop state itself.
-                                    self.statistics.total_play_time += Instant::now()
+                                    self.statistics.play_time += Instant::now()
                                         .saturating_duration_since(time_game_loop_entered);
 
                                     ingametime_when_game_loop_entered = game.state().time;
@@ -615,14 +607,14 @@ impl<T: Write> Application<T> {
         if !game.has_ended() {
             // Game not done:.
             // Manually release any pressed buttons to avoid weird persistent-buttonpress behavior.
-            let unpress_time = game.state().time;
+            let unpress_time = game.state().time.quantize();
             'button_unpressing: for button in Button::VARIANTS {
                 if game.state().active_buttons[button].is_some() {
-                    let button_change = Input::Deactivate(button);
+                    let input = Input::Deactivate(button);
 
-                    let update_result = game.update(unpress_time, Some(button_change));
+                    let update_result = game.update(unpress_time, Some(input));
 
-                    game_input_history.push((unpress_time, button_change));
+                    game_input_history.inputs.push((unpress_time, input));
                     match update_result {
                         Ok(msgs) => {
                             temp_statistics.accumulate_from_feed(&msgs);
@@ -635,7 +627,7 @@ impl<T: Write> Application<T> {
             }
         }
 
-        self.statistics.total_play_time +=
+        self.statistics.play_time +=
             Instant::now().saturating_duration_since(time_game_loop_entered);
 
         if !Statistics::BLACKLIST_TITLE_PREFIXES

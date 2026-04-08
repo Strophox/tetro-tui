@@ -26,7 +26,9 @@ use falling_tetromino_engine::{
 
 use crate::{
     game_modes::GameMode,
-    game_restoration::{CompressedInputHistory, GameRestorationData, RawInputHistory},
+    game_restoration::{
+        EncodedInputHistory, GameRestorationData, InputHistoryEncoder, RawInputHistory,
+    },
     menus::{Menu, MenuUpdate},
     savefile_logic::SavefileGranularity,
     settings::Settings,
@@ -105,26 +107,26 @@ pub struct GameMetaData {
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]
-pub struct GameSave<T> {
+pub struct GameSave<IH: InputHistoryEncoder> {
     game_meta_data: GameMetaData,
-    game_restoration_data: GameRestorationData<T>,
+    game_restoration_data: GameRestorationData<IH>,
     inputs_to_load: usize,
 }
 
 impl GameSave<RawInputHistory> {
-    fn compress(self) -> GameSave<CompressedInputHistory> {
+    fn compress(self) -> GameSave<EncodedInputHistory> {
         GameSave {
-            game_restoration_data: self.game_restoration_data.compress(),
+            game_restoration_data: self.game_restoration_data.encode(),
             game_meta_data: self.game_meta_data,
             inputs_to_load: self.inputs_to_load,
         }
     }
 }
 
-impl GameSave<CompressedInputHistory> {
-    fn decompress(self) -> Option<GameSave<RawInputHistory>> {
-        Some(GameSave {
-            game_restoration_data: self.game_restoration_data.decompress()?,
+impl GameSave<EncodedInputHistory> {
+    fn try_decode(self) -> Result<GameSave<RawInputHistory>, String> {
+        Ok(GameSave {
+            game_restoration_data: self.game_restoration_data.try_decode()?,
             game_meta_data: self.game_meta_data,
             inputs_to_load: self.inputs_to_load,
         })
@@ -143,17 +145,17 @@ impl GameSave<CompressedInputHistory> {
     serde::Serialize,
     serde::Deserialize,
 )]
-pub struct GameSaves<T> {
+pub struct GameSaves<IH: InputHistoryEncoder> {
     picked: usize,
-    slots: Vec<GameSave<T>>,
+    slots: Vec<GameSave<IH>>,
 }
 
-impl<T> GameSaves<T> {
-    pub fn get(&self) -> Option<&GameSave<T>> {
+impl<IH: InputHistoryEncoder> GameSaves<IH> {
+    pub fn get(&self) -> Option<&GameSave<IH>> {
         self.slots.get(self.picked)
     }
 
-    pub fn get_mut(&mut self) -> Option<&mut GameSave<T>> {
+    pub fn get_mut(&mut self) -> Option<&mut GameSave<IH>> {
         self.slots.get_mut(self.picked)
     }
 }
@@ -204,10 +206,7 @@ impl std::fmt::Display for ScoreEntrySorting {
 )]
 pub struct Scoreboard {
     sorting: ScoreEntrySorting,
-    entries: Vec<(
-        ScoreEntry,
-        Option<GameRestorationData<CompressedInputHistory>>,
-    )>,
+    entries: Vec<(ScoreEntry, Option<GameRestorationData<EncodedInputHistory>>)>,
 }
 
 impl Default for Scoreboard {
@@ -285,19 +284,19 @@ impl Scoreboard {
     serde::Deserialize,
 )]
 pub struct Statistics {
-    total_new_games: u32,
-    total_games_ended: u32,
-    total_play_time: Duration,
-    total_pieces_locked: u32,
-    total_points_scored: u32,
-    total_lines_cleared: u32,
-    total_mono: u32,
-    total_duo: u32,
-    total_tri: u32,
-    total_tetra: u32,
-    total_spin: u32,
-    total_perfect: u32,
-    total_combo: u32,
+    new_games_started: u32,
+    games_ended: u32,
+    play_time: Duration,
+    pieces_locked: u32,
+    points_scored: u32,
+    lines_cleared: u32,
+    monos: u32,
+    duos: u32,
+    tris: u32,
+    tetras: u32,
+    spins: u32,
+    perfect_clears: u32,
+    combo_clears: u32,
 }
 
 impl Statistics {
@@ -308,7 +307,7 @@ impl Statistics {
         for (notification, _notif_time) in feed {
             match notification {
                 Notification::PieceLocked { .. } => {
-                    self.total_pieces_locked += 1;
+                    self.pieces_locked += 1;
                 }
 
                 Notification::Accolade {
@@ -319,18 +318,18 @@ impl Statistics {
                     is_perfect,
                     tetromino: _,
                 } => {
-                    self.total_points_scored += point_bonus;
-                    self.total_lines_cleared += lineclears;
+                    self.points_scored += point_bonus;
+                    self.lines_cleared += lineclears;
                     match lineclears {
-                        1 => self.total_mono += 1,
-                        2 => self.total_duo += 1,
-                        3 => self.total_tri += 1,
-                        4 => self.total_tetra += 1,
+                        1 => self.monos += 1,
+                        2 => self.duos += 1,
+                        3 => self.tris += 1,
+                        4 => self.tetras += 1,
                         _ => {}
                     }
-                    self.total_spin += if *is_spin { 1 } else { 0 };
-                    self.total_perfect += if *is_perfect { 1 } else { 0 };
-                    self.total_combo += if *combo > 1 { 1 } else { 0 };
+                    self.spins += if *is_spin { 1 } else { 0 };
+                    self.perfect_clears += if *is_perfect { 1 } else { 0 };
+                    self.combo_clears += if *combo > 1 { 1 } else { 0 };
                 }
 
                 _ => {}
@@ -340,34 +339,34 @@ impl Statistics {
 
     fn accumulate(&mut self, other: &Statistics) {
         let Statistics {
-            total_new_games: total_new_games_started,
-            total_games_ended,
-            total_play_time,
-            total_pieces_locked,
-            total_points_scored,
-            total_lines_cleared,
-            total_mono,
-            total_duo,
-            total_tri,
-            total_tetra,
-            total_spin,
-            total_perfect: total_perfect_clear,
-            total_combo,
+            new_games_started: total_new_games_started,
+            games_ended: total_games_ended,
+            play_time: total_play_time,
+            pieces_locked: total_pieces_locked,
+            points_scored: total_points_scored,
+            lines_cleared: total_lines_cleared,
+            monos: total_mono,
+            duos: total_duo,
+            tris: total_tri,
+            tetras: total_tetra,
+            spins: total_spin,
+            perfect_clears: total_perfect_clear,
+            combo_clears: total_combo,
         } = self;
 
-        *total_new_games_started += other.total_new_games;
-        *total_games_ended += other.total_games_ended;
-        *total_play_time += other.total_play_time;
-        *total_pieces_locked += other.total_pieces_locked;
-        *total_points_scored += other.total_points_scored;
-        *total_lines_cleared += other.total_lines_cleared;
-        *total_mono += other.total_mono;
-        *total_duo += other.total_duo;
-        *total_tri += other.total_tri;
-        *total_tetra += other.total_tetra;
-        *total_spin += other.total_spin;
-        *total_perfect_clear += other.total_perfect;
-        *total_combo += other.total_combo;
+        *total_new_games_started += other.new_games_started;
+        *total_games_ended += other.games_ended;
+        *total_play_time += other.play_time;
+        *total_pieces_locked += other.pieces_locked;
+        *total_points_scored += other.points_scored;
+        *total_lines_cleared += other.lines_cleared;
+        *total_mono += other.monos;
+        *total_duo += other.duos;
+        *total_tri += other.tris;
+        *total_tetra += other.tetras;
+        *total_spin += other.spins;
+        *total_perfect_clear += other.perfect_clears;
+        *total_combo += other.combo_clears;
     }
 }
 
