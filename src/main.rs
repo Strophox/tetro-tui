@@ -64,28 +64,28 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     struct Args {
         /// Initial seed upon starting a custom game, given as a 64-bit integer.
         ///
-        /// This influences e.g. the sequence of pieces used and
+        /// This influences e.g. the sequence of pieces used and\
         /// makes it possible to replay a run with the same pieces.
         ///
-        /// Example uses:  `tetro-tui --seed=42`
-        ///             or `tetro-tui -s 42`.
+        /// Example uses:  ```tetro-tui --seed=42```
+        ///             or ```tetro-tui -s 42```
         #[arg(short, long)]
         seed: Option<u64>,
 
         /// Initial board upon starting a custom game, encoded as character string.
         ///
         /// The string fills the board line-by-line:
-        /// * Left->right; Bottom->top.
-        /// * When end of the board width is reached, the next line is started.
+        /// - Left->right; Bottom->top.
+        /// - When end of the board width is reached, the next line is started.
         ///
-        /// Every character corresponds to exactly one filled board cell *except*:
-        /// * Space (' ') indicates an *empty* cell.
-        /// * Slash ('/') indicates "skip to next line".
-        /// * Newlines ('\n') are ignored completely.
+        /// Every character corresponds to exactly *one filled board cell* except:
+        /// - A space, underscore or period (' ', '_', '.') indicates an *empty* cell.
+        /// - A slash ('/') indicates an optional "skip to next line".
+        /// - All newlines ('\n') are ignored completely.
         ///
         /// Example uses:  |▄▄▀       |
-        ///            --> `tetro-tui --board="## /  #"`
-        ///             or `tetro-tui -b "XY /  Z"`.     
+        ///             becomes ```tetro-tui --board="##/  #"```
+        ///                  or ```tetro-tui -b "XY_/..Z"```
         #[arg(short, long)]
         board: Option<String>,
     }
