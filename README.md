@@ -54,20 +54,20 @@ yay -S tetro-tui
 
 ### How does the base game work?
 
-> *Tetro* is about [tetromino](<https://en.wikipedia.org/wiki/Tetromino>) pieces falling from the sky and stacking inside a 2D playing field. When a horizontal line is full it automatically clears away and everything 'stacked' above shifts down.
+> *Tetro TUI* is about [tetromino](<https://en.wikipedia.org/wiki/Tetromino>) pieces falling from the sky and stacking inside a 2D playing field. When a horizontal line is full it automatically clears away and everything 'stacked' above shifts down.
 > 
-> A skilled player can keep playing indefinitely.
-> Different gamemodes may put slight twists on the base mechanics.
+> A skilled player may keep playing indefinitely.
+> Different gamemodes will change up the gameplay while still using the same base mechanics.
 
 
 ### How good is it in terms of customization / features?
 
-> We provide a solid amount of configuration options and mechanics:
+> We provide a solid amount of configuration options and features:
 > - **Graphics:** Unicode/ASCII/Electronika, a handful of provided color palettes, FPS, toggle effects, ...
-> - **Game keybinds:** to your heart's desire. (\*Note: `Ctrl`/`Shift`/`Alt` might not work due to terminal limitations.)
-> - **Gameplay / handling:** Rotation systems, randomizers, preview, timings (DAS, ARR, SDF, LDC, ARE), IRS/IHS.
-> - **Gamemode selection:** Swift ('40lines'), Classic ('Marathon'), Master, Puzzle, Cheese, Combo, Custom (select goal, initial gravity, toggle gravity progress, *cmdline flags:* start board, seed).
-> - **Scoreboard, Replays, Statistics...** - can all be accessed as well as stored to a simple savefile.
+> - **Gameplay / handling:** Rotation systems, randomizers, preview, timings (DAS, ARR, SDF, LDC, ARE), IRS/IHS (\*[caveat](#why-do-some-gameplay-settings-dasarretc-or-a-simple-shift-keypress-not-work-for-me)).
+> - **Game keybinds:** to your heart's desire. 
+> - **Game mode miscellany:** Swift ('40lines'), Classic ('Marathon'), Master, Puzzle, Cheese, Combo, Custom (select goal, initial gravity, toggle gravity progress, *cmdline flags:* start board, seed).
+> - **Highscores, replays, statistics...** - can can be accessed as well as backed up with a **simple savefile**.
 >
 > TUI visuals depend on / can be customized using your underlying terminal settings.
 >
@@ -318,7 +318,7 @@ yay -S tetro-tui
 > - Dedicated binds possible for **Rotate 180°**, **Teleport Down** ('Sonic Drop'), even Teleport Left/Right.
 > 
 > **Gameplay:**
-> - Default use of the flexible/intuitive/symmetrical **Ocular Rotation** System (instead of the quirky/sometimes asymmetrical industry default).
+> - Default use of the flexible/intuitive/symmetrical [**Ocular Rotation** System](#experienced-players-what-is-this-ocular-rotation-system) (instead of the quirky/sometimes asymmetrical industry default).
 > - Default **Recency (History) Randomizer** (instead of 'overdeterministic' 7-Bag).
 > - **Points (score) bonus** system is currently kept custom and simple.
 >   - '1pt for simple line clear, with increasing bonus for larger lineclears, combos, spins and perfect clears.'
@@ -390,8 +390,10 @@ Color palettes used: [Gruvbox](<https://github.com/morhetz/gruvbox>), [Solarized
 
 ## Acknowledgements
 
+A Thank You to the [AUR package](#install-on-arch-linux) maintainers:
+- [wcasanova](<https://github.com/wcasanova>) and [druxorey](<https://github.com/druxorey>), and Dominiquini
+
 Special Thanks go to:
-- [wcasanova](<https://github.com/wcasanova>) and [druxorey](<https://github.com/druxorey>) – AUR package maintainers
 - GrBtAce, KonSola5 and bennxt – for early support
 - madkiwi – for advice regarding 4wide-6residual combo layouts
 - Dunspixel – for inspiration regarding ['O'-spins](<https://dunspixel.github.io/ospin-guide/chapter4.html#tetro-tui>)

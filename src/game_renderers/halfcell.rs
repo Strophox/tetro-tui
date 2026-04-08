@@ -63,7 +63,7 @@ impl Renderer for HalfCellRenderer {
 
         // let small_ascii = " .°:".chars().collect::<Vec<char>>();
         let (halfcell, delim_l, delim_r) = match settings.graphics().glyphset {
-            Glyphset::Elektronika_60 | Glyphset::ASCII => ([' ', '.', '°', ':'], '#', '#'),
+            Glyphset::Elektronika60 | Glyphset::Ascii => ([' ', '.', '°', ':'], '#', '#'),
             Glyphset::Unicode => ([' ', '▄', '▀', '█'], '░', '░'),
         };
 

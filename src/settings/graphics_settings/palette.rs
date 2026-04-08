@@ -309,6 +309,8 @@ impl Palette {
 
 // - Symphony of Serialzation Boilerplate -
 
+// FIXME: Consider  #[serde(try_from = "FromType")]  and  #[serde(into = "IntoType")]  (See <https://serde.rs/container-attrs.html>).
+
 // From <https://stackoverflow.com/questions/42723065/how-to-sort-hashmap-keys-when-serializing-with-serde>
 //
 // For use with serde's [serialize_with] attribute

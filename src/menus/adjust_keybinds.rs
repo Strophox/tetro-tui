@@ -14,7 +14,7 @@ use crossterm::{
 use falling_tetromino_engine::Button;
 
 use crate::{
-    fmt_helpers::fmt_keybinds_of,
+    fmt_helpers::fmt_button_keybinds,
     menus::{Menu, MenuUpdate},
     settings::GameKeybinds,
     Application, Settings,
@@ -88,7 +88,7 @@ impl<T: Write> Application<T> {
             let button_names = buttons_available.iter().map(|&button| {
                 format!(
                     "{button:?}: {}",
-                    fmt_keybinds_of(button, self.settings.keybinds())
+                    fmt_button_keybinds(button, self.settings.keybinds())
                 )
             });
             for (i, name) in button_names.enumerate() {
