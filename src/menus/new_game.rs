@@ -21,7 +21,7 @@ use falling_tetromino_engine::{
 
 use crate::{
     fmt_helpers::{fmt_button_input, fmt_duration, fmt_hertz, FmtBool},
-    game_modes::GameMode,
+    game_mode_presets::GameModePreset,
     game_modifiers::{self, Combo},
     game_renderers::{Renderer, TetroTUIRenderer},
     game_restoration::{GameRestorationData, RawInputHistory},
@@ -51,10 +51,10 @@ impl<T: Write> Application<T> {
         loop {
             #[allow(clippy::type_complexity)]
             let mut game_modes = vec![
-                GameMode::swift(),
-                GameMode::classic(),
-                GameMode::puzzle(),
-                GameMode::cheese(
+                GameModePreset::swift(),
+                GameModePreset::classic(),
+                GameModePreset::puzzle(),
+                GameModePreset::cheese(
                     self.settings.game_mode_preferences.cheese_holes_per_line,
                     self.settings
                         .game_mode_preferences
@@ -64,14 +64,14 @@ impl<T: Write> Application<T> {
                         .game_mode_preferences
                         .cheese_fall_and_lock_delays,
                 ),
-                GameMode::combo(
+                GameModePreset::combo(
                     self.settings.game_mode_preferences.combo_start_layout,
                     self.settings.game_mode_preferences.combo_limit,
                 ),
             ];
 
             if self.settings.game_mode_preferences.master_mode_unlocked {
-                game_modes.insert(2, GameMode::master());
+                game_modes.insert(2, GameModePreset::master());
             }
 
             if self
@@ -79,18 +79,25 @@ impl<T: Write> Application<T> {
                 .game_mode_preferences
                 .experimental_mode_unlocked
             {
-                game_modes.push(GameMode::ascent())
+                game_modes.push(GameModePreset::ascent())
             }
 
             // First part: rendering the menu.
             let w_main = Self::W_MAIN.into();
             let (x_main, y_main) = Self::fetch_main_xy();
             let y_selection = Self::H_MAIN / 5;
+
             let savepoint_available = if !self.game_saves.slots.is_empty() {
                 1
             } else {
                 0
             };
+
+            let idx_cheese = 4;
+            let idx_combo = 4;
+            let idx_savepoint = (!self.game_saves.slots.is_empty()).then_some(game_modes.len());
+            let idx_custom = game_modes.len() + savepoint_available;
+
             // Normal presets + 2 spaces if savepoint option available + custom preset.
             let selection_len = game_modes.len() + savepoint_available + 1;
             // There are four columns for the custom stat selection.
@@ -106,10 +113,10 @@ impl<T: Write> Application<T> {
                 ))?
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
                 .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
-            // Render normal and special gamemodes.
+            // Render normal and special game modes.
             for (
                 i,
-                GameMode {
+                GameModePreset {
                     title,
                     description,
                     stat_and_order_desc: _,
@@ -172,7 +179,7 @@ impl<T: Write> Application<T> {
                 ))?
                 .queue(Print(format!(
                     "{:^w_main$}",
-                    if selected == selection_len - 1 {
+                    if selected == idx_custom {
                         format!(
                             "{:<42}",
                             format!(
@@ -204,7 +211,7 @@ impl<T: Write> Application<T> {
                     }
                 )))?;
             // Render custom mode stuff.
-            if selected == selection_len - 1 {
+            if selected == idx_custom {
                 let stats_strs = [
                     format!(
                         "| Initial fall delay = {:?}s (Gravity: {})",
@@ -560,13 +567,9 @@ impl<T: Write> Application<T> {
                     modifiers,
                     ..
                 }) => {
-                    if selected == selection_len - 1 && customization_selected > 0 {
+                    if selected == idx_custom && customization_selected > 0 {
                         customization_selected += customization_selection_size - 1
-                    } else if selected < game_modes.len()
-                        && game_modes[selected]
-                            .title
-                            .starts_with(GameMode::TITLE_CHEESE)
-                    {
+                    } else if selected == idx_cheese {
                         if let Some(limit) = self.settings.game_mode_preferences.cheese_limit {
                             self.settings.game_mode_preferences.cheese_limit =
                                 if limit > lowerbound_cheese {
@@ -575,11 +578,7 @@ impl<T: Write> Application<T> {
                                     None
                                 };
                         }
-                    } else if selected < game_modes.len()
-                        && game_modes[selected]
-                            .title
-                            .starts_with(GameMode::TITLE_COMBO)
-                    {
+                    } else if selected == idx_combo {
                         if modifiers.contains(KeyModifiers::ALT) {
                             let new_layout_idx = if let Some(i) =
                                 Combo::LAYOUTS.iter().position(|lay| {
@@ -601,13 +600,13 @@ impl<T: Write> Application<T> {
                                     None
                                 };
                         }
-                    } else if let Some(GameSave {
-                        game_restoration_data: GameRestorationData { input_history, .. },
-                        inputs_to_load,
-                        ..
-                    }) = self.game_saves.get_mut()
-                    {
-                        if selected == selection_len - 2 {
+                    } else if Some(selected) == idx_savepoint {
+                        if let Some(GameSave {
+                            game_restoration_data: GameRestorationData { input_history, .. },
+                            inputs_to_load,
+                            ..
+                        }) = self.game_saves.get_mut()
+                        {
                             *inputs_to_load += input_history.inputs.len()
                                 * if modifiers.contains(KeyModifiers::ALT) {
                                     20
@@ -627,7 +626,7 @@ impl<T: Write> Application<T> {
                     ..
                 }) => {
                     // If custom gamemode selected, allow incrementing stat selection.
-                    if selected == selection_len - 1 {
+                    if selected == idx_custom {
                         // If reached last stat, cycle through stats for limit.
                         if customization_selected == customization_selection_size - 1 {
                             self.settings.game_mode_preferences.custom_win_condition =
@@ -641,22 +640,14 @@ impl<T: Write> Application<T> {
                         } else {
                             customization_selected += 1
                         }
-                    } else if selected < game_modes.len()
-                        && game_modes[selected]
-                            .title
-                            .starts_with(GameMode::TITLE_CHEESE)
-                    {
+                    } else if selected == idx_cheese {
                         self.settings.game_mode_preferences.cheese_limit =
                             if let Some(limit) = self.settings.game_mode_preferences.cheese_limit {
                                 limit.checked_add(1)
                             } else {
                                 Some(lowerbound_cheese)
                             };
-                    } else if selected < game_modes.len()
-                        && game_modes[selected]
-                            .title
-                            .starts_with(GameMode::TITLE_COMBO)
-                    {
+                    } else if selected == idx_combo {
                         if modifiers.contains(KeyModifiers::ALT) {
                             let new_layout_idx = if let Some(i) =
                                 Combo::LAYOUTS.iter().position(|lay| {
@@ -678,13 +669,13 @@ impl<T: Write> Application<T> {
                                 Some(lowerbound_combo)
                             };
                         }
-                    } else if let Some(GameSave {
-                        game_restoration_data: GameRestorationData { input_history, .. },
-                        inputs_to_load,
-                        ..
-                    }) = self.game_saves.get_mut()
-                    {
-                        if selected == selection_len - 2 {
+                    } else if Some(selected) == idx_savepoint {
+                        if let Some(GameSave {
+                            game_restoration_data: GameRestorationData { input_history, .. },
+                            inputs_to_load,
+                            ..
+                        }) = self.game_saves.get_mut()
+                        {
                             *inputs_to_load += if modifiers.contains(KeyModifiers::ALT) {
                                 20
                             } else {
@@ -702,7 +693,7 @@ impl<T: Write> Application<T> {
                     modifiers,
                     ..
                 }) => {
-                    if selected == selection_len - 1 {
+                    if selected == idx_custom {
                         self.settings.game_mode_preferences.custom_seed = None;
                         self.settings.game_mode_preferences.custom_start_board = None;
                         self.settings.game_mode_preferences.custom_fall_params =
@@ -710,18 +701,10 @@ impl<T: Write> Application<T> {
                         self.settings.game_mode_preferences.custom_lock_params =
                             DelayParameters::standard_lock();
                         self.settings.game_mode_preferences.custom_win_condition = None;
-                    } else if selected < game_modes.len()
-                        && game_modes[selected]
-                            .title
-                            .starts_with(GameMode::TITLE_CHEESE)
-                    {
+                    } else if selected == idx_cheese {
                         self.settings.game_mode_preferences.cheese_limit =
                             GameModePreferences::default().cheese_limit;
-                    } else if selected < game_modes.len()
-                        && game_modes[selected]
-                            .title
-                            .starts_with(GameMode::TITLE_COMBO)
-                    {
+                    } else if selected == idx_combo {
                         if modifiers.contains(KeyModifiers::ALT) {
                             self.settings.game_mode_preferences.combo_start_layout =
                                 Combo::LAYOUTS[0];
@@ -729,7 +712,7 @@ impl<T: Write> Application<T> {
                             self.settings.game_mode_preferences.combo_limit =
                                 GameModePreferences::default().combo_limit;
                         }
-                    } else if selected == selection_len - 2 {
+                    } else if Some(selected) == idx_savepoint {
                         self.game_saves.slots.remove(self.game_saves.picked);
                         self.game_saves.picked = 0;
                     }
@@ -793,7 +776,7 @@ impl<T: Write> Application<T> {
 
                 let (game_meta_data, mut game, raw_input_history) = if selected < game_modes.len() {
                     // Build one of the selected game modes.
-                    let GameMode {
+                    let GameModePreset {
                         title,
                         description: _,
                         stat_and_order_desc,
