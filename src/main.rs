@@ -1,5 +1,5 @@
 mod fmt_helpers;
-mod game_modes;
+mod game_mode_presets;
 mod game_modifiers;
 mod game_renderers;
 mod game_restoration;
@@ -23,7 +23,7 @@ use falling_tetromino_engine::{
 };
 
 use crate::{
-    game_modes::GameMode,
+    game_mode_presets::GameModePreset,
     game_restoration::{
         EncodedInputHistory, GameRestorationData, InputHistoryEncoder, RawInputHistory,
     },
@@ -246,9 +246,9 @@ impl Scoreboard {
     #[rustfmt::skip]
     fn sort_semantically(&mut self) {
         self.entries.sort_by(|(pg1, _), (pg2, _)|
-            // Sort by gamemode (name).
+            // Sort by game mode (name).
             pg1.game_meta_data.title.cmp(&pg2.game_meta_data.title).then_with(||
-            // Sort by if gamemode was finished successfully.
+            // Sort by if game mode was finished successfully.
             pg1.is_win.cmp(&pg2.is_win).reverse().then_with(|| {
                 // Sort by comparison stat...
                 let o = match pg1.game_meta_data.stat_and_desc_order.0 {
@@ -308,7 +308,8 @@ pub struct Statistics {
 
 impl Statistics {
     // This simple blacklist is used to prevent certain game modes from being counted toward stats (e.g. Puzzle's perfect clears).
-    const BLACKLIST_TITLE_PREFIXES: &[&str] = &[GameMode::TITLE_PUZZLE, GameMode::TITLE_COMBO];
+    const BLACKLIST_TITLE_PREFIXES: &[&str] =
+        &[GameModePreset::TITLE_PUZZLE, GameModePreset::TITLE_COMBO];
 
     fn accumulate_from_feed(&mut self, feed: &NotificationFeed) {
         for (notification, _notif_time) in feed {

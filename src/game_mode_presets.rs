@@ -8,14 +8,14 @@ use falling_tetromino_engine::{DelayParameters, ExtDuration, Game, GameBuilder, 
 use crate::game_modifiers;
 
 // Name, (Stat-to-sort-by, is-order-desc), game-builder-struct-finalizer).
-pub struct GameMode {
+pub struct GameModePreset {
     pub title: String,
     pub description: String,
     pub stat_and_order_desc: (Stat, bool),
     pub build: Box<dyn Fn(&GameBuilder) -> Game>,
 }
 
-impl GameMode {
+impl GameModePreset {
     pub const TITLE_SWIFT: &str = "Swift";
     pub fn swift() -> Self {
         Self {
