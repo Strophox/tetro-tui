@@ -57,7 +57,7 @@ yay -S tetro-tui
 > *Tetro TUI* is about [tetromino](<https://en.wikipedia.org/wiki/Tetromino>) pieces falling from the sky and stacking inside a 2D playing field. When a horizontal line is full it automatically clears away and everything 'stacked' above shifts down.
 > 
 > A skilled player may keep playing indefinitely.
-> Different gamemodes will change up the gameplay while still using the same base mechanics.
+> Different game modes will change up the gameplay while still using the same base mechanics.
 
 
 ### How good is it in terms of customization / features?
@@ -191,7 +191,7 @@ yay -S tetro-tui
 > | `Home`/`End` | Navigate to top/bottom in 'Scores & Replays' |
 > | `Alt`+? | Change value but differently (in 'New game'⇝['Combo','Savepoint','Custom'], in 'Gameplay settings'⇝'Tetromino generation') |
 > | `Alt`+`Del`, `Alt`+`d` | Delete replay  (in 'Scores and Replays') |
-> | `Ctrl`+`U` | (For experienced/impatient players) unlock all gamemodes (in 'New game') |
+> | `Ctrl`+`U` | (For experienced/impatient players) unlock all game modes (in 'New game') |
 > | `Ctrl`+`C` | Exit application (respects save preferences) |
 > 
 > </details>
