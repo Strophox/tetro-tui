@@ -506,14 +506,18 @@ impl<T: Write> Application<T> {
                             }
 
                             // Other misc. key event: We don't care.
-                            _ => continue 'wait,
+                            _ => {},
                         }
                     }
 
+                    // Auto-pause on un-focus.
+                    event::Event::FocusLost => {
+                        break 'update_and_render MenuUpdate::Push(Menu::Pause);
+                    }
+                    
+                    event::Event::FocusGained => {}
                     event::Event::Mouse(_) => {}
                     event::Event::Paste(_) => {}
-                    event::Event::FocusGained => {}
-                    event::Event::FocusLost => {}
                     event::Event::Resize(_, _) => {
                         // Need to redraw screen for proper centering etc.
                         let (x_main, y_main) = Application::<T>::fetch_main_xy();
