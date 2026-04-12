@@ -472,7 +472,7 @@ impl<T: Write> Application<T> {
 
                                 // FIXME: Clone renderer when entering live game from here?
                                 let the_game_renderer =
-                                    TetroTUIRenderer::with_number(self.temp_data.renderernumber);
+                                    TetroTUIRenderer::with_number(self.temp_data.renderer_selected);
 
                                 // FIXME: Should we count this as new game started?
                                 // Accumulate this specific state here.

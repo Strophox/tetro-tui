@@ -873,7 +873,7 @@ impl<T: Write> Application<T> {
                 // game.modifiers.push(falling_tetromino_engine::Modifier { descriptor: "always_clear_board".to_owned(), mod_function: Box::new(|_c, _i, s, _m, _f| { s.board = Default::default(); })});
 
                 let mut game_renderer =
-                    TetroTUIRenderer::with_number(self.temp_data.renderernumber);
+                    TetroTUIRenderer::with_number(self.temp_data.renderer_selected);
 
                 // We do an initial update, which allows a piece to spawn and queue to get generated.
                 // We do this so the renderer does not render a first frame when game is in its raw start state.
