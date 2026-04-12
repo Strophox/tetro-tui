@@ -36,11 +36,12 @@ impl<T: Write> Application<T> {
 
         let d_das = Duration::from_millis(1);
         let d_arr = Duration::from_millis(1);
-        let d_sdf = ExtNonNegF64::new(0.25).unwrap();
+        let d_sdf = ExtNonNegF64::new(0.5).unwrap();
+        let upperbound_sdf = ExtNonNegF64::from(40);
         let d_lcd = Duration::from_millis(5);
         let d_are = Duration::from_millis(5);
 
-        let d_tmf = Duration::from_millis(5);
+        let d_dtf = Duration::from_millis(5);
 
         let mut selected = 1usize;
         loop {
@@ -321,6 +322,9 @@ impl<T: Write> Application<T> {
                     6 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.gameplay_mut().sdf += d_sdf;
+                        if self.settings.gameplay().sdf > upperbound_sdf {
+                            self.settings.gameplay_mut().sdf = ExtNonNegF64::MAX;
+                        }
                     }
                     7 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
@@ -337,7 +341,7 @@ impl<T: Write> Application<T> {
                     10 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.gameplay_mut().dtapfinesse = Some(
-                            self.settings.gameplay_mut().dtapfinesse.unwrap_or_default() + d_tmf,
+                            self.settings.gameplay_mut().dtapfinesse.unwrap_or_default() + d_dtf,
                         );
                     }
                     _ => {}
@@ -425,8 +429,12 @@ impl<T: Write> Application<T> {
                     }
                     6 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.gameplay_mut().sdf =
-                            self.settings.gameplay_mut().sdf.saturating_sub(d_sdf)
+                        if self.settings.gameplay().sdf > upperbound_sdf {
+                            self.settings.gameplay_mut().sdf = upperbound_sdf;
+                        } else {
+                            self.settings.gameplay_mut().sdf =
+                                self.settings.gameplay_mut().sdf.saturating_sub(d_sdf)
+                        }
                     }
                     7 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
@@ -449,7 +457,7 @@ impl<T: Write> Application<T> {
                             .gameplay()
                             .dtapfinesse
                             .unwrap_or_default()
-                            .checked_sub(d_tmf);
+                            .checked_sub(d_dtf);
                     }
                     _ => {}
                 },
