@@ -13,8 +13,8 @@ pub mod palette;
 pub mod small_tet_style;
 pub mod tui_style;
 
-// TODO: Make this ergonomic, and serialize efficiently.
-pub type TileTexture = [char; 2];
+// NOTE: We are mostly interested in 2-character-wide strings.
+pub type TileTexture = String;
 
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug, serde::Serialize, serde::Deserialize,

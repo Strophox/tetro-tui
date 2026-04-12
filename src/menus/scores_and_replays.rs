@@ -400,7 +400,7 @@ impl<T: Write> Application<T> {
                                     game_meta_data,
                                     replay_length: score_entry.time,
                                     game_renderer: TetroTUIRenderer::with_number(
-                                        self.temp_data.renderernumber,
+                                        self.temp_data.renderer_selected,
                                     )
                                     .into(),
                                 }));

@@ -506,15 +506,17 @@ impl<T: Write> Application<T> {
                             }
 
                             // Other misc. key event: We don't care.
-                            _ => {},
+                            _ => {}
                         }
                     }
 
                     // Auto-pause on un-focus.
                     event::Event::FocusLost => {
-                        break 'update_and_render MenuUpdate::Push(Menu::Pause);
+                        if !self.temp_data.no_pause_on_focus_lost {
+                            break 'update_and_render MenuUpdate::Push(Menu::Pause);
+                        }
                     }
-                    
+
                     event::Event::FocusGained => {}
                     event::Event::Mouse(_) => {}
                     event::Event::Paste(_) => {}

@@ -6,7 +6,7 @@ use crate::settings::SlotMachine;
 #[serde(transparent)]
 pub struct TuiStyle {
     // TODO: How?
-    pub glyphs: Vec<char>,
+    pub glyphmap: Vec<char>,
 }
 
 pub fn default_tui_style_slots() -> SlotMachine<TuiStyle> {
@@ -21,14 +21,18 @@ pub fn default_tui_style_slots() -> SlotMachine<TuiStyle> {
 
 impl TuiStyle {
     pub fn unicode() -> Self {
-        TuiStyle { glyphs: todo!() }
+        TuiStyle {
+            glyphmap: "─┌└|╓╶╖║╙▀╜─┐│╴┤┬─┘".chars().collect(),
+        }
     }
-
     pub fn ascii() -> Self {
-        TuiStyle { glyphs: todo!() }
+        TuiStyle {
+            glyphmap: "".chars().collect(),
+        }
     }
-
     pub fn elektronika_60() -> Self {
-        TuiStyle { glyphs: todo!() }
+        TuiStyle {
+            glyphmap: "".chars().collect(),
+        }
     }
 }

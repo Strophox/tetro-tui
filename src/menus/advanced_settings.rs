@@ -51,7 +51,7 @@ impl<T: Write> Application<T> {
                     }
                 ),
                 format!(
-                    "Assume enhanced-key-events work = {} *",
+                    "Assume enhanced-key-events available = {} *",
                     self.temp_data.kitty_assumed.fmt_on_off()
                 ),
                 format!(
@@ -59,8 +59,12 @@ impl<T: Write> Application<T> {
                     self.temp_data.blindfold_enabled.fmt_on_off()
                 ),
                 format!(
-                    "Renderertype = {} (applies on New Game)",
-                    TetroTUIRenderer::with_number(self.temp_data.renderernumber).name()
+                    "Don't pause when focus lost = {}",
+                    self.temp_data.no_pause_on_focus_lost.fmt_on_off()
+                ),
+                format!(
+                    "Renderer selected = {} (applies on New Game)",
+                    TetroTUIRenderer::with_number(self.temp_data.renderer_selected).name()
                 ),
             ];
 
@@ -180,7 +184,7 @@ impl<T: Write> Application<T> {
                         self.temp_data.blindfold_enabled = false;
                     }
                     3 => {
-                        self.temp_data.renderernumber = 0;
+                        self.temp_data.renderer_selected = 0;
                     }
                     _ => {}
                 },
@@ -227,8 +231,11 @@ impl<T: Write> Application<T> {
                         self.temp_data.blindfold_enabled ^= true;
                     }
                     3 => {
-                        self.temp_data.renderernumber += 1;
-                        self.temp_data.renderernumber %= TetroTUIRenderer::NUM_VARIANTS;
+                        self.temp_data.no_pause_on_focus_lost ^= true;
+                    }
+                    4 => {
+                        self.temp_data.renderer_selected += 1;
+                        self.temp_data.renderer_selected %= TetroTUIRenderer::NUM_VARIANTS;
                     }
                     _ => {}
                 },
@@ -258,8 +265,11 @@ impl<T: Write> Application<T> {
                         self.temp_data.blindfold_enabled ^= true;
                     }
                     3 => {
-                        self.temp_data.renderernumber += TetroTUIRenderer::NUM_VARIANTS - 1;
-                        self.temp_data.renderernumber %= TetroTUIRenderer::NUM_VARIANTS;
+                        self.temp_data.no_pause_on_focus_lost ^= true;
+                    }
+                    4 => {
+                        self.temp_data.renderer_selected += TetroTUIRenderer::NUM_VARIANTS - 1;
+                        self.temp_data.renderer_selected %= TetroTUIRenderer::NUM_VARIANTS;
                     }
                     _ => {}
                 },
