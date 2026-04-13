@@ -86,8 +86,8 @@ pub struct TuiStyle {
 
 pub fn default_tui_style_slots() -> SlotMachine<TuiStyle> {
     let slots = vec![
-        ("Unicode".to_owned(), TuiStyle::unicode()),
         ("ASCII".to_owned(), TuiStyle::ascii()),
+        ("Unicode".to_owned(), TuiStyle::unicode()),
         ("Elektronika 60".to_owned(), TuiStyle::elektronika_60()),
     ];
 
@@ -95,6 +95,20 @@ pub fn default_tui_style_slots() -> SlotMachine<TuiStyle> {
 }
 
 impl TuiStyle {
+    pub fn ascii() -> Self {
+        TuiStyleCompact {
+            menu: "-",
+            frame: "+-+|#=#|",
+            frame2: None,
+            hold: "-+|+",
+            next: "-+|+++-",
+            buttons: "<>LR@v!w{}H",
+            is_title_unicode: false,
+        }
+        .try_into()
+        .unwrap()
+    }
+
     pub fn unicode() -> TuiStyle {
         TuiStyleCompact {
             menu: "─",
@@ -109,19 +123,6 @@ impl TuiStyle {
         .unwrap()
     }
 
-    pub fn ascii() -> Self {
-        TuiStyleCompact {
-            menu: "-",
-            frame: "+-+|#=#|",
-            frame2: None,
-            hold: "-+|+",
-            next: "-+|+++-",
-            buttons: "<>LR@v!w{}H",
-            is_title_unicode: false,
-        }
-        .try_into()
-        .unwrap()
-    }
     pub fn elektronika_60() -> Self {
         TuiStyleCompact {
             menu: "=",

@@ -60,7 +60,7 @@ impl<T: Write> Application<T> {
         let mut timing_offset = 0usize;
         let mut coloring_width = 2;
         let animation_delay =
-            std::time::Duration::from_secs_f64(1. / self.settings.graphics().game_fps);
+            std::time::Duration::from_secs_f64(self.settings.graphics().fps.get().recip());
 
         if *is_win
             && game_meta_data.title == GameModePreset::TITLE_CLASSIC
@@ -126,7 +126,7 @@ impl<T: Write> Application<T> {
                     let added_offsets = timing_offset + x_offset;
                     let mut rainbow_offset = added_offsets / coloring_width;
                     // Some horrible hacking to make it look smoother + dithered on higher framerates.
-                    if self.settings.graphics().game_fps >= 42.0 {
+                    if self.settings.graphics().fps.get() >= 42.0 {
                         coloring_width = 9;
                         rainbow_offset += 1;
                         let modulod_offsets = added_offsets % coloring_width;
@@ -168,7 +168,10 @@ impl<T: Write> Application<T> {
                 format!("Time elapsed: {}", fmt_duration(*time_elapsed)),
                 format!("Lines: {lineclears}"),
                 format!("Score: {points_scored}"),
-                format!("Pieces: {}", fmt_tetromino_counts(pieces_locked)),
+                format!(
+                    "Pieces: {}",
+                    fmt_tetromino_counts(pieces_locked, &self.settings.mini_tet_style().tets)
+                ),
                 format!("Gravity: {}", fmt_hertz(fall_delay_reached.as_hertz())),
             ];
 

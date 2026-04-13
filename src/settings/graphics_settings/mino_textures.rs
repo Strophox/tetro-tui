@@ -17,8 +17,8 @@ pub struct MinoTextures {
 
 pub fn default_mino_textures_slots() -> SlotMachine<MinoTextures> {
     let slots = vec![
-        ("Unicode".to_owned(), MinoTextures::unicode()),
         ("ASCII".to_owned(), MinoTextures::ascii()),
+        ("Unicode".to_owned(), MinoTextures::unicode()),
         ("Elektronika 60".to_owned(), MinoTextures::elektronika_60()),
     ];
 
@@ -29,7 +29,7 @@ impl MinoTextures {
     pub fn ascii() -> Self {
         MinoTextures {
             play: "[]".tile(),
-            locked: "##".tile(), // "[]" ?
+            locked: "##".tile(), // "[]" "$$" ?
             shadow: "::".tile(),
             air: " .".tile(),
             slashed: "//".tile(), // r"\\" ?

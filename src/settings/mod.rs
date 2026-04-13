@@ -6,7 +6,11 @@ mod graphics_settings;
 pub use game_keybinds::GameKeybinds;
 pub use game_mode_preferences::GameModePreferences;
 pub use gameplay_settings::GameplaySettings;
-pub use graphics_settings::{palette::Palette, Glyphset, GraphicsSettings};
+pub use graphics_settings::{
+    hard_drop_effect::HardDropEffect, line_clear_effect::LineClearEffect, lock_effect::LockEffect,
+    mini_tet_style::MiniTetStyle, mino_textures::MinoTextures, palette::Palette,
+    small_tet_style::SmallTetStyle, tui_style::TuiStyle, GraphicsSettings,
+};
 
 use crate::{
     fmt_helpers::to_roman,
@@ -14,15 +18,11 @@ use crate::{
         game_keybinds::default_keybinds_slots,
         gameplay_settings::default_gameplay_slots,
         graphics_settings::{
-            default_graphics_slots,
-            hard_drop_effect::{default_hard_drop_effect_slots, HardDropEffect},
-            line_clear_effect::{default_line_clear_effect_slots, LineClearEffect},
-            lock_effect::{default_lock_effect_slots, LockEffect},
-            mini_tet_style::{default_mini_tet_style_slots, MiniTetStyle},
-            mino_textures::{default_mino_textures_slots, MinoTextures},
-            palette::default_palette_slots,
-            small_tet_style::{default_small_tet_style_slots, SmallTetStyle},
-            tui_style::{default_tui_style_slots, TuiStyle},
+            default_graphics_slots, hard_drop_effect::default_hard_drop_effect_slots,
+            line_clear_effect::default_line_clear_effect_slots,
+            lock_effect::default_lock_effect_slots, mini_tet_style::default_mini_tet_style_slots,
+            mino_textures::default_mino_textures_slots, palette::default_palette_slots,
+            small_tet_style::default_small_tet_style_slots, tui_style::default_tui_style_slots,
         },
     },
 };
@@ -95,7 +95,28 @@ impl Settings {
     pub fn palette(&self) -> &Palette {
         &self.palette_slotmachine.slots[self.graphics().palette_picked].1
     }
-    pub fn palette_lockedtiles(&self) -> &Palette {
+    pub fn tui_style(&self) -> &TuiStyle {
+        &self.tui_style_slotmachine.slots[self.graphics().tui_style_picked].1
+    }
+    pub fn mino_textures(&self) -> &MinoTextures {
+        &self.mino_textures_slotmachine.slots[self.graphics().mino_textures_picked].1
+    }
+    pub fn hard_drop_effect(&self) -> &HardDropEffect {
+        &self.hard_drop_effect_slotmachine.slots[self.graphics().hard_drop_picked].1
+    }
+    pub fn lock_effect_picked(&self) -> &LockEffect {
+        &self.lock_effect_slotmachine.slots[self.graphics().lock_effect_picked].1
+    }
+    pub fn line_clear_effect(&self) -> &LineClearEffect {
+        &self.line_clear_effect_slotmachine.slots[self.graphics().line_clear_picked].1
+    }
+    pub fn mini_tet_style(&self) -> &MiniTetStyle {
+        &self.mini_tet_style_slotmachine.slots[self.graphics().mini_tet_picked].1
+    }
+    pub fn small_tet_style(&self) -> &SmallTetStyle {
+        &self.small_tet_style_slotmachine.slots[self.graphics().small_tet_picked].1
+    }
+    pub fn boardpalette(&self) -> &Palette {
         &self.palette_slotmachine.slots[self.graphics().boardpalette_picked].1
     }
 

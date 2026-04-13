@@ -125,7 +125,7 @@ impl<T: Write> Application<T> {
 
         // How much time passes between each refresh.
         let refresh_time_budget =
-            Duration::from_secs_f64(self.settings.graphics().game_fps.recip());
+            Duration::from_secs_f64(self.settings.graphics().fps.get().recip());
 
         let mut time_last_refresh = time_game_loop_entered;
 

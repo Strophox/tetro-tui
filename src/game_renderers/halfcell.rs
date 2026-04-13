@@ -1,7 +1,5 @@
 use crossterm::{cursor, style, terminal, QueueableCommand};
 
-use crate::settings::Glyphset;
-
 use super::*;
 
 #[derive(
@@ -61,12 +59,6 @@ impl Renderer for HalfCellRenderer {
             }
         }
 
-        // let small_ascii = " .°:".chars().collect::<Vec<char>>();
-        let (halfcell, delim_l, delim_r) = match settings.graphics().glyphset {
-            Glyphset::Elektronika60 | Glyphset::Ascii => ([' ', '.', '°', ':'], '#', '#'),
-            Glyphset::Unicode => ([' ', '▄', '▀', '█'], '░', '░'),
-        };
-
         let btxt_lines = [
             [18, 19],
             [16, 17],
@@ -87,7 +79,7 @@ impl Renderer for HalfCellRenderer {
                 .map(|j0| {
                     let b0 = if l0[*j0].is_some() { 1 } else { 0 };
                     let b1 = if l1[*j0].is_some() { 2 } else { 0 };
-                    halfcell[b0 + b1]
+                    settings.small_tet_style().constituens[b0 + b1]
                 })
                 .collect::<String>()
         });
@@ -107,7 +99,7 @@ impl Renderer for HalfCellRenderer {
                 x_render,
                 y_render + u16::try_from(dy).unwrap(),
             ))?
-            .queue(style::Print(format!("{delim_l}{b_line}{delim_r}")))?;
+            .queue(style::Print(format!("|{b_line}|")))?;
         }
 
         term.flush()?;

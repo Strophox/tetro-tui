@@ -5,10 +5,9 @@ use crate::settings::SlotMachine;
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]
-#[serde(transparent)]
 pub struct SmallTetStyle {
-    // FIXME: Make this efficiently serialized?
     pub tets: [String; Tetromino::VARIANTS.len()],
+    pub constituens: [char; 4],
 }
 
 pub fn default_small_tet_style_slots() -> SlotMachine<SmallTetStyle> {
@@ -25,18 +24,21 @@ impl SmallTetStyle {
     pub fn ascii() -> Self {
         SmallTetStyle {
             tets: ["::", "....", ".:°", "°:.", ".:.", "..:", ":.."].map(ToOwned::to_owned),
+            constituens: [' ', '.', '°', ':'],
         }
     }
 
     pub fn blocks() -> Self {
         SmallTetStyle {
             tets: ["██", "▄▄▄▄", "▄█▀", "▀█▄", "▄█▄", "▄▄█", "█▄▄"].map(ToOwned::to_owned),
+            constituens: [' ', '▄', '▀', '█'],
         }
     }
 
     pub fn braille() -> Self {
         SmallTetStyle {
             tets: ["⣿⣿", "⣤⣤⣤⣤", "⣤⣿⠛", "⠛⣿⣤", "⣤⣿⣤", "⣤⣤⣿", "⣿⣤⣤"].map(ToOwned::to_owned),
+            constituens: [' ', '⣤', '⠛', '⣿'],
         }
     }
 }

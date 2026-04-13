@@ -14,15 +14,15 @@ use crossterm::{
 use falling_tetromino_engine::Tetromino;
 
 use crate::{
-    fmt_helpers::{FmtBool, FmtTetromino},
+    fmt_helpers::BoolAsOnOff,
     menus::{Menu, MenuUpdate},
-    settings::Glyphset,
     Application, Settings,
 };
 
 impl<T: Write> Application<T> {
     pub fn run_menu_adjust_graphics(&mut self) -> io::Result<MenuUpdate> {
-        let if_unmodifiable_clone_and_switch = |s: &mut Settings| {
+        todo!("(New) Adjust Graphics menu has not been implemented yet :-(")
+        /*let if_unmodifiable_clone_and_switch = |s: &mut Settings| {
             if let Some(cloned_slot_idx) = s
                 .graphics_slotmachine
                 .clone_slot_if_unmodifiable(s.graphics_picked)
@@ -351,6 +351,6 @@ impl<T: Write> Application<T> {
                 _ => {}
             }
             selected %= selection_len;
-        }
+        }*/
     }
 }

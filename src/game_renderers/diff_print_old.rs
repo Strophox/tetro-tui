@@ -18,8 +18,8 @@ use rand::RngExt;
 use super::*;
 
 use crate::{
-    fmt_helpers::{fmt_button, fmt_button_ascii, fmt_duration, fmt_hertz, FmtTetromino},
-    settings::{Glyphset, Palette},
+    fmt_helpers::{fmt_duration, fmt_hertz},
+    settings::{MinoTextures, Palette},
     TemporaryAppData,
 };
 
@@ -320,8 +320,8 @@ impl Renderer for DiffPrintOldRenderer {
         // Screen: draw.
         #[allow(clippy::useless_format)]
         #[rustfmt::skip]
-        let base_screen: &[String] = match settings.graphics().glyphset {
-            Glyphset::Elektronika60 => &[
+        let base_screen: &[String] = match settings.graphics().tui_style_picked /* Fallback. */ {
+            2 => &[
                 format!("                                                              ", ),
                 format!("                                                {: ^w$      } ", "mode:", w=modename_len),
                 format!("                        <! . . . . . . . . . .!>{: ^w$      } ", meta_data.title, w=modename_len),
@@ -347,7 +347,7 @@ impl Renderer for DiffPrintOldRenderer {
                 format!("                        <!====================!>              ", ),
                format!(r"                          \/\/\/\/\/\/\/\/\/\/                ", ),
             ],
-            Glyphset::Ascii => &[
+            0 => &[
                 format!("                                                              ", ),
                 format!("                  {     }|- - - - - - - - - - +{:-^w$       }+", if show_hold { "+-hold-" } else {"       "}, "mode", w=modename_len),
                 format!("                  {}     |                    |{: ^w$       }|", if show_hold { "| " } else {"  "}, meta_data.title, w=modename_len),
@@ -372,7 +372,7 @@ impl Renderer for DiffPrintOldRenderer {
                 format!("                         |                    |               ", ),
                 format!("                        ~#====================#~              ", ),
             ],
-        Glyphset::Unicode => &[
+        _ => &[
                 format!("                                                              ", ),
                 format!("                  {     }╓╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╶╥{:─^w$       }┐", if show_hold { "┌─hold─" } else {"       "}, "mode", w=modename_len),
                 format!("                  {}     ║                    ║{: ^w$       }│", if show_hold { "│ " } else {"  "}, meta_data.title, w=modename_len),
@@ -471,7 +471,7 @@ impl Renderer for DiffPrintOldRenderer {
         }
 
         // Draw button state.
-        if settings.graphics().button_state || replay_extra.is_some() {
+        if settings.graphics().show_buttons || replay_extra.is_some() {
             let bc = |b: Button| {
                 get_color(if game.state().active_buttons[b].is_some() {
                     Palette::WHITE
@@ -500,15 +500,15 @@ impl Renderer for DiffPrintOldRenderer {
             ];
             for (dx, e) in es.into_iter().enumerate() {
                 match e {
-                    Ok(b) => self.screen.buffer_str(
-                        if settings.graphics().glyphset != Glyphset::Unicode {
-                            fmt_button_ascii
-                        } else {
-                            fmt_button
-                        }(b),
-                        bc(b),
-                        (x_buttonst + dx, y_buttonst),
-                    ),
+                    Ok(b) => {
+                        // Note: This is ***SO*** ugly OMFG.
+                        let mut bs = vec![0; 4];
+                        self.screen.buffer_str(
+                            settings.tui_style().buttonsglyphs[b].encode_utf8(&mut bs),
+                            bc(b),
+                            (x_buttonst + dx, y_buttonst),
+                        )
+                    }
                     Err(s) => self
                         .screen
                         .buffer_str(s, None, (x_buttonst + dx, y_buttonst)),
@@ -516,12 +516,18 @@ impl Renderer for DiffPrintOldRenderer {
             }
         }
 
-        let (tile_ground, tile_shadow, tile_active, tile_preview) =
-            match settings.graphics().glyphset {
-                Glyphset::Elektronika60 => ("▮▮", " .", "▮▮", "▮▮"),
-                Glyphset::Ascii => ("##" /*"$$"*/, "::", "[]", "[]"),
-                Glyphset::Unicode => ("██", "░░", "▓▓", "██" /*"▒▒"*/),
-            };
+        let MinoTextures {
+            play,
+            locked,
+            shadow,
+            air: _,
+            slashed: _,
+            crossed: _,
+        } = settings.mino_textures();
+        let tile_active = &play.0.iter().collect::<String>();
+        let tile_ground = &locked.0.iter().collect::<String>();
+        let tile_shadow = &shadow.0.iter().collect::<String>();
+        let tile_preview = tile_active;
 
         // Draw preview.
         if let Some(next_piece) = game.state().piece_preview.front() {
@@ -538,49 +544,38 @@ impl Renderer for DiffPrintOldRenderer {
         // Draw small preview pieces 2,3,4.
         let mut x_offset_small = 0;
         for tet in game.state().piece_preview.iter().skip(1).take(3) {
-            let str = if settings.graphics().glyphset == Glyphset::Unicode {
-                tet.linestr()
-            } else {
-                tet.linestr_ascii()
-            };
+            let tetstr = &settings.small_tet_style().tets[*tet as usize];
             self.screen.buffer_str(
-                str,
+                tetstr,
                 get_color(tet.tile_id()),
                 (x_preview_small + x_offset_small, y_preview_small),
             );
-            x_offset_small += str.chars().count() + 1;
+            x_offset_small += tetstr.chars().count() + 1;
         }
 
         // Draw minuscule preview pieces 5,6,7,8...
         let mut x_offset_minuscule = 0;
+        #[allow(clippy::explicit_counter_loop)]
         for tet in game.state().piece_preview.iter().skip(4) {
             //.take(5) {
-            let str = String::from(if settings.graphics().glyphset == Glyphset::Unicode {
-                tet.charstr()
-            } else {
-                tet.charstr_ascii()
-            });
+            let mut bs = vec![0; 4];
             self.screen.buffer_str(
-                &str,
+                settings.mini_tet_style().tets[*tet as usize].encode_utf8(&mut bs),
                 get_color(tet.tile_id()),
                 (x_preview_mini + x_offset_minuscule, y_preview_mini),
             );
-            x_offset_minuscule += str.chars().count() + 1;
+            x_offset_minuscule += 1;
         }
 
         // Draw held piece.
         if let Some((tet, swap_allowed)) = game.state().piece_held {
-            let str = if settings.graphics().glyphset == Glyphset::Unicode {
-                tet.linestr()
-            } else {
-                tet.linestr_ascii()
-            };
+            let tetstr = &settings.small_tet_style().tets[tet as usize];
             let color = get_color(if swap_allowed {
                 tet.tile_id()
             } else {
                 Palette::GRAY
             });
-            self.screen.buffer_str(str, color, (x_hold, y_hold));
+            self.screen.buffer_str(tetstr, color, (x_hold, y_hold));
         }
 
         // Board: draw hard drop trail.
@@ -595,11 +590,11 @@ impl Renderer for DiffPrintOldRenderer {
         ) in self.hard_drop_tiles.iter_mut()
         {
             let elapsed = game.state().time.saturating_sub(*creation_time);
-            let luminance_map = match settings.graphics().glyphset {
-                Glyphset::Elektronika60 => [" .", " .", " .", " .", " .", " .", " .", " ."],
+            let luminance_map = match settings.graphics().tui_style_picked /* Fallback. */ {
+                2 => [" .", " .", " .", " .", " .", " .", " .", " ."],
                 // FIXME: Make this hard drop effect available independently of Glyphset (i.e. also for ASCII).
-                Glyphset::Ascii => ["||", "||", "¦¦", "¦¦", "::", "::", "..", ".."],
-                Glyphset::Unicode => ["@@", "$$", "##", "%%", "**", "++", "~~", ".."],
+                0 => ["||", "||", "¦¦", "¦¦", "::", "::", "..", ".."],
+                _ => ["@@", "$$", "##", "%%", "**", "++", "~~", ".."],
             };
             // let Some(&char) = [50, 60, 70, 80, 90, 110, 140, 180]
             let Some(tile) = [50, 70, 90, 110, 130, 150, 180, 240]
@@ -626,7 +621,7 @@ impl Renderer for DiffPrintOldRenderer {
                         if let Some(xy) =
                             pos_board((isize::try_from(x).unwrap(), isize::try_from(y).unwrap()))
                         {
-                            let color_locked = settings.palette_lockedtiles().get(tile_id).copied();
+                            let color_locked = settings.boardpalette().get(tile_id).copied();
                             self.screen.buffer_str(tile_ground, color_locked, xy);
                         }
                     }
@@ -641,7 +636,7 @@ impl Renderer for DiffPrintOldRenderer {
             // If a piece is in play.
             Phase::PieceInPlay { piece, .. } => {
                 // Draw shadow piece.
-                if settings.graphics().shadow_piece {
+                if settings.graphics().show_shadow {
                     for (tile_pos, tile_id) in
                         piece.teleported(&game.state().board, (0, -1)).tiles()
                     {
@@ -792,13 +787,13 @@ impl Renderer for DiffPrintOldRenderer {
             let elapsed = game.state().time.saturating_sub(*notif_time);
             match notification {
                 Notification::PieceLocked { piece } => {
-                    if !settings.graphics().effects {
+                    if settings.graphics().lock_effect_picked == 0 {
                         *active = false;
                         continue;
                     }
                     #[rustfmt::skip]
-                    let animation_locking = match settings.graphics().glyphset {
-                        Glyphset::Elektronika60 => [
+                    let animation_locking = match settings.graphics().tui_style_picked /* Fallback. */ {
+                        2 => [
                             ( 25, "▮▮"),
                             ( 50, "▮▮"),
                             ( 75, "▮▮"),
@@ -806,7 +801,7 @@ impl Renderer for DiffPrintOldRenderer {
                             (125, "▮▮"),
                             (150, "▮▮"),
                         ],
-                        Glyphset::Ascii => [
+                        0 => [
                             ( 25, "()"),
                             ( 50, "()"),
                             ( 75, "{}"),
@@ -814,7 +809,7 @@ impl Renderer for DiffPrintOldRenderer {
                             (125, "<>"),
                             (150, "<>"),
                         ],
-                        Glyphset::Unicode => [
+                        _ => [
                             ( 25, "██"),
                             ( 50, "▓▓"),
                             ( 75, "▒▒"),
@@ -843,13 +838,14 @@ impl Renderer for DiffPrintOldRenderer {
                     y_coords,
                     line_clear_duration,
                 } => {
-                    if settings.graphics().lineclear_style == 0 {
-                        if !settings.graphics().effects || line_clear_duration.is_zero() {
-                            *active = false;
-                            continue;
-                        }
-                        let animation_lineclear = match settings.graphics().glyphset {
-                            Glyphset::Elektronika60 => [
+                    if !settings.graphics().line_clear_picked == 0 || line_clear_duration.is_zero()
+                    {
+                        *active = false;
+                        continue;
+                    }
+                    if settings.graphics().line_clear_picked == 1 {
+                        let animation_lineclear = match settings.graphics().tui_style_picked /* Fallback. */ {
+                            2 => [
                                 "▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮",
                                 "  ▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮",
                                 "    ▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮",
@@ -861,7 +857,7 @@ impl Renderer for DiffPrintOldRenderer {
                                 "                ▮▮▮▮",
                                 "                  ▮▮",
                             ],
-                            Glyphset::Ascii => [
+                            0 => [
                                 "$$$$$$$$$$$$$$$$$$$$",
                                 "$$$$$$$$$$$$$$$$$$$$",
                                 "                    ",
@@ -873,7 +869,7 @@ impl Renderer for DiffPrintOldRenderer {
                                 "$$$$$$$$$$$$$$$$$$$$",
                                 "$$$$$$$$$$$$$$$$$$$$",
                             ],
-                            Glyphset::Unicode => [
+                            _ => [
                                 "████████████████████",
                                 " ██████████████████ ",
                                 "  ████████████████  ",
@@ -933,7 +929,7 @@ impl Renderer for DiffPrintOldRenderer {
                     height_dropped: _,
                     dropped_piece,
                 } => {
-                    if !settings.graphics().effects {
+                    if settings.graphics().hard_drop_picked == 0 {
                         *active = false;
                         continue;
                     }

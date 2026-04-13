@@ -18,7 +18,7 @@ use crossterm::{
 use falling_tetromino_engine::{ExtNonNegF64, RotationSystem, TetrominoGenerator};
 
 use crate::{
-    fmt_helpers::FmtBool,
+    fmt_helpers::BoolAsOnOff,
     menus::{Menu, MenuUpdate},
     Application, Settings,
 };
@@ -148,7 +148,7 @@ impl<T: Write> Application<T> {
                 format!("Spawn delay (ARE) = {:?}", self.settings.gameplay().are),
                 format!(
                     "Allow initial rotation/hold (IRS/IHS) = {} *",
-                    self.settings.gameplay().initsys.fmt_on_off()
+                    self.settings.gameplay().initsys.on_off()
                 ),
                 format!(
                     "Convert double-tap to teleport = {:?}",

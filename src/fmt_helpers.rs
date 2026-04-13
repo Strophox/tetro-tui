@@ -7,12 +7,12 @@ use crate::settings::GameKeybinds;
 
 pub type KeybindsLegend = Vec<(/*(KeyCode, KeyModifiers)*/ String, &'static str)>;
 
-pub trait FmtBool {
-    fn fmt_on_off(self) -> &'static str;
+pub trait BoolAsOnOff {
+    fn on_off(self) -> &'static str;
 }
 
-impl FmtBool for bool {
-    fn fmt_on_off(self) -> &'static str {
+impl BoolAsOnOff for bool {
+    fn on_off(self) -> &'static str {
         if self {
             "on"
         } else {
@@ -50,133 +50,22 @@ pub fn fmt_hertz(f: ExtNonNegF64) -> String {
     }
 }
 
-// FIXME: In an ideal world, some of our functions could return `char` or even `u8` instead of `&str` to show their additional 'restrictiveness'.
-// Unfortunately, converting between `u8`, `char` and `&str` is painful. :-(
-//                     char --let mut bs=vec![0;len_utf8()];c.encode_utf8(&mut bs)--> &str
-//    u8 --b.into()--> char --c.to_string()--> String ------------------s.as_str()--> &str
-//    u8 --------------------------------------------str::from_utf8(&[b]).unwrap()--> &str
-pub trait FmtTetromino {
-    fn linestr(&self) -> &str;
-    fn linestr_ascii(&self) -> &str;
-    fn charstr(&self) -> &str;
-    fn charstr_ascii(&self) -> &str;
-}
-
-impl FmtTetromino for Tetromino {
-    fn linestr(&self) -> &'static str {
-        use Tetromino::*;
-        match self {
-            O => "██",
-            I => "▄▄▄▄",
-            S => "▄█▀",
-            Z => "▀█▄",
-            T => "▄█▄",
-            L => "▄▄█",
-            J => "█▄▄",
-        }
-    }
-
-    fn linestr_ascii(&self) -> &'static str {
-        use Tetromino::*;
-        match self {
-            O => "::",
-            I => "....",
-            S => ".:°",
-            Z => "°:.",
-            T => ".:.",
-            L => "..:",
-            J => ":..",
-        }
-    }
-
-    fn charstr(&self) -> &'static str {
-        use Tetromino::*;
-        match self {
-            O => "⠶", //"⠶",
-            I => "⡇", //"⠤⠤",
-            S => "⠳", //"⠴⠂",
-            Z => "⠞", //"⠲⠄",
-            T => "⠗", //"⠴⠄",
-            L => "⠧", //"⠤⠆",
-            J => "⠼", //"⠦⠄",
-        }
-    }
-
-    fn charstr_ascii(&self) -> &'static str {
-        use Tetromino::*;
-        match self {
-            O => "O",
-            I => "I",
-            S => "S",
-            Z => "Z",
-            T => "T",
-            L => "L",
-            J => "J",
-        }
-    }
-}
-
-pub fn fmt_tetromino_counts(counts: &[u32; Tetromino::VARIANTS.len()]) -> String {
+pub fn fmt_tetromino_counts(
+    counts: &[u32; Tetromino::VARIANTS.len()],
+    mini_tet_glyphs: &[char; Tetromino::VARIANTS.len()],
+) -> String {
     counts
         .iter()
         .zip(Tetromino::VARIANTS)
-        .map(|(n, t)| format!("{n}{}", t.charstr_ascii().to_ascii_lowercase()))
+        .map(|(n, t)| format!("{n}{}", mini_tet_glyphs[t as usize].to_ascii_lowercase()))
         .collect::<Vec<_>>()
         .join(" ")
 }
 
-pub fn fmt_button(b: Button) -> &'static str {
-    use Button as B;
-    match b {
-        B::MoveLeft => "←",
-        B::MoveRight => "→",
-        B::RotateLeft => "↺",
-        B::RotateRight => "↻",
-        B::Rotate180 => "↔",
-        B::DropSoft => "↓",
-        B::DropHard => "⤓",
-        B::TeleDown => "⇓",
-        B::TeleLeft => "⇐",
-        B::TeleRight => "⇒",
-        B::HoldPiece => "⇋",
-    }
-}
-
-pub fn fmt_button_ascii(b: Button) -> &'static str {
-    use Button as B;
-    match b {
-        B::MoveLeft => "<",
-        B::MoveRight => ">",
-        B::RotateLeft => "L",
-        B::RotateRight => "R",
-        B::Rotate180 => "O",
-        B::DropSoft => "v",
-        B::DropHard => "!",
-        B::TeleDown => "w",
-        B::TeleLeft => "{",
-        B::TeleRight => "}",
-        B::HoldPiece => "H",
-    }
-}
-
-pub fn fmt_button_input(input: Input, as_ascii: bool) -> String {
+pub fn fmt_player_input(input: Input, button_glyphs: [char; Button::VARIANTS.len()]) -> String {
     match input {
-        Input::Activate(b) => format!(
-            "++|{}|",
-            if as_ascii {
-                fmt_button_ascii
-            } else {
-                fmt_button
-            }(b)
-        ),
-        Input::Deactivate(b) => format!(
-            "--|{}|",
-            if as_ascii {
-                fmt_button_ascii
-            } else {
-                fmt_button
-            }(b)
-        ),
+        Input::Activate(b) => format!("++|{}|", button_glyphs[b]),
+        Input::Deactivate(b) => format!("--|{}|", button_glyphs[b]),
     }
 }
 
@@ -334,3 +223,9 @@ pub fn to_roman(mut num: u32) -> String {
 
     string
 }
+
+// In an ideal world, a char is just a 1-char `str`.
+// Unfortunately, converting between `u8`, `char` and `&str` is painful. :-(
+//                     char --let mut bs=vec![0;len_utf8()];c.encode_utf8(&mut bs)--> &str
+//    u8 --b.into()--> char --c.to_string()--> String ------------------s.as_str()--> &str
+//    u8 --------------------------------------------str::from_utf8(&[b]).unwrap()--> &str
