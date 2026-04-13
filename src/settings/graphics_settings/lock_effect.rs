@@ -31,13 +31,6 @@ pub fn default_lock_effect_slots() -> SlotMachine<LockEffect> {
     SlotMachine::with_unmodifiable_slots(slots, "Lock effect".to_owned())
 }
 
-/*TODO:
-- Lock effect SLOT = ['None', 'ASCII', 'Unicode'] `Slots<LockEffect>`
-* <!--Not accessible in TUI-->
-* Effect duration = [200ms, ...]
-* Color = [None, Some(White), ...]
-* Mino animation = [None, Some("(){}<>"), Some("██▓▓▒▒░░▒▒▓▓")]*/
-
 impl LockEffect {
     pub fn none() -> Self {
         LockEffect {
