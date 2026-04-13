@@ -1,6 +1,11 @@
+use std::time::Duration;
+
 use falling_tetromino_engine::{InGameTime, TileID};
 
-use crate::settings::{graphics_settings::TileTexture, SlotMachine};
+use crate::settings::{
+    graphics_settings::{QuickTileFromStr, TileTexture},
+    Palette, SlotMachine,
+};
 
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
@@ -19,11 +24,8 @@ pub fn default_lock_effect_slots() -> SlotMachine<LockEffect> {
     let slots = vec![
         ("None".to_owned(), LockEffect::none()),
         ("ASCII transform".to_owned(), LockEffect::ascii_transform()),
-        (
-            "Unicode white pulse".to_owned(),
-            LockEffect::unicode_pulse(),
-        ),
-        ("White pulse".to_owned(), LockEffect::white_pulse()),
+        ("Unicode pulse".to_owned(), LockEffect::unicode_pulse()),
+        ("Color white".to_owned(), LockEffect::color_white()),
     ];
 
     SlotMachine::with_unmodifiable_slots(slots, "Lock effect".to_owned())
@@ -38,18 +40,34 @@ pub fn default_lock_effect_slots() -> SlotMachine<LockEffect> {
 
 impl LockEffect {
     pub fn none() -> Self {
-        todo!()
+        LockEffect {
+            duration: Duration::ZERO,
+            animation: Vec::new(),
+        }
     }
 
     pub fn ascii_transform() -> Self {
-        todo!()
+        LockEffect {
+            duration: Duration::from_millis(150),
+            animation: ["()", "{}", "<>"]
+                .map(|t| (Some(t.tile()), Some(Palette::WHITE)))
+                .into(),
+        }
     }
 
     pub fn unicode_pulse() -> Self {
-        todo!()
+        LockEffect {
+            duration: Duration::from_millis(150),
+            animation: ["██", "▓▓", "▒▒", "░░", "▒▒", "▓▓"]
+                .map(|t| (Some(t.tile()), Some(Palette::WHITE)))
+                .into(),
+        }
     }
 
-    pub fn white_pulse() -> Self {
-        todo!()
+    pub fn color_white() -> Self {
+        LockEffect {
+            duration: Duration::from_millis(150),
+            animation: vec![(None, Some(Palette::WHITE))],
+        }
     }
 }
