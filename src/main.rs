@@ -93,7 +93,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Initialize main application.
     let stdout = io::BufWriter::new(io::stdout());
-    let mut app = Application::with_cmdlineoptions(stdout, args.seed, args.board);
+    let mut app = Application::with_cmdlineflags(stdout, args.seed, args.board);
 
     // Run main application.
     app.run()?;
@@ -456,6 +456,7 @@ impl<T: Write> Application<T> {
 
     fn initialize_terminal_state(&mut self) -> io::Result<()> {
         if !self.temp_data.custom_terminal_state_initialized {
+            // Save the fact we started doing this.
             self.temp_data.custom_terminal_state_initialized = true;
 
             // 1. Enter alternate screen. This allows us not to trash the terminal's contents from before the app is run.
@@ -499,7 +500,8 @@ impl<T: Write> Application<T> {
             // 1.
             self.term.execute(terminal::LeaveAlternateScreen)?;
 
-            self.temp_data.custom_terminal_state_initialized = true;
+            // Now save the fact we don't need to do this again.
+            self.temp_data.custom_terminal_state_initialized = false;
         }
 
         Ok(())
@@ -546,7 +548,7 @@ impl<T: Write> Application<T> {
         }))
     }
 
-    pub fn with_cmdlineoptions(
+    pub fn with_cmdlineflags(
         term: T,
         custom_start_seed: Option<u64>,
         custom_start_board: Option<String>,
