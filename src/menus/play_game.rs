@@ -510,9 +510,9 @@ impl<T: Write> Application<T> {
                         }
                     }
 
-                    // Auto-pause on un-focus.
+                    // Auto-pause on focus lost.
                     event::Event::FocusLost => {
-                        if !self.temp_data.no_pause_on_focus_lost {
+                        if self.temp_data.pause_on_focus_lost {
                             break 'update_and_render MenuUpdate::Push(Menu::Pause);
                         }
                     }
