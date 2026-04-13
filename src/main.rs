@@ -384,7 +384,7 @@ pub struct TemporaryAppData {
     pub kitty_detected: bool,
     pub kitty_assumed: bool,
     pub blindfold_enabled: bool,
-    pub no_pause_on_focus_lost: bool,
+    pub pause_on_focus_lost: bool,
     pub renderer_selected: usize,
     pub save_on_exit: SavefileGranularity,
     pub savefile_path: PathBuf, // This should technically be the same for a given compiled binary, but we compute it at runtime.
@@ -561,7 +561,7 @@ impl<T: Write> Application<T> {
             kitty_detected,
             kitty_assumed: kitty_detected,
             blindfold_enabled: false,
-            no_pause_on_focus_lost: false,
+            pause_on_focus_lost: false,
             renderer_selected: 0,
             save_on_exit: SavefileGranularity::default(),
             savefile_path: savefile_logic::savefile_path(),

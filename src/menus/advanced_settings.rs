@@ -59,8 +59,8 @@ impl<T: Write> Application<T> {
                     self.temp_data.blindfold_enabled.on_off()
                 ),
                 format!(
-                    "Don't pause when focus lost = {}",
-                    self.temp_data.no_pause_on_focus_lost.on_off()
+                    "Pause on focus lost = {} (May not work on terminals.)",
+                    self.temp_data.pause_on_focus_lost.on_off()
                 ),
                 format!(
                     "Renderer selected = {} (applies on New Game)",
@@ -231,7 +231,7 @@ impl<T: Write> Application<T> {
                         self.temp_data.blindfold_enabled ^= true;
                     }
                     3 => {
-                        self.temp_data.no_pause_on_focus_lost ^= true;
+                        self.temp_data.pause_on_focus_lost ^= true;
                     }
                     4 => {
                         self.temp_data.renderer_selected += 1;
@@ -265,7 +265,7 @@ impl<T: Write> Application<T> {
                         self.temp_data.blindfold_enabled ^= true;
                     }
                     3 => {
-                        self.temp_data.no_pause_on_focus_lost ^= true;
+                        self.temp_data.pause_on_focus_lost ^= true;
                     }
                     4 => {
                         self.temp_data.renderer_selected += TetroTUIRenderer::NUM_VARIANTS - 1;
