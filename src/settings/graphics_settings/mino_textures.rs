@@ -1,4 +1,7 @@
-use crate::settings::{graphics_settings::TileTexture, SlotMachine};
+use crate::settings::{
+    graphics_settings::{QuickTileFromStr, TileTexture},
+    SlotMachine,
+};
 
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
@@ -22,26 +25,37 @@ pub fn default_mino_textures_slots() -> SlotMachine<MinoTextures> {
     SlotMachine::with_unmodifiable_slots(slots, "Mino textures".to_owned())
 }
 
-/*TODO:
-- Mino texturing SLOT = ['Elektronika 60', 'ASCII', 'Unicode'] `Slots<MinoTextures>`
-* <!--Not accessible in TUI-->
-* In-play = ["██","▓▓","▒▒","░░","[]","##","::","▮▮","XX", "//", - `╳╱╲`, `X/\`]
-* Locked = ^
-* Shadow = ^
-* Air = ^
-* Slashed = ^
-* Crossed = ^*/
-
 impl MinoTextures {
     pub fn ascii() -> Self {
-        todo!()
+        MinoTextures {
+            play: "[]".tile(),
+            locked: "##".tile(), // "[]" ?
+            shadow: "::".tile(),
+            air: " .".tile(),
+            slashed: "//".tile(), // r"\\" ?
+            crossed: "XX".tile(),
+        }
     }
 
     pub fn unicode() -> Self {
-        todo!()
+        MinoTextures {
+            play: "▓▓".tile(),
+            locked: "██".tile(), // "▒▒"
+            shadow: "░░".tile(),
+            air: " ⢀".tile(), // " ⌟" ?
+            slashed: "╱╱".tile(),
+            crossed: "╳╳".tile(),
+        }
     }
 
     pub fn elektronika_60() -> Self {
-        todo!()
+        MinoTextures {
+            play: "▮▮".tile(),
+            locked: "▮▮".tile(),
+            shadow: "▯▯".tile(),
+            air: " .".tile(),
+            slashed: "//".tile(),
+            crossed: "XX".tile(),
+        }
     }
 }
