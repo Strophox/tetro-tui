@@ -1,10 +1,12 @@
-use std::num::{NonZeroU32, NonZeroU8, NonZeroUsize};
+use std::num::{NonZeroU32, NonZeroUsize};
 
 use falling_tetromino_engine::{
     Game, GameAccess, GameBuilder, GameLimits, GameModifier, GameRng, Line, NotificationFeed, Stat,
 };
 
 use rand::seq::SliceRandom;
+
+use crate::settings::Palette;
 
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
@@ -88,10 +90,7 @@ impl GameModifier for Cheese {
             // Check if line is complete.
             if line.iter().all(|mino| mino.is_some()) {
                 // Check if line is a cheese one.
-                if line
-                    .iter()
-                    .any(|cell| *cell == Some(NonZeroU8::try_from(254).unwrap()))
-                {
+                if line.contains(&Some(Palette::GRAY)) {
                     // In theory would never underflow.
                     self.cheese_eaten_up += 1;
                     self.temp_last_clear_actual_cheese_lines += 1;
@@ -128,7 +127,6 @@ impl Cheese {
         generated: &'a mut u32,
         rng: &'a mut GameRng,
     ) -> impl Iterator<Item = Line> + 'a {
-        let grey_tile = Some(NonZeroU8::try_from(254).unwrap());
         std::iter::from_fn(move || {
             limit.is_none_or(|l| *generated < l.get()).then(|| {
                 *generated += 1;
@@ -137,7 +135,7 @@ impl Cheese {
                     .iter_mut()
                     .take(Game::WIDTH.saturating_sub(holes_per_line.get()))
                 {
-                    *tile = grey_tile;
+                    *tile = Some(Palette::GRAY);
                 }
                 // Currently completely random.
                 loop {

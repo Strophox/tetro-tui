@@ -1,9 +1,11 @@
-use std::num::{NonZeroU32, NonZeroU8};
+use std::num::NonZeroU32;
 
 use falling_tetromino_engine::{
     Game, GameAccess, GameBuilder, GameEndCause, GameLimits, GameModifier, Line, NotificationFeed,
     Phase, Stat, Tetromino,
 };
+
+use crate::settings::Palette;
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]
@@ -65,22 +67,20 @@ impl GameModifier for Combo {
             *line = four_well_line;
         }
 
-        let grey_tile = Some(NonZeroU8::try_from(254).unwrap());
-
         let mut y = 0;
         let mut layout = self.initial_layout;
         while layout != 0 {
             if layout & 0b1000 != 0 {
-                game.state.board[y][3] = grey_tile;
+                game.state.board[y][3] = Some(Palette::GRAY);
             }
             if layout & 0b0100 != 0 {
-                game.state.board[y][4] = grey_tile;
+                game.state.board[y][4] = Some(Palette::GRAY);
             }
             if layout & 0b0010 != 0 {
-                game.state.board[y][5] = grey_tile;
+                game.state.board[y][5] = Some(Palette::GRAY);
             }
             if layout & 0b0001 != 0 {
-                game.state.board[y][6] = grey_tile;
+                game.state.board[y][6] = Some(Palette::GRAY);
             }
 
             layout /= 0b1_0000;
@@ -124,7 +124,7 @@ impl Combo {
     ];
 
     fn combo_lines<'a>(height_loaded: &'a mut usize) -> impl Iterator<Item = Line> + 'a {
-        let color_tiles = [
+        let rainbow_tiles = [
             Tetromino::Z,
             Tetromino::L,
             Tetromino::O,
@@ -135,10 +135,7 @@ impl Combo {
         ]
         .map(|tet| Some(tet.tile_id()));
 
-        let grey_tile = Some(NonZeroU8::try_from(254).unwrap());
-
-        let color_tiles_0 = (*height_loaded..).map(move |i| color_tiles[i / 2 % 7]);
-
+        let color_tiles_0 = (*height_loaded..).map(move |i| rainbow_tiles[i / 2 % 7]);
         let color_tiles_1 = color_tiles_0.clone().skip(1);
 
         color_tiles_0
@@ -147,8 +144,8 @@ impl Combo {
                 let mut line = [None; Game::WIDTH];
                 line[0] = color_tile_0;
                 line[1] = color_tile_1;
-                line[2] = grey_tile;
-                line[7] = grey_tile;
+                line[2] = Some(Palette::GRAY);
+                line[7] = Some(Palette::GRAY);
                 line[8] = color_tile_1;
                 line[9] = color_tile_0;
 

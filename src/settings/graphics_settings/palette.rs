@@ -1,4 +1,7 @@
-use std::collections::{BTreeMap, HashMap};
+use std::{
+    collections::{BTreeMap, HashMap},
+    num::NonZeroU8,
+};
 
 use crossterm::style::Color;
 use falling_tetromino_engine::TileID;
@@ -30,6 +33,10 @@ pub fn default_palette_slots() -> SlotMachine<Palette> {
 }
 
 impl Palette {
+    pub const BLACK: TileID = NonZeroU8::new(253).unwrap();
+    pub const GRAY: TileID = NonZeroU8::new(254).unwrap();
+    pub const WHITE: TileID = NonZeroU8::new(255).unwrap();
+
     pub fn get(&self, x: &TileID) -> Option<&Color> {
         self.colormap.get(&x.get())
     }

@@ -1,9 +1,11 @@
-use std::{collections::VecDeque, num::NonZeroU8, time::Duration};
+use std::{collections::VecDeque, time::Duration};
 
 use falling_tetromino_engine::{
     Button, DelayParameters, Game, GameAccess, GameBuilder, GameEndCause, GameModifier, InGameTime,
     Input, Line, Notification, NotificationFeed, Phase, State, Tetromino,
 };
+
+use crate::settings::Palette;
 
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
@@ -184,7 +186,6 @@ impl Puzzle {
     fn load_stage(&mut self, state: &mut State) {
         let (_stage_name, stage_lines, stage_tetrominos) = Self::get_stage_data(self.stage_idx);
 
-        let grey_tile = Some(NonZeroU8::try_from(254).unwrap());
         for (stage_line, game_line) in stage_lines
             .iter()
             .rev()
@@ -198,7 +199,7 @@ impl Puzzle {
                     .zip(stage_line.iter().chain(std::iter::repeat(&b'O')))
                 {
                     if puzzle_tile != &b' ' {
-                        *game_cell = grey_tile;
+                        *game_cell = Some(Palette::GRAY);
                     }
                 }
             }

@@ -77,10 +77,10 @@ impl TerminalBuffer for DenseTerminalDoubleBuffer {
             self.prev_buf.resize(new_len, EMPTY_CELL);
             self.next_buf.resize(new_len, EMPTY_CELL);
         } else {
-            self.prev_buf.fill(EMPTY_CELL);
-            self.next_buf.fill(EMPTY_CELL);
             self.prev_buf.resize(new_len, EMPTY_CELL);
             self.next_buf.resize(new_len, EMPTY_CELL);
+            self.prev_buf.fill(EMPTY_CELL);
+            self.next_buf.fill(EMPTY_CELL);
         }
         self.width = width;
         self.height = height;
