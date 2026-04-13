@@ -446,7 +446,7 @@ impl<T: Write> Application<T> {
     pub const GAME_KEYBOARD_ENHANCEMENT_FLAGS: KeyboardEnhancementFlags =
         KeyboardEnhancementFlags::all();
 
-    pub fn fetch_main_xy() -> (u16, u16) {
+    pub fn available_area() -> (u16, u16) {
         let (w_console, h_console) = terminal::size().unwrap_or((0, 0));
         (
             w_console.saturating_sub(Self::W_MAIN) / 2,

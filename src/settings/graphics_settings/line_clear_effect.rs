@@ -6,6 +6,8 @@ use crate::settings::{graphics_settings::TileTexture, SlotMachine};
 pub enum LineClearEffect {
     Inline {
         style: InlineClearStyle,
+        /// Note:
+        /// - `None` tile id falls back to dropped piece tile id.
         animation: Vec<Option<TileID>>,
     },
     // FIXME: Check.
@@ -16,7 +18,10 @@ pub enum LineClearEffect {
     /// => pos = origin + momentum ⋅ Δtime + acceleration ⋅ (Δtime)² / 2
     MinoParticles {
         duration: Option<InGameTime>,
-        /// Note that empty (space) tile texture is automatically retextured to `air`.
+        /// Note:
+        /// - Empty (space) tile texture is automatically retextured to `air`.
+        /// - `None` tile texture falls back to dropped piece tile texture.
+        /// - `None` tile id falls back to dropped piece tile id.
         animation: Vec<(Option<TileTexture>, Option<TileID>)>,
         acceleration: (f32, f32),
         momentum_base: (f32, f32),

@@ -4,7 +4,7 @@ use crate::settings::{graphics_settings::TileTexture, SlotMachine};
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]
 pub struct MinoTextures {
-    pub player: TileTexture,
+    pub play: TileTexture,
     pub locked: TileTexture,
     pub shadow: TileTexture,
     pub air: TileTexture,

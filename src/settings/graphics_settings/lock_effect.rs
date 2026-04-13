@@ -7,7 +7,10 @@ use crate::settings::{graphics_settings::TileTexture, SlotMachine};
 )]
 pub struct LockEffect {
     pub duration: InGameTime,
-    /// Note that empty (space) tile texture is automatically retextured to `air`.
+    /// Note:
+    /// - Empty (space) tile texture is automatically retextured to `air`.
+    /// - `None` tile texture falls back to dropped piece tile texture.
+    /// - `None` tile id falls back to dropped piece tile id.
     pub animation: Vec<(Option<TileTexture>, Option<TileID>)>,
 }
 
