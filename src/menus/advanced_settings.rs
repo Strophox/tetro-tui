@@ -13,7 +13,7 @@ use crossterm::{
 };
 
 use crate::{
-    fmt_helpers::FmtBool,
+    fmt_helpers::BoolAsOnOff,
     game_renderers::TetroTUIRenderer,
     menus::{Menu, MenuUpdate},
     Application, SavefileGranularity,
@@ -52,15 +52,15 @@ impl<T: Write> Application<T> {
                 ),
                 format!(
                     "Assume enhanced-key-events available = {} *",
-                    self.temp_data.kitty_assumed.fmt_on_off()
+                    self.temp_data.kitty_assumed.on_off()
                 ),
                 format!(
                     "Blindfold gameplay = {}",
-                    self.temp_data.blindfold_enabled.fmt_on_off()
+                    self.temp_data.blindfold_enabled.on_off()
                 ),
                 format!(
                     "Don't pause when focus lost = {}",
-                    self.temp_data.no_pause_on_focus_lost.fmt_on_off()
+                    self.temp_data.no_pause_on_focus_lost.on_off()
                 ),
                 format!(
                     "Renderer selected = {} (applies on New Game)",

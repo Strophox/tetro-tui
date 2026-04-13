@@ -110,7 +110,7 @@ impl<T: Write> Application<T> {
         )?;
 
         // How much time passes between each refresh.
-        let frame_interval = Duration::from_secs_f64(self.settings.graphics().game_fps.recip());
+        let frame_interval = Duration::from_secs_f64(self.settings.graphics().fps.get().recip());
 
         // Time of the game when we enter the game loop.
         let mut ingametime_when_game_loop_entered = game.state().time;

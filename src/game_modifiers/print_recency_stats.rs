@@ -2,8 +2,6 @@ use falling_tetromino_engine::{
     GameAccess, GameModifier, Notification, NotificationFeed, Tetromino, TetrominoGenerator,
 };
 
-use crate::fmt_helpers::FmtTetromino;
-
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]
@@ -62,18 +60,24 @@ impl GameModifier for PrintRecencyStats {
 
         let text_tetrominos_last_emitted = tetrominos_data
             .iter()
-            .map(|(t, t_last_emitted, _)| format!("{}{}", t.charstr_ascii(), t_last_emitted,))
+            .map(|(t, t_last_emitted, _)| {
+                format!(
+                    "{}{}",
+                    ['O', 'I', 'S', 'Z', 'T', 'L', 'J'][*t as usize],
+                    t_last_emitted,
+                )
+            })
             .collect::<Vec<String>>()
             .join(" ");
 
         let text_tetrominos_weight = tetrominos_data
-            .into_iter()
+            .iter()
             .map(|(t, _, t_weight)| {
                 format!(
                     "{}{}{}",
-                    t.charstr_ascii(),
-                    "█".repeat(t_weight as usize / 8),
-                    [" ", "▏", "▎", "▍", "▌", "▋", "▊", "▉"][t_weight as usize % 8]
+                    ['O', 'I', 'S', 'Z', 'T', 'L', 'J'][*t as usize],
+                    "█".repeat(*t_weight as usize / 8),
+                    [" ", "▏", "▎", "▍", "▌", "▋", "▊", "▉"][*t_weight as usize % 8]
                 )
             })
             .collect::<Vec<String>>()

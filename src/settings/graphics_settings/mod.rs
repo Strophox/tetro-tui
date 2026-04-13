@@ -16,16 +16,16 @@ pub mod tui_style;
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug, serde::Serialize, serde::Deserialize,
 )]
-pub struct GraphicsSettingsNew {
+pub struct GraphicsSettings {
     pub palette_picked: usize,
     pub tui_style_picked: usize,
     pub mino_textures_picked: usize,
     pub hard_drop_picked: usize,
-    pub piece_lock_picked: usize,
+    pub lock_effect_picked: usize,
     pub line_clear_picked: usize,
     pub mini_tet_picked: usize,
     pub small_tet_picked: usize,
-    pub normalsize_previews: NonZeroUsize,
+    pub normalsize_preview_limit: Option<NonZeroUsize>,
     pub fps: ExtNonNegF64,
     pub boardpalette_picked: usize,
     pub show_stats_hud: bool,
@@ -41,32 +41,8 @@ pub struct GraphicsSettingsNew {
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug, serde::Serialize, serde::Deserialize,
 )]
 #[serde(into = "String", try_from = "String")]
-pub struct TileTexture([char; 2]);
+pub struct TileTexture(pub [char; 2]);
 
-#[derive(
-    PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug, serde::Serialize, serde::Deserialize,
-)]
-pub enum Glyphset {
-    Elektronika60,
-    Ascii,
-    Unicode,
-}
-
-// TODO: Replace with new graphics settings!
-#[derive(PartialEq, PartialOrd, Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
-pub struct GraphicsSettings {
-    pub palette_picked: usize,
-    pub boardpalette_picked: usize,
-    pub glyphset: Glyphset,
-    pub effects: bool,
-    pub lineclear_style: u8,
-    pub shadow_piece: bool,
-    pub button_state: bool,
-    pub game_fps: f64,
-    pub show_fps: bool,
-}
-
-// TODO: Replace with new graphics settings!
 pub fn default_graphics_slots() -> SlotMachine<GraphicsSettings> {
     let slots = vec![
         ("Default".to_owned(), GraphicsSettings::default()),
@@ -87,15 +63,24 @@ pub fn default_graphics_slots() -> SlotMachine<GraphicsSettings> {
 
 impl Default for GraphicsSettings {
     fn default() -> Self {
-        Self {
-            glyphset: Glyphset::Unicode,
-            palette_picked: 3,
-            boardpalette_picked: 3,
-            effects: true,
-            lineclear_style: 0,
-            shadow_piece: true,
-            button_state: false,
-            game_fps: 30.0,
+        GraphicsSettings {
+            palette_picked: 3,       // Okpalette
+            tui_style_picked: 1,     // Unicode
+            mino_textures_picked: 1, // Unicode
+            hard_drop_picked: 1,     // ASCII particles
+            lock_effect_picked: 2,   // Unicode pulse
+            line_clear_picked: 8,    // Mino pop
+            mini_tet_picked: 1,      // Braille
+            small_tet_picked: 1,     // Blocks
+            normalsize_preview_limit: Some(NonZeroUsize::MIN),
+            fps: ExtNonNegF64::from(30),
+            boardpalette_picked: 3, // Okpalette
+            show_stats_hud: true,
+            show_keybinds: true,
+            show_buttons: false,
+            show_shadow: true,
+            show_spawn: true,
+            show_grid: false,
             show_fps: false,
         }
     }
@@ -103,57 +88,93 @@ impl Default for GraphicsSettings {
 
 impl GraphicsSettings {
     pub fn extra_focus() -> Self {
-        Self {
-            palette_picked: 2,
-            boardpalette_picked: 0,
-            effects: false,
-            lineclear_style: 0,
-            game_fps: 60.0,
-            glyphset: Glyphset::Unicode,
-            shadow_piece: true,
-            button_state: false,
+        GraphicsSettings {
+            palette_picked: 2,       // Standard
+            tui_style_picked: 1,     // Unicode
+            mino_textures_picked: 1, // Unicode
+            hard_drop_picked: 0,     // None
+            lock_effect_picked: 0,   // None
+            line_clear_picked: 1,    // None (vacate)
+            mini_tet_picked: 1,      // Braille
+            small_tet_picked: 1,     // Blocks
+            normalsize_preview_limit: None,
+            fps: ExtNonNegF64::from(60),
+            boardpalette_picked: 0, // Monochrome
+            show_stats_hud: false,
+            show_keybinds: false,
+            show_buttons: false,
+            show_shadow: true,
+            show_spawn: true,
+            show_grid: false,
             show_fps: false,
         }
     }
 
     pub fn guideline() -> Self {
-        Self {
-            glyphset: Glyphset::Unicode,
-            palette_picked: 2,
-            boardpalette_picked: 2,
-            effects: true,
-            lineclear_style: 0,
-            shadow_piece: true,
-            button_state: false,
-            game_fps: 60.0,
+        GraphicsSettings {
+            palette_picked: 2,       // Standard
+            tui_style_picked: 1,     // Unicode
+            mino_textures_picked: 1, // Unicode
+            hard_drop_picked: 1,     // ASCII particles
+            lock_effect_picked: 2,   // Unicode pulse
+            line_clear_picked: 8,    // Mino pop
+            mini_tet_picked: 1,      // Braille
+            small_tet_picked: 1,     // Blocks
+            normalsize_preview_limit: Some(NonZeroUsize::MIN),
+            fps: ExtNonNegF64::from(30),
+            boardpalette_picked: 2, // Standard
+            show_stats_hud: true,
+            show_keybinds: true,
+            show_buttons: false,
+            show_shadow: true,
+            show_spawn: true,
+            show_grid: false,
             show_fps: false,
         }
     }
 
     pub fn compatibility() -> Self {
-        Self {
-            palette_picked: 1,
-            boardpalette_picked: 1,
-            effects: true,
-            lineclear_style: 0,
-            game_fps: 30.0,
-            glyphset: Glyphset::Ascii,
-            shadow_piece: true,
-            button_state: false,
+        GraphicsSettings {
+            palette_picked: 1,       // ANSI
+            tui_style_picked: 0,     // ASCII
+            mino_textures_picked: 0, // ASCII
+            hard_drop_picked: 1,     // ASCII particles
+            lock_effect_picked: 1,   // ASCII transform
+            line_clear_picked: 8,    // Mino pop
+            mini_tet_picked: 0,      // Letters
+            small_tet_picked: 0,     // ASCII
+            normalsize_preview_limit: None,
+            fps: ExtNonNegF64::from(30),
+            boardpalette_picked: 1, // ANSI
+            show_stats_hud: true,
+            show_keybinds: true,
+            show_buttons: false,
+            show_shadow: true,
+            show_spawn: true,
+            show_grid: false,
             show_fps: false,
         }
     }
 
     pub fn elektronika_60() -> Self {
-        Self {
-            palette_picked: 0,
-            boardpalette_picked: 0,
-            effects: true,
-            lineclear_style: 0,
-            game_fps: 24.0,
-            glyphset: Glyphset::Elektronika60,
-            shadow_piece: false,
-            button_state: false,
+        GraphicsSettings {
+            palette_picked: 0,       // Monochrome
+            tui_style_picked: 2,     // Elektronika 60
+            mino_textures_picked: 2, // Elektronika 60
+            hard_drop_picked: 0,     // None
+            lock_effect_picked: 0,   // None
+            line_clear_picked: 2,    // Left-to-right
+            mini_tet_picked: 0,      // Letters
+            small_tet_picked: 0,     // ASCII
+            normalsize_preview_limit: None,
+            fps: ExtNonNegF64::from(30),
+            boardpalette_picked: 0, // ANSI
+            show_stats_hud: true,
+            show_keybinds: true,
+            show_buttons: false,
+            show_shadow: false,
+            show_spawn: false,
+            show_grid: true,
             show_fps: false,
         }
     }

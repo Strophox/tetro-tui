@@ -13,23 +13,23 @@ pub struct MiniTetStyle {
 
 pub fn default_mini_tet_style_slots() -> SlotMachine<MiniTetStyle> {
     let slots = vec![
-        ("Braille".to_owned(), MiniTetStyle::braille()),
         ("Letters".to_owned(), MiniTetStyle::letters()),
+        ("Braille".to_owned(), MiniTetStyle::braille()),
     ];
 
     SlotMachine::with_unmodifiable_slots(slots, "Mini tet.".to_owned())
 }
 
 impl MiniTetStyle {
-    pub fn braille() -> Self {
-        MiniTetStyle {
-            tets: ['⠶', '⡇', '⠳', '⠞', '⠗', '⠧', '⠼'],
-        }
-    }
-
     pub fn letters() -> Self {
         MiniTetStyle {
             tets: ['O', 'I', 'S', 'Z', 'T', 'L', 'J'],
+        }
+    }
+
+    pub fn braille() -> Self {
+        MiniTetStyle {
+            tets: ['⠶', '⡇', '⠳', '⠞', '⠗', '⠧', '⠼'],
         }
     }
 }

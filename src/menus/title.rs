@@ -10,7 +10,6 @@ use crossterm::{
 
 use crate::{
     menus::{Menu, MenuUpdate},
-    settings::Glyphset,
     Application,
 };
 
@@ -39,149 +38,145 @@ impl<T: Write> Application<T> {
 
             let dx_title = w_main.saturating_sub(36) / 2;
 
-            match self.settings.graphics().glyphset {
-                Glyphset::Elektronika60 | Glyphset::Ascii => {
-                    let title_ascii = [
-                        r" / /____ / /________   __ / /___ __(_)",
-                        r"/ __/ -_) __/ __/ _ \ /_// __/ // / / ",
-                        r"\__/\__/\__/_/  \___/    \__/\_,_/_/  ",
-                    ];
-                    // let title_ascii = [
-                    //     ".......  .... .......  ....    .... ",
-                    //     "   .°   :..      .°   .:..°  .:   .:",
-                    //     "  :°   :......  :°   :°  °:  °....° ",
-                    // ];
+            if self.settings.tui_style().is_title_unicode {
+                let title_colors = [
+                    "1111555  1111 1111555  5666    1111 ",
+                    "   35   666      35   35526  33   33",
+                    "  33   6661111  33   33  22  311113 ",
+                ];
+                let title_color_offsets = [
+                    "0000111  3333 4444555  0111    3333 ",
+                    "   01   222      45   60011  22   44",
+                    "  00   2223333  44   66  11  233334 ",
+                ];
+                let title_unicode = [
+                    "▄▄▄▄▄▄▄  ▄▄▄▄ ▄▄▄▄▄▄▄  ▄▄▄▄    ▄▄▄▄ ",
+                    "   ▄▀   █▄▄      ▄▀   ▄█▄▄▀  ▄█   ▄█",
+                    "  █▀   █▄▄▄▄▄▄  █▀   █▀  ▀█  ▀▄▄▄▄▀ ",
+                ];
+                let color_tetromino_rainbow = "1643502"
+                    .chars()
+                    .map(|ch| {
+                        self.settings
+                            .palette()
+                            .get(
+                                &falling_tetromino_engine::Tetromino::VARIANTS
+                                    [ch.to_string().parse::<usize>().unwrap()]
+                                .tile_id(),
+                            )
+                            .unwrap_or(&Color::Reset)
+                    })
+                    .copied()
+                    .collect::<Vec<_>>();
 
-                    //let color16_rainbow = [Color::DarkRed, Color::Red, Color::DarkYellow, Color::Yellow, Color::DarkGreen, Color::Green, Color::DarkBlue, Color::Blue, Color::DarkCyan, Color::Cyan, Color::DarkMagenta, Color::Magenta];
-                    let color_tetromino_rainbow = "1643502"
+                for (dy, ((t_line, c_line), co_line)) in title_unicode
+                    .iter()
+                    .zip(title_colors)
+                    .zip(title_color_offsets)
+                    .enumerate()
+                {
+                    for (dx, ((t_char, c_char), co_char)) in t_line
                         .chars()
-                        .map(|ch| {
-                            self.settings
-                                .palette()
-                                .get(
-                                    &falling_tetromino_engine::Tetromino::VARIANTS
-                                        [ch.to_string().parse::<usize>().unwrap()]
-                                    .tile_id(),
-                                )
-                                .unwrap_or(&Color::Reset)
-                        })
-                        .copied()
-                        .collect::<Vec<_>>();
-
-                    for (dy, bline) in title_ascii.iter().enumerate() {
-                        for (dx, bchar) in bline.chars().enumerate() {
-                            self.term.queue(MoveTo(
-                                x_main + u16::try_from(dx_title + dx).unwrap(),
-                                y_main + y_selection + u16::try_from(dy).unwrap(),
-                            ))?;
-
-                            let color = color_tetromino_rainbow[(((dx + dy) as isize
-                                + dynamic_color_offset)
-                                / (dynamic_title_style.rem_euclid(Self::W_MAIN as isize) + 1))
-                                .rem_euclid(color_tetromino_rainbow.len() as isize)
-                                as usize];
-
-                            self.term
-                                .queue(PrintStyledContent(bchar.to_string().with(color)))?;
-                        }
-                    }
-                }
-                Glyphset::Unicode => {
-                    let title_colors = [
-                        "1111555  1111 1111555  5666    1111 ",
-                        "   35   666      35   35526  33   33",
-                        "  33   6661111  33   33  22  311113 ",
-                    ];
-                    let title_color_offsets = [
-                        "0000111  3333 4444555  0111    3333 ",
-                        "   01   222      45   60011  22   44",
-                        "  00   2223333  44   66  11  233334 ",
-                    ];
-                    let title_unicode = [
-                        "▄▄▄▄▄▄▄  ▄▄▄▄ ▄▄▄▄▄▄▄  ▄▄▄▄    ▄▄▄▄ ",
-                        "   ▄▀   █▄▄      ▄▀   ▄█▄▄▀  ▄█   ▄█",
-                        "  █▀   █▄▄▄▄▄▄  █▀   █▀  ▀█  ▀▄▄▄▄▀ ",
-                    ];
-                    let color_tetromino_rainbow = "1643502"
-                        .chars()
-                        .map(|ch| {
-                            self.settings
-                                .palette()
-                                .get(
-                                    &falling_tetromino_engine::Tetromino::VARIANTS
-                                        [ch.to_string().parse::<usize>().unwrap()]
-                                    .tile_id(),
-                                )
-                                .unwrap_or(&Color::Reset)
-                        })
-                        .copied()
-                        .collect::<Vec<_>>();
-
-                    for (dy, ((t_line, c_line), co_line)) in title_unicode
-                        .iter()
-                        .zip(title_colors)
-                        .zip(title_color_offsets)
+                        .zip(c_line.chars())
+                        .zip(co_line.chars())
                         .enumerate()
                     {
-                        for (dx, ((t_char, c_char), co_char)) in t_line
-                            .chars()
-                            .zip(c_line.chars())
-                            .zip(co_line.chars())
-                            .enumerate()
-                        {
-                            self.term.queue(MoveTo(
-                                x_main + u16::try_from(dx_title + dx).unwrap(),
-                                y_main + y_selection + u16::try_from(dy).unwrap(),
-                            ))?;
+                        self.term.queue(MoveTo(
+                            x_main + u16::try_from(dx_title + dx).unwrap(),
+                            y_main + y_selection + u16::try_from(dy).unwrap(),
+                        ))?;
 
-                            let color = match dynamic_title_style
-                                .rem_euclid(Self::W_MAIN as isize + 2)
-                            {
-                                // Default title colors.
-                                0 => {
-                                    if c_char == ' ' {
-                                        Color::Reset
-                                    } else {
-                                        *self
-                                            .settings
-                                            .palette()
-                                            .get(
-                                                &falling_tetromino_engine::Tetromino::VARIANTS
-                                                    [c_char.to_string().parse::<usize>().unwrap()]
-                                                .tile_id(),
-                                            )
-                                            .unwrap_or(&Color::Reset)
-                                    }
+                        let color = match dynamic_title_style.rem_euclid(Self::W_MAIN as isize + 2)
+                        {
+                            // Default title colors.
+                            0 => {
+                                if c_char == ' ' {
+                                    Color::Reset
+                                } else {
+                                    *self
+                                        .settings
+                                        .palette()
+                                        .get(
+                                            &falling_tetromino_engine::Tetromino::VARIANTS
+                                                [c_char.to_string().parse::<usize>().unwrap()]
+                                            .tile_id(),
+                                        )
+                                        .unwrap_or(&Color::Reset)
                                 }
-                                1 => {
-                                    if co_char == ' ' {
-                                        Color::Reset
-                                    } else {
-                                        color_tetromino_rainbow[(co_char
-                                            .to_string()
-                                            .parse::<isize>()
-                                            .unwrap()
-                                            + dynamic_color_offset)
-                                            .rem_euclid(color_tetromino_rainbow.len() as isize)
-                                            as usize]
-                                    }
-                                }
-                                n => {
-                                    let width = n - 1;
-                                    color_tetromino_rainbow[(((dx + dy) as isize
+                            }
+                            1 => {
+                                if co_char == ' ' {
+                                    Color::Reset
+                                } else {
+                                    color_tetromino_rainbow[(co_char
+                                        .to_string()
+                                        .parse::<isize>()
+                                        .unwrap()
                                         + dynamic_color_offset)
-                                        / width)
                                         .rem_euclid(color_tetromino_rainbow.len() as isize)
                                         as usize]
                                 }
-                            };
+                            }
+                            n => {
+                                let width = n - 1;
+                                color_tetromino_rainbow[(((dx + dy) as isize
+                                    + dynamic_color_offset)
+                                    / width)
+                                    .rem_euclid(color_tetromino_rainbow.len() as isize)
+                                    as usize]
+                            }
+                        };
 
-                            self.term
-                                .queue(PrintStyledContent(t_char.to_string().with(color)))?;
-                        }
+                        self.term
+                            .queue(PrintStyledContent(t_char.to_string().with(color)))?;
                     }
                 }
-            };
+            } else {
+                let title_ascii = [
+                    r" / /____ / /________   __ / /___ __(_)",
+                    r"/ __/ -_) __/ __/ _ \ /_// __/ // / / ",
+                    r"\__/\__/\__/_/  \___/    \__/\_,_/_/  ",
+                ];
+                // let title_ascii = [
+                //     ".......  .... .......  ....    .... ",
+                //     "   .°   :..      .°   .:..°  .:   .:",
+                //     "  :°   :......  :°   :°  °:  °....° ",
+                // ];
+
+                //let color16_rainbow = [Color::DarkRed, Color::Red, Color::DarkYellow, Color::Yellow, Color::DarkGreen, Color::Green, Color::DarkBlue, Color::Blue, Color::DarkCyan, Color::Cyan, Color::DarkMagenta, Color::Magenta];
+                let color_tetromino_rainbow = "1643502"
+                    .chars()
+                    .map(|ch| {
+                        self.settings
+                            .palette()
+                            .get(
+                                &falling_tetromino_engine::Tetromino::VARIANTS
+                                    [ch.to_string().parse::<usize>().unwrap()]
+                                .tile_id(),
+                            )
+                            .unwrap_or(&Color::Reset)
+                    })
+                    .copied()
+                    .collect::<Vec<_>>();
+
+                for (dy, bline) in title_ascii.iter().enumerate() {
+                    for (dx, bchar) in bline.chars().enumerate() {
+                        self.term.queue(MoveTo(
+                            x_main + u16::try_from(dx_title + dx).unwrap(),
+                            y_main + y_selection + u16::try_from(dy).unwrap(),
+                        ))?;
+
+                        let color = color_tetromino_rainbow[(((dx + dy) as isize
+                            + dynamic_color_offset)
+                            / (dynamic_title_style.rem_euclid(Self::W_MAIN as isize) + 1))
+                            .rem_euclid(color_tetromino_rainbow.len() as isize)
+                            as usize];
+
+                        self.term
+                            .queue(PrintStyledContent(bchar.to_string().with(color)))?;
+                    }
+                }
+            }
 
             let names = selection
                 .iter()

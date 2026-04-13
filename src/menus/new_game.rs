@@ -20,13 +20,13 @@ use falling_tetromino_engine::{
 };
 
 use crate::{
-    fmt_helpers::{fmt_button_input, fmt_duration, fmt_hertz, FmtBool},
+    fmt_helpers::{fmt_duration, fmt_hertz, fmt_player_input, BoolAsOnOff},
     game_mode_presets::GameModePreset,
     game_modifiers::{self, Combo},
     game_renderers::{Renderer, TetroTUIRenderer},
     game_restoration::{GameRestorationData, RawInputHistory},
     menus::{Menu, MenuUpdate},
-    settings::{GameModePreferences, GameplaySettings, Glyphset},
+    settings::{GameModePreferences, GameplaySettings},
     Application, GameMetaData, GameSave,
 };
 
@@ -160,7 +160,7 @@ impl<T: Write> Application<T> {
                             } else {
                                 let (load_time, load_input) = input_history.inputs[(inputs_to_load - 1) % input_history.inputs.len()];
                                 let load_time = fmt_duration(load_time);
-                                let load_input = fmt_button_input(load_input, self.settings.graphics().glyphset != Glyphset::Unicode);
+                                let load_input = fmt_player_input(load_input, self.settings.tui_style().buttonsglyphs);
                                 format!(">> Load {load_title} from input {inputs_to_load}/{load_offset_max} ({load_input} @ {load_time}) [Del] <<")
                             }
                         } else {
@@ -236,7 +236,7 @@ impl<T: Write> Application<T> {
                             .game_mode_preferences
                             .custom_fall_params
                             .is_constant())
-                        .fmt_on_off()
+                        .on_off()
                     ),
                     format!(
                         "| Limit = {:?} [→]",
