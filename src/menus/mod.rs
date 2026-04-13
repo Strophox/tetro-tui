@@ -117,7 +117,7 @@ impl<T: Write> Application<T> {
         let mut selected = 0usize;
         loop {
             let w_main = Self::W_MAIN.into();
-            let (x_main, y_main) = Self::fetch_main_xy();
+            let (x_main, y_main) = Self::available_area();
             let y_selection = Self::H_MAIN / 5;
             if current_menu_name.is_empty() {
                 self.term

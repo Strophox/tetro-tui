@@ -14,7 +14,11 @@ pub mod small_tet_style;
 pub mod tui_style;
 
 // NOTE: We are mostly interested in 2-character-wide strings.
-pub type TileTexture = String;
+#[derive(
+    PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug, serde::Serialize, serde::Deserialize,
+)]
+#[serde(into = "String", try_from = "String")]
+pub struct TileTexture([char; 2]);
 
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug, serde::Serialize, serde::Deserialize,
@@ -153,5 +157,51 @@ impl GraphicsSettings {
             button_state: false,
             show_fps: false,
         }
+    }
+}
+
+impl TryFrom<String> for TileTexture {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        let tile = value
+            .chars()
+            .collect::<Vec<char>>()
+            .try_into()
+            .map_err(|x| format!("Error: {x:?}"))?;
+        Ok(TileTexture(tile))
+    }
+}
+
+// -- Serialization boilerplate --
+
+/* FIXME: Does ANYONE know what the error means that results from replacing the TryFrom<String> above with this???
+impl<S: AsRef<str>> TryFrom<S> for TileTexture {
+    type Error = String;
+
+    fn try_from(value: S) -> Result<Self, Self::Error> {
+        let tile = value.as_ref()
+            .chars()
+            .collect::<Vec<char>>()
+            .try_into()
+            .map_err(|x| format!("Error: {x:?}"))?;
+        Ok(TileTexture(tile))
+    }
+}*/
+
+trait QuickTileFromStr {
+    fn tile(&self) -> TileTexture;
+}
+
+impl QuickTileFromStr for str {
+    fn tile(&self) -> TileTexture {
+        let tile = self.chars().collect::<Vec<char>>().try_into().unwrap();
+        TileTexture(tile)
+    }
+}
+
+impl Into<String> for TileTexture {
+    fn into(self) -> String {
+        self.0.iter().collect()
     }
 }

@@ -4,6 +4,7 @@ use crate::settings::SlotMachine;
 
 /**
 Currently, we want to deal with TUI styles with the form like this:
+```text
 
                   ┌─hold─╓╶╶╶╶╶╶╶╶╶╶╴╴╴╴╴╴╴╴╴╴╖────next────┐
                   │ ▄▄█  ║                    ║      ██    │
@@ -30,8 +31,11 @@ Currently, we want to deal with TUI styles with the form like this:
 
                                 Stage 24
                            +9, Mono J-spin x2
+```
 
 In practice, we decompose it as such:
+```text
+
                   JIholdIABBBBBBBBBBBBBBBBBBBBCMMMMnextMMMMN
                   K ▄▄█  H                    D      ██    O
                   LIIIIIIH                    D  ██████    O
@@ -57,6 +61,7 @@ In practice, we decompose it as such:
                           UVUVUVUVUVUVUVUVUVUV
                                 Stage 24
                            +9, Mono J-spin x2
+```
  */
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
@@ -75,6 +80,8 @@ pub struct TuiStyle {
     pub nextglyphs: [char; 7],
     /// "BUTTONS HERE"
     pub buttonsglyphs: [char; Button::VARIANTS.len()],
+    /// Whether to use the ASCII title screen variant.
+    pub is_title_unicode: bool,
 }
 
 pub fn default_tui_style_slots() -> SlotMachine<TuiStyle> {
@@ -96,6 +103,7 @@ impl TuiStyle {
             hold: "─┌|└",
             next: "─┐│┤┘┬╴",
             buttons: "←→↺↻↔↓⤓⇓⇐⇒⇋",
+            is_title_unicode: true,
         }
         .try_into()
         .unwrap()
@@ -109,6 +117,7 @@ impl TuiStyle {
             hold: "-+|+",
             next: "-+|+++-",
             buttons: "<>LR@v!w{}H",
+            is_title_unicode: false,
         }
         .try_into()
         .unwrap()
@@ -121,6 +130,7 @@ impl TuiStyle {
             hold: "    ",
             next: "       ",
             buttons: "<>LR@v!w{}H",
+            is_title_unicode: false,
         }
         .try_into()
         .unwrap()
@@ -191,6 +201,7 @@ impl<S: AsRef<str>> TryFrom<TuiStyleCompact<S>> for TuiStyle {
             holdglyphs,
             nextglyphs,
             buttonsglyphs,
+            is_title_unicode: value.is_title_unicode,
         })
     }
 }
@@ -205,6 +216,7 @@ pub struct TuiStyleCompact<T> {
     pub hold: T,
     pub next: T,
     pub buttons: T,
+    pub is_title_unicode: bool,
 }
 
 impl From<TuiStyle> for TuiStyleCompact<String> {
@@ -216,6 +228,7 @@ impl From<TuiStyle> for TuiStyleCompact<String> {
             hold: value.holdglyphs.iter().collect(),
             next: value.nextglyphs.iter().collect(),
             buttons: value.buttonsglyphs.iter().collect(),
+            is_title_unicode: value.is_title_unicode,
         }
     }
 }

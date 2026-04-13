@@ -107,7 +107,7 @@ impl<T: Write> Application<T> {
 
         // Initial render.
 
-        let (x_main, y_main) = Application::<T>::fetch_main_xy();
+        let (x_main, y_main) = Application::<T>::available_area();
         game_renderer.set_render_offset(usize::from(x_main), usize::from(y_main));
         game_renderer.reset_view_diff_state();
         game_renderer.render(
@@ -504,7 +504,7 @@ impl<T: Write> Application<T> {
                     event::Event::FocusLost => {}
                     event::Event::Resize(_, _) => {
                         // Need to redraw screen for proper centering etc.
-                        let (x_main, y_main) = Application::<T>::fetch_main_xy();
+                        let (x_main, y_main) = Application::<T>::available_area();
                         game_renderer.set_render_offset(usize::from(x_main), usize::from(y_main));
                         game_renderer.reset_view_diff_state();
 
