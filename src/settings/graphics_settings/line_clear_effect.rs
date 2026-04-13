@@ -1,46 +1,52 @@
-use falling_tetromino_engine::{InGameTime, TileID};
+use std::time::Duration;
 
-use crate::settings::{graphics_settings::TileTexture, SlotMachine};
+use falling_tetromino_engine::{Game, InGameTime, Tetromino, TileID};
+
+use crate::settings::{
+    graphics_settings::{QuickTileFromStr, TileTexture},
+    Palette, SlotMachine,
+};
 
 #[derive(PartialEq, PartialOrd, Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub enum LineClearEffect {
+    // FIXME: Relocate this comment.
+    // Retain,
+    // Vacate,
+    // Inward,
+    // Outward,
+    // Leftward,
+    // Rightward,
     Inline {
-        style: InlineClearStyle,
+        anim_indices: [usize; 2 * Game::WIDTH],
+        /// The last/max index that is animated.
+        anim_lastidx: usize,
+        /// Color animation ids.
         /// Note:
-        /// - `None` tile id falls back to dropped piece tile id.
-        animation: Vec<Option<TileID>>,
+        /// - Empty vec means no recoloring (locked piece tile id).
+        /// - `None` tile id falls back to locked piece tile id.
+        color_animation: Vec<Option<TileID>>,
     },
-    // FIXME: Check.
+
     /// The formulas used to generate the momentum values:
-    /// => xmm := xmm_init + xmm_rand ⋅ [-1..1(random)] + xmm_xpos ⋅ [-1..1(x position)]
-    /// => ymm := ymm_init + ymm_rand ⋅ [0..1(random)]
+    /// * `xmm := xmm_init + xmm_rand ⋅ [-1..1(random)] + xmm_xpos ⋅ [-1..1(x position)]`
+    /// * `ymm := ymm_init + ymm_rand ⋅ [-1..1(random)]`
+    ///
     /// Formula used to generate the position at time:
-    /// => pos = origin + momentum ⋅ Δtime + acceleration ⋅ (Δtime)² / 2
+    /// * `pos = origin + momentum ⋅ Δtime + acceleration ⋅ (Δtime)² / 2`
     MinoParticles {
-        duration: Option<InGameTime>,
+        duration_override: Option<InGameTime>,
         /// Note:
-        /// - Empty (space) tile texture is automatically retextured to `air`.
+        /// - Empty vec means no effect.
+        /// - 'Empty'=space tile texture is automatically retextured to `air`.
         /// - `None` tile texture falls back to dropped piece tile texture.
-        /// - `None` tile id falls back to dropped piece tile id.
+        /// - `None` tile id falls back to locked piece tile id.
         animation: Vec<(Option<TileTexture>, Option<TileID>)>,
         acceleration: (f32, f32),
         momentum_base: (f32, f32),
-        x_momentum_rand_m1p1: f32,
-        y_momentum_rand_p0p1: f32,
         x_momentum_xpos_m1p1: f32,
+        x_momentum_rand_m1p1: f32,
+        y_momentum_rand_m1p1: f32,
     },
-}
-
-#[derive(
-    PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug, serde::Serialize, serde::Deserialize,
-)]
-pub enum InlineClearStyle {
-    Retain,
-    Vacate,
-    Inward,
-    Outward,
-    Leftward,
-    Rightward,
 }
 
 pub fn default_line_clear_effect_slots() -> SlotMachine<LineClearEffect> {
@@ -48,7 +54,7 @@ pub fn default_line_clear_effect_slots() -> SlotMachine<LineClearEffect> {
         ("None /retain".to_owned(), LineClearEffect::retain()),
         ("None /vacate".to_owned(), LineClearEffect::vacate()),
         ("Left-to-right".to_owned(), LineClearEffect::left_to_right()),
-        ("Inward".to_owned(), LineClearEffect::inward()),
+        ("Inward (white)".to_owned(), LineClearEffect::inward()),
         (
             "Outward (rainbow)".to_owned(),
             LineClearEffect::outward_rainbow(),
@@ -70,70 +76,134 @@ pub fn default_line_clear_effect_slots() -> SlotMachine<LineClearEffect> {
     SlotMachine::with_unmodifiable_slots(slots, "Lineclear".to_owned())
 }
 
-/*- TODO Line clear effect SLOT = ['None', 'Left->Right', 'Right->Left', 'Interleaved', 'Blink']
-* <!--Not accessible in TUI-->
-* Mino animation = "██" - "██  " - "@@$$##%%**++~~" - "||¦¦::.." - "░░  ░░  ░░  "
-* Mino momentum = TODO up+outward, up+random, down+outward, random
-* Mino acceleration = ...
-* Mino animation delay pattern = TODO Constant - L2R - R2L - interleave LR/RL
-
-Inline?
-* Inward, Outward, Leftward, Rightward
-* AnimateMinos { [""] use "" for underlying }
-Particle
-* Pop struct MinoParticle {
-animation: String,
-creation_time: InGameTime,
-origin: (usize, usize),
-momentum: (f32, f32),
-acceleration: (f32, f32),
-actually_render: bool,
-tile_id: TileID,
-}
-*/
-
 impl LineClearEffect {
     pub fn retain() -> Self {
-        todo!()
+        LineClearEffect::Inline {
+            anim_indices: [1; 2 * Game::WIDTH],
+            anim_lastidx: 0,
+            color_animation: Vec::new(),
+        }
     }
 
     pub fn vacate() -> Self {
-        todo!()
+        LineClearEffect::Inline {
+            anim_indices: [0; 2 * Game::WIDTH],
+            anim_lastidx: 0,
+            color_animation: Vec::new(),
+        }
     }
 
     pub fn left_to_right() -> Self {
-        todo!()
+        LineClearEffect::Inline {
+            anim_indices: [
+                0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+            ],
+            anim_lastidx: 19,
+            color_animation: Vec::new(),
+        }
     }
 
     pub fn inward() -> Self {
-        todo!()
+        LineClearEffect::Inline {
+            anim_indices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0],
+            anim_lastidx: 9,
+            color_animation: vec![Some(Palette::WHITE)],
+        }
     }
 
     pub fn outward_rainbow() -> Self {
-        todo!()
+        let color_animation = [
+            Tetromino::Z,
+            Tetromino::L,
+            Tetromino::O,
+            Tetromino::S,
+            Tetromino::I,
+            Tetromino::J,
+            Tetromino::T,
+        ]
+        .map(|tet| Some(tet.tile_id()))
+        .into();
+
+        LineClearEffect::Inline {
+            anim_indices: [9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+            anim_lastidx: 9,
+            color_animation,
+        }
     }
 
     pub fn blink() -> Self {
-        todo!()
+        LineClearEffect::MinoParticles {
+            duration_override: None,
+            animation: [None, Some("  ".tile())].map(|t| (t, None)).into(),
+            acceleration: (0.0, 0.0),
+            momentum_base: (0.0, 0.0),
+            x_momentum_xpos_m1p1: 0.0,
+            x_momentum_rand_m1p1: 0.0,
+            y_momentum_rand_m1p1: 0.0,
+        }
     }
 
     pub fn flash_white() -> Self {
-        todo!()
+        LineClearEffect::MinoParticles {
+            duration_override: None,
+            animation: [Some(Palette::WHITE), None].map(|c| (None, c)).into(),
+            acceleration: (0.0, 0.0),
+            momentum_base: (0.0, 0.0),
+            x_momentum_xpos_m1p1: 0.0,
+            x_momentum_rand_m1p1: 0.0,
+            y_momentum_rand_m1p1: 0.0,
+        }
     }
 
     pub fn pop() -> Self {
-        todo!()
+        LineClearEffect::MinoParticles {
+            duration_override: Some(Duration::from_millis(1000)),
+            animation: vec![(None, None)],
+            acceleration: (0.0, -200.0),
+            momentum_base: (0.0, 45.0),
+            x_momentum_xpos_m1p1: 50.0,
+            x_momentum_rand_m1p1: 0.0,
+            y_momentum_rand_m1p1: 0.0,
+        }
     }
 
     pub fn pop_chaotic() -> Self {
-        todo!()
+        LineClearEffect::MinoParticles {
+            duration_override: Some(Duration::from_millis(1000)),
+            animation: vec![(None, None)],
+            acceleration: (0.0, -200.0),
+            momentum_base: (0.0, 45.0),
+            x_momentum_xpos_m1p1: 0.0,
+            x_momentum_rand_m1p1: 50.0,
+            y_momentum_rand_m1p1: 5.0,
+        }
     }
 
     pub fn pop_ascii_fade() -> Self {
-        todo!()
+        let animation = ["@@", "$$", "##", "%%", "**", "++", "~~", ".."]
+            .map(|ss| (Some(ss.tile()), Some(Palette::WHITE)))
+            .into();
+
+        LineClearEffect::MinoParticles {
+            duration_override: Some(Duration::from_millis(1000)),
+            animation,
+            acceleration: (0.0, -200.0),
+            momentum_base: (0.0, 45.0),
+            x_momentum_xpos_m1p1: 50.0,
+            x_momentum_rand_m1p1: 0.0,
+            y_momentum_rand_m1p1: 0.0,
+        }
     }
 
     pub fn blast() -> Self {
-        todo!()
+        LineClearEffect::MinoParticles {
+            duration_override: Some(Duration::from_millis(1000)),
+            animation: vec![(None, None)],
+            acceleration: (0.0, 0.0),
+            momentum_base: (0.0, -90.0),
+            x_momentum_xpos_m1p1: 50.0,
+            x_momentum_rand_m1p1: 0.0,
+            y_momentum_rand_m1p1: 0.0,
+        }
     }
 }

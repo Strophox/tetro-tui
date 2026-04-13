@@ -1,5 +1,7 @@
 use falling_tetromino_engine::{Board, Game, GameAccess, GameBuilder, GameModifier};
 
+use crate::settings::Palette;
+
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]
@@ -54,8 +56,6 @@ impl StartBoard {
     }
 
     pub fn decode_board(board_str: &str) -> Board {
-        let grey_tile = Some(std::num::NonZeroU8::try_from(254).unwrap());
-
         let mut new_board = Board::default();
 
         let mut chars = board_str.chars();
@@ -75,7 +75,7 @@ impl StartBoard {
                         continue 'tiles;
                     } else {
                         // Filled tile found. (falltrough)
-                        *tile = grey_tile;
+                        *tile = Some(Palette::GRAY);
                         continue 'tiles;
                     }
                 }

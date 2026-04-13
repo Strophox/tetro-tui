@@ -13,13 +13,6 @@ pub mod palette;
 pub mod small_tet_style;
 pub mod tui_style;
 
-// NOTE: We are mostly interested in 2-character-wide strings.
-#[derive(
-    PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug, serde::Serialize, serde::Deserialize,
-)]
-#[serde(into = "String", try_from = "String")]
-pub struct TileTexture([char; 2]);
-
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug, serde::Serialize, serde::Deserialize,
 )]
@@ -43,6 +36,12 @@ pub struct GraphicsSettingsNew {
     pub show_grid: bool,
     pub show_fps: bool,
 }
+
+#[derive(
+    PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug, serde::Serialize, serde::Deserialize,
+)]
+#[serde(into = "String", try_from = "String")]
+pub struct TileTexture([char; 2]);
 
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug, serde::Serialize, serde::Deserialize,
@@ -200,8 +199,8 @@ impl QuickTileFromStr for str {
     }
 }
 
-impl Into<String> for TileTexture {
-    fn into(self) -> String {
-        self.0.iter().collect()
+impl From<TileTexture> for String {
+    fn from(value: TileTexture) -> Self {
+        value.0.iter().collect()
     }
 }

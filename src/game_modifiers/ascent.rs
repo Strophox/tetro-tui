@@ -7,6 +7,8 @@ use falling_tetromino_engine::{
     GameRng, InGameTime, Input, Line, NotificationFeed, Phase, Piece, Stat, Tetromino,
 };
 
+use crate::settings::Palette;
+
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]
@@ -111,14 +113,14 @@ impl GameModifier for Ascent {
                 // Modify only certain tiles.
                 if i <= 7 {
                     // Piece is touching the tile.
-                    let tilenum = if piece_tiles_coords.iter().any(|&(x_p, y_p)| {
+                    let tile = if piece_tiles_coords.iter().any(|&(x_p, y_p)| {
                         (x_p as usize).abs_diff(x) + (y_p as usize).abs_diff(y) <= 1
                     }) {
                         // Increase score.s
                         game.state.points += 1;
-                        254
+                        Palette::GRAY
                     } else {
-                        match i {
+                        NonZeroU8::try_from(match i {
                             4 => 6,
                             6 => 1,
                             1 => 3,
@@ -127,10 +129,11 @@ impl GameModifier for Ascent {
                             7 => 5,
                             5 => 4,
                             _ => unreachable!(),
-                        }
+                        })
+                        .unwrap()
                     };
 
-                    *tiletypeid = NonZeroU8::try_from(tilenum).unwrap();
+                    *tiletypeid = tile;
                 }
             }
         }
@@ -203,7 +206,7 @@ impl Ascent {
                 // Add hinges.
                 for (j, tile) in line.iter_mut().enumerate() {
                     if j % 2 == 1 {
-                        let white_tile = Some(NonZeroU8::try_from(255).unwrap());
+                        let white_tile = Some(Palette::WHITE);
                         *tile = white_tile;
                     }
                 }
@@ -217,15 +220,15 @@ impl Ascent {
 
             // Extra tile for even board width and odd playable width.
             if Self::PLAYABLE_WIDTH != line.len() {
-                let color = if (*height_loaded / 10).is_multiple_of(2)
+                let tile_id = if (*height_loaded / 10).is_multiple_of(2)
                     ^ (height_loaded.is_multiple_of(10) || *height_loaded % 10 == 9)
                 {
-                    255 /*white*/
+                    Palette::WHITE
                 } else {
-                    2 /*sky*/
+                    NonZeroU8::try_from(2).unwrap() /*sky*/
                 };
 
-                line[Self::PLAYABLE_WIDTH] = Some(NonZeroU8::try_from(color).unwrap());
+                line[Self::PLAYABLE_WIDTH] = Some(tile_id);
             }
 
             *height_loaded += 1;

@@ -1,7 +1,6 @@
 use std::{
     cmp::Ordering,
     fmt::{Debug, Display},
-    num::NonZeroU8,
     time::Duration,
 };
 
@@ -20,7 +19,7 @@ use super::*;
 
 use crate::{
     fmt_helpers::{fmt_button, fmt_button_ascii, fmt_duration, fmt_hertz, FmtTetromino},
-    settings::Glyphset,
+    settings::{Glyphset, Palette},
     TemporaryAppData,
 };
 
@@ -473,13 +472,11 @@ impl Renderer for DiffPrintOldRenderer {
 
         // Draw button state.
         if settings.graphics().button_state || replay_extra.is_some() {
-            let n253 = NonZeroU8::try_from(253).unwrap();
-            let n255 = NonZeroU8::try_from(255).unwrap();
             let bc = |b: Button| {
                 get_color(if game.state().active_buttons[b].is_some() {
-                    n255
+                    Palette::WHITE
                 } else {
-                    n253
+                    Palette::BLACK
                 })
             };
             let es = [
@@ -581,7 +578,7 @@ impl Renderer for DiffPrintOldRenderer {
             let color = get_color(if swap_allowed {
                 tet.tile_id()
             } else {
-                NonZeroU8::try_from(254).unwrap()
+                Palette::GRAY
             });
             self.screen.buffer_str(str, color, (x_hold, y_hold));
         }
@@ -781,7 +778,7 @@ impl Renderer for DiffPrintOldRenderer {
 
             self.screen.buffer_str(
                 tile_ground,
-                get_color(*tile_id /*NonZeroU8::new(254).unwrap()*/),
+                get_color(*tile_id /*Palette::GRAY*/),
                 (pos_x.round() as usize, pos_y.round() as usize),
             );
         }
@@ -826,7 +823,7 @@ impl Renderer for DiffPrintOldRenderer {
                             (150, "▓▓"),
                         ],
                     };
-                    let color_locking = get_color(NonZeroU8::try_from(255).unwrap());
+                    let color_locking = get_color(Palette::WHITE);
                     // FIXME: Possibly replace these manual find-tile snippets with flexible/parameterized/interpolated-time animations (see lineclear animation).
                     let Some(tile) = animation_locking.iter().find_map(|(ms, tile)| {
                         (elapsed < Duration::from_millis(*ms)).then_some(tile)
@@ -889,7 +886,7 @@ impl Renderer for DiffPrintOldRenderer {
                                 "         ██         ",
                             ],
                         };
-                        let color_lineclear = get_color(NonZeroU8::try_from(255).unwrap());
+                        let color_lineclear = get_color(Palette::WHITE);
                         let percent = elapsed.as_secs_f64() / line_clear_duration.as_secs_f64();
                         let max_idx =
                             f64::from(i32::try_from(animation_lineclear.len() - 1).unwrap());
@@ -920,8 +917,7 @@ impl Renderer for DiffPrintOldRenderer {
                                         momentum: (mult_m_x * 60.0, mult_m_y * 50.0),
                                         acceleration: (0.0, -200.0),
                                         actually_render: true, /*(x /*+ rand::rng().random_range(0..=1)*/).is_multiple_of(2),*/
-                                        tile_id: game.state().board[y][x]
-                                            .unwrap_or(NonZeroU8::new(254).unwrap()),
+                                        tile_id: game.state().board[y][x].unwrap_or(Palette::GRAY),
                                     };
 
                                     self.mino_particles.push((new_particle, true));

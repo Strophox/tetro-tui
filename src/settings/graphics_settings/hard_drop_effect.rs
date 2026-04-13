@@ -1,10 +1,10 @@
-use std::{num::NonZeroU8, time::Duration};
+use std::time::Duration;
 
 use falling_tetromino_engine::{ExtNonNegF64, InGameTime, TileID};
 
 use crate::settings::{
     graphics_settings::{QuickTileFromStr, TileTexture},
-    SlotMachine,
+    Palette, SlotMachine,
 };
 
 #[derive(
@@ -13,7 +13,8 @@ use crate::settings::{
 pub struct HardDropEffect {
     pub duration: InGameTime,
     /// Note:
-    /// - Empty (space) tile texture is automatically retextured to `air`.
+    /// - Empty vec means no effect.
+    /// - 'Empty'=space tile texture is automatically retextured to `air`.
     /// - `None` tile id falls back to dropped piece tile id.
     pub animation: Vec<(TileTexture, Option<TileID>)>,
     /// The extent to which the lifetime decays toward the top when the pieces are spawned.
@@ -62,7 +63,7 @@ impl HardDropEffect {
         HardDropEffect {
             duration: Duration::from_millis(250),
             animation: ["||", "¦¦", "::", ".."].map(|ss| (ss.tile(), None)).into(),
-            top_y_decay: 0.0.try_into().unwrap(),
+            top_y_decay: 0.5.try_into().unwrap(),
         }
     }
 
@@ -70,7 +71,7 @@ impl HardDropEffect {
         HardDropEffect {
             duration: Duration::from_millis(250),
             animation: ["||", "¦¦", "::", ".."]
-                .map(|ss| (ss.tile(), Some(NonZeroU8::try_from(255).unwrap())))
+                .map(|ss| (ss.tile(), Some(Palette::WHITE)))
                 .into(),
             top_y_decay: 1.0.try_into().unwrap(),
         }
@@ -80,7 +81,7 @@ impl HardDropEffect {
         HardDropEffect {
             duration: Duration::from_millis(150),
             animation: ["▒▒", "▒▒", "▒▒", "▒▒", "░░", "░░", "  ", "░░"]
-                .map(|ss| (ss.tile(), Some(NonZeroU8::try_from(255).unwrap())))
+                .map(|ss| (ss.tile(), Some(Palette::WHITE)))
                 .into(),
             top_y_decay: 1.0.try_into().unwrap(),
         }
