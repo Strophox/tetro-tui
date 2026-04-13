@@ -1,11 +1,11 @@
 mod fmt_helpers;
 mod game_mode_presets;
-mod game_modifiers;
+mod game_modding;
 mod game_renderers;
 mod game_restoration;
-mod menus;
+mod tui_menus;
 mod savefile_logic;
-mod settings;
+mod tui_settings;
 
 use std::{io, path::PathBuf};
 
@@ -27,9 +27,9 @@ use crate::{
     game_restoration::{
         EncodedInputHistory, GameRestorationData, InputHistoryEncoder, RawInputHistory,
     },
-    menus::{Menu, MenuUpdate},
+    tui_menus::{Menu, MenuUpdate},
     savefile_logic::SavefileGranularity,
-    settings::Settings,
+    tui_settings::Settings,
 };
 
 // Same as `clap::crate_version!()`.

@@ -3,10 +3,10 @@ pub mod braille;
 'underlying' game logic: An idealized renderer might actually figure out before that which game
 state changes lead to exactly which minimal changes in visuals, and save itself the effort of
 simulating everything it wants to print and manually diffing that like we do now? (diff_state) */
-mod diff_print_old;
-mod halfcell;
+mod legacy_buffered;
 mod prototype;
 mod standard_buffered;
+mod twoxel;
 
 use std::io::{self, Write};
 
@@ -15,12 +15,10 @@ use falling_tetromino_engine::{Game, InGameTime, Notification};
 use crate::{fmt_helpers::KeybindsLegend, GameMetaData, Settings, TemporaryAppData};
 
 pub use braille::BrailleRenderer;
-
-pub use diff_print_old::DiffPrintOldRenderer;
-
+pub use legacy_buffered::LegacyBufferedRenderer;
 pub use prototype::PrototypeRenderer;
-
-pub use halfcell::HalfCellRenderer;
+pub use standard_buffered::StandardBufferedRenderer;
+pub use twoxel::TwoxelRenderer;
 
 pub trait Renderer: Default {
     fn push_game_notification_feed(
@@ -49,32 +47,26 @@ pub trait Renderer: Default {
 
 #[derive(PartialEq, PartialOrd, Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub enum TetroTUIRenderer {
-    DiffPrintOld(DiffPrintOldRenderer),
-    HalfCell(HalfCellRenderer),
-    Braille(BrailleRenderer),
+    StandardBuffered(StandardBufferedRenderer),
+    LegacyBuffered(LegacyBufferedRenderer),
     Prototype(PrototypeRenderer),
+    Twoxel(TwoxelRenderer),
+    Braille(BrailleRenderer),
 }
 
 impl TetroTUIRenderer {
-    pub const NUM_VARIANTS: usize = 4;
+    pub const NUM_VARIANTS: usize = 6;
 
     pub fn with_number(n: usize) -> Self {
         match n {
-            0 => Self::DiffPrintOld(Default::default()),
-            1 => Self::HalfCell(Default::default()),
-            2 => Self::Braille(Default::default()),
-            // 4 => Self::Prototype(Default::default()),
-            // Fallback
-            _ => Self::DiffPrintOld(Default::default()),
-        }
-    }
+            0 => Self::StandardBuffered(Default::default()),
+            1 => Self::LegacyBuffered(Default::default()),
+            2 => Self::Prototype(Default::default()),
+            3 => Self::LegacyBuffered(Default::default()),
+            4 => Self::Twoxel(Default::default()),
+            5 => Self::Braille(Default::default()),
 
-    pub fn name(&self) -> &str {
-        match self {
-            Self::DiffPrintOld(_) => "Default",
-            Self::HalfCell(_) => "Halfcell",
-            Self::Braille(_) => "Braille",
-            Self::Prototype(_) => "Prototype",
+            _ => Self::StandardBuffered(Default::default()),
         }
     }
 }
@@ -91,40 +83,45 @@ impl Renderer for TetroTUIRenderer {
         feed: impl IntoIterator<Item = (Notification, InGameTime)>,
     ) {
         match self {
-            TetroTUIRenderer::DiffPrintOld(r) => r.push_game_notification_feed(feed),
-            TetroTUIRenderer::HalfCell(r) => r.push_game_notification_feed(feed),
-            TetroTUIRenderer::Braille(r) => r.push_game_notification_feed(feed),
+            TetroTUIRenderer::StandardBuffered(r) => r.push_game_notification_feed(feed),
+            TetroTUIRenderer::LegacyBuffered(r) => r.push_game_notification_feed(feed),
             TetroTUIRenderer::Prototype(r) => r.push_game_notification_feed(feed),
+            TetroTUIRenderer::Twoxel(r) => r.push_game_notification_feed(feed),
+            TetroTUIRenderer::Braille(r) => r.push_game_notification_feed(feed),
         }
     }
 
     fn reset_game_associated_state(&mut self) {
         match self {
-            TetroTUIRenderer::DiffPrintOld(r) => r.reset_game_associated_state(),
-            TetroTUIRenderer::HalfCell(r) => r.reset_game_associated_state(),
-            TetroTUIRenderer::Braille(r) => r.reset_game_associated_state(),
+            TetroTUIRenderer::StandardBuffered(r) => r.reset_game_associated_state(),
+            TetroTUIRenderer::LegacyBuffered(r) => r.reset_game_associated_state(),
             TetroTUIRenderer::Prototype(r) => r.reset_game_associated_state(),
+            TetroTUIRenderer::Twoxel(r) => r.reset_game_associated_state(),
+            TetroTUIRenderer::Braille(r) => r.reset_game_associated_state(),
         }
     }
 
     fn reset_view_diff_state(&mut self) {
         match self {
-            TetroTUIRenderer::DiffPrintOld(r) => r.reset_view_diff_state(),
-            TetroTUIRenderer::HalfCell(r) => r.reset_view_diff_state(),
-            TetroTUIRenderer::Braille(r) => r.reset_view_diff_state(),
+            TetroTUIRenderer::StandardBuffered(r) => r.reset_view_diff_state(),
+            TetroTUIRenderer::LegacyBuffered(r) => r.reset_view_diff_state(),
             TetroTUIRenderer::Prototype(r) => r.reset_view_diff_state(),
+            TetroTUIRenderer::Twoxel(r) => r.reset_view_diff_state(),
+            TetroTUIRenderer::Braille(r) => r.reset_view_diff_state(),
         }
     }
 
     fn set_render_offset(&mut self, x: usize, y: usize) {
         match self {
-            TetroTUIRenderer::DiffPrintOld(r) => r.set_render_offset(x, y),
-            TetroTUIRenderer::HalfCell(r) => r.set_render_offset(x, y),
-            TetroTUIRenderer::Braille(r) => r.set_render_offset(x, y),
+            TetroTUIRenderer::StandardBuffered(r) => r.set_render_offset(x, y),
+            TetroTUIRenderer::LegacyBuffered(r) => r.set_render_offset(x, y),
             TetroTUIRenderer::Prototype(r) => r.set_render_offset(x, y),
+            TetroTUIRenderer::Twoxel(r) => r.set_render_offset(x, y),
+            TetroTUIRenderer::Braille(r) => r.set_render_offset(x, y),
         }
     }
 
+    #[rustfmt::skip]
     fn render<T: Write>(
         &mut self,
         term: &mut T,
@@ -136,42 +133,11 @@ impl Renderer for TetroTUIRenderer {
         replay_extra: Option<(InGameTime, f64)>,
     ) -> io::Result<()> {
         match self {
-            TetroTUIRenderer::DiffPrintOld(r) => r.render(
-                term,
-                game,
-                meta_data,
-                settings,
-                temp_data,
-                keybinds_legend,
-                replay_extra,
-            ),
-            TetroTUIRenderer::HalfCell(r) => r.render(
-                term,
-                game,
-                meta_data,
-                settings,
-                temp_data,
-                keybinds_legend,
-                replay_extra,
-            ),
-            TetroTUIRenderer::Braille(r) => r.render(
-                term,
-                game,
-                meta_data,
-                settings,
-                temp_data,
-                keybinds_legend,
-                replay_extra,
-            ),
-            TetroTUIRenderer::Prototype(r) => r.render(
-                term,
-                game,
-                meta_data,
-                settings,
-                temp_data,
-                keybinds_legend,
-                replay_extra,
-            ),
+            TetroTUIRenderer::StandardBuffered(r) => r.render(term, game, meta_data, settings, temp_data, keybinds_legend, replay_extra),
+            TetroTUIRenderer::LegacyBuffered(r) => r.render(term, game, meta_data, settings, temp_data, keybinds_legend, replay_extra),
+            TetroTUIRenderer::Prototype(r) => r.render(term, game, meta_data, settings, temp_data, keybinds_legend, replay_extra),
+            TetroTUIRenderer::Twoxel(r) => r.render(term, game, meta_data, settings, temp_data, keybinds_legend, replay_extra),
+            TetroTUIRenderer::Braille(r) => r.render(term, game, meta_data, settings, temp_data, keybinds_legend, replay_extra),
         }
     }
 }

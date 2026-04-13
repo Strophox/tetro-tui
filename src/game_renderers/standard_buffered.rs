@@ -5,6 +5,7 @@ use crossterm::{
     style::{Color, Print, PrintStyledContent, Stylize},
     terminal, QueueableCommand,
 };
+use falling_tetromino_engine::{Coordinate, NotificationFeed, TileID};
 
 use super::*;
 
@@ -307,3 +308,86 @@ impl TerminalBuffer for SparseTerminalBuffer {
 //     hard_drop_tiles: Vec<(HardDropTile, bool)>,
 //     mino_particles: Vec<(MinoParticle, bool)>,
 // }
+
+// TODO: derive.
+#[derive(
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Clone,
+    Debug,
+    Default,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+// TODO: implement.
+pub struct StandardBufferedRenderer {
+    term_buf: DenseTerminalDoubleBuffer,
+    notification_feed: NotificationFeed,
+    message_render_buf: Vec<(InGameTime, String)>,
+    hard_drop_effect_buf: Vec<HardDropEffectTile>,
+    lock_effect_buf: Vec<LockEffectTile>,
+    line_clear_effect_buf1: Vec<LineClearEffectTile>,
+    line_clear_effect_buf2: Vec<LineClearEffectLine>,
+}
+
+pub struct HardDropEffectTile {
+    creation_time: InGameTime,
+    pos: Coordinate,
+    offset??: ??,
+    tile_id: TileID,
+}
+
+pub struct LockEffectTile {
+    ??: ??,
+}
+
+pub struct LineClearEffectTile {
+    creation_time: InGameTime,
+    origin: (usize, usize),
+    momentum: (f32, f32),
+    acceleration: (f32, f32),
+    animation??: ??,
+    tile_id: TileID,
+}
+
+pub struct LineClearEffectLine {
+    
+}
+
+// TODO: implement.
+impl Renderer for StandardBufferedRenderer {
+    fn push_game_notification_feed(
+        &mut self,
+        feed: impl IntoIterator<Item = (Notification, InGameTime)>,
+    ) {
+        todo!()
+    }
+
+    fn reset_game_associated_state(&mut self) {
+        todo!()
+    }
+
+    fn reset_view_diff_state(&mut self) {
+        todo!()
+    }
+
+    fn set_render_offset(&mut self, x: usize, y: usize) {
+        todo!()
+    }
+
+    fn render<T: Write>(
+        &mut self,
+        term: &mut T,
+        game: &Game,
+        meta_data: &GameMetaData,
+        settings: &Settings,
+        temp_data: &TemporaryAppData,
+        keybinds_legend: &KeybindsLegend,
+        replay_extra: Option<(InGameTime, f64)>,
+    ) -> io::Result<()> {
+        todo!()
+    }
+}
