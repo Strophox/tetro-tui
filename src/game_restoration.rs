@@ -1,6 +1,6 @@
 use falling_tetromino_engine::{Button, Game, GameBuilder, InGameTime, Input, NotificationLevel};
 
-use crate::game_modifiers;
+use crate::game_modding;
 
 /// Raw, uncompressed representation of a partial or complete input history.
 ///
@@ -48,7 +48,7 @@ impl GameRestorationData<RawInputHistory> {
         let mut game = if self.mod_ids_args.is_empty() {
             builder.build()
         } else {
-            match game_modifiers::reconstruct_modded(&builder, &self.mod_ids_args) {
+            match game_modding::reconstruct_modded(&builder, &self.mod_ids_args) {
                 Ok((mut modded_game, unrecognized_mod_ids)) => {
                     if !unrecognized_mod_ids.is_empty() {
                         // Add warning messages if certain mods could not be recognized.
@@ -59,7 +59,7 @@ impl GameRestorationData<RawInputHistory> {
                             .collect();
 
                         let print_warn_msgs_mod =
-                            game_modifiers::PrintMsgs::modifier(warn_messages);
+                            game_modding::PrintMsgs::modifier(warn_messages);
 
                         modded_game.modifiers.push(print_warn_msgs_mod);
                     }
@@ -69,7 +69,7 @@ impl GameRestorationData<RawInputHistory> {
                 Err(msg) => {
                     let error_messages = vec![format!("ERROR: {msg}")];
 
-                    let print_error_msg_mod = game_modifiers::PrintMsgs::modifier(error_messages);
+                    let print_error_msg_mod = game_modding::PrintMsgs::modifier(error_messages);
 
                     builder.build_modded(vec![print_error_msg_mod])
                 }

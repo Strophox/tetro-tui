@@ -6,7 +6,7 @@ use std::{
 };
 
 use crate::{
-    settings::Settings, Application, GameSave, GameSaves, RawInputHistory, Scoreboard, Statistics,
+    tui_settings::Settings, Application, GameSave, GameSaves, RawInputHistory, Scoreboard, Statistics,
 };
 
 pub fn savefile_name() -> String {

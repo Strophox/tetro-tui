@@ -5,7 +5,7 @@ use std::{
 
 use falling_tetromino_engine::{DelayParameters, ExtDuration, Game, GameBuilder, GameLimits, Stat};
 
-use crate::game_modifiers;
+use crate::game_modding;
 
 // Name, (Stat-to-sort-by, is-order-desc), game-builder-struct-finalizer).
 pub struct GameModePreset {
@@ -89,7 +89,7 @@ impl GameModePreset {
             title: Self::TITLE_PUZZLE.to_owned(),
             description: "Clear 24 hand-crafted puzzles.".to_owned(),
             stat_and_order_desc: (Stat::TimeElapsed(Duration::ZERO), true),
-            build: Box::new(game_modifiers::Puzzle::build),
+            build: Box::new(game_modding::Puzzle::build),
         }
     }
 
@@ -121,7 +121,7 @@ impl GameModePreset {
                     builder
                         .fall_delay_params(DelayParameters::constant(fall_lock_delays.0))
                         .lock_delay_params(DelayParameters::constant(fall_lock_delays.1));
-                    game_modifiers::Cheese::build(
+                    game_modding::Cheese::build(
                         &builder,
                         cheese_holes_per_line,
                         cheese_ensure_distinct_holes,
@@ -147,7 +147,7 @@ impl GameModePreset {
             description: format!(
                 "Get consecutive line clears. Limit={:?}{}",
                 combo_limit,
-                if initial_layout != game_modifiers::Combo::LAYOUTS[0] {
+                if initial_layout != game_modding::Combo::LAYOUTS[0] {
                     format!(", Layout={:b}", initial_layout)
                 } else {
                     "".to_owned()
@@ -156,7 +156,7 @@ impl GameModePreset {
             stat_and_order_desc: (Stat::TimeElapsed(Duration::ZERO), true),
             build: Box::new({
                 move |builder: &GameBuilder| {
-                    game_modifiers::Combo::build(builder, initial_layout, combo_limit)
+                    game_modding::Combo::build(builder, initial_layout, combo_limit)
                 }
             }),
         }
@@ -168,7 +168,7 @@ impl GameModePreset {
             title: format!("{}*", Self::TITLE_ASCENT),
             description: "(experimental, req. Ocular + 180° rot.)".to_owned(),
             stat_and_order_desc: (Stat::PointsScored(0), false),
-            build: Box::new(game_modifiers::Ascent::build),
+            build: Box::new(game_modding::Ascent::build),
         }
     }
 }
