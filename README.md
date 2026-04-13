@@ -82,7 +82,7 @@ yay -S tetro-tui
 > 
 > <details>
 > <summary>
-> (Comprehensive overview of relevant menus, Tetro TUI v2.0:)
+> (Comprehensive overview of relevant menus (Tetro TUI v2.0):)
 > </summary>
 > 
 > **New game/**
@@ -335,7 +335,7 @@ yay -S tetro-tui
 
 > <details>
 > <summary>
-> An extensive attempt at better tetromino rotation with regards to symmetry and visual intuition.
+> An extensive attempt at better tetromino rotation with regards to symmetry and visual intuition:
 > </summary>
 >
 > The Ocular rotation system affords:
@@ -352,24 +352,26 @@ yay -S tetro-tui
 > </details>
 
 
-### *Terminal enthusiasts:* How was this Terminal User Interface (TUI) programmed (and why isn't it [Ratatui](<https://ratatui.rs/>))?
+### *Terminal enthusiasts:* How was this terminal game programmed (and why doesn't it use [Ratatui](<https://ratatui.rs/>))?
 
-> Ever since its inception as a proof-of-concept this project has directly used [Crossterm](<https://crates.io/crates/crossterm>).
-> As of writing, the most complicated terminal interaction is custom diff'ing so the game is rendered smoothly (no flicker).
-> Currently there appears no need to change this situation, though Ratatui will be reconsidered if necessary.
+> Ever since its inception as a proof-of-concept this terminal user interface (TUI) has directly used [Crossterm](<https://crates.io/crates/crossterm>) for all I/O.
+> The most complicated terminal interaction we currently implement is custom diff'ing so we render the minimum number of visual game changes (minimize flicker).
+> Currently there appears no need to change this situation, though Ratatui will be reconsidered if necessary (e.g. language/localization...)
+>
+> *Author's Note on program complexity:* Though Tetro TUI has grown far beyond a quick weekend project in terms of features, the code should not be doing anything too crazy / bloated. Consider it a quick weekend project with basic feature breadth and polish scaled by ×42.
 
 
 ### What is the background behind this project?
 
 > <details>
 > <summary>
-> Tetro TUI started as a passion project from someone who loves programming, minimalistic games and ASCII art.
+> Tetro TUI started as a passion project from someone who loves programming, minimalistic games and ASCII art:
 > </summary>
 > 
 > Personal motivation drove me to research 'Tetr\*slikes':
-> Basic versions are simple to code up, yet it can get surprisingly nontrivial when it comes to comprehensive support of modern/advanced/'quality of life' mechanics!
+> Basic versions are simple to code up, yet it can get surprisingly nontrivial when it comes to comprehensive support of modern/advanced/'quality of life' mechanics seen in top-level play.
 > 
-> In the end I've put in my best effort to implement a most featureful and customizable version that not only remains totally faithful to the [basic idea of the game](<https://github.com/Strophox/falling-tetromino-engine>), but also fulfils the requirement that it should run and look nice in any mere terminal!
+> All said and done, I've put in my best effort to implement a most featureful and customizable version that not only remains totally faithful to the [basic idea of the game](<https://github.com/Strophox/falling-tetromino-engine>), but also runs and looks nice within the confines of a mere terminal.
 > 
 > Enjoy! ☻[Strophox](<https://github.com/Strophox>)
 > 
