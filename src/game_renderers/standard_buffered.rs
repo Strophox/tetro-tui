@@ -423,42 +423,67 @@ impl Renderer for StandardBufferedRenderer {
 
         // RENDER: Stats HUD.
 
-        // TODO
-
-        // RENDER: Keybinds HUD.
-
-        if settings.graphics().show_keybinds {
-            // Frame glyphs.
+        if settings.graphics().show_main_hud {
+            // Frame glyph.
             let [c_m_tb] = tui_style.menuglyphs;
-            let w_tmp4 = w_float + W_PAD_LEFT;
-            let h_tmp4 = h_float + H_PAD_TOP + H_FIELD.saturating_sub(MAX_LEGEND_ENTRIES);
+            const W_TITLE_MARGIN: u16 = 2;
+            let w_tmp5 = w_float + W_PAD_LEFT;
+            const H_TITLE_OFFSET: u16 = 3;
+            let h_tmp5 = h_float + H_PAD_TOP + H_TITLE_OFFSET;
 
-            #[rustfmt::skip] self.term_buf.write_char(w_tmp4, h_tmp4, TermCell { ch: c_m_tb, fg: Color::Reset });
-            #[rustfmt::skip] self.term_buf.write_char(w_tmp4 + 1, h_tmp4, TermCell { ch: c_m_tb, fg: Color::Reset });
-            #[rustfmt::skip] self.term_buf.write_char(w_tmp4 + 1 + 1, h_tmp4, TermCell { ch: c_m_tb, fg: Color::Reset });
-            #[rustfmt::skip] self.term_buf.write_str(w_tmp4 + 1 + 1 + 1, h_tmp4, "basic keybinds", Color::Reset);
-            #[rustfmt::skip] self.term_buf.write_char(w_tmp4 + 1 + 1 + 1 + 14, h_tmp4, TermCell { ch: c_m_tb, fg: Color::Reset });
-            #[rustfmt::skip] self.term_buf.write_char(w_tmp4 + 1 + 1 + 1 + 14 + 1, h_tmp4, TermCell { ch: c_m_tb, fg: Color::Reset });
-            #[rustfmt::skip] self.term_buf.write_char(w_tmp4 + 1 + 1 + 1 + 14 + 1 + 1, h_tmp4, TermCell { ch: c_m_tb, fg: Color::Reset });
+            // Render game/mode title.
+            #[rustfmt::skip] self.term_buf.write_char(w_tmp5, h_tmp5 + 1, TermCell { ch: c_m_tb, fg: Color::Reset });
+            #[rustfmt::skip] self.term_buf.write_char(w_tmp5 + 1, h_tmp5 + 1, TermCell { ch: c_m_tb, fg: Color::Reset });
+            for (dx, opt_ch) in meta_data
+                .title
+                .chars()
+                .map(Some)
+                .chain([None, None].into_iter())
+                .take((w_addhud + W_HOLD).saturating_sub(W_TITLE_MARGIN) as usize)
+                .enumerate()
+            {
+                if let Some(ch) = opt_ch {
+                    #[rustfmt::skip] self.term_buf.write_char(w_tmp5 + W_TITLE_MARGIN + (dx as u16), h_tmp5, TermCell { ch, fg: Color::Reset });
+                }
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp5 + W_TITLE_MARGIN + (dx as u16), h_tmp5 + 1, TermCell { ch: c_m_tb, fg: Color::Reset });
+            }
 
-            const W_KEYBINDS: usize = (W_ADD_ACTIVE_HUD + W_HOLD) as usize;
-            // FIXME: Kinda inefficient?
-            let w_max_description = keybinds_legend
-                .iter()
-                .map(|s| s.1.chars().count())
-                .max()
-                .unwrap_or(0);
-            let w_budget_icons = W_KEYBINDS - w_max_description - 1;
-            let w_icons = keybinds_legend
-                .iter()
-                .map(|s| s.0.chars().count())
-                .max()
-                .unwrap_or(0)
-                .min(w_budget_icons);
-            for (dy, (icons, description)) in keybinds_legend.iter().enumerate() {
-                let icons = icons.chars().take(w_icons).collect::<String>();
-                let str = format!("{icons: >w_icons$} {description}");
-                #[rustfmt::skip] self.term_buf.write_str(w_tmp4 + 1, h_tmp4 + (dy as u16) + 1, &str, Color::Reset);
+            #[rustfmt::skip] self.term_buf.write_str(w_tmp5 + 2, h_tmp5, &meta_data.title, Color::Reset);
+
+            // RENDER: Keybinds HUD.
+
+            if settings.graphics().show_keybinds {
+                // Frame glyph.
+                let w_tmp4 = w_float + W_PAD_LEFT;
+                let h_tmp4 = h_float + H_PAD_TOP + H_FIELD.saturating_sub(MAX_LEGEND_ENTRIES);
+
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp4, h_tmp4, TermCell { ch: c_m_tb, fg: Color::Reset });
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp4 + 1, h_tmp4, TermCell { ch: c_m_tb, fg: Color::Reset });
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp4 + 1 + 1, h_tmp4, TermCell { ch: c_m_tb, fg: Color::Reset });
+                #[rustfmt::skip] self.term_buf.write_str(w_tmp4 + 1 + 1 + 1, h_tmp4, "basic keybinds", Color::Reset);
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp4 + 1 + 1 + 1 + 14, h_tmp4, TermCell { ch: c_m_tb, fg: Color::Reset });
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp4 + 1 + 1 + 1 + 14 + 1, h_tmp4, TermCell { ch: c_m_tb, fg: Color::Reset });
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp4 + 1 + 1 + 1 + 14 + 1 + 1, h_tmp4, TermCell { ch: c_m_tb, fg: Color::Reset });
+
+                const W_KEYBINDS: usize = (W_ADD_ACTIVE_HUD + W_HOLD) as usize;
+                // FIXME: Kinda inefficient?
+                let w_max_description = keybinds_legend
+                    .iter()
+                    .map(|s| s.1.chars().count())
+                    .max()
+                    .unwrap_or(0);
+                let w_budget_icons = W_KEYBINDS - w_max_description - 1;
+                let w_icons = keybinds_legend
+                    .iter()
+                    .map(|s| s.0.chars().count())
+                    .max()
+                    .unwrap_or(0)
+                    .min(w_budget_icons);
+                for (dy, (icons, description)) in keybinds_legend.iter().enumerate() {
+                    let icons = icons.chars().take(w_icons).collect::<String>();
+                    let str = format!("{icons: >w_icons$} {description}");
+                    #[rustfmt::skip] self.term_buf.write_str(w_tmp4 + 1, h_tmp4 + (dy as u16) + 1, &str, Color::Reset);
+                }
             }
         }
 
@@ -494,7 +519,7 @@ impl Renderer for StandardBufferedRenderer {
             let h_tmp5 = h_float + H_PAD_TOP + H_FIELD;
             #[rustfmt::skip] self.term_buf.write_str(w_tmp5, h_tmp5, &str_val, Color::Reset);
             let w_str_val = str_val.len();
-            #[rustfmt::skip] self.term_buf.write_str(w_tmp5 + 1 + (w_str_val as u16), h_tmp5, &str_txt, Color::Reset);
+            #[rustfmt::skip] self.term_buf.write_str(w_tmp5 + 1 + (w_str_val as u16), h_tmp5, str_txt, Color::Reset);
         }
 
         // RENDER: Buttons HUD.
