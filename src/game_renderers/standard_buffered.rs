@@ -6,7 +6,7 @@ mod dense_terminal_single_buffer;
 mod sparse_terminal_double_buffer;
 
 use crossterm::style::Color;
-use falling_tetromino_engine::{Coordinate, Phase, TileID};
+use falling_tetromino_engine::{Coordinate, GameEndCause, Phase, TileID};
 use rand::RngExt;
 
 use crate::{
@@ -454,6 +454,7 @@ impl Renderer for StandardBufferedRenderer {
 
         // RENDER: Locked + air tiles (board including grid).
 
+        let mut y_highest_tile: isize = -1;
         for (dy, line) in game
             .state()
             .board
@@ -463,6 +464,7 @@ impl Renderer for StandardBufferedRenderer {
         {
             for (dx, tile) in line.iter().enumerate() {
                 let (tile_texture, color) = if let Some(tile_id) = tile {
+                    y_highest_tile = dy as isize;
                     (mino_textures.locked, ftch_col_or_rset(tile_id))
                 } else {
                     // Hacky but: Do *not* draw air/grid over top board frame or above.
@@ -478,7 +480,20 @@ impl Renderer for StandardBufferedRenderer {
 
         // RENDER: Spawn (shadow) piece.
 
-        // TODO
+        if settings.graphics().show_spawn {
+            // Get upcoming piece if possible.
+            if let Some(next_tetromino) = game.state().piece_preview.front() {
+                let spawn_piece = next_tetromino.spawn_piece();
+                // Only show it if the highest tile is 4 units below us or less.
+                if spawn_piece.position.1 <= y_highest_tile + 4 {
+                    for ((dx, dy), tile_id) in spawn_piece.tiles() {
+                        let tile_texture = mino_textures.shadow;
+                        let color = ftch_col_or_rset(&tile_id);
+                        #[rustfmt::skip] self.term_buf.write_tile(w_tmp3 + 2 * dx as u16, h_tmp3.saturating_sub(dy as u16), tile_texture, color);
+                    }
+                }
+            }
+        }
 
         match game.phase() {
             // We currently do not have any visual indicator to pass this phase.
@@ -494,16 +509,15 @@ impl Renderer for StandardBufferedRenderer {
                 // RENDER: Shadow piece.
 
                 if settings.graphics().show_shadow {
-                    for ((dx, dy), tile_id) in
-                        piece.teleported(&game.state().board, (0, -1)).tiles()
-                    {
+                    let shadow_piece = piece.teleported(&game.state().board, (0, -1));
+                    for ((dx, dy), tile_id) in shadow_piece.tiles() {
                         let tile_texture = mino_textures.shadow;
                         let color = ftch_col_or_rset(&tile_id);
                         #[rustfmt::skip] self.term_buf.write_tile(w_tmp3 + 2 * dx as u16, h_tmp3.saturating_sub(dy as u16), tile_texture, color);
                     }
                 }
 
-                // RENDER: Active piece (possibly slashed/crossed).
+                // RENDER: Active piece.
 
                 for ((dx, dy), tile_id) in piece.tiles() {
                     let tile_texture = mino_textures.play;
@@ -518,8 +532,54 @@ impl Renderer for StandardBufferedRenderer {
                 point_bonus: _,
             } => {}
 
-            Phase::GameEnd { cause, is_win } => {
-                // TODO
+            Phase::GameEnd { cause, is_win: _ } => {
+                match cause {
+                    GameEndCause::LockOut { locking_piece } => {
+                        // RENDER: Active piece when locked out.
+
+                        for ((dx, dy), tile_id) in locking_piece.tiles() {
+                            let tile_texture = mino_textures.crossed;
+                            let color = ftch_col_or_rset(&tile_id);
+                            #[rustfmt::skip] self.term_buf.write_tile(w_tmp3 + 2 * dx as u16, h_tmp3.saturating_sub(dy as u16), tile_texture, color);
+                        }
+                    }
+
+                    GameEndCause::BlockOut { blocked_piece } => {
+                        // RENDER: Active piece when blocked out.
+
+                        for ((dx, dy), tile_id) in blocked_piece.tiles() {
+                            let (tile_texture, color) = if let Some(blocking_tile_id) =
+                                game.state().board[dy as usize][dx as usize]
+                            {
+                                (mino_textures.crossed, ftch_col_or_rset(&blocking_tile_id))
+                            } else {
+                                (mino_textures.slashed, ftch_col_or_rset(&tile_id))
+                            };
+                            #[rustfmt::skip] self.term_buf.write_tile(w_tmp3 + 2 * dx as u16, h_tmp3.saturating_sub(dy as u16), tile_texture, color);
+                        }
+                    }
+
+                    // FIXME: No visual indicator for Top out implemented! Though currently game does not even emit this.
+                    GameEndCause::TopOut { top_lines: _ } => {}
+
+                    // We currently do not have any visual indicator to display game-end by limit hit.
+                    GameEndCause::Limit(_stat) => {}
+
+                    GameEndCause::Forfeit { piece_in_play } => {
+                        if let Some(forfeit_piece) = piece_in_play {
+                            // RENDER: Active piece when forfeited.
+
+                            for ((dx, dy), tile_id) in forfeit_piece.tiles() {
+                                let tile_texture = mino_textures.slashed;
+                                let color = ftch_col_or_rset(&tile_id);
+                                #[rustfmt::skip] self.term_buf.write_tile(w_tmp3 + 2 * dx as u16, h_tmp3.saturating_sub(dy as u16), tile_texture, color);
+                            }
+                        }
+                    }
+
+                    // We currently do not have any visual indicator to display game-end by custom end-cause.
+                    GameEndCause::Custom(_) => todo!(),
+                }
             }
         }
 
