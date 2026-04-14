@@ -7,7 +7,7 @@ use crate::tui_settings::SlotMachine;
 )]
 pub struct SmallTetStyle {
     pub tets: [String; Tetromino::VARIANTS.len()],
-    pub constituens: [char; 4],
+    pub parts: [char; 4],
 }
 
 pub fn default_small_tet_style_slots() -> SlotMachine<SmallTetStyle> {
@@ -24,21 +24,21 @@ impl SmallTetStyle {
     pub fn ascii() -> Self {
         SmallTetStyle {
             tets: ["::", "....", ".:°", "°:.", ".:.", "..:", ":.."].map(ToOwned::to_owned),
-            constituens: [' ', '.', '°', ':'],
+            parts: [' ', '.', '°', ':'],
         }
     }
 
     pub fn blocks() -> Self {
         SmallTetStyle {
             tets: ["██", "▄▄▄▄", "▄█▀", "▀█▄", "▄█▄", "▄▄█", "█▄▄"].map(ToOwned::to_owned),
-            constituens: [' ', '▄', '▀', '█'],
+            parts: [' ', '▄', '▀', '█'],
         }
     }
 
     pub fn braille() -> Self {
         SmallTetStyle {
             tets: ["⣿⣿", "⣤⣤⣤⣤", "⣤⣿⠛", "⠛⣿⣤", "⣤⣿⣤", "⣤⣤⣿", "⣿⣤⣤"].map(ToOwned::to_owned),
-            constituens: [' ', '⣤', '⠛', '⣿'],
+            parts: [' ', '⣤', '⠛', '⣿'],
         }
     }
 }

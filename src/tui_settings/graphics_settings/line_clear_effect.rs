@@ -7,6 +7,7 @@ use crate::tui_settings::{
     Palette, SlotMachine,
 };
 
+#[serde_with::serde_as]
 #[derive(PartialEq, PartialOrd, Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub enum LineClearEffect {
     // FIXME: Relocate this comment.
@@ -17,13 +18,18 @@ pub enum LineClearEffect {
     // Leftward,
     // Rightward,
     Inline {
+        #[serde(rename = "anim_idcs")]
         anim_indices: [usize; 2 * Game::WIDTH],
+
         /// The last/max index that is animated.
+        #[serde(rename = "anim_lastidx")]
         anim_lastidx: usize,
+
         /// Color animation ids.
         /// Note:
         /// - Empty vec means no recoloring (locked piece tile id).
         /// - `None` tile id falls back to locked piece tile id.
+        #[serde(rename = "col_anim")]
         color_animation: Vec<Option<TileID>>,
     },
 
@@ -34,17 +40,28 @@ pub enum LineClearEffect {
     /// Formula used to generate the position at time:
     /// * `pos = origin + momentum ⋅ Δtime + acceleration ⋅ (Δtime)² / 2`
     MinoParticles {
+        #[serde_as(as = "Option<serde_with::DurationSecondsWithFrac<f64>>")]
+        #[serde(rename = "dur_override")]
         duration_override: Option<InGameTime>,
+
         /// Note:
         /// - Empty vec means no effect.
         /// - 'Empty'=space tile texture is automatically retextured to `air`.
         /// - `None` tile texture falls back to dropped piece tile texture.
         /// - `None` tile id falls back to locked piece tile id.
+        #[serde(rename = "anim")]
         animation: Vec<(Option<TileTexture>, Option<TileID>)>,
+
+        #[serde(rename = "accel")]
         acceleration: (f32, f32),
+        #[serde(rename = "mm")]
         momentum_base: (f32, f32),
+
+        #[serde(rename = "xmmxpos")]
         x_momentum_xpos_m1p1: f32,
+        #[serde(rename = "xmmrand")]
         x_momentum_rand_m1p1: f32,
+        #[serde(rename = "ymmrand")]
         y_momentum_rand_m1p1: f32,
     },
 }
