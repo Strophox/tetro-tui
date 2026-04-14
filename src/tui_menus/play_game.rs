@@ -542,6 +542,7 @@ impl<T: Write> Application<T> {
                         // Need to redraw screen for proper centering etc.
                         game_renderer
                             .reset_viewport_state_with_offset_and_area((0, 0), (cols, rows));
+                        self.term.execute(Clear(terminal::ClearType::All))?;
                         break 'wait;
                     }
                 }

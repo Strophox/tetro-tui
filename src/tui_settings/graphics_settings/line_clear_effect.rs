@@ -1,6 +1,6 @@
-use std::time::Duration;
+use std::{num::NonZeroU8, time::Duration};
 
-use falling_tetromino_engine::{Game, InGameTime, Tetromino, TileID};
+use falling_tetromino_engine::{Game, InGameTime, TileID};
 
 use crate::tui_settings::{
     graphics_settings::{QuickTileFromStr, TileTexture},
@@ -69,12 +69,9 @@ pub fn default_line_clear_effect_slots() -> SlotMachine<LineClearEffect> {
         ("None /vacate".to_owned(), LineClearEffect::vacate()),
         ("Left-to-right".to_owned(), LineClearEffect::left_to_right()),
         ("Inward (white)".to_owned(), LineClearEffect::inward()),
-        (
-            "Outward (rainbow)".to_owned(),
-            LineClearEffect::outward_rainbow(),
-        ),
-        ("Blink".to_owned(), LineClearEffect::blink()),
+        ("Outward (burn)".to_owned(), LineClearEffect::outward_burn()),
         ("Flash (white)".to_owned(), LineClearEffect::flash_white()),
+        ("Blink".to_owned(), LineClearEffect::blink()),
         ("Pop minos".to_owned(), LineClearEffect::pop()),
         (
             "Pop minos (chaotic)".to_owned(),
@@ -113,7 +110,7 @@ impl LineClearEffect {
                 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
             ],
             anim_lastidx: 19,
-            color_animation: Vec::new(),
+            color_animation: vec![Some(Palette::WHITE)],
         })
     }
 
@@ -125,18 +122,8 @@ impl LineClearEffect {
         })
     }
 
-    pub fn outward_rainbow() -> Self {
-        let color_animation = [
-            Tetromino::Z,
-            Tetromino::L,
-            Tetromino::O,
-            Tetromino::S,
-            Tetromino::I,
-            Tetromino::J,
-            Tetromino::T,
-        ]
-        .map(|tet| Some(tet.tile_id()))
-        .into();
+    pub fn outward_burn() -> Self {
+        let color_animation = [255, 1, 6, 4, 5].map(NonZeroU8::new).into();
 
         LineClearEffect::Inline(LineClearInlineEffect {
             anim_indices: [9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
@@ -145,21 +132,18 @@ impl LineClearEffect {
         })
     }
 
+    pub fn flash_white() -> Self {
+        LineClearEffect::Inline(LineClearInlineEffect {
+            anim_indices: [1; 2 * Game::WIDTH],
+            anim_lastidx: 0,
+            color_animation: vec![Some(Palette::WHITE), None, Some(Palette::WHITE)],
+        })
+    }
+
     pub fn blink() -> Self {
         LineClearEffect::Particle(LineClearParticleEffect {
             duration_override: None,
             animation: [None, Some("  ".tile())].map(|t| (t, None)).into(),
-            acceleration: (0.0, 0.0),
-            momentum_base: (0.0, 0.0),
-            momentum_rand: (0.0, 0.0),
-            momentum_xpos: 0.0,
-        })
-    }
-
-    pub fn flash_white() -> Self {
-        LineClearEffect::Particle(LineClearParticleEffect {
-            duration_override: None,
-            animation: [Some(Palette::WHITE), None].map(|c| (None, c)).into(),
             acceleration: (0.0, 0.0),
             momentum_base: (0.0, 0.0),
             momentum_rand: (0.0, 0.0),
