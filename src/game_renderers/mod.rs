@@ -29,7 +29,11 @@ pub trait Renderer: Default {
 
     fn reset_veffects_state(&mut self);
 
-    fn reset_viewport_with_offset_and_area(&mut self, offsets: (u16, u16), dimensions: (u16, u16));
+    fn reset_viewport_state_with_offset_and_area(
+        &mut self,
+        offsets: (u16, u16),
+        dimensions: (u16, u16),
+    );
 
     #[allow(clippy::too_many_arguments)]
     fn render<T: Write>(
@@ -111,22 +115,26 @@ impl Renderer for TetroTUIRenderer {
         }
     }
 
-    fn reset_viewport_with_offset_and_area(&mut self, offsets: (u16, u16), dimensions: (u16, u16)) {
+    fn reset_viewport_state_with_offset_and_area(
+        &mut self,
+        offsets: (u16, u16),
+        dimensions: (u16, u16),
+    ) {
         match self {
             TetroTUIRenderer::StandardBuffered(r) => {
-                r.reset_viewport_with_offset_and_area(offsets, dimensions)
+                r.reset_viewport_state_with_offset_and_area(offsets, dimensions)
             }
             TetroTUIRenderer::LegacyBuffered(r) => {
-                r.reset_viewport_with_offset_and_area(offsets, dimensions)
+                r.reset_viewport_state_with_offset_and_area(offsets, dimensions)
             }
             TetroTUIRenderer::Prototype(r) => {
-                r.reset_viewport_with_offset_and_area(offsets, dimensions)
+                r.reset_viewport_state_with_offset_and_area(offsets, dimensions)
             }
             TetroTUIRenderer::Twoxel(r) => {
-                r.reset_viewport_with_offset_and_area(offsets, dimensions)
+                r.reset_viewport_state_with_offset_and_area(offsets, dimensions)
             }
             TetroTUIRenderer::Braille(r) => {
-                r.reset_viewport_with_offset_and_area(offsets, dimensions)
+                r.reset_viewport_state_with_offset_and_area(offsets, dimensions)
             }
         }
     }
