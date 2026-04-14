@@ -106,11 +106,43 @@ pub struct StandardBufferedRenderer {
 
 // TODO: implement.
 impl Renderer for StandardBufferedRenderer {
-    fn push_game_notification_feed(
+    fn update_feed(
         &mut self,
         feed: impl IntoIterator<Item = (Notification, InGameTime)>,
+        settings: &Settings,
     ) {
-        todo!()
+        for (notif, time) in feed {
+            match notif {
+                Notification::PieceLocked { piece } => {
+                    let lock_effect = settings.lock_effect_picked();
+                }
+
+                Notification::LinesClearing {
+                    y_coords,
+                    line_clear_duration,
+                } => {}
+
+                Notification::HardDrop {
+                    height_dropped,
+                    dropped_piece,
+                } => {}
+
+                Notification::Accolade {
+                    point_bonus,
+                    lineclears,
+                    combo,
+                    is_spin,
+                    is_perfect,
+                    tetromino,
+                } => {}
+
+                Notification::GameEnded { is_win } => {}
+
+                Notification::Debug(_) => {}
+
+                Notification::Custom(_) => {}
+            }
+        }
     }
 
     fn reset_veffects_state(&mut self) {

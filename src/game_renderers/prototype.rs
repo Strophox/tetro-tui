@@ -16,9 +16,10 @@ pub struct PrototypeRenderer {
 }
 
 impl Renderer for PrototypeRenderer {
-    fn push_game_notification_feed(
+    fn update_feed(
         &mut self,
         feed: impl IntoIterator<Item = (Notification, InGameTime)>,
+        _settings: &Settings,
     ) {
         for x in feed {
             self.notification_feed_buffer.push_front(x);

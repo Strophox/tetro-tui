@@ -201,10 +201,10 @@ impl<T: Write> Application<T> {
                                     "(Disabled inputs)"
                                 };
 
-                                game_renderer.push_game_notification_feed([(
-                                    Notification::Custom(str.to_owned()),
-                                    game.state().time,
-                                )]);
+                                game_renderer.update_feed(
+                                    [(Notification::Custom(str.to_owned()), game.state().time)],
+                                    &self.settings,
+                                );
 
                                 next_paused_with_extra_render_request = Some(true);
                             }
@@ -221,7 +221,7 @@ impl<T: Write> Application<T> {
                                             Some(Input::Activate(button)),
                                         ) {
                                             Ok(msgs) => {
-                                                game_renderer.push_game_notification_feed(msgs)
+                                                game_renderer.update_feed(msgs, &self.settings)
                                             }
                                             // FIXME: Handle UpdateGameError::TargetTimeInPast? If not, why not?
                                             Err(UpdateGameError::TargetTimeInPast) => {}
@@ -233,7 +233,7 @@ impl<T: Write> Application<T> {
                                             Some(Input::Deactivate(button)),
                                         ) {
                                             Ok(msgs) => {
-                                                game_renderer.push_game_notification_feed(msgs)
+                                                game_renderer.update_feed(msgs, &self.settings)
                                             }
                                             // FIXME: Handle UpdateGameError::TargetTimeInPast? If not, why not?
                                             Err(UpdateGameError::TargetTimeInPast) => {}
@@ -269,10 +269,13 @@ impl<T: Write> Application<T> {
                                     inputs_to_load: inputs_loaded,
                                 }];
 
-                                game_renderer.push_game_notification_feed([(
-                                    Notification::Custom("(Stored savepoint)".to_owned()),
-                                    game.state().time,
-                                )]);
+                                game_renderer.update_feed(
+                                    [(
+                                        Notification::Custom("(Stored savepoint)".to_owned()),
+                                        game.state().time,
+                                    )],
+                                    &self.settings,
+                                );
 
                                 if paused {
                                     next_paused_with_extra_render_request = Some(true);
@@ -285,13 +288,16 @@ impl<T: Write> Application<T> {
                                 self.settings.game_mode_preferences.custom_seed =
                                     Some(game.state_init().seed);
 
-                                game_renderer.push_game_notification_feed([(
-                                    Notification::Custom(format!(
-                                        "(Seed stored: {}.)",
-                                        game.state_init().seed
-                                    )),
-                                    game.state().time,
-                                )]);
+                                game_renderer.update_feed(
+                                    [(
+                                        Notification::Custom(format!(
+                                            "(Seed stored: {}.)",
+                                            game.state_init().seed
+                                        )),
+                                        game.state().time,
+                                    )],
+                                    &self.settings,
+                                );
 
                                 if paused {
                                     next_paused_with_extra_render_request = Some(true);
@@ -373,7 +379,7 @@ impl<T: Write> Application<T> {
                                     }
 
                                     match game.update(update_target_time, opt_input) {
-                                        Ok(msgs) => game_renderer.push_game_notification_feed(msgs),
+                                        Ok(msgs) => game_renderer.update_feed(msgs, &self.settings),
                                         // FIXME: Handle UpdateGameError::TargetTimeInPast? If not, why not?
                                         Err(UpdateGameError::TargetTimeInPast) => {}
                                         // Game ended, no more inputs.
@@ -383,7 +389,7 @@ impl<T: Write> Application<T> {
                                     if do_forfeit {
                                         match game.forfeit() {
                                             Ok(msgs) => {
-                                                game_renderer.push_game_notification_feed(msgs)
+                                                game_renderer.update_feed(msgs, &self.settings)
                                             }
 
                                             // We do not care if game ended or time is in past here.
@@ -409,7 +415,7 @@ impl<T: Write> Application<T> {
                                     // FIXME: We do not handle degenerate cases where input is available even tho game should forfeit.
 
                                     match game.update(*next_input_time, Some(*input)) {
-                                        Ok(msgs) => game_renderer.push_game_notification_feed(msgs),
+                                        Ok(msgs) => game_renderer.update_feed(msgs, &self.settings),
                                         // FIXME: Handle UpdateGameError::TargetTimeInPast? If not, why not?
                                         Err(UpdateGameError::TargetTimeInPast) => {}
                                         // Game ended, no more inputs.
@@ -555,7 +561,7 @@ impl<T: Write> Application<T> {
                     };
                     game = game_restoration_data.restore(idx);
                     match game.update(tgt_time, None) {
-                        Ok(msgs) => game_renderer.push_game_notification_feed(msgs),
+                        Ok(msgs) => game_renderer.update_feed(msgs, &self.settings),
                         // FIXME: Handle UpdateGameError? If not, why not?
                         Err(_e) => {}
                     }
@@ -615,7 +621,7 @@ impl<T: Write> Application<T> {
                     }
 
                     match game.update(*next_input_time, Some(*input)) {
-                        Ok(msgs) => game_renderer.push_game_notification_feed(msgs),
+                        Ok(msgs) => game_renderer.update_feed(msgs, &self.settings),
                         // FIXME: Handle UpdateGameError::TargetTimeInPast? If not, why not?
                         Err(UpdateGameError::TargetTimeInPast) => {}
                         // Game ended? Do not attempt to feed more inputs.
@@ -627,7 +633,7 @@ impl<T: Write> Application<T> {
 
                 match game.update(update_target_time, None) {
                     // Update.
-                    Ok(msgs) => game_renderer.push_game_notification_feed(msgs),
+                    Ok(msgs) => game_renderer.update_feed(msgs, &self.settings),
 
                     // We do not care if game ended or time is in past here:
                     // We just care about best-effort updating state to show it to player.
@@ -636,7 +642,7 @@ impl<T: Write> Application<T> {
 
                 if do_forfeit {
                     match game.forfeit() {
-                        Ok(msgs) => game_renderer.push_game_notification_feed(msgs),
+                        Ok(msgs) => game_renderer.update_feed(msgs, &self.settings),
 
                         // We do not care if game ended or time is in past here.
                         Err(UpdateGameError::AlreadyEnded | UpdateGameError::TargetTimeInPast) => {}

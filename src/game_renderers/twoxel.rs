@@ -11,9 +11,10 @@ pub struct TwoxelRenderer {
 }
 
 impl Renderer for TwoxelRenderer {
-    fn push_game_notification_feed(
+    fn update_feed(
         &mut self,
         _feed: impl IntoIterator<Item = (Notification, InGameTime)>,
+        _settings: &Settings,
     ) {
         // We do not use/display feedback_msg-related things for this renderer at this time.
     }
