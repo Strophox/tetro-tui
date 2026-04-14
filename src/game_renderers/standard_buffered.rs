@@ -81,6 +81,7 @@ pub struct LineClearEffectLine {
     creation_time: InGameTime,
     line_clear_duration: InGameTime,
     y: usize,
+    line: [TileID; Game::WIDTH],
 }
 
 #[derive(PartialEq, PartialOrd, Clone, Debug, Default)]
@@ -167,10 +168,11 @@ impl Renderer for StandardBufferedRenderer {
                     LineClearEffect::Inline(line_clear_inline_effect) => {
                         let line_clear_effect_lines = lines
                             .into_iter()
-                            .map(|(y, _line)| LineClearEffectLine {
+                            .map(|(y, line)| LineClearEffectLine {
                                 creation_time: time,
                                 line_clear_duration,
                                 y,
+                                line,
                             })
                             .collect();
 
@@ -501,7 +503,8 @@ impl Renderer for StandardBufferedRenderer {
                     )
                 }),
                 replay_extra.map(|(replay_len, _)| ("REPLAYING", fmt_duration(replay_len))),
-                replay_extra.map(|(_, replay_speed)| ("Replay speed:", format!("{replay_speed}x"))),
+                replay_extra
+                    .map(|(_, replay_speed)| ("Replay speed:", format!("{replay_speed:.02}x"))),
             ];
 
             for (dy, opt_stat) in stats.into_iter().enumerate() {
@@ -881,7 +884,43 @@ impl Renderer for StandardBufferedRenderer {
 
         // RENDER: Line clear effect.
 
-        // TODO
+        self.line_clear_inline_effect_buf.retain_mut(|(line_clear_inline_effect, line_clear_effect_lines)| {
+            let LineClearInlineEffect { anim_indices, anim_lastidx, color_animation } = line_clear_inline_effect;
+            line_clear_effect_lines.retain(|line_clear_effect_line| {
+                let LineClearEffectLine { creation_time, line_clear_duration, y: dy , line } = *line_clear_effect_line;
+
+                // How much time has elapsed since creation.
+                let elapsed = game.state().time.saturating_sub(creation_time);
+                // How far along the effect we are shifting.
+                let timeshift = elapsed.as_secs_f32() / line_clear_duration.as_secs_f32();
+
+                if timeshift > 1.0 {
+                    return false
+                }
+
+                // rerender the line
+                for (dx, original_tile_id) in line.iter().enumerate() {
+                    let tile_texture = mino_textures.locked;
+                    let tile_id = if !color_animation.is_empty() { color_animation[(timeshift * (color_animation.len() - 1) as f32).round() as usize].unwrap_or(*original_tile_id) }
+                    else {*original_tile_id};
+                    let color = ftch_col_or_rset(&tile_id);
+                    #[rustfmt::skip] self.term_buf.write_tile(w_tmp3 + 2 * (dx as u16), h_tmp3.saturating_sub(dy as u16), tile_texture, color);
+                }
+
+                // render carving progress
+                let threshold = timeshift * (*anim_lastidx as f32);
+                for (dx, anim_idx) in anim_indices.iter().enumerate() {
+                    if (*anim_idx as f32) < threshold {
+                        #[rustfmt::skip] self.term_buf.write_char(w_tmp3 + (dx as u16), h_tmp3.saturating_sub(dy as u16), TermCell { ch: ' ', fg: Color::Reset });
+                    }
+                }
+
+                true
+            });
+
+            // Retain hard drop effect if it still has active tiles.
+            !line_clear_effect_lines.is_empty()
+        });
 
         self.term_buf.flush(term)
     }
