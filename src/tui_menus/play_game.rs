@@ -287,7 +287,7 @@ impl<T: Write> Application<T> {
                             match game.update(update_target_time, Some(player_input)) {
                                 Ok(msgs) => {
                                     temp_statistics.accumulate_from_feed(&msgs);
-                                    game_renderer.push_game_notification_feed(msgs)
+                                    game_renderer.update_feed(msgs, &self.settings)
                                 }
                                 Err(UpdateGameError::AlreadyEnded) => break 'wait,
                                 Err(UpdateGameError::TargetTimeInPast) => unreachable!(),
@@ -333,7 +333,7 @@ impl<T: Write> Application<T> {
                             match game.update(update_target_time, Some(input)) {
                                 Ok(msgs) => {
                                     temp_statistics.accumulate_from_feed(&msgs);
-                                    game_renderer.push_game_notification_feed(msgs);
+                                    game_renderer.update_feed(msgs, &self.settings);
                                 }
                                 Err(UpdateGameError::AlreadyEnded) => break 'wait,
                                 Err(UpdateGameError::TargetTimeInPast) => unreachable!(),
@@ -349,7 +349,7 @@ impl<T: Write> Application<T> {
                             match update_result {
                                 Ok(msgs) => {
                                     temp_statistics.accumulate_from_feed(&msgs);
-                                    game_renderer.push_game_notification_feed(msgs)
+                                    game_renderer.update_feed(msgs, &self.settings)
                                 }
                                 Err(UpdateGameError::AlreadyEnded) => break 'wait,
                                 Err(UpdateGameError::TargetTimeInPast) => unreachable!(),
@@ -388,7 +388,7 @@ impl<T: Write> Application<T> {
                                 match game.forfeit() {
                                     Ok(msgs) => {
                                         temp_statistics.accumulate_from_feed(&msgs);
-                                        game_renderer.push_game_notification_feed(msgs);
+                                        game_renderer.update_feed(msgs, &self.settings);
                                     }
 
                                     // We do not care if game ended or time is in past here.
@@ -422,10 +422,13 @@ impl<T: Write> Application<T> {
                                     inputs_to_load: raw_input_history.inputs.len(),
                                 }];
 
-                                game_renderer.push_game_notification_feed([(
-                                    Notification::Custom("(Stored savepoint)".to_owned()),
-                                    game.state().time,
-                                )]);
+                                game_renderer.update_feed(
+                                    [(
+                                        Notification::Custom("(Stored savepoint)".to_owned()),
+                                        game.state().time,
+                                    )],
+                                    &self.settings,
+                                );
                             }
 
                             // [Ctrl+L]: Load savepoint.
@@ -451,10 +454,13 @@ impl<T: Write> Application<T> {
                                         .collect();
 
                                     game_renderer.reset_veffects_state();
-                                    game_renderer.push_game_notification_feed([(
-                                        Notification::Custom("(Loaded savepoint)".to_owned()),
-                                        game.state().time,
-                                    )]);
+                                    game_renderer.update_feed(
+                                        [(
+                                            Notification::Custom("(Loaded savepoint)".to_owned()),
+                                            game.state().time,
+                                        )],
+                                        &self.settings,
+                                    );
 
                                     // What we do here is rather unholy, so we have to adapt the game loop state itself.
                                     self.statistics.play_time += Instant::now()
@@ -470,13 +476,16 @@ impl<T: Write> Application<T> {
                                 self.settings.game_mode_preferences.custom_seed =
                                     Some(game.state_init().seed);
 
-                                game_renderer.push_game_notification_feed([(
-                                    Notification::Custom(format!(
-                                        "(Seed stored: {})",
-                                        game.state_init().seed
-                                    )),
-                                    game.state().time,
-                                )]);
+                                game_renderer.update_feed(
+                                    [(
+                                        Notification::Custom(format!(
+                                            "(Seed stored: {})",
+                                            game.state_init().seed
+                                        )),
+                                        game.state().time,
+                                    )],
+                                    &self.settings,
+                                );
                             }
 
                             // [Ctrl+Alt+B]: (Un-)Blindfold.
@@ -488,19 +497,25 @@ impl<T: Write> Application<T> {
                             {
                                 self.temp_data.blindfold_enabled ^= true;
                                 if self.temp_data.blindfold_enabled {
-                                    game_renderer.push_game_notification_feed([(
-                                        Notification::Custom(
-                                            "Blindfolded! [Ctrl+Alt+B]".to_owned(),
-                                        ),
-                                        game.state().time,
-                                    )]);
+                                    game_renderer.update_feed(
+                                        [(
+                                            Notification::Custom(
+                                                "Blindfolded! [Ctrl+Alt+B]".to_owned(),
+                                            ),
+                                            game.state().time,
+                                        )],
+                                        &self.settings,
+                                    );
                                 } else {
-                                    game_renderer.push_game_notification_feed([(
-                                        Notification::Custom(
-                                            "Blindfolds removed [Ctrl+Alt+B]".to_owned(),
-                                        ),
-                                        game.state().time,
-                                    )]);
+                                    game_renderer.update_feed(
+                                        [(
+                                            Notification::Custom(
+                                                "Blindfolds removed [Ctrl+Alt+B]".to_owned(),
+                                            ),
+                                            game.state().time,
+                                        )],
+                                        &self.settings,
+                                    );
                                 }
                             }
 
@@ -537,7 +552,7 @@ impl<T: Write> Application<T> {
                 // Update.
                 Ok(msgs) => {
                     temp_statistics.accumulate_from_feed(&msgs);
-                    game_renderer.push_game_notification_feed(msgs)
+                    game_renderer.update_feed(msgs, &self.settings)
                 }
 
                 // We do not care if game ended or time is in past here:
@@ -621,7 +636,7 @@ impl<T: Write> Application<T> {
                     match update_result {
                         Ok(msgs) => {
                             temp_statistics.accumulate_from_feed(&msgs);
-                            game_renderer.push_game_notification_feed(msgs);
+                            game_renderer.update_feed(msgs, &self.settings);
                         }
                         Err(UpdateGameError::AlreadyEnded) => break 'button_unpressing,
                         Err(UpdateGameError::TargetTimeInPast) => unreachable!(),

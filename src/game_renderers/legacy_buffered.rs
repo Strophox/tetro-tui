@@ -229,9 +229,10 @@ pub struct LegacyBufferedRenderer {
 }
 
 impl Renderer for LegacyBufferedRenderer {
-    fn push_game_notification_feed(
+    fn update_feed(
         &mut self,
         feed: impl IntoIterator<Item = (Notification, InGameTime)>,
+        _settings: &Settings,
     ) {
         // Update stored events.
         self.notification_feed_buffer

@@ -879,7 +879,7 @@ impl<T: Write> Application<T> {
                 // We do this so the renderer does not render a first frame when game is in its raw start state.
                 if game.state().time.is_zero() {
                     match game.update(InGameTime::ZERO, None) {
-                        Ok(msgs) => game_renderer.push_game_notification_feed(msgs),
+                        Ok(msgs) => game_renderer.update_feed(msgs, &self.settings),
                         // ?? but i didn't even do anything yet
                         Err(_update_game_error) => {}
                     }

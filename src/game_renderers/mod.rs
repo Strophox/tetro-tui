@@ -21,9 +21,10 @@ pub use standard_buffered::StandardBufferedRenderer;
 pub use twoxel::TwoxelRenderer;
 
 pub trait Renderer: Default {
-    fn push_game_notification_feed(
+    fn update_feed(
         &mut self,
-        feed: impl IntoIterator<Item = (Notification, InGameTime)>,
+        notification_feed: impl IntoIterator<Item = (Notification, InGameTime)>,
+        settings: &Settings,
     );
 
     fn reset_veffects_state(&mut self);
@@ -76,16 +77,17 @@ impl Default for TetroTUIRenderer {
 }
 
 impl Renderer for TetroTUIRenderer {
-    fn push_game_notification_feed(
+    fn update_feed(
         &mut self,
         feed: impl IntoIterator<Item = (Notification, InGameTime)>,
+        settings: &Settings,
     ) {
         match self {
-            TetroTUIRenderer::StandardBuffered(r) => r.push_game_notification_feed(feed),
-            TetroTUIRenderer::LegacyBuffered(r) => r.push_game_notification_feed(feed),
-            TetroTUIRenderer::Prototype(r) => r.push_game_notification_feed(feed),
-            TetroTUIRenderer::Twoxel(r) => r.push_game_notification_feed(feed),
-            TetroTUIRenderer::Braille(r) => r.push_game_notification_feed(feed),
+            TetroTUIRenderer::StandardBuffered(r) => r.update_feed(feed, settings),
+            TetroTUIRenderer::LegacyBuffered(r) => r.update_feed(feed, settings),
+            TetroTUIRenderer::Prototype(r) => r.update_feed(feed, settings),
+            TetroTUIRenderer::Twoxel(r) => r.update_feed(feed, settings),
+            TetroTUIRenderer::Braille(r) => r.update_feed(feed, settings),
         }
     }
 
