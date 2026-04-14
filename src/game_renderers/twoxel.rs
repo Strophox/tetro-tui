@@ -12,8 +12,6 @@ use super::*;
     Copy,
     Debug,
     Default,
-    serde::Serialize,
-    serde::Deserialize,
 )]
 pub struct TwoxelRenderer {
     x_draw: usize,

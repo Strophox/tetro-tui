@@ -15,8 +15,6 @@ const BRAILLE: &str = "⠀⠁⠂⠃⠄⠅⠆⠇⠈⠉⠊⠋⠌⠍⠎⠏⠐⠑⠒
     Copy,
     Debug,
     Default,
-    serde::Serialize,
-    serde::Deserialize,
 )]
 pub struct BrailleRenderer {
     x_draw: usize,

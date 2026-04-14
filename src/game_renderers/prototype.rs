@@ -19,8 +19,6 @@ use super::*;
     Clone,
     Debug,
     Default,
-    serde::Serialize,
-    serde::Deserialize,
 )]
 pub struct PrototypeRenderer {
     notification_feed_buffer: VecDeque<(Notification, InGameTime)>,
