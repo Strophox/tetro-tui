@@ -25,16 +25,16 @@ impl Renderer for PrototypeRenderer {
         }
     }
 
-    fn reset_game_associated_state(&mut self) {
+    fn reset_veffects_state(&mut self) {
         self.notification_feed_buffer.clear();
     }
 
-    fn reset_view_diff_state(&mut self) {
-        // We do not implement diff'ing for this renderer at this time.
-    }
-
-    fn set_render_offset(&mut self, _x: usize, _y: usize) {
-        // We do not implement an rendering offset for this renderer at this time.
+    fn reset_viewport_with_offset_and_area(
+        &mut self,
+        _offsets: (u16, u16),
+        _dimensions: (u16, u16),
+    ) {
+        // We do not implement any special viewport handling here.
     }
 
     fn render<T>(

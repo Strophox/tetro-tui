@@ -84,7 +84,7 @@ impl<T: Write> Application<T> {
 
             // First part: rendering the menu.
             let w_main = Self::W_MAIN.into();
-            let (x_main, y_main) = Self::available_area();
+            let (x_main, y_main) = Self::viewport_offset();
             let y_selection = Self::H_MAIN / 5;
 
             let savepoint_available = if !self.game_saves.slots.is_empty() {

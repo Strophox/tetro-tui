@@ -4,8 +4,10 @@ use super::*;
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug, Default)]
 pub struct TwoxelRenderer {
-    x_draw: usize,
-    y_draw: usize,
+    x: u16,
+    y: u16,
+    w: u16,
+    h: u16,
 }
 
 impl Renderer for TwoxelRenderer {
@@ -16,17 +18,15 @@ impl Renderer for TwoxelRenderer {
         // We do not use/display feedback_msg-related things for this renderer at this time.
     }
 
-    fn reset_game_associated_state(&mut self) {
-        // We do not store any state associated with the game at this time.
+    fn reset_veffects_state(&mut self) {
+        // We do not store any effects state associated with the game at this time.
     }
 
-    fn reset_view_diff_state(&mut self) {
-        // We do not implement diff'ing for this renderer at this time.
-    }
-
-    fn set_render_offset(&mut self, x: usize, y: usize) {
-        self.x_draw = x;
-        self.y_draw = y;
+    fn reset_viewport_with_offset_and_area(&mut self, (x, y): (u16, u16), (w, h): (u16, u16)) {
+        self.x = x;
+        self.y = y;
+        self.w = w;
+        self.h = h;
     }
 
     fn render<T: Write>(
@@ -74,12 +74,10 @@ impl Renderer for TwoxelRenderer {
 
         term.queue(terminal::Clear(terminal::ClearType::All))?;
 
-        let (w_term, h_term) = terminal::size()?;
         let (w_render, h_render) = (1 + 10 + 1, 10);
-
         let (x_render, y_render) = (
-            w_term.saturating_sub(w_render) / 2,
-            h_term.saturating_sub(h_render) / 2,
+            self.x + self.w.saturating_sub(w_render) / 2,
+            self.y + self.h.saturating_sub(h_render) / 2,
         );
 
         for (dy, b_line) in btxt_lines.enumerate() {

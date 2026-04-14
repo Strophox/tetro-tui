@@ -26,11 +26,9 @@ pub trait Renderer: Default {
         feed: impl IntoIterator<Item = (Notification, InGameTime)>,
     );
 
-    fn reset_game_associated_state(&mut self);
+    fn reset_veffects_state(&mut self);
 
-    fn reset_view_diff_state(&mut self);
-
-    fn set_render_offset(&mut self, x: usize, y: usize);
+    fn reset_viewport_with_offset_and_area(&mut self, offsets: (u16, u16), dimensions: (u16, u16));
 
     #[allow(clippy::too_many_arguments)]
     fn render<T: Write>(
@@ -91,33 +89,33 @@ impl Renderer for TetroTUIRenderer {
         }
     }
 
-    fn reset_game_associated_state(&mut self) {
+    fn reset_veffects_state(&mut self) {
         match self {
-            TetroTUIRenderer::StandardBuffered(r) => r.reset_game_associated_state(),
-            TetroTUIRenderer::LegacyBuffered(r) => r.reset_game_associated_state(),
-            TetroTUIRenderer::Prototype(r) => r.reset_game_associated_state(),
-            TetroTUIRenderer::Twoxel(r) => r.reset_game_associated_state(),
-            TetroTUIRenderer::Braille(r) => r.reset_game_associated_state(),
+            TetroTUIRenderer::StandardBuffered(r) => r.reset_veffects_state(),
+            TetroTUIRenderer::LegacyBuffered(r) => r.reset_veffects_state(),
+            TetroTUIRenderer::Prototype(r) => r.reset_veffects_state(),
+            TetroTUIRenderer::Twoxel(r) => r.reset_veffects_state(),
+            TetroTUIRenderer::Braille(r) => r.reset_veffects_state(),
         }
     }
 
-    fn reset_view_diff_state(&mut self) {
+    fn reset_viewport_with_offset_and_area(&mut self, offsets: (u16, u16), dimensions: (u16, u16)) {
         match self {
-            TetroTUIRenderer::StandardBuffered(r) => r.reset_view_diff_state(),
-            TetroTUIRenderer::LegacyBuffered(r) => r.reset_view_diff_state(),
-            TetroTUIRenderer::Prototype(r) => r.reset_view_diff_state(),
-            TetroTUIRenderer::Twoxel(r) => r.reset_view_diff_state(),
-            TetroTUIRenderer::Braille(r) => r.reset_view_diff_state(),
-        }
-    }
-
-    fn set_render_offset(&mut self, x: usize, y: usize) {
-        match self {
-            TetroTUIRenderer::StandardBuffered(r) => r.set_render_offset(x, y),
-            TetroTUIRenderer::LegacyBuffered(r) => r.set_render_offset(x, y),
-            TetroTUIRenderer::Prototype(r) => r.set_render_offset(x, y),
-            TetroTUIRenderer::Twoxel(r) => r.set_render_offset(x, y),
-            TetroTUIRenderer::Braille(r) => r.set_render_offset(x, y),
+            TetroTUIRenderer::StandardBuffered(r) => {
+                r.reset_viewport_with_offset_and_area(offsets, dimensions)
+            }
+            TetroTUIRenderer::LegacyBuffered(r) => {
+                r.reset_viewport_with_offset_and_area(offsets, dimensions)
+            }
+            TetroTUIRenderer::Prototype(r) => {
+                r.reset_viewport_with_offset_and_area(offsets, dimensions)
+            }
+            TetroTUIRenderer::Twoxel(r) => {
+                r.reset_viewport_with_offset_and_area(offsets, dimensions)
+            }
+            TetroTUIRenderer::Braille(r) => {
+                r.reset_viewport_with_offset_and_area(offsets, dimensions)
+            }
         }
     }
 
