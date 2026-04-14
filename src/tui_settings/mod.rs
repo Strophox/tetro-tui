@@ -7,9 +7,15 @@ pub use game_keybinds::GameKeybinds;
 pub use game_mode_preferences::GameModePreferences;
 pub use gameplay_settings::GameplaySettings;
 pub use graphics_settings::{
-    hard_drop_effect::HardDropEffect, line_clear_effect::LineClearEffect, lock_effect::LockEffect,
-    mini_tet_style::MiniTetStyle, mino_textures::MinoTextures, palette::Palette,
-    small_tet_style::SmallTetStyle, tui_style::TuiStyle, GraphicsSettings,
+    hard_drop_effect::HardDropEffect,
+    line_clear_effect::{LineClearEffect, LineClearInlineEffect, LineClearParticleEffect},
+    lock_effect::LockEffect,
+    mini_tet_style::MiniTetStyle,
+    mino_textures::MinoTextures,
+    palette::Palette,
+    small_tet_style::SmallTetStyle,
+    tui_style::TuiStyle,
+    GraphicsSettings, TileTexture,
 };
 
 use crate::{

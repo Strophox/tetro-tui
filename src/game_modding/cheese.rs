@@ -6,7 +6,7 @@ use falling_tetromino_engine::{
 
 use rand::seq::SliceRandom;
 
-use crate::settings::Palette;
+use crate::tui_settings::Palette;
 
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,

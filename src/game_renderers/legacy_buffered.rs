@@ -23,16 +23,7 @@ use crate::{
     TemporaryAppData,
 };
 
-#[derive(
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    Clone,
-    Debug,
-    Default,
-)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, Default)]
 struct TerminalScreenBuffer {
     prev: Vec<Vec<(char, Option<Color>)>>,
     next: Vec<Vec<(char, Option<Color>)>>,
@@ -210,9 +201,7 @@ impl TerminalScreenBuffer {
     }
 }
 
-#[derive(
-    PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug,
-)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug)]
 struct HardDropTile {
     creation_time: InGameTime,
     pos: Coordinate,

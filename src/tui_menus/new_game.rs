@@ -21,8 +21,8 @@ use falling_tetromino_engine::{
 
 use crate::{
     fmt_helpers::{fmt_duration, fmt_hertz, fmt_player_input, BoolAsOnOff},
-    game_mode_presets::GameModePreset,
     game_modding::{self, Combo},
+    game_mode_presets::GameModePreset,
     game_renderers::{Renderer, TetroTUIRenderer},
     game_restoration::{GameRestorationData, RawInputHistory},
     tui_menus::{Menu, MenuUpdate},

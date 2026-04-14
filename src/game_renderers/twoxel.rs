@@ -2,17 +2,7 @@ use crossterm::{cursor, style, terminal, QueueableCommand};
 
 use super::*;
 
-#[derive(
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    Clone,
-    Copy,
-    Debug,
-    Default,
-)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug, Default)]
 pub struct TwoxelRenderer {
     x_draw: usize,
     y_draw: usize,

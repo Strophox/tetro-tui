@@ -7,6 +7,8 @@ use crate::tui_settings::{
     Palette, SlotMachine,
 };
 
+type AnimateHardDrop = Vec<(TileTexture, Option<TileID>)>;
+
 #[serde_with::serde_as]
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
@@ -21,14 +23,13 @@ pub struct HardDropEffect {
     /// - 'Empty'=space tile texture is automatically retextured to `air`.
     /// - `None` tile id falls back to dropped piece tile id.
     #[serde(rename = "anim")]
-    pub animation: Vec<(TileTexture, Option<TileID>)>,
+    pub animation: AnimateHardDrop,
 
     /// The extent to which the lifetime decays toward the top when the pieces are spawned.
     /// - 1.0 means the upmost particle will have the same (100% of the) lifetime as the bottommost particle.
     /// - 0.0 means the upmost particle will have 0% lifetime on spawn (and all inbetween scaled linearly).
     #[serde(rename = "decay")]
     pub top_y_decay: ExtNonNegF64,
-    
     // FIXME: Remove unused code or reconsider: A new toggle.
     //pub extend_to_top: bool,
 }

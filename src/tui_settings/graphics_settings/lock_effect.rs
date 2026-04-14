@@ -7,6 +7,8 @@ use crate::tui_settings::{
     Palette, SlotMachine,
 };
 
+type AnimateLock = Vec<(Option<TileTexture>, Option<TileID>)>;
+
 #[serde_with::serde_as]
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
@@ -15,14 +17,14 @@ pub struct LockEffect {
     #[serde_as(as = "serde_with::DurationSecondsWithFrac<f64>")]
     #[serde(rename = "dur")]
     pub duration: InGameTime,
-    
+
     /// Note:
     /// - Empty vec means no effect.
     /// - 'Empty'=space tile texture is automatically retextured to `air`.
     /// - `None` tile texture falls back to locked piece tile texture.
     /// - `None` tile id falls back to locked piece tile id.
     #[serde(rename = "anim")]
-    pub animation: Vec<(Option<TileTexture>, Option<TileID>)>,
+    pub animation: AnimateLock,
 }
 
 pub fn default_lock_effect_slots() -> SlotMachine<LockEffect> {

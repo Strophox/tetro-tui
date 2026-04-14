@@ -1,10 +1,10 @@
 mod fmt_helpers;
-mod game_mode_presets;
 mod game_modding;
+mod game_mode_presets;
 mod game_renderers;
 mod game_restoration;
-mod tui_menus;
 mod savefile_logic;
+mod tui_menus;
 mod tui_settings;
 
 use std::{io, path::PathBuf};
@@ -27,8 +27,8 @@ use crate::{
     game_restoration::{
         EncodedInputHistory, GameRestorationData, InputHistoryEncoder, RawInputHistory,
     },
-    tui_menus::{Menu, MenuUpdate},
     savefile_logic::SavefileGranularity,
+    tui_menus::{Menu, MenuUpdate},
     tui_settings::Settings,
 };
 
