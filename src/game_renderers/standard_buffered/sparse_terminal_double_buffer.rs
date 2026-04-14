@@ -26,16 +26,16 @@ pub struct SparseTerminalBuffer {
 }
 
 impl TerminalBuffer for SparseTerminalBuffer {
-    fn with_offset_and_area((x, y): (u16, u16), (w, h): (u16, u16)) -> Self {
-        SparseTerminalBuffer {
-            prev_buf: BTreeMap::new(),
-            next_buf: BTreeMap::new(),
-            x_vp: x,
-            y_vp: y,
-            w_vp: w,
-            h_vp: h,
-        }
-    }
+    // fn with_offset_and_area((x, y): (u16, u16), (w, h): (u16, u16)) -> Self {
+    //     SparseTerminalBuffer {
+    //         prev_buf: BTreeMap::new(),
+    //         next_buf: BTreeMap::new(),
+    //         x_vp: x,
+    //         y_vp: y,
+    //         w_vp: w,
+    //         h_vp: h,
+    //     }
+    // }
 
     fn offset_and_area(&self) -> ((u16, u16), (u16, u16)) {
         ((self.x_vp, self.y_vp), (self.w_vp, self.h_vp))

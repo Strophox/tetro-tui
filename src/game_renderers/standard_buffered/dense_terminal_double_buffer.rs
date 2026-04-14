@@ -28,16 +28,16 @@ pub struct DenseTerminalDoubleBuffer {
 }
 
 impl TerminalBuffer for DenseTerminalDoubleBuffer {
-    fn with_offset_and_area((x, y): (u16, u16), (w, h): (u16, u16)) -> Self {
-        DenseTerminalDoubleBuffer {
-            prev_buf: vec![TermCell::EMPTY; (w * h).into()],
-            next_buf: vec![TermCell::EMPTY; (w * h).into()],
-            x_vp: x,
-            y_vp: y,
-            w_vp: w,
-            h_vp: h,
-        }
-    }
+    // fn with_offset_and_area((x, y): (u16, u16), (w, h): (u16, u16)) -> Self {
+    //     DenseTerminalDoubleBuffer {
+    //         prev_buf: vec![TermCell::EMPTY; (w * h).into()],
+    //         next_buf: vec![TermCell::EMPTY; (w * h).into()],
+    //         x_vp: x,
+    //         y_vp: y,
+    //         w_vp: w,
+    //         h_vp: h,
+    //     }
+    // }
 
     fn offset_and_area(&self) -> ((u16, u16), (u16, u16)) {
         ((self.x_vp, self.y_vp), (self.w_vp, self.h_vp))
