@@ -114,7 +114,7 @@ impl TuiStyle {
             menu: "─",
             frame: "╓╴╖║╜▀╙║",
             frame2: None,
-            hold: "─┌|└",
+            hold: "─┌│└",
             next: "─┐│┤┘┬╴",
             buttons: "←→↺↻↔↓⤓⇓⇐⇒⇋",
             is_title_unicode: true,

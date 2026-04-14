@@ -510,7 +510,7 @@ impl Renderer for LegacyBufferedRenderer {
             play,
             locked,
             shadow,
-            air: _,
+            grid: _,
             slashed: _,
             crossed: _,
         } = settings.mino_textures();
