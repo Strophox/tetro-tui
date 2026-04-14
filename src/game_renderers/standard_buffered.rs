@@ -299,17 +299,31 @@ impl TerminalBuffer for SparseTerminalBuffer {
     }
 }
 
-// TODO: Structs for various effects.
+/* The renderer must take care of:
+Textures:
+- locked + air tiles (=board + grid)
+   * possibly blindfolded
+- active piece
+- shadow piece
+- spawn piece shadow
+- next pieces (normal, small, mini)
+- hold piece
+- slashed/crossed piece (if game over, forfeit etc.)
+Effects:
+- hard drop effect
+- lock effect
+- line clear effect
+General TUI:
+- TUI frames (main, hold, next, heading lines)
+- stats hud
+   * time, lines, points, gravity; adaptive lock delay
+   * replay speed, replay length
+- keybinds
+- buttons
+- goal hud
+- message feed
+  * gather/generate msgs from Accolades, Custom, Debug, GameEnded */
 
-// pub struct DiffPrintRenderer {
-//     buffer: TerminalBuffer,
-//     notification_feed_buffer: Vec<(Notification, InGameTime, bool)>,
-//     buffered_text_msgs: Vec<(InGameTime, String)>,
-//     hard_drop_tiles: Vec<(HardDropTile, bool)>,
-//     mino_particles: Vec<(MinoParticle, bool)>,
-// }
-
-// TODO: derive.
 #[derive(
     PartialEq,
     Eq,
@@ -319,8 +333,6 @@ impl TerminalBuffer for SparseTerminalBuffer {
     Clone,
     Debug,
     Default,
-    serde::Serialize,
-    serde::Deserialize,
 )]
 // TODO: implement.
 pub struct StandardBufferedRenderer {
@@ -333,6 +345,16 @@ pub struct StandardBufferedRenderer {
     line_clear_effect_buf2: Vec<LineClearEffectLine>,
 }
 
+#[derive(
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Clone,
+    Debug,
+    Default,
+)]
 pub struct HardDropEffectTile {
     creation_time: InGameTime,
     pos: Coordinate,
@@ -340,10 +362,30 @@ pub struct HardDropEffectTile {
     tile_id: TileID,
 }
 
+#[derive(
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Clone,
+    Debug,
+    Default,
+)]
 pub struct LockEffectTile {
     ??: ??,
 }
 
+#[derive(
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Clone,
+    Debug,
+    Default,
+)]
 pub struct LineClearEffectTile {
     creation_time: InGameTime,
     origin: (usize, usize),

@@ -45,7 +45,7 @@ pub trait Renderer: Default {
     ) -> io::Result<()>;
 }
 
-#[derive(PartialEq, PartialOrd, Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(PartialEq, PartialOrd, Clone, Debug)]
 pub enum TetroTUIRenderer {
     StandardBuffered(StandardBufferedRenderer),
     LegacyBuffered(LegacyBufferedRenderer),

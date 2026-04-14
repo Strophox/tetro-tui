@@ -32,8 +32,6 @@ use crate::{
     Clone,
     Debug,
     Default,
-    serde::Serialize,
-    serde::Deserialize,
 )]
 struct TerminalScreenBuffer {
     prev: Vec<Vec<(char, Option<Color>)>>,
@@ -213,7 +211,7 @@ impl TerminalScreenBuffer {
 }
 
 #[derive(
-    PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
+    PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug,
 )]
 struct HardDropTile {
     creation_time: InGameTime,
@@ -222,7 +220,7 @@ struct HardDropTile {
     tile_id: TileID,
 }
 
-#[derive(PartialEq, PartialOrd, Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(PartialEq, PartialOrd, Clone, Debug)]
 struct MinoParticle {
     creation_time: InGameTime,
     origin: (usize, usize),
@@ -232,7 +230,7 @@ struct MinoParticle {
     tile_id: TileID,
 }
 
-#[derive(PartialEq, PartialOrd, Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[derive(PartialEq, PartialOrd, Clone, Debug, Default)]
 pub struct LegacyBufferedRenderer {
     screen: TerminalScreenBuffer,
     notification_feed_buffer: Vec<(Notification, InGameTime, bool)>,
