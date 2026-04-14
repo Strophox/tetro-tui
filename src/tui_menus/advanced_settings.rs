@@ -63,8 +63,8 @@ impl<T: Write> Application<T> {
                     self.temp_data.pause_on_focus_lost.on_off()
                 ),
                 format!(
-                    "Renderer selected = {:?} (applies on New Game)",
-                    TetroTUIRenderer::with_number(self.temp_data.renderer_selected)
+                    "Renderer selected = {} (applies on New Game)",
+                    TetroTUIRenderer::with_number(self.temp_data.renderer_selected).name()
                 ),
             ];
 

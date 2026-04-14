@@ -10,7 +10,7 @@ use rand::RngExt;
 use crate::{
     fmt_helpers::fmt_lineclear_name,
     tui_settings::{
-        HardDropEffect, LineClearEffect, LineClearInlineEffect, LineClearParticleEffect, LockEffect,
+        HardDropEffect, LineClearEffect, LineClearInlineEffect, LineClearParticleEffect, LockEffect, Palette, TileTexture,
     },
 };
 
@@ -38,7 +38,8 @@ pub trait TerminalBuffer {
     fn offset_and_area(&self) -> ((u16, u16), (u16, u16));
     fn reset_with_offset_and_area(&mut self, offsets: (u16, u16), dimensions: (u16, u16));
 
-    fn write(&mut self, x: u16, y: u16, cell: TermCell);
+    fn write_char(&mut self, x: u16, y: u16, cell: TermCell);
+    fn write_tile(&mut self, x: u16, y: u16, tile: TileTexture, fg: Color);
     fn write_str(&mut self, x: u16, y: u16, str: &str, fg: Color);
     fn flush(&mut self, term: &mut impl Write) -> io::Result<()>;
 }
@@ -75,31 +76,6 @@ pub struct LineClearEffectLine {
     y: usize,
 }
 
-/* The renderer must take care of:
-Textures:
-- locked + air tiles (=board + grid)
-   * possibly blindfolded
-- active piece
-- shadow piece
-- spawn piece shadow
-- next pieces (normal, small, mini)
-- hold piece
-- slashed/crossed piece (if game over, forfeit etc.)
-Effects:
-- hard drop effect
-- lock effect
-- line clear effect
-General TUI:
-- TUI frames (main, hold, next, heading lines)
-- stats hud
-   * time, lines, points, gravity; adaptive lock delay
-   * replay speed, replay length
-- keybinds
-- buttons
-- goal hud
-- message feed
-  * gather/generate msgs from Accolades, Custom, Debug, GameEnded */
-
 #[derive(PartialEq, PartialOrd, Clone, Debug, Default)]
 pub struct StandardBufferedRenderer {
     term_buf: StandardTerminalBuffer,
@@ -110,7 +86,6 @@ pub struct StandardBufferedRenderer {
     line_clear_particle_effect_buf: Vec<(LineClearParticleEffect, Vec<LineClearEffectTile>)>,
 }
 
-// TODO: implement.
 impl Renderer for StandardBufferedRenderer {
     fn update_feed(
         &mut self,
@@ -289,6 +264,25 @@ impl Renderer for StandardBufferedRenderer {
             .reset_with_offset_and_area(offsets, dimensions);
     }
 
+    // The renderer must take care of:
+    // 'General TUI':
+    // * 'Board' frame.
+    // * 'Hold' widget.
+    // * 'Next' widgets.
+    // * Stats HUD.
+    // * Keybinds HUD.
+    // * Goal HUD.
+    // * Buttons HUD.
+    // * Text message feed.
+    // 'Board tiles':
+    // * Locked + air tiles (board including grid).
+    // * Shadow piece.
+    // * Spawn (shadow) piece.
+    // * Active piece (possibly slashed/crossed).
+    // 'Game effects':
+    // * Hard drop effect.
+    // * Lock effect.
+    // * Line clear effect.
     fn render<T: Write>(
         &mut self,
         term: &mut T,
@@ -299,6 +293,209 @@ impl Renderer for StandardBufferedRenderer {
         keybinds_legend: &KeybindsLegend,
         replay_extra: Option<(InGameTime, f64)>,
     ) -> io::Result<()> {
-        todo!()
+        // Horizontal padding to the left of everything.
+        const W_PAD_LEFT: u16 = 1;
+        // Total *additional* width of an active game HUD (on the left);
+        // In addition to the 'hold' widget which already protrudes to the left and reserves space available underneath it.
+        const W_ACTIVE_HUD: u16 = 17;
+        // Total width of the 'hold' widget including frame.
+        const W_HOLD: u16 = 7;
+        // Total width of the inside of the game field.
+        // 2x because of font width.
+        const W_FIELD: u16 = 2 * (Game::WIDTH as u16);
+        // Total width of the board including frame.
+        const W_BOARD: u16 = 1 + W_FIELD + 1;
+        // Total width of the 'next' widget(s) including frame.
+        const W_NEXT: u16 = 13;
+
+        // Vertical padding atop board.
+        const H_PAD_TOP: u16 = 1;
+        // Total height of the inside of the game field.
+        const H_FIELD: u16 = Game::LOCK_OUT_HEIGHT as u16;
+        // Total height of the board including frame.
+        const H_BOARD: u16 = 1 + H_FIELD + 1;
+        // Vertical padding below board.
+        const H_PAD_BOT: u16 = 2;
+
+        let hud_active = settings.graphics().show_main_hud || replay_extra.is_some();
+        // Additional width of the hud actually required.
+        let w_addhud = if hud_active {
+            W_ACTIVE_HUD
+        } else {
+            0
+        };
+
+        let (_offset, (w_viewport, h_viewport)) = self.term_buf.offset_and_area();
+        // Free margin toward left of viewport.
+        let w_float = w_viewport.saturating_sub(W_PAD_LEFT + w_addhud + W_HOLD + W_BOARD + W_NEXT) / 2;
+        // Free margin toward top of viewport.
+        let h_float = h_viewport.saturating_sub(H_PAD_TOP + H_BOARD + H_PAD_BOT) / 2;
+
+        // -- 'General TUI' rendering --
+
+        let tui_style = settings.tui_style();
+
+        // RENDER: 'Board' frame.
+
+        // Board frame glyphs.
+        let [c_fr_tl, c_fr_t, c_fr_tr, c_fr_r, c_fr_br, c_fr_b, c_fr_bl, c_fr_l] = tui_style.frameglyphs;
+        let w_tmp1 = w_float + W_PAD_LEFT + w_addhud + W_HOLD;
+        let h_tmp1 = h_float + H_PAD_TOP;
+
+        // Complete top edge.
+        // 2x's because of font width.
+        self.term_buf.write_char(w_tmp1, h_tmp1, TermCell { ch: c_fr_tl, fg: Color::Reset });
+        for dx in 0..W_FIELD as u16 {
+            self.term_buf.write_char(w_tmp1 + 1 + dx, h_tmp1, TermCell { ch: c_fr_t, fg: Color::Reset });
+        }
+        self.term_buf.write_char(w_tmp1 + 1 + W_FIELD, h_tmp1, TermCell { ch: c_fr_tr, fg: Color::Reset });
+        
+        // Complete bottom edge.
+        // 2x's because of font width.
+        self.term_buf.write_char(w_tmp1, h_tmp1 + 1 + H_FIELD, TermCell { ch: c_fr_bl, fg: Color::Reset });
+        for dx in 0..W_FIELD {
+            self.term_buf.write_char(w_tmp1 + 1 + dx, h_tmp1 + 1 + H_FIELD, TermCell { ch: c_fr_b, fg: Color::Reset });
+        }
+        self.term_buf.write_char(w_tmp1 + 1 + W_FIELD, h_tmp1 + 1 + H_FIELD, TermCell { ch: c_fr_br, fg: Color::Reset });
+
+        // Left edge.
+        for dy in 0..H_FIELD {
+            self.term_buf.write_char(w_tmp1, h_tmp1 + 1 + dy, TermCell { ch: c_fr_l, fg: Color::Reset });
+        }
+
+        // Right edge.
+        for dy in 0..H_FIELD {
+            self.term_buf.write_char(w_tmp1 + 1 + 2 * Game::WIDTH as u16, h_tmp1 + 1 + dy, TermCell { ch: c_fr_r, fg: Color::Reset });
+        }
+        
+        // RENDER: 'Hold' widget.
+
+        if let Some((tet, is_swappable)) = game.state().piece_held {
+            // 'Hold' frame glyphs.
+            let [c_h_tb, c_h_tl, c_h_l, c_h_bl] = tui_style.holdglyphs;
+            let w_tmp2 = w_float + W_PAD_LEFT + w_addhud;
+            let h_tmp2 = h_float + H_PAD_TOP;
+    
+            // Complete top edge.
+            self.term_buf.write_char(w_tmp2, h_tmp2, TermCell { ch: c_h_tl, fg: Color::Reset });
+            self.term_buf.write_char(w_tmp2 + 1, h_tmp2, TermCell { ch: c_h_tb, fg: Color::Reset });
+            self.term_buf.write_str(w_tmp2 + 1 + 1, h_tmp2, "hold",Color::Reset);
+            self.term_buf.write_char(w_tmp2 + 1 + 1 + 4, h_tmp2, TermCell { ch: c_h_tb, fg: Color::Reset });
+            // Left edge
+            self.term_buf.write_char(w_tmp2, h_tmp2 + 1, TermCell { ch: c_h_l, fg: Color::Reset });
+            // Complete bottom edge.
+            self.term_buf.write_char(w_tmp2, h_tmp2 + 2, TermCell { ch: c_h_bl, fg: Color::Reset });
+            for dx in 0..6 {
+                self.term_buf.write_char(w_tmp2 + 1 + dx, h_tmp2 + 2, TermCell { ch: c_h_tb, fg: Color::Reset });
+            }
+    
+            // Render 'hold' piece.
+            let small_tet = &settings.small_tet_style().tets[tet as usize];
+            let tile_id = if is_swappable {
+                tet.tile_id()
+            } else {
+                Palette::GRAY
+            };
+            let color = settings.palette().get(&tile_id).copied().unwrap_or(Color::Reset);
+            self.term_buf.write_str(w_tmp2 + 2, h_tmp2 + 1, small_tet, color);
+
+            // Go the extra mile to render the character 'x' if we can't hold.
+            if !is_swappable {
+                self.term_buf.write_char(w_tmp2 + 1, h_tmp2 + 1, TermCell { ch: 'x', fg: color });
+            }
+        }
+        
+        // RENDER: 'Next' widgets.
+
+        // TODO
+        
+        // RENDER: Stats HUD.
+
+        // TODO
+        
+        // RENDER: Keybinds HUD.
+
+        // TODO
+        
+        // RENDER: Goal HUD.
+
+        // TODO
+        
+        // RENDER: Buttons HUD.
+
+        // TODO
+        
+        // RENDER: Text message feed.
+
+        // TODO
+
+
+        // -- 'Board tiles' rendering --
+
+        let mino_textures = settings.mino_textures();
+        let w_tmp3 = w_float + W_PAD_LEFT + w_addhud + W_HOLD + 1;
+        let h_tmp3 = h_float + H_PAD_TOP + 1 + H_FIELD;
+        let ftch_col_or_rset = |tile_id: &TileID| settings.palette().get(tile_id).copied().unwrap_or(Color::Reset);
+
+        // RENDER: Locked + air tiles (board including grid).
+
+        for (dy, line) in game.state().board.iter().take(Game::LOCK_OUT_HEIGHT + 1).enumerate() {
+            for (dx, tile) in line.iter().enumerate() {
+                let (tile_texture, color) = if let Some(tile_id) = tile {
+                    (mino_textures.locked, ftch_col_or_rset(tile_id))
+                } else {
+                    (mino_textures.air, Color::Reset)
+                };
+
+                self.term_buf.write_tile(w_tmp3 + 2 * dx as u16, h_tmp3.saturating_sub(dy as u16), tile_texture, color);
+            }
+        }
+        
+        // RENDER: Shadow piece.
+
+        // TODO
+        
+        // RENDER: Spawn (shadow) piece.
+
+        // TODO
+        
+        // RENDER: Active piece (possibly slashed/crossed).
+
+        match game.phase() {
+            // We currently do not have any visual indicator to pass this phase.
+            Phase::Spawning { spawn_time: _ } => {},
+
+            Phase::PieceInPlay { piece, autoshift_scheduled, fall_or_lock_time, lock_cap_time, lowest_y } => {
+                for ((dx, dy), tile_id) in piece.tiles() {
+                    let tile_texture  = mino_textures.play;
+                    let color = ftch_col_or_rset(&tile_id);
+                    self.term_buf.write_tile(w_tmp3 + 2 * dx as u16, h_tmp3.saturating_sub(dy as u16), tile_texture, color);
+                }
+            },
+
+            // We currently do not have any visual indicator to pass this phase.
+            Phase::LinesClearing { clear_finish_time: _, point_bonus: _ } => {},
+            
+            Phase::GameEnd { cause, is_win } => {
+                // TODO
+            },
+        }
+
+
+        // -- 'Game effects' rendering --
+        
+        // RENDER: Hard drop effect.
+
+        // TODO
+        
+        // RENDER: Lock effect.
+
+        // TODO
+        
+        // RENDER: Line clear effect.
+
+        // TODO
+
+        self.term_buf.flush(term)
     }
 }
