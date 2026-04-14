@@ -12,7 +12,7 @@ use falling_tetromino_engine::{Coordinate, GameEndCause, Phase, Stat, TileID};
 use rand::RngExt;
 
 use crate::{
-    fmt_helpers::{fmt_duration, fmt_lineclear_name, MAX_LEGEND_ENTRIES},
+    fmt_helpers::{fmt_duration, fmt_hertz, fmt_lineclear_name, MAX_LEGEND_ENTRIES},
     tui_settings::{
         HardDropEffect, LineClearEffect, LineClearInlineEffect, LineClearParticleEffect,
         LockEffect, Palette, TileTexture,
@@ -376,6 +376,8 @@ impl Renderer for StandardBufferedRenderer {
             #[rustfmt::skip] self.term_buf.write_char(w_tmp1 + 1 + 2 * Game::WIDTH as u16, h_tmp1 + 1 + dy, TermCell { ch: c_fr_r, fg: Color::Reset });
         }
 
+        // TODO: Special 2nd frame rendering.
+
         // RENDER: 'Hold' widget.
 
         if let Some((tet, is_swappable)) = game.state().piece_held {
@@ -448,7 +450,42 @@ impl Renderer for StandardBufferedRenderer {
                 #[rustfmt::skip] self.term_buf.write_char(w_tmp5 + W_TITLE_MARGIN + (dx as u16), h_tmp5 + 1, TermCell { ch: c_m_tb, fg: Color::Reset });
             }
 
-            #[rustfmt::skip] self.term_buf.write_str(w_tmp5 + 2, h_tmp5, &meta_data.title, Color::Reset);
+            // Render stats.
+            // Only show lock delay if fall delay lower bound has been hit and lock delay can potentially change.
+            let show_lockdelay = game
+                .state()
+                .fall_delay_lowerbound_hit_at_n_lineclears
+                .is_some()
+                && !game.config.lock_delay_params.is_constant();
+            let stats = [
+                Some(("Time:", fmt_duration(game.state().time))),
+                Some(("Lines:", game.state().lineclears.to_string())),
+                Some(("Points:", game.state().points.to_string())),
+                Some(("Gravity:", fmt_hertz(game.state().fall_delay.as_hertz()))),
+                show_lockdelay.then(|| {
+                    (
+                        "Lock delay:",
+                        format!(
+                            "{}ms",
+                            game.state()
+                                .lock_delay
+                                .saturating_duration()
+                                .as_millis()
+                                .to_string()
+                        ),
+                    )
+                }),
+                replay_extra.map(|(replay_len, _)| ("REPLAYING", fmt_duration(replay_len))),
+                replay_extra.map(|(_, replay_speed)| ("Replay speed:", format!("{replay_speed}x"))),
+            ];
+
+            for (dy, opt_stat) in stats.into_iter().enumerate() {
+                if let Some((str_statname, str_statval)) = opt_stat {
+                    #[rustfmt::skip] self.term_buf.write_str(w_tmp5 + 1, h_tmp5 + 2 + (dy as u16), str_statname, Color::Reset);
+                    let w_statname = str_statname.len() as u16;
+                    #[rustfmt::skip] self.term_buf.write_str(w_tmp5 + 1 + w_statname + 1, h_tmp5 + 2 + (dy as u16), &str_statval, Color::Reset);
+                }
+            }
 
             // RENDER: Keybinds HUD.
 
@@ -496,7 +533,7 @@ impl Renderer for StandardBufferedRenderer {
             .find(|(_stat, to_win)| *to_win)
         {
             // Produce value and text to render.
-            let (str_val, str_txt) = match end_condition_stat {
+            let (str_statval, str_stattxt) = match end_condition_stat {
                 Stat::TimeElapsed(t) => {
                     (fmt_duration(t.saturating_sub(game.state().time)), "remain")
                 }
@@ -517,9 +554,9 @@ impl Renderer for StandardBufferedRenderer {
 
             let w_tmp5 = w_float + W_PAD_LEFT + w_addhud + W_HOLD + W_BOARD + 2;
             let h_tmp5 = h_float + H_PAD_TOP + H_FIELD;
-            #[rustfmt::skip] self.term_buf.write_str(w_tmp5, h_tmp5, &str_val, Color::Reset);
-            let w_str_val = str_val.len();
-            #[rustfmt::skip] self.term_buf.write_str(w_tmp5 + 1 + (w_str_val as u16), h_tmp5, str_txt, Color::Reset);
+            #[rustfmt::skip] self.term_buf.write_str(w_tmp5, h_tmp5, &str_statval, Color::Reset);
+            let w_str_val = str_statval.len();
+            #[rustfmt::skip] self.term_buf.write_str(w_tmp5 + 1 + (w_str_val as u16), h_tmp5, str_stattxt, Color::Reset);
         }
 
         // RENDER: Buttons HUD.
