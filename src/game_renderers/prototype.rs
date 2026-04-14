@@ -10,16 +10,7 @@ use falling_tetromino_engine::{InGameTime, Notification, State};
 
 use super::*;
 
-#[derive(
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    Clone,
-    Debug,
-    Default,
-)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, Default)]
 pub struct PrototypeRenderer {
     notification_feed_buffer: VecDeque<(Notification, InGameTime)>,
 }

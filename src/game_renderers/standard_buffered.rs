@@ -5,7 +5,11 @@ use crossterm::{
     style::{Color, Print, PrintStyledContent, Stylize},
     terminal, QueueableCommand,
 };
-use falling_tetromino_engine::{Coordinate, NotificationFeed, TileID};
+use falling_tetromino_engine::{Coordinate, TileID};
+
+use crate::tui_settings::{
+    HardDropEffect, LineClearInlineEffect, LineClearParticleEffect, LockEffect,
+};
 
 use super::*;
 
@@ -324,79 +328,44 @@ General TUI:
 - message feed
   * gather/generate msgs from Accolades, Custom, Debug, GameEnded */
 
-#[derive(
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    Clone,
-    Debug,
-    Default,
-)]
-// TODO: implement.
+#[derive(PartialEq, PartialOrd, Clone, Debug, Default)]
 pub struct StandardBufferedRenderer {
     term_buf: DenseTerminalDoubleBuffer,
-    notification_feed: NotificationFeed,
     message_render_buf: Vec<(InGameTime, String)>,
-    hard_drop_effect_buf: Vec<HardDropEffectTile>,
-    lock_effect_buf: Vec<LockEffectTile>,
-    line_clear_effect_buf1: Vec<LineClearEffectTile>,
-    line_clear_effect_buf2: Vec<LineClearEffectLine>,
+    hard_drop_effect_buf: Vec<(HardDropEffect, Vec<HardDropEffectTile>)>,
+    lock_effect_buf: Vec<(LockEffect, Vec<LockEffectTile>)>,
+    line_clear_inline_effect_buf: Vec<(LineClearInlineEffect, LineClearEffectLine)>,
+    line_clear_particle_effect_buf: Vec<(LineClearParticleEffect, Vec<LineClearEffectTile>)>,
 }
 
-#[derive(
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    Clone,
-    Debug,
-    Default,
-)]
+#[derive(PartialEq, PartialOrd, Clone, Debug)]
 pub struct HardDropEffectTile {
     creation_time: InGameTime,
     pos: Coordinate,
-    offset??: ??,
-    tile_id: TileID,
+    normalized_height: f32,
+    original_tile_id: TileID,
 }
 
-#[derive(
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    Clone,
-    Debug,
-    Default,
-)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug)]
 pub struct LockEffectTile {
-    ??: ??,
+    creation_time: InGameTime,
+    pos: Coordinate,
+    original_tile_id: TileID,
 }
 
-#[derive(
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    Clone,
-    Debug,
-    Default,
-)]
+#[derive(PartialEq, PartialOrd, Clone, Debug)]
 pub struct LineClearEffectTile {
     creation_time: InGameTime,
     origin: (usize, usize),
     momentum: (f32, f32),
     acceleration: (f32, f32),
-    animation??: ??,
     tile_id: TileID,
 }
 
+#[derive(PartialEq, PartialOrd, Hash, Clone, Debug)]
 pub struct LineClearEffectLine {
-    
+    creation_time: InGameTime,
+    y: usize,
 }
 
 // TODO: implement.

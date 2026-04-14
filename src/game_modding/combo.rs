@@ -5,7 +5,7 @@ use falling_tetromino_engine::{
     Phase, Stat, Tetromino,
 };
 
-use crate::settings::Palette;
+use crate::tui_settings::Palette;
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]

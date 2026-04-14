@@ -7,7 +7,7 @@ use falling_tetromino_engine::{
     GameRng, InGameTime, Input, Line, NotificationFeed, Phase, Piece, Stat, Tetromino,
 };
 
-use crate::settings::Palette;
+use crate::tui_settings::Palette;
 
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,

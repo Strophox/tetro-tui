@@ -58,8 +58,7 @@ impl GameRestorationData<RawInputHistory> {
                             .map(|mod_desc| format!("WARNING: idk mod {mod_desc:?}"))
                             .collect();
 
-                        let print_warn_msgs_mod =
-                            game_modding::PrintMsgs::modifier(warn_messages);
+                        let print_warn_msgs_mod = game_modding::PrintMsgs::modifier(warn_messages);
 
                         modded_game.modifiers.push(print_warn_msgs_mod);
                     }
