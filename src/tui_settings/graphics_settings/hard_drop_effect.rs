@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use falling_tetromino_engine::{ExtNonNegF64, InGameTime, TileID};
+use falling_tetromino_engine::{InGameTime, TileID};
 
 use crate::tui_settings::{
     graphics_settings::{QuickTileFromStr, TileTexture},
@@ -10,9 +10,7 @@ use crate::tui_settings::{
 type AnimateHardDrop = Vec<(TileTexture, Option<TileID>)>;
 
 #[serde_with::serde_as]
-#[derive(
-    PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
-)]
+#[derive(PartialEq, PartialOrd, Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct HardDropEffect {
     #[serde_as(as = "serde_with::DurationSecondsWithFrac<f64>")]
     #[serde(rename = "dur")]
@@ -25,13 +23,12 @@ pub struct HardDropEffect {
     #[serde(rename = "anim")]
     pub animation: AnimateHardDrop,
 
-    /// The extent to which the lifetime decays toward the top when the pieces are spawned.
-    /// - 1.0 means the upmost particle will have the same (100% of the) lifetime as the bottommost particle.
-    /// - 0.0 means the upmost particle will have 0% lifetime on spawn (and all inbetween scaled linearly).
+    /// The extent to which the lifetime decays faster toward the top when the pieces are spawned.
+    /// - 1.0 means the upmost particle will have 100% of its `normalized_height` scaling.
+    /// - 0.5 means the upmost particle will have 50% of its `normalized_height` scaling, which means it survives twice as long.
+    /// - 2.0 means the upmost particle will have 50% of its `normalized_height` scaling, which means it survives half as long.
     #[serde(rename = "decay")]
-    pub top_y_decay: ExtNonNegF64,
-    // FIXME: Remove unused code or reconsider: A new toggle.
-    //pub extend_to_top: bool,
+    pub y_decay: f32,
 }
 
 pub fn default_hard_drop_effect_slots() -> SlotMachine<HardDropEffect> {
@@ -54,17 +51,17 @@ impl HardDropEffect {
         HardDropEffect {
             duration: Duration::ZERO,
             animation: Vec::new(),
-            top_y_decay: ExtNonNegF64::MIN,
+            y_decay: 0.0,
         }
     }
 
     pub fn ascii_particles() -> Self {
         HardDropEffect {
-            duration: Duration::from_millis(250),
+            duration: Duration::from_millis(150),
             animation: ["@@", "$$", "##", "%%", "**", "++", "~~", ".."]
                 .map(|ss| (ss.tile(), None))
                 .into(),
-            top_y_decay: 0.0.try_into().unwrap(),
+            y_decay: 0.5,
         }
     }
 
@@ -72,27 +69,25 @@ impl HardDropEffect {
         HardDropEffect {
             duration: Duration::from_millis(250),
             animation: ["||", "¦¦", "::", ".."].map(|ss| (ss.tile(), None)).into(),
-            top_y_decay: 0.5.try_into().unwrap(),
+            y_decay: 1.0,
         }
     }
 
     pub fn ascii_beam() -> Self {
         HardDropEffect {
-            duration: Duration::from_millis(250),
-            animation: ["||", "¦¦", "::", ".."]
-                .map(|ss| (ss.tile(), Some(Palette::WHITE)))
-                .into(),
-            top_y_decay: 1.0.try_into().unwrap(),
+            duration: Duration::from_millis(150),
+            animation: ["||", "¦¦", "::", ".."].map(|ss| (ss.tile(), None)).into(),
+            y_decay: 0.0,
         }
     }
 
     pub fn block_beam() -> Self {
         HardDropEffect {
-            duration: Duration::from_millis(150),
-            animation: ["▒▒", "▒▒", "▒▒", "▒▒", "░░", "░░", "  ", "░░"]
+            duration: Duration::from_millis(100),
+            animation: ["▒▒", "░░"]
                 .map(|ss| (ss.tile(), Some(Palette::WHITE)))
                 .into(),
-            top_y_decay: 1.0.try_into().unwrap(),
+            y_decay: 0.0,
         }
     }
 }

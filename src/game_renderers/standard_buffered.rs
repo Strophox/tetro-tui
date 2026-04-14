@@ -40,7 +40,7 @@ impl TermCell {
 }
 
 pub trait TerminalBuffer {
-    fn with_offset_and_area(offsets: (u16, u16), dimensions: (u16, u16)) -> Self;
+    // fn with_offset_and_area(offsets: (u16, u16), dimensions: (u16, u16)) -> Self;
     fn offset_and_area(&self) -> ((u16, u16), (u16, u16));
     fn reset_with_offset_and_area(&mut self, offsets: (u16, u16), dimensions: (u16, u16));
 
@@ -84,6 +84,7 @@ pub struct LineClearEffectLine {
 
 #[derive(PartialEq, PartialOrd, Clone, Debug, Default)]
 pub struct StandardBufferedRenderer {
+    // NOTE: Deriving default also means that this terminal buffers has offsets and dimensions 0.
     term_buf: StandardTerminalBuffer,
     text_message_buf: VecDeque<(InGameTime, String)>,
     hard_drop_effect_buf: Vec<(HardDropEffect, Vec<HardDropEffectTile>)>,
@@ -285,7 +286,8 @@ impl Renderer for StandardBufferedRenderer {
     // * Buttons HUD.
     // * Text message feed.
     // 'Board tiles':
-    // * Locked + air tiles (board including grid).
+    // * Grid.
+    // * Locked tiles.
     // * Shadow piece.
     // * Spawn (shadow) piece.
     // * Active piece (possibly slashed/crossed).
@@ -650,8 +652,56 @@ impl Renderer for StandardBufferedRenderer {
                 .copied()
                 .unwrap_or(Color::Reset)
         };
+
+        // RENDER: Grid.
+
+        for dy in 0..Game::LOCK_OUT_HEIGHT {
+            for dx in 0..Game::WIDTH {
+                let tile_texture = mino_textures.air;
+                let color = Color::Reset;
+
+                #[rustfmt::skip] self.term_buf.write_tile(w_tmp3 + 2 * dx as u16, h_tmp3.saturating_sub(dy as u16), tile_texture, color);
+            }
+        }
+
+        // RENDER: Hard drop effect.
+
+        self.hard_drop_effect_buf.retain_mut(|(hard_drop_effect, hard_drop_effect_tiles)| {
+            let HardDropEffect { duration, animation, y_decay } = hard_drop_effect;
+            // Empty effect landed here somehow.
+            if duration.is_zero() {
+                return false;
+            }
+
+            hard_drop_effect_tiles.retain(|hard_drop_effect_tile| {
+                let HardDropEffectTile { creation_time, pos: (dx, dy), normalized_height, original_tile_id } = *hard_drop_effect_tile;
+
+                // How much time has elapsed since creation.
+                let elapsed = game.state().time.saturating_sub(creation_time);
+                // How far along the effect we are shifting.
+                let timeshift = elapsed.as_secs_f32() / duration.as_secs_f32();
+
+                let factor = normalized_height * *y_decay + timeshift;
+
+                if factor >= 1.0 {
+                    return false
+                }
+
+                // render the tile
+                let (tile_texture, recolor) = animation[(factor * (animation.len() as f32 - 1.0 )).round() as usize];
+                let tile_id = recolor.unwrap_or(original_tile_id);
+                let color = ftch_col_or_rset(&tile_id);
+                #[rustfmt::skip] self.term_buf.write_tile(w_tmp3 + 2 * (dx as u16), h_tmp3.saturating_sub(dy as u16), tile_texture, color);
+
+                true
+            });
+
+            // Retain hard drop effect if it still has active tiles.
+            !hard_drop_effect_tiles.is_empty()
+        });
+
         if !temp_data.blindfold_enabled {
-            // RENDER: Locked + air tiles (board including grid).
+            // RENDER: Locked tiles.
 
             let mut y_highest_tile: isize = -1;
             for (dy, line) in game
@@ -662,18 +712,13 @@ impl Renderer for StandardBufferedRenderer {
                 .enumerate()
             {
                 for (dx, tile) in line.iter().enumerate() {
-                    let (tile_texture, color) = if let Some(tile_id) = tile {
-                        y_highest_tile = dy as isize;
-                        (mino_textures.locked, ftch_col_or_rset(tile_id))
-                    } else {
-                        // Hacky but: Do *not* draw air/grid over top board frame or above.
-                        if dy >= Game::LOCK_OUT_HEIGHT {
-                            continue;
-                        }
-                        (mino_textures.air, Color::Reset)
-                    };
+                    if let Some(tile_id) = tile {
+                        let tile_texture = mino_textures.locked;
+                        let color = ftch_col_or_rset(tile_id);
+                        #[rustfmt::skip] self.term_buf.write_tile(w_tmp3 + 2 * (dx as u16), h_tmp3.saturating_sub(dy as u16), tile_texture, color);
 
-                    #[rustfmt::skip] self.term_buf.write_tile(w_tmp3 + 2 * dx as u16, h_tmp3.saturating_sub(dy as u16), tile_texture, color);
+                        y_highest_tile = dy as isize;
+                    }
                 }
             }
 
@@ -686,9 +731,12 @@ impl Renderer for StandardBufferedRenderer {
                     // Only show it if the highest tile is 4 units below us or less.
                     if spawn_piece.position.1 <= y_highest_tile + 4 {
                         for ((dx, dy), tile_id) in spawn_piece.tiles() {
+                            if game.state().board[dy as usize][dx as usize].is_some() {
+                                continue;
+                            }
                             let tile_texture = mino_textures.shadow;
                             let color = ftch_col_or_rset(&tile_id);
-                            #[rustfmt::skip] self.term_buf.write_tile(w_tmp3 + 2 * dx as u16, h_tmp3.saturating_sub(dy as u16), tile_texture, color);
+                            #[rustfmt::skip] self.term_buf.write_tile(w_tmp3 + 2 * (dx as u16), h_tmp3.saturating_sub(dy as u16), tile_texture, color);
                         }
                     }
                 }
@@ -713,7 +761,7 @@ impl Renderer for StandardBufferedRenderer {
                     for ((dx, dy), tile_id) in shadow_piece.tiles() {
                         let tile_texture = mino_textures.shadow;
                         let color = ftch_col_or_rset(&tile_id);
-                        #[rustfmt::skip] self.term_buf.write_tile(w_tmp3 + 2 * dx as u16, h_tmp3.saturating_sub(dy as u16), tile_texture, color);
+                        #[rustfmt::skip] self.term_buf.write_tile(w_tmp3 + 2 * (dx as u16), h_tmp3.saturating_sub(dy as u16), tile_texture, color);
                     }
                 }
 
@@ -722,7 +770,7 @@ impl Renderer for StandardBufferedRenderer {
                 for ((dx, dy), tile_id) in piece.tiles() {
                     let tile_texture = mino_textures.play;
                     let color = ftch_col_or_rset(&tile_id);
-                    #[rustfmt::skip] self.term_buf.write_tile(w_tmp3 + 2 * dx as u16, h_tmp3.saturating_sub(dy as u16), tile_texture, color);
+                    #[rustfmt::skip] self.term_buf.write_tile(w_tmp3 + 2 * (dx as u16), h_tmp3.saturating_sub(dy as u16), tile_texture, color);
                 }
             }
 
@@ -740,7 +788,7 @@ impl Renderer for StandardBufferedRenderer {
                         for ((dx, dy), tile_id) in locking_piece.tiles() {
                             let tile_texture = mino_textures.crossed;
                             let color = ftch_col_or_rset(&tile_id);
-                            #[rustfmt::skip] self.term_buf.write_tile(w_tmp3 + 2 * dx as u16, h_tmp3.saturating_sub(dy as u16), tile_texture, color);
+                            #[rustfmt::skip] self.term_buf.write_tile(w_tmp3 + 2 * (dx as u16), h_tmp3.saturating_sub(dy as u16), tile_texture, color);
                         }
                     }
 
@@ -755,7 +803,7 @@ impl Renderer for StandardBufferedRenderer {
                             } else {
                                 (mino_textures.slashed, ftch_col_or_rset(&tile_id))
                             };
-                            #[rustfmt::skip] self.term_buf.write_tile(w_tmp3 + 2 * dx as u16, h_tmp3.saturating_sub(dy as u16), tile_texture, color);
+                            #[rustfmt::skip] self.term_buf.write_tile(w_tmp3 + 2 * (dx as u16), h_tmp3.saturating_sub(dy as u16), tile_texture, color);
                         }
                     }
 
@@ -772,7 +820,7 @@ impl Renderer for StandardBufferedRenderer {
                             for ((dx, dy), tile_id) in forfeit_piece.tiles() {
                                 let tile_texture = mino_textures.slashed;
                                 let color = ftch_col_or_rset(&tile_id);
-                                #[rustfmt::skip] self.term_buf.write_tile(w_tmp3 + 2 * dx as u16, h_tmp3.saturating_sub(dy as u16), tile_texture, color);
+                                #[rustfmt::skip] self.term_buf.write_tile(w_tmp3 + 2 * (dx as u16), h_tmp3.saturating_sub(dy as u16), tile_texture, color);
                             }
                         }
                     }
@@ -784,10 +832,6 @@ impl Renderer for StandardBufferedRenderer {
         }
 
         // -- 'Game effects' rendering --
-
-        // RENDER: Hard drop effect.
-
-        // TODO
 
         // RENDER: Lock effect.
 
