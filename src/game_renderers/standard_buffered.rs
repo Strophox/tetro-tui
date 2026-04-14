@@ -113,6 +113,38 @@ impl Renderer for StandardBufferedRenderer {
     ) {
         for (notif, time) in feed {
             match notif {
+                Notification::HardDrop {
+                    height_dropped,
+                    dropped_piece,
+                } => {
+                    // Don't even start generating a hard drop effect for pieces on the ground.
+                    if height_dropped == 0 {
+                        continue;
+                    }
+                    // Iterate through tiles starting top right, downwards then leftwards.
+                    let mut current_x = None;
+                    let mut hard_drop_effect_tiles = Vec::new();
+                    for ((x, y), tile_id) in dropped_piece.tiles().into_iter().rev() {
+                        if Some(x) == current_x {
+                            // Skip duplicate tile in same column.
+                            continue;
+                        }
+                        // (Topmost) tile from new column.
+                        current_x = Some(x);
+                        for dy in 1..=height_dropped {
+                            hard_drop_effect_tiles.push(HardDropEffectTile {
+                                creation_time: time,
+                                pos: (x, y + (dy as isize)),
+                                normalized_height: (dy as f32) / (height_dropped as f32),
+                                original_tile_id: tile_id,
+                            });
+                        }
+                    }
+
+                    self.hard_drop_effect_buf
+                        .push((settings.hard_drop_effect().clone(), hard_drop_effect_tiles));
+                }
+
                 Notification::PieceLocked { piece } => {
                     let lock_effect = settings.lock_effect_picked();
                 }
@@ -120,11 +152,6 @@ impl Renderer for StandardBufferedRenderer {
                 Notification::LinesClearing {
                     y_coords,
                     line_clear_duration,
-                } => {}
-
-                Notification::HardDrop {
-                    height_dropped,
-                    dropped_piece,
                 } => {}
 
                 Notification::Accolade {
