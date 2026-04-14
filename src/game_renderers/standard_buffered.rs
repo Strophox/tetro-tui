@@ -871,7 +871,11 @@ impl Renderer for StandardBufferedRenderer {
                     let (retexture, recolor) = animation[(timeshift * (animation.len() - 1) as f32).round() as usize];
                     let tile_texture = retexture.unwrap_or(mino_textures.locked);
                     let tile_id = recolor.unwrap_or(original_tile_id);
-                    let color = ftch_col_or_rset(&tile_id);
+                    let color = settings
+                        .boardpalette()
+                        .get(&tile_id)
+                        .copied()
+                        .unwrap_or(Color::Reset);
                     #[rustfmt::skip] self.term_buf.write_tile(w_tmp3 + 2 * (dx as u16), h_tmp3.saturating_sub(dy as u16), tile_texture, color);
 
                     true
@@ -903,7 +907,11 @@ impl Renderer for StandardBufferedRenderer {
                     let tile_texture = mino_textures.locked;
                     let tile_id = if !color_animation.is_empty() { color_animation[(timeshift * (color_animation.len() - 1) as f32).round() as usize].unwrap_or(*original_tile_id) }
                     else {*original_tile_id};
-                    let color = ftch_col_or_rset(&tile_id);
+                    let color = settings
+                        .boardpalette()
+                        .get(&tile_id)
+                        .copied()
+                        .unwrap_or(Color::Reset);
                     #[rustfmt::skip] self.term_buf.write_tile(w_tmp3 + 2 * (dx as u16), h_tmp3.saturating_sub(dy as u16), tile_texture, color);
                 }
 
