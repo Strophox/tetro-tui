@@ -8,7 +8,8 @@ use crossterm::{
     cursor::MoveTo,
     event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers},
     style::Print,
-    terminal, ExecutableCommand,
+    terminal::{self, Clear},
+    ExecutableCommand,
 };
 use falling_tetromino_engine::{
     Button, Game, GameEndCause, Input, Notification, Phase, UpdateGameError,
@@ -96,8 +97,11 @@ impl<T: Write> Application<T> {
         let mut renders_per_second_counter_start_time = Instant::now();
 
         // Initial render.
-        game_renderer
-            .reset_viewport_with_offset_and_area((0, 0), terminal::size().unwrap_or_default());
+        game_renderer.reset_viewport_state_with_offset_and_area(
+            (0, 0),
+            terminal::size().unwrap_or_default(),
+        );
+        self.term.execute(Clear(terminal::ClearType::All))?;
         game_renderer.render(
             &mut self.term,
             game,
@@ -536,7 +540,8 @@ impl<T: Write> Application<T> {
                     event::Event::Paste(_) => {}
                     event::Event::Resize(cols, rows) => {
                         // Need to redraw screen for proper centering etc.
-                        game_renderer.reset_viewport_with_offset_and_area((0, 0), (cols, rows));
+                        game_renderer
+                            .reset_viewport_state_with_offset_and_area((0, 0), (cols, rows));
                         break 'wait;
                     }
                 }

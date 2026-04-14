@@ -107,8 +107,11 @@ impl<T: Write> Application<T> {
 
         // Initial render.
 
-        game_renderer
-            .reset_viewport_with_offset_and_area((0, 0), terminal::size().unwrap_or_default());
+        game_renderer.reset_viewport_state_with_offset_and_area(
+            (0, 0),
+            terminal::size().unwrap_or_default(),
+        );
+        self.term.execute(Clear(terminal::ClearType::All))?;
         game_renderer.render(
             &mut self.term,
             &game,
@@ -511,7 +514,8 @@ impl<T: Write> Application<T> {
                     event::Event::FocusLost => {}
                     event::Event::Resize(cols, rows) => {
                         // Need to redraw screen for proper centering etc.
-                        game_renderer.reset_viewport_with_offset_and_area((0, 0), (cols, rows));
+                        game_renderer
+                            .reset_viewport_state_with_offset_and_area((0, 0), (cols, rows));
 
                         if paused {
                             next_paused_with_extra_render_request = Some(true);

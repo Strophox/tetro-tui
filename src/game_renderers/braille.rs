@@ -26,7 +26,11 @@ impl Renderer for BrailleRenderer {
         // We do not store any effects state associated with the game at this time.
     }
 
-    fn reset_viewport_with_offset_and_area(&mut self, (x, y): (u16, u16), (w, h): (u16, u16)) {
+    fn reset_viewport_state_with_offset_and_area(
+        &mut self,
+        (x, y): (u16, u16),
+        (w, h): (u16, u16),
+    ) {
         self.x = x;
         self.y = y;
         self.w = w;

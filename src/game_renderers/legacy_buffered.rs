@@ -246,7 +246,11 @@ impl Renderer for LegacyBufferedRenderer {
         self.mino_particles.clear();
     }
 
-    fn reset_viewport_with_offset_and_area(&mut self, (x, y): (u16, u16), (w, h): (u16, u16)) {
+    fn reset_viewport_state_with_offset_and_area(
+        &mut self,
+        (x, y): (u16, u16),
+        (w, h): (u16, u16),
+    ) {
         self.screen.x_draw = (x + w.saturating_sub(TerminalScreenBuffer::W_DRAW) / 2) as usize;
         self.screen.y_draw = (y + h.saturating_sub(TerminalScreenBuffer::H_DRAW) / 2) as usize;
         self.screen.buffer_reset();

@@ -30,7 +30,7 @@ impl Renderer for PrototypeRenderer {
         self.notification_feed_buffer.clear();
     }
 
-    fn reset_viewport_with_offset_and_area(
+    fn reset_viewport_state_with_offset_and_area(
         &mut self,
         _offsets: (u16, u16),
         _dimensions: (u16, u16),

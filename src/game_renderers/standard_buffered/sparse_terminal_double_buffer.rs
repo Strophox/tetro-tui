@@ -64,14 +64,12 @@ impl TerminalBuffer for SparseTerminalBuffer {
         if x >= self.w_vp {
             return;
         }
-        self.next_buf
-            .insert((x, y), TermCell { ch: ch0, fg });
+        self.next_buf.insert((x, y), TermCell { ch: ch0, fg });
 
-        if x+1 >= self.w_vp {
+        if x + 1 >= self.w_vp {
             return;
         }
-        self.next_buf
-            .insert((x+1, y), TermCell { ch: ch1, fg });
+        self.next_buf.insert((x + 1, y), TermCell { ch: ch1, fg });
     }
 
     fn write_str(&mut self, x: u16, y: u16, str: &str, fg: Color) {
