@@ -145,6 +145,8 @@ pub fn fmt_button_keybinds(button: Button, keybinds: &GameKeybinds) -> String {
         .join("")
 }
 
+pub const MAX_LEGEND_ENTRIES: u16 = 5;
+
 pub fn get_game_keybinds_legend(keybinds: &GameKeybinds) -> KeybindsLegend {
     let fk = |k| fmt_key_with_keymods((k, KeyModifiers::NONE));
     let fb = |b| fmt_button_keybinds(b, keybinds);
@@ -160,6 +162,7 @@ pub fn get_game_keybinds_legend(keybinds: &GameKeybinds) -> KeybindsLegend {
     let icons_drop = format!("{}{}", fb(Button::DropSoft), fb(Button::DropHard));
     let icons_hold = fb(Button::HoldPiece);
 
+    // NOTE: This should be <= MAX_LEGEND_ENTRIES. Renderer relies on this for nicer visual alignment.
     vec![
         (icon_pause, "pause"),
         (icons_move, "move"),
@@ -179,6 +182,7 @@ pub fn replay_keybinds_legend() -> KeybindsLegend {
     let icons_enter = fk(KeyCode::Enter);
     let icon_stop = fk(KeyCode::Esc);
 
+    // NOTE: This should be <= MAX_LEGEND_ENTRIES. Renderer relies on this for nicer visual alignment.
     vec![
         (icon_pause, "pause"),
         (icons_speed, "speed -/+"),

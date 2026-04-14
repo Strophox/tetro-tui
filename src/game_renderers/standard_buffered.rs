@@ -10,7 +10,7 @@ use falling_tetromino_engine::{Coordinate, GameEndCause, Phase, TileID};
 use rand::RngExt;
 
 use crate::{
-    fmt_helpers::fmt_lineclear_name,
+    fmt_helpers::{fmt_lineclear_name, MAX_LEGEND_ENTRIES},
     tui_settings::{
         HardDropEffect, LineClearEffect, LineClearInlineEffect, LineClearParticleEffect,
         LockEffect, Palette, TileTexture,
@@ -305,7 +305,7 @@ impl Renderer for StandardBufferedRenderer {
         const W_PAD_LEFT: u16 = 1;
         // Total *additional* width of an active game HUD (on the left);
         // In addition to the 'hold' widget which already protrudes to the left and reserves space available underneath it.
-        const W_ACTIVE_HUD: u16 = 17;
+        const W_ADD_ACTIVE_HUD: u16 = 17;
         // Total width of the 'hold' widget including frame.
         const W_HOLD: u16 = 7;
         // Total width of the inside of the game field.
@@ -327,7 +327,7 @@ impl Renderer for StandardBufferedRenderer {
 
         let hud_active = settings.graphics().show_main_hud || replay_extra.is_some();
         // Additional width of the hud actually required.
-        let w_addhud = if hud_active { W_ACTIVE_HUD } else { 0 };
+        let w_addhud = if hud_active { W_ADD_ACTIVE_HUD } else { 0 };
 
         let (_offset, (w_viewport, h_viewport)) = self.term_buf.offset_and_area();
         // Free margin toward left of viewport.
@@ -351,7 +351,7 @@ impl Renderer for StandardBufferedRenderer {
         // Complete top edge.
         // 2x's because of font width.
         #[rustfmt::skip] self.term_buf.write_char(w_tmp1, h_tmp1, TermCell { ch: c_fr_tl, fg: Color::Reset });
-        for dx in 0..W_FIELD as u16 {
+        for dx in 0..W_FIELD {
             #[rustfmt::skip] self.term_buf.write_char(w_tmp1 + 1 + dx, h_tmp1, TermCell { ch: c_fr_t, fg: Color::Reset });
         }
         #[rustfmt::skip] self.term_buf.write_char(w_tmp1 + 1 + W_FIELD, h_tmp1, TermCell { ch: c_fr_tr, fg: Color::Reset });
@@ -425,7 +425,40 @@ impl Renderer for StandardBufferedRenderer {
 
         // RENDER: Keybinds HUD.
 
-        // TODO
+        if settings.graphics().show_keybinds {
+            // Frame glyphs.
+            let [c_m_tb] = tui_style.menuglyphs;
+            let w_tmp4 = w_float + W_PAD_LEFT;
+            let h_tmp4 = h_float + H_PAD_TOP + (1 + H_FIELD).saturating_sub(MAX_LEGEND_ENTRIES);
+
+            #[rustfmt::skip] self.term_buf.write_char(w_tmp4, h_tmp4, TermCell { ch: c_m_tb, fg: Color::Reset });
+            #[rustfmt::skip] self.term_buf.write_char(w_tmp4 + 1, h_tmp4, TermCell { ch: c_m_tb, fg: Color::Reset });
+            #[rustfmt::skip] self.term_buf.write_char(w_tmp4 + 1 + 1, h_tmp4, TermCell { ch: c_m_tb, fg: Color::Reset });
+            #[rustfmt::skip] self.term_buf.write_str(w_tmp4 + 1 + 1 + 1, h_tmp4, "basic keybinds", Color::Reset);
+            #[rustfmt::skip] self.term_buf.write_char(w_tmp4 + 1 + 1 + 1 + 14, h_tmp4, TermCell { ch: c_m_tb, fg: Color::Reset });
+            #[rustfmt::skip] self.term_buf.write_char(w_tmp4 + 1 + 1 + 1 + 14 + 1, h_tmp4, TermCell { ch: c_m_tb, fg: Color::Reset });
+            #[rustfmt::skip] self.term_buf.write_char(w_tmp4 + 1 + 1 + 1 + 14 + 1 + 1, h_tmp4, TermCell { ch: c_m_tb, fg: Color::Reset });
+
+            const W_KEYBINDS: usize = (W_ADD_ACTIVE_HUD + W_HOLD) as usize;
+            // FIXME: Kinda inefficient?
+            let w_max_description = keybinds_legend
+                .iter()
+                .map(|s| s.1.chars().count())
+                .max()
+                .unwrap_or(0);
+            let w_budget_icons = W_KEYBINDS - w_max_description - 1;
+            let w_icons = keybinds_legend
+                .iter()
+                .map(|s| s.0.chars().count())
+                .max()
+                .unwrap_or(0)
+                .min(w_budget_icons);
+            for (dy, (icons, description)) in keybinds_legend.iter().enumerate() {
+                let icons = icons.chars().take(w_icons).collect::<String>();
+                let str = format!("{icons: >w_icons$} {description}");
+                #[rustfmt::skip] self.term_buf.write_str(w_tmp4 + 1, h_tmp4 + (dy as u16) + 1, &str, Color::Reset);
+            }
+        }
 
         // RENDER: Goal HUD.
 
