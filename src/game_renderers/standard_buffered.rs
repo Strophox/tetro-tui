@@ -21,8 +21,9 @@ use crate::{
 
 use super::*;
 
-use dense_terminal_single_buffer::DenseTerminalSingleBuffer as StandardTerminalBuffer;
-// use dense_terminal_double_buffer::DenseTerminalDoubleBuffer as StandardTerminalBuffer;
+// use dense_terminal_single_buffer::DenseTerminalSingleBuffer as StandardTerminalBuffer;
+use dense_terminal_double_buffer::DenseTerminalDoubleBuffer as StandardTerminalBuffer;
+// use sparse_terminal_double_buffer::SparseTerminalDoubleBuffer as StandardTerminalBuffer;
 
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
