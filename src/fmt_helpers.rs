@@ -189,6 +189,32 @@ pub fn replay_keybinds_legend() -> KeybindsLegend {
     ]
 }
 
+pub fn fmt_lineclear_name(lineclears: u32) -> &'static str {
+    match lineclears {
+        1 => "Mono",
+        2 => "Duo",
+        3 => "Tri",
+        4 => "Tetra",
+        5 => "Penta",
+        6 => "Hexa",
+        7 => "Hepta",
+        8 => "Octa",
+        9 => "Ennea",
+        10 => "Deca",
+        11 => "Hendeca",
+        12 => "Dodeca",
+        13 => "Triadeca",
+        14 => "Tessaradeca",
+        15 => "Penteeca",
+        16 => "Hexadeca",
+        17 => "Heptadeca",
+        18 => "Octadeca",
+        19 => "Enneadeca",
+        20 => "Eicosa",
+        _ => "Paralogo",
+    }
+}
+
 pub fn to_roman(mut num: u32) -> String {
     // Large roman numerals should be uncommon and have little convention
     // (<https://en.wikipedia.org/wiki/Roman_numerals#Large_numbers>),

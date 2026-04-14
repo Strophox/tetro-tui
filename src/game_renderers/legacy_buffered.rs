@@ -18,7 +18,7 @@ use rand::RngExt;
 use super::*;
 
 use crate::{
-    fmt_helpers::{fmt_duration, fmt_hertz},
+    fmt_helpers::{fmt_duration, fmt_hertz, fmt_lineclear_name},
     tui_settings::{MinoTextures, Palette},
     TemporaryAppData,
 };
@@ -952,30 +952,7 @@ impl Renderer for LegacyBufferedRenderer {
                         tokens.push("Perfect".to_owned());
                     }
 
-                    let clear_action = match lineclears {
-                        1 => "Mono",
-                        2 => "Duo",
-                        3 => "Tri",
-                        4 => "Tetra",
-                        5 => "Penta",
-                        6 => "Hexa",
-                        7 => "Hepta",
-                        8 => "Octa",
-                        9 => "Ennea",
-                        10 => "Deca",
-                        11 => "Hendeca",
-                        12 => "Dodeca",
-                        13 => "Triadeca",
-                        14 => "Tessaradeca",
-                        15 => "Penteeca",
-                        16 => "Hexadeca",
-                        17 => "Heptadeca",
-                        18 => "Octadeca",
-                        19 => "Enneadeca",
-                        20 => "Eicosa",
-                        _ => "Paralogo",
-                    }
-                    .to_string();
+                    let clear_action = fmt_lineclear_name(*lineclears).to_string();
                     tokens.push(clear_action);
 
                     if *is_spin {
@@ -1004,16 +981,11 @@ impl Renderer for LegacyBufferedRenderer {
                     *active = false;
                 }
 
-                Notification::GameEnded { is_win } => {
+                Notification::GameEnded { cause, is_win } => {
                     let text = if *is_win {
                         "Game Complete!".to_owned()
                     } else {
-                        if let Phase::GameEnd { cause, .. } = game.phase() {
-                            format!("{cause}...")
-                        } else {
-                            // FIXME: This should never happen. Change engine to return the cause in the notification?
-                            "Game Over...".to_owned()
-                        }
+                        format!("{cause}...")
                     };
 
                     self.buffered_text_msgs.push((*notif_time, text));
