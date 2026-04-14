@@ -73,15 +73,9 @@ pub fn default_line_clear_effect_slots() -> SlotMachine<LineClearEffect> {
         ("Flash (white)".to_owned(), LineClearEffect::flash_white()),
         ("Blink".to_owned(), LineClearEffect::blink()),
         ("Pop minos".to_owned(), LineClearEffect::pop()),
-        (
-            "Pop minos (chaotic)".to_owned(),
-            LineClearEffect::pop_chaotic(),
-        ),
-        (
-            "Pop minos (ASCII fade)".to_owned(),
-            LineClearEffect::pop_ascii_fade(),
-        ),
-        ("Blast minos".to_owned(), LineClearEffect::blast()),
+        ("Pop minos (bigger)".to_owned(), LineClearEffect::pop_big()),
+        ("ASCII sparks".to_owned(), LineClearEffect::ascii_sparks()),
+        ("Unicode blast".to_owned(), LineClearEffect::blast()),
     ];
 
     SlotMachine::with_unmodifiable_slots(slots, "Lineclear".to_owned())
@@ -156,13 +150,13 @@ impl LineClearEffect {
             duration_override: Some(Duration::from_millis(1000)),
             animation: vec![(None, None)],
             acceleration: (0.0, -200.0),
-            momentum_base: (0.0, 45.0),
-            momentum_rand: (0.0, 0.0),
+            momentum_base: (0.0, 25.0),
+            momentum_rand: (5.0, 5.0),
             momentum_xpos: 50.0,
         })
     }
 
-    pub fn pop_chaotic() -> Self {
+    pub fn pop_big() -> Self {
         LineClearEffect::Particle(LineClearParticleEffect {
             duration_override: Some(Duration::from_millis(1000)),
             animation: vec![(None, None)],
@@ -173,28 +167,38 @@ impl LineClearEffect {
         })
     }
 
-    pub fn pop_ascii_fade() -> Self {
-        let animation = ["@@", "$$", "##", "%%", "**", "++", "~~", ".."]
-            .map(|ss| (Some(ss.tile()), Some(Palette::WHITE)))
-            .into();
+    pub fn ascii_sparks() -> Self {
+        let tile_animation =
+            ["@@", "$$", "##", "%%", "**", "++", "~~", ".."].map(|ss| Some(ss.tile()));
+        let color_animation = [255, 3, 2, 1, 2, 7, 5, 4].map(NonZeroU8::new);
+        let animation = tile_animation
+            .into_iter()
+            .zip(color_animation.into_iter())
+            .collect();
 
         LineClearEffect::Particle(LineClearParticleEffect {
-            duration_override: Some(Duration::from_millis(1000)),
+            duration_override: Some(Duration::from_millis(500)),
             animation,
-            acceleration: (0.0, -200.0),
-            momentum_base: (0.0, 45.0),
-            momentum_rand: (0.0, 0.0),
-            momentum_xpos: 50.0,
+            acceleration: (0.0, 0.0),
+            momentum_base: (0.0, 40.0),
+            momentum_rand: (0.0, 40.0),
+            momentum_xpos: 100.0,
         })
     }
 
     pub fn blast() -> Self {
+        let color_animation = [255, 1, 6, 4, 5].map(NonZeroU8::new);
+        let animation = color_animation
+            .into_iter()
+            .map(|recolor| (None, recolor))
+            .collect();
+
         LineClearEffect::Particle(LineClearParticleEffect {
-            duration_override: Some(Duration::from_millis(1000)),
-            animation: vec![(None, None)],
-            acceleration: (0.0, 0.0),
-            momentum_base: (0.0, -90.0),
-            momentum_rand: (0.0, 0.0),
+            duration_override: Some(Duration::from_millis(500)),
+            animation,
+            acceleration: (0.0, 10.0),
+            momentum_base: (0.0, -45.0),
+            momentum_rand: (50.0, 10.0),
             momentum_xpos: 50.0,
         })
     }

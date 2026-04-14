@@ -15,7 +15,7 @@ use crate::{
     fmt_helpers::{fmt_duration, fmt_hertz, fmt_lineclear_name, MAX_LEGEND_ENTRIES},
     tui_settings::{
         HardDropEffect, LineClearEffect, LineClearInlineEffect, LineClearParticleEffect,
-        LockEffect, Palette, TileTexture,
+        LockEffect, Palette, QuickTileFromStr, TileTexture,
     },
 };
 
@@ -69,7 +69,7 @@ pub struct LockEffectTile {
 #[derive(PartialEq, PartialOrd, Clone, Debug)]
 pub struct LineClearEffectTile {
     creation_time: InGameTime,
-    lifetime: InGameTime,
+    line_clear_duration: InGameTime,
     origin: (usize, usize),
     momentum: (f32, f32),
     acceleration: (f32, f32),
@@ -196,12 +196,9 @@ impl Renderer for StandardBufferedRenderer {
                                     + lcpe.momentum_rand.0 * rand0
                                     + lcpe.momentum_xpos * xpos;
                                 let mmy = lcpe.momentum_base.1 + lcpe.momentum_rand.1 * rand1;
-                                let lifetime = line_clear_particle_effect
-                                    .duration_override
-                                    .unwrap_or(line_clear_duration);
                                 line_clear_effect_particles.push(LineClearEffectTile {
                                     creation_time: time,
-                                    lifetime,
+                                    line_clear_duration,
                                     origin: (x, y),
                                     momentum: (mmx, mmy),
                                     acceleration: line_clear_particle_effect.acceleration,
@@ -905,8 +902,11 @@ impl Renderer for StandardBufferedRenderer {
                 // rerender the line
                 for (dx, original_tile_id) in line.iter().enumerate() {
                     let tile_texture = mino_textures.locked;
-                    let tile_id = if !color_animation.is_empty() { color_animation[(timeshift * (color_animation.len() - 1) as f32).round() as usize].unwrap_or(*original_tile_id) }
-                    else {*original_tile_id};
+                    let tile_id = if !color_animation.is_empty() {
+                        color_animation[(timeshift * (color_animation.len() - 1) as f32).round() as usize].unwrap_or(*original_tile_id)
+                    } else {
+                        *original_tile_id
+                    };
                     let color = settings
                         .boardpalette()
                         .get(&tile_id)
@@ -928,6 +928,56 @@ impl Renderer for StandardBufferedRenderer {
 
             // Retain hard drop effect if it still has active tiles.
             !line_clear_effect_lines.is_empty()
+        });
+
+        self.line_clear_particle_effect_buf.retain_mut(|(line_clear_particle_effect, line_clear_effect_tiles)| {
+            let LineClearParticleEffect { duration_override, animation, acceleration: _, momentum_base: _, momentum_rand: _, momentum_xpos: _  } = line_clear_particle_effect;
+
+            line_clear_effect_tiles.retain(|line_clear_effect_tile| {
+                let LineClearEffectTile { creation_time, line_clear_duration, origin: (dx, dy), momentum: (m_x, m_y), acceleration: (a_x, a_y), tile_id: original_tile_id  } = *line_clear_effect_tile;
+                let lifetime = duration_override.unwrap_or(line_clear_duration);
+                // Empty effect.
+                if lifetime.is_zero() {
+                    return false;
+                }
+
+                // How much time has elapsed since creation.
+                let elapsed = game.state().time.saturating_sub(creation_time);
+                // How far along the effect we are shifting.
+                let timeshift = elapsed.as_secs_f32() / lifetime.as_secs_f32();
+
+                if timeshift > 1.0 {
+                    return false
+                }
+
+                // Render manually cleared out tiles at original position if we still have to.
+                if elapsed <= line_clear_duration {
+                    // empty the tile at original position
+                    let tile_texture = "  ".tile();
+                    let color = Color::Reset;
+                    #[rustfmt::skip] self.term_buf.write_tile(w_tmp3 + 2 * (dx as u16), h_tmp3.saturating_sub(dy as u16), tile_texture, color);
+                }
+
+                // render the tile
+                let (retexture, recolor) = if animation.is_empty() { (None, None) } else { animation[(timeshift * (animation.len() - 1) as f32).round() as usize] };
+                let tile_texture = retexture.unwrap_or(mino_textures.locked);
+                let tile_id = recolor.unwrap_or(original_tile_id);
+                let color = settings
+                    .boardpalette()
+                    .get(&tile_id)
+                    .copied()
+                    .unwrap_or(Color::Reset);
+
+                let t = elapsed.as_secs_f32();
+                let x = (w_tmp3 + 2 * (dx as u16)) as f32 + m_x * t + a_x * t.powi(2) / 2.0;
+                let y = (h_tmp3.saturating_sub(dy as u16)) as f32 - m_y * t - a_y * t.powi(2) / 2.0;
+                #[rustfmt::skip] self.term_buf.write_tile(x.round() as u16, y.round() as u16, tile_texture, color);
+
+                true
+            });
+
+            // Retain hard drop effect if it still has active tiles.
+            !line_clear_effect_tiles.is_empty()
         });
 
         self.term_buf.flush(term)
