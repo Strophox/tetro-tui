@@ -110,7 +110,7 @@ impl Settings {
     pub fn hard_drop_effect(&self) -> &HardDropEffect {
         &self.hard_drop_effect_slotmachine.slots[self.graphics().hard_drop_picked].1
     }
-    pub fn lock_effect_picked(&self) -> &LockEffect {
+    pub fn lock_effect(&self) -> &LockEffect {
         &self.lock_effect_slotmachine.slots[self.graphics().lock_effect_picked].1
     }
     pub fn line_clear_effect(&self) -> &LineClearEffect {

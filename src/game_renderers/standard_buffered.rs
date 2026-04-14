@@ -4,10 +4,11 @@ mod dense_terminal_double_buffer;
 mod sparse_terminal_double_buffer;
 
 use crossterm::style::Color;
-use falling_tetromino_engine::{Coordinate, TileID};
+use falling_tetromino_engine::{Coordinate, Phase, TileID};
 
-use crate::tui_settings::{
-    HardDropEffect, LineClearInlineEffect, LineClearParticleEffect, LockEffect,
+use crate::{
+    fmt_helpers::fmt_lineclear_name,
+    tui_settings::{HardDropEffect, LineClearInlineEffect, LineClearParticleEffect, LockEffect},
 };
 
 use super::*;
@@ -97,7 +98,7 @@ General TUI:
 #[derive(PartialEq, PartialOrd, Clone, Debug, Default)]
 pub struct StandardBufferedRenderer {
     term_buf: StandardTerminalBuffer,
-    message_render_buf: Vec<(InGameTime, String)>,
+    text_message_buf: Vec<(InGameTime, String)>,
     hard_drop_effect_buf: Vec<(HardDropEffect, Vec<HardDropEffectTile>)>,
     lock_effect_buf: Vec<(LockEffect, Vec<LockEffectTile>)>,
     line_clear_inline_effect_buf: Vec<(LineClearInlineEffect, LineClearEffectLine)>,
@@ -111,19 +112,24 @@ impl Renderer for StandardBufferedRenderer {
         feed: impl IntoIterator<Item = (Notification, InGameTime)>,
         settings: &Settings,
     ) {
+        // Convert all the incoming notification into renderer details (effects, user text messages on screen etc.)
         for (notif, time) in feed {
             match notif {
                 Notification::HardDrop {
                     height_dropped,
                     dropped_piece,
                 } => {
-                    // Don't even start generating a hard drop effect for pieces on the ground.
-                    if height_dropped == 0 {
+                    // Don't even start generating a hard drop effect in degenerate cases.
+                    if height_dropped == 0
+                        || settings.hard_drop_effect().animation.is_empty()
+                        || settings.hard_drop_effect().duration.is_zero()
+                    {
                         continue;
                     }
+                    let mut hard_drop_effect_tiles = Vec::new();
+
                     // Iterate through tiles starting top right, downwards then leftwards.
                     let mut current_x = None;
-                    let mut hard_drop_effect_tiles = Vec::new();
                     for ((x, y), tile_id) in dropped_piece.tiles().into_iter().rev() {
                         if Some(x) == current_x {
                             // Skip duplicate tile in same column.
@@ -146,7 +152,24 @@ impl Renderer for StandardBufferedRenderer {
                 }
 
                 Notification::PieceLocked { piece } => {
-                    let lock_effect = settings.lock_effect_picked();
+                    // Don't even start generating a lock effect in degenerate cases.
+                    if settings.lock_effect().animation.is_empty()
+                        || settings.lock_effect().duration.is_zero()
+                    {
+                        continue;
+                    }
+                    let mut lock_effect_tiles = Vec::new();
+
+                    for (pos, tile_id) in piece.tiles() {
+                        lock_effect_tiles.push(LockEffectTile {
+                            creation_time: time,
+                            pos,
+                            original_tile_id: tile_id,
+                        });
+                    }
+
+                    self.lock_effect_buf
+                        .push((settings.lock_effect().clone(), lock_effect_tiles));
                 }
 
                 Notification::LinesClearing {
@@ -161,19 +184,45 @@ impl Renderer for StandardBufferedRenderer {
                     is_spin,
                     is_perfect,
                     tetromino,
-                } => {}
+                } => {
+                    let mut tokens = Vec::new();
+                    tokens.push(format!("+{point_bonus},"));
+                    if is_perfect {
+                        tokens.push("Perfect".to_owned());
+                    }
+                    tokens.push(fmt_lineclear_name(lineclears).to_string());
+                    if is_spin {
+                        tokens.push(format!("{tetromino:?}-spin"));
+                    }
+                    if combo > 1 {
+                        tokens.push(format!("x{combo}"));
+                    }
+                    self.text_message_buf.push((time, tokens.join(" ")));
+                }
 
-                Notification::GameEnded { is_win } => {}
+                Notification::GameEnded { cause, is_win } => {
+                    let game_end_msg = if is_win {
+                        "Game Complete!".to_owned()
+                    } else {
+                        format!("{cause}...")
+                    };
 
-                Notification::Debug(_) => {}
+                    self.text_message_buf.push((time, game_end_msg));
+                }
 
-                Notification::Custom(_) => {}
+                Notification::Debug(debug_msg) => {
+                    self.text_message_buf.push((time, debug_msg));
+                }
+
+                Notification::Custom(custom_msg) => {
+                    self.text_message_buf.push((time, custom_msg));
+                }
             }
         }
     }
 
     fn reset_veffects_state(&mut self) {
-        self.message_render_buf.clear();
+        self.text_message_buf.clear();
         self.hard_drop_effect_buf.clear();
         self.lock_effect_buf.clear();
         self.line_clear_inline_effect_buf.clear();
