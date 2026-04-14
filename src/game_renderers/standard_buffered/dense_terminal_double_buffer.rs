@@ -110,12 +110,9 @@ impl TerminalBuffer for DenseTerminalDoubleBuffer {
                 #[rustfmt::skip] let TermCell { ch: new_ch, fg: new_fg } = self.next_buf[idx];
 
                 term.queue(cursor::MoveTo(self.x_vp + x, self.y_vp + y))?;
-                if new_fg != old_fg {
+                if new_fg != old_fg || new_ch != old_ch {
                     // Always reprint styled if style changed.
                     term.queue(PrintStyledContent(new_ch.with(new_fg)))?;
-                } else if new_ch != old_ch {
-                    // Style did not change, but character did, so reprint it.
-                    term.queue(Print(new_ch))?;
                 }
             }
         }

@@ -16,7 +16,7 @@ use crate::tui_settings::TileTexture;
 use super::{TermCell, TerminalBuffer};
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, Default)]
-pub struct SparseTerminalBuffer {
+pub struct SparseTerminalDoubleBuffer {
     prev_buf: BTreeMap<(u16, u16), TermCell>,
     next_buf: BTreeMap<(u16, u16), TermCell>,
     x_vp: u16,
@@ -25,7 +25,7 @@ pub struct SparseTerminalBuffer {
     h_vp: u16,
 }
 
-impl TerminalBuffer for SparseTerminalBuffer {
+impl TerminalBuffer for SparseTerminalDoubleBuffer {
     // fn with_offset_and_area((x, y): (u16, u16), (w, h): (u16, u16)) -> Self {
     //     SparseTerminalBuffer {
     //         prev_buf: BTreeMap::new(),
@@ -92,18 +92,6 @@ impl TerminalBuffer for SparseTerminalBuffer {
         let mut old_buffer = self.prev_buf.iter();
         let mut new_buffer = self.next_buf.iter();
 
-        let mut term_queue = |(x, y): (u16, u16), ch: char, fg: Option<Color>| -> io::Result<()> {
-            term.queue(cursor::MoveTo(self.x_vp + x, self.y_vp + y))?;
-
-            if let Some(color) = fg {
-                term.queue(PrintStyledContent(ch.with(color)))?;
-            } else {
-                term.queue(Print(ch))?;
-            }
-
-            Ok(())
-        };
-
         let mut old_pos_cell = old_buffer.next();
         let mut new_pos_cell = new_buffer.next();
         loop {
@@ -113,13 +101,11 @@ impl TerminalBuffer for SparseTerminalBuffer {
 
                 #[rustfmt::skip]
                 // Old buffer contains something the new one doesn't: Overwrite it to clear it.
-                (Some((old_pos, TermCell { ch: _old_ch, fg: old_fg })),
+                (Some((old_x_y, TermCell { ch: _old_ch, fg: old_fg })),
                  None
                 ) => {
-                    // Only explicitly reset color if necessary.
-                    let new_fg = (*old_fg != Color::Reset).then_some(Color::Reset);
-                    term_queue(*old_pos, ' ', new_fg)?;
-
+                    term.queue(cursor::MoveTo(self.x_vp + old_x_y.0, self.y_vp + old_x_y.1));
+                    term.queue(PrintStyledContent(' '.with(Color::Reset)))?;
                     old_pos_cell = old_buffer.next();
                 }
 
@@ -128,46 +114,36 @@ impl TerminalBuffer for SparseTerminalBuffer {
                 (None,
                  Some((new_x_y, TermCell { ch: new_ch, fg: new_fg })),
                 ) => {
-                    // Only explicitly reset color if necessary.
-                    let new_fg = (*new_fg != Color::Reset).then_some(*new_fg);
-                    term_queue(*new_x_y, *new_ch, new_fg)?;
-
+                    term.queue(cursor::MoveTo(self.x_vp + new_x_y.0, self.y_vp + new_x_y.1));
+                    term.queue(PrintStyledContent(new_ch.with(*new_fg)))?;
                     new_pos_cell = new_buffer.next();
                 }
 
                 #[rustfmt::skip]
-                (Some((old_pos, TermCell { ch: old_ch, fg: old_fg })),
-                 Some((new_pos, TermCell { ch: new_ch, fg: new_fg })),
+                (Some((old_x_y, TermCell { ch: old_ch, fg: old_fg })),
+                 Some((new_x_y, TermCell { ch: new_ch, fg: new_fg })),
                 ) => {
-                    match old_pos.cmp(new_pos) {
+                    match old_x_y.cmp(new_x_y) {
                         // Old buffer contains something the new one doesn't: Overwrite it to clear it.
                         Ordering::Less => {
-                            // Only explicitly reset color if necessary.
-                            let new_fg = (*old_fg != Color::Reset).then_some(Color::Reset);
-                            term_queue(*old_pos, ' ', new_fg)?;
-
+                            term.queue(cursor::MoveTo(self.x_vp + old_x_y.0, self.y_vp + old_x_y.1));
+                            term.queue(PrintStyledContent(' '.with(Color::Reset)))?;
                             old_pos_cell = old_buffer.next();
                         }
 
                         // New buffer contains something the old one doesn't: Write it.
                         Ordering::Greater => {
-                            // Only explicitly reset color if necessary.
-                            let new_fg = (*new_fg != Color::Reset).then_some(*new_fg);
-                            term_queue(*new_pos, *new_ch, new_fg)?;
-
+                            term.queue(cursor::MoveTo(self.x_vp + new_x_y.0, self.y_vp + new_x_y.1));
+                            term.queue(PrintStyledContent(new_ch.with(*new_fg)))?;
                             new_pos_cell = new_buffer.next();
                         }
 
                         // Old and new overlap! Handle possible difference.
                         Ordering::Equal => {
-                            if *old_fg != *new_fg {
-                                // Definitely need to change if color changed.
-                                term_queue(*new_pos, *new_ch, Some(*new_fg))?;
-                            } else if *old_ch != *new_ch {
-                                // Only content changed, just print.
-                                term_queue(*new_pos, *new_ch, None)?;
+                            if new_fg != old_fg || new_ch != old_ch {
+                                term.queue(cursor::MoveTo(self.x_vp + new_x_y.0, self.y_vp + new_x_y.1));
+                                term.queue(PrintStyledContent(new_ch.with(*new_fg)))?;
                             }
-
                             old_pos_cell = old_buffer.next();
                             new_pos_cell = new_buffer.next();
                         }
@@ -179,6 +155,9 @@ impl TerminalBuffer for SparseTerminalBuffer {
         term.queue(cursor::MoveTo(0, 0))?
             .queue(terminal::EndSynchronizedUpdate)?
             .flush()?;
+
+        std::mem::swap(&mut self.prev_buf, &mut self.next_buf);
+        self.next_buf.clear();
 
         Ok(())
     }
