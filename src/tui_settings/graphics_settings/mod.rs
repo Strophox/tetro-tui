@@ -87,7 +87,7 @@ impl Default for GraphicsSettings {
             mino_textures_picked: 1, // Unicode
             hard_drop_picked: 1,     // ASCII particles
             lock_effect_picked: 2,   // Unicode pulse
-            line_clear_picked: 10,   // Mino pop
+            line_clear_picked: 10,   // Blast
             mini_tet_picked: 1,      // Braille
             small_tet_picked: 1,     // Blocks
             normalsize_preview_limit: Some(NonZeroUsize::MIN),
@@ -135,7 +135,7 @@ impl GraphicsSettings {
             mino_textures_picked: 1, // Unicode
             hard_drop_picked: 1,     // ASCII particles
             lock_effect_picked: 2,   // Unicode pulse
-            line_clear_picked: 8,    // Mino pop
+            line_clear_picked: 7,    // Mino pop
             mini_tet_picked: 1,      // Braille
             small_tet_picked: 1,     // Blocks
             normalsize_preview_limit: Some(NonZeroUsize::MIN),
@@ -158,7 +158,7 @@ impl GraphicsSettings {
             mino_textures_picked: 0, // ASCII
             hard_drop_picked: 1,     // ASCII particles
             lock_effect_picked: 1,   // ASCII transform
-            line_clear_picked: 8,    // Mino pop
+            line_clear_picked: 9,    // Mino pop
             mini_tet_picked: 0,      // Letters
             small_tet_picked: 0,     // ASCII
             normalsize_preview_limit: None,
