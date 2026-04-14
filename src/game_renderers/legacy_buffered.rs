@@ -269,7 +269,7 @@ impl Renderer for LegacyBufferedRenderer {
         let gravity = game.state().fall_delay.as_hertz();
         // Screen: some titles.
         let modename_len = meta_data.title.len().max(14);
-        // FIXME: Only displaying the first (of up to four) limits found.
+        // EX-FIX-ME: Only displaying the first (of up to four) limits found.
         let (endcond_title, endcond_value) = if let Some((c, _)) = game
             .config
             .game_limits
@@ -400,7 +400,7 @@ impl Renderer for LegacyBufferedRenderer {
         let (x_rep_spd, y_rep_spd) = (1, 11);
         let (x_rep_len, y_rep_len) = (1, 12);
         let (x_buttonst, y_buttonst) = (48, 17);
-        // FIXME: Returning `None` as soon as it is OOB for the rectangle of our custom game screen buffer.
+        // EX-FIX-ME: Returning `None` as soon as it is OOB for the rectangle of our custom game screen buffer.
         // But this is wasteful if there's actual space in the TUI above and we cut off 'for no reason'.
         let pos_board = |(x, y)| {
             Some((
@@ -414,7 +414,7 @@ impl Renderer for LegacyBufferedRenderer {
 
         // Print keybinds legend.
         const W_KEYBINDS: usize = 23;
-        // FIXME: Kinda inefficient to this iterating each time maybe?
+        // EX-FIX-ME: Kinda inefficient to this iterating each time maybe?
         let desc_len = keybinds_legend
             .iter()
             .map(|s| s.1.chars().count())
@@ -578,7 +578,7 @@ impl Renderer for LegacyBufferedRenderer {
             let elapsed = game.state().time.saturating_sub(*creation_time);
             let luminance_map = match settings.graphics().tui_style_picked /* Fallback. */ {
                 2 => [" .", " .", " .", " .", " .", " .", " .", " ."],
-                // FIXME: Make this hard drop effect available independently of Glyphset (i.e. also for ASCII).
+                // EX-FIX-ME: Make this hard drop effect available independently of Glyphset (i.e. also for ASCII).
                 0 => ["||", "||", "¦¦", "¦¦", "::", "::", "..", ".."],
                 _ => ["@@", "$$", "##", "%%", "**", "++", "~~", ".."],
             };
@@ -616,7 +616,7 @@ impl Renderer for LegacyBufferedRenderer {
         }
 
         match game.phase() {
-            // FIXME: No visual indicator for spawn phase currently.
+            // EX-FIX-ME: No visual indicator for spawn phase currently.
             Phase::Spawning { spawn_time: _ } => {}
 
             // If a piece is in play.
@@ -640,9 +640,9 @@ impl Renderer for LegacyBufferedRenderer {
                 }
             }
 
-            // FIXME: No visual indicator for lineclear phase currently.
+            // EX-FIX-ME: No visual indicator for lineclear phase currently.
             Phase::LinesClearing { .. } => {
-                // TODO: Hack.
+                // EX-TO-DO: Hack.
                 for m in &self.mino_particles {
                     self.screen.buffer_str("  ", None, m.0.origin);
                 }
@@ -686,10 +686,10 @@ impl Renderer for LegacyBufferedRenderer {
                         }
                     }
 
-                    // FIXME: No visual indicator for topout currently.
+                    // EX-FIX-ME: No visual indicator for topout currently.
                     GameEndCause::TopOut { top_lines: _ } => {}
 
-                    // FIXME: No visual indicator for gameover-by-some-limit currently.
+                    // EX-FIX-ME: No visual indicator for gameover-by-some-limit currently.
                     GameEndCause::Limit(_) => {}
 
                     GameEndCause::Forfeit { piece_in_play } => {
@@ -712,7 +712,7 @@ impl Renderer for LegacyBufferedRenderer {
             }
         }
 
-        let (w_term, h_term) = terminal::size()?; // FIXME: Hack.
+        let (w_term, h_term) = terminal::size()?; // EX-FIX-ME: Hack.
         for (
             MinoParticle {
                 creation_time,
@@ -745,11 +745,11 @@ impl Renderer for LegacyBufferedRenderer {
                 t_elapsed = 0.;
             }
 
-            // FIXME: This `as` cast is annoying. Why isn't there a `try_from` at the least?
+            // EX-FIX-ME: This `as` cast is annoying. Why isn't there a `try_from` at the least?
             let pos_x = (*x_o as f32) + (t_elapsed * *m_x + t_elapsed.powf(2.) * *a_x / 2.);
             let pos_y = (*y_o as f32) - (t_elapsed * *m_y + t_elapsed.powf(2.) * *a_y / 2.);
 
-            // TODO: PLEASE refactor all code not to use `as` casts.
+            // EX-TO-DO: PLEASE refactor all code not to use `as` casts.
             if !(0..w_term).contains(&(pos_x.round() as u16))
                 || !(0..h_term).contains(&(pos_y.round() as u16))
             {
@@ -767,7 +767,7 @@ impl Renderer for LegacyBufferedRenderer {
         self.mino_particles.retain(|elt| elt.1);
 
         // Handle feedback.
-        // TODO: This stuff should be processed before drawing...
+        // EX-TO-DO: This stuff should be processed before drawing...
         // Ideally we'll have buffers for every type of effect, properly.
         for (notification, notif_time, active) in self.notification_feed_buffer.iter_mut() {
             let elapsed = game.state().time.saturating_sub(*notif_time);
@@ -805,7 +805,7 @@ impl Renderer for LegacyBufferedRenderer {
                         ],
                     };
                     let color_locking = get_color(Palette::WHITE);
-                    // FIXME: Possibly replace these manual find-tile snippets with flexible/parameterized/interpolated-time animations (see lineclear animation).
+                    // EX-FIX-ME: Possibly replace these manual find-tile snippets with flexible/parameterized/interpolated-time animations (see lineclear animation).
                     let Some(tile) = animation_locking.iter().find_map(|(ms, tile)| {
                         (elapsed < Duration::from_millis(*ms)).then_some(tile)
                     }) else {

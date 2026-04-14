@@ -68,6 +68,16 @@ impl TetroTUIRenderer {
             _ => Self::StandardBuffered(Default::default()),
         }
     }
+
+    pub fn name(&self) -> &'static str {
+        match self {
+            TetroTUIRenderer::StandardBuffered(_) => "Standard",
+            TetroTUIRenderer::LegacyBuffered(_) => "Legacy",
+            TetroTUIRenderer::Prototype(_) => "Prototype",
+            TetroTUIRenderer::Twoxel(_) => "Twoxel",
+            TetroTUIRenderer::Braille(_) => "Braille",
+        }
+    }
 }
 
 impl Default for TetroTUIRenderer {

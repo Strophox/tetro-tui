@@ -39,8 +39,8 @@ pub struct GraphicsSettings {
     pub fps: ExtNonNegF64,
     #[serde(rename = "boardpalette")]
     pub boardpalette_picked: usize,
-    #[serde(rename = "s_stats")]
-    pub show_stats_hud: bool,
+    #[serde(rename = "s_hud")]
+    pub show_main_hud: bool,
     #[serde(rename = "s_keybinds")]
     pub show_keybinds: bool,
     #[serde(rename = "s_buttons")]
@@ -93,7 +93,7 @@ impl Default for GraphicsSettings {
             normalsize_preview_limit: Some(NonZeroUsize::MIN),
             fps: ExtNonNegF64::from(30),
             boardpalette_picked: 3, // Okpalette
-            show_stats_hud: true,
+            show_main_hud: true,
             show_keybinds: true,
             show_buttons: false,
             show_shadow: true,
@@ -118,7 +118,7 @@ impl GraphicsSettings {
             normalsize_preview_limit: None,
             fps: ExtNonNegF64::from(60),
             boardpalette_picked: 0, // Monochrome
-            show_stats_hud: false,
+            show_main_hud: false,
             show_keybinds: false,
             show_buttons: false,
             show_shadow: true,
@@ -141,7 +141,7 @@ impl GraphicsSettings {
             normalsize_preview_limit: Some(NonZeroUsize::MIN),
             fps: ExtNonNegF64::from(30),
             boardpalette_picked: 2, // Standard
-            show_stats_hud: true,
+            show_main_hud: true,
             show_keybinds: true,
             show_buttons: false,
             show_shadow: true,
@@ -164,7 +164,7 @@ impl GraphicsSettings {
             normalsize_preview_limit: None,
             fps: ExtNonNegF64::from(30),
             boardpalette_picked: 1, // ANSI
-            show_stats_hud: true,
+            show_main_hud: true,
             show_keybinds: true,
             show_buttons: false,
             show_shadow: true,
@@ -187,7 +187,7 @@ impl GraphicsSettings {
             normalsize_preview_limit: None,
             fps: ExtNonNegF64::from(30),
             boardpalette_picked: 0, // ANSI
-            show_stats_hud: true,
+            show_main_hud: true,
             show_keybinds: true,
             show_buttons: false,
             show_shadow: false,

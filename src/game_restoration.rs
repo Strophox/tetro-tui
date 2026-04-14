@@ -616,7 +616,6 @@ mod tests {
 
     #[test]
     fn deltas_bitencoded_base64prefixstr_roundtrip() {
-        // TODO: Fix test failure!
         run_compressor_test::<
             deltas_bitencoded_base64_prefixcode::DeltasBitencodedBase64PrefixstrInputHistory,
         >();

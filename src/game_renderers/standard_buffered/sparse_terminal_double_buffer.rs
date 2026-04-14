@@ -11,6 +11,8 @@ use crossterm::{
     terminal, QueueableCommand,
 };
 
+use crate::tui_settings::TileTexture;
+
 use super::{TermCell, TerminalBuffer};
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, Default)]
@@ -48,10 +50,28 @@ impl TerminalBuffer for SparseTerminalBuffer {
         self.h_vp = h;
     }
 
-    fn write(&mut self, x: u16, y: u16, cell: TermCell) {
+    fn write_char(&mut self, x: u16, y: u16, cell: TermCell) {
         if x < self.w_vp && y < self.h_vp {
             self.next_buf.insert((x, y), cell);
         }
+    }
+
+    fn write_tile(&mut self, x: u16, y: u16, tile: TileTexture, fg: Color) {
+        if y >= self.h_vp {
+            return;
+        }
+        let [ch0, ch1] = tile.0;
+        if x >= self.w_vp {
+            return;
+        }
+        self.next_buf
+            .insert((x, y), TermCell { ch: ch0, fg });
+
+        if x+1 >= self.w_vp {
+            return;
+        }
+        self.next_buf
+            .insert((x+1, y), TermCell { ch: ch1, fg });
     }
 
     fn write_str(&mut self, x: u16, y: u16, str: &str, fg: Color) {
