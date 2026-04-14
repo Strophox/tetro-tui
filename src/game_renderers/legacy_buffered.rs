@@ -32,9 +32,9 @@ struct TerminalScreenBuffer {
 }
 
 impl TerminalScreenBuffer {
-    fn set_render_offset(&mut self, x: usize, y: usize) {
-        (self.x_draw, self.y_draw) = (x, y);
-    }
+    // This has been ported / copied / split off from Application<T>.
+    pub const W_DRAW: u16 = 62;
+    pub const H_DRAW: u16 = 23;
 
     fn buffer_reset(&mut self) {
         self.prev.clear();
@@ -238,19 +238,17 @@ impl Renderer for LegacyBufferedRenderer {
             .extend(feed.into_iter().map(|(notif, time)| (notif, time, true)));
     }
 
-    fn reset_game_associated_state(&mut self) {
+    fn reset_veffects_state(&mut self) {
         self.notification_feed_buffer.clear();
         self.buffered_text_msgs.clear();
         self.hard_drop_tiles.clear();
         self.mino_particles.clear();
     }
 
-    fn reset_view_diff_state(&mut self) {
+    fn reset_viewport_with_offset_and_area(&mut self, (x, y): (u16, u16), (w, h): (u16, u16)) {
+        self.screen.x_draw = (x + w.saturating_sub(TerminalScreenBuffer::W_DRAW) / 2) as usize;
+        self.screen.y_draw = (y + h.saturating_sub(TerminalScreenBuffer::H_DRAW) / 2) as usize;
         self.screen.buffer_reset();
-    }
-
-    fn set_render_offset(&mut self, x: usize, y: usize) {
-        self.screen.set_render_offset(x, y);
     }
 
     fn render<T>(

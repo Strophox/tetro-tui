@@ -22,7 +22,7 @@ impl<T: Write> Application<T> {
     pub fn run_menu_statistics(&mut self) -> io::Result<MenuUpdate> {
         loop {
             let w_main = Self::W_MAIN.into();
-            let (x_main, y_main) = Self::available_area();
+            let (x_main, y_main) = Self::viewport_offset();
 
             let Statistics {
                 new_games_started,

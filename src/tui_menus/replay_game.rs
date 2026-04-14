@@ -7,7 +7,7 @@ use crossterm::{
     cursor::MoveTo,
     event::{self, KeyCode, KeyEvent, KeyEventKind, KeyModifiers},
     style::{Print, PrintStyledContent, Stylize},
-    terminal::Clear,
+    terminal::{self, Clear},
     ExecutableCommand,
 };
 use falling_tetromino_engine::{
@@ -107,9 +107,8 @@ impl<T: Write> Application<T> {
 
         // Initial render.
 
-        let (x_main, y_main) = Application::<T>::available_area();
-        game_renderer.set_render_offset(usize::from(x_main), usize::from(y_main));
-        game_renderer.reset_view_diff_state();
+        game_renderer
+            .reset_viewport_with_offset_and_area((0, 0), terminal::size().unwrap_or_default());
         game_renderer.render(
             &mut self.term,
             &game,
@@ -501,12 +500,12 @@ impl<T: Write> Application<T> {
                     event::Event::Mouse(_) => {}
                     event::Event::Paste(_) => {}
                     event::Event::FocusGained => {}
+                    // Do not do anything special on focus lost.
+                    // This should be like leaving a video playing even though the player isn't focused right now.
                     event::Event::FocusLost => {}
-                    event::Event::Resize(_, _) => {
+                    event::Event::Resize(cols, rows) => {
                         // Need to redraw screen for proper centering etc.
-                        let (x_main, y_main) = Application::<T>::available_area();
-                        game_renderer.set_render_offset(usize::from(x_main), usize::from(y_main));
-                        game_renderer.reset_view_diff_state();
+                        game_renderer.reset_viewport_with_offset_and_area((0, 0), (cols, rows));
 
                         if paused {
                             next_paused_with_extra_render_request = Some(true);
@@ -564,7 +563,7 @@ impl<T: Write> Application<T> {
                 }
 
                 // Reset renderer's state associated with game (since we could be at any other game state now).
-                game_renderer.reset_game_associated_state();
+                game_renderer.reset_veffects_state();
 
                 // Re-render full state.
                 game_renderer.render(

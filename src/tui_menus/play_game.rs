@@ -8,7 +8,7 @@ use crossterm::{
     cursor::MoveTo,
     event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers},
     style::Print,
-    ExecutableCommand,
+    terminal, ExecutableCommand,
 };
 use falling_tetromino_engine::{
     Button, Game, GameEndCause, Input, Notification, Phase, UpdateGameError,
@@ -96,9 +96,8 @@ impl<T: Write> Application<T> {
         let mut renders_per_second_counter_start_time = Instant::now();
 
         // Initial render.
-        let (x_main, y_main) = Application::<T>::available_area();
-        game_renderer.set_render_offset(usize::from(x_main), usize::from(y_main));
-        game_renderer.reset_view_diff_state();
+        game_renderer
+            .reset_viewport_with_offset_and_area((0, 0), terminal::size().unwrap_or_default());
         game_renderer.render(
             &mut self.term,
             game,
@@ -451,7 +450,7 @@ impl<T: Write> Application<T> {
                                         .copied()
                                         .collect();
 
-                                    game_renderer.reset_game_associated_state();
+                                    game_renderer.reset_veffects_state();
                                     game_renderer.push_game_notification_feed([(
                                         Notification::Custom("(Loaded savepoint)".to_owned()),
                                         game.state().time,
@@ -520,11 +519,9 @@ impl<T: Write> Application<T> {
                     event::Event::FocusGained => {}
                     event::Event::Mouse(_) => {}
                     event::Event::Paste(_) => {}
-                    event::Event::Resize(_, _) => {
+                    event::Event::Resize(cols, rows) => {
                         // Need to redraw screen for proper centering etc.
-                        let (x_main, y_main) = Application::<T>::available_area();
-                        game_renderer.set_render_offset(usize::from(x_main), usize::from(y_main));
-                        game_renderer.reset_view_diff_state();
+                        game_renderer.reset_viewport_with_offset_and_area((0, 0), (cols, rows));
                         break 'wait;
                     }
                 }
