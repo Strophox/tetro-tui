@@ -6,11 +6,11 @@ mod dense_terminal_single_buffer;
 mod sparse_terminal_double_buffer;
 
 use crossterm::style::Color;
-use falling_tetromino_engine::{Coordinate, GameEndCause, Phase, TileID};
+use falling_tetromino_engine::{Coordinate, GameEndCause, Phase, Stat, TileID};
 use rand::RngExt;
 
 use crate::{
-    fmt_helpers::{fmt_lineclear_name, MAX_LEGEND_ENTRIES},
+    fmt_helpers::{fmt_duration, fmt_lineclear_name, MAX_LEGEND_ENTRIES},
     tui_settings::{
         HardDropEffect, LineClearEffect, LineClearInlineEffect, LineClearParticleEffect,
         LockEffect, Palette, TileTexture,
@@ -429,7 +429,7 @@ impl Renderer for StandardBufferedRenderer {
             // Frame glyphs.
             let [c_m_tb] = tui_style.menuglyphs;
             let w_tmp4 = w_float + W_PAD_LEFT;
-            let h_tmp4 = h_float + H_PAD_TOP + (1 + H_FIELD).saturating_sub(MAX_LEGEND_ENTRIES);
+            let h_tmp4 = h_float + H_PAD_TOP + H_FIELD.saturating_sub(MAX_LEGEND_ENTRIES);
 
             #[rustfmt::skip] self.term_buf.write_char(w_tmp4, h_tmp4, TermCell { ch: c_m_tb, fg: Color::Reset });
             #[rustfmt::skip] self.term_buf.write_char(w_tmp4 + 1, h_tmp4, TermCell { ch: c_m_tb, fg: Color::Reset });
@@ -462,7 +462,38 @@ impl Renderer for StandardBufferedRenderer {
 
         // RENDER: Goal HUD.
 
-        // TODO
+        if let Some((end_condition_stat, _)) = game
+            .config
+            .game_limits
+            .iter()
+            .find(|(_stat, to_win)| *to_win)
+        {
+            // Produce value and text to render.
+            let (str_val, str_txt) = match end_condition_stat {
+                Stat::TimeElapsed(t) => {
+                    (fmt_duration(t.saturating_sub(game.state().time)), "remain")
+                }
+                Stat::PiecesLocked(p) => (
+                    p.saturating_sub(game.state().pieces_locked.iter().sum::<u32>())
+                        .to_string(),
+                    "pieces remain",
+                ),
+                Stat::LinesCleared(l) => (
+                    l.saturating_sub(game.state().lineclears).to_string(),
+                    "lines remain",
+                ),
+                Stat::PointsScored(s) => (
+                    s.saturating_sub(game.state().points).to_string(),
+                    "points remain",
+                ),
+            };
+
+            let w_tmp5 = w_float + W_PAD_LEFT + w_addhud + W_HOLD + W_BOARD + 2;
+            let h_tmp5 = h_float + H_PAD_TOP + H_FIELD;
+            #[rustfmt::skip] self.term_buf.write_str(w_tmp5, h_tmp5, &str_val, Color::Reset);
+            let w_str_val = str_val.len();
+            #[rustfmt::skip] self.term_buf.write_str(w_tmp5 + 1 + (w_str_val as u16), h_tmp5, &str_txt, Color::Reset);
+        }
 
         // RENDER: Buttons HUD.
 
@@ -513,7 +544,7 @@ impl Renderer for StandardBufferedRenderer {
 
         // RENDER: Spawn (shadow) piece.
 
-        if settings.graphics().show_spawn {
+        if settings.graphics().show_spawn && !game.has_ended() {
             // Get upcoming piece if possible.
             if let Some(next_tetromino) = game.state().piece_preview.front() {
                 let spawn_piece = next_tetromino.spawn_piece();
