@@ -8,7 +8,7 @@ mod sparse_terminal_double_buffer;
 use std::{collections::VecDeque, time::Duration};
 
 use crossterm::style::Color;
-use falling_tetromino_engine::{Coordinate, GameEndCause, Phase, Stat, TileID};
+use falling_tetromino_engine::{Button, Coordinate, GameEndCause, Phase, Stat, TileID};
 use rand::RngExt;
 
 use crate::{
@@ -303,6 +303,8 @@ impl Renderer for StandardBufferedRenderer {
         keybinds_legend: &KeybindsLegend,
         replay_extra: Option<(InGameTime, f64)>,
     ) -> io::Result<()> {
+        let (_offset, (w_viewport, h_viewport)) = self.term_buf.offset_and_area();
+
         // Horizontal padding to the left of everything.
         const W_PAD_LEFT: u16 = 1;
         // Total *additional* width of an active game HUD (on the left);
@@ -327,11 +329,13 @@ impl Renderer for StandardBufferedRenderer {
         // Vertical padding below board.
         const H_PAD_BOT: u16 = 2;
 
-        let hud_active = settings.graphics().show_main_hud || replay_extra.is_some();
+        let enough_space_for_hud =
+            w_viewport >= W_PAD_LEFT + W_ADD_ACTIVE_HUD + W_HOLD + W_BOARD + W_NEXT;
+        let hud_active =
+            enough_space_for_hud && (settings.graphics().show_main_hud || replay_extra.is_some());
         // Additional width of the hud actually required.
         let w_addhud = if hud_active { W_ADD_ACTIVE_HUD } else { 0 };
 
-        let (_offset, (w_viewport, h_viewport)) = self.term_buf.offset_and_area();
         // Free margin toward left of viewport.
         let w_float =
             w_viewport.saturating_sub(W_PAD_LEFT + w_addhud + W_HOLD + W_BOARD + W_NEXT) / 2;
@@ -445,7 +449,7 @@ impl Renderer for StandardBufferedRenderer {
 
         // RENDER: Stats HUD.
 
-        if settings.graphics().show_main_hud {
+        if hud_active {
             // Frame glyph.
             let [c_m_tb] = tui_style.menuglyphs;
             const W_TITLE_MARGIN: u16 = 2;
@@ -487,11 +491,7 @@ impl Renderer for StandardBufferedRenderer {
                         "Lock delay:",
                         format!(
                             "{}ms",
-                            game.state()
-                                .lock_delay
-                                .saturating_duration()
-                                .as_millis()
-                                .to_string()
+                            game.state().lock_delay.saturating_duration().as_millis()
                         ),
                     )
                 }),
@@ -581,7 +581,42 @@ impl Renderer for StandardBufferedRenderer {
 
         // RENDER: Buttons HUD.
 
-        // TODO
+        // Draw button state also on replay.
+        if settings.graphics().show_buttons || replay_extra.is_some() {
+            let w_tmp6 = w_float + W_PAD_LEFT + w_addhud + W_HOLD + W_BOARD + 2;
+            let h_tmp6 = h_float + H_PAD_TOP + H_FIELD + 1;
+
+            let elements = [
+                Ok('['),
+                Err(Button::MoveLeft),
+                Err(Button::DropSoft),
+                Err(Button::MoveRight),
+                // Ok(' '),
+                Err(Button::RotateLeft),
+                Err(Button::Rotate180),
+                Err(Button::RotateRight),
+                // Ok(' '),
+                Err(Button::DropHard),
+                // Ok(' '),
+                Err(Button::HoldPiece),
+                // Ok(' '),
+                Err(Button::TeleLeft),
+                Err(Button::TeleDown),
+                Err(Button::TeleRight),
+                Ok(']'),
+            ];
+            for (dx, elem) in elements.into_iter().enumerate() {
+                let ch = elem.unwrap_or_else(|b| {
+                    if game.state().active_buttons[b].is_some() {
+                        settings.tui_style().buttonsglyphs[b]
+                    } else {
+                        ' '
+                    }
+                });
+
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp6 + (dx as u16), h_tmp6, TermCell { ch, fg: Color::Reset });
+            }
+        }
 
         // RENDER: Text message feed.
 
@@ -615,45 +650,46 @@ impl Renderer for StandardBufferedRenderer {
                 .copied()
                 .unwrap_or(Color::Reset)
         };
+        if !temp_data.blindfold_enabled {
+            // RENDER: Locked + air tiles (board including grid).
 
-        // RENDER: Locked + air tiles (board including grid).
+            let mut y_highest_tile: isize = -1;
+            for (dy, line) in game
+                .state()
+                .board
+                .iter()
+                .take(Game::LOCK_OUT_HEIGHT + 1 + (H_PAD_TOP as usize))
+                .enumerate()
+            {
+                for (dx, tile) in line.iter().enumerate() {
+                    let (tile_texture, color) = if let Some(tile_id) = tile {
+                        y_highest_tile = dy as isize;
+                        (mino_textures.locked, ftch_col_or_rset(tile_id))
+                    } else {
+                        // Hacky but: Do *not* draw air/grid over top board frame or above.
+                        if dy >= Game::LOCK_OUT_HEIGHT {
+                            continue;
+                        }
+                        (mino_textures.air, Color::Reset)
+                    };
 
-        let mut y_highest_tile: isize = -1;
-        for (dy, line) in game
-            .state()
-            .board
-            .iter()
-            .take(Game::LOCK_OUT_HEIGHT + 1 + (H_PAD_TOP as usize))
-            .enumerate()
-        {
-            for (dx, tile) in line.iter().enumerate() {
-                let (tile_texture, color) = if let Some(tile_id) = tile {
-                    y_highest_tile = dy as isize;
-                    (mino_textures.locked, ftch_col_or_rset(tile_id))
-                } else {
-                    // Hacky but: Do *not* draw air/grid over top board frame or above.
-                    if dy >= Game::LOCK_OUT_HEIGHT {
-                        continue;
-                    }
-                    (mino_textures.air, Color::Reset)
-                };
-
-                #[rustfmt::skip] self.term_buf.write_tile(w_tmp3 + 2 * dx as u16, h_tmp3.saturating_sub(dy as u16), tile_texture, color);
+                    #[rustfmt::skip] self.term_buf.write_tile(w_tmp3 + 2 * dx as u16, h_tmp3.saturating_sub(dy as u16), tile_texture, color);
+                }
             }
-        }
 
-        // RENDER: Spawn (shadow) piece.
+            // RENDER: Spawn (shadow) piece.
 
-        if settings.graphics().show_spawn && !game.has_ended() {
-            // Get upcoming piece if possible.
-            if let Some(next_tetromino) = game.state().piece_preview.front() {
-                let spawn_piece = next_tetromino.spawn_piece();
-                // Only show it if the highest tile is 4 units below us or less.
-                if spawn_piece.position.1 <= y_highest_tile + 4 {
-                    for ((dx, dy), tile_id) in spawn_piece.tiles() {
-                        let tile_texture = mino_textures.shadow;
-                        let color = ftch_col_or_rset(&tile_id);
-                        #[rustfmt::skip] self.term_buf.write_tile(w_tmp3 + 2 * dx as u16, h_tmp3.saturating_sub(dy as u16), tile_texture, color);
+            if settings.graphics().show_spawn && !game.has_ended() {
+                // Get upcoming piece if possible.
+                if let Some(next_tetromino) = game.state().piece_preview.front() {
+                    let spawn_piece = next_tetromino.spawn_piece();
+                    // Only show it if the highest tile is 4 units below us or less.
+                    if spawn_piece.position.1 <= y_highest_tile + 4 {
+                        for ((dx, dy), tile_id) in spawn_piece.tiles() {
+                            let tile_texture = mino_textures.shadow;
+                            let color = ftch_col_or_rset(&tile_id);
+                            #[rustfmt::skip] self.term_buf.write_tile(w_tmp3 + 2 * dx as u16, h_tmp3.saturating_sub(dy as u16), tile_texture, color);
+                        }
                     }
                 }
             }
