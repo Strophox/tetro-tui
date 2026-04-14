@@ -5,6 +5,8 @@ mod dense_terminal_single_buffer;
 #[allow(unused)]
 mod sparse_terminal_double_buffer;
 
+use std::{collections::VecDeque, time::Duration};
+
 use crossterm::style::Color;
 use falling_tetromino_engine::{Coordinate, GameEndCause, Phase, Stat, TileID};
 use rand::RngExt;
@@ -83,7 +85,7 @@ pub struct LineClearEffectLine {
 #[derive(PartialEq, PartialOrd, Clone, Debug, Default)]
 pub struct StandardBufferedRenderer {
     term_buf: StandardTerminalBuffer,
-    text_message_buf: Vec<(InGameTime, String)>,
+    text_message_buf: VecDeque<(InGameTime, String)>,
     hard_drop_effect_buf: Vec<(HardDropEffect, Vec<HardDropEffectTile>)>,
     lock_effect_buf: Vec<(LockEffect, Vec<LockEffectTile>)>,
     line_clear_inline_effect_buf: Vec<(LineClearInlineEffect, Vec<LineClearEffectLine>)>,
@@ -231,7 +233,7 @@ impl Renderer for StandardBufferedRenderer {
                     if combo > 1 {
                         tokens.push(format!("x{combo}"));
                     }
-                    self.text_message_buf.push((time, tokens.join(" ")));
+                    self.text_message_buf.push_front((time, tokens.join(" ")));
                 }
 
                 Notification::GameEnded { cause, is_win } => {
@@ -241,15 +243,15 @@ impl Renderer for StandardBufferedRenderer {
                         format!("{cause}...")
                     };
 
-                    self.text_message_buf.push((time, game_end_msg));
+                    self.text_message_buf.push_front((time, game_end_msg));
                 }
 
                 Notification::Debug(debug_msg) => {
-                    self.text_message_buf.push((time, debug_msg));
+                    self.text_message_buf.push_front((time, debug_msg));
                 }
 
                 Notification::Custom(custom_msg) => {
-                    self.text_message_buf.push((time, custom_msg));
+                    self.text_message_buf.push_front((time, custom_msg));
                 }
             }
         }
@@ -501,7 +503,23 @@ impl Renderer for StandardBufferedRenderer {
 
         // RENDER: Text message feed.
 
-        // TODO
+        const MESSAGE_EXPIRATION_TIME: Duration = Duration::from_secs(4);
+        {
+            let mut dy = 0;
+            self.text_message_buf.retain(|(creation_time, message)| {
+                let is_unexpired = game.state().time.saturating_sub(*creation_time) < MESSAGE_EXPIRATION_TIME;
+                if is_unexpired {
+                    let w_msg = message.chars().count() as u16;
+                    // The message should be rendered centered around board middle.
+                    let x_msg = (w_float + w_addhud + W_HOLD + (W_BOARD / 2)).saturating_sub(w_msg / 2);
+                    #[rustfmt::skip] self.term_buf.write_str(x_msg, h_float + H_PAD_TOP + H_BOARD + 1 + dy, message, Color::Reset);
+
+                    dy += 1;
+                }
+
+                is_unexpired
+            });
+        }
 
         // -- 'Board tiles' rendering --
 
@@ -642,7 +660,7 @@ impl Renderer for StandardBufferedRenderer {
                     }
 
                     // We currently do not have any visual indicator to display game-end by custom end-cause.
-                    GameEndCause::Custom(_) => todo!(),
+                    GameEndCause::Custom(_) => {}
                 }
             }
         }
