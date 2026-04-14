@@ -17,23 +17,41 @@ pub mod tui_style;
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug, serde::Serialize, serde::Deserialize,
 )]
 pub struct GraphicsSettings {
+    #[serde(rename = "palette")]
     pub palette_picked: usize,
+    #[serde(rename = "tuistyle")]
     pub tui_style_picked: usize,
+    #[serde(rename = "minotextures")]
     pub mino_textures_picked: usize,
+    #[serde(rename = "harddrop")]
     pub hard_drop_picked: usize,
+    #[serde(rename = "lock")]
     pub lock_effect_picked: usize,
+    #[serde(rename = "lineclear")]
     pub line_clear_picked: usize,
+    #[serde(rename = "minitet")]
     pub mini_tet_picked: usize,
+    #[serde(rename = "smalltet")]
     pub small_tet_picked: usize,
+    #[serde(rename = "normalszprev")]
     pub normalsize_preview_limit: Option<NonZeroUsize>,
+    #[serde(rename = "fps")]
     pub fps: ExtNonNegF64,
+    #[serde(rename = "boardpalette")]
     pub boardpalette_picked: usize,
+    #[serde(rename = "s_stats")]
     pub show_stats_hud: bool,
+    #[serde(rename = "s_keybinds")]
     pub show_keybinds: bool,
+    #[serde(rename = "s_buttons")]
     pub show_buttons: bool,
+    #[serde(rename = "s_shadow")]
     pub show_shadow: bool,
+    #[serde(rename = "s_spawn")]
     pub show_spawn: bool,
+    #[serde(rename = "s_grid")]
     pub show_grid: bool,
+    #[serde(rename = "s_fps")]
     pub show_fps: bool,
 }
 

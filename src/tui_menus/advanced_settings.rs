@@ -64,10 +64,7 @@ impl<T: Write> Application<T> {
                 ),
                 format!(
                     "Renderer selected = {} (applies on New Game)",
-                    format!(
-                        "{:?}",
-                        TetroTUIRenderer::with_number(self.temp_data.renderer_selected)
-                    )
+                    format!("{:?}", TetroTUIRenderer::with_number(self.temp_data.renderer_selected))
                 ),
             ];
 
