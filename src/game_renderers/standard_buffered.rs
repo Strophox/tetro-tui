@@ -5,10 +5,13 @@ mod sparse_terminal_double_buffer;
 
 use crossterm::style::Color;
 use falling_tetromino_engine::{Coordinate, Phase, TileID};
+use rand::RngExt;
 
 use crate::{
     fmt_helpers::fmt_lineclear_name,
-    tui_settings::{HardDropEffect, LineClearInlineEffect, LineClearParticleEffect, LockEffect},
+    tui_settings::{
+        HardDropEffect, LineClearEffect, LineClearInlineEffect, LineClearParticleEffect, LockEffect,
+    },
 };
 
 use super::*;
@@ -58,6 +61,7 @@ pub struct LockEffectTile {
 #[derive(PartialEq, PartialOrd, Clone, Debug)]
 pub struct LineClearEffectTile {
     creation_time: InGameTime,
+    lifetime: InGameTime,
     origin: (usize, usize),
     momentum: (f32, f32),
     acceleration: (f32, f32),
@@ -67,6 +71,7 @@ pub struct LineClearEffectTile {
 #[derive(PartialEq, PartialOrd, Hash, Clone, Debug)]
 pub struct LineClearEffectLine {
     creation_time: InGameTime,
+    line_clear_duration: InGameTime,
     y: usize,
 }
 
@@ -101,7 +106,7 @@ pub struct StandardBufferedRenderer {
     text_message_buf: Vec<(InGameTime, String)>,
     hard_drop_effect_buf: Vec<(HardDropEffect, Vec<HardDropEffectTile>)>,
     lock_effect_buf: Vec<(LockEffect, Vec<LockEffectTile>)>,
-    line_clear_inline_effect_buf: Vec<(LineClearInlineEffect, LineClearEffectLine)>,
+    line_clear_inline_effect_buf: Vec<(LineClearInlineEffect, Vec<LineClearEffectLine>)>,
     line_clear_particle_effect_buf: Vec<(LineClearParticleEffect, Vec<LineClearEffectTile>)>,
 }
 
@@ -173,9 +178,59 @@ impl Renderer for StandardBufferedRenderer {
                 }
 
                 Notification::LinesClearing {
-                    y_coords,
+                    lines,
                     line_clear_duration,
-                } => {}
+                } => match settings.line_clear_effect() {
+                    LineClearEffect::Inline(line_clear_inline_effect) => {
+                        let line_clear_effect_lines = lines
+                            .into_iter()
+                            .map(|(y, _line)| LineClearEffectLine {
+                                creation_time: time,
+                                line_clear_duration,
+                                y,
+                            })
+                            .collect();
+
+                        self.line_clear_inline_effect_buf
+                            .push((line_clear_inline_effect.clone(), line_clear_effect_lines));
+                    }
+
+                    LineClearEffect::Particle(line_clear_particle_effect) => {
+                        let mut line_clear_effect_particles = Vec::new();
+                        for (y, line) in lines {
+                            for (x, tile_id) in line.into_iter().enumerate() {
+                                // Some random values inside [-1, 1].
+                                let (rand0, rand1) = (
+                                    rand::rng().random_range(-1.0..1.0),
+                                    rand::rng().random_range(-1.0..1.0),
+                                );
+                                // `xpos` as a value inside [-1, 1] representing its horizontal position within the line.
+                                let xpos = 2.0 * (x as f32) / (Game::WIDTH as f32) - 1.0;
+                                let lcpe = line_clear_particle_effect;
+                                let mmx = lcpe.momentum_base.0
+                                    + lcpe.momentum_rand.0 * rand0
+                                    + lcpe.momentum_xpos * xpos;
+                                let mmy = lcpe.momentum_base.1 + lcpe.momentum_rand.1 * rand1;
+                                let lifetime = line_clear_particle_effect
+                                    .duration_override
+                                    .unwrap_or(line_clear_duration);
+                                line_clear_effect_particles.push(LineClearEffectTile {
+                                    creation_time: time,
+                                    lifetime,
+                                    origin: (x, y),
+                                    momentum: (mmx, mmy),
+                                    acceleration: line_clear_particle_effect.acceleration,
+                                    tile_id,
+                                });
+                            }
+                        }
+
+                        self.line_clear_particle_effect_buf.push((
+                            line_clear_particle_effect.clone(),
+                            line_clear_effect_particles,
+                        ));
+                    }
+                },
 
                 Notification::Accolade {
                     point_bonus,

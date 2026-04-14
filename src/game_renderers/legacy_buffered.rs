@@ -821,7 +821,7 @@ impl Renderer for LegacyBufferedRenderer {
                 }
 
                 Notification::LinesClearing {
-                    y_coords,
+                    lines,
                     line_clear_duration,
                 } => {
                     if !settings.graphics().line_clear_picked == 0 || line_clear_duration.is_zero()
@@ -879,14 +879,14 @@ impl Renderer for LegacyBufferedRenderer {
                             *active = false;
                             continue;
                         };
-                        for y_line in y_coords {
+                        for (y_line, _line) in lines {
                             let pos = (x_board, y_board + Game::LOCK_OUT_HEIGHT - *y_line);
                             self.screen
                                 .buffer_str(animation_lineclear[idx], color_lineclear, pos);
                         }
                     } else {
-                        for y in y_coords.iter().copied() {
-                            for x in 0..Game::WIDTH {
+                        for (y, line) in lines.iter().copied() {
+                            for (x, tile_id) in line.iter().enumerate() {
                                 if let Some(origin) = pos_board((
                                     isize::try_from(x).unwrap(),
                                     isize::try_from(y).unwrap(),
@@ -899,7 +899,7 @@ impl Renderer for LegacyBufferedRenderer {
                                         momentum: (mult_m_x * 60.0, mult_m_y * 50.0),
                                         acceleration: (0.0, -200.0),
                                         actually_render: true, /*(x /*+ rand::rng().random_range(0..=1)*/).is_multiple_of(2),*/
-                                        tile_id: game.state().board[y][x].unwrap_or(Palette::GRAY),
+                                        tile_id: *tile_id,
                                     };
 
                                     self.mino_particles.push((new_particle, true));
