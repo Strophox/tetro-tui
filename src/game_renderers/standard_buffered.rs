@@ -669,7 +669,7 @@ impl Renderer for StandardBufferedRenderer {
         self.hard_drop_effect_buf.retain_mut(|(hard_drop_effect, hard_drop_effect_tiles)| {
             let HardDropEffect { duration, animation, y_decay } = hard_drop_effect;
             // Empty effect landed here somehow.
-            if duration.is_zero() {
+            if duration.is_zero() || animation.is_empty() {
                 return false;
             }
 
@@ -683,12 +683,12 @@ impl Renderer for StandardBufferedRenderer {
 
                 let factor = normalized_height * *y_decay + timeshift;
 
-                if factor >= 1.0 {
+                if factor > 1.0 {
                     return false
                 }
 
                 // render the tile
-                let (tile_texture, recolor) = animation[(factor * (animation.len() as f32 - 1.0 )).round() as usize];
+                let (tile_texture, recolor) = animation[(factor * (animation.len() - 1) as f32).round() as usize];
                 let tile_id = recolor.unwrap_or(original_tile_id);
                 let color = ftch_col_or_rset(&tile_id);
                 #[rustfmt::skip] self.term_buf.write_tile(w_tmp3 + 2 * (dx as u16), h_tmp3.saturating_sub(dy as u16), tile_texture, color);
@@ -835,7 +835,40 @@ impl Renderer for StandardBufferedRenderer {
 
         // RENDER: Lock effect.
 
-        // TODO
+        if !game.has_ended() {
+            self.lock_effect_buf.retain_mut(|(lock_effect, lock_effect_tiles)| {
+                let LockEffect { duration, animation } = lock_effect;
+                // Empty effect landed here somehow.
+                if duration.is_zero() || animation.is_empty() {
+                    return false;
+                }
+
+                lock_effect_tiles.retain(|lock_effect_tile| {
+                    let LockEffectTile { creation_time, pos: (dx, dy), original_tile_id } = *lock_effect_tile;
+
+                    // How much time has elapsed since creation.
+                    let elapsed = game.state().time.saturating_sub(creation_time);
+                    // How far along the effect we are shifting.
+                    let timeshift = elapsed.as_secs_f32() / duration.as_secs_f32();
+
+                    if timeshift > 1.0 {
+                        return false
+                    }
+
+                    // render the tile
+                    let (retexture, recolor) = animation[(timeshift * (animation.len() - 1) as f32).round() as usize];
+                    let tile_texture = retexture.unwrap_or(mino_textures.locked);
+                    let tile_id = recolor.unwrap_or(original_tile_id);
+                    let color = ftch_col_or_rset(&tile_id);
+                    #[rustfmt::skip] self.term_buf.write_tile(w_tmp3 + 2 * (dx as u16), h_tmp3.saturating_sub(dy as u16), tile_texture, color);
+
+                    true
+                });
+
+                // Retain hard drop effect if it still has active tiles.
+                !lock_effect_tiles.is_empty()
+            });
+        }
 
         // RENDER: Line clear effect.
 
