@@ -376,8 +376,6 @@ impl Renderer for StandardBufferedRenderer {
             #[rustfmt::skip] self.term_buf.write_char(w_tmp1 + 1 + 2 * Game::WIDTH as u16, h_tmp1 + 1 + dy, TermCell { ch: c_fr_r, fg: Color::Reset });
         }
 
-        // TODO: Special 2nd frame rendering.
-
         // RENDER: 'Hold' widget.
 
         if let Some((tet, is_swappable)) = game.state().piece_held {
@@ -422,6 +420,28 @@ impl Renderer for StandardBufferedRenderer {
         // RENDER: 'Next' widgets.
 
         // TODO
+
+        // Special 2nd frame rendering.
+        // Mostly relevant for Elektronika 60 style.
+        if let Some([c_f2_l, c_f2_b0, c_f2_b1, c_f2_r]) = tui_style.frame2glyphs {
+            // Complete left edge (2).
+            for dy in 0..H_FIELD + 1 {
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp1.saturating_sub(1), h_tmp1 + 1 + dy, TermCell { ch: c_f2_l, fg: Color::Reset });
+            }
+            // Complete right edge (2).
+            for dy in 0..H_FIELD + 1 {
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp1 + W_BOARD, h_tmp1 + 1 + dy, TermCell { ch: c_f2_r, fg: Color::Reset });
+            }
+
+            // Complete bottom edge.
+            for dx in 0..W_FIELD {
+                if dx.is_multiple_of(2) {
+                    #[rustfmt::skip] self.term_buf.write_char(w_tmp1 + 1 + dx, h_tmp1 + 1 + H_FIELD + 1, TermCell { ch: c_f2_b0, fg: Color::Reset });
+                } else {
+                    #[rustfmt::skip] self.term_buf.write_char(w_tmp1 + 1 + dx, h_tmp1 + 1 + H_FIELD + 1, TermCell { ch: c_f2_b1, fg: Color::Reset });
+                }
+            }
+        }
 
         // RENDER: Stats HUD.
 
