@@ -10,7 +10,7 @@ pub struct MinoTextures {
     pub play: TileTexture,
     pub locked: TileTexture,
     pub shadow: TileTexture,
-    pub air: TileTexture,
+    pub grid: TileTexture,
     pub slashed: TileTexture,
     pub crossed: TileTexture,
 }
@@ -31,7 +31,7 @@ impl MinoTextures {
             play: "[]".tile(),
             locked: "##".tile(), // "[]" "$$" ?
             shadow: "::".tile(),
-            air: " .".tile(),
+            grid: " .".tile(),
             slashed: "//".tile(), // r"\\" ?
             crossed: "XX".tile(),
         }
@@ -42,7 +42,7 @@ impl MinoTextures {
             play: "▓▓".tile(),
             locked: "██".tile(), // "▒▒"
             shadow: "░░".tile(),
-            air: " ⢀".tile(), // " ⌟" ?
+            grid: " ⢀".tile(), // " ⌟" ?
             slashed: "╱╱".tile(),
             crossed: "╳╳".tile(),
         }
@@ -53,7 +53,7 @@ impl MinoTextures {
             play: "▮▮".tile(),
             locked: "▮▮".tile(),
             shadow: "▯▯".tile(),
-            air: " .".tile(),
+            grid: " .".tile(),
             slashed: "//".tile(),
             crossed: "XX".tile(),
         }

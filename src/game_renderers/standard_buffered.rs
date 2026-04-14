@@ -8,7 +8,7 @@ mod sparse_terminal_double_buffer;
 use std::{collections::VecDeque, time::Duration};
 
 use crossterm::style::Color;
-use falling_tetromino_engine::{Button, Coordinate, GameEndCause, Phase, Stat, TileID};
+use falling_tetromino_engine::{Button, Coordinate, GameEndCause, Phase, Stat, Tetromino, TileID};
 use rand::RngExt;
 
 use crate::{
@@ -405,6 +405,8 @@ impl Renderer for StandardBufferedRenderer {
 
             // Render 'hold' piece.
             let small_tet = &settings.small_tet_style().tets[tet as usize];
+            let w_extra_for_o = if tet == Tetromino::O { 1 } else { 0 };
+
             let tile_id = if is_swappable {
                 tet.tile_id()
             } else {
@@ -415,7 +417,7 @@ impl Renderer for StandardBufferedRenderer {
                 .get(&tile_id)
                 .copied()
                 .unwrap_or(Color::Reset);
-            #[rustfmt::skip] self.term_buf.write_str(w_tmp2 + 2, h_tmp2 + 1, small_tet, color);
+            #[rustfmt::skip] self.term_buf.write_str(w_tmp2 + 2 + w_extra_for_o, h_tmp2 + 1, small_tet, color);
 
             // Go the extra mile to render the character 'x' if we can't hold.
             if !is_swappable {
@@ -653,14 +655,16 @@ impl Renderer for StandardBufferedRenderer {
                 .unwrap_or(Color::Reset)
         };
 
-        // RENDER: Grid.
+        if settings.graphics().show_grid {
+            // RENDER: Grid.
 
-        for dy in 0..Game::LOCK_OUT_HEIGHT {
-            for dx in 0..Game::WIDTH {
-                let tile_texture = mino_textures.air;
-                let color = Color::Reset;
+            for dy in 0..Game::LOCK_OUT_HEIGHT {
+                for dx in 0..Game::WIDTH {
+                    let tile_texture = mino_textures.grid;
+                    let color = Color::Reset;
 
-                #[rustfmt::skip] self.term_buf.write_tile(w_tmp3 + 2 * dx as u16, h_tmp3.saturating_sub(dy as u16), tile_texture, color);
+                    #[rustfmt::skip] self.term_buf.write_tile(w_tmp3 + 2 * dx as u16, h_tmp3.saturating_sub(dy as u16), tile_texture, color);
+                }
             }
         }
 
@@ -714,7 +718,11 @@ impl Renderer for StandardBufferedRenderer {
                 for (dx, tile) in line.iter().enumerate() {
                     if let Some(tile_id) = tile {
                         let tile_texture = mino_textures.locked;
-                        let color = ftch_col_or_rset(tile_id);
+                        let color = settings
+                            .boardpalette()
+                            .get(tile_id)
+                            .copied()
+                            .unwrap_or(Color::Reset);
                         #[rustfmt::skip] self.term_buf.write_tile(w_tmp3 + 2 * (dx as u16), h_tmp3.saturating_sub(dy as u16), tile_texture, color);
 
                         y_highest_tile = dy as isize;
