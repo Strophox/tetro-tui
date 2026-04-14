@@ -18,18 +18,18 @@ pub enum LineClearEffect {
 #[derive(PartialEq, PartialOrd, Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct LineClearInlineEffect {
     #[serde(rename = "anim_idcs")]
-    anim_indices: [usize; 2 * Game::WIDTH],
+    pub anim_indices: [usize; 2 * Game::WIDTH],
 
     /// The last/max index that is animated.
     #[serde(rename = "anim_lastidx")]
-    anim_lastidx: usize,
+    pub anim_lastidx: usize,
 
     /// Color animation ids.
     /// Note:
     /// - Empty vec means no recoloring (locked piece tile id).
     /// - `None` tile id falls back to locked piece tile id.
     #[serde(rename = "col_anim")]
-    color_animation: Vec<Option<TileID>>,
+    pub color_animation: Vec<Option<TileID>>,
 }
 
 /// The formulas used to generate the momentum values:
@@ -43,7 +43,7 @@ pub struct LineClearInlineEffect {
 pub struct LineClearParticleEffect {
     #[serde_as(as = "Option<serde_with::DurationSecondsWithFrac<f64>>")]
     #[serde(rename = "dur_override")]
-    duration_override: Option<InGameTime>,
+    pub duration_override: Option<InGameTime>,
 
     /// Note:
     /// - Empty vec means no effect.
@@ -51,19 +51,16 @@ pub struct LineClearParticleEffect {
     /// - `None` tile texture falls back to dropped piece tile texture.
     /// - `None` tile id falls back to locked piece tile id.
     #[serde(rename = "anim")]
-    animation: AnimateLineClearTile,
+    pub animation: AnimateLineClearTile,
 
     #[serde(rename = "accel")]
-    acceleration: (f32, f32),
-    #[serde(rename = "mm")]
-    momentum_base: (f32, f32),
-
-    #[serde(rename = "xmmxpos")]
-    x_momentum_xpos_m1p1: f32,
-    #[serde(rename = "xmmrand")]
-    x_momentum_rand_m1p1: f32,
-    #[serde(rename = "ymmrand")]
-    y_momentum_rand_m1p1: f32,
+    pub acceleration: (f32, f32),
+    #[serde(rename = "mm_base")]
+    pub momentum_base: (f32, f32),
+    #[serde(rename = "mm_rand")]
+    pub momentum_rand: (f32, f32),
+    #[serde(rename = "mm_xpos")]
+    pub momentum_xpos: f32,
 }
 
 pub fn default_line_clear_effect_slots() -> SlotMachine<LineClearEffect> {
@@ -154,9 +151,8 @@ impl LineClearEffect {
             animation: [None, Some("  ".tile())].map(|t| (t, None)).into(),
             acceleration: (0.0, 0.0),
             momentum_base: (0.0, 0.0),
-            x_momentum_xpos_m1p1: 0.0,
-            x_momentum_rand_m1p1: 0.0,
-            y_momentum_rand_m1p1: 0.0,
+            momentum_rand: (0.0, 0.0),
+            momentum_xpos: 0.0,
         })
     }
 
@@ -166,9 +162,8 @@ impl LineClearEffect {
             animation: [Some(Palette::WHITE), None].map(|c| (None, c)).into(),
             acceleration: (0.0, 0.0),
             momentum_base: (0.0, 0.0),
-            x_momentum_xpos_m1p1: 0.0,
-            x_momentum_rand_m1p1: 0.0,
-            y_momentum_rand_m1p1: 0.0,
+            momentum_rand: (0.0, 0.0),
+            momentum_xpos: 0.0,
         })
     }
 
@@ -178,9 +173,8 @@ impl LineClearEffect {
             animation: vec![(None, None)],
             acceleration: (0.0, -200.0),
             momentum_base: (0.0, 45.0),
-            x_momentum_xpos_m1p1: 50.0,
-            x_momentum_rand_m1p1: 0.0,
-            y_momentum_rand_m1p1: 0.0,
+            momentum_rand: (0.0, 0.0),
+            momentum_xpos: 50.0,
         })
     }
 
@@ -190,9 +184,8 @@ impl LineClearEffect {
             animation: vec![(None, None)],
             acceleration: (0.0, -200.0),
             momentum_base: (0.0, 45.0),
-            x_momentum_xpos_m1p1: 0.0,
-            x_momentum_rand_m1p1: 50.0,
-            y_momentum_rand_m1p1: 5.0,
+            momentum_rand: (50.0, 5.0),
+            momentum_xpos: 0.0,
         })
     }
 
@@ -206,9 +199,8 @@ impl LineClearEffect {
             animation,
             acceleration: (0.0, -200.0),
             momentum_base: (0.0, 45.0),
-            x_momentum_xpos_m1p1: 50.0,
-            x_momentum_rand_m1p1: 0.0,
-            y_momentum_rand_m1p1: 0.0,
+            momentum_rand: (0.0, 0.0),
+            momentum_xpos: 50.0,
         })
     }
 
@@ -218,9 +210,8 @@ impl LineClearEffect {
             animation: vec![(None, None)],
             acceleration: (0.0, 0.0),
             momentum_base: (0.0, -90.0),
-            x_momentum_xpos_m1p1: 50.0,
-            x_momentum_rand_m1p1: 0.0,
-            y_momentum_rand_m1p1: 0.0,
+            momentum_rand: (0.0, 0.0),
+            momentum_xpos: 50.0,
         })
     }
 }
