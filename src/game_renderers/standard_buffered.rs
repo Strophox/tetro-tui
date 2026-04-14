@@ -458,7 +458,7 @@ impl Renderer for StandardBufferedRenderer {
             .state()
             .board
             .iter()
-            .take(Game::LOCK_OUT_HEIGHT + 1 + H_PAD_TOP)
+            .take(Game::LOCK_OUT_HEIGHT + 1 + (H_PAD_TOP as usize))
             .enumerate()
         {
             for (dx, tile) in line.iter().enumerate() {
@@ -476,15 +476,9 @@ impl Renderer for StandardBufferedRenderer {
             }
         }
 
-        // RENDER: Shadow piece.
-
-        // TODO
-
         // RENDER: Spawn (shadow) piece.
 
         // TODO
-
-        // RENDER: Active piece (possibly slashed/crossed).
 
         match game.phase() {
             // We currently do not have any visual indicator to pass this phase.
@@ -492,11 +486,25 @@ impl Renderer for StandardBufferedRenderer {
 
             Phase::PieceInPlay {
                 piece,
-                autoshift_scheduled,
-                fall_or_lock_time,
-                lock_cap_time,
-                lowest_y,
+                autoshift_scheduled: _,
+                fall_or_lock_time: _,
+                lock_cap_time: _,
+                lowest_y: _,
             } => {
+                // RENDER: Shadow piece.
+
+                if settings.graphics().show_shadow {
+                    for ((dx, dy), tile_id) in
+                        piece.teleported(&game.state().board, (0, -1)).tiles()
+                    {
+                        let tile_texture = mino_textures.shadow;
+                        let color = ftch_col_or_rset(&tile_id);
+                        #[rustfmt::skip] self.term_buf.write_tile(w_tmp3 + 2 * dx as u16, h_tmp3.saturating_sub(dy as u16), tile_texture, color);
+                    }
+                }
+
+                // RENDER: Active piece (possibly slashed/crossed).
+
                 for ((dx, dy), tile_id) in piece.tiles() {
                     let tile_texture = mino_textures.play;
                     let color = ftch_col_or_rset(&tile_id);
