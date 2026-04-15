@@ -65,8 +65,8 @@ pub struct LineClearParticleEffect {
 
 pub fn default_line_clear_effect_slots() -> SlotMachine<LineClearEffect> {
     let slots = vec![
-        ("None /retain".to_owned(), LineClearEffect::retain()),
-        ("None /vacate".to_owned(), LineClearEffect::vacate()),
+        ("None".to_owned(), LineClearEffect::none()),
+        ("Instant".to_owned(), LineClearEffect::instant()),
         ("Left-to-right".to_owned(), LineClearEffect::left_to_right()),
         ("Inward (white)".to_owned(), LineClearEffect::inward()),
         ("Outward (burn)".to_owned(), LineClearEffect::outward_burn()),
@@ -82,18 +82,21 @@ pub fn default_line_clear_effect_slots() -> SlotMachine<LineClearEffect> {
 }
 
 impl LineClearEffect {
-    pub fn retain() -> Self {
-        LineClearEffect::Inline(LineClearInlineEffect {
-            anim_indices: [1; 2 * Game::WIDTH],
-            anim_lastidx: 0,
-            color_animation: Vec::new(),
+    pub fn none() -> Self {
+        LineClearEffect::Particle(LineClearParticleEffect {
+            duration_override: Some(Duration::ZERO),
+            animation: Vec::new(),
+            acceleration: (0.0, 0.0),
+            momentum_base: (0.0, 0.0),
+            momentum_rand: (0.0, 0.0),
+            momentum_xpos: 0.0,
         })
     }
 
-    pub fn vacate() -> Self {
+    pub fn instant() -> Self {
         LineClearEffect::Inline(LineClearInlineEffect {
             anim_indices: [0; 2 * Game::WIDTH],
-            anim_lastidx: 0,
+            anim_lastidx: 1,
             color_animation: Vec::new(),
         })
     }
@@ -137,7 +140,9 @@ impl LineClearEffect {
     pub fn blink() -> Self {
         LineClearEffect::Particle(LineClearParticleEffect {
             duration_override: None,
-            animation: [None, Some("  ".tile())].map(|t| (t, None)).into(),
+            animation: [None, Some("  ".tile()), None, Some("  ".tile()), None]
+                .map(|t| (t, None))
+                .into(),
             acceleration: (0.0, 0.0),
             momentum_base: (0.0, 0.0),
             momentum_rand: (0.0, 0.0),

@@ -55,7 +55,10 @@ impl<T: Write> Application<T> {
                 "Slot {}/{}: '{}'{}",
                 self.settings.keybinds_picked + 1,
                 self.settings.keybinds_slotmachine.slots.len(),
-                self.settings.keybinds_slotmachine.slots[self.settings.keybinds_picked].0,
+                self.settings
+                    .keybinds_slotmachine
+                    .grab(self.settings.keybinds_picked)
+                    .0,
                 if self.settings.keybinds_slotmachine.slots.len() < 2 {
                     "".to_owned()
                 } else {

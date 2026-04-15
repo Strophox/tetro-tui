@@ -68,7 +68,10 @@ impl<T: Write> Application<T> {
                 "Slot {}/{}: '{}'{}",
                 self.settings.gameplay_picked + 1,
                 self.settings.gameplay_slotmachine.slots.len(),
-                self.settings.gameplay_slotmachine.slots[self.settings.gameplay_picked].0,
+                self.settings
+                    .gameplay_slotmachine
+                    .grab(self.settings.gameplay_picked)
+                    .0,
                 if self.settings.gameplay_slotmachine.slots.len() < 2 {
                     "".to_owned()
                 } else {

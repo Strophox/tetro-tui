@@ -546,6 +546,24 @@ impl<T: Write> Application<T> {
                                     self.settings.graphics_slotmachine.slots.len();
                             }
 
+                            // [Ctrl+Alt+L]: Re-load from savefile.
+                            (KeyCode::Char('l' | 'L'), _)
+                                if {
+                                    modifiers
+                                        .contains(KeyModifiers::CONTROL.union(KeyModifiers::ALT))
+                                } =>
+                            {
+                                let msg = if let Err(e) = self.load_from_savefile() {
+                                    format!("(Error reloading from savefile: {e}")
+                                } else {
+                                    "(Reloaded from savefile.)".to_owned()
+                                };
+                                game_renderer.update_feed(
+                                    [(Notification::Custom(msg), game.state().time)],
+                                    &self.settings,
+                                );
+                            }
+
                             // Other misc. key event: We don't care.
                             _ => {}
                         }

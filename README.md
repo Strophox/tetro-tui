@@ -216,6 +216,8 @@ yay -S tetro-tui
 > | - | Teleport left |
 > | - | Teleport right |
 > | `Space` | Hold piece |
+> 
+> | Key | Special Action |
 > | `Ctrl`+`D` | Forfeit game |
 > | `Ctrl`+`R` | Restart game mode (Caution: discards current game) |
 > | `Ctrl`+`L` | Load game save (Caution: discards current game) |
@@ -223,6 +225,7 @@ yay -S tetro-tui
 > | `Ctrl`+`E` | Store seed (accessible in 'Start game'⇝'Custom') |
 > | `Ctrl`(+`Alt`)+`G` | Cycle through graphics settings slots |
 > | `Ctrl`+`Alt`+`B` | Toggle on/off visibility of tiles ('Blindfolded') |
+> | `Ctrl`+`Alt`+`L` | Re-load from savefile (Caution: discards current save progress!) |
 > | `Ctrl`+`C` | Exit application (respects save preferences) |
 > 
 > </details>
@@ -245,10 +248,13 @@ yay -S tetro-tui
 > | `.` | Skip forward one player input + pause |
 > | `Alt`+`.` | Skip forward one game state change\* + pause (\*might not work properly for modded games) |
 > | `Enter`, `e` | Start (live) Game from current replay state |
+> 
+> | Key | Special Action |
 > | `Ctrl`+`I` | (Experimental) Toggle Instant Interactive Input Intervention |
 > | `Ctrl`+`S` | Store game save (accessible in 'Start game'⇝'Game save' or '(live) Game'⇝`Ctrl`+`L`) |
-> | `Ctrl`+`E` | Store seed (accessible in 'New game'⇝'Custom') |
+> | `Ctrl`+`E` | Store seed (accessible in 'Start game'⇝'Custom') |
 > | `Ctrl`(+`Alt`)+`G` | Cycle through graphics settings slots |
+> | `Ctrl`+`Alt`+`L` | Re-load from savefile (Caution: discards current save progress!) |
 > | `Ctrl`+`C` | Exit application (respects save preferences) |
 > 
 > </details>
