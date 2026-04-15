@@ -508,8 +508,22 @@ impl<T: Write> Application<T> {
                                 });
                             }
 
+                            // [Ctrl(+Alt)+G]: Cycle graphics slots.
+                            (KeyCode::Char('g' | 'G'), _)
+                                if { modifiers.contains(KeyModifiers::CONTROL) } =>
+                            {
+                                self.settings.graphics_picked +=
+                                    if modifiers.contains(KeyModifiers::ALT) {
+                                        self.settings.graphics_slotmachine.slots.len() - 1
+                                    } else {
+                                        1
+                                    };
+                                self.settings.graphics_picked %=
+                                    self.settings.graphics_slotmachine.slots.len();
+                            }
+
                             // Other misc. key event: We don't care.
-                            _ => continue 'wait,
+                            _ => {}
                         }
                     }
 
