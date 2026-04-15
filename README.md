@@ -63,11 +63,11 @@ yay -S tetro-tui
 ### How good is it in terms of customization / features?
 
 > We provide a solid amount of configuration options and features:
-> - **Graphics:** Unicode/ASCII/Electronika, a handful of provided color palettes, FPS, toggle effects, ...
-> - **Gameplay / handling:** Rotation systems, randomizers, preview, timings (DAS, ARR, SDF, LDC, ARE), IRS/IHS (\*[caveat](#why-do-some-gameplay-settings-dasarretc-or-a-simple-shift-keypress-not-work-for-me)).
+> - **Graphics:** Unicode/ASCII/Electronika, color palettes, many effects and toggles.
+> - **Gameplay and handling:** Rotation systems, randomizers, preview, timings (DAS, ARR, SDF, LDC, ARE), IRS/IHS/IMS/ITS (\*[caveat](#why-do-some-gameplay-settings-dasarretc-or-registering-shift-as-keypress-not-work-for-me)).
 > - **Game keybinds:** to your heart's desire. 
 > - **Game mode miscellany:** Swift ('40lines'), Classic ('Marathon'), Master, Puzzle, Cheese, Combo, Custom (select goal, initial gravity, toggle gravity progress, *cmdline flags:* start board, seed).
-> - **Highscores, replays, statistics...** - can can be accessed as well as backed up with a **simple savefile**.
+> - **Highscores, replays, statistics, ...** - can can be accessed as well as backed up with a simple **savefile**.
 >
 > <details>
 > <summary>
@@ -160,7 +160,7 @@ yay -S tetro-tui
 > </details>
 
 
-### Why do some gameplay settings (DAS/ARR/etc.) or a simple `Shift` keypress not work for me?
+### Why do some gameplay settings (DAS/ARR/etc.) or registering `Shift` as keypress not work for me?
 
 > *In short:* If possible use an enhanced terminal like <a href="https://sw.kovidgoyal.net/kitty/">Kitty</a> or <a href="https://alacritty.org/">Alacritty</a> (also <a href="https://docs.rs/crossterm/latest/crossterm/event/struct.PushKeyboardEnhancementFlags.html">others</a>) for flawless game handling.
 > Otherwise e.g. timings might depend solely on how quickly your *terminal* sends key-repeat events.
@@ -273,7 +273,7 @@ yay -S tetro-tui
 > 
 > | Key | Special Action |
 > | -: | :- |
-> | `Ctrl`+`L` | Loop replay on game end |
+> | `Ctrl`+`L` | Toggle replay looping |
 > | `Ctrl`+`S` | Store game save (accessible in 'Start new game'⇝'Game save' or '(live) Game'⇝`Ctrl`+`L`) |
 > | `Ctrl`+`E` | Store seed (accessible in 'Start new game'⇝'Custom') |
 > | `Ctrl`+`I` | (Experimental) Toggle Instant Interactive Input Intervention |
@@ -320,7 +320,7 @@ yay -S tetro-tui
 > - **Tetromino randomizers**: 'Uniform', 'Stock' (generalized Bag), 'Recency' (history), 'Balance-out',
 > - **Piece preview** (arbitrary size),
 > - **Spawn delay** (ARE),
-> - **Spawn actions** (IRS/IHS; by keeping rotate/hold pressed during spawn),
+> - **Spawn actions** (IRS/IHS/IMS/ITS; by keeping rotate/hold pressed during spawn),
 > - **Rotation systems**: 'Ocular' (engine-specific, playtested), 'Classic', 'Super',
 > - **Delayed auto-move** (DAS),
 > - **Auto-move rate** (ARR),
@@ -337,13 +337,14 @@ yay -S tetro-tui
 > </details>
 
 
-### *Experienced players:* Does it play like familiar / industry-standard stacker games?
+### *Experienced players:* Does it actually play like familiar / industry-standard stacker games?
 
-> We put the customizability of Tetro TUI to good use and provide a handful of settings templates, e.g. to emulate guideline (gameplay, keybinds, graphics).
+> The customizability of Tetro TUI is put to good use and a handful of setting templates are provided to emulate e.g. common gameplay/keybinds/graphics.
+> Note that some ([handling limitations may apply to your terminal](#why-do-some-gameplay-settings-dasarretc-or-registering-shift-as-keypress-not-work-for-me)).
 >
 > <details>
 > <summary>
-> The default settings – though they should feel acutely familiar – do take liberty in shifting some mechanics 'closer to the platonic ideal' of the game. This is obviously an informal distinction and in practice means:
+> The "Default"-settings – though they should feel familiar – do take liberty in 'shifting some mechanics closer to the platonic ideal' of the game. This is obviously an informal distinction and in practice means:
 > </summary>
 > 
 > **Keybinds:**
