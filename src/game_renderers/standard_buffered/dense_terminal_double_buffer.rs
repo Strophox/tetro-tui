@@ -101,7 +101,8 @@ impl TerminalBuffer for DenseTerminalDoubleBuffer {
     }
 
     fn flush(&mut self, term: &mut impl Write) -> io::Result<()> {
-        term.queue(terminal::BeginSynchronizedUpdate)?;
+        // Use flag to possibly avoid having to do any I/O at all.
+        let mut diff_issued = false;
 
         for x in 0..self.w_vp {
             for y in 0..self.h_vp {
@@ -109,17 +110,23 @@ impl TerminalBuffer for DenseTerminalDoubleBuffer {
                 #[rustfmt::skip] let TermCell { ch: old_ch, fg: old_fg } = self.prev_buf[idx];
                 #[rustfmt::skip] let TermCell { ch: new_ch, fg: new_fg } = self.next_buf[idx];
 
-                term.queue(cursor::MoveTo(self.x_vp + x, self.y_vp + y))?;
                 if new_fg != old_fg || new_ch != old_ch {
-                    // Always reprint styled if style changed.
+                    if !diff_issued {
+                        diff_issued = true;
+                        term.queue(terminal::BeginSynchronizedUpdate)?;
+                    }
+                    // Always reprint styled if anything changed.
+                    term.queue(cursor::MoveTo(self.x_vp + x, self.y_vp + y))?;
                     term.queue(PrintStyledContent(new_ch.with(new_fg)))?;
                 }
             }
         }
 
-        term.queue(cursor::MoveTo(0, 0))?
-            .queue(terminal::EndSynchronizedUpdate)?
-            .flush()?;
+        if diff_issued {
+            term.queue(cursor::MoveTo(0, 0))?
+                .queue(terminal::EndSynchronizedUpdate)?
+                .flush()?;
+        }
 
         // Swap buffers so `prev_buf` correctly contains the one we just wrote and want to keep for next time.
         std::mem::swap(&mut self.prev_buf, &mut self.next_buf);
