@@ -123,7 +123,7 @@ yay -S tetro-tui
 > * Preview spawn when stack high ∈ [on, off]
 > * Color board tiles ∈ [on, off]
 > * Show left HUD ∈ [on, off]
-> * Show basic keybinds legend ∈ [on, off]
+> * Show keybinds legend ∈ [on, off]
 > * Show active buttons ∈ [on, off]
 > * Show FPS counter ∈ [on, off]
 > 

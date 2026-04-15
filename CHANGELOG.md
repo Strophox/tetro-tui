@@ -11,6 +11,57 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -
 
 
+## [3.0.0] - 2026-04-16
+
+### Added
+- **Graphics settings completely revamped (and multiplied).** New options (all technically configurably in savefile):
+    * TUI style: [ASCII, Unicode, Elektronika 60]
+    * **Mino textures**: [ASCII, Unicode, Elektronika 60]
+    * **Hard drop effect**: [None, Particles ASCII, Streak ASCII, Beam ASCII, Beam]
+    * **Lock effect**: [None, Transform ASCII, Pulse Unicode, White]
+    * **Line clear effect**: [None, Instant, Left to right, Inward, Outward, Flash white, Blink, Pop out, Pop out (more), Sparks ASCII, Blast]
+    * Mini tetromino style: [ASCII, Braille]
+    * Small tetromino style: [ASCII, Blocks, Braille]
+    * Number of normal-sized preview pieces.
+    * Toggle: Show **grid**.
+    * Toggle: **Preview spawn piece** when stack is high.
+    * Toggle: Show HUD on the left side.
+    * Toggle: Show keybinds legend.
+    * New default graphics slot: 'Blank slate'
+- New keybinds:
+    * Game: `Ctrl+R` to **restart game** mode!
+    * Game/Replay: `Ctrl(+Alt)+G` to cycle through graphics slots in-game
+    * Game/Replay: `Ctrl+Alt+L` to re-load savefile data (e.g. for graphics settings experimentation, but current app data gets overwritten).
+    * Replay: `Ctrl+L` to toggle loop.
+- Experimental 'pause on focus lost' option in Advanced settings.
+- All-time statistics menu.
+    * Lightweight and persists in savefile even when scoreboard features themselves are disabled / entries are deleted
+
+### Changed
+- Engine: Spawn actions (IHS/IRS/IMS/ITS) are now properly implemented.
+    * + Many engine fixes that improve handling (whether with enhanced-keyboard-events or not!)
+- Improved TUI experience almost everywhere (e.g. fixes to text, navigation, other details).
+- Game rendering:
+    * Completely new HUD layout due to new renderer.
+    * Has never been more efficient despite supporting all the many new options!
+- Savefile format:
+    * **Much improved replay compression!**
+    * Shorter names for many fields.
+- Source code: Big refactors in modules organization has simplified things / made them more accessible.
+- **Too many miscellaneous refactors, fixes and code improvements to count.**
+    * The application should be more robust this way.
+
+### Fixed
+- Holding `TeleDown` now acts more like soft drop with sdf=∞, rather than hard drop without locking.
+    * Similar behavior for sideways `Tele`ports.
+- Various bugs in gamemodes (cheese).
+- Crashes in New Game menu when 'deleting' ascent mode, loading savepoint when there was none
+
+### Removed
+- Herobrine
+
+
+
 ## [2.1.0] - 2026-03-25
 
 ### Added

@@ -199,7 +199,7 @@ impl<T: Write> Application<T> {
                 ),
                 ("Show left HUD", self.settings.graphics().show_main_hud),
                 (
-                    "Show basic keybinds legend",
+                    "Show keybinds legend",
                     self.settings.graphics().show_keybinds,
                 ),
                 ("Show active buttons", self.settings.graphics().show_buttons),
