@@ -220,6 +220,7 @@ yay -S tetro-tui
 > | `Ctrl`+`E` | Store seed (accessible in 'New game'⇝'Custom') |
 > | `Ctrl`+`S` | Store savepoint (accessible in 'New game'⇝'Savepoint' or in '(live) Game'⇝`Ctrl`+`L`) |
 > | `Ctrl`+`L` | Load savepoint (Caution: overwrites live game) |
+> | `Ctrl`(+`Alt`)+`G` | Cycle through graphics settings slots |
 > | `Ctrl`+`Alt`+`B` | Toggle on/off visibility of tiles ('Blindfolded') |
 > | `Ctrl`+`C` | Exit application (respects save preferences) |
 > 
@@ -245,6 +246,7 @@ yay -S tetro-tui
 > | `Enter`, `e` | Start (live) Game from current replay state |
 > | `Ctrl`+`E` | Store seed (accessible in 'New game'⇝'Custom') |
 > | `Ctrl`+`S` | Store savepoint (accessible in 'New game'⇝'Savepoint' or in '(live) Game'⇝`Ctrl`+`L`) |
+> | `Ctrl`(+`Alt`)+`G` | Cycle through graphics settings slots |
 > | `Ctrl`+`I` | Toggle experimental Instant Interactive Input Intervention |
 > | `Ctrl`+`C` | Exit application (respects save preferences) |
 > 
