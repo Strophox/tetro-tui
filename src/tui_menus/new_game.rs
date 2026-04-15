@@ -49,54 +49,22 @@ impl<T: Write> Application<T> {
         let upperbound_fall_delay: ExtDuration = Duration::from_secs_f64(100.0).into();
 
         loop {
-            #[allow(clippy::type_complexity)]
-            let mut game_modes = vec![
-                GameModePreset::swift(),
-                GameModePreset::classic(),
-                GameModePreset::puzzle(),
-                GameModePreset::cheese(
-                    self.settings.game_mode_preferences.cheese_holes_per_line,
-                    self.settings
-                        .game_mode_preferences
-                        .cheese_ensure_distinct_holes,
-                    self.settings.game_mode_preferences.cheese_limit,
-                    self.settings
-                        .game_mode_preferences
-                        .cheese_fall_and_lock_delays,
-                ),
-                GameModePreset::combo(
-                    self.settings.game_mode_preferences.combo_start_layout,
-                    self.settings.game_mode_preferences.combo_limit,
-                ),
-            ];
-
-            if self.settings.game_mode_preferences.master_mode_unlocked {
-                game_modes.insert(2, GameModePreset::master());
-            }
-
-            if self
-                .settings
-                .game_mode_preferences
-                .experimental_mode_unlocked
-            {
-                game_modes.push(GameModePreset::ascent())
-            }
-
             // First part: rendering the menu.
             let w_main = Self::W_MAIN.into();
             let (x_main, y_main) = Self::viewport_offset();
             let y_selection = Self::H_MAIN / 5;
+
+            let game_modes = self.available_base_game_modes();
 
             let savepoint_available = if !self.game_saves.slots.is_empty() {
                 1
             } else {
                 0
             };
-
-            let idx_cheese = 4;
+            let idx_cheese = 3;
             let idx_combo = 4;
-            let idx_savepoint = (!self.game_saves.slots.is_empty()).then_some(game_modes.len());
-            let idx_custom = game_modes.len() + savepoint_available;
+            let idx_custom = game_modes.len();
+            let idx_savepoint = (!self.game_saves.slots.is_empty()).then_some(game_modes.len() + 1);
 
             // Normal presets + 2 spaces if savepoint option available + custom preset.
             let selection_len = game_modes.len() + savepoint_available + 1;
@@ -138,44 +106,11 @@ impl<T: Write> Application<T> {
                         }
                     )))?;
             }
-            // Render load savepoint option.
-            if let Some(GameSave {
-                game_meta_data,
-                game_restoration_data: GameRestorationData { input_history, .. },
-                inputs_to_load,
-            }) = &self.game_saves.get()
-            {
-                let load_title = &game_meta_data.title;
-                let load_offset_max = input_history.inputs.len();
-                self.term
-                    .queue(MoveTo(
-                        x_main,
-                        y_main + y_selection + 4 + u16::try_from(game_modes.len() + 1).unwrap(),
-                    ))?
-                    .queue(Print(format!(
-                        "{:^w_main$}",
-                        if selected == selection_len - 2 {
-                            if *inputs_to_load == 0 {
-                                format!(">> Load {load_title} from beginning [Del] <<")
-                            } else {
-                                let (load_time, load_input) = input_history.inputs[(inputs_to_load - 1) % input_history.inputs.len()];
-                                let load_time = fmt_duration(load_time);
-                                let load_input = fmt_player_input(load_input, self.settings.tui_style().buttonsglyphs);
-                                format!(">> Load {load_title} from input {inputs_to_load}/{load_offset_max} ({load_input} @ {load_time}) [Del] <<")
-                            }
-                        } else {
-                            format!("Savepoint ({load_title})")
-                        },
-                    )))?;
-            }
             // Render custom mode option.
             self.term
                 .queue(MoveTo(
                     x_main,
-                    y_main
-                        + y_selection
-                        + 4
-                        + u16::try_from(selection_len + savepoint_available).unwrap(),
+                    y_main + y_selection + 3 + u16::try_from(game_modes.len() + 2).unwrap(),
                 ))?
                 .queue(Print(format!(
                     "{:^w_main$}",
@@ -249,9 +184,8 @@ impl<T: Write> Application<T> {
                             x_main + 16 + 4 * u16::try_from(j).unwrap(),
                             y_main
                                 + y_selection
-                                + 4
-                                + u16::try_from(1 + j + selection_len + savepoint_available)
-                                    .unwrap(),
+                                + 3
+                                + u16::try_from(1 + j + game_modes.len() + 2).unwrap(),
                         ))?
                         .queue(Print(if j + 1 == customization_selected {
                             format!(
@@ -273,6 +207,38 @@ impl<T: Write> Application<T> {
                         }))?;
                 }
             }
+
+            // Render load savepoint option.
+            if let Some(GameSave {
+                game_meta_data,
+                game_restoration_data: GameRestorationData { input_history, .. },
+                inputs_to_load,
+            }) = &self.game_saves.get()
+            {
+                let load_title = &game_meta_data.title;
+                let load_offset_max = input_history.inputs.len();
+                self.term
+                    .queue(MoveTo(
+                        x_main,
+                        y_main + y_selection + 4 + u16::try_from(game_modes.len() + 1).unwrap() + if selected == idx_custom { 5 } else { 2 },
+                    ))?
+                    .queue(Print(format!(
+                        "{:^w_main$}",
+                        if Some(selected) == idx_savepoint {
+                            if *inputs_to_load == 0 {
+                                format!(">> Load {load_title} from beginning [Del] <<")
+                            } else {
+                                let (load_time, load_input) = input_history.inputs[(inputs_to_load - 1) % input_history.inputs.len()];
+                                let load_time = fmt_duration(load_time);
+                                let load_input = fmt_player_input(load_input, self.settings.tui_style().buttonsglyphs);
+                                format!(">> Load {load_title} from input {inputs_to_load}/{load_offset_max} ({load_input} @ {load_time}) [Del] <<")
+                            }
+                        } else {
+                            format!("Savepoint ({load_title})")
+                        },
+                    )))?;
+            }
+
             self.term.flush()?;
             // Wait for new input.
             let mut immediately_start_new_game = false;
@@ -748,152 +714,196 @@ impl<T: Write> Application<T> {
             }
 
             if immediately_start_new_game {
-                let GameplaySettings {
-                    rotsys,
-                    tetgen,
-                    preview: prev,
-                    das,
-                    arr,
-                    sdf,
-                    lcd,
-                    are,
-                    initsys,
-                    dtapfinesse: _,
-                } = *self.settings.gameplay();
+                // FIXME: `None` shouldn't happen but we handle it anyway.
+                if let Some(game_menu) = self.create_game_menu(selected) {
+                    self.statistics.new_games_started += 1;
 
-                let mut builder = Game::builder();
-
-                builder
-                    .rotation_system(rotsys)
-                    .tetromino_generator(tetgen)
-                    .generate_piece_preview(prev)
-                    .delayed_auto_shift(das)
-                    .auto_repeat_rate(arr)
-                    .soft_drop_factor(sdf)
-                    .line_clear_duration(lcd)
-                    .spawn_delay(are)
-                    .allow_spawn_manipulation(initsys);
-
-                let (game_meta_data, mut game, raw_input_history) = if selected < game_modes.len() {
-                    // Build one of the selected game modes.
-                    let GameModePreset {
-                        title,
-                        description: _,
-                        stat_and_order_desc,
-                        build,
-                    } = &game_modes[selected];
-
-                    let preset_game = build(&builder);
-
-                    let preset_game_meta_data = GameMetaData {
-                        datetime: chrono::Utc::now().format("%Y-%m-%d_%H:%M").to_string(),
-                        title: title.to_owned(),
-                        stat_and_desc_order: *stat_and_order_desc,
-                    };
-
-                    let blank_input_history = RawInputHistory::default();
-
-                    (preset_game_meta_data, preset_game, blank_input_history)
-                } else if selected == selection_len - 2 {
-                    // Load saved game.
-                    // SAFETY: we can only get into this case if save exists!...
-                    let GameSave {
-                        game_meta_data,
-                        game_restoration_data,
-                        inputs_to_load,
-                    } = &self.game_saves.get().unwrap();
-
-                    let restored_game = game_restoration_data.restore(*inputs_to_load);
-
-                    let mut restored_game_meta_data = game_meta_data.clone();
-                    // Mark restored game as such.
-                    restored_game_meta_data.title.push('\'');
-
-                    let restored_input_history = game_restoration_data
-                        .input_history
-                        .inputs
-                        .iter()
-                        .take(*inputs_to_load)
-                        .copied()
-                        .collect::<Vec<_>>()
-                        .into();
-
-                    (
-                        restored_game_meta_data,
-                        restored_game,
-                        restored_input_history,
-                    )
-                } else {
-                    // Build custom game.
-                    let n = &self.settings.game_mode_preferences;
-
-                    builder
-                        .fall_delay_params(n.custom_fall_params)
-                        .lock_delay_params(n.custom_lock_params)
-                        .game_limits(match n.custom_win_condition {
-                            Some(stat) => GameLimits::single(stat, true),
-                            None => GameLimits::new(),
-                        });
-
-                    // Optionally load custom seed.
-                    if let Some(seed) = n.custom_seed {
-                        builder.seed(seed);
-                    }
-
-                    // Optionally load custom board.
-                    let new_custom_game = if let Some(encoded_board) = &n.custom_start_board {
-                        game_modding::StartBoard::build(&builder, encoded_board.clone())
-                    // Otherwise just build a normal custom game.
-                    } else {
-                        builder.build()
-                    };
-
-                    let title = match n.custom_win_condition {
-                        Some(stat) => match stat {
-                            Stat::TimeElapsed(duration) => format!("Time-{}s", duration.as_secs()),
-                            Stat::PiecesLocked(p) => format!("Pieces-{p}"),
-                            Stat::LinesCleared(l) => format!("Lines-{l}"),
-                            Stat::PointsScored(s) => format!("Score-{s}"),
-                        },
-                        None => "Limitless".to_owned(),
-                    };
-
-                    let custom_game_meta_data = GameMetaData {
-                        datetime: chrono::Utc::now().format("%Y-%m-%d_%H:%M").to_string(),
-                        title,
-                        stat_and_desc_order: (Stat::PointsScored(0), false),
-                    };
-                    let blank_input_history = RawInputHistory::default();
-                    (custom_game_meta_data, new_custom_game, blank_input_history)
-                };
-                // FIXME: Abandoned modifier addition code.
-                // let mut game = game;
-                // game.modifiers.push(game_mode_presets::game_modifiers::print_fall_delay::modifier());
-                // game.modifiers.push(game_mode_presets::game_modifiers::misc_modifiers::print_recency_tet_gen_stats::modifier());
-                // game.modifiers.push(falling_tetromino_engine::Modifier { descriptor: "always_clear_board".to_owned(), mod_function: Box::new(|_c, _i, s, _m, _f| { s.board = Default::default(); })});
-
-                let mut game_renderer =
-                    TetroTUIRenderer::with_number(self.temp_data.renderer_selected);
-
-                // We do an initial update, which allows a piece to spawn and queue to get generated.
-                // We do this so the renderer does not render a first frame when game is in its raw start state.
-                if game.state().time.is_zero() {
-                    match game.update(InGameTime::ZERO, None) {
-                        Ok(msgs) => game_renderer.update_feed(msgs, &self.settings),
-                        // ?? but i didn't even do anything yet
-                        Err(_update_game_error) => {}
-                    }
+                    break Ok(MenuUpdate::Push(game_menu));
                 }
-
-                self.statistics.new_games_started += 1;
-
-                break Ok(MenuUpdate::Push(Menu::PlayGame {
-                    game: game.into(),
-                    raw_input_history,
-                    game_meta_data,
-                    game_renderer: game_renderer.into(),
-                }));
             }
         }
+    }
+
+    pub fn available_base_game_modes(&self) -> Vec<GameModePreset> {
+        let mut game_modes = vec![
+            GameModePreset::swift(),
+            GameModePreset::classic(),
+            GameModePreset::puzzle(),
+            GameModePreset::cheese(
+                self.settings.game_mode_preferences.cheese_holes_per_line,
+                self.settings
+                    .game_mode_preferences
+                    .cheese_ensure_distinct_holes,
+                self.settings.game_mode_preferences.cheese_limit,
+                self.settings
+                    .game_mode_preferences
+                    .cheese_fall_and_lock_delays,
+            ),
+            GameModePreset::combo(
+                self.settings.game_mode_preferences.combo_start_layout,
+                self.settings.game_mode_preferences.combo_limit,
+            ),
+        ];
+
+        if self.settings.game_mode_preferences.master_mode_unlocked {
+            game_modes.insert(2, GameModePreset::master());
+        }
+
+        if self
+            .settings
+            .game_mode_preferences
+            .experimental_mode_unlocked
+        {
+            game_modes.push(GameModePreset::ascent())
+        }
+
+        game_modes
+    }
+
+    pub fn create_game_menu(&self, selected: usize) -> Option<Menu> {
+        let game_modes = self.available_base_game_modes();
+
+        let GameplaySettings {
+            rotsys,
+            tetgen,
+            preview: prev,
+            das,
+            arr,
+            sdf,
+            lcd,
+            are,
+            initsys,
+            dtapfinesse: _,
+        } = *self.settings.gameplay();
+
+        let mut builder = Game::builder();
+
+        builder
+            .rotation_system(rotsys)
+            .tetromino_generator(tetgen)
+            .generate_piece_preview(prev)
+            .delayed_auto_shift(das)
+            .auto_repeat_rate(arr)
+            .soft_drop_factor(sdf)
+            .line_clear_duration(lcd)
+            .spawn_delay(are)
+            .allow_spawn_manipulation(initsys);
+
+        let (game_meta_data, mut game, raw_input_history) = if selected < game_modes.len() {
+            // Build one of the selected game modes.
+            let GameModePreset {
+                title,
+                description: _,
+                stat_and_order_desc,
+                build,
+            } = &game_modes[selected];
+
+            let preset_game = build(&builder);
+
+            let preset_game_meta_data = GameMetaData {
+                datetime: chrono::Utc::now().format("%Y-%m-%d_%H:%M").to_string(),
+                title: title.to_owned(),
+                stat_and_desc_order: *stat_and_order_desc,
+            };
+
+            let blank_input_history = RawInputHistory::default();
+
+            (preset_game_meta_data, preset_game, blank_input_history)
+        } else if selected == game_modes.len() + 1 && self.game_saves.get().is_some() {
+            // Load saved game.
+            // SAFETY: `self.game_saves.get().is_some()`.
+            let GameSave {
+                game_meta_data,
+                game_restoration_data,
+                inputs_to_load,
+            } = &self.game_saves.get().unwrap();
+
+            let restored_game = game_restoration_data.restore(*inputs_to_load);
+
+            let mut restored_game_meta_data = game_meta_data.clone();
+            // Mark restored game as such.
+            restored_game_meta_data.title.push('\'');
+
+            let restored_input_history = game_restoration_data
+                .input_history
+                .inputs
+                .iter()
+                .take(*inputs_to_load)
+                .copied()
+                .collect::<Vec<_>>()
+                .into();
+
+            (
+                restored_game_meta_data,
+                restored_game,
+                restored_input_history,
+            )
+        } else {
+            // Build custom game.
+            let n = &self.settings.game_mode_preferences;
+
+            builder
+                .fall_delay_params(n.custom_fall_params)
+                .lock_delay_params(n.custom_lock_params)
+                .game_limits(match n.custom_win_condition {
+                    Some(stat) => GameLimits::single(stat, true),
+                    None => GameLimits::new(),
+                });
+
+            // Optionally load custom seed.
+            if let Some(seed) = n.custom_seed {
+                builder.seed(seed);
+            }
+
+            // Optionally load custom board.
+            let new_custom_game = if let Some(encoded_board) = &n.custom_start_board {
+                game_modding::StartBoard::build(&builder, encoded_board.clone())
+            // Otherwise just build a normal custom game.
+            } else {
+                builder.build()
+            };
+
+            let title = match n.custom_win_condition {
+                Some(stat) => match stat {
+                    Stat::TimeElapsed(duration) => format!("Time-{}s", duration.as_secs()),
+                    Stat::PiecesLocked(p) => format!("Pieces-{p}"),
+                    Stat::LinesCleared(l) => format!("Lines-{l}"),
+                    Stat::PointsScored(s) => format!("Score-{s}"),
+                },
+                None => "Limitless".to_owned(),
+            };
+
+            let custom_game_meta_data = GameMetaData {
+                datetime: chrono::Utc::now().format("%Y-%m-%d_%H:%M").to_string(),
+                title,
+                stat_and_desc_order: (Stat::PointsScored(0), false),
+            };
+            let blank_input_history = RawInputHistory::default();
+            (custom_game_meta_data, new_custom_game, blank_input_history)
+        };
+        // FIXME: Abandoned modifier addition code.
+        // let mut game = game;
+        // game.modifiers.push(game_mode_presets::game_modifiers::print_fall_delay::modifier());
+        // game.modifiers.push(game_mode_presets::game_modifiers::misc_modifiers::print_recency_tet_gen_stats::modifier());
+        // game.modifiers.push(falling_tetromino_engine::Modifier { descriptor: "always_clear_board".to_owned(), mod_function: Box::new(|_c, _i, s, _m, _f| { s.board = Default::default(); })});
+
+        let mut game_renderer = TetroTUIRenderer::with_number(self.temp_data.renderer_selected);
+
+        // We do an initial update, which allows a piece to spawn and queue to get generated.
+        // We do this so the renderer does not render a first frame when game is in its raw start state.
+        if game.state().time.is_zero() {
+            match game.update(InGameTime::ZERO, None) {
+                Ok(msgs) => game_renderer.update_feed(msgs, &self.settings),
+                // ?? but i didn't even do anything yet
+                Err(_update_game_error) => {}
+            }
+        }
+
+        Some(Menu::PlayGame {
+            game: game.into(),
+            raw_input_history,
+            game_meta_data,
+            game_renderer: game_renderer.into(),
+        })
     }
 }
