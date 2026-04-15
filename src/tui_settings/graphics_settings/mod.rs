@@ -118,9 +118,9 @@ impl GraphicsSettings {
             normalsize_preview_limit: None,
             fps: ExtNonNegF64::from(60),
             boardpalette_picked: 0, // Monochrome
-            show_main_hud: false,
+            show_main_hud: true,
             show_keybinds: false,
-            show_buttons: false,
+            show_buttons: true,
             show_shadow: true,
             show_spawn: true,
             show_grid: false,
