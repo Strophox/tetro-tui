@@ -313,7 +313,7 @@ impl Renderer for StandardBufferedRenderer {
         const W_PAD_LEFT: u16 = 1;
         // Total *additional* width of an active game HUD (on the left);
         // In addition to the 'hold' widget which already protrudes to the left and reserves space available underneath it.
-        const W_ADD_ACTIVE_HUD: u16 = 17;
+        const W_ADD_ACTIVE_HUD: u16 = 15;
         // Total width of the 'hold' widget including frame.
         const W_HOLD: u16 = 7;
         // Total width of the inside of the game field.
@@ -596,7 +596,7 @@ impl Renderer for StandardBufferedRenderer {
                         ),
                     )
                 }),
-                replay_extra.map(|(replay_len, _)| ("REPLAYING", fmt_duration(replay_len))),
+                replay_extra.map(|(replay_len, _)| ("REPLAY", fmt_duration(replay_len))),
                 replay_extra
                     .map(|(_, replay_speed)| ("Replay speed:", format!("{replay_speed:.02}x"))),
             ];
@@ -618,13 +618,11 @@ impl Renderer for StandardBufferedRenderer {
 
                 #[rustfmt::skip] self.term_buf.write_char(w_tmp4, h_tmp4, TermCell { ch: c_m_tb, fg: Color::Reset });
                 #[rustfmt::skip] self.term_buf.write_char(w_tmp4 + 1, h_tmp4, TermCell { ch: c_m_tb, fg: Color::Reset });
-                #[rustfmt::skip] self.term_buf.write_char(w_tmp4 + 1 + 1, h_tmp4, TermCell { ch: c_m_tb, fg: Color::Reset });
-                #[rustfmt::skip] self.term_buf.write_str(w_tmp4 + 1 + 1 + 1, h_tmp4, "basic keybinds", Color::Reset);
-                #[rustfmt::skip] self.term_buf.write_char(w_tmp4 + 1 + 1 + 1 + 14, h_tmp4, TermCell { ch: c_m_tb, fg: Color::Reset });
-                #[rustfmt::skip] self.term_buf.write_char(w_tmp4 + 1 + 1 + 1 + 14 + 1, h_tmp4, TermCell { ch: c_m_tb, fg: Color::Reset });
-                #[rustfmt::skip] self.term_buf.write_char(w_tmp4 + 1 + 1 + 1 + 14 + 1 + 1, h_tmp4, TermCell { ch: c_m_tb, fg: Color::Reset });
+                #[rustfmt::skip] self.term_buf.write_str(w_tmp4 + 1 + 1, h_tmp4, "basic keybinds", Color::Reset);
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp4 + 1 + 1 + 14, h_tmp4, TermCell { ch: c_m_tb, fg: Color::Reset });
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp4 + 1 + 1 + 14 + 1, h_tmp4, TermCell { ch: c_m_tb, fg: Color::Reset });
 
-                const W_KEYBINDS: usize = (W_ADD_ACTIVE_HUD + W_HOLD) as usize;
+                const W_KEYBINDS: usize = (W_ADD_ACTIVE_HUD + W_HOLD).saturating_sub(1) as usize;
                 // FIXME: Correct but kinda inefficient?
                 let w_max_description = keybinds_legend
                     .iter()

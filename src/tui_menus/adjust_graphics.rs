@@ -195,7 +195,7 @@ impl<T: Write> Application<T> {
                 ),
                 (
                     "Color board tiles",
-                    self.settings.graphics().boardpalette_picked == 0,
+                    self.settings.graphics().boardpalette_picked != 0,
                 ),
                 ("Show left HUD", self.settings.graphics().show_main_hud),
                 (
@@ -391,20 +391,20 @@ impl<T: Write> Application<T> {
                     }
                     12 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().show_shadow ^= true;
+                    }
+                    13 => {
+                        if_unmodifiable_clone_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().show_spawn ^= true;
+                    }
+                    14 => {
+                        if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.graphics_mut().boardpalette_picked =
                             if self.settings.graphics().boardpalette_picked == 0 {
                                 self.settings.graphics_mut().palette_picked
                             } else {
                                 0
                             };
-                    }
-                    13 => {
-                        if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().show_shadow ^= true;
-                    }
-                    14 => {
-                        if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().show_spawn ^= true;
                     }
                     15 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
@@ -517,20 +517,20 @@ impl<T: Write> Application<T> {
                     }
                     12 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().show_shadow ^= true;
+                    }
+                    13 => {
+                        if_unmodifiable_clone_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().show_spawn ^= true;
+                    }
+                    14 => {
+                        if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.graphics_mut().boardpalette_picked =
                             if self.settings.graphics().boardpalette_picked == 0 {
                                 self.settings.graphics_mut().palette_picked
                             } else {
                                 0
                             };
-                    }
-                    13 => {
-                        if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().show_shadow ^= true;
-                    }
-                    14 => {
-                        if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().show_spawn ^= true;
                     }
                     15 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);

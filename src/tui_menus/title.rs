@@ -206,7 +206,7 @@ impl<T: Write> Application<T> {
                 .queue(PrintStyledContent(
                     format!(
                         "{:^w_main$}",
-                        "(Controls: [←|↓|↑|→] [Esc|Enter|Del] / hjklqed)",
+                        "(Controls: [←|↓|↑|→] [Esc|Enter|Del] / hjkl qed)",
                     )
                     .italic(),
                 ))?;

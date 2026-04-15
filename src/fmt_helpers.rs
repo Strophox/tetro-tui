@@ -188,7 +188,7 @@ pub fn replay_keybinds_legend() -> KeybindsLegend {
         (icons_speed, "speed -/+"),
         (icons_skip, "timeskip -/+"),
         // (icons_jump, "timejump #0%"),
-        (icons_enter, "take over game"),
+        (icons_enter, "take over"),
         (icon_stop, "stop"),
     ]
 }
