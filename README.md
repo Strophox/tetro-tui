@@ -97,6 +97,7 @@ yay -S tetro-tui
 >   * Initial fall delay = 1.0s (Gravity: 1.0 Hz)
 >   * Progressive gravity ∈ [on, off]
 >   * Limit ∈ [None, TimeElapsed(300s), .., PointsScored(200), .., PiecesLocked(100), .., LinesCleared(40), ..]
+> - Game save: (Only shows up after using `Ctrl+S`)
 > 
 > **Settings/Adjust-Graphics/**
 > * Slot ∈ ['Default', 'Focus+', 'Guideline', 'High Compat.', 'Elektronika 60', 'Custom I'/'II'/..]
