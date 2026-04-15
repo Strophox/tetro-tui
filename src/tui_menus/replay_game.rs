@@ -444,7 +444,14 @@ impl<T: Write> Application<T> {
                                     as usize;
 
                                 if matches!(code, KeyCode::Left | KeyCode::Char('h' | 'H')) {
-                                    anchor_index = anchor_index.saturating_sub(1);
+                                    if game
+                                        .state()
+                                        .time
+                                        .saturating_sub(ANCHOR_INTERVAL * (anchor_index as u32))
+                                        < ANCHOR_INTERVAL / 2
+                                    {
+                                        anchor_index = anchor_index.saturating_sub(1);
+                                    }
                                 } else {
                                     anchor_index += 1;
                                 }
