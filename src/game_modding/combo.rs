@@ -118,7 +118,8 @@ impl GameModifier for Combo {
             Self::combo_lines(&mut self.height_loaded).next().unwrap();
 
         // Overwrite game score with combo length.
-        // FIXME: Proper solution for displaying progress instead of overwriting score?
+        // FIXME: Proper solution for displaying combo progress instead of overwriting game 'points'?
+        // This might get resolved with general improved TUI++modding facilities.
         game.state.points = game.state.consecutive_lineclears;
     }
 }

@@ -414,7 +414,6 @@ impl QuantizeInGameTime for InGameTime {
         };
         let quantized_nanos = truncated_nanos + ceil_inc;
 
-        // InGameTime::from_nanos_u128(quantized_nanos) // FIXME: Use this if we ever bump to MSRV 1.93.0. Otherwise whatever.
         InGameTime::from_nanos(quantized_nanos as u64)
     }
 }
@@ -446,7 +445,6 @@ fn try_uint_to_timed_input(bitpattern: uint) -> Result<(InGameTime, Input), Stri
     let i_bitpattern = (bitpattern & I_BITS_MASK) as u8;
     let quantized_nanos = (bitpattern >> INPUT_BITPATTERNSIZE) as u128 * NANOS_QUANTIZATION;
     Ok((
-        // InGameTime::from_nanos_u128(quantized_nanos) // FIXME: Use this if we ever bump to MSRV 1.93.0. Otherwise whatever.
         InGameTime::from_nanos(quantized_nanos as u64),
         try_u8_to_input(i_bitpattern)?,
     ))

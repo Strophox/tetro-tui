@@ -625,7 +625,7 @@ impl Renderer for StandardBufferedRenderer {
                 #[rustfmt::skip] self.term_buf.write_char(w_tmp4 + 1 + 1 + 1 + 14 + 1 + 1, h_tmp4, TermCell { ch: c_m_tb, fg: Color::Reset });
 
                 const W_KEYBINDS: usize = (W_ADD_ACTIVE_HUD + W_HOLD) as usize;
-                // FIXME: Kinda inefficient?
+                // FIXME: Correct but kinda inefficient?
                 let w_max_description = keybinds_legend
                     .iter()
                     .map(|s| s.1.chars().count())
@@ -906,7 +906,8 @@ impl Renderer for StandardBufferedRenderer {
                         }
                     }
 
-                    // FIXME: No visual indicator for Top out implemented! Though currently game does not even emit this.
+                    // FIXME: Implement visual indicator for Top out.
+                    // Currently engine does not handle this so we're safe except for mods using it.
                     GameEndCause::TopOut { top_lines: _ } => {}
 
                     // We currently do not have any visual indicator to display game-end by limit hit.

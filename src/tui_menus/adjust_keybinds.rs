@@ -173,7 +173,7 @@ impl<T: Write> Application<T> {
                         // Wait until appropriate keypress detected.
                         if self.temp_data.kitty_assumed {
                             let f = Self::GAME_KEYBOARD_ENHANCEMENT_FLAGS;
-                            // FIXME: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm minds if we do this on Windows.
+                            // NOTE: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm minds if we do this on Windows.
                             let _v = self.term.execute(event::PushKeyboardEnhancementFlags(f));
                         }
                         loop {
@@ -202,7 +202,7 @@ impl<T: Write> Application<T> {
                         }
                         // Console epilogue: De-initialization.
                         if self.temp_data.kitty_assumed {
-                            // FIXME: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm minds if we do this on Windows.
+                            // NOTE: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm minds if we do this on Windows.
                             let _v = self.term.execute(event::PopKeyboardEnhancementFlags);
                         }
                     }

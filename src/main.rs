@@ -391,7 +391,6 @@ pub struct TemporaryAppData {
     pub loadfile_result: io::Result<()>,
 }
 
-// FIXME: Move tui application into `main` instead of artifically having it in one module below `tetro-tui::main`?
 #[derive(Debug)]
 pub struct Application<T: Write> {
     term: T,
@@ -434,15 +433,12 @@ impl<T: Write> Drop for Application<T> {
 }
 
 impl<T: Write> Application<T> {
-    // FIXME: What the... Maybe do less hardcoding here?
-    // pub const W_MAIN: u16 = 80;
-    // pub const H_MAIN: u16 = 24;
     pub const W_MAIN: u16 = 62;
     pub const H_MAIN: u16 = 23;
 
     pub const TERMINAL_TITLE: &str = "Tetro TUI";
 
-    // FIXME: Could we get any undesirable results from pushing all() enhancement flags?
+    // FIXME: Undesirable results from pushing all() enhancement flags?
     pub const GAME_KEYBOARD_ENHANCEMENT_FLAGS: KeyboardEnhancementFlags =
         KeyboardEnhancementFlags::all();
 
@@ -475,7 +471,7 @@ impl<T: Write> Application<T> {
             // 2d. For technical reasons we do not want default keyboard enhancement in the TUI's menus.
             // - Default enhancement trigger screen refreshes, discarding text selection and preventing Ctrl+Shift+C (copy, e.g. of savefile path in Advanced Settings menu).
             // - Enhancement-sensitive menus (e.g. game, replay, keybind settings) should set their own custom enhancement flags if applicable, so this should really only affect menus which rely on the "default" terminal enhancement state.
-            // FIXME: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm minds if we do this on Windows.
+            // NOTE: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm minds if we do this on Windows.
             let _v = self.term.execute(PushKeyboardEnhancementFlags(
                 KeyboardEnhancementFlags::empty(),
             ));
@@ -488,7 +484,7 @@ impl<T: Write> Application<T> {
             // (Try to) undo terminal setup.
 
             // 2d.
-            // FIXME: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm minds if we do this on Windows.
+            // NOTE: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm minds if we do this on Windows.
             let _v = self.term.execute(PopKeyboardEnhancementFlags);
 
             // 2b.
@@ -656,38 +652,6 @@ impl<T: Write> Application<T> {
                 MenuUpdate::Pop => {
                     if menu_stack.len() > 1 {
                         menu_stack.pop();
-
-                        // FIXME: Unused exit menu transition "DIAG".
-                        // let (x_main, y_main) = Self::fetch_main_xy();
-                        // /*
-                        //  0      /1   /2   /3
-                        // 0,0  1,0  2,0  3,0
-                        // 0,1  1,1  2,1  3,1/-4
-                        // 0,2  1,2  2,2  3,2/-5
-                        // 0,3  1,3  2,3  3,3/-6
-                        //  */
-                        // for xplusy in 0 ..= (Self::W_MAIN/2).saturating_sub(1) + (Self::H_MAIN).saturating_sub(1) {
-                        //     for x in xplusy.saturating_sub((Self::H_MAIN).saturating_sub(1)) ..= (Self::W_MAIN/2).saturating_sub(1) {
-                        //         let y = xplusy.saturating_sub(x);
-                        //         self.term
-                        //             .queue(MoveTo(x_main + 2 * x, y_main + y))?
-                        //             .queue(Print("  "))?;
-                        //     }
-                        //     self.term.flush()?;
-                        //     std::thread::sleep(Duration::from_secs_f32(1./120.0));
-                        // }
-
-                        // FIXME: Unused exit menu transition "SIDE".
-                        // let (x_main, y_main) = Self::fetch_main_xy();
-                        // for x in 0..Self::W_MAIN/2 {
-                        //     for y in 0..Self::H_MAIN {
-                        //         self.term
-                        //             .queue(MoveTo(x_main + 2 * x, y_main + y))?
-                        //             .queue(Print("  "))?;
-                        //     }
-                        //     self.term.flush()?;
-                        //     std::thread::sleep(Duration::from_secs_f32(1./240.0));
-                        // }
                     }
                 }
                 MenuUpdate::Push(menu) => {
@@ -721,38 +685,6 @@ impl<T: Write> Application<T> {
                                 .execute(Clear(ClearType::CurrentLine))?;
                             std::thread::sleep(Duration::from_secs_f32(1. / 120.0));
                         }
-                    } else {
-                        // FIXME: Unused enter menu transition "DIAG".
-                        // let (x_main, y_main) = Self::fetch_main_xy();
-                        // /*
-                        //  0      /1   /2   /3
-                        // 0,0  1,0  2,0  3,0
-                        // 0,1  1,1  2,1  3,1/-4
-                        // 0,2  1,2  2,2  3,2/-5
-                        // 0,3  1,3  2,3  3,3/-6
-                        //  */
-                        // for xplusy in (0 ..= (Self::W_MAIN/2).saturating_sub(1) + (Self::H_MAIN).saturating_sub(1)).rev() {
-                        //     for x in xplusy.saturating_sub((Self::H_MAIN).saturating_sub(1)) ..= (Self::W_MAIN/2).saturating_sub(1) {
-                        //         let y = xplusy.saturating_sub(x);
-                        //         self.term
-                        //             .queue(MoveTo(x_main + 2 * x, y_main + y))?
-                        //             .queue(Print("  "))?;
-                        //     }
-                        //     self.term.flush()?;
-                        //     std::thread::sleep(Duration::from_secs_f32(1./120.0));
-                        // }
-
-                        // FIXME: Unused enter menu transition "SIDE".
-                        // let (x_main, y_main) = Self::fetch_main_xy();
-                        // for x in (0..Self::W_MAIN/2).rev() {
-                        //     for y in 0..Self::H_MAIN {
-                        //         self.term
-                        //             .queue(MoveTo(x_main + 2 * x, y_main + y))?
-                        //             .queue(Print("  "))?;
-                        //     }
-                        //     self.term.flush()?;
-                        //     std::thread::sleep(Duration::from_secs_f32(1./240.0));
-                        // }
                     }
 
                     menu_stack.push(menu);

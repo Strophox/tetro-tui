@@ -77,28 +77,6 @@ impl<T: Write> Application<T> {
             self.settings
                 .game_mode_preferences
                 .experimental_mode_unlocked = true;
-            // FIXME: Unused 'notification' screen for unlocking, but due to technicality eats too many user inputs for good UX.
-            // let w_main = Self::W_MAIN.into();
-            // let (x_main, y_main) = Self::fetch_main_xy();
-            // let y_half = (Self::H_MAIN / 2).saturating_sub(1);
-            // self.term
-            //     .queue(Clear(ClearType::All))?
-            //     .queue(MoveTo(x_main, y_main + y_half))?
-            //     .queue(Print(format!("{:^w_main$}", title_bar(&self.settings))))?;
-            // self.term
-            //     .queue(MoveTo(x_main, y_main + y_half + 1))?
-            //     .queue(Print(
-            //         format!(
-            //             "{:^w_main$}",
-            //             "New experimental Mode unlocked."
-            //         )
-            //     ))?;
-            // self.term
-            //     .queue(MoveTo(x_main, y_main + y_half + 2))?
-            //     .queue(Print(format!("{:^w_main$}", title_bar(&self.settings))))?;
-            // self.term.flush()?;
-            // // Wait.
-            // event::read()?;
         }
 
         let mut selected = 0usize;

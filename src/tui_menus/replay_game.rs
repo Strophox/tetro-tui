@@ -56,7 +56,7 @@ impl<T: Write> Application<T> {
         // Toggle on enhanced-keyboard-events.
         if self.temp_data.kitty_assumed {
             let f = Self::GAME_KEYBOARD_ENHANCEMENT_FLAGS;
-            // FIXME: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm doesn't like operating on Windows.
+            // NOTE: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm doesn't like operating on Windows.
             let _v = self.term.execute(event::PushKeyboardEnhancementFlags(f));
         }
 
@@ -264,7 +264,6 @@ impl<T: Write> Application<T> {
 
                             // [Ctrl+S]: Store game save.
                             (KeyCode::Char('s' | 'S'), KeyModifiers::CONTROL) => {
-                                // FIXME: Store more than one game save?
                                 self.game_saves.picked = 0;
                                 self.game_saves.slots = vec![GameSave {
                                     game_meta_data: game_meta_data.clone(),
@@ -426,7 +425,7 @@ impl<T: Write> Application<T> {
                                     .inputs
                                     .get(inputs_loaded)
                                 {
-                                    // FIXME: We do not handle degenerate cases where input is available even tho game should forfeit.
+                                    // FIXME: We do not handle degenerate cases where input is available even though game should also be forfeit.
 
                                     match game.update(*next_input_time, Some(*input)) {
                                         Ok(msgs) => game_renderer.update_feed(msgs, &self.settings),
@@ -496,12 +495,11 @@ impl<T: Write> Application<T> {
                                 let mut the_meta_data = game_meta_data.clone();
                                 the_meta_data.title.push('\'');
 
-                                // FIXME: Clone renderer when entering live game from here?
+                                // FIXME: Instead clone renderer when entering live game from here?
                                 let the_game_renderer =
                                     TetroTUIRenderer::with_number(self.temp_data.renderer_selected);
 
-                                // FIXME: Should we count this as new game started?
-                                // Accumulate this specific state here.
+                                // FIXME: Should we count game takeover as new game started?
                                 // self.statistics.total_new_games += 1;
 
                                 break 'update_and_render MenuUpdate::Push(Menu::PlayGame {
@@ -825,15 +823,15 @@ impl<T: Write> Application<T> {
         ``` */
 
         if self.temp_data.kitty_assumed {
-            // FIXME: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm doesn't like operating on Windows.
+            // NOTE: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm doesn't like operating on Windows.
             let _v = self.term.execute(event::PopKeyboardEnhancementFlags);
         }
 
         Ok(menu_update)
     }
 
-    // FIXME: Add better error detection for fail cases, probably use renderer feed.
-    // FIXME: We do not treat degenerate games that end immediately (total time = 0).
+    // FIXME: Improve error detection for fail cases, possibly use renderer feed.
+    // We currently do not treat degenerate games that end immediately (total time = 0).
     fn calculate_game_save_anchors(
         &mut self,
         game_restoration_data: &GameRestorationData<RawInputHistory>,
@@ -865,7 +863,6 @@ impl<T: Write> Application<T> {
                     fmt_duration(replay_length)
                 ))))?;
 
-            // FIXME: Malformed input may not interact nicely with other things, e.g. forfeiting below.
             'feed_inputs: loop {
                 let Some((next_input_time, input)) = game_restoration_data
                     .input_history
@@ -924,14 +921,3 @@ impl<T: Write> Application<T> {
         Ok((initial_game, Some(game_save_anchors)))
     }
 }
-
-// FIXME: Use or remove.
-// pub fn stream_updates(game: &mut Game, input_stream: impl IntoIterator<Item = (InGameTime, Option<ButtonChange>)>) -> Result<Vec<FeedbackMsg>, UpdateGameError> {
-//     let mut msgs = Vec::new();
-
-//     for (target_time, input) in input_stream {
-//         msgs.extend(game.update(target_time, input)?);
-//     }
-
-//     Ok(msgs)
-// }
