@@ -9,14 +9,20 @@ use rand::seq::SliceRandom;
 use crate::tui_settings::Palette;
 
 #[derive(
-    PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Clone,
+    Debug,
+    Default,
+    serde::Serialize,
+    serde::Deserialize,
 )]
 pub struct Cheese {
     // Modifier configuration.
-    holes_per_line: NonZeroUsize,
-    ensure_distinct_holes: bool,
-    cheese_limit: Option<NonZeroU32>,
-
+    config: CheeseConfig,
     // Modifier state fields.
     cheese_eaten_up: u32,
     temp_last_clear_actual_cheese_lines: usize,
@@ -24,20 +30,31 @@ pub struct Cheese {
     last_hole_pattern_generated: Vec<usize>,
 }
 
+#[derive(
+    PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug, serde::Serialize, serde::Deserialize,
+)]
+pub struct CheeseConfig {
+    pub holes_per_line: NonZeroUsize,
+    pub ensure_distinct_holes: bool,
+    pub limit: Option<NonZeroU32>,
+}
+
+impl Default for CheeseConfig {
+    fn default() -> Self {
+        Self {
+            holes_per_line: NonZeroUsize::MIN,
+            ensure_distinct_holes: true,
+            limit: Some(NonZeroU32::try_from(20).unwrap()),
+        }
+    }
+}
+
 impl Cheese {
     pub const MOD_ID: &str = stringify!(Cheese); // lol.
 
-    pub fn build(
-        builder: &GameBuilder,
-        holes_per_line: NonZeroUsize,
-        ensure_distinct_holes: bool,
-        cheese_limit: Option<NonZeroU32>,
-    ) -> Game {
+    pub fn build(builder: &GameBuilder, config: CheeseConfig) -> Game {
         let modifier = Box::new(Self {
-            holes_per_line,
-            ensure_distinct_holes,
-            cheese_limit,
-
+            config,
             cheese_eaten_up: 0,
             temp_last_clear_actual_cheese_lines: 0,
             cheese_generated: 0,
@@ -46,7 +63,7 @@ impl Cheese {
 
         builder
             .clone()
-            .game_limits(match cheese_limit {
+            .game_limits(match config.limit {
                 Some(c) => GameLimits::single(Stat::PointsScored(c.get()), true),
                 None => GameLimits::new(),
             })
@@ -59,8 +76,8 @@ impl GameModifier for Cheese {
         Self::MOD_ID.to_owned()
     }
 
-    fn args(&self) -> String {
-        serde_json::to_string(&(self.holes_per_line, self.cheese_limit)).unwrap()
+    fn cfg(&self) -> String {
+        serde_json::to_string(&(self.config)).unwrap()
     }
 
     fn try_clone(&self) -> Result<Box<dyn GameModifier>, String> {
@@ -69,9 +86,7 @@ impl GameModifier for Cheese {
 
     fn on_game_built(&mut self, game: GameAccess) {
         let cheese_lines = Self::prng_cheese_lines(
-            self.holes_per_line,
-            self.ensure_distinct_holes,
-            self.cheese_limit,
+            &self.config,
             &mut self.last_hole_pattern_generated,
             &mut self.cheese_generated,
             &mut game.state.rng,
@@ -101,9 +116,7 @@ impl GameModifier for Cheese {
 
     fn on_lines_clear_post(&mut self, game: GameAccess, _feed: &mut NotificationFeed) {
         let cheese_lines = Self::prng_cheese_lines(
-            self.holes_per_line,
-            self.ensure_distinct_holes,
-            self.cheese_limit,
+            &self.config,
             &mut self.last_hole_pattern_generated,
             &mut self.cheese_generated,
             &mut game.state.rng,
@@ -120,20 +133,18 @@ impl GameModifier for Cheese {
 
 impl Cheese {
     fn prng_cheese_lines<'a>(
-        holes_per_line: NonZeroUsize,
-        ensure_distinct_holes: bool,
-        limit: Option<NonZeroU32>,
+        config: &'a CheeseConfig,
         last_hole_pattern_generated: &'a mut Vec<usize>,
         generated: &'a mut u32,
         rng: &'a mut GameRng,
     ) -> impl Iterator<Item = Line> + 'a {
         std::iter::from_fn(move || {
-            limit.is_none_or(|l| *generated < l.get()).then(|| {
+            config.limit.is_none_or(|l| *generated < l.get()).then(|| {
                 *generated += 1;
                 let mut line = Line::default();
                 for tile in line
                     .iter_mut()
-                    .take(Game::WIDTH.saturating_sub(holes_per_line.get()))
+                    .take(Game::WIDTH.saturating_sub(config.holes_per_line.get()))
                 {
                     *tile = Some(Palette::GRAY);
                 }
@@ -145,7 +156,7 @@ impl Cheese {
                         .enumerate()
                         .filter_map(|(i, x)| x.is_some().then_some(i))
                         .collect();
-                    if !ensure_distinct_holes
+                    if !config.ensure_distinct_holes
                         || hole_pattern_generated != *last_hole_pattern_generated
                         || hole_pattern_generated.len() == line.len()
                     // If the lines we generate are wholly empty (and cannot possibly be different), give up.

@@ -25,7 +25,7 @@ impl GameModifier for StartBoard {
         Self::MOD_ID.to_owned()
     }
 
-    fn args(&self) -> String {
+    fn cfg(&self) -> String {
         serde_json::to_string(&self.encoded_board).unwrap()
     }
 

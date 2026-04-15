@@ -29,7 +29,7 @@ impl GameModifier for PrintMsgs {
         Self::MOD_ID.to_owned()
     }
 
-    fn args(&self) -> String {
+    fn cfg(&self) -> String {
         serde_json::to_string(&self.messages).unwrap()
     }
 

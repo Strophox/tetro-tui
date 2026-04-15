@@ -383,7 +383,7 @@ impl<T: Write> Application<T> {
                     }
                 }
 
-                // Load slot as savepoint.
+                // Load slot as replay.
                 Event::Key(KeyEvent {
                     code: KeyCode::Enter | KeyCode::Char('e' | 'E'),
                     kind: Press | Repeat,

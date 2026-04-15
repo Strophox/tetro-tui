@@ -189,9 +189,9 @@ yay -S tetro-tui
 > | `Del`, `d` | Delete/reset |
 > | `1`/`2`/`3`... | Quickselect option (in 'New game') |
 > | `Home`/`End` | Navigate to top/bottom in 'Scores & Replays' |
-> | `Alt`+? | Change value but differently (in 'New game'⇝['Combo','Savepoint','Custom'], in 'Gameplay settings'⇝'Tetromino generation') |
+> | `Alt`+? | Change value but differently (in 'Start game'⇝['Combo','Game save','Custom'], in 'Gameplay settings'⇝'Tetromino generation') |
 > | `Alt`+`Del`, `Alt`+`d` | Delete replay  (in 'Scores and Replays') |
-> | `Ctrl`+`U` | (For experienced/impatient players) unlock all game modes (in 'New game') |
+> | `Ctrl`+`U` | (For experienced/impatient players) unlock all game modes (in 'Start game') |
 > | `Ctrl`+`C` | Exit application (respects save preferences) |
 > 
 > </details>
@@ -217,9 +217,10 @@ yay -S tetro-tui
 > | - | Teleport right |
 > | `Space` | Hold piece |
 > | `Ctrl`+`D` | Forfeit game |
-> | `Ctrl`+`E` | Store seed (accessible in 'New game'⇝'Custom') |
-> | `Ctrl`+`S` | Store savepoint (accessible in 'New game'⇝'Savepoint' or in '(live) Game'⇝`Ctrl`+`L`) |
-> | `Ctrl`+`L` | Load savepoint (Caution: overwrites live game) |
+> | `Ctrl`+`R` | Restart game mode (Caution: discards current game) |
+> | `Ctrl`+`L` | Load game save (Caution: discards current game) |
+> | `Ctrl`+`S` | Store game save (accessible in 'Start game'⇝'Game save' or '(live) Game'⇝`Ctrl`+`L`) |
+> | `Ctrl`+`E` | Store seed (accessible in 'Start game'⇝'Custom') |
 > | `Ctrl`(+`Alt`)+`G` | Cycle through graphics settings slots |
 > | `Ctrl`+`Alt`+`B` | Toggle on/off visibility of tiles ('Blindfolded') |
 > | `Ctrl`+`C` | Exit application (respects save preferences) |
@@ -244,10 +245,10 @@ yay -S tetro-tui
 > | `.` | Skip forward one player input + pause |
 > | `Alt`+`.` | Skip forward one game state change\* + pause (\*might not work properly for modded games) |
 > | `Enter`, `e` | Start (live) Game from current replay state |
+> | `Ctrl`+`I` | (Experimental) Toggle Instant Interactive Input Intervention |
+> | `Ctrl`+`S` | Store game save (accessible in 'Start game'⇝'Game save' or '(live) Game'⇝`Ctrl`+`L`) |
 > | `Ctrl`+`E` | Store seed (accessible in 'New game'⇝'Custom') |
-> | `Ctrl`+`S` | Store savepoint (accessible in 'New game'⇝'Savepoint' or in '(live) Game'⇝`Ctrl`+`L`) |
 > | `Ctrl`(+`Alt`)+`G` | Cycle through graphics settings slots |
-> | `Ctrl`+`I` | Toggle experimental Instant Interactive Input Intervention |
 > | `Ctrl`+`C` | Exit application (respects save preferences) |
 > 
 > </details>

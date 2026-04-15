@@ -46,7 +46,7 @@ impl GameModifier for Puzzle {
         Self::MOD_ID.to_owned()
     }
 
-    fn args(&self) -> String {
+    fn cfg(&self) -> String {
         "".to_owned()
     }
 

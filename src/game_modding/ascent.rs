@@ -10,7 +10,7 @@ use falling_tetromino_engine::{
 use crate::tui_settings::Palette;
 
 #[derive(
-    PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
+    PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug, serde::Serialize, serde::Deserialize,
 )]
 pub struct Ascent {
     height_loaded: usize,
@@ -38,12 +38,12 @@ impl GameModifier for Ascent {
         Self::MOD_ID.to_owned()
     }
 
-    fn args(&self) -> String {
+    fn cfg(&self) -> String {
         "".to_owned()
     }
 
     fn try_clone(&self) -> Result<Box<dyn GameModifier>, String> {
-        Ok(Box::new(self.clone()))
+        Ok(Box::new(*self))
     }
 
     fn on_game_built(&mut self, game: GameAccess) {
