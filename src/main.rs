@@ -583,11 +583,11 @@ impl<T: Write> Application<T> {
         // Special: Overwrite specifically requested cmdline flags.
 
         if custom_start_board.is_some() {
-            new.settings.game_mode_preferences.custom_start_board = custom_start_board;
+            new.settings.game_mode_preferences.custom_config.start_board = custom_start_board;
         }
 
         if custom_start_seed.is_some() {
-            new.settings.game_mode_preferences.custom_seed = custom_start_seed;
+            new.settings.game_mode_preferences.custom_config.seed = custom_start_seed;
         }
 
         new
@@ -615,9 +615,14 @@ impl<T: Write> Application<T> {
                     raw_input_history,
                     game_meta_data,
                     game_renderer,
-                } => {
-                    self.run_menu_play_game(game, raw_input_history, game_meta_data, game_renderer)
-                }
+                    selection_id_for_game_retry,
+                } => self.run_menu_play_game(
+                    game,
+                    raw_input_history,
+                    game_meta_data,
+                    game_renderer,
+                    *selection_id_for_game_retry,
+                ),
                 Menu::Pause => self.run_menu_pause(),
                 Menu::Settings => self.run_menu_settings(),
                 Menu::AdjustGraphics => self.run_menu_adjust_graphics(),

@@ -49,6 +49,7 @@ pub enum Menu {
         game_meta_data: GameMetaData,
         // game_statistics: Statistics,
         game_renderer: Box<TetroTUIRenderer>,
+        selection_id_for_game_retry: Option<usize>,
     },
     Pause,
     Settings,

@@ -251,9 +251,9 @@ impl<T: Write> Application<T> {
                                 break 'wait;
                             }
 
-                            // [Ctrl+S]: Store savepoint.
+                            // [Ctrl+S]: Store game save.
                             (KeyCode::Char('s' | 'S'), KeyModifiers::CONTROL) => {
-                                // FIXME: Store more than one savepoint?
+                                // FIXME: Store more than one game save?
                                 self.game_saves.picked = 0;
                                 self.game_saves.slots = vec![GameSave {
                                     game_meta_data: game_meta_data.clone(),
@@ -274,7 +274,7 @@ impl<T: Write> Application<T> {
 
                                 game_renderer.update_feed(
                                     [(
-                                        Notification::Custom("(Stored savepoint)".to_owned()),
+                                        Notification::Custom("(Game save stored)".to_owned()),
                                         game.state().time,
                                     )],
                                     &self.settings,
@@ -288,7 +288,7 @@ impl<T: Write> Application<T> {
 
                             // [Ctrl+E]: Store seed.
                             (KeyCode::Char('e' | 'E'), KeyModifiers::CONTROL) => {
-                                self.settings.game_mode_preferences.custom_seed =
+                                self.settings.game_mode_preferences.custom_config.seed =
                                     Some(game.state_init().seed);
 
                                 game_renderer.update_feed(
@@ -505,6 +505,7 @@ impl<T: Write> Application<T> {
                                         .into(),
                                     game_meta_data: the_meta_data,
                                     game_renderer: Box::new(the_game_renderer),
+                                    selection_id_for_game_retry: None,
                                 });
                             }
 

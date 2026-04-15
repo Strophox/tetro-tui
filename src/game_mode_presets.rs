@@ -1,11 +1,8 @@
-use std::{
-    num::{NonZeroU32, NonZeroUsize},
-    time::Duration,
-};
+use std::time::Duration;
 
 use falling_tetromino_engine::{DelayParameters, ExtDuration, Game, GameBuilder, GameLimits, Stat};
 
-use crate::game_modding;
+use crate::game_modding::{self, CheeseConfig, ComboConfig};
 
 // Name, (Stat-to-sort-by, is-order-desc), game-builder-struct-finalizer).
 pub struct GameModePreset {
@@ -94,17 +91,12 @@ impl GameModePreset {
     }
 
     pub const TITLE_CHEESE: &str = "Cheese";
-    pub fn cheese(
-        cheese_holes_per_line: NonZeroUsize,
-        cheese_ensure_distinct_holes: bool,
-        cheese_limit: Option<NonZeroU32>,
-        fall_lock_delays: (ExtDuration, ExtDuration),
-    ) -> Self {
+    pub fn cheese(config: CheeseConfig, fall_lock_delays: (ExtDuration, ExtDuration)) -> Self {
         Self {
             title: format!(
                 "{}{}",
                 Self::TITLE_CHEESE,
-                if let Some(limit) = cheese_limit {
+                if let Some(limit) = config.limit {
                     format!("-{limit}")
                 } else {
                     "".to_owned()
@@ -112,7 +104,7 @@ impl GameModePreset {
             ),
             description: format!(
                 "Eat through lines like Swiss cheese. Limit={:?}",
-                cheese_limit
+                config.limit
             ),
             stat_and_order_desc: (Stat::PiecesLocked(0), true),
             build: Box::new({
@@ -121,24 +113,19 @@ impl GameModePreset {
                     builder
                         .fall_delay_params(DelayParameters::constant(fall_lock_delays.0))
                         .lock_delay_params(DelayParameters::constant(fall_lock_delays.1));
-                    game_modding::Cheese::build(
-                        &builder,
-                        cheese_holes_per_line,
-                        cheese_ensure_distinct_holes,
-                        cheese_limit,
-                    )
+                    game_modding::Cheese::build(&builder, config)
                 }
             }),
         }
     }
 
     pub const TITLE_COMBO: &str = "Combo";
-    pub fn combo(initial_layout: u16, combo_limit: Option<NonZeroU32>) -> Self {
+    pub fn combo(config: ComboConfig) -> Self {
         Self {
             title: format!(
                 "{}{}",
                 Self::TITLE_COMBO,
-                if let Some(limit) = combo_limit {
+                if let Some(limit) = config.limit {
                     format!("-{limit}")
                 } else {
                     "".to_owned()
@@ -146,18 +133,16 @@ impl GameModePreset {
             ),
             description: format!(
                 "Get consecutive line clears. Limit={:?}{}",
-                combo_limit,
-                if initial_layout != game_modding::Combo::LAYOUTS[0] {
-                    format!(", Layout={:b}", initial_layout)
+                config.limit,
+                if config.start_layout != game_modding::Combo::LAYOUTS[0] {
+                    format!(", Layout={:b}", config.start_layout)
                 } else {
                     "".to_owned()
                 }
             ),
             stat_and_order_desc: (Stat::TimeElapsed(Duration::ZERO), true),
             build: Box::new({
-                move |builder: &GameBuilder| {
-                    game_modding::Combo::build(builder, initial_layout, combo_limit)
-                }
+                move |builder: &GameBuilder| game_modding::Combo::build(builder, config)
             }),
         }
     }

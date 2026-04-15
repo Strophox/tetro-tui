@@ -6,35 +6,48 @@ use falling_tetromino_engine::{
 };
 
 use crate::tui_settings::Palette;
+
 #[derive(
-    PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
+    PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug, serde::Serialize, serde::Deserialize,
 )]
 pub struct Combo {
     // Modifier configuration.
-    initial_layout: u16,
-    combo_limit: Option<NonZeroU32>,
-
+    config: ComboConfig,
     // Modifier state fields.
     height_loaded: usize,
+}
+
+#[derive(
+    PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug, serde::Serialize, serde::Deserialize,
+)]
+pub struct ComboConfig {
+    /// Custom starting layout when playing Combo mode (4-wide rows), encoded as binary.
+    /// Example: '▀▄▄▀' => 0b_1001_0110 = 150
+    pub start_layout: u16,
+    pub limit: Option<NonZeroU32>,
+}
+
+impl Default for ComboConfig {
+    fn default() -> Self {
+        Self {
+            start_layout: Combo::LAYOUTS[0],
+            limit: NonZeroU32::try_from(30).ok(),
+        }
+    }
 }
 
 impl Combo {
     pub const MOD_ID: &str = stringify!(Combo);
 
-    pub fn build(
-        builder: &GameBuilder,
-        initial_layout: u16,
-        combo_limit: Option<NonZeroU32>,
-    ) -> Game {
+    pub fn build(builder: &GameBuilder, config: ComboConfig) -> Game {
         let modifier = Box::new(Self {
-            initial_layout,
-            combo_limit,
+            config,
             height_loaded: 0,
         });
 
         builder
             .clone()
-            .game_limits(match combo_limit {
+            .game_limits(match config.limit {
                 Some(c) => GameLimits::single(Stat::PointsScored(c.get()), true),
                 None => GameLimits::new(),
             })
@@ -47,12 +60,12 @@ impl GameModifier for Combo {
         Self::MOD_ID.to_owned()
     }
 
-    fn args(&self) -> String {
-        serde_json::to_string(&(self.initial_layout, self.combo_limit)).unwrap()
+    fn cfg(&self) -> String {
+        serde_json::to_string(&self.config).unwrap()
     }
 
     fn try_clone(&self) -> Result<Box<dyn GameModifier>, String> {
-        Ok(Box::new(self.clone()))
+        Ok(Box::new(*self))
     }
 
     // Initialize board.
@@ -68,7 +81,7 @@ impl GameModifier for Combo {
         }
 
         let mut y = 0;
-        let mut layout = self.initial_layout;
+        let mut layout = self.config.start_layout;
         while layout != 0 {
             if layout & 0b1000 != 0 {
                 game.state.board[y][3] = Some(Palette::GRAY);

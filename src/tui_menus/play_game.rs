@@ -31,6 +31,7 @@ impl<T: Write> Application<T> {
         raw_input_history: &mut RawInputHistory,
         game_meta_data: &mut GameMetaData,
         game_renderer: &mut TetroTUIRenderer,
+        selection_id_for_game_retry: Option<usize>,
     ) -> io::Result<MenuUpdate> {
         /* Our game loop recipe looks like this:
           * Enter 'update_and_render loop:
@@ -74,11 +75,10 @@ impl<T: Write> Application<T> {
             matches!(code, KeyCode::Esc)
                 || matches!(
                     (code, modifiers),
-                    (KeyCode::Char('d' | 'D'), KeyModifiers::CONTROL)
-                )
-                || matches!(
-                    (code, modifiers),
-                    (KeyCode::Char('c' | 'C'), KeyModifiers::CONTROL)
+                    (
+                        KeyCode::Char('d' | 'D' | 'c' | 'C' | 'r' | 'R'),
+                        KeyModifiers::CONTROL
+                    )
                 )
         };
         let _thread_handle = input_catcher::spawn(input_sender, is_stop_event);
@@ -405,9 +405,9 @@ impl<T: Write> Application<T> {
                                 break 'wait;
                             }
 
-                            // [Ctrl+S]: Store savepoint.
+                            // [Ctrl+S]: Store game save.
                             (KeyCode::Char('s' | 'S'), KeyModifiers::CONTROL) => {
-                                // FIXME: Store more than one savepoint?
+                                // FIXME: Store more than one game save?
                                 self.game_saves.picked = 0;
                                 self.game_saves.slots = vec![GameSave {
                                     game_meta_data: game_meta_data.clone(),
@@ -428,14 +428,14 @@ impl<T: Write> Application<T> {
 
                                 game_renderer.update_feed(
                                     [(
-                                        Notification::Custom("(Stored savepoint)".to_owned()),
+                                        Notification::Custom("(Game save stored)".to_owned()),
                                         game.state().time,
                                     )],
                                     &self.settings,
                                 );
                             }
 
-                            // [Ctrl+L]: Load savepoint.
+                            // [Ctrl+L]: Load game save.
                             (KeyCode::Char('l' | 'L'), KeyModifiers::CONTROL) => {
                                 if let Some(GameSave {
                                     game_meta_data: saved_meta_data,
@@ -460,7 +460,7 @@ impl<T: Write> Application<T> {
                                     game_renderer.reset_veffects_state();
                                     game_renderer.update_feed(
                                         [(
-                                            Notification::Custom("(Loaded savepoint)".to_owned()),
+                                            Notification::Custom("(Game save loaded)".to_owned()),
                                             game.state().time,
                                         )],
                                         &self.settings,
@@ -477,7 +477,7 @@ impl<T: Write> Application<T> {
 
                             // [Ctrl+E]: Store seed.
                             (KeyCode::Char('e' | 'E'), KeyModifiers::CONTROL) => {
-                                self.settings.game_mode_preferences.custom_seed =
+                                self.settings.game_mode_preferences.custom_config.seed =
                                     Some(game.state_init().seed);
 
                                 game_renderer.update_feed(
@@ -490,6 +490,15 @@ impl<T: Write> Application<T> {
                                     )],
                                     &self.settings,
                                 );
+                            }
+
+                            // [Ctrl+R]: Retry game.
+                            (KeyCode::Char('r' | 'R'), KeyModifiers::CONTROL) => {
+                                if let Some(selection) = selection_id_for_game_retry {
+                                    if let Some(game_menu) = self.create_game_menu(selection) {
+                                        break 'update_and_render MenuUpdate::Push(game_menu);
+                                    }
+                                }
                             }
 
                             // [Ctrl+Alt+B]: (Un-)Blindfold.

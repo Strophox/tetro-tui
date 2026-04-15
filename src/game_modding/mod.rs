@@ -1,5 +1,3 @@
-use std::num::{NonZeroU32, NonZeroUsize};
-
 use falling_tetromino_engine::{Game, GameBuilder, GameModifier};
 
 mod ascent;
@@ -11,8 +9,8 @@ mod puzzle;
 mod start_board;
 
 pub use ascent::Ascent;
-pub use cheese::Cheese;
-pub use combo::Combo;
+pub use cheese::{Cheese, CheeseConfig};
+pub use combo::{Combo, ComboConfig};
 pub use print_msgs::PrintMsgs;
 pub use print_recency_stats::PrintRecencyStats;
 pub use puzzle::Puzzle;
@@ -58,19 +56,12 @@ pub fn reconstruct_modded<'a>(
             let build = Box::new(Ascent::build);
             store_building_mod(mod_id, build)?;
         } else if mod_id == Cheese::MOD_ID {
-            let (holes_per_line, ensure_distinct_holes, cheese_limit): (
-                NonZeroUsize,
-                bool,
-                Option<NonZeroU32>,
-            ) = get_mod_args(mod_args_str, mod_id)?;
-            let build = Box::new(move |builder| {
-                Cheese::build(builder, holes_per_line, ensure_distinct_holes, cheese_limit)
-            });
+            let config: CheeseConfig = get_mod_args(mod_args_str, mod_id)?;
+            let build = Box::new(move |builder| Cheese::build(builder, config));
             store_building_mod(mod_id, build)?;
         } else if mod_id == Combo::MOD_ID {
-            let (initial_layout, combo_limit): (u16, Option<NonZeroU32>) =
-                get_mod_args(mod_args_str, mod_id)?;
-            let build = Box::new(move |builder| Combo::build(builder, initial_layout, combo_limit));
+            let config: ComboConfig = get_mod_args(mod_args_str, mod_id)?;
+            let build = Box::new(move |builder| Combo::build(builder, config));
             store_building_mod(mod_id, build)?;
         } else if mod_id == StartBoard::MOD_ID {
             let encoded_board: String = get_mod_args(mod_args_str, mod_id)?;
