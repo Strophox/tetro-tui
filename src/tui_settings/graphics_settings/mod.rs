@@ -67,7 +67,7 @@ pub fn default_graphics_slots() -> SlotMachine<GraphicsSettings> {
         ("Focus+".to_owned(), GraphicsSettings::extra_focus()),
         ("Guideline".to_owned(), GraphicsSettings::guideline()),
         (
-            "Max terminal compatibility".to_owned(),
+            "Terminal compatibility".to_owned(),
             GraphicsSettings::compatibility(),
         ),
         (

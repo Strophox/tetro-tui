@@ -21,7 +21,7 @@ pub fn default_keybinds_slots() -> SlotMachine<GameKeybinds> {
         ("Control+".to_owned(), GameKeybinds::extra_control()),
         ("Guideline".to_owned(), GameKeybinds::guideline()),
         ("Vim".to_owned(), GameKeybinds::vim()),
-        ("Terminal Finesse".to_owned(), GameKeybinds::terminal_fin()),
+        ("Terminal finesse".to_owned(), GameKeybinds::terminal_fin()),
     ];
 
     SlotMachine::with_unmodifiable_slots(slots, "Keybinds".to_owned())
