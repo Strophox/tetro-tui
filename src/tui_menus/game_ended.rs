@@ -15,7 +15,7 @@ use crossterm::{
 use crate::{
     fmt_helpers::{fmt_duration, fmt_hertz, fmt_tetromino_counts},
     game_mode_presets::GameModePreset,
-    tui_menus::{Menu, MenuUpdate},
+    tui_menus::{title_bar, Menu, MenuUpdate},
     Application, ScoreEntry,
 };
 
@@ -84,7 +84,7 @@ impl<T: Write> Application<T> {
             // self.term
             //     .queue(Clear(ClearType::All))?
             //     .queue(MoveTo(x_main, y_main + y_half))?
-            //     .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
+            //     .queue(Print(format!("{:^w_main$}", title_bar(&self.settings))))?;
             // self.term
             //     .queue(MoveTo(x_main, y_main + y_half + 1))?
             //     .queue(Print(
@@ -95,7 +95,7 @@ impl<T: Write> Application<T> {
             //     ))?;
             // self.term
             //     .queue(MoveTo(x_main, y_main + y_half + 2))?
-            //     .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
+            //     .queue(Print(format!("{:^w_main$}", title_bar(&self.settings))))?;
             // self.term.flush()?;
             // // Wait.
             // event::read()?;
@@ -157,7 +157,7 @@ impl<T: Write> Application<T> {
 
             self.term
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
-                .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
+                .queue(Print(format!("{:^w_main$}", title_bar(&self.settings))))?;
 
             timing_offset = timing_offset.saturating_add(1);
 
@@ -193,7 +193,7 @@ impl<T: Write> Application<T> {
                     x_main,
                     y_main + y_selection + 3 + u16::try_from(stats.len()).unwrap(),
                 ))?
-                .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
+                .queue(Print(format!("{:^w_main$}", title_bar(&self.settings))))?;
 
             let names = selection
                 .iter()

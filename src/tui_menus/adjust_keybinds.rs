@@ -15,7 +15,7 @@ use falling_tetromino_engine::Button;
 
 use crate::{
     fmt_helpers::fmt_button_keybinds,
-    tui_menus::{Menu, MenuUpdate},
+    tui_menus::{title_bar, Menu, MenuUpdate},
     tui_settings::GameKeybinds,
     Application, Settings,
 };
@@ -48,7 +48,7 @@ impl<T: Write> Application<T> {
                     format!("{:^w_main$}", "@ Keybinds @").bold(),
                 ))?
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
-                .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
+                .queue(Print(format!("{:^w_main$}", title_bar(&self.settings))))?;
 
             // Draw slot label.
             let slot_label = format!(
@@ -85,7 +85,7 @@ impl<T: Write> Application<T> {
                     }
                 )))?
                 .queue(MoveTo(x_main, y_main + y_selection + 4))?
-                .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
+                .queue(Print(format!("{:^w_main$}", title_bar(&self.settings))))?;
 
             // Draw keybinds selection.
             let button_names = buttons_available.iter().map(|&button| {

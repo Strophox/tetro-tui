@@ -14,7 +14,7 @@ use crossterm::{
 
 use crate::{
     fmt_helpers::fmt_duration,
-    tui_menus::{Menu, MenuUpdate},
+    tui_menus::{title_bar, Menu, MenuUpdate},
     Application, Statistics,
 };
 
@@ -67,7 +67,7 @@ impl<T: Write> Application<T> {
 
             self.term
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
-                .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
+                .queue(Print(format!("{:^w_main$}", title_bar(&self.settings))))?;
 
             for (dy, line) in lines.enumerate() {
                 self.term
