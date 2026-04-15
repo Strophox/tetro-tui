@@ -238,6 +238,7 @@ yay -S tetro-tui
 > | `Space` | Hold piece |
 > 
 > | Key | Special Action |
+> | -: | :- |
 > | `Ctrl`+`D` | Forfeit game |
 > | `Ctrl`+`R` | Restart game mode (Caution: discards current game) |
 > | `Ctrl`+`L` | Load game save (Caution: discards current game) |
@@ -271,6 +272,7 @@ yay -S tetro-tui
 > | `Enter`, `e` | Start (live) Game from current replay position |
 > 
 > | Key | Special Action |
+> | -: | :- |
 > | `Ctrl`+`L` | Loop replay on game end |
 > | `Ctrl`+`S` | Store game save (accessible in 'Start new game'⇝'Game save' or '(live) Game'⇝`Ctrl`+`L`) |
 > | `Ctrl`+`E` | Store seed (accessible in 'Start new game'⇝'Custom') |
@@ -376,9 +378,9 @@ yay -S tetro-tui
 >
 > See this visual/'heatmap' comparison of industry default vs. Ocular rotation:
 > 
-> !["super rotation system heatmap"](https://github.com/Strophox/tetro-tui/blob/3d98435167c779cb57651383d6b290d31e015013/demo_assets/super-rotation_heatmap.png?raw=true)
+> !["super rotation system heatmap"](https://github.com/Strophox/tetro-tui/blob/b66590cb461d34c95e988ef41b6d8b7d7783f37b/demo_assets/super-rotation_heatmap.png?raw=true)
 > 
-> !["ocular rotation system heatmap"](https://github.com/Strophox/tetro-tui/blob/3d98435167c779cb57651383d6b290d31e015013/demo_assets/ocular-rotation_heatmap.png?raw=true)
+> !["ocular rotation system heatmap"](https://github.com/Strophox/tetro-tui/blob/b66590cb461d34c95e988ef41b6d8b7d7783f37b/demo_assets/ocular-rotation_heatmap.png?raw=true)
 > 
 > </details>
 
@@ -420,10 +422,10 @@ Color palettes used: [Gruvbox](<https://github.com/morhetz/gruvbox>), [Solarized
 
 ## Acknowledgements
 
-A Thank You to the [AUR package](#install-on-arch-linux) maintainers:
+A big thank you to the [AUR package](#install-on-arch-linux) maintainers:
 - [wcasanova](<https://github.com/wcasanova>) and [druxorey](<https://github.com/druxorey>), and Dominiquini
 
-Special Thanks go to:
+Special Thanks:
 - GrBtAce, KonSola5 and bennxt – for early support
 - madkiwi – for advice regarding 4wide-6residual combo layouts
 - Dunspixel – for inspiration regarding ['O'-spins](<https://dunspixel.github.io/ospin-guide/chapter4.html#tetro-tui>)
