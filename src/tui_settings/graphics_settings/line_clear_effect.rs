@@ -67,15 +67,15 @@ pub fn default_line_clear_effect_slots() -> SlotMachine<LineClearEffect> {
     let slots = vec![
         ("None".to_owned(), LineClearEffect::none()),
         ("Instant".to_owned(), LineClearEffect::instant()),
-        ("Left-to-right".to_owned(), LineClearEffect::left_to_right()),
-        ("Inward (white)".to_owned(), LineClearEffect::inward()),
-        ("Outward (burn)".to_owned(), LineClearEffect::outward_burn()),
-        ("Flash (white)".to_owned(), LineClearEffect::flash_white()),
+        ("Left to right".to_owned(), LineClearEffect::left_to_right()),
+        ("Inward".to_owned(), LineClearEffect::inward()),
+        ("Outward burn".to_owned(), LineClearEffect::outward_burn()),
+        ("Flash white".to_owned(), LineClearEffect::flash_white()),
         ("Blink".to_owned(), LineClearEffect::blink()),
-        ("Pop minos".to_owned(), LineClearEffect::pop()),
-        ("Pop minos (bigger)".to_owned(), LineClearEffect::pop_big()),
-        ("ASCII sparks".to_owned(), LineClearEffect::ascii_sparks()),
-        ("Unicode blast".to_owned(), LineClearEffect::blast()),
+        ("Pop out".to_owned(), LineClearEffect::pop()),
+        ("Pop out (more)".to_owned(), LineClearEffect::pop_big()),
+        ("Sparks ASCII".to_owned(), LineClearEffect::ascii_sparks()),
+        ("Blast".to_owned(), LineClearEffect::blast()),
     ];
 
     SlotMachine::with_unmodifiable_slots(slots, "Lineclear".to_owned())

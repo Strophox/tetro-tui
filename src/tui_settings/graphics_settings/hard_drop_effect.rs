@@ -35,12 +35,12 @@ pub fn default_hard_drop_effect_slots() -> SlotMachine<HardDropEffect> {
     let slots = vec![
         ("None".to_owned(), HardDropEffect::none()),
         (
-            "ASCII particles".to_owned(),
+            "Particles ASCII".to_owned(),
             HardDropEffect::ascii_particles(),
         ),
-        ("ASCII streak".to_owned(), HardDropEffect::ascii_streak()),
-        ("ASCII beam".to_owned(), HardDropEffect::ascii_beam()),
-        ("Block beam".to_owned(), HardDropEffect::block_beam()),
+        ("Streak ASCII".to_owned(), HardDropEffect::ascii_streak()),
+        ("Beam ASCII".to_owned(), HardDropEffect::ascii_beam()),
+        ("Beam".to_owned(), HardDropEffect::block_beam()),
     ];
 
     SlotMachine::with_unmodifiable_slots(slots, "Hard drop".to_owned())

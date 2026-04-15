@@ -67,13 +67,14 @@ pub fn default_graphics_slots() -> SlotMachine<GraphicsSettings> {
         ("Focus+".to_owned(), GraphicsSettings::extra_focus()),
         ("Guideline".to_owned(), GraphicsSettings::guideline()),
         (
-            "Terminal Compatibility".to_owned(),
+            "Max terminal compatibility".to_owned(),
             GraphicsSettings::compatibility(),
         ),
         (
             "Elektronika 60".to_owned(),
             GraphicsSettings::elektronika_60(),
         ),
+        ("Blank slate".to_owned(), GraphicsSettings::blank_slate()),
     ];
 
     SlotMachine::with_unmodifiable_slots(slots, "Graphics".to_owned())
@@ -91,7 +92,7 @@ impl Default for GraphicsSettings {
             mini_tet_picked: 1,      // Braille
             small_tet_picked: 1,     // Blocks
             normalsize_preview_limit: Some(NonZeroUsize::MIN),
-            fps: ExtNonNegF64::from(30),
+            fps: ExtNonNegF64::from(60),
             boardpalette_picked: 3, // Okpalette
             show_main_hud: true,
             show_keybinds: true,
@@ -139,7 +140,7 @@ impl GraphicsSettings {
             mini_tet_picked: 1,      // Braille
             small_tet_picked: 1,     // Blocks
             normalsize_preview_limit: Some(NonZeroUsize::MIN),
-            fps: ExtNonNegF64::from(30),
+            fps: ExtNonNegF64::from(60),
             boardpalette_picked: 2, // Standard
             show_main_hud: true,
             show_keybinds: true,
@@ -185,7 +186,7 @@ impl GraphicsSettings {
             mini_tet_picked: 0,      // Letters
             small_tet_picked: 0,     // ASCII
             normalsize_preview_limit: None,
-            fps: ExtNonNegF64::from(30),
+            fps: ExtNonNegF64::from(60),
             boardpalette_picked: 0, // ANSI
             show_main_hud: true,
             show_keybinds: true,
@@ -193,6 +194,29 @@ impl GraphicsSettings {
             show_shadow: false,
             show_spawn: false,
             show_grid: true,
+            show_fps: false,
+        }
+    }
+
+    pub fn blank_slate() -> Self {
+        GraphicsSettings {
+            palette_picked: 0,       // Monochrome
+            tui_style_picked: 1,     // Unicode
+            mino_textures_picked: 1, // Unicode
+            hard_drop_picked: 0,     // None
+            lock_effect_picked: 0,   // None
+            line_clear_picked: 0,    // None
+            mini_tet_picked: 0,      // Letters
+            small_tet_picked: 1,     // Blocks
+            normalsize_preview_limit: None,
+            fps: ExtNonNegF64::from(60),
+            boardpalette_picked: 0, // Monochrome
+            show_main_hud: false,
+            show_keybinds: false,
+            show_buttons: false,
+            show_shadow: false,
+            show_spawn: false,
+            show_grid: false,
             show_fps: false,
         }
     }

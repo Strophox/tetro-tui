@@ -420,7 +420,7 @@ impl Renderer for StandardBufferedRenderer {
             }
         }
 
-        // RENDER: 'Next' widgets.
+        // RENDER: Preview widgets.
 
         let [c_n_tb, c_n_tr, c_n_r, c_n_jl, c_n_br, c_n_jd, c_n_ltb] = tui_style.nextglyphs;
         let w_tmp6 = w_float + W_PAD_LEFT + w_addhud + W_HOLD + W_BOARD;
@@ -522,7 +522,7 @@ impl Renderer for StandardBufferedRenderer {
             for (x_offset, next_tet) in next_tetrominos.enumerate() {
                 let mini_tet = settings.mini_tet_style().tets[next_tet as usize];
                 let color = ftch_col_or_rset(&next_tet.tile_id());
-                #[rustfmt::skip] self.term_buf.write_char(w_tmp6 + 11 + 2 * (x_offset as u16), h_tmp6 + y_offset.saturating_sub(1), TermCell { ch: mini_tet, fg: color });
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp6 + 10 + 2 * (x_offset as u16), h_tmp6 + y_offset.saturating_sub(1), TermCell { ch: mini_tet, fg: color });
             }
         }
 

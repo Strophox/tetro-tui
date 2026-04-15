@@ -24,168 +24,245 @@ use crate::{
 
 impl<T: Write> Application<T> {
     pub fn run_menu_adjust_graphics(&mut self) -> io::Result<MenuUpdate> {
-        todo!() /*let if_unmodifiable_clone_and_switch = |s: &mut Settings| {
-                    if let Some(cloned_slot_idx) = s
-                        .graphics_slotmachine
-                        .clone_slot_if_unmodifiable(s.graphics_picked)
-                    {
-                        s.graphics_picked = cloned_slot_idx;
-                    }
-                };
+        let if_unmodifiable_clone_and_switch = |s: &mut Settings| {
+            if let Some(cloned_slot_idx) = s
+                .graphics_slotmachine
+                .clone_slot_if_unmodifiable(s.graphics_picked)
+            {
+                s.graphics_picked = cloned_slot_idx;
+            }
+        };
 
-                let d_fps = 5.0;
+        let d_fps = 5.0.try_into().unwrap();
 
-                let mut selected = 1usize;
-                loop {
-                    let w_main = Self::W_MAIN.into();
-                    let (x_main, y_main) = Self::viewport_offset();
-                    let y_selection = (Self::H_MAIN / 5).saturating_sub(2);
-                    self.term
-                        .queue(Clear(ClearType::All))?
-                        .queue(MoveTo(x_main, y_main + y_selection))?
-                        .queue(PrintStyledContent(
-                            format!("{:^w_main$}", "# Graphics Settings #").bold(),
-                        ))?
-                        .queue(MoveTo(x_main, y_main + y_selection + 2))?
-                        .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
+        let mut selected = 1usize;
+        loop {
+            let w_main = Self::W_MAIN.into();
+            let (x_main, y_main) = Self::viewport_offset();
+            let y_selection = (Self::H_MAIN / 5).saturating_sub(2);
+            self.term
+                .queue(Clear(ClearType::All))?
+                .queue(MoveTo(x_main, y_main + y_selection))?
+                .queue(PrintStyledContent(
+                    format!("{:^w_main$}", "# Graphics Settings #").bold(),
+                ))?
+                .queue(MoveTo(x_main, y_main + y_selection + 2))?
+                .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
 
-                    // Draw slot label.
-                    let slot_label = format!(
-                        "Slot {}/{}: '{}'{}",
-                        self.settings.graphics_picked + 1,
-                        self.settings.graphics_slotmachine.slots.len(),
-                        self.settings.graphics_slotmachine.grab(self.settings.graphics_picked).0,
-                        if self.settings.graphics_slotmachine.slots.len() < 2 {
-                            "".to_owned()
+            // Draw slot label.
+            let slot_label = format!(
+                "Slot {}/{}: '{}'{}",
+                self.settings.graphics_picked + 1,
+                self.settings.graphics_slotmachine.slots.len(),
+                self.settings
+                    .graphics_slotmachine
+                    .grab(self.settings.graphics_picked)
+                    .0,
+                if self.settings.graphics_slotmachine.slots.len() < 2 {
+                    "".to_owned()
+                } else {
+                    format!(
+                        " [←|{}→] ",
+                        if self.settings.graphics_picked
+                            < self.settings.graphics_slotmachine.unmodifiable_slots
+                        {
+                            ""
                         } else {
-                            format!(
-                                " [←|{}→] ",
-                                if self.settings.graphics_picked
-                                    < self.settings.graphics_slotmachine.unmodifiable_slots
-                                {
-                                    ""
-                                } else {
-                                    "Del|"
-                                }
-                            )
+                            "Del|"
                         }
-                    );
+                    )
+                }
+            );
+            self.term
+                .queue(MoveTo(x_main, y_main + y_selection + 3))?
+                .queue(Print(format!(
+                    "{:^w_main$}",
+                    if selected == 0 {
+                        format!(">> {slot_label} <<")
+                    } else {
+                        slot_label
+                    }
+                )))?
+                .queue(MoveTo(x_main, y_main + y_selection + 4))?
+                .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
+
+            let labels1 = [
+                format!(
+                    "Color palette = {}",
+                    self.settings
+                        .palette_slotmachine
+                        .grab(self.settings.graphics().palette_picked)
+                        .0
+                ),
+                format!(
+                    "TUI style = {}",
+                    self.settings
+                        .tui_style_slotmachine
+                        .grab(self.settings.graphics().tui_style_picked)
+                        .0
+                ),
+                format!(
+                    "Mino textures = {}",
+                    self.settings
+                        .mino_textures_slotmachine
+                        .grab(self.settings.graphics().mino_textures_picked)
+                        .0
+                ),
+                format!(
+                    "Hard drop effect = {}",
+                    self.settings
+                        .hard_drop_effect_slotmachine
+                        .grab(self.settings.graphics().hard_drop_picked)
+                        .0
+                ),
+                format!(
+                    "Lock effect = {}",
+                    self.settings
+                        .lock_effect_slotmachine
+                        .grab(self.settings.graphics().lock_effect_picked)
+                        .0
+                ),
+                format!(
+                    "Line clear effect = {}",
+                    self.settings
+                        .line_clear_effect_slotmachine
+                        .grab(self.settings.graphics().line_clear_picked)
+                        .0
+                ),
+                format!(
+                    "Mini tet. style = {}",
+                    self.settings
+                        .mini_tet_style_slotmachine
+                        .grab(self.settings.graphics().mini_tet_picked)
+                        .0
+                ),
+                format!(
+                    "Small tet. style = {}",
+                    self.settings
+                        .small_tet_style_slotmachine
+                        .grab(self.settings.graphics().small_tet_picked)
+                        .0
+                ),
+                format!(
+                    "Normalsize previews = {}",
+                    self.settings
+                        .graphics()
+                        .normalsize_preview_limit
+                        .map(|x| x.to_string())
+                        .unwrap_or("unlimited".to_owned())
+                ),
+                format!(
+                    "Frames per second = {:.1}",
+                    self.settings.graphics().fps.get()
+                ),
+            ];
+
+            let labels1_add = [
+                format!(
+                    "Show... {{{}}}",
+                    [
+                        self.settings.graphics().show_grid.then_some("Grid"),
+                        self.settings.graphics().show_shadow.then_some("Shadow"),
+                        self.settings.graphics().show_spawn.then_some("Spawn"),
+                        (self.settings.graphics().boardpalette_picked != 0).then_some("Col'board"),
+                        self.settings.graphics().show_main_hud.then_some("HUD"),
+                        self.settings.graphics().show_keybinds.then_some("Keybinds"),
+                        self.settings.graphics().show_buttons.then_some("Buttons"),
+                        self.settings.graphics().show_fps.then_some("FPS"),
+                    ]
+                    .into_iter()
+                    .flatten()
+                    .collect::<Vec<_>>()
+                    .join(",")
+                ),
+                // format!(
+                //     "...{}]",
+                //     [
+                //         self.settings.graphics().show_main_hud.then_some("HUD"),
+                //         self.settings.graphics().show_keybinds.then_some("Keybinds"),
+                //         self.settings.graphics().show_buttons.then_some("Buttons"),
+                //         self.settings.graphics().show_fps.then_some("FPS"),
+                //     ].into_iter().filter_map(std::convert::identity).collect::<Vec<_>>().join(",")
+                // ),
+            ];
+
+            let labels2 = [
+                ("Show grid", self.settings.graphics().show_grid),
+                ("Show piece shadow", self.settings.graphics().show_shadow),
+                (
+                    "Preview spawn when stack high",
+                    self.settings.graphics().show_spawn,
+                ),
+                (
+                    "Color board tiles",
+                    self.settings.graphics().boardpalette_picked == 0,
+                ),
+                ("Show left HUD", self.settings.graphics().show_main_hud),
+                (
+                    "Show basic keybinds legend",
+                    self.settings.graphics().show_keybinds,
+                ),
+                ("Show active buttons", self.settings.graphics().show_buttons),
+                ("Show FPS counter", self.settings.graphics().show_fps),
+            ]
+            .map(|(name, is_on)| format!("{name} = {}", is_on.on_off()));
+
+            // +1 For slot.
+            let selection_len = 1 + labels1.len() + labels2.len();
+
+            let in_section_1 = selected < 1 + labels1.len();
+
+            if selected < 1 + labels1.len() {
+                for (i, label) in labels1.iter().chain(labels1_add.iter()).enumerate() {
                     self.term
-                        .queue(MoveTo(x_main, y_main + y_selection + 3))?
+                        .queue(MoveTo(
+                            x_main,
+                            y_main + y_selection + 6 + u16::try_from(i).unwrap(),
+                        ))?
                         .queue(Print(format!(
                             "{:^w_main$}",
-                            if selected == 0 {
-                                format!(">> {slot_label} <<")
+                            if 1 + i == selected {
+                                format!(">> {label} <<")
                             } else {
-                                slot_label
+                                label.clone()
                             }
-                        )))?
-                        .queue(MoveTo(x_main, y_main + y_selection + 4))?
-                        .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
-
-                    let labels = [
-                        format!(
-                            "Color palette = '{}'",
-                            self.settings.palette_slotmachine.slots
-                                [self.settings.graphics().palette_picked]
-                                .0
-                        ),
-                        format!(
-                            "TUI style = '{}'",
-                            self.settings.tui_style_slotmachine.slots
-                                [self.settings.graphics().tui_style_picked]
-                                .0
-                        ),
-                        format!(
-                            "Mino textures = '{}'",
-                            self.settings.mino_textures_slotmachine.slots
-                                [self.settings.graphics().mino_textures_picked]
-                                .0
-                        ),
-                        format!(
-                            "Hard drop effect = '{}'",
-                            self.settings.hard_drop_effect_slotmachine.slots
-                                [self.settings.graphics().hard_drop_picked]
-                                .0
-                        ),
-                        format!(
-                            "Lock effect = '{}'",
-                            self.settings.lock_effect_slotmachine.slots
-                                [self.settings.graphics().lock_effect_picked]
-                                .0
-                        ),
-                        format!(
-                            "Line clear effect = '{}'",
-                            self.settings.line_clear_effect_slotmachine.slots
-                                [self.settings.graphics().line_clear_picked]
-                                .0
-                        ),
-                        format!(
-                            "Mini tet. style = '{}'",
-                            self.settings.mini_tet_style_slotmachine.slots
-                                [self.settings.graphics().mini_tet_picked]
-                                .0
-                        ),
-                        format!(
-                            "Small tet. style = '{}'",
-                            self.settings.small_tet_style_slotmachine.slots
-                                [self.settings.graphics().small_tet_picked]
-                                .0
-                        ),
-                        format!(
-                            "Normalsize previews = {}",
-                            self.settings.graphics().normalsize_preview_limit.unwrap_or(NonZeroUsize::MAX).get()
-                        ),
-                        format!(
-                            "Frames per second = {:.02}",
-                            self.settings.graphics().fps.get()
-                        ),
-                        format!(
-                            "Display: {}",
-                            [
-                                ("Shadow", self.settings.graphics().show_shadow),
-                                ("Spawn", self.settings.graphics().show_spawn),
-                                ("Grid", self.settings.graphics().show_grid),
-                                ("Boardcolor", self.settings.graphics().boardpalette_picked == 0),
-                                ("HUD", self.settings.graphics().show_main_hud),
-                                ("Keybinds", self.settings.graphics().show_keybinds),
-                                ("Buttons", self.settings.graphics().show_buttons),
-                                ("FPS", self.settings.graphics().show_fps),
-                            ].map(|(name, is_on)| format!("{}{name}", if is_on { '#' } else { '_' })).join(" ")
-                        ),
-                    ];
-
-                    // +1 For slot.
-                    let selection_len = labels.len() + 1;
-
-                    for (i, label) in labels.into_iter().enumerate() {
-                        self.term
-                            .queue(MoveTo(
-                                x_main,
-                                y_main + y_selection + 6 + u16::try_from(i).unwrap(),
-                            ))?
-                            .queue(Print(format!(
-                                "{:^w_main$}",
-                                if i + 1 == selected {
-                                    format!(">> {label} <<")
-                                } else {
-                                    label
-                                }
-                            )))?;
-                    }
-
-                    self.term.queue(MoveTo(
-                        x_main + u16::try_from((w_main - 27) / 2).unwrap(),
-                        y_main + y_selection + 6 + u16::try_from(selection_len).unwrap() + 1,
-                    ))?;
-
-                    for tet in Tetromino::VARIANTS {
-                        self.term.queue(PrintStyledContent(
-                            if self.settings.graphics().glyphset == Glyphset::Unicode {
-                                tet.linestr()
+                        )))?;
+                }
+            } else {
+                self.term
+                    .queue(MoveTo(x_main, y_main + y_selection + 6))?
+                    .queue(Print(format!("{:^w_main$}", "...")))?;
+                for (i, label) in labels2.into_iter().enumerate() {
+                    self.term
+                        .queue(MoveTo(
+                            x_main,
+                            y_main + y_selection + 6 + 1 + u16::try_from(i).unwrap(),
+                        ))?
+                        .queue(Print(format!(
+                            "{:^w_main$}",
+                            if 1 + labels1.len() + i == selected {
+                                format!(">> {label} <<")
                             } else {
-                                tet.linestr_ascii()
+                                label
                             }
+                        )))?;
+                }
+            }
+
+            if in_section_1 {
+                self.term.queue(MoveTo(
+                    x_main + u16::try_from((w_main - 27) / 2).unwrap(),
+                    y_main
+                        + y_selection
+                        + 6
+                        + u16::try_from(labels1.len() + labels1_add.len()).unwrap()
+                        + 1,
+                ))?;
+
+                for tet in Tetromino::VARIANTS {
+                    self.term.queue(PrintStyledContent(
+                        self.settings.small_tet_style().tets[tet as usize]
+                            .clone()
                             .with(
                                 *self
                                     .settings
@@ -193,203 +270,311 @@ impl<T: Write> Application<T> {
                                     .get(&tet.tile_id())
                                     .unwrap_or(&style::Color::Reset),
                             ),
-                        ))?;
-                        self.term.queue(Print(' '))?;
+                    ))?;
+                    self.term.queue(Print(' '))?;
+                }
+            }
+
+            self.term.flush()?;
+
+            // Wait for new input.
+            match event::read()? {
+                // Exit program.
+                Event::Key(KeyEvent {
+                    code: KeyCode::Char('c' | 'C'),
+                    modifiers: KeyModifiers::CONTROL,
+                    kind: Press | Repeat,
+                    state: _,
+                }) => break Ok(MenuUpdate::Push(Menu::Quit)),
+
+                // Quit menu.
+                Event::Key(KeyEvent {
+                    code: KeyCode::Esc | KeyCode::Char('q' | 'Q') | KeyCode::Backspace,
+                    kind: Press,
+                    ..
+                }) => break Ok(MenuUpdate::Pop),
+
+                // Move selector up.
+                Event::Key(KeyEvent {
+                    code: KeyCode::Up | KeyCode::Char('k' | 'K'),
+                    kind: Press | Repeat,
+                    ..
+                }) => {
+                    selected += selection_len - 1;
+                }
+
+                // Move selector down.
+                Event::Key(KeyEvent {
+                    code: KeyCode::Down | KeyCode::Char('j' | 'J'),
+                    kind: Press | Repeat,
+                    ..
+                }) => {
+                    selected += 1;
+                }
+
+                Event::Key(KeyEvent {
+                    code: KeyCode::Right | KeyCode::Char('l' | 'L'),
+                    kind: Press | Repeat,
+                    ..
+                }) => match selected {
+                    0 => {
+                        self.settings.graphics_picked += 1;
+                        self.settings.graphics_picked %=
+                            self.settings.graphics_slotmachine.slots.len();
                     }
-
-                    self.term.flush()?;
-
-                    // Wait for new input.
-                    match event::read()? {
-                        // Exit program.
-                        Event::Key(KeyEvent {
-                            code: KeyCode::Char('c' | 'C'),
-                            modifiers: KeyModifiers::CONTROL,
-                            kind: Press | Repeat,
-                            state: _,
-                        }) => break Ok(MenuUpdate::Push(Menu::Quit)),
-
-                        // Quit menu.
-                        Event::Key(KeyEvent {
-                            code: KeyCode::Esc | KeyCode::Char('q' | 'Q') | KeyCode::Backspace,
-                            kind: Press,
-                            ..
-                        }) => break Ok(MenuUpdate::Pop),
-
-                        // Move selector up.
-                        Event::Key(KeyEvent {
-                            code: KeyCode::Up | KeyCode::Char('k' | 'K'),
-                            kind: Press | Repeat,
-                            ..
-                        }) => {
-                            selected += selection_len - 1;
-                        }
-
-                        // Move selector down.
-                        Event::Key(KeyEvent {
-                            code: KeyCode::Down | KeyCode::Char('j' | 'J'),
-                            kind: Press | Repeat,
-                            ..
-                        }) => {
-                            selected += 1;
-                        }
-
-                        Event::Key(KeyEvent {
-                            code: KeyCode::Right | KeyCode::Char('l' | 'L'),
-                            kind: Press | Repeat,
-                            ..
-                        }) => match selected {
-                            0 => {
-                                self.settings.graphics_picked += 1;
-                                self.settings.graphics_picked %=
-                                    self.settings.graphics_slotmachine.slots.len();
-                            }
-                            1 => {
-                                if_unmodifiable_clone_and_switch(&mut self.settings);
-                                self.settings.graphics_mut().glyphset =
-                                    match self.settings.graphics().glyphset {
-                                        Glyphset::Elektronika60 => Glyphset::Ascii,
-                                        Glyphset::Ascii => Glyphset::Unicode,
-                                        Glyphset::Unicode => Glyphset::Elektronika60,
-                                    };
-                            }
-                            2 => {
-                                if_unmodifiable_clone_and_switch(&mut self.settings);
-                                self.settings.graphics_mut().palette_picked += 1;
-                                self.settings.graphics_mut().palette_picked %=
-                                    self.settings.palette_slotmachine.slots.len();
-                                self.settings.graphics_mut().boardpalette_picked =
-                                    self.settings.graphics_mut().palette_picked;
-                            }
-                            3 => {
-                                if_unmodifiable_clone_and_switch(&mut self.settings);
-                                self.settings.graphics_mut().boardpalette_picked =
-                                    if self.settings.graphics().boardpalette_picked == 0 {
-                                        self.settings.graphics_mut().palette_picked
-                                    } else {
-                                        0
-                                    };
-                            }
-                            4 => {
-                                if_unmodifiable_clone_and_switch(&mut self.settings);
-                                self.settings.graphics_mut().effects ^= true;
-                            }
-                            5 => {
-                                if_unmodifiable_clone_and_switch(&mut self.settings);
-                                self.settings.graphics_mut().shadow_piece ^= true;
-                            }
-                            6 => {
-                                if_unmodifiable_clone_and_switch(&mut self.settings);
-                                self.settings.graphics_mut().button_state ^= true;
-                            }
-                            7 => {
-                                if_unmodifiable_clone_and_switch(&mut self.settings);
-                                self.settings.graphics_mut().game_fps += d_fps;
-                            }
-                            8 => {
-                                if_unmodifiable_clone_and_switch(&mut self.settings);
-                                self.settings.graphics_mut().show_fps ^= true;
-                            }
-                            9 => {
-                                if_unmodifiable_clone_and_switch(&mut self.settings);
-                                self.settings.graphics_mut().lineclear_style += 1;
-                                self.settings.graphics_mut().lineclear_style %= 2;
-                            }
-                            _ => {}
-                        },
-
-                        Event::Key(KeyEvent {
-                            code: KeyCode::Left | KeyCode::Char('h' | 'H'),
-                            kind: Press | Repeat,
-                            ..
-                        }) => match selected {
-                            0 => {
-                                self.settings.graphics_picked +=
-                                    self.settings.graphics_slotmachine.slots.len() - 1;
-                                self.settings.graphics_picked %=
-                                    self.settings.graphics_slotmachine.slots.len();
-                            }
-                            1 => {
-                                if_unmodifiable_clone_and_switch(&mut self.settings);
-                                self.settings.graphics_mut().glyphset =
-                                    match self.settings.graphics().glyphset {
-                                        Glyphset::Elektronika60 => Glyphset::Unicode,
-                                        Glyphset::Ascii => Glyphset::Elektronika60,
-                                        Glyphset::Unicode => Glyphset::Ascii,
-                                    };
-                            }
-                            2 => {
-                                if_unmodifiable_clone_and_switch(&mut self.settings);
-                                self.settings.graphics_mut().palette_picked +=
-                                    self.settings.palette_slotmachine.slots.len() - 1;
-                                self.settings.graphics_mut().palette_picked %=
-                                    self.settings.palette_slotmachine.slots.len();
-                                self.settings.graphics_mut().boardpalette_picked =
-                                    self.settings.graphics_mut().palette_picked;
-                            }
-                            3 => {
-                                if_unmodifiable_clone_and_switch(&mut self.settings);
-                                self.settings.graphics_mut().boardpalette_picked =
-                                    if self.settings.graphics().boardpalette_picked == 0 {
-                                        self.settings.graphics_mut().palette_picked
-                                    } else {
-                                        0
-                                    };
-                            }
-                            4 => {
-                                if_unmodifiable_clone_and_switch(&mut self.settings);
-                                self.settings.graphics_mut().effects ^= true;
-                            }
-                            5 => {
-                                if_unmodifiable_clone_and_switch(&mut self.settings);
-                                self.settings.graphics_mut().shadow_piece ^= true;
-                            }
-                            6 => {
-                                if_unmodifiable_clone_and_switch(&mut self.settings);
-                                self.settings.graphics_mut().button_state ^= true;
-                            }
-                            7 => {
-                                if_unmodifiable_clone_and_switch(&mut self.settings);
-                                if self.settings.graphics().game_fps > d_fps {
-                                    self.settings.graphics_mut().game_fps -= d_fps;
-                                }
-                            }
-                            8 => {
-                                if_unmodifiable_clone_and_switch(&mut self.settings);
-                                self.settings.graphics_mut().show_fps ^= true;
-                            }
-                            9 => {
-                                if_unmodifiable_clone_and_switch(&mut self.settings);
-                                self.settings.graphics_mut().lineclear_style += 1;
-                                self.settings.graphics_mut().lineclear_style %= 2;
-                            }
-                            _ => {}
-                        },
-
-                        // Reset graphics, or delete entire slot.
-                        Event::Key(KeyEvent {
-                            code: KeyCode::Delete | KeyCode::Char('d' | 'D'),
-                            kind: Press,
-                            ..
-                        }) => {
-                            if selected == 0 {
-                                // If a custom slot, then remove it (and return to the 'default' 0th slot).
-                                if self.settings.graphics_picked
-                                    >= self.settings.graphics_slotmachine.unmodifiable_slots
-                                {
-                                    self.settings
-                                        .graphics_slotmachine
-                                        .slots
-                                        .remove(self.settings.graphics_picked);
-                                    self.settings.graphics_picked = 0;
-                                }
-                            }
-                        }
-
-                        // Other event: Just ignore.
-                        _ => {}
+                    1 => {
+                        if_unmodifiable_clone_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().palette_picked += 1;
+                        self.settings.graphics_mut().palette_picked %=
+                            self.settings.palette_slotmachine.slots.len();
+                        self.settings.graphics_mut().boardpalette_picked =
+                            self.settings.graphics_mut().palette_picked;
                     }
-                    selected %= selection_len;
-                }*/
+                    2 => {
+                        if_unmodifiable_clone_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().tui_style_picked += 1;
+                        self.settings.graphics_mut().tui_style_picked %=
+                            self.settings.tui_style_slotmachine.slots.len();
+                    }
+                    3 => {
+                        if_unmodifiable_clone_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().mino_textures_picked += 1;
+                        self.settings.graphics_mut().mino_textures_picked %=
+                            self.settings.mino_textures_slotmachine.slots.len();
+                    }
+                    4 => {
+                        if_unmodifiable_clone_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().hard_drop_picked += 1;
+                        self.settings.graphics_mut().hard_drop_picked %=
+                            self.settings.hard_drop_effect_slotmachine.slots.len();
+                    }
+                    5 => {
+                        if_unmodifiable_clone_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().lock_effect_picked += 1;
+                        self.settings.graphics_mut().lock_effect_picked %=
+                            self.settings.lock_effect_slotmachine.slots.len();
+                    }
+                    6 => {
+                        if_unmodifiable_clone_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().line_clear_picked += 1;
+                        self.settings.graphics_mut().line_clear_picked %=
+                            self.settings.line_clear_effect_slotmachine.slots.len();
+                    }
+                    7 => {
+                        if_unmodifiable_clone_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().mini_tet_picked += 1;
+                        self.settings.graphics_mut().mini_tet_picked %=
+                            self.settings.mini_tet_style_slotmachine.slots.len();
+                    }
+                    8 => {
+                        if_unmodifiable_clone_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().small_tet_picked += 1;
+                        self.settings.graphics_mut().small_tet_picked %=
+                            self.settings.small_tet_style_slotmachine.slots.len();
+                    }
+                    9 => {
+                        if_unmodifiable_clone_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().normalsize_preview_limit =
+                            if let Some(limit) = self.settings.graphics().normalsize_preview_limit {
+                                Some(limit.saturating_add(1))
+                            } else {
+                                Some(NonZeroUsize::MIN)
+                            }
+                    }
+                    10 => {
+                        if_unmodifiable_clone_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().fps += d_fps;
+                    }
+                    11 => {
+                        if_unmodifiable_clone_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().show_grid ^= true;
+                    }
+                    12 => {
+                        if_unmodifiable_clone_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().boardpalette_picked =
+                            if self.settings.graphics().boardpalette_picked == 0 {
+                                self.settings.graphics_mut().palette_picked
+                            } else {
+                                0
+                            };
+                    }
+                    13 => {
+                        if_unmodifiable_clone_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().show_shadow ^= true;
+                    }
+                    14 => {
+                        if_unmodifiable_clone_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().show_spawn ^= true;
+                    }
+                    15 => {
+                        if_unmodifiable_clone_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().show_main_hud ^= true;
+                    }
+                    16 => {
+                        if_unmodifiable_clone_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().show_keybinds ^= true;
+                    }
+                    17 => {
+                        if_unmodifiable_clone_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().show_buttons ^= true;
+                    }
+                    18 => {
+                        if_unmodifiable_clone_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().show_fps ^= true;
+                    }
+                    _ => {}
+                },
+
+                Event::Key(KeyEvent {
+                    code: KeyCode::Left | KeyCode::Char('h' | 'H'),
+                    kind: Press | Repeat,
+                    ..
+                }) => match selected {
+                    0 => {
+                        self.settings.graphics_picked +=
+                            self.settings.graphics_slotmachine.slots.len() - 1;
+                        self.settings.graphics_picked %=
+                            self.settings.graphics_slotmachine.slots.len();
+                    }
+                    1 => {
+                        if_unmodifiable_clone_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().palette_picked +=
+                            self.settings.palette_slotmachine.slots.len() - 1;
+                        self.settings.graphics_mut().palette_picked %=
+                            self.settings.palette_slotmachine.slots.len();
+                        self.settings.graphics_mut().boardpalette_picked =
+                            self.settings.graphics_mut().palette_picked;
+                    }
+                    2 => {
+                        if_unmodifiable_clone_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().tui_style_picked +=
+                            self.settings.tui_style_slotmachine.slots.len() - 1;
+                        self.settings.graphics_mut().tui_style_picked %=
+                            self.settings.tui_style_slotmachine.slots.len();
+                    }
+                    3 => {
+                        if_unmodifiable_clone_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().mino_textures_picked +=
+                            self.settings.mino_textures_slotmachine.slots.len() - 1;
+                        self.settings.graphics_mut().mino_textures_picked %=
+                            self.settings.mino_textures_slotmachine.slots.len();
+                    }
+                    4 => {
+                        if_unmodifiable_clone_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().hard_drop_picked +=
+                            self.settings.hard_drop_effect_slotmachine.slots.len() - 1;
+                        self.settings.graphics_mut().hard_drop_picked %=
+                            self.settings.hard_drop_effect_slotmachine.slots.len();
+                    }
+                    5 => {
+                        if_unmodifiable_clone_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().lock_effect_picked +=
+                            self.settings.lock_effect_slotmachine.slots.len() - 1;
+                        self.settings.graphics_mut().lock_effect_picked %=
+                            self.settings.lock_effect_slotmachine.slots.len();
+                    }
+                    6 => {
+                        if_unmodifiable_clone_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().line_clear_picked +=
+                            self.settings.line_clear_effect_slotmachine.slots.len() - 1;
+                        self.settings.graphics_mut().line_clear_picked %=
+                            self.settings.line_clear_effect_slotmachine.slots.len();
+                    }
+                    7 => {
+                        if_unmodifiable_clone_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().mini_tet_picked +=
+                            self.settings.mini_tet_style_slotmachine.slots.len() - 1;
+                        self.settings.graphics_mut().mini_tet_picked %=
+                            self.settings.mini_tet_style_slotmachine.slots.len();
+                    }
+                    8 => {
+                        if_unmodifiable_clone_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().small_tet_picked +=
+                            self.settings.small_tet_style_slotmachine.slots.len() - 1;
+                        self.settings.graphics_mut().small_tet_picked %=
+                            self.settings.small_tet_style_slotmachine.slots.len();
+                    }
+                    9 => {
+                        if_unmodifiable_clone_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().normalsize_preview_limit = if let Some(limit) =
+                            self.settings.graphics().normalsize_preview_limit
+                        {
+                            NonZeroUsize::try_from(limit.get() - 1).ok()
+                        } else {
+                            None
+                        };
+                    }
+                    10 => {
+                        if_unmodifiable_clone_and_switch(&mut self.settings);
+                        if self.settings.graphics().fps > d_fps {
+                            self.settings.graphics_mut().fps =
+                                self.settings.graphics().fps.saturating_sub(d_fps);
+                        }
+                    }
+                    11 => {
+                        if_unmodifiable_clone_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().show_grid ^= true;
+                    }
+                    12 => {
+                        if_unmodifiable_clone_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().boardpalette_picked =
+                            if self.settings.graphics().boardpalette_picked == 0 {
+                                self.settings.graphics_mut().palette_picked
+                            } else {
+                                0
+                            };
+                    }
+                    13 => {
+                        if_unmodifiable_clone_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().show_shadow ^= true;
+                    }
+                    14 => {
+                        if_unmodifiable_clone_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().show_spawn ^= true;
+                    }
+                    15 => {
+                        if_unmodifiable_clone_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().show_main_hud ^= true;
+                    }
+                    16 => {
+                        if_unmodifiable_clone_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().show_keybinds ^= true;
+                    }
+                    17 => {
+                        if_unmodifiable_clone_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().show_buttons ^= true;
+                    }
+                    18 => {
+                        if_unmodifiable_clone_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().show_fps ^= true;
+                    }
+                    _ => {}
+                },
+
+                // Reset graphics, or delete entire slot.
+                Event::Key(KeyEvent {
+                    code: KeyCode::Delete | KeyCode::Char('d' | 'D'),
+                    kind: Press,
+                    ..
+                }) => {
+                    if selected == 0 {
+                        // If a custom slot, then remove it (and return to the 'default' 0th slot).
+                        if self.settings.graphics_picked
+                            >= self.settings.graphics_slotmachine.unmodifiable_slots
+                        {
+                            self.settings
+                                .graphics_slotmachine
+                                .slots
+                                .remove(self.settings.graphics_picked);
+                            self.settings.graphics_picked = 0;
+                        }
+                    }
+                }
+
+                // Other event: Just ignore.
+                _ => {}
+            }
+            selected %= selection_len;
+        }
     }
 }
