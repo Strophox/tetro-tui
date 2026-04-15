@@ -199,11 +199,11 @@ yay -S tetro-tui
 > | `Enter`, `e` | Select |
 > | `Esc`, `q`, `Back`, | Go back |
 > | `Del`, `d` | Delete/reset |
-> | `1`/`2`/`3`... | Quickselect option (in 'New game') |
-> | `Home`/`End` | Navigate to top/bottom in 'Scores & Replays' |
-> | `Alt`+? | Change value but differently (in 'Start game'⇝['Combo','Game save','Custom'], in 'Gameplay settings'⇝'Tetromino generation') |
+> | `1`/`2`/`3`... | Quickselect option (in 'Start new game') |
+> | `Home`/`End` | Navigate to top/bottom (in 'Scores & Replays') |
+> | `Alt`+? | Change value but differently (in 'Start new game'⇝['Combo','Game save','Custom'], in 'Gameplay settings'⇝'Tetromino generation') |
 > | `Alt`+`Del`, `Alt`+`d` | Delete replay  (in 'Scores and Replays') |
-> | `Ctrl`+`U` | (For experienced/impatient players) unlock all game modes (in 'Start game') |
+> | `Ctrl`+`U` | (For experienced/impatient players) unlock all game modes (in 'Start new game') |
 > | `Ctrl`+`C` | Exit application (respects save preferences) |
 > 
 > </details>
@@ -233,8 +233,8 @@ yay -S tetro-tui
 > | `Ctrl`+`D` | Forfeit game |
 > | `Ctrl`+`R` | Restart game mode (Caution: discards current game) |
 > | `Ctrl`+`L` | Load game save (Caution: discards current game) |
-> | `Ctrl`+`S` | Store game save (accessible in 'Start game'⇝'Game save' or '(live) Game'⇝`Ctrl`+`L`) |
-> | `Ctrl`+`E` | Store seed (accessible in 'Start game'⇝'Custom') |
+> | `Ctrl`+`S` | Store game save (accessible in 'Start new game'⇝'Game save' or '(live) Game'⇝`Ctrl`+`L`) |
+> | `Ctrl`+`E` | Store seed (accessible in 'Start new game'⇝'Custom') |
 > | `Ctrl`(+`Alt`)+`G` | Cycle through graphics settings slots |
 > | `Ctrl`+`Alt`+`B` | Toggle on/off visibility of tiles ('Blindfolded') |
 > | `Ctrl`+`Alt`+`L` | Re-load from savefile (Caution: discards current save progress!) |
@@ -257,14 +257,15 @@ yay -S tetro-tui
 > | `-` | Reset replay speed to =1.0x |
 > | `←`/`→` , `h`/`l` | Skip forward / backward 1s in time |
 > | `1`/`2`/`3`... | Jump to 10%/20%/30%/... |
+> | `Home`/`End` | Jump to beginning/end |
 > | `.` | Skip forward one player input + pause |
 > | `Alt`+`.` | Skip forward one game state change\* + pause (\*might not work properly for modded games) |
-> | `Enter`, `e` | Start (live) Game from current replay state |
+> | `Enter`, `e` | Start (live) Game from current replay position |
 > 
 > | Key | Special Action |
 > | `Ctrl`+`L` | Loop replay on game end |
-> | `Ctrl`+`S` | Store game save (accessible in 'Start game'⇝'Game save' or '(live) Game'⇝`Ctrl`+`L`) |
-> | `Ctrl`+`E` | Store seed (accessible in 'Start game'⇝'Custom') |
+> | `Ctrl`+`S` | Store game save (accessible in 'Start new game'⇝'Game save' or '(live) Game'⇝`Ctrl`+`L`) |
+> | `Ctrl`+`E` | Store seed (accessible in 'Start new game'⇝'Custom') |
 > | `Ctrl`+`I` | (Experimental) Toggle Instant Interactive Input Intervention |
 > | `Ctrl`(+`Alt`)+`G` | Cycle through graphics settings slots |
 > | `Ctrl`+`Alt`+`L` | Re-load from savefile (Caution: discards current save progress!) |

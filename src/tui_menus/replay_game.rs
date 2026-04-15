@@ -471,6 +471,19 @@ impl<T: Write> Application<T> {
                                 break 'wait;
                             }
 
+                            // [Home]: Skip to 0% anchor save.
+                            (KeyCode::Home, _) => {
+                                jump_to_anchor = Some(0);
+                            }
+
+                            // [End]: Skip to ~100% anchor save.
+                            (KeyCode::End, _) => {
+                                jump_to_anchor = Some(
+                                    (replay_length.as_secs_f64() / ANCHOR_INTERVAL.as_secs_f64())
+                                        .floor() as usize,
+                                );
+                            }
+
                             // [0]-[9]: Skip to X0% anchor save.
                             (KeyCode::Char(c @ '0'..='9'), _) => {
                                 let n = c.to_string().parse::<u32>().unwrap();
