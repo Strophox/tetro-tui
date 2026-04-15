@@ -107,17 +107,17 @@ impl<T: Write> Application<T> {
             let w_main = Self::W_MAIN.into();
             let (x_main, y_main) = Self::viewport_offset();
             let y_selection = Self::H_MAIN / 5;
-            if *is_win {
-                let clear_type = if refresh_fully {
-                    refresh_fully = false;
-                    ClearType::All
-                } else {
-                    ClearType::CurrentLine
-                };
-                self.term
-                    .queue(MoveTo(x_main, y_main + y_selection))?
-                    .queue(Clear(clear_type))?;
+            let clear_type = if refresh_fully {
+                refresh_fully = false;
+                ClearType::All
+            } else {
+                ClearType::CurrentLine
+            };
+            self.term
+                .queue(MoveTo(x_main, y_main + y_selection))?
+                .queue(Clear(clear_type))?;
 
+            if *is_win {
                 let line = format!(
                     "{:^w_main$}",
                     format!("++ Game Completed ({}) ++", game_meta_data.title)
@@ -146,16 +146,13 @@ impl<T: Write> Application<T> {
                         )))?;
                 }
             } else {
-                self.term
-                    .queue(Clear(ClearType::All))?
-                    .queue(MoveTo(x_main, y_main + y_selection))?
-                    .queue(PrintStyledContent(
-                        format!(
-                            "{:^w_main$}",
-                            format!("-- Game Over: {end_cause} ({}) --", game_meta_data.title)
-                        )
-                        .bold(),
-                    ))?;
+                self.term.queue(PrintStyledContent(
+                    format!(
+                        "{:^w_main$}",
+                        format!("-- Game Over: {end_cause} ({}) --", game_meta_data.title)
+                    )
+                    .bold(),
+                ))?;
             }
 
             self.term
