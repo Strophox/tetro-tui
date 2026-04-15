@@ -30,9 +30,9 @@ pub struct LockEffect {
 pub fn default_lock_effect_slots() -> SlotMachine<LockEffect> {
     let slots = vec![
         ("None".to_owned(), LockEffect::none()),
-        ("ASCII transform".to_owned(), LockEffect::ascii_transform()),
-        ("Unicode pulse".to_owned(), LockEffect::unicode_pulse()),
-        ("Color white".to_owned(), LockEffect::color_white()),
+        ("Transform ASCII".to_owned(), LockEffect::ascii_transform()),
+        ("Pulse Unicode".to_owned(), LockEffect::unicode_pulse()),
+        ("White".to_owned(), LockEffect::color_white()),
     ];
 
     SlotMachine::with_unmodifiable_slots(slots, "Lock effect".to_owned())
