@@ -408,5 +408,6 @@ Special Thanks go to:
 - madkiwi – for advice regarding 4wide-6residual combo layouts
 - Dunspixel – for inspiration regarding ['O'-spins](<https://dunspixel.github.io/ospin-guide/chapter4.html#tetro-tui>)
 - Martín G – for inspiration regarding new line clear effect from his own PICO-8 game
+- thehuglet – for inspiration regarding the [potential of the terminal](<https://github.com/thehuglet/germterm>)
 - Akousoukos – for making [Apotris](<https://apotris.com/>)
 - and RayZN and ˗ˋˏthe One and Onlyˎˊ˗ – for advice regarding the Tetro logo
