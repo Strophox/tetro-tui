@@ -443,7 +443,7 @@ impl Renderer for StandardBufferedRenderer {
                     #[rustfmt::skip] term_buf.write_char(w_tmp6 + 12, h_tmp6 + y_offset + 3, TermCell { ch: c_n_br, fg: Color::Reset });
 
                     // Render preview piece.
-                    let tile_texture = mino_textures.play;
+                    let tile_texture = mino_textures.locked;
                     let color = ftch_col_or_rset(&next_tet.tile_id());
                     let w_extra_for_o = if next_tet == Tetromino::O { 2 } else { 0 };
                     for (dx, dy) in next_tet.minos(Orientation::N) {
@@ -499,28 +499,30 @@ impl Renderer for StandardBufferedRenderer {
                     #[rustfmt::skip] term_buf.write_str(w_tmp6 + 2 + w_extra_for_o, h_tmp6 + y_offset + 1, small_tet, color);
                 };
 
-            // To continue, render small previews.
-            let Some(next_tet) = next_tetrominos.next() else {
-                break 'render_preview;
-            };
-            draw_appended_small_prev(&mut self.term_buf, y_offset, next_tet);
-            // Override top right corner of first small prev.
-            #[rustfmt::skip] self.term_buf.write_char(w_tmp6 + 8, h_tmp6 + y_offset, TermCell { ch: c_n_jd, fg: Color::Reset });
-            y_offset += 2;
-
-            // Render remaining small previews.
-            while y_offset + 2 < 20 {
+            // To continue, render small previews (if there's space)
+            if y_offset + 2 < 20 {
                 let Some(next_tet) = next_tetrominos.next() else {
                     break 'render_preview;
                 };
                 draw_appended_small_prev(&mut self.term_buf, y_offset, next_tet);
+                // Override top right corner of first small prev.
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp6 + 8, h_tmp6 + y_offset, TermCell { ch: c_n_jd, fg: Color::Reset });
                 y_offset += 2;
+
+                // Render remaining small previews.
+                while y_offset + 2 < 20 {
+                    let Some(next_tet) = next_tetrominos.next() else {
+                        break 'render_preview;
+                    };
+                    draw_appended_small_prev(&mut self.term_buf, y_offset, next_tet);
+                    y_offset += 2;
+                }
             }
 
             for (x_offset, next_tet) in next_tetrominos.enumerate() {
                 let mini_tet = settings.mini_tet_style().tets[next_tet as usize];
                 let color = ftch_col_or_rset(&next_tet.tile_id());
-                #[rustfmt::skip] self.term_buf.write_char(w_tmp6 + 8 + 2 * (x_offset as u16), h_tmp6 + y_offset.saturating_sub(1), TermCell { ch: mini_tet, fg: color });
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp6 + 11 + 2 * (x_offset as u16), h_tmp6 + y_offset.saturating_sub(1), TermCell { ch: mini_tet, fg: color });
             }
         }
 
@@ -970,7 +972,7 @@ impl Renderer for StandardBufferedRenderer {
             });
         }
 
-        // RENDER: Line clear effect.
+        // RENDER: Inline Line clear effect.
 
         self.line_clear_inline_effect_buf.retain_mut(|(line_clear_inline_effect, line_clear_effect_lines)| {
             let LineClearInlineEffect { anim_indices, anim_lastidx, color_animation } = line_clear_inline_effect;
@@ -1016,6 +1018,8 @@ impl Renderer for StandardBufferedRenderer {
             // Retain hard drop effect if it still has active tiles.
             !line_clear_effect_lines.is_empty()
         });
+
+        // RENDER: Particle Line clear effect.
 
         self.line_clear_particle_effect_buf.retain_mut(|(line_clear_particle_effect, line_clear_effect_tiles)| {
             let LineClearParticleEffect { duration_override, animation, acceleration: _, momentum_base: _, momentum_rand: _, momentum_xpos: _  } = line_clear_particle_effect;

@@ -99,50 +99,77 @@ impl Settings {
     // 2. Store an index into the slots somewhere.
     // 3. Implementing 'getter' on the place that owns the slots (not where the index is stored.)
     pub fn palette(&self) -> &Palette {
-        &self.palette_slotmachine.slots[self.graphics().palette_picked].1
+        &self
+            .palette_slotmachine
+            .grab(self.graphics().palette_picked)
+            .1
     }
     pub fn tui_style(&self) -> &TuiStyle {
-        &self.tui_style_slotmachine.slots[self.graphics().tui_style_picked].1
+        &self
+            .tui_style_slotmachine
+            .grab(self.graphics().tui_style_picked)
+            .1
     }
     pub fn mino_textures(&self) -> &MinoTextures {
-        &self.mino_textures_slotmachine.slots[self.graphics().mino_textures_picked].1
+        &self
+            .mino_textures_slotmachine
+            .grab(self.graphics().mino_textures_picked)
+            .1
     }
     pub fn hard_drop_effect(&self) -> &HardDropEffect {
-        &self.hard_drop_effect_slotmachine.slots[self.graphics().hard_drop_picked].1
+        &self
+            .hard_drop_effect_slotmachine
+            .grab(self.graphics().hard_drop_picked)
+            .1
     }
     pub fn lock_effect(&self) -> &LockEffect {
-        &self.lock_effect_slotmachine.slots[self.graphics().lock_effect_picked].1
+        &self
+            .lock_effect_slotmachine
+            .grab(self.graphics().lock_effect_picked)
+            .1
     }
     pub fn line_clear_effect(&self) -> &LineClearEffect {
-        &self.line_clear_effect_slotmachine.slots[self.graphics().line_clear_picked].1
+        &self
+            .line_clear_effect_slotmachine
+            .grab(self.graphics().line_clear_picked)
+            .1
     }
     pub fn mini_tet_style(&self) -> &MiniTetStyle {
-        &self.mini_tet_style_slotmachine.slots[self.graphics().mini_tet_picked].1
+        &self
+            .mini_tet_style_slotmachine
+            .grab(self.graphics().mini_tet_picked)
+            .1
     }
     pub fn small_tet_style(&self) -> &SmallTetStyle {
-        &self.small_tet_style_slotmachine.slots[self.graphics().small_tet_picked].1
+        &self
+            .small_tet_style_slotmachine
+            .grab(self.graphics().small_tet_picked)
+            .1
     }
     pub fn boardpalette(&self) -> &Palette {
-        &self.palette_slotmachine.slots[self.graphics().boardpalette_picked].1
+        &self
+            .palette_slotmachine
+            .grab(self.graphics().boardpalette_picked)
+            .1
     }
 
     pub fn graphics(&self) -> &GraphicsSettings {
-        &self.graphics_slotmachine.slots[self.graphics_picked].1
+        &self.graphics_slotmachine.grab(self.graphics_picked).1
     }
     pub fn keybinds(&self) -> &GameKeybinds {
-        &self.keybinds_slotmachine.slots[self.keybinds_picked].1
+        &self.keybinds_slotmachine.grab(self.keybinds_picked).1
     }
     pub fn gameplay(&self) -> &GameplaySettings {
-        &self.gameplay_slotmachine.slots[self.gameplay_picked].1
+        &self.gameplay_slotmachine.grab(self.gameplay_picked).1
     }
     pub fn graphics_mut(&mut self) -> &mut GraphicsSettings {
-        &mut self.graphics_slotmachine.slots[self.graphics_picked].1
+        &mut self.graphics_slotmachine.grab_mut(self.graphics_picked).1
     }
     pub fn keybinds_mut(&mut self) -> &mut GameKeybinds {
-        &mut self.keybinds_slotmachine.slots[self.keybinds_picked].1
+        &mut self.keybinds_slotmachine.grab_mut(self.keybinds_picked).1
     }
     pub fn gameplay_mut(&mut self) -> &mut GameplaySettings {
-        &mut self.gameplay_slotmachine.slots[self.gameplay_picked].1
+        &mut self.gameplay_slotmachine.grab_mut(self.gameplay_picked).1
     }
 }
 
@@ -170,6 +197,20 @@ impl<T: Clone> SlotMachine<T> {
             unmodifiable_slots: num_unmodifiable_slots,
             name_templating: cloned_slot_name_template,
         }
+    }
+
+    pub fn grab(&self, mut idx: usize) -> &(String, T) {
+        if idx >= self.slots.len() {
+            idx = 0;
+        }
+        &self.slots[idx]
+    }
+
+    pub fn grab_mut(&mut self, mut idx: usize) -> &mut (String, T) {
+        if idx >= self.slots.len() {
+            idx = 0;
+        }
+        &mut self.slots[idx]
     }
 
     // FIXME: Remove unused code or reconsider. Not ergonomic enough for current usecase: `self.settings.gameplay_picked = self.settings.gameplay_slotmachine.increment_cyclic(self.settings.gameplay_picked);`

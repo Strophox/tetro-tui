@@ -15,7 +15,7 @@ use falling_tetromino_engine::{
 };
 
 use crate::{
-    fmt_helpers::{fmt_duration, replay_keybinds_legend},
+    fmt_helpers::{fmt_duration, replay_keybinds_legend, BoolAsOnOff},
     game_renderers::{Renderer, TetroTUIRenderer},
     game_restoration::{GameRestorationData, RawInputHistory},
     tui_menus::{Menu, MenuUpdate},
@@ -67,6 +67,8 @@ impl<T: Write> Application<T> {
 
         // Store whether to pause.
         let mut paused = false;
+
+        let mut loop_replay = false;
 
         // This toggle enables users to actually do inputs on the game.
         let mut enable_game_intervention_inputs = false;
@@ -125,10 +127,6 @@ impl<T: Write> Application<T> {
         // The 'real-life' time at which we enter the game loop.
         let time_game_loop_entered = Instant::now();
 
-        // How much time passes between each refresh.
-        let refresh_time_budget =
-            Duration::from_secs_f64(self.settings.graphics().fps.get().recip());
-
         let mut time_last_refresh = time_game_loop_entered;
 
         // Main Game Loop
@@ -148,6 +146,9 @@ impl<T: Write> Application<T> {
 
             let mut jump_to_anchor: Option<usize> = None;
 
+            // How much time passes between each refresh.
+            let refresh_time_budget =
+                Duration::from_secs_f64(self.settings.graphics().fps.get().recip());
             // Calculate the time of the next render we can catch.
             // We actually completely base this off the start of the session,
             // and just skip a render if we miss the window.
@@ -168,6 +169,16 @@ impl<T: Write> Application<T> {
                 if !event_available {
                     break 'wait;
                 }
+
+                // FIXME: Unused code: for performance measurements, this busy-spin can be used.
+                // let event_available = event::poll(Duration::ZERO)?;
+                // if !event_available {
+                //     if time_next_refresh.checked_duration_since(Instant::now()).is_none() {
+                //         break 'wait
+                //     } else {
+                //         continue 'wait
+                //     }
+                // }
 
                 let event = event::read()?;
                 match event {
@@ -436,7 +447,7 @@ impl<T: Write> Application<T> {
                                 | KeyCode::Char('h' | 'H')
                                 | KeyCode::Right
                                 | KeyCode::Char('l' | 'L'),
-                                _,
+                                KeyModifiers::NONE,
                             ) => {
                                 let mut anchor_index = (game.state().time.as_secs_f64()
                                     / ANCHOR_INTERVAL.as_secs_f64())
@@ -521,6 +532,48 @@ impl<T: Write> Application<T> {
                                     };
                                 self.settings.graphics_picked %=
                                     self.settings.graphics_slotmachine.slots.len();
+
+                                if paused {
+                                    next_paused_with_extra_render_request = Some(true);
+                                }
+                            }
+
+                            // [Ctrl+L]: Loop replay.
+                            (KeyCode::Char('l' | 'L'), KeyModifiers::CONTROL) => {
+                                loop_replay ^= true;
+
+                                game_renderer.update_feed(
+                                    [(
+                                        Notification::Custom(format!(
+                                            "(Replay loop toggled {}.)",
+                                            loop_replay.on_off()
+                                        )),
+                                        game.state().time,
+                                    )],
+                                    &self.settings,
+                                );
+                            }
+
+                            // [Ctrl+Alt+L]: Re-load from savefile.
+                            (KeyCode::Char('l' | 'L'), _)
+                                if {
+                                    modifiers
+                                        .contains(KeyModifiers::CONTROL.union(KeyModifiers::ALT))
+                                } =>
+                            {
+                                let msg = if let Err(e) = self.load_from_savefile() {
+                                    format!("(Error reloading from savefile: {e}")
+                                } else {
+                                    "(Reloaded from savefile.)".to_owned()
+                                };
+                                game_renderer.update_feed(
+                                    [(Notification::Custom(msg), game.state().time)],
+                                    &self.settings,
+                                );
+
+                                if paused {
+                                    next_paused_with_extra_render_request = Some(true);
+                                }
                             }
 
                             // Other misc. key event: We don't care.
@@ -675,6 +728,18 @@ impl<T: Write> Application<T> {
                         Err(UpdateGameError::AlreadyEnded | UpdateGameError::TargetTimeInPast) => {}
                     };
                 }
+            } else if game.has_ended() && loop_replay {
+                // Loop replay.
+                game = game_restoration_data.restore(0);
+                inputs_loaded = 0;
+                game_renderer.reset_veffects_state();
+                game_renderer.update_feed(
+                    [(
+                        Notification::Custom("(Looping replay.)".to_owned()),
+                        game.state().time,
+                    )],
+                    &self.settings,
+                );
             }
 
             // Render frame only if not paused or paused but render requested

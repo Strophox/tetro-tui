@@ -54,7 +54,7 @@ impl<T: Write> Application<T> {
                         "Slot {}/{}: '{}'{}",
                         self.settings.graphics_picked + 1,
                         self.settings.graphics_slotmachine.slots.len(),
-                        self.settings.graphics_slotmachine.slots[self.settings.graphics_picked].0,
+                        self.settings.graphics_slotmachine.grab(self.settings.graphics_picked).0,
                         if self.settings.graphics_slotmachine.slots.len() < 2 {
                             "".to_owned()
                         } else {

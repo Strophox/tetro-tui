@@ -35,15 +35,24 @@ impl<T: Write> Application<T> {
             let labels = [
                 format!(
                     "Adjust graphics ({}) ...",
-                    self.settings.graphics_slotmachine.slots[self.settings.graphics_picked].0
+                    self.settings
+                        .graphics_slotmachine
+                        .grab(self.settings.graphics_picked)
+                        .0
                 ),
                 format!(
                     "Adjust keybinds ({}) ...",
-                    self.settings.keybinds_slotmachine.slots[self.settings.keybinds_picked].0
+                    self.settings
+                        .keybinds_slotmachine
+                        .grab(self.settings.keybinds_picked)
+                        .0
                 ),
                 format!(
                     "Adjust gameplay ({}) ...",
-                    self.settings.gameplay_slotmachine.slots[self.settings.gameplay_picked].0
+                    self.settings
+                        .gameplay_slotmachine
+                        .grab(self.settings.gameplay_picked)
+                        .0
                 ),
                 format!(
                     "Keep save file: {}",
