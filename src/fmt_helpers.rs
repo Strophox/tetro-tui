@@ -254,6 +254,7 @@ pub fn to_roman(mut num: u32) -> String {
     string
 }
 
+// Sidenote:
 // In an ideal world, a char is just a 1-char `str`.
 // Unfortunately, converting between `u8`, `char` and `&str` is painful. :-(
 //                     char --let mut bs=vec![0;len_utf8()];c.encode_utf8(&mut bs)--> &str

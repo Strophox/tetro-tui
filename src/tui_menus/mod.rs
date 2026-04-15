@@ -29,8 +29,8 @@ use crossterm::{
 use falling_tetromino_engine::{Game, InGameTime};
 
 use crate::{
-    game_renderers::TetroTUIRenderer, Application, GameMetaData, GameRestorationData,
-    RawInputHistory, ScoreEntry,
+    game_renderers::TetroTUIRenderer, tui_settings::Settings, Application, GameMetaData,
+    GameRestorationData, RawInputHistory, ScoreEntry,
 };
 
 #[derive(Debug)]
@@ -135,7 +135,7 @@ impl<T: Write> Application<T> {
                         format!("{:^w_main$}", format!("- {} -", current_menu_name)).bold(),
                     ))?
                     .queue(MoveTo(x_main, y_main + y_selection + 2))?
-                    .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
+                    .queue(Print(format!("{:^w_main$}", title_bar(&self.settings))))?;
             }
             let names = selection
                 .iter()
@@ -243,6 +243,10 @@ impl<T: Write> Application<T> {
             }
         }
     }
+}
+
+pub fn title_bar(settings: &Settings) -> String {
+    settings.tui_style().menuglyphs[0].to_string().repeat(32)
 }
 
 const DAVIS: &str = r#" ▀█▀ "I am like Solomon because I built God's temple, an operating system. God said 640x480 16 color graphics but the operating system is 64-bit and multi-cored! Go draw a 16 color elephant. Then, draw a 24-bit elephant in MS Paint and be enlightened. Artist stopped photorealism when the camera was invented. A cartoon is actually better than photorealistic. For the next thousand years, first-person shooters are going to get boring. Tetris looks good." - In memory of Terry A. Davis"#;

@@ -15,7 +15,7 @@ use crossterm::{
 use crate::{
     fmt_helpers::BoolAsOnOff,
     game_renderers::TetroTUIRenderer,
-    tui_menus::{Menu, MenuUpdate},
+    tui_menus::{title_bar, Menu, MenuUpdate},
     Application, SavefileGranularity,
 };
 
@@ -35,7 +35,7 @@ impl<T: Write> Application<T> {
                     format!("{:^w_main$}", "§ Advanced Settings §").bold(),
                 ))?
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
-                .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
+                .queue(Print(format!("{:^w_main$}", title_bar(&self.settings))))?;
 
             // Draw config selection.
             let labels = [

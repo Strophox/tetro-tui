@@ -25,7 +25,7 @@ use crate::{
     game_mode_presets::GameModePreset,
     game_renderers::{Renderer, TetroTUIRenderer},
     game_restoration::{GameRestorationData, RawInputHistory},
-    tui_menus::{Menu, MenuUpdate},
+    tui_menus::{title_bar, Menu, MenuUpdate},
     tui_settings::{GameModePreferences, GameplaySettings},
     Application, GameMetaData, GameSave,
 };
@@ -80,7 +80,7 @@ impl<T: Write> Application<T> {
                     format!("{:^w_main$}", "+ Start New Game +").bold(),
                 ))?
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
-                .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
+                .queue(Print(format!("{:^w_main$}", title_bar(&self.settings))))?;
             // Render normal and special game modes.
             for (
                 i,

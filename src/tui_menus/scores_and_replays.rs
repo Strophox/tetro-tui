@@ -17,7 +17,7 @@ use crate::{
     fmt_helpers::fmt_duration,
     game_renderers::TetroTUIRenderer,
     game_restoration::{EncodedInputHistory, GameRestorationData},
-    tui_menus::{Menu, MenuUpdate},
+    tui_menus::{title_bar, Menu, MenuUpdate},
     Application, ScoreEntry, ScoreEntrySorting,
 };
 
@@ -43,7 +43,7 @@ impl<T: Write> Application<T> {
                     format!("{:^w_main$}", "* Scores and Replays *").bold(),
                 ))?
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
-                .queue(Print(format!("{:^w_main$}", "──────────────────────────")))?;
+                .queue(Print(format!("{:^w_main$}", title_bar(&self.settings))))?;
 
             let sorting = self.scores_and_replays.sorting;
             let fmt_stat = |p: &ScoreEntry| {
