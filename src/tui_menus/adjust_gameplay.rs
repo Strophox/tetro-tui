@@ -150,7 +150,7 @@ impl<T: Write> Application<T> {
                 ),
                 format!("Spawn delay (ARE) = {:?}", self.settings.gameplay().are),
                 format!(
-                    "Allow initial rotation/hold (IRS/IHS) = {} *",
+                    "Allow initial actions (IRS/IHS/IMS/ITS) = {} *",
                     self.settings.gameplay().initsys.on_off()
                 ),
                 format!(

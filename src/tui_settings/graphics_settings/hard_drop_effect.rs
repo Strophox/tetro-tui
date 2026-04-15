@@ -58,16 +58,16 @@ impl HardDropEffect {
     pub fn ascii_particles() -> Self {
         HardDropEffect {
             duration: Duration::from_millis(150),
-            animation: ["@@", "$$", "##", "%%", "**", "++", "~~", ".."]
+            animation: ["@@", "$$", /*"##", */ "%%", "**", "++", "~~", ".."]
                 .map(|ss| (ss.tile(), None))
                 .into(),
-            y_decay: 0.5,
+            y_decay: 0.75,
         }
     }
 
     pub fn ascii_streak() -> Self {
         HardDropEffect {
-            duration: Duration::from_millis(250),
+            duration: Duration::from_millis(150),
             animation: ["||", "¦¦", "::", ".."].map(|ss| (ss.tile(), None)).into(),
             y_decay: 1.0,
         }
@@ -83,8 +83,8 @@ impl HardDropEffect {
 
     pub fn block_beam() -> Self {
         HardDropEffect {
-            duration: Duration::from_millis(100),
-            animation: ["▒▒", "░░"]
+            duration: Duration::from_millis(67),
+            animation: ["▒▒", "░░", "░░"]
                 .map(|ss| (ss.tile(), Some(Palette::WHITE)))
                 .into(),
             y_decay: 0.0,

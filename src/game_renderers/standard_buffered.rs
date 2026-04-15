@@ -656,9 +656,10 @@ impl Renderer for StandardBufferedRenderer {
         {
             // Produce value and text to render.
             let (str_statval, str_stattxt) = match end_condition_stat {
-                Stat::TimeElapsed(t) => {
-                    (fmt_duration(t.saturating_sub(game.state().time)), "remain")
-                }
+                Stat::TimeElapsed(t) => (
+                    t.saturating_sub(game.state().time).as_secs().to_string(),
+                    "seconds remain",
+                ),
                 Stat::PiecesLocked(p) => (
                     p.saturating_sub(game.state().pieces_locked.iter().sum::<u32>())
                         .to_string(),
