@@ -54,16 +54,15 @@ pub enum TetroTUIRenderer {
 }
 
 impl TetroTUIRenderer {
-    pub const NUM_VARIANTS: usize = 6;
+    pub const NUM_VARIANTS: usize = 5;
 
     pub fn with_number(n: usize) -> Self {
         match n {
             0 => Self::StandardBuffered(Default::default()),
             1 => Self::LegacyBuffered(Default::default()),
             2 => Self::Prototype(Default::default()),
-            3 => Self::LegacyBuffered(Default::default()),
-            4 => Self::Twoxel(Default::default()),
-            5 => Self::Braille(Default::default()),
+            3 => Self::Twoxel(Default::default()),
+            4 => Self::Braille(Default::default()),
 
             _ => Self::StandardBuffered(Default::default()),
         }

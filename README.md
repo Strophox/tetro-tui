@@ -82,36 +82,46 @@ yay -S tetro-tui
 > 
 > <details>
 > <summary>
-> (Comprehensive overview of relevant menus (Tetro TUI v2.0):)
+> If interested, one might check the following *Comprehensive* overview of relevant menus (Tetro TUI v3.0):
 > </summary>
 > 
 > **New game/**
 > - Swift: How fast can you clear 40 lines?
 > - Classic: Clear 150 lines at increasing gravity.
-> - Master: Clear 150 lines at instant gravity.
+> - *(unlocked after Classic)* Master: Clear 150 lines at instant gravity.
 > - Puzzle: Clear 24 hand-crafted puzzles.
 > - Cheese-20: Eat through lines like Swiss cheese. Limit∈[None, Some(10), Some(11), .., Some(20), ..]
 > - Combo-30: Get consecutive line clears. Limit∈[None, Some(10), Some(11), .., Some(30), ..]
-> - Ascent*: (experimental, req. Ocular + 180° rot.)
+> - Ascent*: (experimental, requires 'Ocular'- + 180° rotation)
 > - Custom: [Del]=reset
 >   * Initial fall delay = 1.0s (Gravity: 1.0 Hz)
 >   * Progressive gravity ∈ [on, off]
 >   * Limit ∈ [None, TimeElapsed(300s), .., PointsScored(200), .., PiecesLocked(100), .., LinesCleared(40), ..]
-> - Game save: (Only shows up after using `Ctrl+S`)
+> - Game save: *(Only shows up after using `Ctrl+S`)*
 > 
 > **Settings/Adjust-Graphics/**
-> * Slot ∈ ['Default', 'Focus+', 'Guideline', 'High Compat.', 'Elektronika 60', 'Custom I'/'II'/..]
-> * Glyphset ∈ [Unicode, ASCII, Elektronika_60]
-> * Color Palette (modifiable presets) ∈ ['Monochrome', 'ANSI', 'Standard', 'Okpalette', 'Gruvbox', 'Solarized', 'Terafox', 'Fahrenheit', 'The Matrix', 'Sequoia']
-> * Color locked tiles ∈ [on, off]
-> * Show effects ∈ [on, off]
-> * Show shadow piece ∈ [on, off]
-> * Show button state ∈ [on, off]
-> * Max framerate ∈ [1, .., 60, ..]
-> * Show FPS ∈ [on, off]
+> * Slot ∈ [Default, Focus+, Guideline, Terminal compatibility, Elektronika 60, Blank slate, Custom I/II/..]
+> * Color Palette (modifiable presets) ∈ [Monochrome, ANSI, Standard, Okpalette, Gruvbox, Solarized, Terafox, Fahrenheit, The Matrix, Sequoia]
+> * TUI style ∈ [ASCII, Unicode, Elektronika 60]
+> * Mino textures ∈ [ASCII, Unicode, Elektronika 60]
+> * Hard drop effect ∈ [None, Particles ASCII, Streak ASCII, Beam ASCII, Beam]
+> * Lock effect ∈ [None, Transform ASCII, Pulse Unicode, White]
+> * Line clear effect ∈ [None, Instant, Left to right, Inward, Outward, Flash white, Blink, Pop out, Pop out (more), Sparks ASCII, Blast]
+> * Mini tetromino style ∈ [ASCII, Braille]
+> * Small tetromino style ∈ [ASCII, Blocks, Braille]
+> * Normalsize previews ∈ [unlimited, 1, 2 ..]
+> * Frames per second ∈ [5, 10, .., 60, ..]
+> * Show grid ∈ [on, off]
+> * Show piece shadow ∈ [on, off]
+> * Preview spawn when stack high ∈ [on, off]
+> * Color board tiles ∈ [on, off]
+> * Show left HUD ∈ [on, off]
+> * Show basic keybinds legend ∈ [on, off]
+> * Show active buttons ∈ [on, off]
+> * Show FPS counter ∈ [on, off]
 > 
 > **Settings/Adjust-Keybinds/**
-> * Slot (modifiable preset) ∈ ['Default', 'Control+', 'Guideline', 'Vim', 'Custom I'/'II'/..]
+> * Slot (modifiable preset) ∈ [Default, Control+, Guideline, Vim, Custom I/II/..]
 > * MoveLeft, MoveRight
 > * RotateLeft, RotateRight, Rotate180
 > * DropSoft, DropHard
@@ -119,23 +129,24 @@ yay -S tetro-tui
 > * HoldPiece
 > 
 > **Settings/Adjust-Gameplay/**
-> * Slot ∈ ['Default', 'Finesse+', 'Guideline', 'NES', 'Gameboy', 'Custom I'/'II'/..]
+> * Slot ∈ [Default, Finesse+, Guideline, NES, Gameboy, Custom I/II/..]
 > * Piece rotation system ∈ [Ocular, ClassicL, ClassicR, Super]
 > * Piece randomization ∈ [Completely random, 7-Bag, 14-Bag, .., Recency (^2.5), Recency (^2.6), .., Balance out]
-> * Piece preview count ∈ [0, 1, .., 3, ..]
+> * Piece preview count ∈ [0, 1, .., 4, ..]
 > * Delayed auto move (DAS) ∈ [0ms, 1ms, .., 167ms, ..]
 > * Auto move rate (ARR) ∈ [0ms, 1ms, .., 33ms, ..]
 > * Soft drop speedup (SDF) ∈ [0x, 0.25x, .., 15x, ..]
 > * Line clear duration (LCD) ∈ [0ms, 5ms, .., 200ms, ..]
 > * Spawn delay (ARE) ∈ [0ms, 5ms, .., 50ms, ..]
-> * Allow initial rotation/hold (IRS/IHS) ∈ [on, off]
+> * Allow initial rotation/hold (IRS/IHS/IMS/ITS) ∈ [on, off]
 > * Convert double-tap to teleport ∈ [None, Some(5ms), Some(10ms), ..]
 > 
 > **Settings/Advanced-Settings/**
-> * Save contents ∈ ["Nothing", "Only settings - No scores,replays", "Only settings,scres - No replays", "Everything (settings,scores,replays)"]
+> * Save contents ∈ ["--Nothing", "Only settings --No scores,replays", "Only settings,scores --No replays", "Everything (settings,scores,replays)"]
 > * Assume enhanced-key-events available ∈ [on, off]
 > * Blindfold gameplay ∈ [on, off]
-> * Renderertype ∈ [Default, Legacy debug, Halfcell, Braille]
+> * Pause on focus lost ∈ [on, off]
+> * Renderer selected ∈ [Standard, Legacy, Prototype, Twoxel, Braille]
 > 
 > </details>
 

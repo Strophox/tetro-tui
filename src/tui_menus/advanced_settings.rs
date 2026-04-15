@@ -184,10 +184,24 @@ impl<T: Write> Application<T> {
                         self.temp_data.blindfold_enabled = false;
                     }
                     3 => {
+                        self.temp_data.pause_on_focus_lost = false;
+                    }
+                    4 => {
                         self.temp_data.renderer_selected = 0;
                     }
                     _ => {}
                 },
+
+                Event::Key(KeyEvent {
+                    code: KeyCode::Enter | KeyCode::Char('e' | 'E'),
+                    kind: Press,
+                    ..
+                }) => {
+                    if selected == 0 {
+                        self.temp_data.save_on_exit =
+                            SavefileGranularity::StoreSettingsScoresReplays;
+                    }
+                }
 
                 // Move selector up.
                 Event::Key(KeyEvent {
