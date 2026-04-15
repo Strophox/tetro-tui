@@ -171,10 +171,7 @@ impl LineClearEffect {
         let tile_animation =
             ["@@", "$$", "##", "%%", "**", "++", "~~", ".."].map(|ss| Some(ss.tile()));
         let color_animation = [255, 3, 2, 1, 2, 7, 5, 4].map(NonZeroU8::new);
-        let animation = tile_animation
-            .into_iter()
-            .zip(color_animation.into_iter())
-            .collect();
+        let animation = tile_animation.into_iter().zip(color_animation).collect();
 
         LineClearEffect::Particle(LineClearParticleEffect {
             duration_override: Some(Duration::from_millis(500)),

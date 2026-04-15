@@ -8,7 +8,9 @@ mod sparse_terminal_double_buffer;
 use std::{collections::VecDeque, time::Duration};
 
 use crossterm::style::Color;
-use falling_tetromino_engine::{Button, Coordinate, GameEndCause, Phase, Stat, Tetromino, TileID};
+use falling_tetromino_engine::{
+    Button, Coordinate, GameEndCause, Orientation, Phase, Stat, Tetromino, TileID,
+};
 use rand::RngExt;
 
 use crate::{
@@ -347,6 +349,14 @@ impl Renderer for StandardBufferedRenderer {
         // -- 'General TUI' rendering --
 
         let tui_style = settings.tui_style();
+        let mino_textures = settings.mino_textures();
+        let ftch_col_or_rset = |tile_id: &TileID| {
+            settings
+                .palette()
+                .get(tile_id)
+                .copied()
+                .unwrap_or(Color::Reset)
+        };
 
         // RENDER: 'Board' frame.
 
@@ -359,26 +369,17 @@ impl Renderer for StandardBufferedRenderer {
         // Complete top edge.
         // 2x's because of font width.
         #[rustfmt::skip] self.term_buf.write_char(w_tmp1, h_tmp1, TermCell { ch: c_fr_tl, fg: Color::Reset });
-        for dx in 0..W_FIELD {
-            #[rustfmt::skip] self.term_buf.write_char(w_tmp1 + 1 + dx, h_tmp1, TermCell { ch: c_fr_t, fg: Color::Reset });
-        }
-        #[rustfmt::skip] self.term_buf.write_char(w_tmp1 + 1 + W_FIELD, h_tmp1, TermCell { ch: c_fr_tr, fg: Color::Reset });
-
-        // Complete bottom edge.
-        // 2x's because of font width.
         #[rustfmt::skip] self.term_buf.write_char(w_tmp1, h_tmp1 + 1 + H_FIELD, TermCell { ch: c_fr_bl, fg: Color::Reset });
         for dx in 0..W_FIELD {
+            #[rustfmt::skip] self.term_buf.write_char(w_tmp1 + 1 + dx, h_tmp1, TermCell { ch: c_fr_t, fg: Color::Reset });
             #[rustfmt::skip] self.term_buf.write_char(w_tmp1 + 1 + dx, h_tmp1 + 1 + H_FIELD, TermCell { ch: c_fr_b, fg: Color::Reset });
         }
+        #[rustfmt::skip] self.term_buf.write_char(w_tmp1 + 1 + W_FIELD, h_tmp1, TermCell { ch: c_fr_tr, fg: Color::Reset });
         #[rustfmt::skip] self.term_buf.write_char(w_tmp1 + 1 + W_FIELD, h_tmp1 + 1 + H_FIELD, TermCell { ch: c_fr_br, fg: Color::Reset });
 
-        // Left edge.
+        // Left and right edges.
         for dy in 0..H_FIELD {
             #[rustfmt::skip] self.term_buf.write_char(w_tmp1, h_tmp1 + 1 + dy, TermCell { ch: c_fr_l, fg: Color::Reset });
-        }
-
-        // Right edge.
-        for dy in 0..H_FIELD {
             #[rustfmt::skip] self.term_buf.write_char(w_tmp1 + 1 + 2 * Game::WIDTH as u16, h_tmp1 + 1 + dy, TermCell { ch: c_fr_r, fg: Color::Reset });
         }
 
@@ -390,18 +391,16 @@ impl Renderer for StandardBufferedRenderer {
             let w_tmp2 = w_float + W_PAD_LEFT + w_addhud;
             let h_tmp2 = h_float + H_PAD_TOP;
 
-            // Complete top edge.
+            // Complete top and bottom edges.
             #[rustfmt::skip] self.term_buf.write_char(w_tmp2, h_tmp2, TermCell { ch: c_h_tl, fg: Color::Reset });
-            #[rustfmt::skip] self.term_buf.write_char(w_tmp2 + 1, h_tmp2, TermCell { ch: c_h_tb, fg: Color::Reset });
-            #[rustfmt::skip] self.term_buf.write_str(w_tmp2 + 1 + 1, h_tmp2, "hold",Color::Reset);
-            #[rustfmt::skip] self.term_buf.write_char(w_tmp2 + 1 + 1 + 4, h_tmp2, TermCell { ch: c_h_tb, fg: Color::Reset });
-            // Left edge
-            #[rustfmt::skip] self.term_buf.write_char(w_tmp2, h_tmp2 + 1, TermCell { ch: c_h_l, fg: Color::Reset });
-            // Complete bottom edge.
             #[rustfmt::skip] self.term_buf.write_char(w_tmp2, h_tmp2 + 2, TermCell { ch: c_h_bl, fg: Color::Reset });
             for dx in 0..6 {
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp2 + 1 + dx, h_tmp2, TermCell { ch: c_h_tb, fg: Color::Reset });
                 #[rustfmt::skip] self.term_buf.write_char(w_tmp2 + 1 + dx, h_tmp2 + 2, TermCell { ch: c_h_tb, fg: Color::Reset });
             }
+            #[rustfmt::skip] self.term_buf.write_str(w_tmp2 + 2, h_tmp2, "hold",Color::Reset);
+            // Left edge
+            #[rustfmt::skip] self.term_buf.write_char(w_tmp2, h_tmp2 + 1, TermCell { ch: c_h_l, fg: Color::Reset });
 
             // Render 'hold' piece.
             let small_tet = &settings.small_tet_style().tets[tet as usize];
@@ -412,11 +411,7 @@ impl Renderer for StandardBufferedRenderer {
             } else {
                 Palette::GRAY
             };
-            let color = settings
-                .palette()
-                .get(&tile_id)
-                .copied()
-                .unwrap_or(Color::Reset);
+            let color = ftch_col_or_rset(&tile_id);
             #[rustfmt::skip] self.term_buf.write_str(w_tmp2 + 2 + w_extra_for_o, h_tmp2 + 1, small_tet, color);
 
             // Go the extra mile to render the character 'x' if we can't hold.
@@ -427,7 +422,107 @@ impl Renderer for StandardBufferedRenderer {
 
         // RENDER: 'Next' widgets.
 
-        // TODO
+        let [c_n_tb, c_n_tr, c_n_r, c_n_jl, c_n_br, c_n_jd, c_n_ltb] = tui_style.nextglyphs;
+        let w_tmp6 = w_float + W_PAD_LEFT + w_addhud + W_HOLD + W_BOARD;
+        let h_tmp6 = h_float + H_PAD_TOP;
+
+        let mut next_tetrominos = game.state().piece_preview.iter().copied();
+        'render_preview: {
+            // To begin, render normalsize previews.
+            let draw_appended_normalsize_prev =
+                |term_buf: &mut StandardTerminalBuffer, y_offset: u16, next_tet: Tetromino| {
+                    // Top and bottom edge of first prev.
+                    for dx in 0..12 {
+                        #[rustfmt::skip] term_buf.write_char(w_tmp6 + dx, h_tmp6 + y_offset, TermCell { ch: c_n_ltb, fg: Color::Reset });
+                        #[rustfmt::skip] term_buf.write_char(w_tmp6 + dx, h_tmp6 + y_offset + 3, TermCell { ch: c_n_tb, fg: Color::Reset });
+                    }
+                    // Complete right edge.
+                    #[rustfmt::skip] term_buf.write_char(w_tmp6 + 12, h_tmp6 + y_offset, TermCell { ch: c_n_jl, fg: Color::Reset });
+                    #[rustfmt::skip] term_buf.write_char(w_tmp6 + 12, h_tmp6 + y_offset + 1, TermCell { ch: c_n_r, fg: Color::Reset });
+                    #[rustfmt::skip] term_buf.write_char(w_tmp6 + 12, h_tmp6 + y_offset + 2, TermCell { ch: c_n_r, fg: Color::Reset });
+                    #[rustfmt::skip] term_buf.write_char(w_tmp6 + 12, h_tmp6 + y_offset + 3, TermCell { ch: c_n_br, fg: Color::Reset });
+
+                    // Render preview piece.
+                    let tile_texture = mino_textures.play;
+                    let color = ftch_col_or_rset(&next_tet.tile_id());
+                    let w_extra_for_o = if next_tet == Tetromino::O { 2 } else { 0 };
+                    for (dx, dy) in next_tet.minos(Orientation::N) {
+                        #[rustfmt::skip] term_buf.write_tile(w_tmp6 + 2 + w_extra_for_o + 2 * (dx as u16), (h_tmp6 + y_offset + 2).saturating_sub(dy as u16), tile_texture, color);
+                    }
+                };
+
+            let Some(first_next_tet) = next_tetrominos.next() else {
+                break 'render_preview;
+            };
+            draw_appended_normalsize_prev(&mut self.term_buf, 0, first_next_tet);
+            // Override top edge of first prev.
+            for dx in 0..12 {
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp6 + dx, h_tmp6, TermCell { ch: c_n_tb, fg: Color::Reset });
+            }
+            #[rustfmt::skip] self.term_buf.write_char(w_tmp6 + 12, h_tmp6, TermCell { ch: c_n_tr, fg: Color::Reset });
+            #[rustfmt::skip] self.term_buf.write_str(w_tmp6 + 4, h_tmp6, "next",Color::Reset);
+
+            let mut idx = 1;
+            let mut y_offset = 3;
+
+            // Render remaining normalsize previews.
+            while y_offset + 3 < 20
+                && settings
+                    .graphics()
+                    .normalsize_preview_limit
+                    .is_none_or(|limit| idx < limit.get())
+            {
+                let Some(next_tet) = next_tetrominos.next() else {
+                    break 'render_preview;
+                };
+                draw_appended_normalsize_prev(&mut self.term_buf, y_offset, next_tet);
+                idx += 1;
+                y_offset += 3;
+            }
+
+            let draw_appended_small_prev =
+                |term_buf: &mut StandardTerminalBuffer, y_offset: u16, next_tet: Tetromino| {
+                    // Top and bottom edge of first prev.
+                    for dx in 0..8 {
+                        #[rustfmt::skip] term_buf.write_char(w_tmp6 + dx, h_tmp6 + y_offset, TermCell { ch: c_n_ltb, fg: Color::Reset });
+                        #[rustfmt::skip] term_buf.write_char(w_tmp6 + dx, h_tmp6 + y_offset + 2, TermCell { ch: c_n_tb, fg: Color::Reset });
+                    }
+                    // Complete right edge.
+                    #[rustfmt::skip] term_buf.write_char(w_tmp6 + 8, h_tmp6 + y_offset, TermCell { ch: c_n_jl, fg: Color::Reset });
+                    #[rustfmt::skip] term_buf.write_char(w_tmp6 + 8, h_tmp6 + y_offset + 1, TermCell { ch: c_n_r, fg: Color::Reset });
+                    #[rustfmt::skip] term_buf.write_char(w_tmp6 + 8, h_tmp6 + y_offset + 2, TermCell { ch: c_n_br, fg: Color::Reset });
+
+                    // Render preview piece.
+                    let small_tet = &settings.small_tet_style().tets[next_tet as usize];
+                    let color = ftch_col_or_rset(&next_tet.tile_id());
+                    let w_extra_for_o = if next_tet == Tetromino::O { 1 } else { 0 };
+                    #[rustfmt::skip] term_buf.write_str(w_tmp6 + 2 + w_extra_for_o, h_tmp6 + y_offset + 1, small_tet, color);
+                };
+
+            // To continue, render small previews.
+            let Some(next_tet) = next_tetrominos.next() else {
+                break 'render_preview;
+            };
+            draw_appended_small_prev(&mut self.term_buf, y_offset, next_tet);
+            // Override top right corner of first small prev.
+            #[rustfmt::skip] self.term_buf.write_char(w_tmp6 + 8, h_tmp6 + y_offset, TermCell { ch: c_n_jd, fg: Color::Reset });
+            y_offset += 2;
+
+            // Render remaining small previews.
+            while y_offset + 2 < 20 {
+                let Some(next_tet) = next_tetrominos.next() else {
+                    break 'render_preview;
+                };
+                draw_appended_small_prev(&mut self.term_buf, y_offset, next_tet);
+                y_offset += 2;
+            }
+
+            for (x_offset, next_tet) in next_tetrominos.enumerate() {
+                let mini_tet = settings.mini_tet_style().tets[next_tet as usize];
+                let color = ftch_col_or_rset(&next_tet.tile_id());
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp6 + 8 + 2 * (x_offset as u16), h_tmp6 + y_offset.saturating_sub(1), TermCell { ch: mini_tet, fg: color });
+            }
+        }
 
         // Special 2nd frame rendering.
         // Mostly relevant for Elektronika 60 style.
@@ -645,16 +740,8 @@ impl Renderer for StandardBufferedRenderer {
 
         // -- 'Board tiles' rendering --
 
-        let mino_textures = settings.mino_textures();
         let w_tmp3 = w_float + W_PAD_LEFT + w_addhud + W_HOLD + 1;
         let h_tmp3 = h_float + H_PAD_TOP + H_FIELD;
-        let ftch_col_or_rset = |tile_id: &TileID| {
-            settings
-                .palette()
-                .get(tile_id)
-                .copied()
-                .unwrap_or(Color::Reset)
-        };
 
         if settings.graphics().show_grid {
             // RENDER: Grid.
@@ -757,7 +844,7 @@ impl Renderer for StandardBufferedRenderer {
             Phase::Spawning { spawn_time: _ } => {}
 
             Phase::PieceInPlay {
-                piece,
+                piece: player_piece,
                 autoshift_scheduled: _,
                 fall_or_lock_time: _,
                 lock_cap_time: _,
@@ -766,7 +853,7 @@ impl Renderer for StandardBufferedRenderer {
                 // RENDER: Shadow piece.
 
                 if settings.graphics().show_shadow {
-                    let shadow_piece = piece.teleported(&game.state().board, (0, -1));
+                    let shadow_piece = player_piece.teleported(&game.state().board, (0, -1));
                     for ((dx, dy), tile_id) in shadow_piece.tiles() {
                         let tile_texture = mino_textures.shadow;
                         let color = ftch_col_or_rset(&tile_id);
@@ -776,7 +863,7 @@ impl Renderer for StandardBufferedRenderer {
 
                 // RENDER: Active piece.
 
-                for ((dx, dy), tile_id) in piece.tiles() {
+                for ((dx, dy), tile_id) in player_piece.tiles() {
                     let tile_texture = mino_textures.play;
                     let color = ftch_col_or_rset(&tile_id);
                     #[rustfmt::skip] self.term_buf.write_tile(w_tmp3 + 2 * (dx as u16), h_tmp3.saturating_sub(dy as u16), tile_texture, color);

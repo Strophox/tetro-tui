@@ -706,7 +706,7 @@ impl<T: Write> Application<T> {
                             self.term
                                 .execute(MoveTo(0, y))?
                                 .execute(Clear(ClearType::CurrentLine))?;
-                            std::thread::sleep(Duration::from_secs_f32(1. / 60.0));
+                            std::thread::sleep(Duration::from_secs_f32(1. / 120.0));
                         }
                     } else if matches!(menu, Menu::GameComplete { .. }) {
                         let h_console = terminal::size()?.1;
@@ -714,7 +714,7 @@ impl<T: Write> Application<T> {
                             self.term
                                 .execute(MoveTo(0, y))?
                                 .execute(Clear(ClearType::CurrentLine))?;
-                            std::thread::sleep(Duration::from_secs_f32(1. / 60.0));
+                            std::thread::sleep(Duration::from_secs_f32(1. / 120.0));
                         }
                     } else {
                         // FIXME: Unused enter menu transition "DIAG".
