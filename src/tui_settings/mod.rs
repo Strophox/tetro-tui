@@ -213,14 +213,6 @@ impl<T: Clone> SlotMachine<T> {
         &mut self.slots[idx]
     }
 
-    // FIXME: Remove unused code or reconsider. Not ergonomic enough for current usecase: `self.settings.gameplay_picked = self.settings.gameplay_slotmachine.increment_cyclic(self.settings.gameplay_picked);`
-    // pub fn increment_cyclic(&self, slot_idx: usize) -> usize {
-    //     (slot_idx + 1) % self.slots.len()
-    // }
-    // pub fn decrement_cyclic(&self, slot_idx: usize) -> usize {
-    //     (slot_idx + self.slots.len() - 1) % self.slots.len()
-    // }
-
     /// Given a valid index, clones and appends to itself of the corresponding slot if it is considered unmodifiable,
     /// and returns the index of the new slot.
     /// Otherwise return `None` and do nothing (i.e. slot is 'modifiable' or index invalid).

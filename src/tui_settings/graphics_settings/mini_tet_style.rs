@@ -5,9 +5,9 @@ use crate::tui_settings::SlotMachine;
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]
-#[serde(transparent)]
+// #[serde(transparent)]
+#[serde(into = "String", try_from = "String")]
 pub struct MiniTetStyle {
-    // FIXME: Make this efficiently serialized?
     pub tets: [char; Tetromino::VARIANTS.len()],
 }
 
@@ -31,5 +31,24 @@ impl MiniTetStyle {
         MiniTetStyle {
             tets: ['⠶', '⡇', '⠳', '⠞', '⠗', '⠧', '⠼'],
         }
+    }
+}
+
+impl From<MiniTetStyle> for String {
+    fn from(value: MiniTetStyle) -> Self {
+        value.tets.iter().collect()
+    }
+}
+
+impl TryFrom<String> for MiniTetStyle {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        let tets = value
+            .chars()
+            .collect::<Vec<char>>()
+            .try_into()
+            .map_err(|x| format!("Error: {x:?}"))?;
+        Ok(MiniTetStyle { tets })
     }
 }

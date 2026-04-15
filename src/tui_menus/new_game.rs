@@ -278,7 +278,8 @@ impl<T: Write> Application<T> {
                     kind: Press,
                     ..
                 }) => {
-                    // FIXME: Unused replay-game-save because feels a bit out of place to allow that from this menu.
+                    // FIXME: Unused code: Replay-current-game-save feels a bit out of place to allow here.
+                    // As a workaround users can Forfeit it once and watch the replay.
                     // if modifiers.contains(KeyModifiers::ALT) {
                     //     if let Some(GameSave {
                     //         game_meta_data,
@@ -808,12 +809,10 @@ impl<T: Write> Application<T> {
             }
 
             if immediately_start_new_game {
-                // FIXME: `None` shouldn't happen but we handle it anyway.
-                if let Some(game_menu) = self.create_game_menu(selected) {
-                    self.statistics.new_games_started += 1;
+                let game_menu = self.create_game_menu(selected);
+                self.statistics.new_games_started += 1;
 
-                    break Ok(MenuUpdate::Push(game_menu));
-                }
+                break Ok(MenuUpdate::Push(game_menu));
             }
         }
     }
@@ -847,7 +846,7 @@ impl<T: Write> Application<T> {
         game_modes
     }
 
-    pub fn create_game_menu(&self, selection: usize) -> Option<Menu> {
+    pub fn create_game_menu(&self, selection: usize) -> Menu {
         let game_modes = self.available_base_game_modes();
 
         let GameplaySettings {
@@ -966,10 +965,14 @@ impl<T: Write> Application<T> {
                 stat_and_desc_order: (Stat::PointsScored(0), false),
             };
             let blank_input_history = RawInputHistory::default();
-            (custom_game_meta_data, new_custom_game, blank_input_history)
+            (
+                /*success or just fallback?: selection == game_modes.len(),*/
+                custom_game_meta_data,
+                new_custom_game,
+                blank_input_history,
+            )
         };
-        // FIXME: Abandoned modifier addition code.
-        // let mut game = game;
+        // FIXME: Unused code: modifier addition.
         // game.modifiers.push(game_mode_presets::game_modifiers::print_fall_delay::modifier());
         // game.modifiers.push(game_mode_presets::game_modifiers::misc_modifiers::print_recency_tet_gen_stats::modifier());
         // game.modifiers.push(falling_tetromino_engine::Modifier { descriptor: "always_clear_board".to_owned(), mod_function: Box::new(|_c, _i, s, _m, _f| { s.board = Default::default(); })});
@@ -986,12 +989,12 @@ impl<T: Write> Application<T> {
             }
         }
 
-        Some(Menu::PlayGame {
+        Menu::PlayGame {
             game: game.into(),
             raw_input_history,
             game_meta_data,
             game_renderer: game_renderer.into(),
             selection_id_for_game_retry: Some(selection),
-        })
+        }
     }
 }

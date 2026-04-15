@@ -20,7 +20,8 @@ pub fn savefile_path() -> PathBuf {
         .join(savefile_name())
 }
 
-// FIXME: Use biflags instead? C.f. https://docs.rs/crossterm/0.29.0/src/crossterm/event.rs.html#832-849
+// NOTE: We could consider using bitflags.
+// But right now there are some dependencies, e.g., cannot store replay without scoreboard.
 #[derive(
     PartialEq,
     Eq,
@@ -126,7 +127,7 @@ impl<T: Write> Application<T> {
         *settings = save_contents.settings.into_owned();
         *scores_and_replays = save_contents.scores_and_replays.into_owned();
         *statistics = save_contents.statistics.into_owned();
-        // FIXME: Improve error handling by actually displaying the decompression errors somewhere instead of gobbling them with `.ok()`.
+        // FIXME: Improve error handling by actually displaying the game save decompression errors somewhere instead of gobbling them with `.ok()`.
         game_saves.slots = save_contents
             .compressed_game_saves
             .slots

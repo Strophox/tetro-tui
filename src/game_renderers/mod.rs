@@ -1,8 +1,4 @@
-pub mod braille;
-/* FIXME: Note how this module does 'diff's on the strings it wants to have displayed, not on the
-'underlying' game logic: An idealized renderer might actually figure out before that which game
-state changes lead to exactly which minimal changes in visuals, and save itself the effort of
-simulating everything it wants to print and manually diffing that like we do now? (diff_state) */
+mod braille;
 mod legacy_buffered;
 mod prototype;
 mod standard_buffered;

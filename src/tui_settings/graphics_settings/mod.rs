@@ -237,20 +237,6 @@ impl TryFrom<String> for TileTexture {
 
 // -- Serialization boilerplate --
 
-/* FIXME: Does ANYONE know what the error means that results from replacing the TryFrom<String> above with this???
-impl<S: AsRef<str>> TryFrom<S> for TileTexture {
-    type Error = String;
-
-    fn try_from(value: S) -> Result<Self, Self::Error> {
-        let tile = value.as_ref()
-            .chars()
-            .collect::<Vec<char>>()
-            .try_into()
-            .map_err(|x| format!("Error: {x:?}"))?;
-        Ok(TileTexture(tile))
-    }
-}*/
-
 pub trait QuickTileFromStr {
     fn tile(&self) -> TileTexture;
 }

@@ -85,9 +85,9 @@ impl<T: Write> Application<T> {
 
         let mut temp_statistics = Statistics::default();
 
-        // Stores `(last_time_move_pressed, was_left_not_right)`.
         // FIXME: Might falsely lead to a teleport if the player pressed move within the time window at the beginning.
-        // But we don't care much, as for 'usual' values this should not really happen (worst case they lose a few ms in overall run).
+        // But we don't care much, as for 'usual' values this should not really happen.
+        // Stores `(last_time_move_pressed, was_left_not_right)`.
         let mut temp_last_move = (Instant::now(), false);
 
         let keybinds_legend = get_game_keybinds_legend(self.settings.keybinds());
@@ -190,7 +190,7 @@ impl<T: Write> Application<T> {
                     time_next_frame.saturating_duration_since(Instant::now());
 
                 let recv_result = input_receiver.recv_timeout(refresh_time_budget_remaining);
-                /* FIXME: Remove unused code or reconsider.
+                /* FIXME: Unused code: Reconsider tradeoff:
                 The problem with the following code is a fine tradeoff between `std::mpsc::recv_timeout(rcvr, dt)` and `crossterm::event::poll(dt)`.
                 The exact tradeoff is very unclear, but we trust the Rust stdlib for its slightly better performance/reliability
                 in some ad-hoc testing, despite the 'direct' approach not requiring an input catcher thread.
@@ -407,7 +407,6 @@ impl<T: Write> Application<T> {
 
                             // [Ctrl+S]: Store game save.
                             (KeyCode::Char('s' | 'S'), KeyModifiers::CONTROL) => {
-                                // FIXME: Store more than one game save?
                                 self.game_saves.picked = 0;
                                 self.game_saves.slots = vec![GameSave {
                                     game_meta_data: game_meta_data.clone(),
@@ -495,9 +494,8 @@ impl<T: Write> Application<T> {
                             // [Ctrl+R]: Retry game.
                             (KeyCode::Char('r' | 'R'), KeyModifiers::CONTROL) => {
                                 if let Some(selection) = selection_id_for_game_retry {
-                                    if let Some(game_menu) = self.create_game_menu(selection) {
-                                        break 'update_and_render MenuUpdate::Push(game_menu);
-                                    }
+                                    let game_menu = self.create_game_menu(selection);
+                                    break 'update_and_render MenuUpdate::Push(game_menu);
                                 }
                             }
 
@@ -646,23 +644,6 @@ impl<T: Write> Application<T> {
         };
 
         // Game loop epilogue: De-initialization.
-
-        /* Note that at this point the player will have exited the loop between two calls to `.update()`.
-        For correctness, we could add the lines below, but if we don't do it the player 'just' sees
-        the same frame *and* underlying game state as he last saw here, which might be even better.
-        ```
-            let update_target_time = Instant::now().duration_since(time_game_loop_entered);
-
-            match game.update(update_target_time, None) {
-                // Update
-                Ok(msgs) => {
-                    game_renderer.push_game_feedback_msgs(msgs);
-                }
-
-                // FIXME: Handle UpdateGameError? If not, why not?
-                Err(_e) => {}
-            }
-        ``` */
 
         if self.temp_data.kitty_assumed {
             // FIXME: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm doesn't like operating on Windows.

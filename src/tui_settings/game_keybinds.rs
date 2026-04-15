@@ -63,7 +63,7 @@ impl GameKeybinds {
             }
 
             // Normalize character enum to store a lowercase `char`.
-            // FIXME: Could this somehow have undesirable effects?
+            // FIXME: Undesirable effects possible from this?
             KeyCode::Char(ref mut char) => {
                 *char = char.to_ascii_lowercase();
             }
