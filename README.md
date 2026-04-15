@@ -1,4 +1,4 @@
-!["Tetro TUI logo"](https://github.com/Strophox/tetro-tui/blob/3d98435167c779cb57651383d6b290d31e015013/demo_assets/tetro_logo_glow.png?raw=true)
+!["Tetro TUI logo"](https://github.com/Strophox/tetro-tui/blob/b66590cb461d34c95e988ef41b6d8b7d7783f37b/demo_assets/tetro_logo_glow.png?raw=true)
 
 
 # Tetro TUI - Terminal Game
@@ -9,7 +9,7 @@
 
 Tetro TUI is a terminal-based but modern tetromino-stacking game that is very customizable and runs cross-platform.
 
-!["tetro-tui demonstration GIF"](https://github.com/Strophox/tetro-tui/blob/3d98435167c779cb57651383d6b290d31e015013/demo_assets/tetro-tui_demo-1.0.0.gif?raw=true)
+!["tetro-tui live demo GIF"](https://github.com/Strophox/tetro-tui/blob/b66590cb461d34c95e988ef41b6d8b7d7783f37b/demo_assets/tetro-tui-v3.0.0_demo.gif?raw=true)
 
 
 ## Ways to Run
@@ -69,20 +69,27 @@ yay -S tetro-tui
 > - **Game mode miscellany:** Swift ('40lines'), Classic ('Marathon'), Master, Puzzle, Cheese, Combo, Custom (select goal, initial gravity, toggle gravity progress, *cmdline flags:* start board, seed).
 > - **Highscores, replays, statistics...** - can can be accessed as well as backed up with a **simple savefile**.
 >
-> TUI visuals depend on / can be customized using your underlying terminal settings.
->
 > <details>
 > <summary>
-> E.g. set a bigger font to scale the game, or use <a href="https://github.com/Swordfish90/cool-retro-term">cool-retro-term</a> for a nostalgic look:
+> Visuals depend on / can be customized together with your underlying terminal settings.
+> E.g. you can set a bigger font to scale the game, or use <a href="https://github.com/Swordfish90/cool-retro-term">cool-retro-term</a> for a nostalgic look etc.:
 > </summary>
 >
-> !["tetro-tui running in cool-retro-term"](https://github.com/Strophox/tetro-tui/blob/3d98435167c779cb57651383d6b290d31e015013/demo_assets/tetro-tui_cool-retro-term.jpg?raw=true)
+> !["tetro-tui coolretroterm-monochrome-classic-elektronika"](https://github.com/Strophox/tetro-tui/blob/b66590cb461d34c95e988ef41b6d8b7d7783f37b/demo_assets/tetro-tui-v3.0.0_coolretroterm-monochrome-classic-elektronika.png?raw=true)
 >
-> </details>
+> !["tetro-tui alacritty-terafox-combo-advc"](https://github.com/Strophox/tetro-tui/blob/b66590cb461d34c95e988ef41b6d8b7d7783f37b/demo_assets/tetro-tui-v3.0.0_alacritty-terafox-combo-advc.png?raw=true)
+>
+> !["tetro-tui gnome-solarized-cheese-monochromeboardgrid"](https://github.com/Strophox/tetro-tui/blob/b66590cb461d34c95e988ef41b6d8b7d7783f37b/demo_assets/tetro-tui-v3.0.0_gnome-solarized-cheese-monochromeboardgrid.png?raw=true)
+>
+> !["tetro-tui gnome-standard-replay-harddrop"](https://github.com/Strophox/tetro-tui/blob/b66590cb461d34c95e988ef41b6d8b7d7783f37b/demo_assets/tetro-tui-v3.0.0_gnome-standard-replay-harddrop.png?raw=true)
+>
+> !["tetro-tui kitty-okpalette-puzzle-ascii"](https://github.com/Strophox/tetro-tui/blob/b66590cb461d34c95e988ef41b6d8b7d7783f37b/demo_assets/tetro-tui-v3.0.0_kitty-okpalette-puzzle-ascii.png?raw=true)
+>
+> !["tetro-tui wezterm-gruvbox-swift-default"](https://github.com/Strophox/tetro-tui/blob/b66590cb461d34c95e988ef41b6d8b7d7783f37b/demo_assets/tetro-tui-v3.0.0_wezterm-gruvbox-swift-default.png?raw=true)
 > 
 > <details>
 > <summary>
-> If interested, one might check the following *Comprehensive* overview of relevant menus (Tetro TUI v3.0):
+> Available comprehensive overview of Tetro TUI v3.0 configuration menus:
 > </summary>
 > 
 > **New game/**
@@ -149,6 +156,8 @@ yay -S tetro-tui
 > * Renderer selected ∈ [Standard, Legacy, Prototype, Twoxel, Braille]
 > 
 > </details>
+>
+> </details>
 
 
 ### Why do some gameplay settings (DAS/ARR/etc.) or a simple `Shift` keypress not work for me?
@@ -161,8 +170,7 @@ yay -S tetro-tui
 > List of possible terminal limitations:
 > </summary>
 > 
-> - Unenhanced terminals **cannot** implement mechanics related to **holding**. This includes:
->     * DAS, ARR, SDF; holding Soft Drop not locking the piece; holding a Teleport button; hold-type IRS/IHS.
+> - Unenhanced terminals **cannot** implement mechanics related to **holding** a key. This includes: DAS, ARR, SDF; holding Soft Drop not locking the piece; holding a Teleport button; hold-type IRS/IHS.
 > - Unenhanced terminals **cannot** recognize `Ctrl`/`[Shift]`/`[Alt]` modifiers as individual keys (only in combination, e.g. `[Ctrl+C]`).
 > 
 > </details>
