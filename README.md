@@ -368,8 +368,6 @@ yay -S tetro-tui
 > Ever since its inception as a proof-of-concept this terminal user interface (TUI) has directly used [Crossterm](<https://crates.io/crates/crossterm>) for all I/O.
 > The most complicated terminal interaction we currently implement is custom diff'ing so we render the minimum number of visual game changes (minimize flicker).
 > Currently there appears no need to change this situation, though Ratatui will be reconsidered if necessary (e.g. language/localization...)
->
-> *Author's Note on program complexity:* Though Tetro TUI has grown far beyond a quick weekend project in terms of features, the code should not be doing anything too crazy / bloated. Consider it a quick weekend project with basic feature breadth and polish scaled by ×42.
 
 
 ### What is the background behind this project?
