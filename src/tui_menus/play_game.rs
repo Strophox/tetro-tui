@@ -506,8 +506,8 @@ impl<T: Write> Application<T> {
                                         .contains(KeyModifiers::CONTROL.union(KeyModifiers::ALT))
                                 } =>
                             {
-                                self.temp_data.blindfold_enabled ^= true;
-                                if self.temp_data.blindfold_enabled {
+                                self.temp_data.blindfold_game ^= true;
+                                if self.temp_data.blindfold_game {
                                     game_renderer.update_feed(
                                         [(
                                             Notification::Custom(

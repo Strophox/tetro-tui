@@ -793,7 +793,7 @@ impl Renderer for StandardBufferedRenderer {
             !hard_drop_effect_tiles.is_empty()
         });
 
-        if !temp_data.blindfold_enabled {
+        if !temp_data.blindfold_game {
             // RENDER: Locked tiles.
 
             let mut y_highest_tile: isize = -1;

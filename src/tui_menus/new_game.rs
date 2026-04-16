@@ -64,7 +64,8 @@ impl<T: Write> Application<T> {
             let idx_cheese = 3;
             let idx_combo = 4;
             let idx_custom = game_modes.len();
-            let idx_game_save = (!self.game_saves.slots.is_empty()).then_some(game_modes.len() + 1);
+            let opt_idx_game_save =
+                (!self.game_saves.slots.is_empty()).then_some(game_modes.len() + 1);
 
             // Normal presets + 2 spaces if game_save option available + custom preset.
             let selection_len = game_modes.len() + game_save_available + 1;
@@ -238,7 +239,7 @@ impl<T: Write> Application<T> {
                     ))?
                     .queue(Print(format!(
                         "{:^w_main$}",
-                        if Some(selected) == idx_game_save {
+                        if Some(selected) == opt_idx_game_save {
                             if *inputs_to_load == 0 {
                                 format!(">> Load {load_title} from beginning [Del] <<")
                             } else {
@@ -633,7 +634,7 @@ impl<T: Write> Application<T> {
                                     None
                                 };
                         }
-                    } else if Some(selected) == idx_game_save {
+                    } else if Some(selected) == opt_idx_game_save {
                         if let Some(GameSave {
                             game_restoration_data: GameRestorationData { input_history, .. },
                             inputs_to_load,
@@ -728,7 +729,7 @@ impl<T: Write> Application<T> {
                                     Some(lowerbound_combo)
                                 };
                         }
-                    } else if Some(selected) == idx_game_save {
+                    } else if Some(selected) == opt_idx_game_save {
                         if let Some(GameSave {
                             game_restoration_data: GameRestorationData { input_history, .. },
                             inputs_to_load,
@@ -741,6 +742,37 @@ impl<T: Write> Application<T> {
                                 1
                             };
                             *inputs_to_load %= input_history.inputs.len() + 1;
+                        }
+                    }
+                }
+
+                // Load first input for game save.
+                Event::Key(KeyEvent {
+                    code: KeyCode::Home,
+                    kind: Press | Repeat,
+                    ..
+                }) => {
+                    if Some(selected) == opt_idx_game_save {
+                        if let Some(GameSave { inputs_to_load, .. }) = self.game_saves.get_mut() {
+                            *inputs_to_load = 0;
+                        }
+                    }
+                }
+
+                // Load last input for game save.
+                Event::Key(KeyEvent {
+                    code: KeyCode::End,
+                    kind: Press | Repeat,
+                    ..
+                }) => {
+                    if Some(selected) == opt_idx_game_save {
+                        if let Some(GameSave {
+                            game_restoration_data: GameRestorationData { input_history, .. },
+                            inputs_to_load,
+                            ..
+                        }) = self.game_saves.get_mut()
+                        {
+                            *inputs_to_load = input_history.inputs.len();
                         }
                     }
                 }
@@ -783,7 +815,7 @@ impl<T: Write> Application<T> {
                             self.settings.game_mode_preferences.combo_config.limit =
                                 GameModePreferences::default().combo_config.limit;
                         }
-                    } else if Some(selected) == idx_game_save {
+                    } else if Some(selected) == opt_idx_game_save {
                         self.game_saves.slots.remove(self.game_saves.selected);
                         self.game_saves.selected = 0;
                     }
@@ -987,7 +1019,7 @@ impl<T: Write> Application<T> {
         // game.modifiers.push(game_mode_presets::game_modifiers::misc_modifiers::print_recency_tet_gen_stats::modifier());
         // game.modifiers.push(falling_tetromino_engine::Modifier { descriptor: "always_clear_board".to_owned(), mod_function: Box::new(|_c, _i, s, _m, _f| { s.board = Default::default(); })});
 
-        let mut game_renderer = TetroTUIRenderer::with_number(self.temp_data.renderer_selected);
+        let mut game_renderer = TetroTUIRenderer::with_number(self.temp_data.renderer_used);
 
         // We do an initial update, which allows a piece to spawn and queue to get generated.
         // We do this so the renderer does not render a first frame when game is in its raw start state.

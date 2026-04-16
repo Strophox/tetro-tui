@@ -55,16 +55,16 @@ impl<T: Write> Application<T> {
                     self.temp_data.kitty_assumed.on_off()
                 ),
                 format!(
-                    "Blindfold gameplay = {}",
-                    self.temp_data.blindfold_enabled.on_off()
-                ),
-                format!(
-                    "Pause on focus lost = {} (May not work on terminals.)",
+                    "Pause on focus lost = {} (may not work on some terminals)",
                     self.temp_data.pause_on_focus_lost.on_off()
                 ),
                 format!(
-                    "Renderer selected = {} (applies on New Game)",
-                    TetroTUIRenderer::with_number(self.temp_data.renderer_selected).name()
+                    "'Blindfold' game = {}",
+                    self.temp_data.blindfold_game.on_off()
+                ),
+                format!(
+                    "Renderer used = {} (applies on New Game)",
+                    TetroTUIRenderer::with_number(self.temp_data.renderer_used).name()
                 ),
             ];
 
@@ -181,13 +181,13 @@ impl<T: Write> Application<T> {
                         self.temp_data.kitty_assumed = self.temp_data.kitty_detected;
                     }
                     2 => {
-                        self.temp_data.blindfold_enabled = false;
-                    }
-                    3 => {
                         self.temp_data.pause_on_focus_lost = false;
                     }
+                    3 => {
+                        self.temp_data.blindfold_game = false;
+                    }
                     4 => {
-                        self.temp_data.renderer_selected = 0;
+                        self.temp_data.renderer_used = 0;
                     }
                     _ => {}
                 },
@@ -254,14 +254,14 @@ impl<T: Write> Application<T> {
                         self.temp_data.kitty_assumed ^= true;
                     }
                     2 => {
-                        self.temp_data.blindfold_enabled ^= true;
-                    }
-                    3 => {
                         self.temp_data.pause_on_focus_lost ^= true;
                     }
+                    3 => {
+                        self.temp_data.blindfold_game ^= true;
+                    }
                     4 => {
-                        self.temp_data.renderer_selected += 1;
-                        self.temp_data.renderer_selected %= TetroTUIRenderer::NUM_VARIANTS;
+                        self.temp_data.renderer_used += 1;
+                        self.temp_data.renderer_used %= TetroTUIRenderer::NUM_VARIANTS;
                     }
                     _ => {}
                 },
@@ -288,14 +288,14 @@ impl<T: Write> Application<T> {
                         self.temp_data.kitty_assumed ^= true;
                     }
                     2 => {
-                        self.temp_data.blindfold_enabled ^= true;
-                    }
-                    3 => {
                         self.temp_data.pause_on_focus_lost ^= true;
                     }
+                    3 => {
+                        self.temp_data.blindfold_game ^= true;
+                    }
                     4 => {
-                        self.temp_data.renderer_selected += TetroTUIRenderer::NUM_VARIANTS - 1;
-                        self.temp_data.renderer_selected %= TetroTUIRenderer::NUM_VARIANTS;
+                        self.temp_data.renderer_used += TetroTUIRenderer::NUM_VARIANTS - 1;
+                        self.temp_data.renderer_used %= TetroTUIRenderer::NUM_VARIANTS;
                     }
                     _ => {}
                 },

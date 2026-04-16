@@ -604,7 +604,7 @@ impl Renderer for LegacyBufferedRenderer {
         self.hard_drop_tiles.retain(|elt| elt.1);
 
         // Board: draw locked tiles.
-        if !temp_data.blindfold_enabled {
+        if !temp_data.blindfold_game {
             for (y, line) in game.state().board.iter().enumerate().rev() {
                 for (x, cell) in line.iter().enumerate() {
                     if let Some(tile_id) = cell {

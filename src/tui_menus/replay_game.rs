@@ -510,7 +510,7 @@ impl<T: Write> Application<T> {
 
                                 // FIXME: Instead clone renderer when entering live game from here?
                                 let the_game_renderer =
-                                    TetroTUIRenderer::with_number(self.temp_data.renderer_selected);
+                                    TetroTUIRenderer::with_number(self.temp_data.renderer_used);
 
                                 // FIXME: Should we count game takeover as new game started?
                                 // self.statistics.total_new_games += 1;
