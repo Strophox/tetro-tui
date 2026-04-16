@@ -197,30 +197,46 @@ yay -S tetro-tui
 > 
 > <details>
 > <summary>
-> General TUI menu controls:
+> Menu controls:
 > </summary>
 > 
+> Universal:
 > | Keys | ≈ Meaning |
 > | -: | :- |
 > | `↓`/`↑`, `j`/`k` | Navigate up/down |
 > | `←`/`→`, `h`/`l` | Change value |
 > | `Enter`, `e` | Select |
 > | `Esc`, `q`, `Back`, | Go back |
-> | `Del`, `d` | Delete/reset |
-> | `1`/`2`/`3`... | Quickselect option (in 'Start new game') |
-> | `Home`/`End` | Navigate to top/bottom (in 'Scores & Replays') |
-> | `Alt`+? | Change value but differently (in 'Start new game'⇝['Combo','Game save','Custom'], in 'Gameplay settings'⇝'Tetromino generation') |
-> | `Alt`+`Del`, `Alt`+`d` | Delete replay  (in 'Scores and Replays') |
-> | `Ctrl`+`U` | (For experienced/impatient players) unlock all game modes (in 'Start new game') |
+> | `Del`, `d` | Delete/Reset |
 > | `Ctrl`+`Alt`+`L` | Re-load from savefile (Caution: discards current application data!) |
 > | `Ctrl`+`C` | Exit application (respects save preferences) |
+>
+> Specific to 'Scores and Replays':
+> | Keys | Meaning |
+> | -: | :- |
+> | `Alt`+`Del`, `Alt`+`d` | Delete replay (in 'Scores and Replays') |
+> | `Home`/`End` | Navigate to top/bottom |
+>
+> Specific to 'Start New Game':
+> | Keys | Meaning |
+> | -: | :- |
+> | `1`/`2`/`3`... | Quickselect game mode |
+> | `Alt`+`←`/`→`, `Alt`+`h`/`l` | Change value differently (under ⇝['Combo','Custom','Game save']) |
+> | `Home`/`End` | Jump to beginning/end of inpus (under ⇝'Game save') |
+> | `Alt`+`Enter` | View replay instead of starting game (under ⇝'Game save') |
+> | `Ctrl`+`U` | (For experienced/impatient players) unlock all game modes |
 > 
+> Specific to 'Gameplay settings':
+> | Keys | Meaning |
+> | -: | :- |
+> | `Alt`+`←`/`→`, `Alt`+`h`/`l` | Change value differently (under ⇝'Piece randomization'⇝['\*-Bag', 'Recency (\*)']) |
+>
 > </details>
 > 
 >
 > <details>
 > <summary>
-> Default (live) Game controls:
+> *Default* Game controls:
 > </summary>
 > 
 > | Key | Action |
@@ -238,13 +254,13 @@ yay -S tetro-tui
 > | - | Teleport right |
 > | `Space` | Hold piece |
 > 
-> | Key | Special Action |
+> | Key | Special action |
 > | -: | :- |
 > | `Ctrl`+`D` | Forfeit game |
 > | `Ctrl`+`R` | Restart game mode (Caution: discards current game) |
 > | `Ctrl`+`L` | Load game save (Caution: discards current game) |
-> | `Ctrl`+`S` | Store game save (accessible in 'Start new game'⇝'Game save' or '(live) Game'⇝`Ctrl`+`L`) |
-> | `Ctrl`+`E` | Store seed (accessible in 'Start new game'⇝'Custom') |
+> | `Ctrl`+`S` | Store game save (accessible in 'Start New Game'⇝'Game save' or (live)'Game'⇝`Ctrl`+`L`) |
+> | `Ctrl`+`E` | Store seed (accessible in 'Start New Game'⇝'Custom') |
 > | `Ctrl`(+`Alt`)+`G` | Cycle through graphics settings slots |
 > | `Ctrl`+`Alt`+`B` | Toggle on/off visibility of tiles ('Blindfolded') |
 > | `Ctrl`+`Alt`+`L` | Re-load from savefile (Caution: discards current application data!) |
@@ -255,7 +271,7 @@ yay -S tetro-tui
 >
 > <details>
 > <summary>
-> Replay Game controls:
+> Replay controls:
 > </summary>
 > 
 > | Key | Action |
@@ -270,15 +286,15 @@ yay -S tetro-tui
 > | `Home`/`End` | Jump to beginning/end |
 > | `.` | Skip forward one player input + pause |
 > | `Alt`+`.` | Skip forward one game state change\* + pause (\*might not work properly for modded games) |
-> | `Enter`, `e` | Start (live) Game from current replay position |
+> | `Enter`, `e` | Start (live) Game from current replay state ('take over') |
 > 
-> | Key | Special Action |
+> | Key | Special action |
 > | -: | :- |
 > | `Ctrl`+`L` | Toggle replay looping |
-> | `Ctrl`+`S` | Store game save (accessible in 'Start new game'⇝'Game save' or '(live) Game'⇝`Ctrl`+`L`) |
-> | `Ctrl`+`E` | Store seed (accessible in 'Start new game'⇝'Custom') |
-> | `Alt`+`I` | (Experimental) Toggle Instant Interactive Input Intervention |
-> | `Ctrl`(+`Alt`)+`G` | Cycle through graphics settings slots |
+> | `Ctrl`+`S` | Store game save (accessible in 'Start New Game'⇝'Game save' or (live)'Game'⇝`Ctrl`+`L`) |
+> | `Ctrl`+`E` | Store seed (accessible in 'Start New Game'⇝'Custom') |
+> | `Alt`+`I` | (Experimental) Toggle instantaneous interactive input intervention mode |
+> | `Ctrl`(+`Alt`)+`G` | Cycle through Graphics Settings slots |
 > | `Ctrl`+`Alt`+`L` | Re-load from savefile (Caution: discards current application data!) |
 > | `Ctrl`+`C` | Exit application (respects save preferences) |
 > 

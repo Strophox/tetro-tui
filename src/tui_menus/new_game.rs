@@ -277,29 +277,33 @@ impl<T: Write> Application<T> {
                 Event::Key(KeyEvent {
                     code: KeyCode::Enter | KeyCode::Char('e' | 'E'),
                     kind: Press,
+                    modifiers,
                     ..
                 }) => {
-                    // FIXME: Unused code: Replay-current-game-save feels a bit out of place to allow here.
-                    // As a workaround users can Forfeit it once and watch the replay.
-                    // if modifiers.contains(KeyModifiers::ALT) {
-                    //     if let Some(GameSave {
-                    //         game_meta_data,
-                    //         game_restoration_data,
-                    //         inputs_to_load: _,
-                    //     }) = &self.game_saves.1.get(self.game_saves.0) {
-                    //         let replay_length = if let Some((time, _)) = game_restoration_data.input_history.last() {
-                    //             *time
-                    //         } else {
-                    //             Duration::ZERO
-                    //         };
-                    //         break Ok(MenuUpdate::Push(Menu::ReplayGame {
-                    //             game_restoration_data: Box::new(game_restoration_data.clone()),
-                    //             game_meta_data: game_meta_data.clone(),
-                    //             replay_length,
-                    //             game_renderer: Default::default(),
-                    //         }))
-                    //     }
-                    // }
+                    if modifiers.contains(KeyModifiers::ALT) {
+                        if let Some(GameSave {
+                            game_meta_data,
+                            game_restoration_data,
+                            inputs_to_load: _,
+                        }) = &self.game_saves.slots.get(self.game_saves.selected)
+                        {
+                            let replay_length = if let Some((time, _)) =
+                                game_restoration_data.input_history.inputs.last()
+                            {
+                                *time
+                            } else {
+                                Duration::ZERO
+                            };
+                            break Ok(MenuUpdate::Push(Menu::ReplayGame {
+                                game_restoration_data: Box::new(game_restoration_data.clone()),
+                                game_meta_data: game_meta_data.clone(),
+                                replay_length,
+                                game_renderer: Box::new(TetroTUIRenderer::with_number(
+                                    self.temp_data.renderer_used,
+                                )),
+                            }));
+                        }
+                    }
                     immediately_start_new_game = true;
                 }
 
