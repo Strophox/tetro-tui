@@ -754,6 +754,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "ron"
+version = "0.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4147b952f3f819eca0e99527022f7d6a8d05f111aeb0a62960c74eb283bec8fc"
+dependencies = [
+ "bitflags",
+ "once_cell",
+ "serde",
+ "serde_derive",
+ "typeid",
+ "unicode-ident",
+]
+
+[[package]]
 name = "rustc_version"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -963,7 +977,7 @@ dependencies = [
 
 [[package]]
 name = "tetro-tui"
-version = "3.0.0"
+version = "3.1.0"
 dependencies = [
  "chrono",
  "clap",
@@ -971,8 +985,8 @@ dependencies = [
  "dirs",
  "falling-tetromino-engine",
  "rand",
+ "ron",
  "serde",
- "serde_json",
  "serde_with",
 ]
 
@@ -1026,6 +1040,12 @@ dependencies = [
  "num-conv",
  "time-core",
 ]
+
+[[package]]
+name = "typeid"
+version = "1.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bc7d623258602320d5c55d1bc22793b57daff0ec7efc270ea7d55ce1d5f5471c"
 
 [[package]]
 name = "unicode-ident"

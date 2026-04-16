@@ -18,7 +18,7 @@ type uint = u64;
 )]
 pub struct GameRestorationData<IH: InputHistoryEncoder> {
     pub builder: GameBuilder,
-    pub mod_ids_args: Vec<(String, String)>,
+    pub mod_ids_cfgs: Vec<(String, String)>,
     pub input_history: IH,
     pub forfeit: Option<InGameTime>,
 }
@@ -29,11 +29,11 @@ impl<IH: InputHistoryEncoder> GameRestorationData<IH> {
         input_history: IH,
         forfeit: Option<InGameTime>,
     ) -> GameRestorationData<IH> {
-        let (builder, mod_ids_args) = game.blueprint();
+        let (builder, mod_ids_cfgs) = game.blueprint();
 
         GameRestorationData {
             builder,
-            mod_ids_args,
+            mod_ids_cfgs,
             input_history,
             forfeit,
         }
@@ -45,10 +45,10 @@ impl GameRestorationData<RawInputHistory> {
         // Step 1: Prepare builder.
         let builder = self.builder.clone();
         // Step 2: Build actual game by possibly reconstructing mods to finalize builder with.
-        let mut game = if self.mod_ids_args.is_empty() {
+        let mut game = if self.mod_ids_cfgs.is_empty() {
             builder.build()
         } else {
-            match game_modding::reconstruct_modded(&builder, &self.mod_ids_args) {
+            match game_modding::reconstruct_modded(&builder, &self.mod_ids_cfgs) {
                 Ok((mut modded_game, unrecognized_mod_ids)) => {
                     if !unrecognized_mod_ids.is_empty() {
                         // Add warning messages if certain mods could not be recognized.
@@ -95,7 +95,7 @@ impl GameRestorationData<RawInputHistory> {
         GameRestorationData {
             builder: self.builder,
             input_history: IH::encode(&self.input_history),
-            mod_ids_args: self.mod_ids_args,
+            mod_ids_cfgs: self.mod_ids_cfgs,
             forfeit: self.forfeit,
         }
     }
@@ -106,7 +106,7 @@ impl<IH: InputHistoryEncoder> GameRestorationData<IH> {
         Ok(GameRestorationData {
             builder: self.builder,
             input_history: self.input_history.try_decode()?,
-            mod_ids_args: self.mod_ids_args,
+            mod_ids_cfgs: self.mod_ids_cfgs,
             forfeit: self.forfeit,
         })
     }

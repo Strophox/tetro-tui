@@ -1,6 +1,6 @@
 [package]
 name = "tetro-tui"
-version = "3.0.0"
+version = "3.1.0"
 edition = "2021"
 rust-version = "1.90.0"
 authors = ["Strophox"]
@@ -30,8 +30,12 @@ rand = "0.10.0"    # Expose `random_range` for ChaCha8Rng.
 
 # Serializing data to store save file.
 serde = { version = "1.0.204", features = ["derive"] }
-serde_json = "1.0.120"
 serde_with = { version = "3.9.0", features = ["json"] }
+# serde_json = "1.0.120"
+# json5 = "1.3.1"
+# serde_yaml = "0.9.34"
+# toml = "1.1.2"
+ron = "0.12.1"
 
 falling-tetromino-engine = { version = "7.1.1", features = ["serde"] } # Game logic.
 # falling-tetromino-engine = { path = "../falling-tetromino-engine", features = ["serde"] } # Dev Game logic.

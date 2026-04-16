@@ -388,7 +388,7 @@ pub struct TemporaryAppData {
     pub renderer_selected: usize,
     pub save_on_exit: SavefileGranularity,
     pub savefile_path: PathBuf, // This should technically be the same for a given compiled binary, but we compute it at runtime.
-    pub loadfile_result: io::Result<()>,
+    pub loadfile_result: savefile_logic::SavefileResult<()>,
 }
 
 #[derive(Debug)]
@@ -416,7 +416,7 @@ impl<T: Write> Drop for Application<T> {
         if self.temp_data.save_on_exit != SavefileGranularity::NoSavefile {
             // If the user wants any of their data stored, try to do so.
             if let Err(e) = self.store_to_savefile() {
-                eprintln!("{e}");
+                eprintln!("Error storing savefile: {e}");
             }
         } else if self
             .temp_data
@@ -426,7 +426,7 @@ impl<T: Write> Drop for Application<T> {
         {
             // Otherwise explicitly check for savefile and try to make sure we don't leave it around.
             if let Err(e) = std::fs::remove_file(self.temp_data.savefile_path.clone()) {
-                eprintln!("{e}");
+                eprintln!("Error removing old savefile: {e}");
             }
         }
     }

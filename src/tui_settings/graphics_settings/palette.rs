@@ -330,10 +330,10 @@ fn ordered_colormap<S: serde::Serializer>(
     #[serde(transparent)]
     struct Wrapper(
         // #[serde_as(as = "Vec<(_, ColorDummyType)>")]
-        #[serde_as(
-            as = "std::collections::BTreeMap<serde_with::json::JsonString, ColorDummyType>"
-        )]
-        BTreeMap<u8, Color>,
+        // #[serde_as(
+        //     as = "std::collections::BTreeMap<serde_with::json::JsonString, ColorDummyType>"
+        // )]
+        #[serde_as(as = "std::collections::BTreeMap<_, ColorDummyType>")] BTreeMap<u8, Color>,
     );
 
     serde::Serialize::serialize(&Wrapper(value.clone().into_iter().collect()), serializer)

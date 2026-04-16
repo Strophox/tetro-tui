@@ -1,7 +1,7 @@
 use std::{
     borrow::Cow,
     fs::File,
-    io::{self, Read, Write},
+    io::{Read, Write},
     path::PathBuf,
 };
 
@@ -10,11 +10,35 @@ use crate::{
     Statistics,
 };
 
-pub use serde_json::from_str as from_savefile_str;
-pub use serde_json::to_string as to_savefile_string;
+pub type SavefileResult<T> = Result<T, Box<dyn std::error::Error>>;
+
+const SAVEFILE_EXTENSION: &str = "rson";
+
+// Custom string data format used for savefile and crate as a whole.
+pub fn to_savefile_string<T: serde::Serialize>(value: &T) -> SavefileResult<String> {
+    // let string = serde_json::to_string(value)?; // Cannot de-/serialize f64::inf. WARNING: Requires reactivation of usage of serde_with::json::JsonString in serialized HashMaps/BTreeMaps!
+    // let string = json5::to_string(value)?; // Verbose, meant for configuration files, not compact storage.
+    // let string = toml::to_string(value)?; // "unsupported None value"...
+    // let string = serde_yaml::to_string(value)?; // https://ruudvanasseldonk.com/2023/01/11/the-yaml-document-from-hell
+    let string = ron::to_string(value)?;
+    Ok(string)
+}
+
+// Custom string data format used for savefile and crate as a whole.
+pub fn from_savefile_str<'de, T: serde::Deserialize<'de>>(input: &'de str) -> SavefileResult<T> {
+    // let value = serde_json::from_str(input)?;
+    // let value = json5::from_str(input)?;
+    // let value = toml::from_str(input)?;
+    // let value = serde_yaml::from_str(input)?;
+    let value = ron::from_str(input)?;
+    Ok(value)
+}
 
 pub fn savefile_name() -> String {
-    format!(".tetro-tui_v{}_savefile.json", crate::VERSION_MAJOR_MINOR)
+    format!(
+        ".tetro-tui_v{}_savefile.{SAVEFILE_EXTENSION}",
+        crate::VERSION_MAJOR_MINOR
+    )
 }
 
 pub fn savefile_path() -> PathBuf {
@@ -67,7 +91,7 @@ struct SaveContents<'a> {
 }
 
 impl<T: Write> Application<T> {
-    pub fn store_to_savefile(&mut self) -> io::Result<()> {
+    pub fn store_to_savefile(&mut self) -> SavefileResult<()> {
         if self.temp_data.save_on_exit < SavefileGranularity::StoreSettingsScores {
             // Clear scoreboard if no game data is wished to be stored.
             self.scores_and_replays.entries.clear();
@@ -101,15 +125,15 @@ impl<T: Write> Application<T> {
         let n_written = file.write(save_str.as_bytes())?;
         // Attempt at additionally handling the case when save_str could not be written entirely.
         if n_written < save_str.len() {
-            Err(std::io::Error::other(
+            Err(Box::new(std::io::Error::other(
                 "attempt to write to file consumed `n < save_str.len()` bytes",
-            ))
+            )))
         } else {
             Ok(())
         }
     }
 
-    pub fn load_from_savefile(&mut self) -> io::Result<()> {
+    pub fn load_from_savefile(&mut self) -> SavefileResult<()> {
         let mut file = File::open(self.temp_data.savefile_path.clone())?;
         let mut save_str = String::new();
         file.read_to_string(&mut save_str)?;
