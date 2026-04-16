@@ -64,7 +64,7 @@ yay -S tetro-tui
 
 > We provide a solid amount of configuration options and features:
 > - **Graphics:** Unicode/ASCII/Electronika, color palettes, many effects and toggles.
-> - **Gameplay and handling:** Rotation systems, randomizers, preview, timings (DAS, ARR, SDF, LDC, ARE), IRS/IHS/IMS/ITS (\*[caveat](#why-do-some-gameplay-settings-dasarretc-or-registering-shift-as-keypress-not-work-for-me)).
+> - **Gameplay and handling:** Rotation systems, randomizers, preview, timings (DAS, ARR, SDF, LCD, ARE), IRS/IHS/IMS/ITS (\[caveat](#why-do-some-gameplay-settings-dasarretc-or-registering-shift-as-keypress-not-work-for-me)).
 > - **Game keybinds:** to your heart's desire. 
 > - **Game mode miscellany:** Swift ('40lines'), Classic ('Marathon'), Master, Puzzle, Cheese, Combo, Custom (select goal, initial gravity, toggle gravity progress, *cmdline flags:* start board, seed).
 > - **Highscores, replays, statistics, ...** - can can be accessed as well as backed up with a simple **savefile**.
@@ -72,7 +72,7 @@ yay -S tetro-tui
 > <details>
 > <summary>
 > Visuals depend on / can be customized together with your underlying terminal settings.
-> E.g. you can set a bigger font to scale the game, or use <a href="https://github.com/Swordfish90/cool-retro-term">cool-retro-term</a> for a nostalgic look etc.:
+> E.g. you can set a bigger font to scale the game, or use <a href="https://github.com/Swordfish90/cool-retro-term">cool-retro-term</a> for nostalgic gameplay etc.:
 > </summary>
 >
 > !["tetro-tui coolretroterm-monochrome-classic-elektronika"](https://github.com/Strophox/tetro-tui/blob/b66590cb461d34c95e988ef41b6d8b7d7783f37b/demo_assets/tetro-tui-v3.0.0_coolretroterm-monochrome-classic-elektronika.png?raw=true)
@@ -86,10 +86,12 @@ yay -S tetro-tui
 > !["tetro-tui kitty-okpalette-puzzle-ascii"](https://github.com/Strophox/tetro-tui/blob/b66590cb461d34c95e988ef41b6d8b7d7783f37b/demo_assets/tetro-tui-v3.0.0_kitty-okpalette-puzzle-ascii.png?raw=true)
 >
 > !["tetro-tui wezterm-gruvbox-swift-default"](https://github.com/Strophox/tetro-tui/blob/b66590cb461d34c95e988ef41b6d8b7d7783f37b/demo_assets/tetro-tui-v3.0.0_wezterm-gruvbox-swift-default.png?raw=true)
+>
+> </details>
 > 
 > <details>
 > <summary>
-> Available comprehensive overview of Tetro TUI v3.0 configuration menus:
+> See also this comprehensive list of Tetro TUI v3.0 menus:
 > </summary>
 > 
 > **New game/**
@@ -156,8 +158,6 @@ yay -S tetro-tui
 > * Renderer selected ∈ [Standard, Legacy, Prototype, Twoxel, Braille]
 > 
 > </details>
->
-> </details>
 
 
 ### Why do some gameplay settings (DAS/ARR/etc.) or registering `Shift` as keypress not work for me?
@@ -182,11 +182,11 @@ yay -S tetro-tui
 > 
 > The fundamental problem lies in how terminals usually send signals.
 > - Since most only send "key pressed" but not "key released again", this makes it impossible to implement mechanics such as: "If `[←]` is pressed, move left with a certain speed *until key is released again*."
+>   * Note that some terminals e.g. on Windows *do* send key-release signals, without this being auto-detected:
+> Use the 'Override' in *Advanced Settings* for such cases.
 > - Modifiers like `Ctrl` and `Shift` can only modify 'actual' text signals and aren't sent by themselves. 
-> These issues precisely are fixed with 'enhanced keyboard events' / ['progressive enhancement'](<https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement>) / 'kitty protocol'.
 > 
-> Some terminals e.g. on Windows *do* send key-release signals, without this being auto-detected:
-> Use the 'Override' in *Advanced Settings* in this case.
+> Precisely these issues are fixed with 'enhanced keyboard events' / ['progressive enhancement'](<https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement>) / 'kitty protocol'.
 >
 > </details>
 
@@ -303,6 +303,34 @@ yay -S tetro-tui
 > </details>
 
 
+### *Experienced players:* How does it compare to familiar / industry-standard stacker games?
+
+> The customizability of Tetro TUI is put to good use and a handful of setting templates are provided to emulate e.g. guideline gameplay/keybinds/graphics.
+> Note that some handling limitations [may apply to your terminal](#why-do-some-gameplay-settings-dasarretc-or-registering-shift-as-keypress-not-work-for-me).
+>
+> <details>
+> <summary>
+> The "Default"-settings – though they should feel familiar – do take liberty in 'shifting some mechanics closer to the platonic ideal' of the game. This is obviously an informal distinction and in practice means:
+> </summary>
+> 
+> **Keybinds:**
+> - Default controls set to **WASD + Arrow keys** (this also works better due to terminal limitations).
+> - Dedicated binds possible for **Rotate 180°**, **Teleport Down** ('Sonic Drop'), even Teleport Left/Right.
+> 
+> **Gameplay:**
+> - Default use of the flexible/intuitive/symmetrical [**Ocular Rotation** System](#experienced-players-what-is-this-ocular-rotation-system) (instead of the quirky/sometimes asymmetrical industry default).
+> - Default **Recency (History) Randomizer** (instead of 'overdeterministic' 7-Bag).
+> - **Points (score) bonus** system is currently kept custom and simple.
+>   - '1pt for simple line clear, with increasing bonus for larger lineclears, combos, spins and perfect clears.'
+>   - *Note:* 'Allspin' (instead of preoccupation with 'T-spins'), currently no 'minis'.
+>   - *Note:* Combos (but no additional points for 'back to back' other than existing incentives for special maneuvers).
+>   - Exact formula: `point_bonus = if is_perfect_clear{ 4 }else{ 1 } * if is_spin{ 2 }else{ 1 } * (lineclears * 2 - 1) + (combo - 1)`
+> - Different **lock reset** limit: 'max time = 10⋅current lock delay' (instead of 'max 15 moves with current lock delay').
+> - Speed/gravity/fall curve technically a customizable mix of exponential decay + linear decrease.
+> 
+> </details>
+
+
 ### *Experienced players:* How extensive are the stacker mechanics exactly?
 
 > <details>
@@ -334,34 +362,6 @@ yay -S tetro-tui
 > - **Customizable win/loss conditions** based on the time, pieces, lines, points,
 > - Score more **points** for larger lineclears, spins ('allspin'), perfect clear, combo,
 > - Game **reproducibility** (PRNG/determinism).
-> 
-> </details>
-
-
-### *Experienced players:* Does it actually play like familiar / industry-standard stacker games?
-
-> The customizability of Tetro TUI is put to good use and a handful of setting templates are provided to emulate e.g. common gameplay/keybinds/graphics.
-> Note that some ([handling limitations may apply to your terminal](#why-do-some-gameplay-settings-dasarretc-or-registering-shift-as-keypress-not-work-for-me)).
->
-> <details>
-> <summary>
-> The "Default"-settings – though they should feel familiar – do take liberty in 'shifting some mechanics closer to the platonic ideal' of the game. This is obviously an informal distinction and in practice means:
-> </summary>
-> 
-> **Keybinds:**
-> - Default controls set to **WASD + Arrow keys** (this also works better due to terminal limitations).
-> - Dedicated binds possible for **Rotate 180°**, **Teleport Down** ('Sonic Drop'), even Teleport Left/Right.
-> 
-> **Gameplay:**
-> - Default use of the flexible/intuitive/symmetrical [**Ocular Rotation** System](#experienced-players-what-is-this-ocular-rotation-system) (instead of the quirky/sometimes asymmetrical industry default).
-> - Default **Recency (History) Randomizer** (instead of 'overdeterministic' 7-Bag).
-> - **Points (score) bonus** system is currently kept custom and simple.
->   - '1pt for simple line clear, with increasing bonus for larger lineclears, combos, spins and perfect clears.'
->   - *Note:* 'Allspin' (instead of preoccupation with 'T-spins'), currently no 'minis'.
->   - *Note:* Combos (but no additional points for 'back to back' other than existing incentives for special maneuvers).
->   - Exact formula: `point_bonus = if is_perfect_clear{ 4 }else{ 1 } * if is_spin{ 2 }else{ 1 } * (lineclears * 2 - 1) + (combo - 1)`
-> - Different **lock reset** limit: 'max time = 10⋅current lock delay' (instead of 'max 15 moves with current lock delay').
-> - Speed/gravity/fall curve technically a customizable mix of exponential decay + linear decrease.
 > 
 > </details>
 

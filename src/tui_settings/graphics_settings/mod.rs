@@ -33,7 +33,7 @@ pub struct GraphicsSettings {
     pub mini_tet_picked: usize,
     #[serde(rename = "smalltet")]
     pub small_tet_picked: usize,
-    #[serde(rename = "normalszprev")]
+    #[serde(rename = "normsizeprev")]
     pub normalsize_preview_limit: Option<NonZeroUsize>,
     #[serde(rename = "fps")]
     pub fps: ExtNonNegF64,
