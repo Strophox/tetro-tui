@@ -88,6 +88,16 @@ impl<T: Write> Application<T> {
                     ..
                 }) => break Ok(MenuUpdate::Pop),
 
+                // Reload from savefile.
+                Event::Key(KeyEvent {
+                    code: KeyCode::Char('l' | 'L'),
+                    modifiers,
+                    kind: Press | Repeat,
+                    ..
+                }) if { modifiers.contains(KeyModifiers::CONTROL.union(KeyModifiers::ALT)) } => {
+                    self.temp_data.loadfile_result = self.load_from_savefile();
+                }
+
                 // Other event: don't care.
                 _ => {}
             }

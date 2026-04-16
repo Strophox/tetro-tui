@@ -339,6 +339,16 @@ impl<T: Write> Application<T> {
                     re_sort_scoreboard = true;
                 }
 
+                // Reload from savefile.
+                Event::Key(KeyEvent {
+                    code: KeyCode::Char('l' | 'L'),
+                    modifiers,
+                    kind: Press | Repeat,
+                    ..
+                }) if { modifiers.contains(KeyModifiers::CONTROL.union(KeyModifiers::ALT)) } => {
+                    self.temp_data.loadfile_result = self.load_from_savefile();
+                }
+
                 Event::Key(KeyEvent {
                     code: KeyCode::Right | KeyCode::Char('l' | 'L'),
                     kind: Press | Repeat,

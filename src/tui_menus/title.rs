@@ -269,6 +269,16 @@ impl<T: Write> Application<T> {
                     dynamic_title_style -= 1;
                 }
 
+                // Reload from savefile.
+                Event::Key(KeyEvent {
+                    code: KeyCode::Char('l' | 'L'),
+                    modifiers,
+                    kind: KeyEventKind::Press | KeyEventKind::Repeat,
+                    ..
+                }) if { modifiers.contains(KeyModifiers::CONTROL.union(KeyModifiers::ALT)) } => {
+                    self.temp_data.loadfile_result = self.load_from_savefile();
+                }
+
                 // Move r.
                 Event::Key(KeyEvent {
                     code: KeyCode::Right | KeyCode::Char('l' | 'L'),

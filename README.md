@@ -212,6 +212,7 @@ yay -S tetro-tui
 > | `Alt`+? | Change value but differently (in 'Start new game'⇝['Combo','Game save','Custom'], in 'Gameplay settings'⇝'Tetromino generation') |
 > | `Alt`+`Del`, `Alt`+`d` | Delete replay  (in 'Scores and Replays') |
 > | `Ctrl`+`U` | (For experienced/impatient players) unlock all game modes (in 'Start new game') |
+> | `Ctrl`+`Alt`+`L` | Re-load from savefile (Caution: discards current application data!) |
 > | `Ctrl`+`C` | Exit application (respects save preferences) |
 > 
 > </details>
@@ -246,7 +247,7 @@ yay -S tetro-tui
 > | `Ctrl`+`E` | Store seed (accessible in 'Start new game'⇝'Custom') |
 > | `Ctrl`(+`Alt`)+`G` | Cycle through graphics settings slots |
 > | `Ctrl`+`Alt`+`B` | Toggle on/off visibility of tiles ('Blindfolded') |
-> | `Ctrl`+`Alt`+`L` | Re-load from savefile (Caution: discards current save progress!) |
+> | `Ctrl`+`Alt`+`L` | Re-load from savefile (Caution: discards current application data!) |
 > | `Ctrl`+`C` | Exit application (respects save preferences) |
 > 
 > </details>
@@ -278,7 +279,7 @@ yay -S tetro-tui
 > | `Ctrl`+`E` | Store seed (accessible in 'Start new game'⇝'Custom') |
 > | `Ctrl`+`I` | (Experimental) Toggle Instant Interactive Input Intervention |
 > | `Ctrl`(+`Alt`)+`G` | Cycle through graphics settings slots |
-> | `Ctrl`+`Alt`+`L` | Re-load from savefile (Caution: discards current save progress!) |
+> | `Ctrl`+`Alt`+`L` | Re-load from savefile (Caution: discards current application data!) |
 > | `Ctrl`+`C` | Exit application (respects save preferences) |
 > 
 > </details>
