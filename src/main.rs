@@ -153,17 +153,17 @@ impl<IH: InputHistoryEncoder> GameSave<IH> {
     serde::Deserialize,
 )]
 pub struct GameSaves<IH: InputHistoryEncoder> {
-    picked: usize,
+    selected: usize,
     slots: Vec<GameSave<IH>>,
 }
 
 impl<IH: InputHistoryEncoder> GameSaves<IH> {
     pub fn get(&self) -> Option<&GameSave<IH>> {
-        self.slots.get(self.picked)
+        self.slots.get(self.selected)
     }
 
     pub fn get_mut(&mut self) -> Option<&mut GameSave<IH>> {
-        self.slots.get_mut(self.picked)
+        self.slots.get_mut(self.selected)
     }
 }
 

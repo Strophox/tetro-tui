@@ -407,7 +407,7 @@ impl<T: Write> Application<T> {
 
                             // [Ctrl+S]: Store game save.
                             (KeyCode::Char('s' | 'S'), KeyModifiers::CONTROL) => {
-                                self.game_saves.picked = 0;
+                                self.game_saves.selected = 0;
                                 self.game_saves.slots = vec![GameSave {
                                     game_meta_data: game_meta_data.clone(),
                                     game_restoration_data: GameRestorationData::new(
@@ -534,13 +534,13 @@ impl<T: Write> Application<T> {
                             (KeyCode::Char('g' | 'G'), _)
                                 if { modifiers.contains(KeyModifiers::CONTROL) } =>
                             {
-                                self.settings.graphics_picked +=
+                                self.settings.graphics_selected +=
                                     if modifiers.contains(KeyModifiers::ALT) {
                                         self.settings.graphics_slotmachine.slots.len() - 1
                                     } else {
                                         1
                                     };
-                                self.settings.graphics_picked %=
+                                self.settings.graphics_selected %=
                                     self.settings.graphics_slotmachine.slots.len();
                             }
 

@@ -27,9 +27,9 @@ impl<T: Write> Application<T> {
         let if_unmodifiable_clone_and_switch = |s: &mut Settings| {
             if let Some(cloned_slot_idx) = s
                 .graphics_slotmachine
-                .clone_slot_if_unmodifiable(s.graphics_picked)
+                .clone_slot_if_unmodifiable(s.graphics_selected)
             {
-                s.graphics_picked = cloned_slot_idx;
+                s.graphics_selected = cloned_slot_idx;
             }
         };
 
@@ -52,18 +52,18 @@ impl<T: Write> Application<T> {
             // Draw slot label.
             let slot_label = format!(
                 "Slot {}/{}: '{}'{}",
-                self.settings.graphics_picked + 1,
+                self.settings.graphics_selected + 1,
                 self.settings.graphics_slotmachine.slots.len(),
                 self.settings
                     .graphics_slotmachine
-                    .grab(self.settings.graphics_picked)
+                    .grab(self.settings.graphics_selected)
                     .0,
                 if self.settings.graphics_slotmachine.slots.len() < 2 {
                     "".to_owned()
                 } else {
                     format!(
                         " [←|{}→] ",
-                        if self.settings.graphics_picked
+                        if self.settings.graphics_selected
                             < self.settings.graphics_slotmachine.unmodifiable_slots
                         {
                             ""
@@ -91,56 +91,56 @@ impl<T: Write> Application<T> {
                     "Color palette = {}",
                     self.settings
                         .palette_slotmachine
-                        .grab(self.settings.graphics().palette_picked)
+                        .grab(self.settings.graphics().palette_selected)
                         .0
                 ),
                 format!(
                     "TUI style = {}",
                     self.settings
                         .tui_style_slotmachine
-                        .grab(self.settings.graphics().tui_style_picked)
+                        .grab(self.settings.graphics().tui_style_selected)
                         .0
                 ),
                 format!(
                     "Mino textures = {}",
                     self.settings
                         .mino_textures_slotmachine
-                        .grab(self.settings.graphics().mino_textures_picked)
+                        .grab(self.settings.graphics().mino_textures_selected)
                         .0
                 ),
                 format!(
                     "Hard drop effect = {}",
                     self.settings
                         .hard_drop_effect_slotmachine
-                        .grab(self.settings.graphics().hard_drop_picked)
+                        .grab(self.settings.graphics().hard_drop_selected)
                         .0
                 ),
                 format!(
                     "Lock effect = {}",
                     self.settings
                         .lock_effect_slotmachine
-                        .grab(self.settings.graphics().lock_effect_picked)
+                        .grab(self.settings.graphics().lock_effect_selected)
                         .0
                 ),
                 format!(
                     "Line clear effect = {}",
                     self.settings
                         .line_clear_effect_slotmachine
-                        .grab(self.settings.graphics().line_clear_picked)
+                        .grab(self.settings.graphics().line_clear_selected)
                         .0
                 ),
                 format!(
                     "Mini tet. style = {}",
                     self.settings
                         .mini_tet_style_slotmachine
-                        .grab(self.settings.graphics().mini_tet_picked)
+                        .grab(self.settings.graphics().mini_tet_selected)
                         .0
                 ),
                 format!(
                     "Small tet. style = {}",
                     self.settings
                         .small_tet_style_slotmachine
-                        .grab(self.settings.graphics().small_tet_picked)
+                        .grab(self.settings.graphics().small_tet_selected)
                         .0
                 ),
                 format!(
@@ -164,7 +164,8 @@ impl<T: Write> Application<T> {
                         self.settings.graphics().show_grid.then_some("Grid"),
                         self.settings.graphics().show_shadow.then_some("Shadow"),
                         self.settings.graphics().show_spawn.then_some("Spawn"),
-                        (self.settings.graphics().boardpalette_picked != 0).then_some("Col'board"),
+                        (self.settings.graphics().boardpalette_selected != 0)
+                            .then_some("Col'board"),
                         self.settings.graphics().show_main_hud.then_some("HUD"),
                         self.settings.graphics().show_keybinds.then_some("Keybinds"),
                         self.settings.graphics().show_buttons.then_some("Buttons"),
@@ -195,7 +196,7 @@ impl<T: Write> Application<T> {
                 ),
                 (
                     "Color board tiles",
-                    self.settings.graphics().boardpalette_picked != 0,
+                    self.settings.graphics().boardpalette_selected != 0,
                 ),
                 ("Show left HUD", self.settings.graphics().show_main_hud),
                 (
@@ -328,58 +329,58 @@ impl<T: Write> Application<T> {
                     ..
                 }) => match selected {
                     0 => {
-                        self.settings.graphics_picked += 1;
-                        self.settings.graphics_picked %=
+                        self.settings.graphics_selected += 1;
+                        self.settings.graphics_selected %=
                             self.settings.graphics_slotmachine.slots.len();
                     }
                     1 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().palette_picked += 1;
-                        self.settings.graphics_mut().palette_picked %=
+                        self.settings.graphics_mut().palette_selected += 1;
+                        self.settings.graphics_mut().palette_selected %=
                             self.settings.palette_slotmachine.slots.len();
-                        self.settings.graphics_mut().boardpalette_picked =
-                            self.settings.graphics_mut().palette_picked;
+                        self.settings.graphics_mut().boardpalette_selected =
+                            self.settings.graphics_mut().palette_selected;
                     }
                     2 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().tui_style_picked += 1;
-                        self.settings.graphics_mut().tui_style_picked %=
+                        self.settings.graphics_mut().tui_style_selected += 1;
+                        self.settings.graphics_mut().tui_style_selected %=
                             self.settings.tui_style_slotmachine.slots.len();
                     }
                     3 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().mino_textures_picked += 1;
-                        self.settings.graphics_mut().mino_textures_picked %=
+                        self.settings.graphics_mut().mino_textures_selected += 1;
+                        self.settings.graphics_mut().mino_textures_selected %=
                             self.settings.mino_textures_slotmachine.slots.len();
                     }
                     4 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().hard_drop_picked += 1;
-                        self.settings.graphics_mut().hard_drop_picked %=
+                        self.settings.graphics_mut().hard_drop_selected += 1;
+                        self.settings.graphics_mut().hard_drop_selected %=
                             self.settings.hard_drop_effect_slotmachine.slots.len();
                     }
                     5 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().lock_effect_picked += 1;
-                        self.settings.graphics_mut().lock_effect_picked %=
+                        self.settings.graphics_mut().lock_effect_selected += 1;
+                        self.settings.graphics_mut().lock_effect_selected %=
                             self.settings.lock_effect_slotmachine.slots.len();
                     }
                     6 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().line_clear_picked += 1;
-                        self.settings.graphics_mut().line_clear_picked %=
+                        self.settings.graphics_mut().line_clear_selected += 1;
+                        self.settings.graphics_mut().line_clear_selected %=
                             self.settings.line_clear_effect_slotmachine.slots.len();
                     }
                     7 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().mini_tet_picked += 1;
-                        self.settings.graphics_mut().mini_tet_picked %=
+                        self.settings.graphics_mut().mini_tet_selected += 1;
+                        self.settings.graphics_mut().mini_tet_selected %=
                             self.settings.mini_tet_style_slotmachine.slots.len();
                     }
                     8 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().small_tet_picked += 1;
-                        self.settings.graphics_mut().small_tet_picked %=
+                        self.settings.graphics_mut().small_tet_selected += 1;
+                        self.settings.graphics_mut().small_tet_selected %=
                             self.settings.small_tet_style_slotmachine.slots.len();
                     }
                     9 => {
@@ -409,9 +410,9 @@ impl<T: Write> Application<T> {
                     }
                     14 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().boardpalette_picked =
-                            if self.settings.graphics().boardpalette_picked == 0 {
-                                self.settings.graphics_mut().palette_picked
+                        self.settings.graphics_mut().boardpalette_selected =
+                            if self.settings.graphics().boardpalette_selected == 0 {
+                                self.settings.graphics_mut().palette_selected
                             } else {
                                 0
                             };
@@ -441,67 +442,67 @@ impl<T: Write> Application<T> {
                     ..
                 }) => match selected {
                     0 => {
-                        self.settings.graphics_picked +=
+                        self.settings.graphics_selected +=
                             self.settings.graphics_slotmachine.slots.len() - 1;
-                        self.settings.graphics_picked %=
+                        self.settings.graphics_selected %=
                             self.settings.graphics_slotmachine.slots.len();
                     }
                     1 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().palette_picked +=
+                        self.settings.graphics_mut().palette_selected +=
                             self.settings.palette_slotmachine.slots.len() - 1;
-                        self.settings.graphics_mut().palette_picked %=
+                        self.settings.graphics_mut().palette_selected %=
                             self.settings.palette_slotmachine.slots.len();
-                        self.settings.graphics_mut().boardpalette_picked =
-                            self.settings.graphics_mut().palette_picked;
+                        self.settings.graphics_mut().boardpalette_selected =
+                            self.settings.graphics_mut().palette_selected;
                     }
                     2 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().tui_style_picked +=
+                        self.settings.graphics_mut().tui_style_selected +=
                             self.settings.tui_style_slotmachine.slots.len() - 1;
-                        self.settings.graphics_mut().tui_style_picked %=
+                        self.settings.graphics_mut().tui_style_selected %=
                             self.settings.tui_style_slotmachine.slots.len();
                     }
                     3 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().mino_textures_picked +=
+                        self.settings.graphics_mut().mino_textures_selected +=
                             self.settings.mino_textures_slotmachine.slots.len() - 1;
-                        self.settings.graphics_mut().mino_textures_picked %=
+                        self.settings.graphics_mut().mino_textures_selected %=
                             self.settings.mino_textures_slotmachine.slots.len();
                     }
                     4 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().hard_drop_picked +=
+                        self.settings.graphics_mut().hard_drop_selected +=
                             self.settings.hard_drop_effect_slotmachine.slots.len() - 1;
-                        self.settings.graphics_mut().hard_drop_picked %=
+                        self.settings.graphics_mut().hard_drop_selected %=
                             self.settings.hard_drop_effect_slotmachine.slots.len();
                     }
                     5 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().lock_effect_picked +=
+                        self.settings.graphics_mut().lock_effect_selected +=
                             self.settings.lock_effect_slotmachine.slots.len() - 1;
-                        self.settings.graphics_mut().lock_effect_picked %=
+                        self.settings.graphics_mut().lock_effect_selected %=
                             self.settings.lock_effect_slotmachine.slots.len();
                     }
                     6 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().line_clear_picked +=
+                        self.settings.graphics_mut().line_clear_selected +=
                             self.settings.line_clear_effect_slotmachine.slots.len() - 1;
-                        self.settings.graphics_mut().line_clear_picked %=
+                        self.settings.graphics_mut().line_clear_selected %=
                             self.settings.line_clear_effect_slotmachine.slots.len();
                     }
                     7 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().mini_tet_picked +=
+                        self.settings.graphics_mut().mini_tet_selected +=
                             self.settings.mini_tet_style_slotmachine.slots.len() - 1;
-                        self.settings.graphics_mut().mini_tet_picked %=
+                        self.settings.graphics_mut().mini_tet_selected %=
                             self.settings.mini_tet_style_slotmachine.slots.len();
                     }
                     8 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().small_tet_picked +=
+                        self.settings.graphics_mut().small_tet_selected +=
                             self.settings.small_tet_style_slotmachine.slots.len() - 1;
-                        self.settings.graphics_mut().small_tet_picked %=
+                        self.settings.graphics_mut().small_tet_selected %=
                             self.settings.small_tet_style_slotmachine.slots.len();
                     }
                     9 => {
@@ -535,9 +536,9 @@ impl<T: Write> Application<T> {
                     }
                     14 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().boardpalette_picked =
-                            if self.settings.graphics().boardpalette_picked == 0 {
-                                self.settings.graphics_mut().palette_picked
+                        self.settings.graphics_mut().boardpalette_selected =
+                            if self.settings.graphics().boardpalette_selected == 0 {
+                                self.settings.graphics_mut().palette_selected
                             } else {
                                 0
                             };
@@ -569,14 +570,14 @@ impl<T: Write> Application<T> {
                 }) => {
                     if selected == 0 {
                         // If a custom slot, then remove it (and return to the 'default' 0th slot).
-                        if self.settings.graphics_picked
+                        if self.settings.graphics_selected
                             >= self.settings.graphics_slotmachine.unmodifiable_slots
                         {
                             self.settings
                                 .graphics_slotmachine
                                 .slots
-                                .remove(self.settings.graphics_picked);
-                            self.settings.graphics_picked = 0;
+                                .remove(self.settings.graphics_selected);
+                            self.settings.graphics_selected = 0;
                         }
                     }
                 }

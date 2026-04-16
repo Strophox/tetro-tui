@@ -36,7 +36,7 @@ use crate::{
 // #[serde_with::serde_as]
 #[derive(PartialEq, Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Settings {
-    pub graphics_picked: usize,
+    pub graphics_selected: usize,
     #[serde(rename = "GRAPHICS_SLOTS")]
     pub graphics_slotmachine: SlotMachine<GraphicsSettings>,
     #[serde(rename = "PALETTE_SLOTS")]
@@ -56,11 +56,11 @@ pub struct Settings {
     #[serde(rename = "SMALL_TET_STYLE_SLOTS")]
     pub small_tet_style_slotmachine: SlotMachine<SmallTetStyle>,
 
-    pub keybinds_picked: usize,
+    pub keybinds_selected: usize,
     #[serde(rename = "GAME_KEYBINDS_SLOTS")]
     pub keybinds_slotmachine: SlotMachine<GameKeybinds>,
 
-    pub gameplay_picked: usize,
+    pub gameplay_selected: usize,
     #[serde(rename = "GAMEPLAY_CONFIG_SLOTS")]
     pub gameplay_slotmachine: SlotMachine<GameplaySettings>,
 
@@ -71,7 +71,7 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Self {
-            graphics_picked: 0,
+            graphics_selected: 0,
             graphics_slotmachine: default_graphics_slots(),
             palette_slotmachine: default_palette_slots(),
             tui_style_slotmachine: default_tui_style_slots(),
@@ -82,10 +82,10 @@ impl Default for Settings {
             mini_tet_style_slotmachine: default_mini_tet_style_slots(),
             small_tet_style_slotmachine: default_small_tet_style_slots(),
 
-            keybinds_picked: 0,
+            keybinds_selected: 0,
             keybinds_slotmachine: default_keybinds_slots(),
 
-            gameplay_picked: 0,
+            gameplay_selected: 0,
             gameplay_slotmachine: default_gameplay_slots(),
 
             game_mode_preferences: GameModePreferences::default(),
@@ -101,75 +101,75 @@ impl Settings {
     pub fn palette(&self) -> &Palette {
         &self
             .palette_slotmachine
-            .grab(self.graphics().palette_picked)
+            .grab(self.graphics().palette_selected)
             .1
     }
     pub fn tui_style(&self) -> &TuiStyle {
         &self
             .tui_style_slotmachine
-            .grab(self.graphics().tui_style_picked)
+            .grab(self.graphics().tui_style_selected)
             .1
     }
     pub fn mino_textures(&self) -> &MinoTextures {
         &self
             .mino_textures_slotmachine
-            .grab(self.graphics().mino_textures_picked)
+            .grab(self.graphics().mino_textures_selected)
             .1
     }
     pub fn hard_drop_effect(&self) -> &HardDropEffect {
         &self
             .hard_drop_effect_slotmachine
-            .grab(self.graphics().hard_drop_picked)
+            .grab(self.graphics().hard_drop_selected)
             .1
     }
     pub fn lock_effect(&self) -> &LockEffect {
         &self
             .lock_effect_slotmachine
-            .grab(self.graphics().lock_effect_picked)
+            .grab(self.graphics().lock_effect_selected)
             .1
     }
     pub fn line_clear_effect(&self) -> &LineClearEffect {
         &self
             .line_clear_effect_slotmachine
-            .grab(self.graphics().line_clear_picked)
+            .grab(self.graphics().line_clear_selected)
             .1
     }
     pub fn mini_tet_style(&self) -> &MiniTetStyle {
         &self
             .mini_tet_style_slotmachine
-            .grab(self.graphics().mini_tet_picked)
+            .grab(self.graphics().mini_tet_selected)
             .1
     }
     pub fn small_tet_style(&self) -> &SmallTetStyle {
         &self
             .small_tet_style_slotmachine
-            .grab(self.graphics().small_tet_picked)
+            .grab(self.graphics().small_tet_selected)
             .1
     }
     pub fn boardpalette(&self) -> &Palette {
         &self
             .palette_slotmachine
-            .grab(self.graphics().boardpalette_picked)
+            .grab(self.graphics().boardpalette_selected)
             .1
     }
 
     pub fn graphics(&self) -> &GraphicsSettings {
-        &self.graphics_slotmachine.grab(self.graphics_picked).1
+        &self.graphics_slotmachine.grab(self.graphics_selected).1
     }
     pub fn keybinds(&self) -> &GameKeybinds {
-        &self.keybinds_slotmachine.grab(self.keybinds_picked).1
+        &self.keybinds_slotmachine.grab(self.keybinds_selected).1
     }
     pub fn gameplay(&self) -> &GameplaySettings {
-        &self.gameplay_slotmachine.grab(self.gameplay_picked).1
+        &self.gameplay_slotmachine.grab(self.gameplay_selected).1
     }
     pub fn graphics_mut(&mut self) -> &mut GraphicsSettings {
-        &mut self.graphics_slotmachine.grab_mut(self.graphics_picked).1
+        &mut self.graphics_slotmachine.grab_mut(self.graphics_selected).1
     }
     pub fn keybinds_mut(&mut self) -> &mut GameKeybinds {
-        &mut self.keybinds_slotmachine.grab_mut(self.keybinds_picked).1
+        &mut self.keybinds_slotmachine.grab_mut(self.keybinds_selected).1
     }
     pub fn gameplay_mut(&mut self) -> &mut GameplaySettings {
-        &mut self.gameplay_slotmachine.grab_mut(self.gameplay_picked).1
+        &mut self.gameplay_slotmachine.grab_mut(self.gameplay_selected).1
     }
 }
 
@@ -181,7 +181,7 @@ pub struct SlotMachine<T> {
     /// The number of slots considered unmodifiable.
     pub unmodifiable_slots: usize,
     /// The string that is used as base to generate a name for duplicate slots.
-    pub name_templating: String,
+    pub name_template: String,
     /// The actual contents of the slot machine: the slots (usually 'profiles').
     pub slots: Vec<(String, T)>,
 }
@@ -195,7 +195,7 @@ impl<T: Clone> SlotMachine<T> {
         Self {
             slots,
             unmodifiable_slots: num_unmodifiable_slots,
-            name_templating: cloned_slot_name_template,
+            name_template: cloned_slot_name_template,
         }
     }
 
@@ -222,7 +222,7 @@ impl<T: Clone> SlotMachine<T> {
 
             let mut n = 1;
             let cloned_slot_name = loop {
-                let name = format!("{} {}", self.name_templating, to_roman(n));
+                let name = format!("{} {}", self.name_template, to_roman(n));
                 if self.slots.iter().all(|s| s.0 != name) {
                     break name;
                 }

@@ -45,7 +45,7 @@ pub fn reconstruct_modded<'a>(
         match from_savefile_str(mod_cfg_str) {
             Ok(config) => Ok(config),
             Err(e) => Err(format!(
-                "mod cfg parse error for {mod_id}: {mod_cfg_str} ({e}"
+                "parse error for mod {mod_id} with cfg '{mod_cfg_str}': {e}"
             )),
         }
     }

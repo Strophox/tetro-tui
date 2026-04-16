@@ -784,8 +784,8 @@ impl<T: Write> Application<T> {
                                 GameModePreferences::default().combo_config.limit;
                         }
                     } else if Some(selected) == idx_game_save {
-                        self.game_saves.slots.remove(self.game_saves.picked);
-                        self.game_saves.picked = 0;
+                        self.game_saves.slots.remove(self.game_saves.selected);
+                        self.game_saves.selected = 0;
                     }
                 }
 

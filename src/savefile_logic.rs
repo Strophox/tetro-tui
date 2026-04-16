@@ -108,7 +108,7 @@ impl<T: Write> Application<T> {
             scores_and_replays: Cow::Borrowed(&self.scores_and_replays),
             statistics: Cow::Borrowed(&self.statistics),
             compressed_game_saves: GameSaves {
-                picked: self.game_saves.picked,
+                selected: self.game_saves.selected,
                 slots: self
                     .game_saves
                     .slots
@@ -161,9 +161,9 @@ impl<T: Write> Application<T> {
             .into_iter()
             .filter_map(|save| save.try_decode().ok())
             .collect::<Vec<GameSave<RawInputHistory>>>();
-        game_saves.picked = save_contents
+        game_saves.selected = save_contents
             .compressed_game_saves
-            .picked
+            .selected
             .min(game_saves.slots.len().saturating_sub(1));
 
         Ok(())

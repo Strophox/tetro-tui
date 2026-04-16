@@ -97,7 +97,7 @@ pub fn default_tui_style_slots() -> SlotMachine<TuiStyle> {
 impl TuiStyle {
     pub fn ascii() -> Self {
         TuiStyleCompact {
-            menu: "-",
+            menuglyphs: "-",
             frame: "+-+|#=#|",
             frame2: None,
             hold: "-+|+",
@@ -111,7 +111,7 @@ impl TuiStyle {
 
     pub fn unicode() -> TuiStyle {
         TuiStyleCompact {
-            menu: "─",
+            menuglyphs: "─",
             frame: "╓╴╖║╜▀╙║",
             frame2: None,
             hold: "─┌│└",
@@ -125,7 +125,7 @@ impl TuiStyle {
 
     pub fn elektronika_60() -> Self {
         TuiStyleCompact {
-            menu: "=",
+            menuglyphs: "=",
             frame: "   !!=!!",
             frame2: Some(r"<\/>"),
             hold: "    ",
@@ -149,7 +149,7 @@ impl<S: AsRef<str>> TryFrom<TuiStyleCompact<S>> for TuiStyle {
         }
 
         let menuglyphs = value
-            .menu
+            .menuglyphs
             .as_ref()
             .chars()
             .collect::<Vec<char>>()
@@ -211,7 +211,7 @@ impl<S: AsRef<str>> TryFrom<TuiStyleCompact<S>> for TuiStyle {
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]
 pub struct TuiStyleCompact<T> {
-    pub menu: T,
+    pub menuglyphs: T,
     pub frame: T,
     pub frame2: Option<T>,
     pub hold: T,
@@ -223,7 +223,7 @@ pub struct TuiStyleCompact<T> {
 impl From<TuiStyle> for TuiStyleCompact<String> {
     fn from(value: TuiStyle) -> Self {
         TuiStyleCompact {
-            menu: value.menuglyphs.iter().collect(),
+            menuglyphs: value.menuglyphs.iter().collect(),
             frame: value.frameglyphs.iter().collect(),
             frame2: value.frame2glyphs.map(|frame2| frame2.iter().collect()),
             hold: value.holdglyphs.iter().collect(),

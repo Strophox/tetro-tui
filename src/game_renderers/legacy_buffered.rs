@@ -310,7 +310,7 @@ impl Renderer for LegacyBufferedRenderer {
         // Screen: draw.
         #[allow(clippy::useless_format)]
         #[rustfmt::skip]
-        let base_screen: &[String] = match settings.graphics().tui_style_picked /* Fallback. */ {
+        let base_screen: &[String] = match settings.graphics().tui_style_selected /* Fallback. */ {
             2 => &[
                 format!("                                                              ", ),
                 format!("                                                {: ^w$      } ", "mode:", w=modename_len),
@@ -580,7 +580,7 @@ impl Renderer for LegacyBufferedRenderer {
         ) in self.hard_drop_tiles.iter_mut()
         {
             let elapsed = game.state().time.saturating_sub(*creation_time);
-            let luminance_map = match settings.graphics().tui_style_picked /* Fallback. */ {
+            let luminance_map = match settings.graphics().tui_style_selected /* Fallback. */ {
                 2 => [" .", " .", " .", " .", " .", " .", " .", " ."],
                 // EX-FIX-ME: Make this hard drop effect available independently of Glyphset (i.e. also for ASCII).
                 0 => ["||", "||", "¦¦", "¦¦", "::", "::", "..", ".."],
@@ -777,12 +777,12 @@ impl Renderer for LegacyBufferedRenderer {
             let elapsed = game.state().time.saturating_sub(*notif_time);
             match notification {
                 Notification::PieceLocked { piece } => {
-                    if settings.graphics().lock_effect_picked == 0 {
+                    if settings.graphics().lock_effect_selected == 0 {
                         *active = false;
                         continue;
                     }
                     #[rustfmt::skip]
-                    let animation_locking = match settings.graphics().tui_style_picked /* Fallback. */ {
+                    let animation_locking = match settings.graphics().tui_style_selected /* Fallback. */ {
                         2 => [
                             ( 25, "▮▮"),
                             ( 50, "▮▮"),
@@ -828,13 +828,14 @@ impl Renderer for LegacyBufferedRenderer {
                     lines,
                     line_clear_duration,
                 } => {
-                    if !settings.graphics().line_clear_picked == 0 || line_clear_duration.is_zero()
+                    if !settings.graphics().line_clear_selected == 0
+                        || line_clear_duration.is_zero()
                     {
                         *active = false;
                         continue;
                     }
-                    if settings.graphics().line_clear_picked == 1 {
-                        let animation_lineclear = match settings.graphics().tui_style_picked /* Fallback. */ {
+                    if settings.graphics().line_clear_selected == 1 {
+                        let animation_lineclear = match settings.graphics().tui_style_selected /* Fallback. */ {
                             2 => [
                                 "▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮",
                                 "  ▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮",
@@ -919,7 +920,7 @@ impl Renderer for LegacyBufferedRenderer {
                     height_dropped: _,
                     dropped_piece,
                 } => {
-                    if settings.graphics().hard_drop_picked == 0 {
+                    if settings.graphics().hard_drop_selected == 0 {
                         *active = false;
                         continue;
                     }

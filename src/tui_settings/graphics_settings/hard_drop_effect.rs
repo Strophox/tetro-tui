@@ -26,7 +26,7 @@ pub struct HardDropEffect {
     /// The extent to which the lifetime decays faster toward the top when the pieces are spawned.
     /// - 1.0 means the upmost particle will have 100% of its `normalized_height` scaling.
     /// - 0.5 means the upmost particle will have 50% of its `normalized_height` scaling, which means it survives twice as long.
-    /// - 2.0 means the upmost particle will have 50% of its `normalized_height` scaling, which means it survives half as long.
+    /// - 2.0 means the upmost particle will have 200% of its `normalized_height` scaling, which means it survives half as long.
     #[serde(rename = "decay")]
     pub y_decay: f32,
 }

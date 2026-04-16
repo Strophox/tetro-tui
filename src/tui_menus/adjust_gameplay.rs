@@ -28,9 +28,9 @@ impl<T: Write> Application<T> {
         let if_unmodifiable_clone_and_switch = |s: &mut Settings| {
             if let Some(cloned_slot_idx) = s
                 .gameplay_slotmachine
-                .clone_slot_if_unmodifiable(s.gameplay_picked)
+                .clone_slot_if_unmodifiable(s.gameplay_selected)
             {
-                s.gameplay_picked = cloned_slot_idx;
+                s.gameplay_selected = cloned_slot_idx;
             }
         };
 
@@ -66,18 +66,18 @@ impl<T: Write> Application<T> {
             // Draw slot label.
             let slot_label = format!(
                 "Slot {}/{}: '{}'{}",
-                self.settings.gameplay_picked + 1,
+                self.settings.gameplay_selected + 1,
                 self.settings.gameplay_slotmachine.slots.len(),
                 self.settings
                     .gameplay_slotmachine
-                    .grab(self.settings.gameplay_picked)
+                    .grab(self.settings.gameplay_selected)
                     .0,
                 if self.settings.gameplay_slotmachine.slots.len() < 2 {
                     "".to_owned()
                 } else {
                     format!(
                         " [←|{}→] ",
-                        if self.settings.gameplay_picked
+                        if self.settings.gameplay_selected
                             < self.settings.gameplay_slotmachine.unmodifiable_slots
                         {
                             ""
@@ -218,14 +218,14 @@ impl<T: Write> Application<T> {
                 }) => {
                     if selected == 0 {
                         // If a custom slot, then remove it (and return to the 'default' 0th slot).
-                        if self.settings.gameplay_picked
+                        if self.settings.gameplay_selected
                             >= self.settings.gameplay_slotmachine.unmodifiable_slots
                         {
                             self.settings
                                 .gameplay_slotmachine
                                 .slots
-                                .remove(self.settings.gameplay_picked);
-                            self.settings.gameplay_picked = 0;
+                                .remove(self.settings.gameplay_selected);
+                            self.settings.gameplay_selected = 0;
                         }
                     }
                 }
@@ -262,8 +262,8 @@ impl<T: Write> Application<T> {
                     ..
                 }) => match selected {
                     0 => {
-                        self.settings.gameplay_picked += 1;
-                        self.settings.gameplay_picked %=
+                        self.settings.gameplay_selected += 1;
+                        self.settings.gameplay_selected %=
                             self.settings.gameplay_slotmachine.slots.len();
                     }
                     1 => {
@@ -365,9 +365,9 @@ impl<T: Write> Application<T> {
                     ..
                 }) => match selected {
                     0 => {
-                        self.settings.gameplay_picked +=
+                        self.settings.gameplay_selected +=
                             self.settings.gameplay_slotmachine.slots.len() - 1;
-                        self.settings.gameplay_picked %=
+                        self.settings.gameplay_selected %=
                             self.settings.gameplay_slotmachine.slots.len();
                     }
                     1 => {

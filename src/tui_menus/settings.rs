@@ -37,21 +37,21 @@ impl<T: Write> Application<T> {
                     "Adjust graphics ({}) ...",
                     self.settings
                         .graphics_slotmachine
-                        .grab(self.settings.graphics_picked)
+                        .grab(self.settings.graphics_selected)
                         .0
                 ),
                 format!(
                     "Adjust keybinds ({}) ...",
                     self.settings
                         .keybinds_slotmachine
-                        .grab(self.settings.keybinds_picked)
+                        .grab(self.settings.keybinds_selected)
                         .0
                 ),
                 format!(
                     "Adjust gameplay ({}) ...",
                     self.settings
                         .gameplay_slotmachine
-                        .grab(self.settings.gameplay_picked)
+                        .grab(self.settings.gameplay_selected)
                         .0
                 ),
                 format!(
@@ -173,21 +173,21 @@ impl<T: Write> Application<T> {
                 }) => {
                     match selected {
                         0 => {
-                            self.settings.graphics_picked +=
+                            self.settings.graphics_selected +=
                                 self.settings.graphics_slotmachine.slots.len() + 1;
-                            self.settings.graphics_picked %=
+                            self.settings.graphics_selected %=
                                 self.settings.graphics_slotmachine.slots.len();
                         }
                         1 => {
-                            self.settings.keybinds_picked +=
+                            self.settings.keybinds_selected +=
                                 self.settings.keybinds_slotmachine.slots.len() + 1;
-                            self.settings.keybinds_picked %=
+                            self.settings.keybinds_selected %=
                                 self.settings.keybinds_slotmachine.slots.len();
                         }
                         2 => {
-                            self.settings.gameplay_picked +=
+                            self.settings.gameplay_selected +=
                                 self.settings.gameplay_slotmachine.slots.len() + 1;
-                            self.settings.gameplay_picked %=
+                            self.settings.gameplay_selected %=
                                 self.settings.gameplay_slotmachine.slots.len();
                         }
                         3 => {
@@ -215,21 +215,21 @@ impl<T: Write> Application<T> {
                 }) => {
                     match selected {
                         0 => {
-                            self.settings.graphics_picked +=
+                            self.settings.graphics_selected +=
                                 self.settings.graphics_slotmachine.slots.len() - 1;
-                            self.settings.graphics_picked %=
+                            self.settings.graphics_selected %=
                                 self.settings.graphics_slotmachine.slots.len();
                         }
                         1 => {
-                            self.settings.keybinds_picked +=
+                            self.settings.keybinds_selected +=
                                 self.settings.keybinds_slotmachine.slots.len() - 1;
-                            self.settings.keybinds_picked %=
+                            self.settings.keybinds_selected %=
                                 self.settings.keybinds_slotmachine.slots.len();
                         }
                         2 => {
-                            self.settings.gameplay_picked +=
+                            self.settings.gameplay_selected +=
                                 self.settings.gameplay_slotmachine.slots.len() - 1;
-                            self.settings.gameplay_picked %=
+                            self.settings.gameplay_selected %=
                                 self.settings.gameplay_slotmachine.slots.len();
                         }
                         3 => {
@@ -258,13 +258,13 @@ impl<T: Write> Application<T> {
                 }) => {
                     match selected {
                         0 => {
-                            self.settings.graphics_picked = 0;
+                            self.settings.graphics_selected = 0;
                         }
                         1 => {
-                            self.settings.keybinds_picked = 0;
+                            self.settings.keybinds_selected = 0;
                         }
                         2 => {
-                            self.settings.gameplay_picked = 0;
+                            self.settings.gameplay_selected = 0;
                         }
                         3 => {
                             self.temp_data.save_on_exit = SavefileGranularity::NoSavefile;
