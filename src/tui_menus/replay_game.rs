@@ -206,13 +206,13 @@ impl<T: Write> Application<T> {
                             }
 
                             // [Ctrl+I]: Enable Interactive Instant-Input Intervention.
-                            (KeyCode::Char('i' | 'I'), KeyModifiers::CONTROL) => {
+                            (KeyCode::Char('i' | 'I'), KeyModifiers::ALT) => {
                                 enable_game_intervention_inputs ^= true;
 
                                 let str = if enable_game_intervention_inputs {
-                                    "(Enabled inputs)"
+                                    "(Inter-inputs enabled)"
                                 } else {
-                                    "(Disabled inputs)"
+                                    "(Inter-inputs disabled)"
                                 };
 
                                 game_renderer.update_feed(

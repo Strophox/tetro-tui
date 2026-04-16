@@ -1,6 +1,6 @@
 use falling_tetromino_engine::{Board, Game, GameAccess, GameBuilder, GameModifier};
 
-use crate::tui_settings::Palette;
+use crate::{savefile_logic::to_savefile_string, tui_settings::Palette};
 
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
@@ -26,7 +26,7 @@ impl GameModifier for StartBoard {
     }
 
     fn cfg(&self) -> String {
-        serde_json::to_string(&self.encoded_board).unwrap()
+        to_savefile_string(&self.encoded_board).unwrap()
     }
 
     fn try_clone(&self) -> Result<Box<dyn GameModifier>, String> {

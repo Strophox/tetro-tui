@@ -277,7 +277,7 @@ yay -S tetro-tui
 > | `Ctrl`+`L` | Toggle replay looping |
 > | `Ctrl`+`S` | Store game save (accessible in 'Start new game'⇝'Game save' or '(live) Game'⇝`Ctrl`+`L`) |
 > | `Ctrl`+`E` | Store seed (accessible in 'Start new game'⇝'Custom') |
-> | `Ctrl`+`I` | (Experimental) Toggle Instant Interactive Input Intervention |
+> | `Alt`+`I` | (Experimental) Toggle Instant Interactive Input Intervention |
 > | `Ctrl`(+`Alt`)+`G` | Cycle through graphics settings slots |
 > | `Ctrl`+`Alt`+`L` | Re-load from savefile (Caution: discards current application data!) |
 > | `Ctrl`+`C` | Exit application (respects save preferences) |

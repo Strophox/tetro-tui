@@ -6,7 +6,7 @@ use falling_tetromino_engine::{
 
 use rand::seq::SliceRandom;
 
-use crate::tui_settings::Palette;
+use crate::{savefile_logic::to_savefile_string, tui_settings::Palette};
 
 #[derive(
     PartialEq,
@@ -77,7 +77,7 @@ impl GameModifier for Cheese {
     }
 
     fn cfg(&self) -> String {
-        serde_json::to_string(&(self.config)).unwrap()
+        to_savefile_string(&(self.config)).unwrap()
     }
 
     fn try_clone(&self) -> Result<Box<dyn GameModifier>, String> {

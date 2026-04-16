@@ -5,7 +5,7 @@ use falling_tetromino_engine::{
     Phase, Stat, Tetromino,
 };
 
-use crate::tui_settings::Palette;
+use crate::{savefile_logic::to_savefile_string, tui_settings::Palette};
 
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug, serde::Serialize, serde::Deserialize,
@@ -61,7 +61,7 @@ impl GameModifier for Combo {
     }
 
     fn cfg(&self) -> String {
-        serde_json::to_string(&self.config).unwrap()
+        to_savefile_string(&self.config).unwrap()
     }
 
     fn try_clone(&self) -> Result<Box<dyn GameModifier>, String> {

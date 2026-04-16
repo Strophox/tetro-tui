@@ -1,5 +1,3 @@
-use falling_tetromino_engine::{Game, GameBuilder, GameModifier};
-
 mod ascent;
 mod cheese;
 mod combo;
@@ -7,6 +5,10 @@ mod print_msgs;
 mod print_recency_stats;
 mod puzzle;
 mod start_board;
+
+use falling_tetromino_engine::{Game, GameBuilder, GameModifier};
+
+use crate::savefile_logic::from_savefile_str;
 
 pub use ascent::Ascent;
 pub use cheese::{Cheese, CheeseConfig};
@@ -40,7 +42,7 @@ pub fn reconstruct_modded<'a>(
         mod_args_str: &'de str,
         mod_id: &str,
     ) -> Result<T, String> {
-        match serde_json::from_str(mod_args_str) {
+        match from_savefile_str(mod_args_str) {
             Ok(args) => Ok(args),
             Err(e) => Err(format!(
                 "mod args parse error for {mod_id}: {mod_args_str} ({e}"

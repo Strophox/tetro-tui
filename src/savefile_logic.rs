@@ -10,6 +10,9 @@ use crate::{
     Statistics,
 };
 
+pub use serde_json::from_str as from_savefile_str;
+pub use serde_json::to_string as to_savefile_string;
+
 pub fn savefile_name() -> String {
     format!(".tetro-tui_v{}_savefile.json", crate::VERSION_MAJOR_MINOR)
 }
@@ -92,7 +95,7 @@ impl<T: Write> Application<T> {
             },
         };
 
-        let save_str = serde_json::to_string(&save_contents)?;
+        let save_str = to_savefile_string(&save_contents)?;
 
         let mut file = File::create(self.temp_data.savefile_path.clone())?;
         let n_written = file.write(save_str.as_bytes())?;
@@ -111,7 +114,7 @@ impl<T: Write> Application<T> {
         let mut save_str = String::new();
         file.read_to_string(&mut save_str)?;
 
-        let save_contents: SaveContents = serde_json::from_str(&save_str)?;
+        let save_contents: SaveContents = from_savefile_str(&save_str)?;
 
         // Make sure no field is forgotten by explicitly unpacking.
         let Application {

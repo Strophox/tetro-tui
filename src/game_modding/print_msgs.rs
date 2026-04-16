@@ -2,6 +2,8 @@ use falling_tetromino_engine::{
     GameAccess, GameModifier, InGameTime, Notification, NotificationFeed,
 };
 
+use crate::savefile_logic::to_savefile_string;
+
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]
@@ -30,7 +32,7 @@ impl GameModifier for PrintMsgs {
     }
 
     fn cfg(&self) -> String {
-        serde_json::to_string(&self.messages).unwrap()
+        to_savefile_string(&self.messages).unwrap()
     }
 
     fn try_clone(&self) -> Result<Box<dyn GameModifier>, String> {
