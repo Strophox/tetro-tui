@@ -380,9 +380,9 @@ yay -S tetro-tui
 >
 > See this visual/'heatmap' comparison of industry default vs. Ocular rotation:
 > 
-> !["super rotation system heatmap"](https://github.com/Strophox/tetro-tui/blob/b66590cb461d34c95e988ef41b6d8b7d7783f37b/demo_assets/super-rotation_heatmap.png?raw=true)
+> !["super rotation system heatmap"](https://github.com/Strophox/tetro-tui/blob/b66590cb461d34c95e988ef41b6d8b7d7783f37b/demo_assets/rotation-system-heatmap_srs.png?raw=true)
 > 
-> !["ocular rotation system heatmap"](https://github.com/Strophox/tetro-tui/blob/b66590cb461d34c95e988ef41b6d8b7d7783f37b/demo_assets/ocular-rotation_heatmap.png?raw=true)
+> !["ocular rotation system heatmap"](https://github.com/Strophox/tetro-tui/blob/b66590cb461d34c95e988ef41b6d8b7d7783f37b/demo_assets/rotation-system-heatmap_ocular.png?raw=true)
 > 
 > </details>
 
