@@ -1,5 +1,5 @@
 use crate::tui_settings::{
-    graphics_settings::{QuickTileFromStr, TileTexture},
+    graphics_settings::{TileTexture, UnwrapTileFromStr},
     SlotMachine,
 };
 

@@ -3,11 +3,12 @@ use std::time::Duration;
 use falling_tetromino_engine::{InGameTime, TileID};
 
 use crate::tui_settings::{
-    graphics_settings::{QuickTileFromStr, TileTexture},
+    graphics_settings::{
+        MaybeOverride::{self, Keep, Override},
+        TileTexture, UnwrapTileFromStr,
+    },
     Palette, SlotMachine,
 };
-
-type AnimateLock = Vec<(Option<TileTexture>, Option<TileID>)>;
 
 #[serde_with::serde_as]
 #[derive(
@@ -24,7 +25,7 @@ pub struct LockEffect {
     /// - `None` tile texture falls back to locked piece tile texture.
     /// - `None` tile id falls back to locked piece tile id.
     #[serde(rename = "anim")]
-    pub animation: AnimateLock,
+    pub animation: Vec<(MaybeOverride<TileTexture>, MaybeOverride<TileID>)>,
 }
 
 pub fn default_lock_effect_slots() -> SlotMachine<LockEffect> {
@@ -50,7 +51,7 @@ impl LockEffect {
         LockEffect {
             duration: Duration::from_millis(150),
             animation: ["()", "{}", "<>"]
-                .map(|t| (Some(t.tile()), Some(Palette::WHITE)))
+                .map(|t| (Override(t.tile()), Override(Palette::WHITE)))
                 .into(),
         }
     }
@@ -59,7 +60,7 @@ impl LockEffect {
         LockEffect {
             duration: Duration::from_millis(150),
             animation: ["██", "▓▓", "▒▒", "░░", "▒▒", "▓▓"]
-                .map(|t| (Some(t.tile()), Some(Palette::WHITE)))
+                .map(|t| (Override(t.tile()), Override(Palette::WHITE)))
                 .into(),
         }
     }
@@ -67,7 +68,7 @@ impl LockEffect {
     pub fn color_white() -> Self {
         LockEffect {
             duration: Duration::from_millis(150),
-            animation: vec![(None, Some(Palette::WHITE))],
+            animation: vec![(Keep, Override(Palette::WHITE))],
         }
     }
 }

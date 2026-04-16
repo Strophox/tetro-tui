@@ -33,7 +33,7 @@ pub struct GraphicsSettings {
     pub mini_tet_selected: usize,
     #[serde(rename = "smalltet")]
     pub small_tet_selected: usize,
-    #[serde(rename = "normsizeprev")]
+    #[serde(rename = "normsizeprevlimit")]
     pub normalsize_preview_limit: Option<NonZeroUsize>,
     #[serde(rename = "fps")]
     pub fps: ExtNonNegF64,
@@ -54,12 +54,6 @@ pub struct GraphicsSettings {
     #[serde(rename = "s_fps")]
     pub show_fps: bool,
 }
-
-#[derive(
-    PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug, serde::Serialize, serde::Deserialize,
-)]
-#[serde(into = "String", try_from = "String")]
-pub struct TileTexture(pub [char; 2]);
 
 pub fn default_graphics_slots() -> SlotMachine<GraphicsSettings> {
     let slots = vec![
@@ -222,6 +216,12 @@ impl GraphicsSettings {
     }
 }
 
+#[derive(
+    PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug, serde::Serialize, serde::Deserialize,
+)]
+#[serde(into = "String", try_from = "String")]
+pub struct TileTexture(pub [char; 2]);
+
 impl TryFrom<String> for TileTexture {
     type Error = String;
 
@@ -237,11 +237,11 @@ impl TryFrom<String> for TileTexture {
 
 // -- Serialization boilerplate --
 
-pub trait QuickTileFromStr {
+pub trait UnwrapTileFromStr {
     fn tile(&self) -> TileTexture;
 }
 
-impl QuickTileFromStr for str {
+impl UnwrapTileFromStr for str {
     fn tile(&self) -> TileTexture {
         let tile = self.chars().collect::<Vec<char>>().try_into().unwrap();
         TileTexture(tile)
@@ -251,5 +251,22 @@ impl QuickTileFromStr for str {
 impl From<TileTexture> for String {
     fn from(value: TileTexture) -> Self {
         value.0.iter().collect()
+    }
+}
+
+#[derive(
+    PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug, serde::Serialize, serde::Deserialize,
+)]
+pub enum MaybeOverride<T> {
+    Keep,
+    Override(T),
+}
+
+impl<T> MaybeOverride<T> {
+    pub fn unwrap_or(self, keep: T) -> T {
+        match self {
+            MaybeOverride::Keep => keep,
+            MaybeOverride::Override(r#override) => r#override,
+        }
     }
 }

@@ -147,7 +147,10 @@ impl<T: Write> Application<T> {
                     "Pieces: {}",
                     fmt_tetromino_counts(pieces_locked, &self.settings.mini_tet_style().tets)
                 ),
-                format!("Gravity: {}", fmt_hertz(fall_delay_reached.as_hertz())),
+                format!(
+                    "Gravity reached: {}",
+                    fmt_hertz(fall_delay_reached.as_hertz())
+                ),
             ];
 
             if let Some(lock_delay_reached) = lock_delay_reached {

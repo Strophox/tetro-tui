@@ -3,11 +3,12 @@ use std::{num::NonZeroU8, time::Duration};
 use falling_tetromino_engine::{Game, InGameTime, TileID};
 
 use crate::tui_settings::{
-    graphics_settings::{QuickTileFromStr, TileTexture},
+    graphics_settings::{
+        MaybeOverride::{self, Keep, Override},
+        TileTexture, UnwrapTileFromStr,
+    },
     Palette, SlotMachine,
 };
-
-type AnimateLineClearTile = Vec<(Option<TileTexture>, Option<TileID>)>;
 
 #[derive(PartialEq, PartialOrd, Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub enum LineClearEffect {
@@ -29,7 +30,7 @@ pub struct LineClearInlineEffect {
     /// - Empty vec means no recoloring (locked piece tile id).
     /// - `None` tile id falls back to locked piece tile id.
     #[serde(rename = "col_anim")]
-    pub color_animation: Vec<Option<TileID>>,
+    pub color_animation: Vec<MaybeOverride<TileID>>,
 }
 
 /// The formulas used to generate the momentum values:
@@ -38,12 +39,10 @@ pub struct LineClearInlineEffect {
 ///
 /// Formula used to generate the position at time:
 /// * `pos = origin + momentum ⋅ Δtime + acceleration ⋅ (Δtime)² / 2`
-#[serde_with::serde_as]
 #[derive(PartialEq, PartialOrd, Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct LineClearParticleEffect {
-    #[serde_as(as = "Option<serde_with::DurationSecondsWithFrac<f64>>")]
     #[serde(rename = "dur_override")]
-    pub duration_override: Option<InGameTime>,
+    pub duration_override: MaybeOverride<InGameTime>,
 
     /// Note:
     /// - Empty vec means no effect.
@@ -51,7 +50,7 @@ pub struct LineClearParticleEffect {
     /// - `None` tile texture falls back to dropped piece tile texture.
     /// - `None` tile id falls back to locked piece tile id.
     #[serde(rename = "anim")]
-    pub animation: AnimateLineClearTile,
+    pub animation: Vec<(MaybeOverride<TileTexture>, MaybeOverride<TileID>)>,
 
     #[serde(rename = "accel")]
     pub acceleration: (f32, f32),
@@ -84,7 +83,7 @@ pub fn default_line_clear_effect_slots() -> SlotMachine<LineClearEffect> {
 impl LineClearEffect {
     pub fn none() -> Self {
         LineClearEffect::Particle(LineClearParticleEffect {
-            duration_override: Some(Duration::ZERO),
+            duration_override: Override(Duration::ZERO),
             animation: Vec::new(),
             acceleration: (0.0, 0.0),
             momentum_base: (0.0, 0.0),
@@ -107,7 +106,7 @@ impl LineClearEffect {
                 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
             ],
             anim_lastidx: 19,
-            color_animation: vec![Some(Palette::WHITE)],
+            color_animation: vec![Override(Palette::WHITE)],
         })
     }
 
@@ -115,12 +114,14 @@ impl LineClearEffect {
         LineClearEffect::Inline(LineClearInlineEffect {
             anim_indices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0],
             anim_lastidx: 9,
-            color_animation: vec![Some(Palette::WHITE)],
+            color_animation: vec![Override(Palette::WHITE)],
         })
     }
 
     pub fn outward_burn() -> Self {
-        let color_animation = [255, 1, 6, 4, 5].map(NonZeroU8::new).into();
+        let color_animation = [255, 1, 6, 4, 5]
+            .map(|n| Override(NonZeroU8::new(n).unwrap()))
+            .into();
 
         LineClearEffect::Inline(LineClearInlineEffect {
             anim_indices: [9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
@@ -133,16 +134,22 @@ impl LineClearEffect {
         LineClearEffect::Inline(LineClearInlineEffect {
             anim_indices: [1; 2 * Game::WIDTH],
             anim_lastidx: 0,
-            color_animation: vec![Some(Palette::WHITE), None, Some(Palette::WHITE)],
+            color_animation: vec![Override(Palette::WHITE), Keep, Override(Palette::WHITE)],
         })
     }
 
     pub fn blink() -> Self {
         LineClearEffect::Particle(LineClearParticleEffect {
-            duration_override: None,
-            animation: [None, Some("  ".tile()), None, Some("  ".tile()), None]
-                .map(|t| (t, None))
-                .into(),
+            duration_override: Keep,
+            animation: [
+                Keep,
+                Override("  ".tile()),
+                Keep,
+                Override("  ".tile()),
+                Keep,
+            ]
+            .map(|t| (t, Keep))
+            .into(),
             acceleration: (0.0, 0.0),
             momentum_base: (0.0, 0.0),
             momentum_rand: (0.0, 0.0),
@@ -152,8 +159,8 @@ impl LineClearEffect {
 
     pub fn pop() -> Self {
         LineClearEffect::Particle(LineClearParticleEffect {
-            duration_override: Some(Duration::from_millis(1000)),
-            animation: vec![(None, None)],
+            duration_override: Override(Duration::from_millis(1000)),
+            animation: vec![(Keep, Keep)],
             acceleration: (0.0, -200.0),
             momentum_base: (0.0, 25.0),
             momentum_rand: (5.0, 5.0),
@@ -163,8 +170,8 @@ impl LineClearEffect {
 
     pub fn pop_big() -> Self {
         LineClearEffect::Particle(LineClearParticleEffect {
-            duration_override: Some(Duration::from_millis(1000)),
-            animation: vec![(None, None)],
+            duration_override: Override(Duration::from_millis(1000)),
+            animation: vec![(Keep, Keep)],
             acceleration: (0.0, -200.0),
             momentum_base: (0.0, 45.0),
             momentum_rand: (50.0, 5.0),
@@ -174,12 +181,13 @@ impl LineClearEffect {
 
     pub fn ascii_sparks() -> Self {
         let tile_animation =
-            ["@@", "$$", "##", "%%", "**", "++", "~~", ".."].map(|ss| Some(ss.tile()));
-        let color_animation = [255, 3, 2, 1, 2, 7, 5, 4].map(NonZeroU8::new);
+            ["@@", "$$", "##", "%%", "**", "++", "~~", ".."].map(|ss| Override(ss.tile()));
+        let color_animation =
+            [255, 3, 2, 1, 2, 7, 5, 4].map(|n| Override(NonZeroU8::new(n).unwrap()));
         let animation = tile_animation.into_iter().zip(color_animation).collect();
 
         LineClearEffect::Particle(LineClearParticleEffect {
-            duration_override: Some(Duration::from_millis(500)),
+            duration_override: Override(Duration::from_millis(500)),
             animation,
             acceleration: (0.0, 0.0),
             momentum_base: (0.0, 40.0),
@@ -189,14 +197,14 @@ impl LineClearEffect {
     }
 
     pub fn blast() -> Self {
-        let color_animation = [255, 1, 6, 4, 5].map(NonZeroU8::new);
+        let color_animation = [255, 1, 6, 4, 5].map(|n| Override(NonZeroU8::new(n).unwrap()));
         let animation = color_animation
             .into_iter()
-            .map(|recolor| (None, recolor))
+            .map(|recolor| (Keep, recolor))
             .collect();
 
         LineClearEffect::Particle(LineClearParticleEffect {
-            duration_override: Some(Duration::from_millis(500)),
+            duration_override: Override(Duration::from_millis(500)),
             animation,
             acceleration: (0.0, 10.0),
             momentum_base: (0.0, -45.0),

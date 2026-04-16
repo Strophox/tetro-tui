@@ -3,11 +3,12 @@ use std::time::Duration;
 use falling_tetromino_engine::{InGameTime, TileID};
 
 use crate::tui_settings::{
-    graphics_settings::{QuickTileFromStr, TileTexture},
+    graphics_settings::{
+        MaybeOverride::{self, Keep, Override},
+        TileTexture, UnwrapTileFromStr,
+    },
     Palette, SlotMachine,
 };
-
-type AnimateHardDrop = Vec<(TileTexture, Option<TileID>)>;
 
 #[serde_with::serde_as]
 #[derive(PartialEq, PartialOrd, Clone, Debug, serde::Serialize, serde::Deserialize)]
@@ -21,7 +22,7 @@ pub struct HardDropEffect {
     /// - 'Empty'=space tile texture is automatically retextured to `air`.
     /// - `None` tile id falls back to dropped piece tile id.
     #[serde(rename = "anim")]
-    pub animation: AnimateHardDrop,
+    pub animation: Vec<(TileTexture, MaybeOverride<TileID>)>,
 
     /// The extent to which the lifetime decays faster toward the top when the pieces are spawned.
     /// - 1.0 means the upmost particle will have 100% of its `normalized_height` scaling.
@@ -59,7 +60,7 @@ impl HardDropEffect {
         HardDropEffect {
             duration: Duration::from_millis(150),
             animation: ["@@", "$$", /*"##", */ "%%", "**", "++", "~~", ".."]
-                .map(|ss| (ss.tile(), None))
+                .map(|ss| (ss.tile(), Keep))
                 .into(),
             y_decay: 0.75,
         }
@@ -68,7 +69,7 @@ impl HardDropEffect {
     pub fn ascii_streak() -> Self {
         HardDropEffect {
             duration: Duration::from_millis(150),
-            animation: ["||", "¦¦", "::", ".."].map(|ss| (ss.tile(), None)).into(),
+            animation: ["||", "¦¦", "::", ".."].map(|ss| (ss.tile(), Keep)).into(),
             y_decay: 1.0,
         }
     }
@@ -76,7 +77,7 @@ impl HardDropEffect {
     pub fn ascii_beam() -> Self {
         HardDropEffect {
             duration: Duration::from_millis(150),
-            animation: ["||", "¦¦", "::", ".."].map(|ss| (ss.tile(), None)).into(),
+            animation: ["||", "¦¦", "::", ".."].map(|ss| (ss.tile(), Keep)).into(),
             y_decay: 0.0,
         }
     }
@@ -85,7 +86,7 @@ impl HardDropEffect {
         HardDropEffect {
             duration: Duration::from_millis(67),
             animation: ["▒▒", "░░", "░░"]
-                .map(|ss| (ss.tile(), Some(Palette::WHITE)))
+                .map(|ss| (ss.tile(), Override(Palette::WHITE)))
                 .into(),
             y_decay: 0.0,
         }

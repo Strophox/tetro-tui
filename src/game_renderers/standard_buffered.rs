@@ -17,7 +17,7 @@ use crate::{
     fmt_helpers::{fmt_duration, fmt_hertz, fmt_lineclear_name, MAX_LEGEND_ENTRIES},
     tui_settings::{
         HardDropEffect, LineClearEffect, LineClearInlineEffect, LineClearParticleEffect,
-        LockEffect, Palette, QuickTileFromStr, TileTexture,
+        LockEffect, MaybeOverride, Palette, TileTexture, UnwrapTileFromStr,
     },
 };
 
@@ -1050,7 +1050,7 @@ impl Renderer for StandardBufferedRenderer {
                 }
 
                 // render the tile
-                let (retexture, recolor) = if animation.is_empty() { (None, None) } else { animation[(timeshift * (animation.len() - 1) as f32).round() as usize] };
+                let (retexture, recolor) = if animation.is_empty() { (MaybeOverride::Keep, MaybeOverride::Keep) } else { animation[(timeshift * (animation.len() - 1) as f32).round() as usize] };
                 let tile_texture = retexture.unwrap_or(mino_textures.locked);
                 let tile_id = recolor.unwrap_or(original_tile_id);
                 let color = settings
