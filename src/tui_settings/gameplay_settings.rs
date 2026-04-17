@@ -33,6 +33,10 @@ pub fn default_gameplay_slots() -> SlotMachine<GameplaySettings> {
         ("Guideline".to_owned(), GameplaySettings::guideline()),
         ("NES".to_owned(), GameplaySettings::nes()),
         ("Gameboy".to_owned(), GameplaySettings::gameboy()),
+        (
+            "Elektronika 60".to_owned(),
+            GameplaySettings::elektronika_60(),
+        ),
     ];
 
     SlotMachine::with_unmodifiable_slots(slots, "Gameplay".to_owned())
@@ -84,7 +88,7 @@ impl GameplaySettings {
     pub fn nes() -> GameplaySettings {
         GameplaySettings {
             rotsys: RotationSystem::ClassicR,
-            tetgen: TetrominoGenerator::Uniform,
+            tetgen: TetrominoGenerator::classic(),
             das: Duration::from_millis(266), // ≈ 16 /60.0988
             preview: 1,
             arr: Duration::from_millis(100),       // ≈ 6 /60.0988
@@ -99,13 +103,28 @@ impl GameplaySettings {
     pub fn gameboy() -> GameplaySettings {
         GameplaySettings {
             rotsys: RotationSystem::ClassicL,
-            tetgen: TetrominoGenerator::Uniform,
+            tetgen: TetrominoGenerator::uniform(),
             das: Duration::from_millis(400), // ≈ 24 /59.73
             preview: 1,
             arr: Duration::from_millis(150),      // ≈ 9 /59.73
             are: Duration::from_millis(33),       // ≈ 2 /59.73
             lcd: Duration::from_millis(1500),     // ≈ 91 /59.73
             sdf: ExtNonNegF64::new(5.0).unwrap(), // !≈ 59.73 * (1/3 G)
+            initsys: false,
+            dtapfinesse: None,
+        }
+    }
+
+    pub fn elektronika_60() -> GameplaySettings {
+        GameplaySettings {
+            rotsys: RotationSystem::ClassicL,
+            tetgen: TetrominoGenerator::uniform(),
+            das: Duration::from_secs(60 * 60 * 24 * 356), // ≈ No DAS/ARR
+            preview: 1,
+            arr: Duration::from_secs(60 * 60 * 24 * 356), // ≈ No DAS/ARR
+            are: Duration::from_millis(0),                // ≈ ?
+            lcd: Duration::from_millis(400),              // ≈ ?
+            sdf: ExtNonNegF64::new(1.0).unwrap(),         // ≈ No Soft Drop
             initsys: false,
             dtapfinesse: None,
         }

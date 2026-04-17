@@ -37,5 +37,5 @@ serde_with = { version = "3.9.0", features = ["json"] }
 # toml = "1.1.2"
 ron = "0.12.1"
 
-falling-tetromino-engine = { version = "7.1.1", features = ["serde"] } # Game logic.
+falling-tetromino-engine = { version = "8.0.0", features = ["serde"] } # Game logic.
 # falling-tetromino-engine = { path = "../falling-tetromino-engine", features = ["serde"] } # Dev Game logic.

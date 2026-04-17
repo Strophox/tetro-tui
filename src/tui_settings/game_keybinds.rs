@@ -20,8 +20,9 @@ pub fn default_keybinds_slots() -> SlotMachine<GameKeybinds> {
         ("Default".to_owned(), GameKeybinds::default_tetro()),
         ("Control+".to_owned(), GameKeybinds::extra_control()),
         ("Guideline".to_owned(), GameKeybinds::guideline()),
-        ("Vim".to_owned(), GameKeybinds::vim()),
         ("Terminal finesse".to_owned(), GameKeybinds::terminal_fin()),
+        ("Vim".to_owned(), GameKeybinds::vim()),
+        ("Blank slate".to_owned(), GameKeybinds::blank_slate()),
     ];
 
     SlotMachine::with_unmodifiable_slots(slots, "Keybinds".to_owned())
@@ -178,5 +179,9 @@ impl GameKeybinds {
         GameKeybinds {
             keymap: keys.into(),
         }
+    }
+
+    pub fn blank_slate() -> GameKeybinds {
+        GameKeybinds { keymap: [].into() }
     }
 }

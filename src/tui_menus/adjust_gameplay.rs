@@ -109,7 +109,18 @@ impl<T: Write> Application<T> {
                 format!(
                     "Piece randomization = {}",
                     match &self.settings.gameplay().tetgen {
-                        TetrominoGenerator::Uniform => "Completely random".to_owned(),
+                        TetrominoGenerator::Classic {
+                            tet_last_emitted: _,
+                            aversion_to_last: 0,
+                        } => "Completely random".to_owned(),
+                        TetrominoGenerator::Classic {
+                            tet_last_emitted: _,
+                            aversion_to_last: 1,
+                        } => "Classic".to_owned(),
+                        TetrominoGenerator::Classic {
+                            tet_last_emitted: _,
+                            aversion_to_last: n,
+                        } => format!("Reroll up to {n}x"),
                         TetrominoGenerator::Stock {
                             tets_stocked: _,
                             restock_multiplicity,
@@ -121,13 +132,13 @@ impl<T: Write> Application<T> {
                         } => format!(
                             "Recency ({})",
                             if *is_base_not_exp {
-                                format!("{:.01}^", factor.get())
+                                format!("{:.01}^#", factor.get())
                             } else {
-                                format!("^{:.01}", factor.get())
+                                format!("#^{:.01}", factor.get())
                             }
                         ),
                         TetrominoGenerator::BalanceOut {
-                            tets_relative_counts: _,
+                            tets_relative_tallies: _,
                         } => "Balance out".to_owned(),
                     }
                 ),
@@ -281,7 +292,12 @@ impl<T: Write> Application<T> {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         if modifiers.contains(KeyModifiers::ALT) {
                             match &mut self.settings.gameplay_mut().tetgen {
-                                TetrominoGenerator::Uniform => {}
+                                TetrominoGenerator::Classic {
+                                    tet_last_emitted: _,
+                                    aversion_to_last,
+                                } => {
+                                    *aversion_to_last = aversion_to_last.saturating_add(1);
+                                }
                                 TetrominoGenerator::Stock {
                                     tets_stocked: _,
                                     restock_multiplicity,
@@ -300,23 +316,29 @@ impl<T: Write> Application<T> {
                                     }
                                 }
                                 TetrominoGenerator::BalanceOut {
-                                    tets_relative_counts: _,
+                                    tets_relative_tallies: _,
                                 } => {}
                             };
                         } else {
-                            self.settings.gameplay_mut().tetgen =
-                                match self.settings.gameplay().tetgen {
-                                    TetrominoGenerator::Uniform => TetrominoGenerator::bag(),
-                                    TetrominoGenerator::Stock { .. } => {
-                                        TetrominoGenerator::snappy_recency()
-                                    }
-                                    TetrominoGenerator::Recency { .. } => {
-                                        TetrominoGenerator::balance_out()
-                                    }
-                                    TetrominoGenerator::BalanceOut { .. } => {
-                                        TetrominoGenerator::Uniform
-                                    }
-                                };
+                            self.settings.gameplay_mut().tetgen = match self
+                                .settings
+                                .gameplay()
+                                .tetgen
+                            {
+                                TetrominoGenerator::Classic {
+                                    aversion_to_last: 0,
+                                    ..
+                                } => TetrominoGenerator::snappy_recency(),
+                                TetrominoGenerator::Classic {
+                                    aversion_to_last: _,
+                                    ..
+                                } => TetrominoGenerator::uniform(),
+                                TetrominoGenerator::Stock { .. } => TetrominoGenerator::classic(),
+                                TetrominoGenerator::BalanceOut { .. } => TetrominoGenerator::bag(),
+                                TetrominoGenerator::Recency { .. } => {
+                                    TetrominoGenerator::balance_out()
+                                }
+                            };
                         }
                     }
                     3 => {
@@ -325,11 +347,13 @@ impl<T: Write> Application<T> {
                     }
                     4 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.gameplay_mut().das += d_das;
+                        self.settings.gameplay_mut().das =
+                            self.settings.gameplay().das.saturating_add(d_das);
                     }
                     5 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.gameplay_mut().arr += d_arr;
+                        self.settings.gameplay_mut().arr =
+                            self.settings.gameplay().arr.saturating_add(d_arr);
                     }
                     6 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
@@ -344,7 +368,8 @@ impl<T: Write> Application<T> {
                     }
                     8 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.gameplay_mut().are += d_are;
+                        self.settings.gameplay_mut().are =
+                            self.settings.gameplay().are.saturating_add(d_are);
                     }
                     9 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
@@ -353,7 +378,11 @@ impl<T: Write> Application<T> {
                     10 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.gameplay_mut().dtapfinesse = Some(
-                            self.settings.gameplay_mut().dtapfinesse.unwrap_or_default() + d_dtf,
+                            self.settings
+                                .gameplay_mut()
+                                .dtapfinesse
+                                .unwrap_or_default()
+                                .saturating_add(d_dtf),
                         );
                     }
                     _ => {}
@@ -385,7 +414,12 @@ impl<T: Write> Application<T> {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         if modifiers.contains(KeyModifiers::ALT) {
                             match &mut self.settings.gameplay_mut().tetgen {
-                                TetrominoGenerator::Uniform => {}
+                                TetrominoGenerator::Classic {
+                                    tet_last_emitted: _,
+                                    aversion_to_last,
+                                } => {
+                                    *aversion_to_last = aversion_to_last.saturating_sub(1);
+                                }
                                 TetrominoGenerator::Stock {
                                     tets_stocked: _,
                                     restock_multiplicity,
@@ -407,19 +441,28 @@ impl<T: Write> Application<T> {
                                     }
                                 }
                                 TetrominoGenerator::BalanceOut {
-                                    tets_relative_counts: _,
+                                    tets_relative_tallies: _,
                                 } => {}
                             };
                         } else {
                             self.settings.gameplay_mut().tetgen =
                                 match self.settings.gameplay().tetgen {
-                                    TetrominoGenerator::Uniform => {
+                                    TetrominoGenerator::Classic {
+                                        aversion_to_last: 0,
+                                        ..
+                                    } => TetrominoGenerator::classic(),
+                                    TetrominoGenerator::Classic {
+                                        aversion_to_last: _,
+                                        ..
+                                    } => TetrominoGenerator::bag(),
+                                    TetrominoGenerator::Stock { .. } => {
                                         TetrominoGenerator::balance_out()
                                     }
-                                    TetrominoGenerator::Stock { .. } => TetrominoGenerator::Uniform,
-                                    TetrominoGenerator::Recency { .. } => TetrominoGenerator::bag(),
                                     TetrominoGenerator::BalanceOut { .. } => {
                                         TetrominoGenerator::snappy_recency()
+                                    }
+                                    TetrominoGenerator::Recency { .. } => {
+                                        TetrominoGenerator::uniform()
                                     }
                                 };
                         }
