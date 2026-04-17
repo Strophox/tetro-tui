@@ -776,7 +776,7 @@ impl Renderer for StandardBufferedRenderer {
 
                 let factor = normalized_height * *y_decay + timeshift;
 
-                if factor > 1.0 {
+                if factor >= 1.0 {
                     return false
                 }
 
@@ -984,7 +984,7 @@ impl Renderer for StandardBufferedRenderer {
                 // How far along the effect we are shifting.
                 let timeshift = elapsed.as_secs_f32() / line_clear_duration.as_secs_f32();
 
-                if timeshift > 1.0 {
+                if timeshift >= 1.0 {
                     return false
                 }
 
@@ -1037,7 +1037,7 @@ impl Renderer for StandardBufferedRenderer {
                 // How far along the effect we are shifting.
                 let timeshift = elapsed.as_secs_f32() / lifetime.as_secs_f32();
 
-                if timeshift > 1.0 {
+                if timeshift >= 1.0 {
                     return false
                 }
 
