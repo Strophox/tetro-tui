@@ -209,6 +209,7 @@ yay -S tetro-tui
 > | `Esc`, `q`, `Back`, | Go back |
 > | `Del`, `d` | Delete/Reset |
 > | `Ctrl`+`Alt`+`L` | Re-load from savefile (Caution: discards current application data!) |
+> | `Ctrl`+`Alt`+`S` | Do savefile 'store' (respects save preferences i.e. deletes if 'keep save file' is off) |
 > | `Ctrl`+`C` | Exit application (respects save preferences) |
 >
 > Specific to 'Scores and Replays':
@@ -264,6 +265,7 @@ yay -S tetro-tui
 > | `Ctrl`(+`Alt`)+`G` | Cycle through graphics settings slots |
 > | `Ctrl`+`Alt`+`B` | Toggle on/off visibility of tiles ('Blindfolded') |
 > | `Ctrl`+`Alt`+`L` | Re-load from savefile (Caution: discards current application data!) |
+> | `Ctrl`+`Alt`+`S` | Do savefile 'store' (respects save preferences i.e. deletes if 'keep save file' is off) |
 > | `Ctrl`+`C` | Exit application (respects save preferences) |
 > 
 > </details>
@@ -296,6 +298,7 @@ yay -S tetro-tui
 > | `Alt`+`I` | (Experimental) Toggle instantaneous interactive input intervention mode |
 > | `Ctrl`(+`Alt`)+`G` | Cycle through Graphics Settings slots |
 > | `Ctrl`+`Alt`+`L` | Re-load from savefile (Caution: discards current application data!) |
+> | `Ctrl`+`Alt`+`S` | Do savefile 'store' (respects save preferences i.e. deletes if 'keep save file' is off) |
 > | `Ctrl`+`C` | Exit application (respects save preferences) |
 > 
 > </details>

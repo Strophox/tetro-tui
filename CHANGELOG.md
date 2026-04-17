@@ -11,6 +11,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -
 
 
+## [3.1.0] - 2026-04-17
+
+### Added
+- 'Classic' tetromino randomizer (=uniform random + 1 reroll to avoid last piece).
+- 'Elektronika 60' gameplay preset (slightly scuffed but that's just how it is).
+- 'Blank slate' keybinds preset.
+- `Home`/`End` can now be used to skip to beginning/end of input history (in 'Start New Game'⇝'Game save').
+- `Alt+Enter` can now be used to view the a game save as replay (in 'Start New Game'⇝'Game save').
+- `Ctrl+Alt+S` can now be used to do a savefile 'store' from every menu now.
+    * Respects save preferences i.e. deletes existing savefile if 'keep save file' is turned off.
+    * Load and Store errors are printed in Advanced Settings.
+
+### Changed
+- The savefile is now serialized using less verbose 'Rust Object Notation' (ron instead of json).
+    * It is much more compact, still human-readable and solves a savefile corruption issue (see Fixed).
+
+### Fixed
+- Fixed unloadable savefile due to floating point `inf`inity not being representable in strict json.
+- Make experimental input mode toggle during replays work (`Alt+I` instead of `Ctrl+I`).
+- Allow hot re-loading from savefile (`Ctrl+Alt+L`) from every menu now.
+
+
 ## [3.0.0] - 2026-04-16
 
 ### Added

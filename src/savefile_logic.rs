@@ -91,15 +91,35 @@ struct SaveContents<'a> {
 }
 
 impl<T: Write> Application<T> {
-    pub fn store_to_savefile(&mut self) -> SavefileResult<()> {
-        if self.temp_data.save_on_exit < SavefileGranularity::StoreSettingsScores {
-            // Clear scoreboard if no game data is wished to be stored.
-            self.scores_and_replays.entries.clear();
-        } else if self.temp_data.save_on_exit < SavefileGranularity::StoreSettingsScoresReplays {
-            // Clear past game restoration data if no game replay data is wished to be stored.
-            for (_entry, restoration_data) in &mut self.scores_and_replays.entries {
-                restoration_data.take();
+    pub fn savefile_store(&mut self) -> SavefileResult<()> {
+        match self.temp_data.save_on_exit {
+            // Explicitly check for savefile and try to make sure we don't leave it around.
+            SavefileGranularity::NoSavefile => {
+                if self
+                    .temp_data
+                    .savefile_path
+                    .try_exists()
+                    .is_ok_and(|exists| exists)
+                {
+                    std::fs::remove_file(self.temp_data.savefile_path.clone())?;
+                    return Ok(());
+                }
             }
+
+            // Clear scoreboard if no data other than settings is wished to be stored.
+            SavefileGranularity::StoreSettings => {
+                self.scores_and_replays.entries.clear();
+            }
+
+            // Clear past game restoration data if no game replay data is wished to be stored.
+            SavefileGranularity::StoreSettingsScores => {
+                for (_entry, restoration_data) in &mut self.scores_and_replays.entries {
+                    restoration_data.take();
+                }
+            }
+
+            // Everything to be stored. Fall through.
+            SavefileGranularity::StoreSettingsScoresReplays => {}
         }
 
         let save_contents = SaveContents {
@@ -133,7 +153,7 @@ impl<T: Write> Application<T> {
         }
     }
 
-    pub fn load_from_savefile(&mut self) -> SavefileResult<()> {
+    pub fn savefile_load(&mut self) -> SavefileResult<()> {
         let mut file = File::open(self.temp_data.savefile_path.clone())?;
         let mut save_str = String::new();
         file.read_to_string(&mut save_str)?;

@@ -197,11 +197,13 @@ impl<T: Write> Application<T> {
                     kind: Press | Repeat,
                     state: _,
                 }) => break Ok(MenuUpdate::Push(Menu::Quit)),
+
                 Event::Key(KeyEvent {
                     code: KeyCode::Esc | KeyCode::Char('q' | 'Q') | KeyCode::Backspace,
                     kind: Press,
                     ..
                 }) => break Ok(MenuUpdate::Pop),
+
                 // Select next menu.
                 Event::Key(KeyEvent {
                     code: KeyCode::Enter | KeyCode::Char('e' | 'E'),
@@ -213,6 +215,7 @@ impl<T: Write> Application<T> {
                         break Ok(MenuUpdate::Push(menu));
                     }
                 }
+
                 // Move selector up.
                 Event::Key(KeyEvent {
                     code: KeyCode::Up | KeyCode::Char('k' | 'K'),
@@ -224,6 +227,7 @@ impl<T: Write> Application<T> {
                     }
                     easteregg -= 1;
                 }
+
                 // Move selector down.
                 Event::Key(KeyEvent {
                     code: KeyCode::Down | KeyCode::Char('j' | 'J'),
@@ -235,6 +239,7 @@ impl<T: Write> Application<T> {
                     }
                     easteregg += 1;
                 }
+
                 // Reload from savefile.
                 Event::Key(KeyEvent {
                     code: KeyCode::Char('l' | 'L'),
@@ -242,8 +247,19 @@ impl<T: Write> Application<T> {
                     kind: Press | Repeat,
                     ..
                 }) if { modifiers.contains(KeyModifiers::CONTROL.union(KeyModifiers::ALT)) } => {
-                    self.temp_data.loadfile_result = self.load_from_savefile();
+                    self.temp_data.loadfile_result = self.savefile_load();
                 }
+
+                // Store to savefile.
+                Event::Key(KeyEvent {
+                    code: KeyCode::Char('s' | 'S'),
+                    modifiers,
+                    kind: Press | Repeat,
+                    ..
+                }) if { modifiers.contains(KeyModifiers::CONTROL.union(KeyModifiers::ALT)) } => {
+                    self.temp_data.storefile_result = self.savefile_store();
+                }
+
                 // Other event: don't care.
                 _ => {}
             }

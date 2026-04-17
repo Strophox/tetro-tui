@@ -571,7 +571,7 @@ impl<T: Write> Application<T> {
                                         .contains(KeyModifiers::CONTROL.union(KeyModifiers::ALT))
                                 } =>
                             {
-                                let msg = if let Err(e) = self.load_from_savefile() {
+                                let msg = if let Err(e) = self.savefile_load() {
                                     format!("(Error reloading from savefile: {e}")
                                 } else {
                                     "(Reloaded from savefile.)".to_owned()
@@ -584,6 +584,24 @@ impl<T: Write> Application<T> {
                                 if paused {
                                     next_paused_with_extra_render_request = Some(true);
                                 }
+                            }
+
+                            // [Ctrl+Alt+S]: Store to savefile.
+                            (KeyCode::Char('s' | 'S'), _)
+                                if {
+                                    modifiers
+                                        .contains(KeyModifiers::CONTROL.union(KeyModifiers::ALT))
+                                } =>
+                            {
+                                let msg = if let Err(e) = self.savefile_store() {
+                                    format!("(Error on savefile store: {e}")
+                                } else {
+                                    "(Savefile store done.)".to_owned()
+                                };
+                                game_renderer.update_feed(
+                                    [(Notification::Custom(msg), game.state().time)],
+                                    &self.settings,
+                                );
                             }
 
                             // Other misc. key event: We don't care.

@@ -134,7 +134,41 @@ impl<T: Write> Application<T> {
                     .queue(PrintStyledContent(
                         format!(
                             "{:^w_main$}",
-                            format!("Trying to load savefile on start caused this error:")
+                            format!("Latest error from trying to load savefile:")
+                        )
+                        .italic(),
+                    ))?
+                    .queue(MoveTo(
+                        x_main,
+                        y_main
+                            + y_selection
+                            + 4
+                            + u16::try_from(selection_len).unwrap()
+                            + 3
+                            + temp_offset
+                            + 1,
+                    ))?
+                    .queue(PrintStyledContent(
+                        format!("{:^w_main$}", format!("{e}")).italic(),
+                    ))?;
+                temp_offset += 1;
+            }
+
+            if let Err(e) = &self.temp_data.storefile_result {
+                self.term
+                    .queue(MoveTo(
+                        x_main,
+                        y_main
+                            + y_selection
+                            + 4
+                            + u16::try_from(selection_len).unwrap()
+                            + 3
+                            + temp_offset,
+                    ))?
+                    .queue(PrintStyledContent(
+                        format!(
+                            "{:^w_main$}",
+                            format!("Latest error from trying to store savefile:")
                         )
                         .italic(),
                     ))?
@@ -228,7 +262,17 @@ impl<T: Write> Application<T> {
                     kind: Press | Repeat,
                     ..
                 }) if { modifiers.contains(KeyModifiers::CONTROL.union(KeyModifiers::ALT)) } => {
-                    self.temp_data.loadfile_result = self.load_from_savefile();
+                    self.temp_data.loadfile_result = self.savefile_load();
+                }
+
+                // Store to savefile.
+                Event::Key(KeyEvent {
+                    code: KeyCode::Char('s' | 'S'),
+                    modifiers,
+                    kind: Press | Repeat,
+                    ..
+                }) if { modifiers.contains(KeyModifiers::CONTROL.union(KeyModifiers::ALT)) } => {
+                    self.temp_data.storefile_result = self.savefile_store();
                 }
 
                 Event::Key(KeyEvent {

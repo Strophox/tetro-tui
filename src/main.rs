@@ -22,6 +22,7 @@ use falling_tetromino_engine::{
     ExtDuration, GameEndCause, InGameTime, Notification, NotificationFeed, Stat, Tetromino,
 };
 
+use crate::savefile_logic::SavefileResult;
 use crate::{
     game_mode_presets::GameModePreset,
     game_restoration::{
@@ -388,7 +389,8 @@ pub struct TemporaryAppData {
     pub renderer_used: usize,
     pub save_on_exit: SavefileGranularity,
     pub savefile_path: PathBuf, // This should technically be the same for a given compiled binary, but we compute it at runtime.
-    pub loadfile_result: savefile_logic::SavefileResult<()>,
+    pub loadfile_result: SavefileResult<()>,
+    pub storefile_result: SavefileResult<()>,
 }
 
 #[derive(Debug)]
@@ -413,21 +415,8 @@ impl<T: Write> Drop for Application<T> {
         // (Try to) undo terminal setup. Ignore errors cuz atp it's too late to take any flak from Crossterm.
         let _ = self.deinitialize_terminal_state();
 
-        if self.temp_data.save_on_exit != SavefileGranularity::NoSavefile {
-            // If the user wants any of their data stored, try to do so.
-            if let Err(e) = self.store_to_savefile() {
-                eprintln!("Error storing savefile: {e}");
-            }
-        } else if self
-            .temp_data
-            .savefile_path
-            .try_exists()
-            .is_ok_and(|exists| exists)
-        {
-            // Otherwise explicitly check for savefile and try to make sure we don't leave it around.
-            if let Err(e) = std::fs::remove_file(self.temp_data.savefile_path.clone()) {
-                eprintln!("Error removing old savefile: {e}");
-            }
+        if let Err(e) = self.savefile_store() {
+            eprintln!("Error on savefile store: {e}");
         }
     }
 }
@@ -562,6 +551,7 @@ impl<T: Write> Application<T> {
             save_on_exit: SavefileGranularity::default(),
             savefile_path: savefile_logic::savefile_path(),
             loadfile_result: Ok(()),
+            storefile_result: Ok(()),
         };
 
         let mut new = Self {
@@ -574,7 +564,7 @@ impl<T: Write> Application<T> {
         };
 
         // Load in actual settings.
-        new.temp_data.loadfile_result = new.load_from_savefile();
+        new.temp_data.loadfile_result = new.savefile_load();
 
         // Special: Overwrite specifically requested cmdline flags.
 

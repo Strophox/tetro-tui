@@ -164,8 +164,19 @@ impl<T: Write> Application<T> {
                     kind: Press | Repeat,
                     ..
                 }) if { modifiers.contains(KeyModifiers::CONTROL.union(KeyModifiers::ALT)) } => {
-                    self.temp_data.loadfile_result = self.load_from_savefile();
+                    self.temp_data.loadfile_result = self.savefile_load();
                 }
+
+                // Store to savefile.
+                Event::Key(KeyEvent {
+                    code: KeyCode::Char('s' | 'S'),
+                    modifiers,
+                    kind: Press | Repeat,
+                    ..
+                }) if { modifiers.contains(KeyModifiers::CONTROL.union(KeyModifiers::ALT)) } => {
+                    self.temp_data.storefile_result = self.savefile_store();
+                }
+
                 Event::Key(KeyEvent {
                     code: KeyCode::Right | KeyCode::Char('l' | 'L'),
                     kind: Press | Repeat,
