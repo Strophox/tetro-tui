@@ -949,7 +949,7 @@ impl Renderer for StandardBufferedRenderer {
                     // How far along the effect we are shifting.
                     let timeshift = elapsed.as_secs_f32() / duration.as_secs_f32();
 
-                    if timeshift > 1.0 {
+                    if timeshift >= 1.0 {
                         return false
                     }
 
@@ -1042,7 +1042,7 @@ impl Renderer for StandardBufferedRenderer {
                 }
 
                 // Render manually cleared out tiles at original position if we still have to.
-                if elapsed <= line_clear_duration {
+                if elapsed < line_clear_duration {
                     // empty the tile at original position
                     let tile_texture = "  ".tile();
                     let color = Color::Reset;
