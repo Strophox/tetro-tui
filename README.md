@@ -324,7 +324,7 @@ cargo run
 
 > <details>
 > <summary>
-> The customizability of Tetro TUI is put to good use and, besides Defaults, a handful of settings profiles/templates are provided to emulate e.g. guideline gameplay\*/keybinds\*/graphics (\*Handling limitations [may apply to your terminal](#why-do-some-gameplay-settings-dasarretc-or-registering-shift-as-keypress-not-work-for-me):
+> The customizability of Tetro TUI is put to good use and besides the 'Default' settings profile, other templates are provided to simulate e.g. guideline gameplay*/keybinds*/graphics (*Handling limitations may apply to your terminal):
 > </summary>
 >
 > The "Default"-settings however – though they should remain very familiar – do take liberties in 'shifting some mechanics closer to the platonic ideal' of the game. This is obviously an informal distinction but in practice just means:
