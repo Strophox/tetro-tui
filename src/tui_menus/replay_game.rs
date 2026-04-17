@@ -512,8 +512,7 @@ impl<T: Write> Application<T> {
                                 let the_game_renderer =
                                     TetroTUIRenderer::with_number(self.temp_data.renderer_used);
 
-                                // FIXME: Should we count game takeover as new game started?
-                                // self.statistics.total_new_games += 1;
+                                self.statistics.new_games_started += 1;
 
                                 break 'update_and_render MenuUpdate::Push(Menu::PlayGame {
                                     game: Box::new(the_game),
