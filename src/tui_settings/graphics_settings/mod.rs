@@ -222,6 +222,10 @@ impl GraphicsSettings {
 #[serde(into = "String", try_from = "String")]
 pub struct TileTexture(pub [char; 2]);
 
+impl TileTexture {
+    pub const EMPTY: Self = TileTexture([' '; 2]);
+}
+
 impl TryFrom<String> for TileTexture {
     type Error = String;
 

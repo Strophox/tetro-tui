@@ -15,7 +15,7 @@ pub use graphics_settings::{
     palette::Palette,
     small_tet_style::SmallTetStyle,
     tui_style::TuiStyle,
-    GraphicsSettings, MaybeOverride, TileTexture, UnwrapTileFromStr,
+    GraphicsSettings, TileTexture,
 };
 
 use crate::{

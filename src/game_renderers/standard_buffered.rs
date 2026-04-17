@@ -17,7 +17,7 @@ use crate::{
     fmt_helpers::{fmt_duration, fmt_hertz, fmt_lineclear_name, MAX_LEGEND_ENTRIES},
     tui_settings::{
         HardDropEffect, LineClearEffect, LineClearInlineEffect, LineClearParticleEffect,
-        LockEffect, MaybeOverride, Palette, TileTexture, UnwrapTileFromStr,
+        LockEffect, Palette, TileTexture,
     },
 };
 
@@ -333,10 +333,10 @@ impl Renderer for StandardBufferedRenderer {
         // Vertical padding below board.
         const H_PAD_BOT: u16 = 2;
 
-        let enough_space_for_hud =
-            w_viewport >= W_PAD_LEFT + W_ADD_ACTIVE_HUD + W_HOLD + W_BOARD + W_NEXT;
-        let hud_active =
-            enough_space_for_hud && (settings.graphics().show_main_hud || replay_extra.is_some());
+        // NOTE: An alternative would be to e.g. always show hud in replay, and/or dynamically adjust to terminal.
+        // let enough_space_for_hud = w_viewport >= W_PAD_LEFT + W_ADD_ACTIVE_HUD + W_HOLD + W_BOARD + W_NEXT;
+        // let hud_active = enough_space_for_hud && (settings.graphics().show_main_hud || replay_extra.is_some());
+        let hud_active = settings.graphics().show_main_hud;
         // Additional width of the hud actually required.
         let w_addhud = if hud_active { W_ADD_ACTIVE_HUD } else { 0 };
 
@@ -1028,7 +1028,7 @@ impl Renderer for StandardBufferedRenderer {
                 let LineClearEffectTile { creation_time, line_clear_duration, origin: (dx, dy), momentum: (m_x, m_y), acceleration: (a_x, a_y), tile_id: original_tile_id  } = *line_clear_effect_tile;
                 let lifetime = duration_override.unwrap_or(line_clear_duration);
                 // Empty effect.
-                if lifetime.is_zero() {
+                if lifetime.is_zero() || animation.is_empty() {
                     return false;
                 }
 
@@ -1044,13 +1044,11 @@ impl Renderer for StandardBufferedRenderer {
                 // Render manually cleared out tiles at original position if we still have to.
                 if elapsed < line_clear_duration {
                     // empty the tile at original position
-                    let tile_texture = "  ".tile();
-                    let color = Color::Reset;
-                    #[rustfmt::skip] self.term_buf.write_tile(w_tmp3 + 2 * (dx as u16), h_tmp3.saturating_sub(dy as u16), tile_texture, color);
+                    #[rustfmt::skip] self.term_buf.write_tile(w_tmp3 + 2 * (dx as u16), h_tmp3.saturating_sub(dy as u16), TileTexture::EMPTY, Color::Reset);
                 }
 
                 // render the tile
-                let (retexture, recolor) = if animation.is_empty() { (MaybeOverride::Keep, MaybeOverride::Keep) } else { animation[(timeshift * (animation.len() - 1) as f32).round() as usize] };
+                let (retexture, recolor) = animation[(timeshift * (animation.len() - 1) as f32).round() as usize];
                 let tile_texture = retexture.unwrap_or(mino_textures.locked);
                 let tile_id = recolor.unwrap_or(original_tile_id);
                 let color = settings

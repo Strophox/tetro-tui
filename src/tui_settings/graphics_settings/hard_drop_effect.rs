@@ -36,12 +36,25 @@ pub fn default_hard_drop_effect_slots() -> SlotMachine<HardDropEffect> {
     let slots = vec![
         ("None".to_owned(), HardDropEffect::none()),
         (
-            "Particles ASCII".to_owned(),
-            HardDropEffect::ascii_particles(),
+            "Particle trail ASCII".to_owned(),
+            HardDropEffect::particle_trail_ascii(),
         ),
-        ("Streak ASCII".to_owned(), HardDropEffect::ascii_streak()),
-        ("Beam ASCII".to_owned(), HardDropEffect::ascii_beam()),
-        ("Beam".to_owned(), HardDropEffect::block_beam()),
+        (
+            "Streak trail ASCII".to_owned(),
+            HardDropEffect::streak_trail_ascii(),
+        ),
+        (
+            "Streak beam ASCII".to_owned(),
+            HardDropEffect::streak_beam_ascii(),
+        ),
+        (
+            "Solid beam Unicode".to_owned(),
+            HardDropEffect::solid_beam_unicode(),
+        ),
+        (
+            "White beam Unicode".to_owned(),
+            HardDropEffect::white_beam_unicode(),
+        ),
     ];
 
     SlotMachine::with_unmodifiable_slots(slots, "Hard drop".to_owned())
@@ -56,7 +69,7 @@ impl HardDropEffect {
         }
     }
 
-    pub fn ascii_particles() -> Self {
+    pub fn particle_trail_ascii() -> Self {
         HardDropEffect {
             duration: Duration::from_millis(150),
             animation: ["@@", "$$", /*"##", */ "%%", "**", "++", "~~", ".."]
@@ -66,7 +79,7 @@ impl HardDropEffect {
         }
     }
 
-    pub fn ascii_streak() -> Self {
+    pub fn streak_trail_ascii() -> Self {
         HardDropEffect {
             duration: Duration::from_millis(150),
             animation: ["||", "¦¦", "::", ".."].map(|ss| (ss.tile(), Keep)).into(),
@@ -74,21 +87,29 @@ impl HardDropEffect {
         }
     }
 
-    pub fn ascii_beam() -> Self {
+    pub fn streak_beam_ascii() -> Self {
         HardDropEffect {
             duration: Duration::from_millis(150),
             animation: ["||", "¦¦", "::", ".."].map(|ss| (ss.tile(), Keep)).into(),
-            y_decay: 0.0,
+            y_decay: 0.25,
         }
     }
 
-    pub fn block_beam() -> Self {
+    pub fn solid_beam_unicode() -> Self {
         HardDropEffect {
-            duration: Duration::from_millis(67),
-            animation: ["▒▒", "░░", "░░"]
+            duration: Duration::from_millis(75),
+            animation: ["▒▒", "░░"].map(|ss| (ss.tile(), Keep)).into(),
+            y_decay: 0.00,
+        }
+    }
+
+    pub fn white_beam_unicode() -> Self {
+        HardDropEffect {
+            duration: Duration::from_millis(75),
+            animation: ["  ", "░░"]
                 .map(|ss| (ss.tile(), Override(Palette::WHITE)))
                 .into(),
-            y_decay: 0.0,
+            y_decay: 0.00,
         }
     }
 }
