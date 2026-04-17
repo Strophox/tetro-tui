@@ -14,38 +14,36 @@ Tetro TUI is a terminal-based but modern tetromino-stacking game that is very cu
 
 ## Ways to Run
 
-### Download & run
+### Download & Run
 
 1. [Download a release](<https://github.com/Strophox/tetro-tui/releases>) for your platform (Linux/MacOS/Windows/...) if available.
-2. Navigate to the application (`tetro-tui`/`tetro-tui.exe`/...) and run it
+2. Navigate to the application binary (`tetro-tui`/`tetro-tui.exe`/...) and run it in a terminal
+
+
+### Quick Install
+
+#### Cargo ([crates.io](<https://crates.io/crates/tetro-tui>)):
+```bash
+cargo install tetro-tui
+#  tetro-tui
+```
+
+
+#### Arch Linux ([aur.archlinux.org](<https://aur.archlinux.org/packages?K=tetro-tui>)):
+
+```bash
+yay -S tetro-tui # Or paru, ...
+#  tetro-tui
+```
 
 
 ### Compile from source
 
 Tetro TUI is written in [Rust](<https://doc.rust-lang.org/book/ch01-01-installation.html>) and can be compiled as usual:
-```
+```bash
 git clone https://github.com/Strophox/tetro-tui # Or otherwise download source code.
 cd tetro-tui
 cargo run
-```
-
-
-### Install via cargo
-
-Tetro TUI is available on [crates.io](<https://crates.io/crates/tetro-tui>).
-It can be installed via [cargo](<https://doc.rust-lang.org/cargo/>):
-```
-cargo install tetro-tui
-```
-This makes `tetro-tui` available to run for your terminal.
-
-
-### Install on Arch Linux
-
-Tetro TUI is available on [aur.archlinux.org](<https://aur.archlinux.org/packages?K=tetro-tui>).
-It can be installed e.g. via [yay](<https://github.com/Jguer/yay>) or [paru](<https://github.com/Morganamilo/paru>):
-```
-yay -S tetro-tui
 ```
 
 
@@ -237,10 +235,10 @@ yay -S tetro-tui
 >
 > <details>
 > <summary>
-> *Default* Game controls:
+> (Default) Game controls:
 > </summary>
 > 
-> | Key | Action |
+> | Key (customizable) | Action |
 > | -: | :- |
 > | `Esc` | Pause game |
 > | `←` | Move left |
@@ -324,28 +322,30 @@ yay -S tetro-tui
 
 ### *Experienced players:* How does it compare to familiar / industry-standard stacker games?
 
-> The customizability of Tetro TUI is put to good use and a handful of setting templates are provided to emulate e.g. guideline gameplay/keybinds/graphics.
-> Note that some handling limitations [may apply to your terminal](#why-do-some-gameplay-settings-dasarretc-or-registering-shift-as-keypress-not-work-for-me).
->
 > <details>
 > <summary>
-> The "Default"-settings – though they should feel familiar – do take liberty in 'shifting some mechanics closer to the platonic ideal' of the game. This is obviously an informal distinction and in practice means:
+> The customizability of Tetro TUI is put to good use and, besides Defaults, a handful of settings profiles/templates are provided to emulate e.g. guideline gameplay\*/keybinds\*/graphics (\*Handling limitations [may apply to your terminal](#why-do-some-gameplay-settings-dasarretc-or-registering-shift-as-keypress-not-work-for-me):
 > </summary>
+>
+> The "Default"-settings however – though they should remain very familiar – do take liberties in 'shifting some mechanics closer to the platonic ideal' of the game. This is obviously an informal distinction but in practice just means:
+>
+> **Graphics:**
+> - Chosen default palette is more pastel with **uniform perceptual brightness**.
 > 
 > **Keybinds:**
-> - Default controls set to **WASD + Arrow keys** (this also works better due to terminal limitations).
-> - Dedicated binds possible for **Rotate 180°**, **Teleport Down** ('Sonic Drop'), even Teleport Left/Right.
+> - Default controls set to **WASD + Arrow keys** (also preferred due to common [terminal limitations](#why-do-some-gameplay-settings-dasarretc-or-registering-shift-as-keypress-not-work-for-me)).
+> - Dedicated keys possible for **Rotate 180°**, **Teleport Down** ('Sonic Drop'), even Teleport Left/Right.
 > 
 > **Gameplay:**
-> - Default use of the flexible/intuitive/symmetrical [**Ocular Rotation** System](#experienced-players-what-is-this-ocular-rotation-system) (instead of the quirky/sometimes asymmetrical industry default).
-> - Default **Recency (History) Randomizer** (instead of 'overdeterministic' 7-Bag).
+> - Default use of the flexible/intuitive/symmetrical [**Ocular Rotation** System](#experienced-players-what-is-this-ocular-rotation-system) (instead of: the quirky / sometimes asymmetrical industry default).
+> - Default **Recency Randomizer** which is random but biases toward choosing less recent pieces (instead of: 'overdeterministic' 7-Bag).
 > - **Points (score) bonus** system is currently kept custom and simple.
 >   - '1pt for simple line clear, with increasing bonus for larger lineclears, combos, spins and perfect clears.'
->   - *Note:* 'Allspin' (instead of preoccupation with 'T-spins'), currently no 'minis'.
+>   - *Note:* 'Allspin' (instead of: preoccupation with 'T-spins'), currently no 'minis'.
 >   - *Note:* Combos (but no additional points for 'back to back' other than existing incentives for special maneuvers).
 >   - Exact formula: `point_bonus = if is_perfect_clear{ 4 }else{ 1 } * if is_spin{ 2 }else{ 1 } * (lineclears * 2 - 1) + (combo - 1)`
-> - Different **lock reset** limit: 'max time = 10⋅current lock delay' (instead of 'max 15 moves with current lock delay').
-> - Speed/gravity/fall curve technically a customizable mix of exponential decay + linear decrease.
+> - Different **lock reset** limit: 'max time = 10⋅current lock delay' (instead of: 'max 15 moves with current lock delay').
+> - Speed/gravity/fall curve slightly less fast but very close to 'standard'.
 > 
 > </details>
 
@@ -354,7 +354,7 @@ yay -S tetro-tui
 
 > <details>
 > <summary>
-> See the following feature list from the <a href="https://crates.io/crates/falling-tetromino-engine">Falling Tetromino Engine</a> powering our game logic:
+> See this list quoted from the <a href="https://crates.io/crates/falling-tetromino-engine">Falling Tetromino Engine</a> that powers the core game logic:
 > </summary>
 > 
 > In terms of advanced game mechanics the engine aims to compare with other modern tetromino stackers.
@@ -406,11 +406,17 @@ yay -S tetro-tui
 > </details>
 
 
-### *Terminal enthusiasts:* How was this terminal game programmed (and why doesn't it use [Ratatui](<https://ratatui.rs/>))?
+### *Terminal enthusiasts:* How was this terminal game programmed (and why isn't it Ratatui)?
 
-> Ever since its inception as a proof-of-concept this terminal user interface (TUI) has directly used [Crossterm](<https://crates.io/crates/crossterm>) for all I/O.
-> The most complicated terminal interaction we currently implement is custom diff'ing so we render the minimum number of visual game changes (minimize flicker).
-> Currently there appears no need to change this situation, though Ratatui will be reconsidered if necessary (e.g. language/localization...)
+> <details>
+> <summary>
+> Ever since its inception as a proof-of-concept this terminal user interface (TUI) has directly relied on the <a href="https://crates.io/crates/crossterm">Crossterm</a> crate for all I/O.
+> </summary>
+>
+> The most complicated terminal interaction we currently implement is [custom diff'ing](<https://github.com/Strophox/tetro-tui/blob/7f0ebacee7a1ed8d399057e270f9071aa13aaaa8/src/game_renderers/standard_buffered/dense_terminal_double_buffer.rs#L103> so we can guarantee we only send the minimum number of visual changes to the terminal (this minimizes flicker).
+> Currently there appears no need to change this situation, though a fully-featured TUI library like [Ratatui](<https://ratatui.rs/>) might be reconsidered, e.g. to handle proper UI translation/localization: displaying other languages etc.
+> 
+> </details>
 
 
 ### What is the background behind this project?
@@ -446,11 +452,13 @@ Color palettes used: [Gruvbox](<https://github.com/morhetz/gruvbox>), [Solarized
 A big thank you to the [AUR package](#install-on-arch-linux) maintainers:
 - [wcasanova](<https://github.com/wcasanova>) and [druxorey](<https://github.com/druxorey>), and Dominiquini
 
-Special Thanks:
-- GrBtAce, KonSola5 and bennxt – for early support
-- madkiwi – for advice regarding 4wide-6residual combo layouts
+Thank you to my sources of inspiration:
 - Dunspixel – for inspiration regarding ['O'-spins](<https://dunspixel.github.io/ospin-guide/chapter4.html#tetro-tui>)
 - Martín G – for inspiration regarding new line clear effect from his own PICO-8 game
-- thehuglet – for inspiration regarding the [potential of the terminal](<https://github.com/thehuglet/germterm>)
+- thehuglet – for showing the [potential](<https://github.com/thehuglet/germterm>) of terminal graphics
 - Akousoukos – for making [Apotris](<https://apotris.com/>)
+
+Special Thanks
+- GrBtAce, KonSola5 and bennxt – for support in early dev
+- madkiwi – for advice regarding 4-wide-6-residual combo layouts
 - and RayZN and ˗ˋˏthe One and Onlyˎˊ˗ – for advice regarding the Tetro logo
