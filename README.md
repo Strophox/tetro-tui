@@ -89,7 +89,7 @@ cargo run
 > 
 > <details>
 > <summary>
-> See also this comprehensive list of Tetro TUI v3.0 menus:
+> See also: Complete list of Tetro TUI v3.0 menus contents:
 > </summary>
 > 
 > **New game/**
@@ -158,38 +158,33 @@ cargo run
 > </details>
 
 
-### Why do some gameplay settings (DAS/ARR/etc.) or registering `Shift` as keypress not work for me?
+### Why do some gameplay (DAS/ARR/SDF...) settings (or some keybinds like Ctrl/Shift/Alt/...) not work for me?
 
-> *In short:* If possible use an enhanced terminal like <a href="https://sw.kovidgoyal.net/kitty/">Kitty</a> or <a href="https://alacritty.org/">Alacritty</a> (also <a href="https://docs.rs/crossterm/latest/crossterm/event/struct.PushKeyboardEnhancementFlags.html">others</a>) for flawless game handling.
-> Otherwise e.g. timings might depend solely on how quickly your *terminal* sends key-repeat events.
-> 
-> <details>
-> <summary>
-> List of possible terminal limitations:
-> </summary>
-> 
-> - Unenhanced terminals **cannot** implement mechanics related to **holding** a key. This includes: DAS, ARR, SDF; holding Soft Drop not locking the piece; holding a Teleport button; hold-type IRS/IHS.
-> - Unenhanced terminals **cannot** recognize `Ctrl`/`[Shift]`/`[Alt]` modifiers as individual keys (only in combination, e.g. `[Ctrl+C]`).
-> 
-> </details>
+> It is likely that your current terminal provides **too little input information** to enable custom timings\* or those special keys.
+> (\*Instead, DAS/ARR/SDF will be determined by how quickly your *terminal* sends key-repeat events.)
+> If possible use an **enhanced terminal** like <a href="https://sw.kovidgoyal.net/kitty/">Kitty</a> or <a href="https://alacritty.org/">Alacritty</a> (also <a href="https://docs.rs/crossterm/latest/crossterm/event/struct.PushKeyboardEnhancementFlags.html">others</a>) for flawless game handling.
 > 
 > <details>
 > <summary>
 > Explanation:
 > </summary>
 > 
-> The fundamental problem lies in how terminals usually send signals.
-> - Since most only send "key pressed" but not "key released again", this makes it impossible to implement mechanics such as: "If `[←]` is pressed, move left with a certain speed *until key is released again*."
+> The fundamental problem lies in how terminals usually send input signals.
+> - Due to historical reasons, most will only send "key pressed" but **not** "key released again".
+>   This makes it impossible to implement mechanics such as:
+>   "If `[←]` is pressed, move left with a certain speed *until key is released again*."
+>   * Affected mechanics: Fixed DAS, Fixed ARR, Fixed SDF (& holding Soft Drop will lock the piece), Unable to hold Teleport, Unable to hold buttons for IRS/IHS/IMS/ITS.
 >   * Note that some terminals e.g. on Windows *do* send key-release signals, without this being auto-detected:
 > Use the 'Override' in *Advanced Settings* for such cases.
-> - Modifiers like `Ctrl` and `Shift` can only modify 'actual' text signals and aren't sent by themselves. 
+> - Also due to history, modifier keys can only modify 'actual' text signals and are never sent by themselves. 
+>   * Affected mechanics: Cannot register modifier `Ctrl`/`Alt`/`Shift`/`Win`/`⌘`/... as individual key presses.
 > 
 > Precisely these issues are fixed with 'enhanced keyboard events' / ['progressive enhancement'](<https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement>) / 'kitty protocol'.
 >
 > </details>
 
 
-### Is there a table of all controls / keybinds?
+### Can you give me a table of all controls / shortcuts / keybinds?
 
 > Please refer to the tables below.
 > 
@@ -309,31 +304,30 @@ cargo run
 > The application will not store anything by default and 'Keep save file' needs to be opted in:
 > </summary>
 > 
-> The exact location of the config file is shown in the *Advanced Settings* menu and is based on `dirs::config_dir()` (usually `C:/User/yourname/AppData/Roaming/.tetro-tui_v1.0_savefile.json` or `/home/yourname/.config/.tetro-tui_v1.0_savefile.json`).
+> The exact location of the config file is shown in the *Advanced Settings* menu and is based on `dirs::config_dir()`:
+> - Usually `/home/yourname/.config/.tetro-tui_v1.0_savefile.json`
+> - or `C:/User/yourname/AppData/Roaming/.tetro-tui_v1.0_savefile.json`
 > 
-> Savefile grows mostly with number/length of replays saved.
+> Savefile grows primarly due to number/length of saved replays.
+> As a rule of thumb, 1min of gameplay with fast inputs adds ≲ 1 kB.
 > If you end up with a lot of play time but can't/don't want to spare the kB / MB, you can:
 > - Delete some entries (// just their replay data) in *Scores and Replays* using `[Del]` (// `[Alt+Del]`).
 > - Configure which categories of data get stored in the first place on program exit (see *Advanced Settings*).
-> - As a rule of thumb, 1min of gameplay with fast inputs adds ≲ 1 kB.
 >
 > </details>
 
 
-### *Experienced players:* How does it compare to familiar / industry-standard stacker games?
+### *Experienced players:* How does it compare to / deviate from common stacker games?
 
 > <details>
 > <summary>
-> The customizability of Tetro TUI is put to good use and besides the 'Default' settings profile, other templates are provided to simulate e.g. guideline gameplay*/keybinds*/graphics (*Handling limitations may apply to your terminal):
+> We put to practical use our customizability and provide many *settings slots* (profiles/templates), e.g. to simulate guideline gameplay*/keybinds*/graphics (*Handling limitations may apply to your terminal):
 > </summary>
 >
-> The "Default"-settings however – though they should remain very familiar – do take liberties in 'shifting some mechanics closer to the platonic ideal' of the game. This is obviously an informal distinction but in practice just means:
->
-> **Graphics:**
-> - Chosen default palette is more pastel with **uniform perceptual brightness**.
+> Note that the 'Default' settings slots – though they should remain very familiar – do take liberties in 'shifting mechanics closer to the platonic ideal' of a tetromino stacker game. This is obviously not an objective statement, in practice it just means:
 > 
 > **Keybinds:**
-> - Default controls set to **WASD + Arrow keys** (also preferred due to common [terminal limitations](#why-do-some-gameplay-settings-dasarretc-or-registering-shift-as-keypress-not-work-for-me)).
+> - Default controls set to **WASD + Arrow keys** (also preferred due to common [terminal limitations](#why-do-some-gameplay-dasarrsdf-settings-or-some-keybinds-like-ctrlshiftalt-not-work-for-me)).
 > - Dedicated keys possible for **Rotate 180°**, **Teleport Down** ('Sonic Drop'), even Teleport Left/Right.
 > 
 > **Gameplay:**
@@ -346,11 +340,14 @@ cargo run
 >   - Exact formula: `point_bonus = if is_perfect_clear{ 4 }else{ 1 } * if is_spin{ 2 }else{ 1 } * (lineclears * 2 - 1) + (combo - 1)`
 > - Different **lock reset** limit: 'max time = 10⋅current lock delay' (instead of: 'max 15 moves with current lock delay').
 > - Speed/gravity/fall curve slightly less fast but very close to 'standard'.
+>
+> **Graphics:**
+> - Chosen default palette is more pastel with **uniform perceptual brightness**.
 > 
 > </details>
 
 
-### *Experienced players:* How extensive are the stacker mechanics exactly?
+### *Experienced players:* And how extensive are the stacker mechanics exactly?
 
 > <details>
 > <summary>
@@ -385,7 +382,7 @@ cargo run
 > </details>
 
 
-### *Experienced players:* What is this 'Ocular Rotation System'?
+### *Experienced players:* What is the 'Ocular Rotation System'?
 
 > <details>
 > <summary>
@@ -406,20 +403,40 @@ cargo run
 > </details>
 
 
-### *Terminal enthusiasts:* How was this terminal game programmed (and why isn't it Ratatui)?
+### *Programmers / Terminal enthusiasts:* Can you tell me more about the programming behind this terminal game?
 
 > <details>
 > <summary>
-> Ever since its inception as a proof-of-concept this terminal user interface (TUI) has directly relied on the <a href="https://crates.io/crates/crossterm">Crossterm</a> crate for all I/O.
+> This project handles quite a few aspects to provide an excellent user experience for a classic game. Among the many things that have accumulated inside the scope of this project are: 
 > </summary>
->
-> The most complicated terminal interaction we currently implement is [custom diff'ing](<https://github.com/Strophox/tetro-tui/blob/7f0ebacee7a1ed8d399057e270f9071aa13aaaa8/src/game_renderers/standard_buffered/dense_terminal_double_buffer.rs#L103> so we can guarantee we only send the minimum number of visual changes to the terminal (this minimizes flicker).
-> Currently there appears no need to change this situation, though a fully-featured TUI library like [Ratatui](<https://ratatui.rs/>) might be reconsidered, e.g. to handle proper UI translation/localization: displaying other languages etc.
+> 
+> - A **fully-featured [Tetromino game engine/backend](<https://github.com/Strophox/falling-tetromino-engine>)** featuring:
+>   * Several dozens of **configurable, advanced and important options**.
+>   * Provided pre-implementations of extremely common **standard mechanics**.
+>   * Decoupled core game loop ('interpreter') with ergonomic API (hopefully).
+>   * Basic but functional **modding functionality** with ergonomic API (hopefully).
+> - **Different and interesting game modes**, including special game modes that rely on engine modding.
+> - **Extensive TUI menus** to allow modifying all relevant configuration options without being forced to edit the save file manually:
+    * **Graphics** options, **Configurable keybinds**, **Gameplay settings**.
+>   * Providing many **curated configuration templates** for everything, inspired by existing standards and games.
+>   * *Sidenote:* Ever since its inception as a proof-of-concept the terminal user interface (TUI) has directly and only relied on [Crossterm](<https://crates.io/crates/crossterm>). Currently there appears no need to change this situation, though a full TUI library like [Ratatui](<https://ratatui.rs/>) might be reconsidered e.g. to handle UI translation (displaying other languages) etc.
+> - A good **input-update-render game loop**.
+> - Implementing **game replay**.
+> - **Savefile** storage:
+>   * Especially **replay data serialization and compression**.
+> - **Scoreboard** and **statistics**.
+> - Game **graphics renderer** that handles all of the **effects** and dozens of graphics settings, efficiently.
+>   * Custom **buffer diff'ing** so we can guarantee we only send the minimum number of required changes to the terminal (this minimizes flicker), see <https://github.com/Strophox/tetro-tui/blob/7f0ebacee7a1ed8d399057e270f9071aa13aaaa8/src/game_renderers/standard_buffered/dense_terminal_double_buffer.rs#L103>.
+> - Miscellaneous:
+>   * Commandline arguments.
+>   * Terminal limitations, all the time.
+>   * Doing all of the above as simply, ergonomically and as correctly as possible while providing feedback to the user when something doesn't work as expected.
+>   * Code quality.
 > 
 > </details>
 
 
-### What is the background behind this project?
+### What is the motivation behind this project?
 
 > <details>
 > <summary>
@@ -429,7 +446,7 @@ cargo run
 > Out of curiosity I looked into the depths of this common type of Tetromino game:
 > Basic versions are simple to code up, but it gets surprisingly nontrivial when it comes to comprehensively supporting of modern/advanced features and slews of QOL mechanics while dealing with terminal limitations!
 > 
-> I've given it my best effort to implement a most featureful and customizable version that not only remains totally faithful to the [basic idea of the game](<https://github.com/Strophox/falling-tetromino-engine>), but also runs and looks nice within the confines of a mere terminal - Enjoy!
+> I've given it my best effort to implement a most featureful and customizable version that not only remains totally faithful to the basic idea of the game, but also runs and looks nice within the confines of a mere terminal - Enjoy!
 > ☻ [L. Werner](<https://github.com/Strophox>)
 > 
 > </details>
@@ -452,13 +469,13 @@ Color palettes used: [Gruvbox](<https://github.com/morhetz/gruvbox>), [Solarized
 A big thank you to the [AUR package](#install-on-arch-linux) maintainers:
 - [wcasanova](<https://github.com/wcasanova>) and [druxorey](<https://github.com/druxorey>), and Dominiquini
 
-Thank you to my sources of inspiration:
-- Dunspixel – for inspiration regarding ['O'-spins](<https://dunspixel.github.io/ospin-guide/chapter4.html#tetro-tui>)
-- Martín G – for inspiration regarding new line clear effect from his own PICO-8 game
+Thank you to the people who provided inspiration:
+- Dunspixel – regarding ['O'-spins](<https://dunspixel.github.io/ospin-guide/chapter4.html#tetro-tui>)
+- Martín G – regarding new line clear effect from his own PICO-8 game
 - thehuglet – for showing the [potential](<https://github.com/thehuglet/germterm>) of terminal graphics
 - Akousoukos – for making [Apotris](<https://apotris.com/>)
 
 Special Thanks
-- GrBtAce, KonSola5 and bennxt – for support in early dev
+- GrBtAce, KonSola5 and bennxt – support during early dev and research
 - madkiwi – for advice regarding 4-wide-6-residual combo layouts
 - and RayZN and ˗ˋˏthe One and Onlyˎˊ˗ – for advice regarding the Tetro logo
