@@ -315,7 +315,7 @@ cargo run
 > If you end up with a lot of play time but can't/don't want to spare the kB / MB, you can:
 > - Delete some entries (// just their replay data) in *Scores and Replays* using `[Del]` (// `[Alt+Del]`).
 > - Configure which categories of data get stored in the first place on program exit (see *Advanced Settings*).
-> - As a rule of thumb, 1min of gameplay with fast inputs adds ≈ 1 kB.
+> - As a rule of thumb, 1min of gameplay with fast inputs adds ≲ 1 kB.
 >
 > </details>
 
