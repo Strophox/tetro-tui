@@ -14,7 +14,7 @@ use crossterm::{
 use falling_tetromino_engine::Button;
 
 use crate::{
-    fmt_helpers::fmt_button_keybinds,
+    fmt_helpers::{fmt_button_keybinds, fmt_key_with_keymods},
     tui_menus::{title_bar, Menu, MenuUpdate},
     tui_settings::GameKeybinds,
     Application, Settings,
@@ -91,7 +91,7 @@ impl<T: Write> Application<T> {
             let button_names = buttons_available.iter().map(|&button| {
                 format!(
                     "{button:?}: {}",
-                    fmt_button_keybinds(button, self.settings.keybinds())
+                    fmt_button_keybinds(button, self.settings.keybinds(), ",")
                 )
             });
             for (i, name) in button_names.enumerate() {
@@ -124,6 +124,51 @@ impl<T: Write> Application<T> {
                     )
                     .italic(),
                 ))?;
+            let dangerous_keybinds: Vec<_> = self
+                .settings
+                .keybinds()
+                .iter()
+                .filter_map(|((kc, km), _b)| {
+                    matches!(kc, KeyCode::Modifier(_)).then_some(fmt_key_with_keymods((*kc, *km)))
+                })
+                .collect();
+            if !dangerous_keybinds.is_empty() && !self.temp_data.kitty_detected {
+                self.term
+                    .queue(MoveTo(
+                        x_main,
+                        y_main
+                            + y_selection
+                            + 6
+                            + u16::try_from(buttons_available.len()).unwrap()
+                            + 2,
+                    ))?
+                    .queue(PrintStyledContent(
+                        format!(
+                            "{:^w_main$}",
+                            "*Enhanced-key-events seem unsupported by terminal,",
+                        )
+                        .italic(),
+                    ))?
+                    .queue(MoveTo(
+                        x_main,
+                        y_main
+                            + y_selection
+                            + 6
+                            + u16::try_from(buttons_available.len()).unwrap()
+                            + 3,
+                    ))?
+                    .queue(PrintStyledContent(
+                        format!(
+                            "{:^w_main$}",
+                            format!(
+                                "keybinds unlikely to work: {}",
+                                dangerous_keybinds.join(",")
+                            ),
+                        )
+                        .italic(),
+                    ))?;
+            }
+
             self.term.flush()?;
 
             // Wait for new input.

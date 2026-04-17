@@ -137,19 +137,19 @@ pub fn fmt_key_with_keymods((key, keymods): (KeyCode, KeyModifiers)) -> String {
     }
 }
 
-pub fn fmt_button_keybinds(button: Button, keybinds: &GameKeybinds) -> String {
+pub fn fmt_button_keybinds(button: Button, keybinds: &GameKeybinds, sep: &str) -> String {
     keybinds
         .iter()
         .filter_map(|(key_keymods, b)| (*b == button).then_some(fmt_key_with_keymods(*key_keymods)))
         .collect::<Vec<_>>()
-        .join("")
+        .join(sep)
 }
 
 pub const MAX_LEGEND_ENTRIES: u16 = 5;
 
 pub fn get_game_keybinds_legend(keybinds: &GameKeybinds) -> KeybindsLegend {
     let fk = |k| fmt_key_with_keymods((k, KeyModifiers::NONE));
-    let fb = |b| fmt_button_keybinds(b, keybinds);
+    let fb = |b| fmt_button_keybinds(b, keybinds, " ");
 
     let icon_pause = fk(KeyCode::Esc);
     let icons_move = format!("{}{}", fb(Button::MoveLeft), fb(Button::MoveRight));
