@@ -153,7 +153,7 @@ impl GraphicsSettings {
 
     pub fn compatibility() -> Self {
         GraphicsSettings {
-            palette_selected: 10,      // ANSI
+            palette_selected: 1,      // ANSI
             tui_style_selected: 0,     // ASCII
             mino_textures_selected: 0, // ASCII
             hard_drop_selected: 1,     // ASCII particles

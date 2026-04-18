@@ -977,7 +977,7 @@ dependencies = [
 
 [[package]]
 name = "tetro-tui"
-version = "3.2.1"
+version = "3.2.2"
 dependencies = [
  "chrono",
  "clap",
