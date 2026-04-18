@@ -9,8 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 - `Ctrl+Z` can now be used to undo the last player inputs during live game.
-- Change some in-code / savefile terminology and improve corresponding UI element names.
-- Add 'Borderless Unicode' tui symbols preset.
+- Changed some in-code / savefile terminology and improve corresponding UI element names.
+- Added 'Borderless Unicode' tui symbols preset.
+- Fixed and improved various presets.
 
 
 ## [3.2.1] - 2026-04-18
