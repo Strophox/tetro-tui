@@ -11,6 +11,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -
 
 
+## [3.2.0] - 2026-04-18
+
+### Added
+- Toggle: '**Show lock delay** countdown'
+- **Progress bar** for game replays.
+- Nix flake.
+- **New effect presets**:
+    * Hard drop: 'White beam Unicode'
+    * Line clear effect: 'Burn outward', 'Confetti (gratuitous)', 'Stardust', 'Sparks'
+
+### Changed
+- Adjusted some existing line clear / hard drop effects.
+
+### Fixed
+- Engine fixes:
+    * SRS 180° kicks now make sense for SRS purposes.
+    * Bug where auto-move would reset lock delay despite piece not changing.
+- Bug where savefile would sometimes not get automatically deleted despite settings.
+- Various effects are now displayed more cleanly at the end of replays (e.g. line clears are completed).
+
+### Removed
+- 'Auto'-HUD: Main HUD is no longer automatically hidden when terminal is too narrow or forcibly shown during replay, but follows the specified Graphics setting.
+
+
 ## [3.1.0] - 2026-04-17
 
 ### Added
