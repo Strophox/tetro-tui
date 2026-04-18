@@ -41,7 +41,7 @@ impl<IH: InputHistoryEncoder> GameRestorationData<IH> {
 }
 
 impl GameRestorationData<RawInputHistory> {
-    pub fn restore(&self, input_index: usize) -> Game {
+    pub fn restore(&self, inputs_to_restore: usize) -> Game {
         // Step 1: Prepare builder.
         let builder = self.builder.clone();
         // Step 2: Build actual game by possibly reconstructing mods to finalize builder with.
@@ -79,7 +79,7 @@ impl GameRestorationData<RawInputHistory> {
         let restore_notification_level = game.config.notification_level;
 
         game.config.notification_level = NotificationLevel::Silent;
-        for (update_time, input) in self.input_history.inputs.iter().take(input_index) {
+        for (update_time, input) in self.input_history.inputs.iter().take(inputs_to_restore) {
             // FIXME: Handle UpdateGameError? If not, why not?
             let _v = game.update(*update_time, Some(*input));
         }

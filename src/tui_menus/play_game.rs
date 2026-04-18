@@ -474,6 +474,66 @@ impl<T: Write> Application<T> {
                                 }
                             }
 
+                            // [Ctrl+Z]: Undo last input.
+                            (KeyCode::Char('z' | 'Z'), KeyModifiers::CONTROL) => {
+                                // Try to pop away latest input.
+                                if let Some(mut latest_timed_input) = raw_input_history.inputs.pop()
+                                {
+                                    // Here we pop away *additional inputs* that happen at the *exact same time*.
+                                    // This is more ergonomic for the case where an unenhanced terminal does not distinguish
+                                    // between 'press' and 'release' and instead emulated them with press and release happening
+                                    // at the exact same time. If user really need the distinction, the should just use the precise
+                                    // input history selection for game saves in the 'Start New Game' menu.
+                                    while let Some(second_latest_timed_input) =
+                                        raw_input_history.inputs.last()
+                                    {
+                                        if second_latest_timed_input.0 != latest_timed_input.0 {
+                                            break;
+                                        }
+                                        latest_timed_input = *second_latest_timed_input;
+                                        raw_input_history.inputs.pop();
+                                    }
+
+                                    // Manually restore game to previous state.
+                                    let (builder, mod_ids_cfgs) = game.blueprint();
+                                    let game_restoration_data = GameRestorationData {
+                                        builder,
+                                        mod_ids_cfgs,
+                                        input_history: raw_input_history.clone(),
+                                        forfeit: None,
+                                    };
+                                    *game = game_restoration_data
+                                        .restore(game_restoration_data.input_history.inputs.len());
+
+                                    // Mark undone as such.
+                                    game_meta_data.title.push('\'');
+
+                                    game_renderer.reset_veffects_state();
+                                    game_renderer.update_feed(
+                                        [(
+                                            Notification::Custom(format!(
+                                                "(Undo '{}')",
+                                                match latest_timed_input.1 {
+                                                    Input::Activate(button) =>
+                                                        format!("{button:?} press"),
+                                                    Input::Deactivate(button) =>
+                                                        format!("{button:?} release"),
+                                                }
+                                            )),
+                                            game.state().time,
+                                        )],
+                                        &self.settings,
+                                    );
+
+                                    // What we do here is rather unholy, so we have to adapt the game loop state itself.
+                                    self.statistics.play_time += Instant::now()
+                                        .saturating_duration_since(time_game_loop_entered);
+
+                                    ingametime_when_game_loop_entered = game.state().time;
+                                    time_game_loop_entered = Instant::now();
+                                }
+                            }
+
                             // [Ctrl+E]: Store seed.
                             (KeyCode::Char('e' | 'E'), KeyModifiers::CONTROL) => {
                                 self.settings.game_mode_preferences.custom_config.seed =
