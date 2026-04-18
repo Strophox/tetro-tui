@@ -134,7 +134,7 @@ impl GraphicsSettings {
             mino_textures_selected: 1, // Unicode
             hard_drop_selected: 1,     // ASCII particles
             lock_effect_selected: 2,   // Unicode pulse
-            line_clear_selected: 7,    // Mino pop
+            line_clear_selected: 5,    // Clear inward
             mini_tet_selected: 1,      // Braille
             small_tet_selected: 1,     // Blocks
             normalsize_preview_limit: Some(NonZeroUsize::MIN),

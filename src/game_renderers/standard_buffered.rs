@@ -597,6 +597,25 @@ impl Renderer for StandardBufferedRenderer {
                     )
                 }),
                 replay_extra.map(|(replay_len, _)| ("REPLAY", fmt_duration(replay_len))),
+                replay_extra.map(|(replay_len, _)| {
+                    ("", {
+                        let (partial_glyphs, full_glyph) = &tui_style.progressbarglyphs;
+                        let w_progressbar = (W_ADD_ACTIVE_HUD + W_HOLD).saturating_sub(3);
+                        let progress = game.state().time.as_secs_f32() / replay_len.as_secs_f32();
+                        let granularity = if partial_glyphs.is_empty() {
+                            1
+                        } else {
+                            partial_glyphs.len()
+                        };
+                        let scaled = (progress * (w_progressbar as f32) * (granularity as f32))
+                            .round() as usize;
+                        let mut progress_bar = full_glyph.to_string().repeat(scaled / granularity);
+                        if !scaled.is_multiple_of(granularity) {
+                            progress_bar.push(partial_glyphs[scaled % granularity]);
+                        }
+                        progress_bar
+                    })
+                }),
                 replay_extra
                     .map(|(_, replay_speed)| ("Replay speed:", format!("{replay_speed:.02}x"))),
             ];

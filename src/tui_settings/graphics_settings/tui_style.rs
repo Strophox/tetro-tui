@@ -84,6 +84,8 @@ pub struct TuiStyle {
     pub buttonsglyphs: [char; Button::VARIANTS.len()],
     /// Use for lock-down count down display.
     pub countdownglyphs: Vec<String>,
+    /// Use for replay progress bar.
+    pub progressbarglyphs: (Vec<char>, char),
 }
 
 pub fn default_tui_style_slots() -> SlotMachine<TuiStyle> {
@@ -109,6 +111,7 @@ impl TuiStyle {
             countdown: ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
                 .map(|s| s.to_owned())
                 .into(),
+            progressbar: (" .:!", '|'),
         }
         .try_into()
         .unwrap()
@@ -126,6 +129,7 @@ impl TuiStyle {
             countdown: ["⡀", "⡄", "⡆", "⡇", "⡏", "⡟", "⡿", "⣿"]
                 .map(|s| s.to_owned())
                 .into(),
+            progressbar: (" ▏▎▍▌▋▊▉", '█'),
         }
         .try_into()
         .unwrap()
@@ -143,6 +147,7 @@ impl TuiStyle {
             countdown: ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
                 .map(|s| s.to_owned())
                 .into(),
+            progressbar: (" .:!", '|'),
         }
         .try_into()
         .unwrap()
@@ -206,6 +211,10 @@ impl<S: AsRef<str>> TryFrom<TuiStyleCompact<S>> for TuiStyle {
             .collect::<Vec<char>>()
             .try_into()
             .map_err(fmt_err)?;
+        let progressbarglyphs = (
+            value.progressbar.0.as_ref().chars().collect::<Vec<char>>(),
+            value.progressbar.1,
+        );
         Ok(TuiStyle {
             is_title_unicode: value.is_title_unicode,
             menuglyphs,
@@ -215,6 +224,7 @@ impl<S: AsRef<str>> TryFrom<TuiStyleCompact<S>> for TuiStyle {
             nextglyphs,
             buttonsglyphs,
             countdownglyphs: value.countdown,
+            progressbarglyphs,
         })
     }
 }
@@ -231,6 +241,7 @@ pub struct TuiStyleCompact<T> {
     pub next: T,
     pub buttons: T,
     pub countdown: Vec<String>,
+    pub progressbar: (T, char),
 }
 
 impl From<TuiStyle> for TuiStyleCompact<String> {
@@ -244,6 +255,10 @@ impl From<TuiStyle> for TuiStyleCompact<String> {
             next: value.nextglyphs.iter().collect(),
             buttons: value.buttonsglyphs.iter().collect(),
             countdown: value.countdownglyphs,
+            progressbar: (
+                value.progressbarglyphs.0.iter().collect(),
+                value.progressbarglyphs.1,
+            ),
         }
     }
 }
