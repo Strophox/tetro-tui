@@ -22,20 +22,19 @@ strip = true  # Automatically strip symbols from the binary.
 # codegen-units = 1 # Use fewer than 16 threads for compilation, but enable some optimizations.
 
 [dependencies]
-chrono = "0.4.38" # Generating timestamps.
-clap = { version = "4.5.9", features = ["derive", "wrap_help"] } # Parsing command-line arguments.
-crossterm = { version = "0.29.0", features = ["serde"] } # Cross-platform terminal handling.
-dirs = "6.0.0"    # Cross-platform "Find the standard 'applications config' folder" functionality.
-rand = "0.10.0"    # Expose `random_range` for ChaCha8Rng.
+chrono = "0.4.38" # = Used to generate timestamps.
+clap = { version = "4.5.9", features = ["derive", "wrap_help"] } # = Used to handle command-line arguments.
+crossterm = { version = "0.29.0", features = ["serde"] } # = Use for cross-platform terminal handling.
+dirs = "6.0.0" # = Used for cross-platform "find the standard applications-config folder" functionality.
+rand = "0.10.0"
 
-# Serializing data to store save file.
 serde = { version = "1.0.204", features = ["derive"] }
-serde_with = { version = "3.9.0", features = ["json"] }
+serde_with = { version = "3.9.0" }#, features = ["json"] } # = Use to configure serialization details.
 # serde_json = "1.0.120"
 # json5 = "1.3.1"
 # serde_yaml = "0.9.34"
 # toml = "1.1.2"
-ron = "0.12.1"
+ron = "0.12.1" # = Used to serialize in Rusty Object Notation.
 
-falling-tetromino-engine = { version = "8.2.0", features = ["serde"] } # Game logic.
-# falling-tetromino-engine = { path = "../falling-tetromino-engine", features = ["serde"] } # Dev Game logic.
+falling-tetromino-engine = { version = "8.2.0", features = ["serde"] } # = Core game logic.
+# falling-tetromino-engine = { path = "../falling-tetromino-engine", features = ["serde"] } # = Dev. Core game logic.
