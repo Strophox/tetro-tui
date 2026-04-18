@@ -33,7 +33,7 @@ pub fn lock_effect_presets() -> SlotMachine<LockEffect> {
         ("None".to_owned(), LockEffect::none()),
         ("Transform ASCII".to_owned(), LockEffect::ascii_transform()),
         ("Pulse Unicode".to_owned(), LockEffect::unicode_pulse()),
-        ("White".to_owned(), LockEffect::color_white()),
+        ("Highlight white".to_owned(), LockEffect::color_white()),
     ];
 
     SlotMachine::with_unmodifiable_slots(slots, "Lock effect".to_owned())

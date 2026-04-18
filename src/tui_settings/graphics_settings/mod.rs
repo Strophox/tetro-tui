@@ -132,12 +132,12 @@ impl GraphicsSettings {
             palette_selected: 2,                 // Standard
             tui_symbols_selected: 1,             // Unicode
             mino_symbols_selected: 1,            // Unicode
-            hard_drop_selected: 1,               // ASCII particles
-            lock_effect_selected: 2,             // Unicode pulse
+            hard_drop_selected: 4,               // Solid beam Unicode
+            lock_effect_selected: 2,             // Pulse Unicode
             line_clear_selected: 5,              // Clear inward
             mini_tetromino_symbols_selected: 1,  // Braille
             small_tetromino_symbols_selected: 1, // Blocks
-            normalsize_preview_limit: Some(NonZeroUsize::MIN),
+            normalsize_preview_limit: Some(NonZeroUsize::new(4).unwrap()),
             fps: ExtNonNegF64::from(60),
             lockedminopalette_selected: 2, // Standard
             show_main_hud: true,
@@ -178,7 +178,7 @@ impl GraphicsSettings {
     pub fn elektronika_60() -> Self {
         GraphicsSettings {
             palette_selected: 0,                 // Monochrome
-            tui_symbols_selected: 2,             // Elektronika 60
+            tui_symbols_selected: 3,             // Elektronika 60
             mino_symbols_selected: 2,            // Elektronika 60
             hard_drop_selected: 0,               // None
             lock_effect_selected: 0,             // None

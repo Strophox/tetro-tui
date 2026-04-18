@@ -583,20 +583,20 @@ impl Renderer for StandardBufferedRenderer {
                 .is_some()
                 && !game.config.lock_delay_params.is_constant();
             let stats = [
-                Some(("Time:", fmt_duration(game.state().time))),
-                Some(("Lines:", game.state().lineclears.to_string())),
-                Some(("Points:", game.state().points.to_string())),
-                Some(("Gravity:", fmt_hertz(game.state().fall_delay.as_hertz()))),
+                Some(("Time: ", fmt_duration(game.state().time))),
+                Some(("Lines: ", game.state().lineclears.to_string())),
+                Some(("Points: ", game.state().points.to_string())),
+                Some(("Gravity: ", fmt_hertz(game.state().fall_delay.as_hertz()))),
                 show_lockdelay.then(|| {
                     (
-                        "Lock delay:",
+                        "Lock delay: ",
                         format!(
                             "{}ms",
                             game.state().lock_delay.saturating_duration().as_millis()
                         ),
                     )
                 }),
-                replay_extra.map(|(replay_len, _)| ("REPLAY", fmt_duration(replay_len))),
+                replay_extra.map(|(replay_len, _)| ("REPLAY ", fmt_duration(replay_len))),
                 replay_extra.map(|(replay_len, _)| {
                     ("", {
                         let (partial_glyphs, full_glyph) = &tui_style.progressbar;
@@ -609,22 +609,27 @@ impl Renderer for StandardBufferedRenderer {
                         };
                         let scaled = (progress * (w_progressbar as f32) * (granularity as f32))
                             .round() as usize;
-                        let mut progress_bar = full_glyph.to_string().repeat(scaled / granularity);
+                        let mut progress_bar = String::new();
+                        progress_bar.push_str(&full_glyph.to_string().repeat(scaled / granularity));
                         if !scaled.is_multiple_of(granularity) {
                             progress_bar.push(partial_glyphs[scaled % granularity]);
                         }
+                        progress_bar.push_str(
+                            &" ".repeat(w_progressbar as usize - progress_bar.chars().count()),
+                        );
+                        progress_bar.push(']');
                         progress_bar
                     })
                 }),
                 replay_extra
-                    .map(|(_, replay_speed)| ("Replay speed:", format!("{replay_speed:.02}x"))),
+                    .map(|(_, replay_speed)| ("Replay speed: ", format!("{replay_speed:.02}x"))),
             ];
 
             for (dy, opt_stat) in stats.into_iter().enumerate() {
                 if let Some((str_statname, str_statval)) = opt_stat {
                     #[rustfmt::skip] self.term_buf.write_str(w_tmp5 + 1, h_tmp5 + 2 + (dy as u16), str_statname, Color::Reset);
                     let w_statname = str_statname.len() as u16;
-                    #[rustfmt::skip] self.term_buf.write_str(w_tmp5 + 1 + w_statname + 1, h_tmp5 + 2 + (dy as u16), &str_statval, Color::Reset);
+                    #[rustfmt::skip] self.term_buf.write_str(w_tmp5 + 1 + w_statname, h_tmp5 + 2 + (dy as u16), &str_statval, Color::Reset);
                 }
             }
 

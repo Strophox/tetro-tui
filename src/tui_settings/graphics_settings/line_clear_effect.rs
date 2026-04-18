@@ -168,9 +168,12 @@ impl LineClearEffect {
     }
 
     pub fn pop() -> Self {
+        let mut animation = vec![(Keep, Keep); 8];
+        animation[0] = (Keep, Override(Palette::WHITE));
+
         LineClearEffect::Particle(LineClearParticleEffect {
             duration_override: Override(Duration::from_millis(1000)),
-            animation: vec![(Keep, Keep)],
+            animation,
             acceleration: (0.0, -200.0),
             momentum_base: (0.0, 30.0),
             momentum_rand: (10.0, 5.0),
@@ -179,9 +182,12 @@ impl LineClearEffect {
     }
 
     pub fn pop_high() -> Self {
+        let mut animation = vec![(Keep, Keep); 8];
+        animation[0] = (Keep, Override(Palette::WHITE));
+
         LineClearEffect::Particle(LineClearParticleEffect {
             duration_override: Override(Duration::from_millis(1000)),
-            animation: vec![(Keep, Keep)],
+            animation,
             acceleration: (0.0, -200.0),
             momentum_base: (0.0, 45.0),
             momentum_rand: (50.0, 5.0),

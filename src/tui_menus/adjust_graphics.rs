@@ -144,7 +144,7 @@ impl<T: Write> Application<T> {
                         .0
                 ),
                 format!(
-                    "Normalsize previews = {}",
+                    "Normalsize previews pieces = {}",
                     self.settings
                         .graphics()
                         .normalsize_preview_limit
