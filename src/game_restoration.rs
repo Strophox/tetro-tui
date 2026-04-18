@@ -55,7 +55,7 @@ impl GameRestorationData<RawInputHistory> {
                         // This should never happen in our application.
                         let warn_messages = unrecognized_mod_ids
                             .into_iter()
-                            .map(|mod_desc| format!("WARNING: idk mod {mod_desc:?}"))
+                            .map(|mod_desc| format!("WARNING: unknown mod {mod_desc:?}"))
                             .collect();
 
                         let print_warn_msgs_mod = game_modding::PrintMsgs::modifier(warn_messages);

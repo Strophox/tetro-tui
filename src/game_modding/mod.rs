@@ -2,6 +2,7 @@ mod ascent;
 mod cheese;
 mod combo;
 mod print_msgs;
+#[allow(unused)]
 mod print_recency_stats;
 mod puzzle;
 mod start_board;
@@ -14,7 +15,6 @@ pub use ascent::Ascent;
 pub use cheese::{Cheese, CheeseConfig};
 pub use combo::{Combo, ComboConfig};
 pub use print_msgs::PrintMsgs;
-pub use print_recency_stats::PrintRecencyStats;
 pub use puzzle::Puzzle;
 pub use start_board::StartBoard;
 
@@ -29,7 +29,7 @@ pub fn reconstruct_modded<'a>(
 
     let mut store_building_mod = |mod_id, build| {
         if let Some((other_id, _)) = building_mod {
-            return Err(format!("incompatible mods: {other_id:?} + {mod_id:?}"));
+            return Err(format!("incompatible mods {other_id:?} + {mod_id:?}"));
         }
         building_mod.replace((mod_id, build));
         Ok(())
@@ -45,7 +45,7 @@ pub fn reconstruct_modded<'a>(
         match from_savefile_str(mod_cfg_str) {
             Ok(config) => Ok(config),
             Err(e) => Err(format!(
-                "parse error for mod {mod_id} with cfg '{mod_cfg_str}': {e}"
+                "parse error for mod {mod_id} given cfg '{mod_cfg_str}': {e}"
             )),
         }
     }
@@ -69,9 +69,9 @@ pub fn reconstruct_modded<'a>(
             let encoded_board: String = get_mod_config(mod_cfg_str, mod_id)?;
             let build = Box::new(move |builder| StartBoard::build(builder, encoded_board));
             store_building_mod(mod_id, build)?;
-        } else if mod_id == PrintRecencyStats::MOD_ID {
-            let modifier = PrintRecencyStats::modifier();
-            compounding_mods.push(modifier);
+        // } else if mod_id == PrintRecencyStats::MOD_ID {
+        //     let modifier = PrintRecencyStats::modifier();
+        //     compounding_mods.push(modifier);
         } else if mod_id == PrintMsgs::MOD_ID {
             let messages: Vec<String> = get_mod_config(mod_cfg_str, mod_id)?;
             let modifier = PrintMsgs::modifier(messages);
