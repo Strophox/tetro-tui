@@ -49,7 +49,7 @@ impl LockEffect {
 
     pub fn ascii_transform() -> Self {
         LockEffect {
-            duration: Duration::from_millis(150),
+            duration: Duration::from_millis(200),
             animation: ["()", "{}", "<>"]
                 .map(|t| (Override(t.tile()), Override(Palette::WHITE)))
                 .into(),
@@ -67,7 +67,7 @@ impl LockEffect {
 
     pub fn color_white() -> Self {
         LockEffect {
-            duration: Duration::from_millis(150),
+            duration: Duration::from_millis(125),
             animation: vec![(Keep, Override(Palette::WHITE))],
         }
     }

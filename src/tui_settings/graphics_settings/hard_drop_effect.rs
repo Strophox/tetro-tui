@@ -89,7 +89,7 @@ impl HardDropEffect {
 
     pub fn streak_beam_ascii() -> Self {
         HardDropEffect {
-            duration: Duration::from_millis(150),
+            duration: Duration::from_millis(100),
             animation: ["||", "¦¦", "::", ".."].map(|ss| (ss.tile(), Keep)).into(),
             y_decay: 0.25,
         }

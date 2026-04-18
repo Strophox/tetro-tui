@@ -110,7 +110,7 @@ impl GraphicsSettings {
             mino_textures_selected: 1, // Unicode
             hard_drop_selected: 0,     // None
             lock_effect_selected: 0,   // None
-            line_clear_selected: 1,    // None (vacate)
+            line_clear_selected: 0,    // None (vacate)
             mini_tet_selected: 1,      // Braille
             small_tet_selected: 1,     // Blocks
             normalsize_preview_limit: None,
@@ -153,12 +153,12 @@ impl GraphicsSettings {
 
     pub fn compatibility() -> Self {
         GraphicsSettings {
-            palette_selected: 1,       // ANSI
+            palette_selected: 10,      // ANSI
             tui_style_selected: 0,     // ASCII
             mino_textures_selected: 0, // ASCII
             hard_drop_selected: 1,     // ASCII particles
             lock_effect_selected: 1,   // ASCII transform
-            line_clear_selected: 9,    // Mino pop
+            line_clear_selected: 13,   // Sparks
             mini_tet_selected: 0,      // Letters
             small_tet_selected: 0,     // ASCII
             normalsize_preview_limit: None,
@@ -182,12 +182,12 @@ impl GraphicsSettings {
             mino_textures_selected: 2, // Elektronika 60
             hard_drop_selected: 0,     // None
             lock_effect_selected: 0,   // None
-            line_clear_selected: 2,    // Left-to-right
+            line_clear_selected: 4,    // Left-to-right
             mini_tet_selected: 0,      // Letters
             small_tet_selected: 0,     // ASCII
             normalsize_preview_limit: None,
             fps: ExtNonNegF64::from(60),
-            boardpalette_selected: 0, // ANSI
+            boardpalette_selected: 0, // Monochrome
             show_main_hud: true,
             show_lockdelay: false,
             show_keybinds: true,
