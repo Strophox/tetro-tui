@@ -214,10 +214,9 @@ cargo run
 > Specific to 'Start New Game':
 > | Keys | Meaning |
 > | -: | :- |
-> | `1`/`2`/`3`... | Quickselect game mode |
 > | `Alt`+`←`/`→`, `Alt`+`h`/`l` | Change value differently (under ⇝['Combo','Custom','Game save']) |
 > | `Home`/`End` | Jump to beginning/end of inpus (under ⇝'Game save') |
-> | `Alt`+`Enter` | View replay instead of starting game (under ⇝'Game save') |
+> | `Alt`+`Enter` | View replay instead of starting game save (under ⇝'Game save') |
 > | `Ctrl`+`U` | (For experienced/impatient players) unlock all game modes |
 > 
 > Specific to 'Gameplay settings':

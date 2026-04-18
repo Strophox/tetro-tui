@@ -256,7 +256,7 @@ impl<T: Write> Application<T> {
 
             self.term.flush()?;
             // Wait for new input.
-            let mut immediately_start_new_game = false;
+            let mut start_new_game = false;
             match event::read()? {
                 // Quit app.
                 Event::Key(KeyEvent {
@@ -304,7 +304,7 @@ impl<T: Write> Application<T> {
                             }));
                         }
                     }
-                    immediately_start_new_game = true;
+                    start_new_game = true;
                 }
 
                 // Move selector up or increase stat.
@@ -835,18 +835,6 @@ impl<T: Write> Application<T> {
                     }
                 }
 
-                Event::Key(KeyEvent {
-                    code: KeyCode::Char(c @ '0'..='9'),
-                    kind: Press | Repeat,
-                    ..
-                }) => {
-                    let n = c.to_digit(10).unwrap() as usize;
-                    if n <= selection_len {
-                        selected = if n == 0 { 10 - 1 } else { n - 1 };
-                        immediately_start_new_game = true;
-                    }
-                }
-
                 // Secret - This unlocks things.
                 Event::Key(KeyEvent {
                     code: KeyCode::Char('u' | 'U'),
@@ -864,7 +852,7 @@ impl<T: Write> Application<T> {
                 _ => {}
             }
 
-            if immediately_start_new_game {
+            if start_new_game {
                 let game_menu = self.create_game_menu(selected);
                 self.statistics.new_games_started += 1;
 

@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed some in-code / savefile terminology and improve corresponding UI element names.
 - Added 'Borderless Unicode' tui symbols preset.
 - Fixed and improved various presets.
+- Removed 'quick start new game' keys (1,2,3...) in New Game menu (use `Ctrl+R` to quick-restart same gamemode instead).
 
 
 ## [3.2.1] - 2026-04-18
