@@ -354,9 +354,9 @@ dependencies = [
 
 [[package]]
 name = "falling-tetromino-engine"
-version = "8.0.0"
+version = "8.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a9b0b4f4f8cbc472bc93d85782261d04ea02eaa51f483d4b830e3c51336afabf"
+checksum = "d2c590b40872bf1381a88c95e4c28ded76300095f05e3efc1e062e73004721bb"
 dependencies = [
  "rand",
  "rand_chacha",
@@ -977,7 +977,7 @@ dependencies = [
 
 [[package]]
 name = "tetro-tui"
-version = "3.1.0"
+version = "3.2.0"
 dependencies = [
  "chrono",
  "clap",
