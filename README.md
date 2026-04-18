@@ -32,7 +32,7 @@ cargo install tetro-tui
 #### Arch Linux ([aur.archlinux.org](<https://aur.archlinux.org/packages?K=tetro-tui>)):
 
 ```bash
-yay -S tetro-tui # Or paru, ...
+yay -S tetro-tui # Or paru, etc.
 #  tetro-tui
 ```
 
@@ -41,7 +41,7 @@ yay -S tetro-tui # Or paru, ...
 
 Tetro TUI is written in [Rust](<https://doc.rust-lang.org/book/ch01-01-installation.html>) and can be compiled as usual:
 ```bash
-git clone https://github.com/Strophox/tetro-tui # Or otherwise download source code.
+git clone https://github.com/Strophox/tetro-tui
 cd tetro-tui
 cargo run
 ```
@@ -61,10 +61,10 @@ cargo run
 ### How good is it in terms of customization / features?
 
 > We provide a solid amount of configuration options and features:
-> - **Graphics:** Unicode/ASCII/Electronika, color palettes, many effects and toggles.
-> - **Gameplay and handling:** Rotation systems, randomizers, preview, timings (DAS, ARR, SDF, LCD, ARE), IRS/IHS/IMS/ITS (\[caveat](#why-do-some-gameplay-settings-dasarretc-or-registering-shift-as-keypress-not-work-for-me)).
+> - **Graphics:** Unicode/ASCII/Electronika styles, old-terminal-compatible or very modern designs, 10 color palettes, hard drop/piece lock/line clear effects and much more.
+> - **Gameplay and handling:** Various rotation systems, piece randomizers, adjustable preview, timings (DAS¹, ARR¹, SDF¹, LCD, ARE), IRS/IHS/IMS/ITS¹ ([¹caveat](#why-do-some-gameplay-settings-dasarretc-or-registering-shift-as-keypress-not-work-for-me)).
 > - **Game keybinds:** to your heart's desire. 
-> - **Game mode miscellany:** Swift ('40lines'), Classic ('Marathon'), Master, Puzzle, Cheese, Combo, Custom (select goal, initial gravity, toggle gravity progress, *cmdline flags:* start board, seed).
+> - **Game mode miscellany:** Swift ('40-Lines'), Classic ('Marathon'), Master, Puzzle, Cheese, Combo, Custom (select goal, initial gravity, toggle gravity progress, *cmdline flags:* start board, seed).
 > - **Highscores, replays, statistics, ...** - can can be accessed as well as backed up with a simple **savefile**.
 >
 > <details>
@@ -160,8 +160,8 @@ cargo run
 
 ### Why do some gameplay (DAS/ARR/SDF...) settings (or some keybinds like Ctrl/Shift/Alt/...) not work for me?
 
-> It is likely that your current terminal provides **too little input information** to enable custom timings\* or those special keys.
-> (\*Instead, DAS/ARR/SDF will be determined by how quickly your *terminal* sends key-repeat events.)
+> It is likely that your current terminal provides **too little input information** to enable custom timings¹ or those special keys.
+> (¹Instead, DAS/ARR/SDF will be determined by how quickly your *terminal* sends key-repeat events.)
 > If possible use an **enhanced terminal** like <a href="https://sw.kovidgoyal.net/kitty/">Kitty</a> or <a href="https://alacritty.org/">Alacritty</a> (also <a href="https://docs.rs/crossterm/latest/crossterm/event/struct.PushKeyboardEnhancementFlags.html">others</a>) for flawless game handling.
 > 
 > <details>
@@ -280,8 +280,8 @@ cargo run
 > | `←`/`→` , `h`/`l` | Skip forward / backward 1s in time |
 > | `1`/`2`/`3`... | Jump to 10%/20%/30%/... |
 > | `Home`/`End` | Jump to beginning/end |
-> | `.` | Skip forward one player input + pause |
-> | `Alt`+`.` | Skip forward one game state change\* + pause (\*might not work properly for modded games) |
+> | `.` | Skip forward one player input & pause |
+> | `Alt`+`.` | Skip forward one game state change & pause (might not work properly for modded games) |
 > | `Enter`, `e` | Start (live) Game from current replay state ('take over') |
 > 
 > | Key | Special action |
@@ -322,7 +322,7 @@ cargo run
 
 > <details>
 > <summary>
-> We put to practical use our customizability and provide many *settings slots* (profiles/templates), e.g. to simulate guideline gameplay*/keybinds*/graphics (*Handling limitations may apply to your terminal):
+> We put to practical use our customizability and provide many *settings slots* (profiles/templates), e.g. to simulate guideline gameplay¹/keybinds¹/graphics (¹Handling limitations may apply to your terminal):
 > </summary>
 >
 > Note that the 'Default' settings slots – though they should remain very familiar – do take liberties in 'shifting mechanics closer to the platonic ideal' of a tetromino stacker game. This is obviously not an objective statement, in practice it just means:
