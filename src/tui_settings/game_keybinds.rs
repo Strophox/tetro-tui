@@ -15,7 +15,7 @@ pub struct GameKeybinds {
     keymap: HashMap<(KeyCode, KeyModifiers), Button>,
 }
 
-pub fn default_keybinds_slots() -> SlotMachine<GameKeybinds> {
+pub fn game_keybinds_presets() -> SlotMachine<GameKeybinds> {
     let slots = vec![
         ("Default".to_owned(), GameKeybinds::default_tetro()),
         ("Control+".to_owned(), GameKeybinds::extra_control()),

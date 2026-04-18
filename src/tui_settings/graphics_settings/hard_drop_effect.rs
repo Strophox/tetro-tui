@@ -32,7 +32,7 @@ pub struct HardDropEffect {
     pub y_decay: f32,
 }
 
-pub fn default_hard_drop_effect_slots() -> SlotMachine<HardDropEffect> {
+pub fn hard_drop_effect_presets() -> SlotMachine<HardDropEffect> {
     let slots = vec![
         ("None".to_owned(), HardDropEffect::none()),
         (

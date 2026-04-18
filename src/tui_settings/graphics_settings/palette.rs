@@ -15,12 +15,12 @@ pub struct Palette {
     colormap: HashMap<u8, Color>,
 }
 
-pub fn default_palette_slots() -> SlotMachine<Palette> {
+pub fn palette_presets() -> SlotMachine<Palette> {
     let slots = vec![
         ("Monochrome".to_owned(), Palette::monochrome()), // NOTE: The slot at index 0 is the special 'monochrome'/no palette slot.
         ("ANSI".to_owned(), Palette::ansi()),
         ("Standard".to_owned(), Palette::standard()),
-        ("Okpalette".to_owned(), Palette::okpalette()),
+        ("Tetro Pastel".to_owned(), Palette::tetro_pastel()),
         ("Gruvbox".to_owned(), Palette::gruvbox()),
         ("Solarized".to_owned(), Palette::solarized()),
         ("Terafox".to_owned(), Palette::terafox()),
@@ -82,7 +82,7 @@ impl Palette {
     //     ];
     //     HashMap::from(COLORS_OKLCH)
     // }
-    pub fn okpalette() -> Palette {
+    pub fn tetro_pastel() -> Palette {
         #[rustfmt::skip]
         let colors = [
             (  1, Color::Rgb{r:239,g:175,b: 50}), // #EFAF32

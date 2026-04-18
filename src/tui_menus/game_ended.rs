@@ -145,7 +145,10 @@ impl<T: Write> Application<T> {
                 format!("Score: {points_scored}"),
                 format!(
                     "Pieces: {}",
-                    fmt_tetromino_counts(pieces_locked, &self.settings.mini_tet_style().tets)
+                    fmt_tetromino_counts(
+                        pieces_locked,
+                        &self.settings.mini_tetromino_symbols().tets
+                    )
                 ),
                 format!(
                     "Gravity reached: {}",

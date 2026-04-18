@@ -95,17 +95,17 @@ impl<T: Write> Application<T> {
                         .0
                 ),
                 format!(
-                    "TUI style = {}",
+                    "TUI symbols = {}",
                     self.settings
                         .tui_style_slotmachine
-                        .grab(self.settings.graphics().tui_style_selected)
+                        .grab(self.settings.graphics().tui_symbols_selected)
                         .0
                 ),
                 format!(
-                    "Mino textures = {}",
+                    "Mino symbols = {}",
                     self.settings
-                        .mino_textures_slotmachine
-                        .grab(self.settings.graphics().mino_textures_selected)
+                        .mino_symbols_slotmachine
+                        .grab(self.settings.graphics().mino_symbols_selected)
                         .0
                 ),
                 format!(
@@ -130,17 +130,17 @@ impl<T: Write> Application<T> {
                         .0
                 ),
                 format!(
-                    "Mini tet. style = {}",
+                    "Mini tet. symbols = {}",
                     self.settings
-                        .mini_tet_style_slotmachine
-                        .grab(self.settings.graphics().mini_tet_selected)
+                        .mini_tetromino_symbols_slotmachine
+                        .grab(self.settings.graphics().mini_tetromino_symbols_selected)
                         .0
                 ),
                 format!(
-                    "Small tet. style = {}",
+                    "Small tet. symbols = {}",
                     self.settings
-                        .small_tet_style_slotmachine
-                        .grab(self.settings.graphics().small_tet_selected)
+                        .small_tetromino_symbols_slotmachine
+                        .grab(self.settings.graphics().small_tetromino_symbols_selected)
                         .0
                 ),
                 format!(
@@ -164,8 +164,8 @@ impl<T: Write> Application<T> {
                         self.settings.graphics().show_grid.then_some("Grid"),
                         self.settings.graphics().show_shadow.then_some("Shadow"),
                         self.settings.graphics().show_spawn.then_some("Spawn"),
-                        (self.settings.graphics().boardpalette_selected != 0)
-                            .then_some("Col'board"),
+                        (self.settings.graphics().lockedminopalette_selected != 0)
+                            .then_some("Col'minos"),
                         self.settings.graphics().show_main_hud.then_some("HUD"),
                         self.settings.graphics().show_keybinds.then_some("Keybinds"),
                         self.settings.graphics().show_buttons.then_some("Buttons"),
@@ -195,21 +195,24 @@ impl<T: Write> Application<T> {
                 ("Show grid", self.settings.graphics().show_grid),
                 ("Show piece shadow", self.settings.graphics().show_shadow),
                 (
-                    "Preview spawn when stack high",
+                    "Preview upcoming spawn if stack high",
                     self.settings.graphics().show_spawn,
                 ),
                 (
-                    "Color board tiles",
-                    self.settings.graphics().boardpalette_selected != 0,
+                    "Colored locked minos",
+                    self.settings.graphics().lockedminopalette_selected != 0,
                 ),
-                ("Show left HUD", self.settings.graphics().show_main_hud),
+                ("Show main HUD", self.settings.graphics().show_main_hud),
                 (
-                    "Show keybinds legend",
+                    "Include keybinds legend",
                     self.settings.graphics().show_keybinds,
                 ),
-                ("Show active buttons", self.settings.graphics().show_buttons),
                 (
-                    "Show lock delay countdown",
+                    "Show active(=held) buttons",
+                    self.settings.graphics().show_buttons,
+                ),
+                (
+                    "Show lock delay timer",
                     self.settings.graphics().show_lockdelay,
                 ),
                 ("Show FPS counter", self.settings.graphics().show_fps),
@@ -270,7 +273,7 @@ impl<T: Write> Application<T> {
 
                 for tet in Tetromino::VARIANTS {
                     self.term.queue(PrintStyledContent(
-                        self.settings.small_tet_style().tets[tet as usize]
+                        self.settings.small_tetromino_symbols().tets[tet as usize]
                             .clone()
                             .with(
                                 *self
@@ -356,20 +359,20 @@ impl<T: Write> Application<T> {
                         self.settings.graphics_mut().palette_selected += 1;
                         self.settings.graphics_mut().palette_selected %=
                             self.settings.palette_slotmachine.slots.len();
-                        self.settings.graphics_mut().boardpalette_selected =
+                        self.settings.graphics_mut().lockedminopalette_selected =
                             self.settings.graphics_mut().palette_selected;
                     }
                     2 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().tui_style_selected += 1;
-                        self.settings.graphics_mut().tui_style_selected %=
+                        self.settings.graphics_mut().tui_symbols_selected += 1;
+                        self.settings.graphics_mut().tui_symbols_selected %=
                             self.settings.tui_style_slotmachine.slots.len();
                     }
                     3 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().mino_textures_selected += 1;
-                        self.settings.graphics_mut().mino_textures_selected %=
-                            self.settings.mino_textures_slotmachine.slots.len();
+                        self.settings.graphics_mut().mino_symbols_selected += 1;
+                        self.settings.graphics_mut().mino_symbols_selected %=
+                            self.settings.mino_symbols_slotmachine.slots.len();
                     }
                     4 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
@@ -391,15 +394,22 @@ impl<T: Write> Application<T> {
                     }
                     7 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().mini_tet_selected += 1;
-                        self.settings.graphics_mut().mini_tet_selected %=
-                            self.settings.mini_tet_style_slotmachine.slots.len();
+                        self.settings.graphics_mut().mini_tetromino_symbols_selected += 1;
+                        self.settings.graphics_mut().mini_tetromino_symbols_selected %=
+                            self.settings.mini_tetromino_symbols_slotmachine.slots.len();
                     }
                     8 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().small_tet_selected += 1;
-                        self.settings.graphics_mut().small_tet_selected %=
-                            self.settings.small_tet_style_slotmachine.slots.len();
+                        self.settings
+                            .graphics_mut()
+                            .small_tetromino_symbols_selected += 1;
+                        self.settings
+                            .graphics_mut()
+                            .small_tetromino_symbols_selected %= self
+                            .settings
+                            .small_tetromino_symbols_slotmachine
+                            .slots
+                            .len();
                     }
                     9 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
@@ -428,8 +438,8 @@ impl<T: Write> Application<T> {
                     }
                     14 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().boardpalette_selected =
-                            if self.settings.graphics().boardpalette_selected == 0 {
+                        self.settings.graphics_mut().lockedminopalette_selected =
+                            if self.settings.graphics().lockedminopalette_selected == 0 {
                                 self.settings.graphics_mut().palette_selected
                             } else {
                                 0
@@ -475,22 +485,22 @@ impl<T: Write> Application<T> {
                             self.settings.palette_slotmachine.slots.len() - 1;
                         self.settings.graphics_mut().palette_selected %=
                             self.settings.palette_slotmachine.slots.len();
-                        self.settings.graphics_mut().boardpalette_selected =
+                        self.settings.graphics_mut().lockedminopalette_selected =
                             self.settings.graphics_mut().palette_selected;
                     }
                     2 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().tui_style_selected +=
+                        self.settings.graphics_mut().tui_symbols_selected +=
                             self.settings.tui_style_slotmachine.slots.len() - 1;
-                        self.settings.graphics_mut().tui_style_selected %=
+                        self.settings.graphics_mut().tui_symbols_selected %=
                             self.settings.tui_style_slotmachine.slots.len();
                     }
                     3 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().mino_textures_selected +=
-                            self.settings.mino_textures_slotmachine.slots.len() - 1;
-                        self.settings.graphics_mut().mino_textures_selected %=
-                            self.settings.mino_textures_slotmachine.slots.len();
+                        self.settings.graphics_mut().mino_symbols_selected +=
+                            self.settings.mino_symbols_slotmachine.slots.len() - 1;
+                        self.settings.graphics_mut().mino_symbols_selected %=
+                            self.settings.mino_symbols_slotmachine.slots.len();
                     }
                     4 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
@@ -515,17 +525,28 @@ impl<T: Write> Application<T> {
                     }
                     7 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().mini_tet_selected +=
-                            self.settings.mini_tet_style_slotmachine.slots.len() - 1;
-                        self.settings.graphics_mut().mini_tet_selected %=
-                            self.settings.mini_tet_style_slotmachine.slots.len();
+                        self.settings.graphics_mut().mini_tetromino_symbols_selected +=
+                            self.settings.mini_tetromino_symbols_slotmachine.slots.len() - 1;
+                        self.settings.graphics_mut().mini_tetromino_symbols_selected %=
+                            self.settings.mini_tetromino_symbols_slotmachine.slots.len();
                     }
                     8 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().small_tet_selected +=
-                            self.settings.small_tet_style_slotmachine.slots.len() - 1;
-                        self.settings.graphics_mut().small_tet_selected %=
-                            self.settings.small_tet_style_slotmachine.slots.len();
+                        self.settings
+                            .graphics_mut()
+                            .small_tetromino_symbols_selected += self
+                            .settings
+                            .small_tetromino_symbols_slotmachine
+                            .slots
+                            .len()
+                            - 1;
+                        self.settings
+                            .graphics_mut()
+                            .small_tetromino_symbols_selected %= self
+                            .settings
+                            .small_tetromino_symbols_slotmachine
+                            .slots
+                            .len();
                     }
                     9 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
@@ -558,8 +579,8 @@ impl<T: Write> Application<T> {
                     }
                     14 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().boardpalette_selected =
-                            if self.settings.graphics().boardpalette_selected == 0 {
+                        self.settings.graphics_mut().lockedminopalette_selected =
+                            if self.settings.graphics().lockedminopalette_selected == 0 {
                                 self.settings.graphics_mut().palette_selected
                             } else {
                                 0

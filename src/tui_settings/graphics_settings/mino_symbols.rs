@@ -7,15 +7,15 @@ use crate::tui_settings::{
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]
 pub struct MinoTextures {
-    pub play: TileTexture,
-    pub locked: TileTexture,
-    pub shadow: TileTexture,
     pub grid: TileTexture,
-    pub slashed: TileTexture,
+    pub play: TileTexture,
+    pub shadow: TileTexture,
+    pub locked: TileTexture,
+    pub hatched: TileTexture,
     pub crossed: TileTexture,
 }
 
-pub fn default_mino_textures_slots() -> SlotMachine<MinoTextures> {
+pub fn mino_symbols_presets() -> SlotMachine<MinoTextures> {
     let slots = vec![
         ("ASCII".to_owned(), MinoTextures::ascii()),
         ("Unicode".to_owned(), MinoTextures::unicode()),
@@ -28,33 +28,33 @@ pub fn default_mino_textures_slots() -> SlotMachine<MinoTextures> {
 impl MinoTextures {
     pub fn ascii() -> Self {
         MinoTextures {
-            play: "[]".tile(),
-            locked: "##".tile(), // "[]" "$$" ?
-            shadow: "::".tile(),
             grid: " .".tile(),
-            slashed: "//".tile(), // r"\\" ?
+            play: "[]".tile(),
+            shadow: "::".tile(),
+            locked: "##".tile(),  // "[]" "$$" ?
+            hatched: "//".tile(), // r"\\" ?
             crossed: "XX".tile(),
         }
     }
 
     pub fn unicode() -> Self {
         MinoTextures {
-            play: "▓▓".tile(),
-            locked: "██".tile(), // "▒▒"
-            shadow: "░░".tile(),
             grid: " ⢀".tile(), // " ⌟" ?
-            slashed: "╱╱".tile(),
+            play: "▓▓".tile(),
+            shadow: "░░".tile(),
+            locked: "██".tile(), // "▒▒"
+            hatched: "╱╱".tile(),
             crossed: "╳╳".tile(),
         }
     }
 
     pub fn elektronika_60() -> Self {
         MinoTextures {
-            play: "▮▮".tile(),
-            locked: "▮▮".tile(),
-            shadow: "▯▯".tile(),
             grid: " .".tile(),
-            slashed: "//".tile(),
+            play: "▮▮".tile(),
+            shadow: "▯▯".tile(),
+            locked: "▮▮".tile(),
+            hatched: "//".tile(),
             crossed: "XX".tile(),
         }
     }

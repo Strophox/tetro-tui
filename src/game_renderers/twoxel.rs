@@ -72,7 +72,7 @@ impl Renderer for TwoxelRenderer {
                 .map(|j0| {
                     let b0 = if l0[*j0].is_some() { 1 } else { 0 };
                     let b1 = if l1[*j0].is_some() { 2 } else { 0 };
-                    settings.small_tet_style().parts[b0 + b1]
+                    settings.small_tetromino_symbols().parts[b0 + b1]
                 })
                 .collect::<String>()
         });

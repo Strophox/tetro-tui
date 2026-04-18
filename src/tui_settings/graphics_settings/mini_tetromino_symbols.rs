@@ -7,40 +7,40 @@ use crate::tui_settings::SlotMachine;
 )]
 // #[serde(transparent)]
 #[serde(into = "String", try_from = "String")]
-pub struct MiniTetStyle {
+pub struct MiniTetrominoSymbols {
     pub tets: [char; Tetromino::VARIANTS.len()],
 }
 
-pub fn default_mini_tet_style_slots() -> SlotMachine<MiniTetStyle> {
+pub fn mini_tetromino_symbols_presets() -> SlotMachine<MiniTetrominoSymbols> {
     let slots = vec![
-        ("ASCII".to_owned(), MiniTetStyle::letters()),
-        ("Braille".to_owned(), MiniTetStyle::braille()),
+        ("Letters".to_owned(), MiniTetrominoSymbols::letters()),
+        ("Braille".to_owned(), MiniTetrominoSymbols::braille()),
     ];
 
     SlotMachine::with_unmodifiable_slots(slots, "Mini tet.".to_owned())
 }
 
-impl MiniTetStyle {
+impl MiniTetrominoSymbols {
     pub fn letters() -> Self {
-        MiniTetStyle {
+        MiniTetrominoSymbols {
             tets: ['O', 'I', 'S', 'Z', 'T', 'L', 'J'],
         }
     }
 
     pub fn braille() -> Self {
-        MiniTetStyle {
+        MiniTetrominoSymbols {
             tets: ['⠶', '⡇', '⠳', '⠞', '⠗', '⠧', '⠼'],
         }
     }
 }
 
-impl From<MiniTetStyle> for String {
-    fn from(value: MiniTetStyle) -> Self {
+impl From<MiniTetrominoSymbols> for String {
+    fn from(value: MiniTetrominoSymbols) -> Self {
         value.tets.iter().collect()
     }
 }
 
-impl TryFrom<String> for MiniTetStyle {
+impl TryFrom<String> for MiniTetrominoSymbols {
     type Error = String;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
@@ -49,6 +49,6 @@ impl TryFrom<String> for MiniTetStyle {
             .collect::<Vec<char>>()
             .try_into()
             .map_err(|x| format!("Error: {x:?}"))?;
-        Ok(MiniTetStyle { tets })
+        Ok(MiniTetrominoSymbols { tets })
     }
 }

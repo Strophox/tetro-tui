@@ -66,8 +66,11 @@ In practice, we decompose it as such:
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]
-#[serde(into = "TuiStyleCompact<String>", try_from = "TuiStyleCompact<String>")]
-pub struct TuiStyle {
+#[serde(
+    into = "CompactTuiSymbols<String>",
+    try_from = "CompactTuiSymbols<String>"
+)]
+pub struct TuiSymbols {
     /// Whether to use the ASCII title screen variant.
     pub is_title_unicode: bool,
     /// "Z"
@@ -88,19 +91,23 @@ pub struct TuiStyle {
     pub progressbarglyphs: (Vec<char>, char),
 }
 
-pub fn default_tui_style_slots() -> SlotMachine<TuiStyle> {
+pub fn tui_symbols_presets() -> SlotMachine<TuiSymbols> {
     let slots = vec![
-        ("ASCII".to_owned(), TuiStyle::ascii()),
-        ("Unicode".to_owned(), TuiStyle::unicode()),
-        ("Elektronika 60".to_owned(), TuiStyle::elektronika_60()),
+        ("ASCII".to_owned(), TuiSymbols::ascii()),
+        ("Unicode".to_owned(), TuiSymbols::unicode()),
+        (
+            "Borderless Unicode".to_owned(),
+            TuiSymbols::borderless_unicode(),
+        ),
+        ("Elektronika 60".to_owned(), TuiSymbols::elektronika_60()),
     ];
 
     SlotMachine::with_unmodifiable_slots(slots, "TUI style".to_owned())
 }
 
-impl TuiStyle {
+impl TuiSymbols {
     pub fn ascii() -> Self {
-        TuiStyleCompact {
+        CompactTuiSymbols {
             is_title_unicode: false,
             menuglyphs: "-",
             frame: "+-+|#=#|",
@@ -117,8 +124,8 @@ impl TuiStyle {
         .unwrap()
     }
 
-    pub fn unicode() -> TuiStyle {
-        TuiStyleCompact {
+    pub fn unicode() -> TuiSymbols {
+        CompactTuiSymbols {
             is_title_unicode: true,
             menuglyphs: "─",
             frame: "╓╴╖║╜▀╙║",
@@ -136,7 +143,7 @@ impl TuiStyle {
     }
 
     pub fn elektronika_60() -> Self {
-        TuiStyleCompact {
+        CompactTuiSymbols {
             is_title_unicode: false,
             menuglyphs: "=",
             frame: "   !!=!!",
@@ -152,14 +159,32 @@ impl TuiStyle {
         .try_into()
         .unwrap()
     }
+
+    pub fn borderless_unicode() -> Self {
+        CompactTuiSymbols {
+            is_title_unicode: true,
+            menuglyphs: " ",
+            frame: "        ",
+            frame2: None,
+            hold: "    ",
+            next: "       ",
+            buttons: "←→↺↻↔↓⤓⇓⇐⇒⇋",
+            countdown: ["⡀", "⡄", "⡆", "⡇", "⡏", "⡟", "⡿", "⣿"]
+                .map(|s| s.to_owned())
+                .into(),
+            progressbar: (" ▏▎▍▌▋▊▉", '█'),
+        }
+        .try_into()
+        .unwrap()
+    }
 }
 
 // -- Compaction helper code. --
 
-impl<S: AsRef<str>> TryFrom<TuiStyleCompact<S>> for TuiStyle {
+impl<S: AsRef<str>> TryFrom<CompactTuiSymbols<S>> for TuiSymbols {
     type Error = String;
 
-    fn try_from(value: TuiStyleCompact<S>) -> Result<Self, Self::Error> {
+    fn try_from(value: CompactTuiSymbols<S>) -> Result<Self, Self::Error> {
         fn fmt_err(vec: Vec<char>) -> String {
             format!("Could not convert {vec:?}")
         }
@@ -215,7 +240,7 @@ impl<S: AsRef<str>> TryFrom<TuiStyleCompact<S>> for TuiStyle {
             value.progressbar.0.as_ref().chars().collect::<Vec<char>>(),
             value.progressbar.1,
         );
-        Ok(TuiStyle {
+        Ok(TuiSymbols {
             is_title_unicode: value.is_title_unicode,
             menuglyphs,
             frameglyphs,
@@ -232,7 +257,7 @@ impl<S: AsRef<str>> TryFrom<TuiStyleCompact<S>> for TuiStyle {
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]
-pub struct TuiStyleCompact<T> {
+pub struct CompactTuiSymbols<T> {
     pub is_title_unicode: bool,
     pub menuglyphs: T,
     pub frame: T,
@@ -244,9 +269,9 @@ pub struct TuiStyleCompact<T> {
     pub progressbar: (T, char),
 }
 
-impl From<TuiStyle> for TuiStyleCompact<String> {
-    fn from(value: TuiStyle) -> Self {
-        TuiStyleCompact {
+impl From<TuiSymbols> for CompactTuiSymbols<String> {
+    fn from(value: TuiSymbols) -> Self {
+        CompactTuiSymbols {
             is_title_unicode: value.is_title_unicode,
             menuglyphs: value.menuglyphs.iter().collect(),
             frame: value.frameglyphs.iter().collect(),

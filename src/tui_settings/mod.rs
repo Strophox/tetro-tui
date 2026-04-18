@@ -10,25 +10,26 @@ pub use graphics_settings::{
     hard_drop_effect::HardDropEffect,
     line_clear_effect::{LineClearEffect, LineClearInlineEffect, LineClearParticleEffect},
     lock_effect::LockEffect,
-    mini_tet_style::MiniTetStyle,
-    mino_textures::MinoTextures,
+    mini_tetromino_symbols::MiniTetrominoSymbols,
+    mino_symbols::MinoTextures,
     palette::Palette,
-    small_tet_style::SmallTetStyle,
-    tui_style::TuiStyle,
+    small_tetromino_symbols::SmallTetrominoSymbols,
+    tui_symbols::TuiSymbols,
     GraphicsSettings, TileTexture,
 };
 
 use crate::{
     fmt_helpers::to_roman,
     tui_settings::{
-        game_keybinds::default_keybinds_slots,
-        gameplay_settings::default_gameplay_slots,
+        game_keybinds::game_keybinds_presets,
+        gameplay_settings::gameplay_settings_presets,
         graphics_settings::{
-            default_graphics_slots, hard_drop_effect::default_hard_drop_effect_slots,
-            line_clear_effect::default_line_clear_effect_slots,
-            lock_effect::default_lock_effect_slots, mini_tet_style::default_mini_tet_style_slots,
-            mino_textures::default_mino_textures_slots, palette::default_palette_slots,
-            small_tet_style::default_small_tet_style_slots, tui_style::default_tui_style_slots,
+            graphics_settings_presets, hard_drop_effect::hard_drop_effect_presets,
+            line_clear_effect::line_clear_effect_presets, lock_effect::lock_effect_presets,
+            mini_tetromino_symbols::mini_tetromino_symbols_presets,
+            mino_symbols::mino_symbols_presets, palette::palette_presets,
+            small_tetromino_symbols::small_tetromino_symbols_presets,
+            tui_symbols::tui_symbols_presets,
         },
     },
 };
@@ -41,27 +42,27 @@ pub struct Settings {
     pub graphics_slotmachine: SlotMachine<GraphicsSettings>,
     #[serde(rename = "PALETTE_SLOTS")]
     pub palette_slotmachine: SlotMachine<Palette>,
-    #[serde(rename = "TUI_STYLE_SLOTS")]
-    pub tui_style_slotmachine: SlotMachine<TuiStyle>,
-    #[serde(rename = "MINO_TEXTURES_SLOTS")]
-    pub mino_textures_slotmachine: SlotMachine<MinoTextures>,
+    #[serde(rename = "TUI_SYMBOLS_SLOTS")]
+    pub tui_style_slotmachine: SlotMachine<TuiSymbols>,
+    #[serde(rename = "MINO_SYMBOLS_SLOTS")]
+    pub mino_symbols_slotmachine: SlotMachine<MinoTextures>,
     #[serde(rename = "HARD_DROP_EFFECT_SLOTS")]
     pub hard_drop_effect_slotmachine: SlotMachine<HardDropEffect>,
     #[serde(rename = "LOCK_EFFECT_SLOTS")]
     pub lock_effect_slotmachine: SlotMachine<LockEffect>,
     #[serde(rename = "LINE_CLEAR_EFFECT_SLOTS")]
     pub line_clear_effect_slotmachine: SlotMachine<LineClearEffect>,
-    #[serde(rename = "MINI_TET_STYLE_SLOTS")]
-    pub mini_tet_style_slotmachine: SlotMachine<MiniTetStyle>,
-    #[serde(rename = "SMALL_TET_STYLE_SLOTS")]
-    pub small_tet_style_slotmachine: SlotMachine<SmallTetStyle>,
+    #[serde(rename = "MINI_TETROMINO_SYMBOLS_SLOTS")]
+    pub mini_tetromino_symbols_slotmachine: SlotMachine<MiniTetrominoSymbols>,
+    #[serde(rename = "SMALL_TETROMINO_SYMBOLS_SLOTS")]
+    pub small_tetromino_symbols_slotmachine: SlotMachine<SmallTetrominoSymbols>,
 
     pub keybinds_selected: usize,
     #[serde(rename = "GAME_KEYBINDS_SLOTS")]
     pub keybinds_slotmachine: SlotMachine<GameKeybinds>,
 
     pub gameplay_selected: usize,
-    #[serde(rename = "GAMEPLAY_CONFIG_SLOTS")]
+    #[serde(rename = "GAMEPLAY_SETTINGS_SLOTS")]
     pub gameplay_slotmachine: SlotMachine<GameplaySettings>,
 
     #[serde(rename = "GAME_MODE_PREFERENCES")]
@@ -72,21 +73,21 @@ impl Default for Settings {
     fn default() -> Self {
         Self {
             graphics_selected: 0,
-            graphics_slotmachine: default_graphics_slots(),
-            palette_slotmachine: default_palette_slots(),
-            tui_style_slotmachine: default_tui_style_slots(),
-            mino_textures_slotmachine: default_mino_textures_slots(),
-            hard_drop_effect_slotmachine: default_hard_drop_effect_slots(),
-            lock_effect_slotmachine: default_lock_effect_slots(),
-            line_clear_effect_slotmachine: default_line_clear_effect_slots(),
-            mini_tet_style_slotmachine: default_mini_tet_style_slots(),
-            small_tet_style_slotmachine: default_small_tet_style_slots(),
+            graphics_slotmachine: graphics_settings_presets(),
+            palette_slotmachine: palette_presets(),
+            tui_style_slotmachine: tui_symbols_presets(),
+            mino_symbols_slotmachine: mino_symbols_presets(),
+            hard_drop_effect_slotmachine: hard_drop_effect_presets(),
+            lock_effect_slotmachine: lock_effect_presets(),
+            line_clear_effect_slotmachine: line_clear_effect_presets(),
+            mini_tetromino_symbols_slotmachine: mini_tetromino_symbols_presets(),
+            small_tetromino_symbols_slotmachine: small_tetromino_symbols_presets(),
 
             keybinds_selected: 0,
-            keybinds_slotmachine: default_keybinds_slots(),
+            keybinds_slotmachine: game_keybinds_presets(),
 
             gameplay_selected: 0,
-            gameplay_slotmachine: default_gameplay_slots(),
+            gameplay_slotmachine: gameplay_settings_presets(),
 
             game_mode_preferences: GameModePreferences::default(),
         }
@@ -104,16 +105,16 @@ impl Settings {
             .grab(self.graphics().palette_selected)
             .1
     }
-    pub fn tui_style(&self) -> &TuiStyle {
+    pub fn tui_symbols(&self) -> &TuiSymbols {
         &self
             .tui_style_slotmachine
-            .grab(self.graphics().tui_style_selected)
+            .grab(self.graphics().tui_symbols_selected)
             .1
     }
-    pub fn mino_textures(&self) -> &MinoTextures {
+    pub fn mino_symbols(&self) -> &MinoTextures {
         &self
-            .mino_textures_slotmachine
-            .grab(self.graphics().mino_textures_selected)
+            .mino_symbols_slotmachine
+            .grab(self.graphics().mino_symbols_selected)
             .1
     }
     pub fn hard_drop_effect(&self) -> &HardDropEffect {
@@ -134,22 +135,22 @@ impl Settings {
             .grab(self.graphics().line_clear_selected)
             .1
     }
-    pub fn mini_tet_style(&self) -> &MiniTetStyle {
+    pub fn mini_tetromino_symbols(&self) -> &MiniTetrominoSymbols {
         &self
-            .mini_tet_style_slotmachine
-            .grab(self.graphics().mini_tet_selected)
+            .mini_tetromino_symbols_slotmachine
+            .grab(self.graphics().mini_tetromino_symbols_selected)
             .1
     }
-    pub fn small_tet_style(&self) -> &SmallTetStyle {
+    pub fn small_tetromino_symbols(&self) -> &SmallTetrominoSymbols {
         &self
-            .small_tet_style_slotmachine
-            .grab(self.graphics().small_tet_selected)
+            .small_tetromino_symbols_slotmachine
+            .grab(self.graphics().small_tetromino_symbols_selected)
             .1
     }
-    pub fn boardpalette(&self) -> &Palette {
+    pub fn lockedminopalette(&self) -> &Palette {
         &self
             .palette_slotmachine
-            .grab(self.graphics().boardpalette_selected)
+            .grab(self.graphics().lockedminopalette_selected)
             .1
     }
 

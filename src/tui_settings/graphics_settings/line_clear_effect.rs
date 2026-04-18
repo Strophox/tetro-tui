@@ -62,10 +62,10 @@ pub struct LineClearParticleEffect {
     pub momentum_xpos: f32,
 }
 
-pub fn default_line_clear_effect_slots() -> SlotMachine<LineClearEffect> {
+pub fn line_clear_effect_presets() -> SlotMachine<LineClearEffect> {
     let slots = vec![
         ("None".to_owned(), LineClearEffect::none()),
-        ("Instant".to_owned(), LineClearEffect::instant()),
+        ("Vanish instantly".to_owned(), LineClearEffect::instant()),
         ("Blink".to_owned(), LineClearEffect::blink()),
         ("Flash white".to_owned(), LineClearEffect::flash_white()),
         ("Left to right".to_owned(), LineClearEffect::left_to_right()),

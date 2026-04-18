@@ -45,7 +45,7 @@ impl<T: Write> Application<T> {
                 .queue(Clear(ClearType::All))?
                 .queue(MoveTo(x_main, y_main + y_selection))?
                 .queue(PrintStyledContent(
-                    format!("{:^w_main$}", "@ Keybinds @").bold(),
+                    format!("{:^w_main$}", "@ Game Keybinds @").bold(),
                 ))?
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
                 .queue(Print(format!("{:^w_main$}", title_bar(&self.settings))))?;

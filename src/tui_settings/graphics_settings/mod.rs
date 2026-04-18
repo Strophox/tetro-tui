@@ -7,11 +7,11 @@ use crate::tui_settings::SlotMachine;
 pub mod hard_drop_effect;
 pub mod line_clear_effect;
 pub mod lock_effect;
-pub mod mini_tet_style;
-pub mod mino_textures;
+pub mod mini_tetromino_symbols;
+pub mod mino_symbols;
 pub mod palette;
-pub mod small_tet_style;
-pub mod tui_style;
+pub mod small_tetromino_symbols;
+pub mod tui_symbols;
 
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug, serde::Serialize, serde::Deserialize,
@@ -19,26 +19,26 @@ pub mod tui_style;
 pub struct GraphicsSettings {
     #[serde(rename = "palette")]
     pub palette_selected: usize,
-    #[serde(rename = "tuistyle")]
-    pub tui_style_selected: usize,
-    #[serde(rename = "minotextures")]
-    pub mino_textures_selected: usize,
+    #[serde(rename = "tui_symb")]
+    pub tui_symbols_selected: usize,
+    #[serde(rename = "mino_symb")]
+    pub mino_symbols_selected: usize,
     #[serde(rename = "harddrop")]
     pub hard_drop_selected: usize,
     #[serde(rename = "lock")]
     pub lock_effect_selected: usize,
     #[serde(rename = "lineclear")]
     pub line_clear_selected: usize,
-    #[serde(rename = "minitet")]
-    pub mini_tet_selected: usize,
-    #[serde(rename = "smalltet")]
-    pub small_tet_selected: usize,
-    #[serde(rename = "normsizeprevlimit")]
+    #[serde(rename = "mini_tet_symb")]
+    pub mini_tetromino_symbols_selected: usize,
+    #[serde(rename = "small_tet_symb")]
+    pub small_tetromino_symbols_selected: usize,
+    #[serde(rename = "normsize_prev_limit")]
     pub normalsize_preview_limit: Option<NonZeroUsize>,
     #[serde(rename = "fps")]
     pub fps: ExtNonNegF64,
-    #[serde(rename = "boardpalette")]
-    pub boardpalette_selected: usize,
+    #[serde(rename = "lockedminopalette")]
+    pub lockedminopalette_selected: usize,
     #[serde(rename = "s_hud")]
     pub show_main_hud: bool,
     #[serde(rename = "s_keybinds")]
@@ -57,7 +57,7 @@ pub struct GraphicsSettings {
     pub show_fps: bool,
 }
 
-pub fn default_graphics_slots() -> SlotMachine<GraphicsSettings> {
+pub fn graphics_settings_presets() -> SlotMachine<GraphicsSettings> {
     let slots = vec![
         ("Default".to_owned(), GraphicsSettings::default()),
         ("Focus+".to_owned(), GraphicsSettings::extra_focus()),
@@ -79,17 +79,17 @@ pub fn default_graphics_slots() -> SlotMachine<GraphicsSettings> {
 impl Default for GraphicsSettings {
     fn default() -> Self {
         GraphicsSettings {
-            palette_selected: 3,       // Okpalette
-            tui_style_selected: 1,     // Unicode
-            mino_textures_selected: 1, // Unicode
-            hard_drop_selected: 1,     // ASCII particles
-            lock_effect_selected: 2,   // Unicode pulse
-            line_clear_selected: 10,   // Blast
-            mini_tet_selected: 1,      // Braille
-            small_tet_selected: 1,     // Blocks
+            palette_selected: 3,                 // Okpalette
+            tui_symbols_selected: 1,             // Unicode
+            mino_symbols_selected: 1,            // Unicode
+            hard_drop_selected: 1,               // ASCII particles
+            lock_effect_selected: 2,             // Unicode pulse
+            line_clear_selected: 10,             // Blast
+            mini_tetromino_symbols_selected: 1,  // Braille
+            small_tetromino_symbols_selected: 1, // Blocks
             normalsize_preview_limit: Some(NonZeroUsize::MIN),
             fps: ExtNonNegF64::from(60),
-            boardpalette_selected: 3, // Okpalette
+            lockedminopalette_selected: 3, // Okpalette
             show_main_hud: true,
             show_lockdelay: false,
             show_keybinds: true,
@@ -105,17 +105,17 @@ impl Default for GraphicsSettings {
 impl GraphicsSettings {
     pub fn extra_focus() -> Self {
         GraphicsSettings {
-            palette_selected: 2,       // Standard
-            tui_style_selected: 1,     // Unicode
-            mino_textures_selected: 1, // Unicode
-            hard_drop_selected: 0,     // None
-            lock_effect_selected: 0,   // None
-            line_clear_selected: 0,    // None (vacate)
-            mini_tet_selected: 1,      // Braille
-            small_tet_selected: 1,     // Blocks
+            palette_selected: 2,                 // Standard
+            tui_symbols_selected: 1,             // Unicode
+            mino_symbols_selected: 1,            // Unicode
+            hard_drop_selected: 0,               // None
+            lock_effect_selected: 0,             // None
+            line_clear_selected: 0,              // None (vacate)
+            mini_tetromino_symbols_selected: 1,  // Braille
+            small_tetromino_symbols_selected: 1, // Blocks
             normalsize_preview_limit: None,
             fps: ExtNonNegF64::from(60),
-            boardpalette_selected: 0, // Monochrome
+            lockedminopalette_selected: 0, // Monochrome
             show_main_hud: true,
             show_lockdelay: false,
             show_keybinds: false,
@@ -129,17 +129,17 @@ impl GraphicsSettings {
 
     pub fn guideline() -> Self {
         GraphicsSettings {
-            palette_selected: 2,       // Standard
-            tui_style_selected: 1,     // Unicode
-            mino_textures_selected: 1, // Unicode
-            hard_drop_selected: 1,     // ASCII particles
-            lock_effect_selected: 2,   // Unicode pulse
-            line_clear_selected: 5,    // Clear inward
-            mini_tet_selected: 1,      // Braille
-            small_tet_selected: 1,     // Blocks
+            palette_selected: 2,                 // Standard
+            tui_symbols_selected: 1,             // Unicode
+            mino_symbols_selected: 1,            // Unicode
+            hard_drop_selected: 1,               // ASCII particles
+            lock_effect_selected: 2,             // Unicode pulse
+            line_clear_selected: 5,              // Clear inward
+            mini_tetromino_symbols_selected: 1,  // Braille
+            small_tetromino_symbols_selected: 1, // Blocks
             normalsize_preview_limit: Some(NonZeroUsize::MIN),
             fps: ExtNonNegF64::from(60),
-            boardpalette_selected: 2, // Standard
+            lockedminopalette_selected: 2, // Standard
             show_main_hud: true,
             show_lockdelay: false,
             show_keybinds: true,
@@ -153,17 +153,17 @@ impl GraphicsSettings {
 
     pub fn compatibility() -> Self {
         GraphicsSettings {
-            palette_selected: 1,       // ANSI
-            tui_style_selected: 0,     // ASCII
-            mino_textures_selected: 0, // ASCII
-            hard_drop_selected: 1,     // ASCII particles
-            lock_effect_selected: 1,   // ASCII transform
-            line_clear_selected: 13,   // Sparks
-            mini_tet_selected: 0,      // Letters
-            small_tet_selected: 0,     // ASCII
+            palette_selected: 1,                 // ANSI
+            tui_symbols_selected: 0,             // ASCII
+            mino_symbols_selected: 0,            // ASCII
+            hard_drop_selected: 1,               // ASCII particles
+            lock_effect_selected: 1,             // ASCII transform
+            line_clear_selected: 13,             // Sparks
+            mini_tetromino_symbols_selected: 0,  // Letters
+            small_tetromino_symbols_selected: 0, // ASCII
             normalsize_preview_limit: None,
             fps: ExtNonNegF64::from(30),
-            boardpalette_selected: 1, // ANSI
+            lockedminopalette_selected: 1, // ANSI
             show_main_hud: true,
             show_lockdelay: false,
             show_keybinds: true,
@@ -177,17 +177,17 @@ impl GraphicsSettings {
 
     pub fn elektronika_60() -> Self {
         GraphicsSettings {
-            palette_selected: 0,       // Monochrome
-            tui_style_selected: 2,     // Elektronika 60
-            mino_textures_selected: 2, // Elektronika 60
-            hard_drop_selected: 0,     // None
-            lock_effect_selected: 0,   // None
-            line_clear_selected: 4,    // Left-to-right
-            mini_tet_selected: 0,      // Letters
-            small_tet_selected: 0,     // ASCII
+            palette_selected: 0,                 // Monochrome
+            tui_symbols_selected: 2,             // Elektronika 60
+            mino_symbols_selected: 2,            // Elektronika 60
+            hard_drop_selected: 0,               // None
+            lock_effect_selected: 0,             // None
+            line_clear_selected: 4,              // Left-to-right
+            mini_tetromino_symbols_selected: 0,  // Letters
+            small_tetromino_symbols_selected: 0, // ASCII
             normalsize_preview_limit: None,
             fps: ExtNonNegF64::from(60),
-            boardpalette_selected: 0, // Monochrome
+            lockedminopalette_selected: 0, // Monochrome
             show_main_hud: true,
             show_lockdelay: false,
             show_keybinds: true,
@@ -201,17 +201,17 @@ impl GraphicsSettings {
 
     pub fn blank_slate() -> Self {
         GraphicsSettings {
-            palette_selected: 0,       // Monochrome
-            tui_style_selected: 1,     // Unicode
-            mino_textures_selected: 1, // Unicode
-            hard_drop_selected: 0,     // None
-            lock_effect_selected: 0,   // None
-            line_clear_selected: 0,    // None
-            mini_tet_selected: 0,      // Letters
-            small_tet_selected: 1,     // Blocks
+            palette_selected: 0,                 // Monochrome
+            tui_symbols_selected: 1,             // Unicode
+            mino_symbols_selected: 1,            // Unicode
+            hard_drop_selected: 0,               // None
+            lock_effect_selected: 0,             // None
+            line_clear_selected: 0,              // None
+            mini_tetromino_symbols_selected: 0,  // Letters
+            small_tetromino_symbols_selected: 1, // Blocks
             normalsize_preview_limit: None,
             fps: ExtNonNegF64::from(60),
-            boardpalette_selected: 0, // Monochrome
+            lockedminopalette_selected: 0, // Monochrome
             show_main_hud: false,
             show_lockdelay: false,
             show_keybinds: false,

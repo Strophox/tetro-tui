@@ -310,7 +310,7 @@ impl Renderer for LegacyBufferedRenderer {
         // Screen: draw.
         #[allow(clippy::useless_format)]
         #[rustfmt::skip]
-        let base_screen: &[String] = match settings.graphics().tui_style_selected /* Fallback. */ {
+        let base_screen: &[String] = match settings.graphics().tui_symbols_selected /* Fallback. */ {
             2 => &[
                 format!("                                                              ", ),
                 format!("                                                {: ^w$      } ", "mode:", w=modename_len),
@@ -494,7 +494,7 @@ impl Renderer for LegacyBufferedRenderer {
                         // Note: This is ***SO*** ugly OMFG.
                         let mut bs = vec![0; 4];
                         self.screen.buffer_str(
-                            settings.tui_style().buttonsglyphs[b].encode_utf8(&mut bs),
+                            settings.tui_symbols().buttonsglyphs[b].encode_utf8(&mut bs),
                             bc(b),
                             (x_buttonst + dx, y_buttonst),
                         )
@@ -511,9 +511,9 @@ impl Renderer for LegacyBufferedRenderer {
             locked,
             shadow,
             grid: _,
-            slashed: _,
+            hatched: _,
             crossed: _,
-        } = settings.mino_textures();
+        } = settings.mino_symbols();
         let tile_active = &play.0.iter().collect::<String>();
         let tile_ground = &locked.0.iter().collect::<String>();
         let tile_shadow = &shadow.0.iter().collect::<String>();
@@ -534,7 +534,7 @@ impl Renderer for LegacyBufferedRenderer {
         // Draw small preview pieces 2,3,4.
         let mut x_offset_small = 0;
         for tet in game.state().piece_preview.iter().skip(1).take(3) {
-            let tetstr = &settings.small_tet_style().tets[*tet as usize];
+            let tetstr = &settings.small_tetromino_symbols().tets[*tet as usize];
             self.screen.buffer_str(
                 tetstr,
                 get_color(tet.tile_id()),
@@ -550,7 +550,7 @@ impl Renderer for LegacyBufferedRenderer {
             //.take(5) {
             let mut bs = vec![0; 4];
             self.screen.buffer_str(
-                settings.mini_tet_style().tets[*tet as usize].encode_utf8(&mut bs),
+                settings.mini_tetromino_symbols().tets[*tet as usize].encode_utf8(&mut bs),
                 get_color(tet.tile_id()),
                 (x_preview_mini + x_offset_minuscule, y_preview_mini),
             );
@@ -559,7 +559,7 @@ impl Renderer for LegacyBufferedRenderer {
 
         // Draw held piece.
         if let Some((tet, swap_allowed)) = game.state().piece_held {
-            let tetstr = &settings.small_tet_style().tets[tet as usize];
+            let tetstr = &settings.small_tetromino_symbols().tets[tet as usize];
             let color = get_color(if swap_allowed {
                 tet.tile_id()
             } else {
@@ -580,7 +580,7 @@ impl Renderer for LegacyBufferedRenderer {
         ) in self.hard_drop_tiles.iter_mut()
         {
             let elapsed = game.state().time.saturating_sub(*creation_time);
-            let luminance_map = match settings.graphics().tui_style_selected /* Fallback. */ {
+            let luminance_map = match settings.graphics().tui_symbols_selected /* Fallback. */ {
                 2 => [" .", " .", " .", " .", " .", " .", " .", " ."],
                 // EX-FIX-ME: Make this hard drop effect available independently of Glyphset (i.e. also for ASCII).
                 0 => ["||", "||", "¦¦", "¦¦", "::", "::", "..", ".."],
@@ -611,7 +611,7 @@ impl Renderer for LegacyBufferedRenderer {
                         if let Some(xy) =
                             pos_board((isize::try_from(x).unwrap(), isize::try_from(y).unwrap()))
                         {
-                            let color_locked = settings.boardpalette().get(tile_id).copied();
+                            let color_locked = settings.lockedminopalette().get(tile_id).copied();
                             self.screen.buffer_str(tile_ground, color_locked, xy);
                         }
                     }
@@ -782,7 +782,7 @@ impl Renderer for LegacyBufferedRenderer {
                         continue;
                     }
                     #[rustfmt::skip]
-                    let animation_locking = match settings.graphics().tui_style_selected /* Fallback. */ {
+                    let animation_locking = match settings.graphics().tui_symbols_selected /* Fallback. */ {
                         2 => [
                             ( 25, "▮▮"),
                             ( 50, "▮▮"),
@@ -835,7 +835,7 @@ impl Renderer for LegacyBufferedRenderer {
                         continue;
                     }
                     if settings.graphics().line_clear_selected == 1 {
-                        let animation_lineclear = match settings.graphics().tui_style_selected /* Fallback. */ {
+                        let animation_lineclear = match settings.graphics().tui_symbols_selected /* Fallback. */ {
                             2 => [
                                 "▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮",
                                 "  ▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮",

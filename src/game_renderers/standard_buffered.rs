@@ -348,8 +348,8 @@ impl Renderer for StandardBufferedRenderer {
 
         // -- 'General TUI' rendering --
 
-        let tui_style = settings.tui_style();
-        let mino_textures = settings.mino_textures();
+        let tui_style = settings.tui_symbols();
+        let mino_textures = settings.mino_symbols();
         let ftch_col_or_rset = |tile_id: &TileID| {
             settings
                 .palette()
@@ -403,7 +403,7 @@ impl Renderer for StandardBufferedRenderer {
             #[rustfmt::skip] self.term_buf.write_char(w_tmp2, h_tmp2 + 1, TermCell { ch: c_h_l, fg: Color::Reset });
 
             // Render 'hold' piece.
-            let small_tet = &settings.small_tet_style().tets[tet as usize];
+            let small_tet = &settings.small_tetromino_symbols().tets[tet as usize];
             let w_extra_for_o = if tet == Tetromino::O { 1 } else { 0 };
 
             let tile_id = if is_swappable {
@@ -493,7 +493,7 @@ impl Renderer for StandardBufferedRenderer {
                     #[rustfmt::skip] term_buf.write_char(w_tmp6 + 8, h_tmp6 + y_offset + 2, TermCell { ch: c_n_br, fg: Color::Reset });
 
                     // Render preview piece.
-                    let small_tet = &settings.small_tet_style().tets[next_tet as usize];
+                    let small_tet = &settings.small_tetromino_symbols().tets[next_tet as usize];
                     let color = ftch_col_or_rset(&next_tet.tile_id());
                     let w_extra_for_o = if next_tet == Tetromino::O { 1 } else { 0 };
                     #[rustfmt::skip] term_buf.write_str(w_tmp6 + 2 + w_extra_for_o, h_tmp6 + y_offset + 1, small_tet, color);
@@ -520,7 +520,7 @@ impl Renderer for StandardBufferedRenderer {
             }
 
             for (x_offset, next_tet) in next_tetrominos.enumerate() {
-                let mini_tet = settings.mini_tet_style().tets[next_tet as usize];
+                let mini_tet = settings.mini_tetromino_symbols().tets[next_tet as usize];
                 let color = ftch_col_or_rset(&next_tet.tile_id());
                 #[rustfmt::skip] self.term_buf.write_char(w_tmp6 + 10 + 2 * (x_offset as u16), h_tmp6 + y_offset.saturating_sub(1), TermCell { ch: mini_tet, fg: color });
             }
@@ -728,7 +728,7 @@ impl Renderer for StandardBufferedRenderer {
             for (dx, elem) in elements.into_iter().enumerate() {
                 let ch = elem.unwrap_or_else(|b| {
                     if game.state().active_buttons[b].is_some() {
-                        settings.tui_style().buttonsglyphs[b]
+                        settings.tui_symbols().buttonsglyphs[b]
                     } else {
                         ' '
                     }
@@ -827,7 +827,7 @@ impl Renderer for StandardBufferedRenderer {
                     if let Some(tile_id) = tile {
                         let tile_texture = mino_textures.locked;
                         let color = settings
-                            .boardpalette()
+                            .lockedminopalette()
                             .get(tile_id)
                             .copied()
                             .unwrap_or(Color::Reset);
@@ -941,7 +941,7 @@ impl Renderer for StandardBufferedRenderer {
                             {
                                 (mino_textures.crossed, ftch_col_or_rset(&blocking_tile_id))
                             } else {
-                                (mino_textures.slashed, ftch_col_or_rset(&tile_id))
+                                (mino_textures.hatched, ftch_col_or_rset(&tile_id))
                             };
                             #[rustfmt::skip] self.term_buf.write_tile(w_tmp3 + 2 * (dx as u16), h_tmp3.saturating_sub(dy as u16), tile_texture, color);
                         }
@@ -959,7 +959,7 @@ impl Renderer for StandardBufferedRenderer {
                             // RENDER: Active piece when forfeited.
 
                             for ((dx, dy), tile_id) in forfeit_piece.tiles() {
-                                let tile_texture = mino_textures.slashed;
+                                let tile_texture = mino_textures.hatched;
                                 let color = ftch_col_or_rset(&tile_id);
                                 #[rustfmt::skip] self.term_buf.write_tile(w_tmp3 + 2 * (dx as u16), h_tmp3.saturating_sub(dy as u16), tile_texture, color);
                             }
@@ -1001,7 +1001,7 @@ impl Renderer for StandardBufferedRenderer {
                     let tile_texture = retexture.unwrap_or(mino_textures.locked);
                     let tile_id = recolor.unwrap_or(original_tile_id);
                     let color = settings
-                        .boardpalette()
+                        .lockedminopalette()
                         .get(&tile_id)
                         .copied()
                         .unwrap_or(Color::Reset);
@@ -1040,7 +1040,7 @@ impl Renderer for StandardBufferedRenderer {
                         *original_tile_id
                     };
                     let color = settings
-                        .boardpalette()
+                        .lockedminopalette()
                         .get(&tile_id)
                         .copied()
                         .unwrap_or(Color::Reset);
@@ -1095,7 +1095,7 @@ impl Renderer for StandardBufferedRenderer {
                 let tile_texture = retexture.unwrap_or(mino_textures.locked);
                 let tile_id = recolor.unwrap_or(original_tile_id);
                 let color = settings
-                    .boardpalette()
+                    .lockedminopalette()
                     .get(&tile_id)
                     .copied()
                     .unwrap_or(Color::Reset);

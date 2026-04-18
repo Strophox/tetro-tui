@@ -38,7 +38,7 @@ impl<T: Write> Application<T> {
 
             let dx_title = w_main.saturating_sub(36) / 2;
 
-            if self.settings.tui_style().is_title_unicode {
+            if self.settings.tui_symbols().is_title_unicode {
                 let title_colors = [
                     "1111555  1111 1111555  5666    1111 ",
                     "   35   666      35   35526  33   33",

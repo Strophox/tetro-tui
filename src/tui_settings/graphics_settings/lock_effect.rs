@@ -28,7 +28,7 @@ pub struct LockEffect {
     pub animation: Vec<(MaybeOverride<TileTexture>, MaybeOverride<TileID>)>,
 }
 
-pub fn default_lock_effect_slots() -> SlotMachine<LockEffect> {
+pub fn lock_effect_presets() -> SlotMachine<LockEffect> {
     let slots = vec![
         ("None".to_owned(), LockEffect::none()),
         ("Transform ASCII".to_owned(), LockEffect::ascii_transform()),

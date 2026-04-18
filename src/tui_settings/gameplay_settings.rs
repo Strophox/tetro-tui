@@ -26,7 +26,7 @@ pub struct GameplaySettings {
     pub dtapfinesse: Option<Duration>,
 }
 
-pub fn default_gameplay_slots() -> SlotMachine<GameplaySettings> {
+pub fn gameplay_settings_presets() -> SlotMachine<GameplaySettings> {
     let slots = vec![
         ("Default".to_owned(), GameplaySettings::default()),
         ("Finesse+".to_owned(), GameplaySettings::extra_finesse()),
