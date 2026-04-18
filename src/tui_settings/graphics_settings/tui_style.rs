@@ -68,6 +68,8 @@ In practice, we decompose it as such:
 )]
 #[serde(into = "TuiStyleCompact<String>", try_from = "TuiStyleCompact<String>")]
 pub struct TuiStyle {
+    /// Whether to use the ASCII title screen variant.
+    pub is_title_unicode: bool,
     /// "Z"
     pub menuglyphs: [char; 1],
     /// "ABCDEFGH"
@@ -80,8 +82,8 @@ pub struct TuiStyle {
     pub nextglyphs: [char; 7],
     /// "BUTTONS HERE"
     pub buttonsglyphs: [char; Button::VARIANTS.len()],
-    /// Whether to use the ASCII title screen variant.
-    pub is_title_unicode: bool,
+    /// Use for lock-down count down display.
+    pub countdownglyphs: Vec<String>,
 }
 
 pub fn default_tui_style_slots() -> SlotMachine<TuiStyle> {
@@ -97,13 +99,16 @@ pub fn default_tui_style_slots() -> SlotMachine<TuiStyle> {
 impl TuiStyle {
     pub fn ascii() -> Self {
         TuiStyleCompact {
+            is_title_unicode: false,
             menuglyphs: "-",
             frame: "+-+|#=#|",
             frame2: None,
             hold: "-+|+",
             next: "-+|+++-",
             buttons: "<>LR@v!w{}H",
-            is_title_unicode: false,
+            countdown: ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
+                .map(|s| s.to_owned())
+                .into(),
         }
         .try_into()
         .unwrap()
@@ -111,13 +116,16 @@ impl TuiStyle {
 
     pub fn unicode() -> TuiStyle {
         TuiStyleCompact {
+            is_title_unicode: true,
             menuglyphs: "─",
             frame: "╓╴╖║╜▀╙║",
             frame2: None,
             hold: "─┌│└",
             next: "─┐│┤┘┬╴",
             buttons: "←→↺↻↔↓⤓⇓⇐⇒⇋",
-            is_title_unicode: true,
+            countdown: ["⡀", "⡄", "⡆", "⡇", "⡏", "⡟", "⡿", "⣿"]
+                .map(|s| s.to_owned())
+                .into(),
         }
         .try_into()
         .unwrap()
@@ -125,13 +133,16 @@ impl TuiStyle {
 
     pub fn elektronika_60() -> Self {
         TuiStyleCompact {
+            is_title_unicode: false,
             menuglyphs: "=",
             frame: "   !!=!!",
             frame2: Some(r"<\/>"),
             hold: "    ",
             next: "       ",
             buttons: "<>LR@v!w{}H",
-            is_title_unicode: false,
+            countdown: ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
+                .map(|s| s.to_owned())
+                .into(),
         }
         .try_into()
         .unwrap()
@@ -196,13 +207,14 @@ impl<S: AsRef<str>> TryFrom<TuiStyleCompact<S>> for TuiStyle {
             .try_into()
             .map_err(fmt_err)?;
         Ok(TuiStyle {
+            is_title_unicode: value.is_title_unicode,
             menuglyphs,
             frameglyphs,
             frame2glyphs,
             holdglyphs,
             nextglyphs,
             buttonsglyphs,
-            is_title_unicode: value.is_title_unicode,
+            countdownglyphs: value.countdown,
         })
     }
 }
@@ -211,25 +223,27 @@ impl<S: AsRef<str>> TryFrom<TuiStyleCompact<S>> for TuiStyle {
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]
 pub struct TuiStyleCompact<T> {
+    pub is_title_unicode: bool,
     pub menuglyphs: T,
     pub frame: T,
     pub frame2: Option<T>,
     pub hold: T,
     pub next: T,
     pub buttons: T,
-    pub is_title_unicode: bool,
+    pub countdown: Vec<String>,
 }
 
 impl From<TuiStyle> for TuiStyleCompact<String> {
     fn from(value: TuiStyle) -> Self {
         TuiStyleCompact {
+            is_title_unicode: value.is_title_unicode,
             menuglyphs: value.menuglyphs.iter().collect(),
             frame: value.frameglyphs.iter().collect(),
             frame2: value.frame2glyphs.map(|frame2| frame2.iter().collect()),
             hold: value.holdglyphs.iter().collect(),
             next: value.nextglyphs.iter().collect(),
             buttons: value.buttonsglyphs.iter().collect(),
-            is_title_unicode: value.is_title_unicode,
+            countdown: value.countdownglyphs,
         }
     }
 }

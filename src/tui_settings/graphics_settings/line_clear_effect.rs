@@ -106,6 +106,14 @@ impl LineClearEffect {
         })
     }
 
+    // pub fn vanish() -> Self {
+    //     LineClearEffect::Inline(LineClearInlineEffect {
+    //         anim_indices: [1; 2 * Game::WIDTH],
+    //         anim_lastidx: 10,
+    //         color_animation: Vec::new(),
+    //     })
+    // }
+
     pub fn left_to_right() -> Self {
         LineClearEffect::Inline(LineClearInlineEffect {
             anim_indices: [

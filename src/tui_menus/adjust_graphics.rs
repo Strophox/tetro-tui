@@ -169,6 +169,10 @@ impl<T: Write> Application<T> {
                         self.settings.graphics().show_main_hud.then_some("HUD"),
                         self.settings.graphics().show_keybinds.then_some("Keybinds"),
                         self.settings.graphics().show_buttons.then_some("Buttons"),
+                        self.settings
+                            .graphics()
+                            .show_lockdelay
+                            .then_some("Lockdelay"),
                         self.settings.graphics().show_fps.then_some("FPS"),
                     ]
                     .into_iter()
@@ -204,6 +208,10 @@ impl<T: Write> Application<T> {
                     self.settings.graphics().show_keybinds,
                 ),
                 ("Show active buttons", self.settings.graphics().show_buttons),
+                (
+                    "Show lock delay countdown",
+                    self.settings.graphics().show_lockdelay,
+                ),
                 ("Show FPS counter", self.settings.graphics().show_fps),
             ]
             .map(|(name, is_on)| format!("{name} = {}", is_on.on_off()));
@@ -441,6 +449,10 @@ impl<T: Write> Application<T> {
                     }
                     18 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().show_lockdelay ^= true;
+                    }
+                    19 => {
+                        if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.graphics_mut().show_fps ^= true;
                     }
                     _ => {}
@@ -566,6 +578,10 @@ impl<T: Write> Application<T> {
                         self.settings.graphics_mut().show_buttons ^= true;
                     }
                     18 => {
+                        if_unmodifiable_clone_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().show_lockdelay ^= true;
+                    }
+                    19 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.graphics_mut().show_fps ^= true;
                     }

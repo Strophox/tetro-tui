@@ -45,6 +45,8 @@ pub struct GraphicsSettings {
     pub show_keybinds: bool,
     #[serde(rename = "s_buttons")]
     pub show_buttons: bool,
+    #[serde(rename = "s_lockdelay")]
+    pub show_lockdelay: bool,
     #[serde(rename = "s_shadow")]
     pub show_shadow: bool,
     #[serde(rename = "s_spawn")]
@@ -89,6 +91,7 @@ impl Default for GraphicsSettings {
             fps: ExtNonNegF64::from(60),
             boardpalette_selected: 3, // Okpalette
             show_main_hud: true,
+            show_lockdelay: false,
             show_keybinds: true,
             show_buttons: false,
             show_shadow: true,
@@ -114,6 +117,7 @@ impl GraphicsSettings {
             fps: ExtNonNegF64::from(60),
             boardpalette_selected: 0, // Monochrome
             show_main_hud: true,
+            show_lockdelay: false,
             show_keybinds: false,
             show_buttons: true,
             show_shadow: true,
@@ -137,6 +141,7 @@ impl GraphicsSettings {
             fps: ExtNonNegF64::from(60),
             boardpalette_selected: 2, // Standard
             show_main_hud: true,
+            show_lockdelay: false,
             show_keybinds: true,
             show_buttons: false,
             show_shadow: true,
@@ -160,6 +165,7 @@ impl GraphicsSettings {
             fps: ExtNonNegF64::from(30),
             boardpalette_selected: 1, // ANSI
             show_main_hud: true,
+            show_lockdelay: false,
             show_keybinds: true,
             show_buttons: false,
             show_shadow: true,
@@ -183,6 +189,7 @@ impl GraphicsSettings {
             fps: ExtNonNegF64::from(60),
             boardpalette_selected: 0, // ANSI
             show_main_hud: true,
+            show_lockdelay: false,
             show_keybinds: true,
             show_buttons: false,
             show_shadow: false,
@@ -206,6 +213,7 @@ impl GraphicsSettings {
             fps: ExtNonNegF64::from(60),
             boardpalette_selected: 0, // Monochrome
             show_main_hud: false,
+            show_lockdelay: false,
             show_keybinds: false,
             show_buttons: false,
             show_shadow: false,

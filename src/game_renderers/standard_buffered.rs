@@ -847,7 +847,7 @@ impl Renderer for StandardBufferedRenderer {
             Phase::PieceInPlay {
                 piece: player_piece,
                 autoshift_scheduled: _,
-                fall_or_lock_time: _,
+                fall_or_lock_time,
                 lock_cap_time: _,
                 lowest_y: _,
             } => {
@@ -868,6 +868,30 @@ impl Renderer for StandardBufferedRenderer {
                     let tile_texture = mino_textures.play;
                     let color = ftch_col_or_rset(&tile_id);
                     #[rustfmt::skip] self.term_buf.write_tile(w_tmp3 + 2 * (dx as u16), h_tmp3.saturating_sub(dy as u16), tile_texture, color);
+                }
+
+                // RENDER: Lock delay countdown visual indicator.
+
+                if settings.graphics().show_lockdelay {
+                    // Only if piece is locking.
+                    if !player_piece.is_airborne(&game.state().board) {
+                        let elapsed = fall_or_lock_time
+                            .saturating_sub(game.state().time)
+                            .as_secs_f64();
+                        let given = game.state().lock_delay.as_secs_ennf64();
+                        // Only render if lock delay is nonzero
+                        if !given.is_zero() && !given.is_infinite() && elapsed < given.get() {
+                            let str = &tui_style.countdownglyphs[((tui_style.countdownglyphs.len()
+                                as f64
+                                - 1.0)
+                                * elapsed
+                                / given.get())
+                            .ceil()
+                                as usize];
+                            let color = ftch_col_or_rset(&Palette::WHITE);
+                            #[rustfmt::skip] self.term_buf.write_str((w_tmp3 + 2 * (player_piece.position.0 as u16)).saturating_sub(1), h_tmp3.saturating_sub(player_piece.position.1 as u16).saturating_add(1), str, color);
+                        }
+                    }
                 }
             }
 
