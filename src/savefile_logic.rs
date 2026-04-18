@@ -95,15 +95,11 @@ impl<T: Write> Application<T> {
         match self.temp_data.save_on_exit {
             // Explicitly check for savefile and try to make sure we don't leave it around.
             SavefileGranularity::NoSavefile => {
-                if self
-                    .temp_data
-                    .savefile_path
-                    .try_exists()
-                    .is_ok_and(|exists| exists)
-                {
+                let res_exists = self.temp_data.savefile_path.try_exists();
+                if matches!(res_exists, Ok(true) | Err(_)) {
                     std::fs::remove_file(self.temp_data.savefile_path.clone())?;
-                    return Ok(());
                 }
+                return Ok(());
             }
 
             // Clear scoreboard if no data other than settings is wished to be stored.
