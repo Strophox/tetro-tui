@@ -12,7 +12,7 @@ repository = "https://github.com/Strophox/tetro-tui"
 readme = "README.md"
 keywords = ["tetromino", "terminal", "game", "tui", "ascii-art"]
 categories = ["games", "command-line-utilities"]
-exclude = ["demo_assets/*", ".github/", "RELEASE-CHECKLIST.md"]
+exclude = ["demo_assets/*", ".github/", "RELEASE-CHECKLIST.md", "flake.nix", "flake.lock"]
 
 
 [profile.release]
