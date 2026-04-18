@@ -494,7 +494,7 @@ impl Renderer for LegacyBufferedRenderer {
                         // Note: This is ***SO*** ugly OMFG.
                         let mut bs = vec![0; 4];
                         self.screen.buffer_str(
-                            settings.tui_symbols().buttonsglyphs[b].encode_utf8(&mut bs),
+                            settings.tui_symbols().buttons[b].encode_utf8(&mut bs),
                             bc(b),
                             (x_buttonst + dx, y_buttonst),
                         )

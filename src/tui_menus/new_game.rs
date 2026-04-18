@@ -245,7 +245,7 @@ impl<T: Write> Application<T> {
                             } else {
                                 let (load_time, load_input) = input_history.inputs[(inputs_to_load - 1) % input_history.inputs.len()];
                                 let load_time = fmt_duration(load_time);
-                                let load_input = fmt_player_input(load_input, self.settings.tui_symbols().buttonsglyphs);
+                                let load_input = fmt_player_input(load_input, self.settings.tui_symbols().buttons);
                                 format!(">> Load {load_title} from input {inputs_to_load}/{load_offset_max} ({load_input} @ {load_time}) [Del] <<")
                             }
                         } else {

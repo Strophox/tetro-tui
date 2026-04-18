@@ -271,7 +271,7 @@ impl<T: Write> Application<T> {
 }
 
 pub fn title_bar(settings: &Settings) -> String {
-    settings.tui_symbols().menuglyphs[0].to_string().repeat(32)
+    settings.tui_symbols().headingline[0].to_string().repeat(32)
 }
 
 const DAVIS: &str = r#" ▀█▀ "I am like Solomon because I built God's temple, an operating system. God said 640x480 16 color graphics but the operating system is 64-bit and multi-cored! Go draw a 16 color elephant. Then, draw a 24-bit elephant in MS Paint and be enlightened. Artist stopped photorealism when the camera was invented. A cartoon is actually better than photorealistic. For the next thousand years, first-person shooters are going to get boring. Tetris looks good." - In memory of Terry A. Davis"#;

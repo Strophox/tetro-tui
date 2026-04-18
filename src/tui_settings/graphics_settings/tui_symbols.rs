@@ -72,23 +72,23 @@ In practice, we decompose it as such:
 )]
 pub struct TuiSymbols {
     /// Whether to use the ASCII title screen variant.
-    pub is_title_unicode: bool,
+    pub blocky_title_logo: bool,
     /// "Z"
-    pub menuglyphs: [char; 1],
+    pub headingline: [char; 1],
     /// "ABCDEFGH"
-    pub frameglyphs: [char; 8],
+    pub boardframe: [char; 8],
     /// Some("TUVW")
-    pub frame2glyphs: Option<[char; 4]>,
+    pub boardframe2: Option<[char; 4]>,
     /// "IJKL"
-    pub holdglyphs: [char; 4],
+    pub holdframe: [char; 4],
     /// "MNOPQRS"
-    pub nextglyphs: [char; 7],
-    /// "BUTTONS HERE"
-    pub buttonsglyphs: [char; Button::VARIANTS.len()],
+    pub nextframe: [char; 7],
+    /// Use for button display.
+    pub buttons: [char; Button::VARIANTS.len()],
     /// Use for lock-down count down display.
-    pub countdownglyphs: Vec<String>,
+    pub timer: Vec<String>,
     /// Use for replay progress bar.
-    pub progressbarglyphs: (Vec<char>, char),
+    pub progressbar: (Vec<char>, char),
 }
 
 pub fn tui_symbols_presets() -> SlotMachine<TuiSymbols> {
@@ -108,14 +108,14 @@ pub fn tui_symbols_presets() -> SlotMachine<TuiSymbols> {
 impl TuiSymbols {
     pub fn ascii() -> Self {
         CompactTuiSymbols {
-            is_title_unicode: false,
-            menuglyphs: "-",
-            frame: "+-+|#=#|",
-            frame2: None,
-            hold: "-+|+",
-            next: "-+|+++-",
+            blocky_title_logo: false,
+            headingline: "-",
+            boardframe: "+-+|#=#|",
+            boardframe2: None,
+            holdframe: "-+|+",
+            nextframe: "-+|+++-",
             buttons: "<>LR@v!w{}H",
-            countdown: ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
+            timer: ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
                 .map(|s| s.to_owned())
                 .into(),
             progressbar: (" .:!", '|'),
@@ -126,14 +126,14 @@ impl TuiSymbols {
 
     pub fn unicode() -> TuiSymbols {
         CompactTuiSymbols {
-            is_title_unicode: true,
-            menuglyphs: "─",
-            frame: "╓╴╖║╜▀╙║",
-            frame2: None,
-            hold: "─┌│└",
-            next: "─┐│┤┘┬╴",
+            blocky_title_logo: true,
+            headingline: "─",
+            boardframe: "╓╴╖║╜▀╙║",
+            boardframe2: None,
+            holdframe: "─┌│└",
+            nextframe: "─┐│┤┘┬╴",
             buttons: "←→↺↻↔↓⤓⇓⇐⇒⇋",
-            countdown: ["⡀", "⡄", "⡆", "⡇", "⡏", "⡟", "⡿", "⣿"]
+            timer: ["⡀", "⡄", "⡆", "⡇", "⡏", "⡟", "⡿", "⣿"]
                 .map(|s| s.to_owned())
                 .into(),
             progressbar: (" ▏▎▍▌▋▊▉", '█'),
@@ -144,14 +144,14 @@ impl TuiSymbols {
 
     pub fn elektronika_60() -> Self {
         CompactTuiSymbols {
-            is_title_unicode: false,
-            menuglyphs: "=",
-            frame: "   !!=!!",
-            frame2: Some(r"<\/>"),
-            hold: "    ",
-            next: "       ",
+            blocky_title_logo: false,
+            headingline: "=",
+            boardframe: "   !!=!!",
+            boardframe2: Some(r"<\/>"),
+            holdframe: "    ",
+            nextframe: "       ",
             buttons: "<>LR@v!w{}H",
-            countdown: ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
+            timer: ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
                 .map(|s| s.to_owned())
                 .into(),
             progressbar: (" .:!", '|'),
@@ -162,14 +162,14 @@ impl TuiSymbols {
 
     pub fn borderless_unicode() -> Self {
         CompactTuiSymbols {
-            is_title_unicode: true,
-            menuglyphs: " ",
-            frame: "        ",
-            frame2: None,
-            hold: "    ",
-            next: "       ",
+            blocky_title_logo: true,
+            headingline: " ",
+            boardframe: "        ",
+            boardframe2: None,
+            holdframe: "    ",
+            nextframe: "       ",
             buttons: "←→↺↻↔↓⤓⇓⇐⇒⇋",
-            countdown: ["⡀", "⡄", "⡆", "⡇", "⡏", "⡟", "⡿", "⣿"]
+            timer: ["⡀", "⡄", "⡆", "⡇", "⡏", "⡟", "⡿", "⣿"]
                 .map(|s| s.to_owned())
                 .into(),
             progressbar: (" ▏▎▍▌▋▊▉", '█'),
@@ -190,20 +190,20 @@ impl<S: AsRef<str>> TryFrom<CompactTuiSymbols<S>> for TuiSymbols {
         }
 
         let menuglyphs = value
-            .menuglyphs
+            .headingline
             .as_ref()
             .chars()
             .collect::<Vec<char>>()
             .try_into()
             .map_err(fmt_err)?;
         let frameglyphs = value
-            .frame
+            .boardframe
             .as_ref()
             .chars()
             .collect::<Vec<char>>()
             .try_into()
             .map_err(fmt_err)?;
-        let frame2glyphs = if let Some(frame2) = value.frame2 {
+        let frame2glyphs = if let Some(frame2) = value.boardframe2 {
             Some(
                 frame2
                     .as_ref()
@@ -216,14 +216,14 @@ impl<S: AsRef<str>> TryFrom<CompactTuiSymbols<S>> for TuiSymbols {
             None
         };
         let holdglyphs = value
-            .hold
+            .holdframe
             .as_ref()
             .chars()
             .collect::<Vec<char>>()
             .try_into()
             .map_err(fmt_err)?;
         let nextglyphs = value
-            .next
+            .nextframe
             .as_ref()
             .chars()
             .collect::<Vec<char>>()
@@ -241,15 +241,15 @@ impl<S: AsRef<str>> TryFrom<CompactTuiSymbols<S>> for TuiSymbols {
             value.progressbar.1,
         );
         Ok(TuiSymbols {
-            is_title_unicode: value.is_title_unicode,
-            menuglyphs,
-            frameglyphs,
-            frame2glyphs,
-            holdglyphs,
-            nextglyphs,
-            buttonsglyphs,
-            countdownglyphs: value.countdown,
-            progressbarglyphs,
+            blocky_title_logo: value.blocky_title_logo,
+            headingline: menuglyphs,
+            boardframe: frameglyphs,
+            boardframe2: frame2glyphs,
+            holdframe: holdglyphs,
+            nextframe: nextglyphs,
+            buttons: buttonsglyphs,
+            timer: value.timer,
+            progressbar: progressbarglyphs,
         })
     }
 }
@@ -258,32 +258,29 @@ impl<S: AsRef<str>> TryFrom<CompactTuiSymbols<S>> for TuiSymbols {
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]
 pub struct CompactTuiSymbols<T> {
-    pub is_title_unicode: bool,
-    pub menuglyphs: T,
-    pub frame: T,
-    pub frame2: Option<T>,
-    pub hold: T,
-    pub next: T,
+    pub blocky_title_logo: bool,
+    pub headingline: T,
+    pub boardframe: T,
+    pub boardframe2: Option<T>,
+    pub holdframe: T,
+    pub nextframe: T,
     pub buttons: T,
-    pub countdown: Vec<String>,
+    pub timer: Vec<String>,
     pub progressbar: (T, char),
 }
 
 impl From<TuiSymbols> for CompactTuiSymbols<String> {
     fn from(value: TuiSymbols) -> Self {
         CompactTuiSymbols {
-            is_title_unicode: value.is_title_unicode,
-            menuglyphs: value.menuglyphs.iter().collect(),
-            frame: value.frameglyphs.iter().collect(),
-            frame2: value.frame2glyphs.map(|frame2| frame2.iter().collect()),
-            hold: value.holdglyphs.iter().collect(),
-            next: value.nextglyphs.iter().collect(),
-            buttons: value.buttonsglyphs.iter().collect(),
-            countdown: value.countdownglyphs,
-            progressbar: (
-                value.progressbarglyphs.0.iter().collect(),
-                value.progressbarglyphs.1,
-            ),
+            blocky_title_logo: value.blocky_title_logo,
+            headingline: value.headingline.iter().collect(),
+            boardframe: value.boardframe.iter().collect(),
+            boardframe2: value.boardframe2.map(|frame2| frame2.iter().collect()),
+            holdframe: value.holdframe.iter().collect(),
+            nextframe: value.nextframe.iter().collect(),
+            buttons: value.buttons.iter().collect(),
+            timer: value.timer,
+            progressbar: (value.progressbar.0.iter().collect(), value.progressbar.1),
         }
     }
 }

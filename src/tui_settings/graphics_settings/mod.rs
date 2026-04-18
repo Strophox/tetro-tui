@@ -17,27 +17,27 @@ pub mod tui_symbols;
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug, serde::Serialize, serde::Deserialize,
 )]
 pub struct GraphicsSettings {
-    #[serde(rename = "palette")]
+    #[serde(rename = "palette_sel")]
     pub palette_selected: usize,
-    #[serde(rename = "tui_symb")]
+    #[serde(rename = "tuisymb_sel")]
     pub tui_symbols_selected: usize,
-    #[serde(rename = "mino_symb")]
+    #[serde(rename = "minosymb_sel")]
     pub mino_symbols_selected: usize,
-    #[serde(rename = "harddrop")]
+    #[serde(rename = "harddrop_sel")]
     pub hard_drop_selected: usize,
-    #[serde(rename = "lock")]
+    #[serde(rename = "lock_sel")]
     pub lock_effect_selected: usize,
-    #[serde(rename = "lineclear")]
+    #[serde(rename = "lineclear_sel")]
     pub line_clear_selected: usize,
-    #[serde(rename = "mini_tet_symb")]
+    #[serde(rename = "minitetsymb_sel")]
     pub mini_tetromino_symbols_selected: usize,
-    #[serde(rename = "small_tet_symb")]
+    #[serde(rename = "smalltetsymb_sel")]
     pub small_tetromino_symbols_selected: usize,
     #[serde(rename = "normsize_prev_limit")]
     pub normalsize_preview_limit: Option<NonZeroUsize>,
     #[serde(rename = "fps")]
     pub fps: ExtNonNegF64,
-    #[serde(rename = "lockedminopalette")]
+    #[serde(rename = "lockedminopalette_sel")]
     pub lockedminopalette_selected: usize,
     #[serde(rename = "s_hud")]
     pub show_main_hud: bool,

@@ -362,7 +362,7 @@ impl Renderer for StandardBufferedRenderer {
 
         // Board frame glyphs.
         let [c_fr_tl, c_fr_t, c_fr_tr, c_fr_r, c_fr_br, c_fr_b, c_fr_bl, c_fr_l] =
-            tui_style.frameglyphs;
+            tui_style.boardframe;
         let w_tmp1 = w_float + W_PAD_LEFT + w_addhud + W_HOLD;
         let h_tmp1 = h_float + H_PAD_TOP;
 
@@ -387,7 +387,7 @@ impl Renderer for StandardBufferedRenderer {
 
         if let Some((tet, is_swappable)) = game.state().piece_held {
             // 'Hold' frame glyphs.
-            let [c_h_tb, c_h_tl, c_h_l, c_h_bl] = tui_style.holdglyphs;
+            let [c_h_tb, c_h_tl, c_h_l, c_h_bl] = tui_style.holdframe;
             let w_tmp2 = w_float + W_PAD_LEFT + w_addhud;
             let h_tmp2 = h_float + H_PAD_TOP;
 
@@ -422,7 +422,7 @@ impl Renderer for StandardBufferedRenderer {
 
         // RENDER: Preview widgets.
 
-        let [c_n_tb, c_n_tr, c_n_r, c_n_jl, c_n_br, c_n_jd, c_n_ltb] = tui_style.nextglyphs;
+        let [c_n_tb, c_n_tr, c_n_r, c_n_jl, c_n_br, c_n_jd, c_n_ltb] = tui_style.nextframe;
         let w_tmp6 = w_float + W_PAD_LEFT + w_addhud + W_HOLD + W_BOARD;
         let h_tmp6 = h_float + H_PAD_TOP;
 
@@ -528,7 +528,7 @@ impl Renderer for StandardBufferedRenderer {
 
         // Special 2nd frame rendering.
         // Mostly relevant for Elektronika 60 style.
-        if let Some([c_f2_l, c_f2_b0, c_f2_b1, c_f2_r]) = tui_style.frame2glyphs {
+        if let Some([c_f2_l, c_f2_b0, c_f2_b1, c_f2_r]) = tui_style.boardframe2 {
             // Complete left edge (2).
             for dy in 0..H_FIELD + 1 {
                 #[rustfmt::skip] self.term_buf.write_char(w_tmp1.saturating_sub(1), h_tmp1 + 1 + dy, TermCell { ch: c_f2_l, fg: Color::Reset });
@@ -552,7 +552,7 @@ impl Renderer for StandardBufferedRenderer {
 
         if hud_active {
             // Frame glyph.
-            let [c_m_tb] = tui_style.menuglyphs;
+            let [c_m_tb] = tui_style.headingline;
             const W_TITLE_MARGIN: u16 = 2;
             let w_tmp5 = w_float + W_PAD_LEFT;
             const H_TITLE_OFFSET: u16 = 3;
@@ -599,7 +599,7 @@ impl Renderer for StandardBufferedRenderer {
                 replay_extra.map(|(replay_len, _)| ("REPLAY", fmt_duration(replay_len))),
                 replay_extra.map(|(replay_len, _)| {
                     ("", {
-                        let (partial_glyphs, full_glyph) = &tui_style.progressbarglyphs;
+                        let (partial_glyphs, full_glyph) = &tui_style.progressbar;
                         let w_progressbar = (W_ADD_ACTIVE_HUD + W_HOLD).saturating_sub(3);
                         let progress = game.state().time.as_secs_f32() / replay_len.as_secs_f32();
                         let granularity = if partial_glyphs.is_empty() {
@@ -728,7 +728,7 @@ impl Renderer for StandardBufferedRenderer {
             for (dx, elem) in elements.into_iter().enumerate() {
                 let ch = elem.unwrap_or_else(|b| {
                     if game.state().active_buttons[b].is_some() {
-                        settings.tui_symbols().buttonsglyphs[b]
+                        settings.tui_symbols().buttons[b]
                     } else {
                         ' '
                     }
@@ -900,13 +900,10 @@ impl Renderer for StandardBufferedRenderer {
                         let given = game.state().lock_delay.as_secs_ennf64();
                         // Only render if lock delay is nonzero
                         if !given.is_zero() && !given.is_infinite() && elapsed < given.get() {
-                            let str = &tui_style.countdownglyphs[((tui_style.countdownglyphs.len()
-                                as f64
-                                - 1.0)
-                                * elapsed
-                                / given.get())
-                            .ceil()
-                                as usize];
+                            let str =
+                                &tui_style.timer[((tui_style.timer.len() as f64 - 1.0) * elapsed
+                                    / given.get())
+                                .ceil() as usize];
                             let color = ftch_col_or_rset(&Palette::WHITE);
                             #[rustfmt::skip] self.term_buf.write_str((w_tmp3 + 2 * (player_piece.position.0 as u16)).saturating_sub(1), h_tmp3.saturating_sub(player_piece.position.1 as u16).saturating_add(1), str, color);
                         }
