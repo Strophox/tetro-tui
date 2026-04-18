@@ -252,6 +252,7 @@ cargo run
 > | -: | :- |
 > | `Ctrl`+`D` | Forfeit game |
 > | `Ctrl`+`R` | Restart game mode (Caution: discards current game) |
+> | `Ctrl`+`Z` | Undo last input (Caution: discards current game) |
 > | `Ctrl`+`L` | Load game save (Caution: discards current game) |
 > | `Ctrl`+`S` | Store game save (accessible in 'Start New Game'⇝'Game save' or (live)'Game'⇝`Ctrl`+`L`) |
 > | `Ctrl`+`E` | Store seed (accessible in 'Start New Game'⇝'Custom') |
