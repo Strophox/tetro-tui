@@ -25,7 +25,7 @@ use crate::{
     game_mode_presets::GameModePreset,
     game_renderers::{Renderer, TetroTUIRenderer},
     game_restoration::{GameRestorationData, RawInputHistory},
-    tui_menus::{title_bar, Menu, MenuUpdate},
+    tui_menus::{heading_line, Menu, MenuUpdate},
     tui_settings::{GameModePreferences, GameplaySettings},
     Application, GameMetaData, GameSave,
 };
@@ -81,7 +81,7 @@ impl<T: Write> Application<T> {
                     format!("{:^w_main$}", "+ Start New Game +").bold(),
                 ))?
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
-                .queue(Print(format!("{:^w_main$}", title_bar(&self.settings))))?;
+                .queue(Print(format!("{:^w_main$}", heading_line(&self.settings))))?;
             // Render normal and special game modes.
             for (
                 i,
@@ -265,6 +265,38 @@ impl<T: Write> Application<T> {
                     kind: Press | Repeat,
                     state: _,
                 }) => break Ok(MenuUpdate::Push(Menu::Quit)),
+
+                // Keybinds help menu.
+                Event::Key(KeyEvent {
+                    code: KeyCode::Char('?'),
+                    kind: Press | Repeat,
+                    ..
+                }) => {
+                    let client_menu_name = "New Game menu";
+                    let legend = vec![
+                        ("Normal keybinds".to_owned(), [
+                            ("Enter e", "Select"),
+                            ("Esc q Backspace", "Exit menu"),
+                            ("Del d", "Delete game save, reset configuration of Combo/Cheese/Custom modes"), // TODO: not relevant.
+                            ("↓/↑ j/k", "Navigate down/up"),
+                            ("←/→ h/l", "Load/unload inputs for game save, Adjust values of Combo/Cheese/Custom modes"),
+                            ("?", "Open Keybinds overview"),
+                        ].into_iter().map(|(lhs,rhs)| (lhs.to_owned(), rhs.to_owned())).collect()),
+                        ("Special keybinds".to_owned(), [
+                            ("Home/End", "Jump to first/last input for game save"),
+                            ("Alt+Enter", "View game save as replay"),
+                            ("Ctrl+U", "Unlock all game modes"),
+                            ("Ctrl+Alt+L", "Re-load from savefile (overwrites current data!)"),
+                            ("Ctrl+Alt+S", "Do savefile storage (respects save preferences)"),
+                            ("Ctrl+C", "Exit program (respects save preferences)"),
+                        ].into_iter().map(|(lhs,rhs)| (lhs.to_owned(), rhs.to_owned())).collect()),
+                    ];
+
+                    break Ok(MenuUpdate::Push(Menu::KeybindsOverview {
+                        client_menu_name,
+                        legend,
+                    }));
+                }
 
                 // Exit menu.
                 Event::Key(KeyEvent {

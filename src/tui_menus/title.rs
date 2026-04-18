@@ -180,7 +180,7 @@ impl<T: Write> Application<T> {
 
             let names = selection
                 .iter()
-                .map(|menu| menu.to_string())
+                .map(|menu| menu.str_for_list_menu_selection())
                 .collect::<Vec<_>>();
             let n_names = names.len();
             for (i, name) in names.into_iter().enumerate() {
@@ -194,7 +194,7 @@ impl<T: Write> Application<T> {
                         if i == selected {
                             format!(">> {name} <<")
                         } else {
-                            name
+                            name.to_owned()
                         }
                     )))?;
             }
@@ -206,7 +206,7 @@ impl<T: Write> Application<T> {
                 .queue(PrintStyledContent(
                     format!(
                         "{:^w_main$}",
-                        "(Controls: [←|↓|↑|→] [Esc|Enter|Del] / hjkl qed)",
+                        "[Enter/Esc/Del/←↓↑→] or Vim, view keybinds anywhere with [?]",
                     )
                     .italic(),
                 ))?;
@@ -215,13 +215,59 @@ impl<T: Write> Application<T> {
 
             // Wait for new input.
             match event::read()? {
-                // Quit menu.
+                // Abort program.
                 Event::Key(KeyEvent {
                     code: KeyCode::Char('c' | 'C'),
                     modifiers: KeyModifiers::CONTROL,
                     kind: KeyEventKind::Press | KeyEventKind::Repeat,
-                    state: _,
+                    ..
                 }) => break Ok(MenuUpdate::Push(Menu::Quit)),
+
+                // Keybinds help menu.
+                Event::Key(KeyEvent {
+                    code: KeyCode::Char('?'),
+                    kind: KeyEventKind::Press | KeyEventKind::Repeat,
+                    ..
+                }) => {
+                    let client_menu_name = "Title screen";
+                    let legend = vec![
+                        (
+                            "Normal keybinds".to_owned(),
+                            [
+                                ("Enter e", "Select"),
+                                ("↓/↑ j/k", "Navigate down/up"),
+                                ("?", "Open Keybinds overview"),
+                            ]
+                            .into_iter()
+                            .map(|(lhs, rhs)| (lhs.to_owned(), rhs.to_owned()))
+                            .collect(),
+                        ),
+                        (
+                            "Special keybinds".to_owned(),
+                            [
+                                (
+                                    "Ctrl+Alt+L",
+                                    "Re-load from savefile (overwrites current data!)",
+                                ),
+                                (
+                                    "Ctrl+Alt+S",
+                                    "Do savefile storage (respects save preferences)",
+                                ),
+                                ("Ctrl+C", "Exit program (respects save preferences)"),
+                            ]
+                            .into_iter()
+                            .map(|(lhs, rhs)| (lhs.to_owned(), rhs.to_owned()))
+                            .collect(),
+                        ),
+                    ];
+
+                    break Ok(MenuUpdate::Push(Menu::KeybindsOverview {
+                        client_menu_name,
+                        legend,
+                    }));
+                }
+
+                // 'Quit menu' => Move cursor to 'quit' position, do not actually quit. This avoid spamming / double-clicking q or so and accidentally leaving, which might erase progress.
                 Event::Key(KeyEvent {
                     code: KeyCode::Esc | KeyCode::Char('q' | 'Q') | KeyCode::Backspace,
                     kind: KeyEventKind::Press,
@@ -229,6 +275,7 @@ impl<T: Write> Application<T> {
                 }) => {
                     selected = selection.len() - 1;
                 }
+
                 // Select next menu.
                 Event::Key(KeyEvent {
                     code: KeyCode::Enter | KeyCode::Char('e' | 'E'),
@@ -240,6 +287,7 @@ impl<T: Write> Application<T> {
                         break Ok(MenuUpdate::Push(menu));
                     }
                 }
+
                 // Move selector up.
                 Event::Key(KeyEvent {
                     code: KeyCode::Up | KeyCode::Char('k' | 'K'),

@@ -13,7 +13,7 @@ use crossterm::{
 };
 
 use crate::{
-    tui_menus::{title_bar, Menu, MenuUpdate},
+    tui_menus::{heading_line, Menu, MenuUpdate},
     Application, SavefileGranularity,
 };
 
@@ -31,7 +31,7 @@ impl<T: Write> Application<T> {
                     format!("{:^w_main$}", "% Settings %").bold(),
                 ))?
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
-                .queue(Print(format!("{:^w_main$}", title_bar(&self.settings))))?;
+                .queue(Print(format!("{:^w_main$}", heading_line(&self.settings))))?;
             let labels = [
                 format!(
                     "Adjust graphics ({}) ...",
@@ -113,18 +113,67 @@ impl<T: Write> Application<T> {
             self.term.flush()?;
             // Wait for new input.
             match event::read()? {
-                // Quit menu.
                 Event::Key(KeyEvent {
                     code: KeyCode::Char('c' | 'C'),
                     modifiers: KeyModifiers::CONTROL,
                     kind: Press | Repeat,
                     state: _,
                 }) => break Ok(MenuUpdate::Push(Menu::Quit)),
+
+                // Keybinds help menu.
+                Event::Key(KeyEvent {
+                    code: KeyCode::Char('?'),
+                    kind: Press | Repeat,
+                    ..
+                }) => {
+                    let client_menu_name = "Settings menu";
+                    let legend = vec![
+                        (
+                            "Normal keybinds".to_owned(),
+                            [
+                                ("Enter e", "Select"),
+                                ("Esc q Backspace", "Exit menu"),
+                                ("Del d", "Reset slot to default, reset savefile setting"),
+                                ("↓/↑ j/k", "Navigate down/up"),
+                                ("←/→ h/l", "Change slot, adjust value"),
+                                ("?", "Open Keybinds overview"),
+                            ]
+                            .into_iter()
+                            .map(|(lhs, rhs)| (lhs.to_owned(), rhs.to_owned()))
+                            .collect(),
+                        ),
+                        (
+                            "Special keybinds".to_owned(),
+                            [
+                                (
+                                    "Ctrl+Alt+L",
+                                    "Re-load from savefile (overwrites current data!)",
+                                ),
+                                (
+                                    "Ctrl+Alt+S",
+                                    "Do savefile storage (respects save preferences)",
+                                ),
+                                ("Ctrl+C", "Exit program (respects save preferences)"),
+                            ]
+                            .into_iter()
+                            .map(|(lhs, rhs)| (lhs.to_owned(), rhs.to_owned()))
+                            .collect(),
+                        ),
+                    ];
+
+                    break Ok(MenuUpdate::Push(Menu::KeybindsOverview {
+                        client_menu_name,
+                        legend,
+                    }));
+                }
+
+                // Quit menu.
                 Event::Key(KeyEvent {
                     code: KeyCode::Esc | KeyCode::Char('q' | 'Q') | KeyCode::Backspace,
                     kind: Press,
                     ..
                 }) => break Ok(MenuUpdate::Pop),
+
                 // Select next menu.
                 Event::Key(KeyEvent {
                     code: KeyCode::Enter | KeyCode::Char('e' | 'E'),
@@ -141,6 +190,7 @@ impl<T: Write> Application<T> {
                     4 => break Ok(MenuUpdate::Push(Menu::AdvancedSettings)),
                     _ => {}
                 },
+
                 // Move selector up.
                 Event::Key(KeyEvent {
                     code: KeyCode::Up | KeyCode::Char('k' | 'K'),
@@ -149,6 +199,7 @@ impl<T: Write> Application<T> {
                 }) => {
                     selected += selection_len - 1;
                 }
+
                 // Move selector down.
                 Event::Key(KeyEvent {
                     code: KeyCode::Down | KeyCode::Char('j' | 'J'),
@@ -157,6 +208,7 @@ impl<T: Write> Application<T> {
                 }) => {
                     selected += 1;
                 }
+
                 // Reload from savefile.
                 Event::Key(KeyEvent {
                     code: KeyCode::Char('l' | 'L'),

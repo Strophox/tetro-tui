@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Pressing `?` now shows a Keybind Overview for any menu it is pressed in. 
 - `Ctrl+Z` can now be used to undo the last player inputs during live game.
 - Changed some in-code / savefile terminology and improve corresponding UI element names.
 - Added 'Borderless Unicode' tui symbols preset.
@@ -57,7 +58,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 'Blank slate' keybinds preset.
 - `Home`/`End` can now be used to skip to beginning/end of input history (in 'Start New Game'⇝'Game save').
 - `Alt+Enter` can now be used to view the a game save as replay (in 'Start New Game'⇝'Game save').
-- `Ctrl+Alt+S` can now be used to do a savefile 'store' from every menu now.
+- `Ctrl+Alt+S` can now be used to do a savefile storage from every menu now.
     * Respects save preferences i.e. deletes existing savefile if 'keep save file' is turned off.
     * Load and Store errors are printed in Advanced Settings.
 

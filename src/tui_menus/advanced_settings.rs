@@ -15,7 +15,7 @@ use crossterm::{
 use crate::{
     fmt_helpers::BoolAsOnOff,
     game_renderers::TetroTUIRenderer,
-    tui_menus::{title_bar, Menu, MenuUpdate},
+    tui_menus::{heading_line, Menu, MenuUpdate},
     Application, SavefileGranularity,
 };
 
@@ -35,7 +35,7 @@ impl<T: Write> Application<T> {
                     format!("{:^w_main$}", "§ Advanced Settings §").bold(),
                 ))?
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
-                .queue(Print(format!("{:^w_main$}", title_bar(&self.settings))))?;
+                .queue(Print(format!("{:^w_main$}", heading_line(&self.settings))))?;
 
             // Draw config selection.
             let labels = [
@@ -113,7 +113,7 @@ impl<T: Write> Application<T> {
                     .queue(PrintStyledContent(
                         format!(
                             "{:^w_main$}",
-                            format!("Save location: {}", self.temp_data.savefile_path.display())
+                            format!("Savefile path: {}", self.temp_data.savefile_path.display())
                         )
                         .italic(),
                     ))?;
@@ -190,13 +190,61 @@ impl<T: Write> Application<T> {
             self.term.flush()?;
             // Wait for new input.
             match event::read()? {
-                // Quit menu.
+                // Abort program.
                 Event::Key(KeyEvent {
                     code: KeyCode::Char('c' | 'C'),
                     modifiers: KeyModifiers::CONTROL,
                     kind: Press | Repeat,
                     state: _,
                 }) => break Ok(MenuUpdate::Push(Menu::Quit)),
+
+                // Keybinds help menu.
+                Event::Key(KeyEvent {
+                    code: KeyCode::Char('?'),
+                    kind: Press | Repeat,
+                    ..
+                }) => {
+                    let client_menu_name = "Advanced Settings menu";
+                    let legend = vec![
+                        (
+                            "Normal keybinds".to_owned(),
+                            [
+                                ("Esc q Backspace", "Exit menu"),
+                                ("Del d", "Reset value"),
+                                ("↓/↑ j/k", "Navigate down/up"),
+                                ("←/→ h/l", "Adjust value"),
+                                ("?", "Open Keybinds overview"),
+                            ]
+                            .into_iter()
+                            .map(|(lhs, rhs)| (lhs.to_owned(), rhs.to_owned()))
+                            .collect(),
+                        ),
+                        (
+                            "Special keybinds".to_owned(),
+                            [
+                                (
+                                    "Ctrl+Alt+L",
+                                    "Re-load from savefile (overwrites current data!)",
+                                ),
+                                (
+                                    "Ctrl+Alt+S",
+                                    "Do savefile storage (respects save preferences)",
+                                ),
+                                ("Ctrl+C", "Exit program (respects save preferences)"),
+                            ]
+                            .into_iter()
+                            .map(|(lhs, rhs)| (lhs.to_owned(), rhs.to_owned()))
+                            .collect(),
+                        ),
+                    ];
+
+                    break Ok(MenuUpdate::Push(Menu::KeybindsOverview {
+                        client_menu_name,
+                        legend,
+                    }));
+                }
+
+                // Quit menu.
                 Event::Key(KeyEvent {
                     code: KeyCode::Esc | KeyCode::Char('q' | 'Q') | KeyCode::Backspace,
                     kind: Press,

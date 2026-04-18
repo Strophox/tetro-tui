@@ -15,7 +15,7 @@ use crossterm::{
 use crate::{
     fmt_helpers::{fmt_duration, fmt_hertz, fmt_tetromino_counts},
     game_mode_presets::GameModePreset,
-    tui_menus::{title_bar, Menu, MenuUpdate},
+    tui_menus::{heading_line, Menu, MenuUpdate},
     Application, ScoreEntry,
 };
 
@@ -135,7 +135,7 @@ impl<T: Write> Application<T> {
 
             self.term
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
-                .queue(Print(format!("{:^w_main$}", title_bar(&self.settings))))?;
+                .queue(Print(format!("{:^w_main$}", heading_line(&self.settings))))?;
 
             timing_offset = timing_offset.saturating_add(1);
 
@@ -177,11 +177,11 @@ impl<T: Write> Application<T> {
                     x_main,
                     y_main + y_selection + 3 + u16::try_from(stats.len()).unwrap(),
                 ))?
-                .queue(Print(format!("{:^w_main$}", title_bar(&self.settings))))?;
+                .queue(Print(format!("{:^w_main$}", heading_line(&self.settings))))?;
 
             let names = selection
                 .iter()
-                .map(|menu| menu.to_string())
+                .map(|menu| menu.str_for_list_menu_selection())
                 .collect::<Vec<_>>();
 
             for (i, name) in names.into_iter().enumerate() {
@@ -195,7 +195,7 @@ impl<T: Write> Application<T> {
                         if i == selected {
                             format!(">> {name} <<")
                         } else {
-                            name
+                            name.to_owned()
                         }
                     )))?;
             }
@@ -207,13 +207,59 @@ impl<T: Write> Application<T> {
 
             // Wait for new input.
             match event::read()? {
-                // Quit menu.
+                // Abort program.
                 Event::Key(KeyEvent {
                     code: KeyCode::Char('c' | 'C'),
                     modifiers: KeyModifiers::CONTROL,
                     kind: Press | Repeat,
                     state: _,
                 }) => break Ok(MenuUpdate::Push(Menu::Quit)),
+
+                // Keybinds help menu.
+                Event::Key(KeyEvent {
+                    code: KeyCode::Char('?'),
+                    kind: Press | Repeat,
+                    ..
+                }) => {
+                    let client_menu_name = "Game Ended menu";
+                    let legend = vec![
+                        (
+                            "Normal keybinds".to_owned(),
+                            [
+                                ("Enter e", "Select"),
+                                ("↓/↑ j/k", "Navigate down/up"),
+                                ("?", "Open Keybinds overview"),
+                            ]
+                            .into_iter()
+                            .map(|(lhs, rhs)| (lhs.to_owned(), rhs.to_owned()))
+                            .collect(),
+                        ),
+                        (
+                            "Special keybinds".to_owned(),
+                            [
+                                (
+                                    "Ctrl+Alt+L",
+                                    "Re-load from savefile (overwrites current data!)",
+                                ),
+                                (
+                                    "Ctrl+Alt+S",
+                                    "Do savefile storage (respects save preferences)",
+                                ),
+                                ("Ctrl+C", "Exit program (respects save preferences)"),
+                            ]
+                            .into_iter()
+                            .map(|(lhs, rhs)| (lhs.to_owned(), rhs.to_owned()))
+                            .collect(),
+                        ),
+                    ];
+
+                    break Ok(MenuUpdate::Push(Menu::KeybindsOverview {
+                        client_menu_name,
+                        legend,
+                    }));
+                }
+
+                // Quit menu.
                 Event::Key(KeyEvent {
                     code: KeyCode::Esc | KeyCode::Char('q' | 'Q') | KeyCode::Backspace,
                     kind: Press,

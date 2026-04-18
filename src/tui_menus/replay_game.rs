@@ -195,14 +195,52 @@ impl<T: Write> Application<T> {
                         }
 
                         match (code, modifiers) {
-                            // [Esc]: Stop.
-                            (KeyCode::Esc | KeyCode::Char('q' | 'Q') | KeyCode::Backspace, _) => {
-                                break 'update_and_render MenuUpdate::Pop;
-                            }
-
                             // [Ctrl+C]: Exit program.
                             (KeyCode::Char('c' | 'C'), KeyModifiers::CONTROL) => {
                                 break 'update_and_render MenuUpdate::Push(Menu::Quit);
+                            }
+
+                            // Keybinds help menu.
+                            (KeyCode::Char('?'), _) => {
+                                let client_menu_name = "Game Replay";
+                                let legend = vec![
+                                    ("Normal keybinds".to_owned(), [
+                                        ("Enter, e", "Start Game from current replay state ('take over')"),
+                                        ("Esc", "Exit replay"),
+                                        ("Space", "Pause replay"),
+                                        ("↓/↑ j/k", "Speed up / slow down replay by ±0.25x"),
+                                        ("-", "Reset replay speed to =1.0x"),
+                                        ("←/→, h/l", "Skip backward / forward 1s in time"),
+                                        (".", "Skip forward one player input & pause"),
+                                        ("1/2/3...", "Jump to 10%/20%/30%/... of replay"),
+                                        ("Home/End", "Jump to beginning/end of replay"),
+                                        ("?", "Open Keybinds overview"),
+                                        ].into_iter().map(|(lhs,rhs)| (lhs.to_owned(), rhs.to_owned())).collect()),
+                                    ("Special keybinds".to_owned(), [
+                                        ("Alt+↓/↑ Alt+j/k", "Speed up / slow down replay by ±0.05x"),
+                                        ("Alt+.", "Skip forward one game state change & pause (might not work properly for modded games)"),
+                                        ("Ctrl+L", "Toggle replay loop"),
+                                        ("Ctrl+S", "Store game save"),
+                                        ("Ctrl+E", "Store seed"),
+                                        ("Alt+I", "(Experimental) Toggle instantaneous interactive input intervention mode"),
+                                        ("Ctrl+G/Ctrl+Alt+G", "Cycle through Graphics Settings slots"),
+                                        ("Ctrl+Alt+L", "Re-load from savefile (overwrites current data!)"),
+                                        ("Ctrl+Alt+S", "Do savefile storage (respects save preferences)"),
+                                        ("Ctrl+C", "Exit program (respects save preferences)"),
+                                    ].into_iter().map(|(lhs,rhs)| (lhs.to_owned(), rhs.to_owned())).collect()),
+                                ];
+
+                                break 'update_and_render MenuUpdate::Push(
+                                    Menu::KeybindsOverview {
+                                        client_menu_name,
+                                        legend,
+                                    },
+                                );
+                            }
+
+                            // [Esc]: Stop.
+                            (KeyCode::Esc | KeyCode::Char('q' | 'Q') | KeyCode::Backspace, _) => {
+                                break 'update_and_render MenuUpdate::Pop;
                             }
 
                             // [Ctrl+I]: Enable Interactive Instant-Input Intervention.

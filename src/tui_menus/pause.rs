@@ -7,7 +7,8 @@ use crate::{
 
 impl<T: Write> Application<T> {
     pub fn run_menu_pause(&mut self) -> io::Result<MenuUpdate> {
-        let selection = vec![
+        let head = "Game Paused";
+        let body = vec![
             Menu::NewGame,
             Menu::Settings,
             Menu::ScoresAndReplays {
@@ -18,6 +19,7 @@ impl<T: Write> Application<T> {
             Menu::About,
             Menu::Quit,
         ];
-        self.generic_menu("Game Paused", selection)
+
+        self.run_liminal_menu("Pause menu", head, body)
     }
 }

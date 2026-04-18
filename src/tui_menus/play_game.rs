@@ -16,7 +16,7 @@ use falling_tetromino_engine::{
 };
 
 use crate::{
-    fmt_helpers::get_game_keybinds_legend,
+    fmt_helpers::{fmt_button_keybinds, get_game_keybinds_legend},
     game_renderers::{Renderer, TetroTUIRenderer},
     game_restoration::{InputHistoryEncoder, QuantizeInGameTime},
     tui_menus::{Menu, MenuUpdate},
@@ -72,11 +72,13 @@ impl<T: Write> Application<T> {
             else {
                 return false;
             };
-            matches!(code, KeyCode::Esc)
+            matches!(code, KeyCode::Esc | KeyCode::Char('?'))
                 || matches!(
                     (code, modifiers),
                     (
-                        KeyCode::Char('d' | 'D' | 'c' | 'C' | 'r' | 'R'),
+                        KeyCode::Char(
+                            'd' | 'D' | 'c' | 'C' | 'r' | 'R' /* Reset is done by pushing entirely new game menu. */
+                        ),
                         KeyModifiers::CONTROL
                     )
                 )
@@ -384,7 +386,74 @@ impl<T: Write> Application<T> {
 
                             // [Ctrl+C]: Exit program.
                             (KeyCode::Char('c' | 'C'), KeyModifiers::CONTROL) => {
-                                break 'update_and_render MenuUpdate::Push(Menu::Quit);
+                                break 'update_and_render MenuUpdate::Push(Menu::Quit)
+                            }
+
+                            // Keybinds help menu.
+                            (KeyCode::Char('?'), _) => {
+                                let client_menu_name = "Live Game";
+                                let legend = vec![
+                                    (
+                                        "Normal keybinds".to_owned(),
+                                        [
+                                            ("Esc", "Open Pause menu"),
+                                            ("?", "Open Keybinds overview"),
+                                        ]
+                                        .into_iter()
+                                        .map(|(lhs, rhs)| (lhs.to_owned(), rhs.to_owned()))
+                                        .collect(),
+                                    ),
+                                    (
+                                        "Special keybinds".to_owned(),
+                                        [
+                                            ("Ctrl+D", "Forfeit game"),
+                                            ("Ctrl+R", "Restart game mode (discards current game)"),
+                                            ("Ctrl+Z", "Undo last input (overwrites current game)"),
+                                            ("Ctrl+L", "Load game save (overwrites current game)"),
+                                            ("Ctrl+S", "Store game save"),
+                                            ("Ctrl+E", "Store seed"),
+                                            (
+                                                "Ctrl+G/Ctrl+Alt+G",
+                                                "Cycle through Graphics Settings slots",
+                                            ),
+                                            (
+                                                "Ctrl+Alt+L",
+                                                "Re-load from savefile (overwrites current data!)",
+                                            ),
+                                            (
+                                                "Ctrl+Alt+S",
+                                                "Do savefile storage (respects save preferences)",
+                                            ),
+                                            ("Ctrl+C", "Exit program (respects save preferences)"),
+                                        ]
+                                        .into_iter()
+                                        .map(|(lhs, rhs)| (lhs.to_owned(), rhs.to_owned()))
+                                        .collect(),
+                                    ),
+                                    (
+                                        "Player keybinds".to_owned(),
+                                        Button::VARIANTS
+                                            .into_iter()
+                                            .map(|b| {
+                                                (
+                                                    format!("{b:?}"),
+                                                    fmt_button_keybinds(
+                                                        b,
+                                                        self.settings.keybinds(),
+                                                        " ",
+                                                    ),
+                                                )
+                                            })
+                                            .collect(),
+                                    ),
+                                ];
+
+                                break 'update_and_render MenuUpdate::Push(
+                                    Menu::KeybindsOverview {
+                                        client_menu_name,
+                                        legend,
+                                    },
+                                );
                             }
 
                             // [Ctrl+D]: Forfeit game.
@@ -754,7 +823,7 @@ impl<T: Write> Application<T> {
         self.statistics.play_time +=
             Instant::now().saturating_duration_since(time_game_loop_entered);
 
-        if !Statistics::BLACKLIST_TITLE_PREFIXES
+        if !Statistics::GAME_MODE_TITLE_PREFIX_BLACKLIST
             .iter()
             .any(|prefix| game_meta_data.title.starts_with(prefix))
         {

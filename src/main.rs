@@ -309,7 +309,7 @@ pub struct Statistics {
 
 impl Statistics {
     // This simple blacklist is used to prevent certain game modes from being counted toward stats (e.g. Puzzle's perfect clears).
-    const BLACKLIST_TITLE_PREFIXES: &[&str] =
+    const GAME_MODE_TITLE_PREFIX_BLACKLIST: &[&str] =
         &[GameModePreset::TITLE_PUZZLE, GameModePreset::TITLE_COMBO];
 
     fn accumulate_from_feed(&mut self, feed: &NotificationFeed) {
@@ -595,6 +595,10 @@ impl<T: Write> Application<T> {
             // Open new menu screen, then store what it returns.
             let menu_update = match menu {
                 Menu::Title => self.run_menu_title(),
+                Menu::KeybindsOverview {
+                    client_menu_name: is_help_for_menu_with_name,
+                    legend: keybinds,
+                } => self.run_menu_keybinds_help(is_help_for_menu_with_name, keybinds),
                 Menu::NewGame => self.run_menu_new_game(),
                 Menu::PlayGame {
                     game,

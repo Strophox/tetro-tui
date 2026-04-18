@@ -15,7 +15,7 @@ use falling_tetromino_engine::Button;
 
 use crate::{
     fmt_helpers::{fmt_button_keybinds, fmt_key_with_keymods},
-    tui_menus::{title_bar, Menu, MenuUpdate},
+    tui_menus::{heading_line, Menu, MenuUpdate},
     tui_settings::GameKeybinds,
     Application, Settings,
 };
@@ -48,7 +48,7 @@ impl<T: Write> Application<T> {
                     format!("{:^w_main$}", "@ Game Keybinds @").bold(),
                 ))?
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
-                .queue(Print(format!("{:^w_main$}", title_bar(&self.settings))))?;
+                .queue(Print(format!("{:^w_main$}", heading_line(&self.settings))))?;
 
             // Draw slot label.
             let slot_label = format!(
@@ -63,13 +63,13 @@ impl<T: Write> Application<T> {
                     "".to_owned()
                 } else {
                     format!(
-                        " [←|{}→] ",
+                        " [←/{}→] ",
                         if self.settings.keybinds_selected
                             < self.settings.keybinds_slotmachine.unmodifiable_slots
                         {
                             ""
                         } else {
-                            "Del|"
+                            "Del/"
                         }
                     )
                 }
@@ -85,7 +85,7 @@ impl<T: Write> Application<T> {
                     }
                 )))?
                 .queue(MoveTo(x_main, y_main + y_selection + 4))?
-                .queue(Print(format!("{:^w_main$}", title_bar(&self.settings))))?;
+                .queue(Print(format!("{:^w_main$}", heading_line(&self.settings))))?;
 
             // Draw keybinds selection.
             let button_names = buttons_available.iter().map(|&button| {
@@ -118,11 +118,7 @@ impl<T: Write> Application<T> {
                     y_main + y_selection + 6 + u16::try_from(buttons_available.len()).unwrap() + 1,
                 ))?
                 .queue(PrintStyledContent(
-                    format!(
-                        "{:^w_main$}",
-                        "(Controls: [Enter]=add [Esc]=cancel [Del]=clear)",
-                    )
-                    .italic(),
+                    format!("{:^w_main$}", "[Enter]=add [Esc]=cancel [Del]=clear",).italic(),
                 ))?;
             let dangerous_keybinds: Vec<_> = self
                 .settings
@@ -180,6 +176,53 @@ impl<T: Write> Application<T> {
                     kind: Press | Repeat,
                     state: _,
                 }) => break Ok(MenuUpdate::Push(Menu::Quit)),
+
+                // Keybinds help menu.
+                Event::Key(KeyEvent {
+                    code: KeyCode::Char('?'),
+                    kind: Press | Repeat,
+                    ..
+                }) => {
+                    let client_menu_name = "Game Keybinds menu";
+                    let legend = vec![
+                        (
+                            "Normal keybinds".to_owned(),
+                            [
+                                ("Enter e", "Add new keybind to selected action"),
+                                ("Esc q Backspace", "Exit menu or cancel adding new keybind"),
+                                ("Del d", "Delete slot or reset keybinds for selected action"),
+                                ("↓/↑ j/k", "Navigate down/up"),
+                                ("←/→ h/l", "Change slot"),
+                                ("?", "Open Keybinds overview"),
+                            ]
+                            .into_iter()
+                            .map(|(lhs, rhs)| (lhs.to_owned(), rhs.to_owned()))
+                            .collect(),
+                        ),
+                        (
+                            "Special keybinds".to_owned(),
+                            [
+                                (
+                                    "Ctrl+Alt+L",
+                                    "Re-load from savefile (overwrites current data!)",
+                                ),
+                                (
+                                    "Ctrl+Alt+S",
+                                    "Do savefile storage (respects save preferences)",
+                                ),
+                                ("Ctrl+C", "Exit program (respects save preferences)"),
+                            ]
+                            .into_iter()
+                            .map(|(lhs, rhs)| (lhs.to_owned(), rhs.to_owned()))
+                            .collect(),
+                        ),
+                    ];
+
+                    break Ok(MenuUpdate::Push(Menu::KeybindsOverview {
+                        client_menu_name,
+                        legend,
+                    }));
+                }
 
                 // Quit menu.
                 Event::Key(KeyEvent {

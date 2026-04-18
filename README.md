@@ -186,7 +186,9 @@ cargo run
 
 ### Can you give me a table of all controls / shortcuts / keybinds?
 
-> Please refer to the tables below.
+> You can press `?` in every single menu to access a keybinds overview for it.
+>
+> Otherwise please refer to the tables below.
 > 
 > <details>
 > <summary>
@@ -196,14 +198,15 @@ cargo run
 > Universal:
 > | Keys | ≈ Meaning |
 > | -: | :- |
-> | `↓`/`↑`, `j`/`k` | Navigate up/down |
-> | `←`/`→`, `h`/`l` | Change value |
 > | `Enter`, `e` | Select |
 > | `Esc`, `q`, `Back`, | Go back |
 > | `Del`, `d` | Delete/Reset |
-> | `Ctrl`+`Alt`+`L` | Re-load from savefile (Caution: discards current application data!) |
-> | `Ctrl`+`Alt`+`S` | Do savefile 'store' (respects save preferences i.e. deletes if 'keep save file' is off) |
-> | `Ctrl`+`C` | Exit application (respects save preferences) |
+> | `↓`/`↑`, `j`/`k` | Navigate down/up |
+> | `←`/`→`, `h`/`l` | Adjust value |
+> | `?` | Open Keybinds Overview |
+> | `Ctrl`+`Alt`+`L` | Re-load from savefile (Caution: overwrites current data!) |
+> | `Ctrl`+`Alt`+`S` | Do savefile storage (respects save preferences) |
+> | `Ctrl`+`C` | Exit program (respects save preferences) |
 >
 > Specific to 'Scores and Replays':
 > | Keys | Meaning |
@@ -214,7 +217,7 @@ cargo run
 > Specific to 'Start New Game':
 > | Keys | Meaning |
 > | -: | :- |
-> | `Alt`+`←`/`→`, `Alt`+`h`/`l` | Change value differently (under ⇝['Combo','Custom','Game save']) |
+> | `Alt`+`←`/`→`, `Alt`+`h`/`l` | Adjust value differently (under ⇝['Combo','Custom','Game save']) |
 > | `Home`/`End` | Jump to beginning/end of inpus (under ⇝'Game save') |
 > | `Alt`+`Enter` | View replay instead of starting game save (under ⇝'Game save') |
 > | `Ctrl`+`U` | (For experienced/impatient players) unlock all game modes |
@@ -222,7 +225,7 @@ cargo run
 > Specific to 'Gameplay settings':
 > | Keys | Meaning |
 > | -: | :- |
-> | `Alt`+`←`/`→`, `Alt`+`h`/`l` | Change value differently (under ⇝'Piece randomization'⇝['\*-Bag', 'Recency (\*)']) |
+> | `Alt`+`←`/`→`, `Alt`+`h`/`l` | Adjust value differently (under ⇝'Piece randomization'⇝['\*-Bag', 'Recency (\*)']) |
 >
 > </details>
 > 
@@ -232,9 +235,8 @@ cargo run
 > (Default) Game controls:
 > </summary>
 > 
-> | Key (customizable) | Action |
+> | Default Key (customizable) | Action |
 > | -: | :- |
-> | `Esc` | Pause game |
 > | `←` | Move left |
 > | `→` | Move right |
 > | `A` | Rotate left (CCW) |
@@ -247,19 +249,24 @@ cargo run
 > | - | Teleport right |
 > | `Space` | Hold piece |
 > 
+> | Key | Action |
+> | -: | :- |
+> | `Esc` | Pause game |
+> | `?` | Open Keybinds Overview |
+> 
 > | Key | Special action |
 > | -: | :- |
 > | `Ctrl`+`D` | Forfeit game |
 > | `Ctrl`+`R` | Restart game mode (Caution: discards current game) |
-> | `Ctrl`+`Z` | Undo last input (Caution: discards current game) |
-> | `Ctrl`+`L` | Load game save (Caution: discards current game) |
+> | `Ctrl`+`Z` | Undo last input (Caution: overwrites current game) |
+> | `Ctrl`+`L` | Load game save (Caution: overwrites current game) |
 > | `Ctrl`+`S` | Store game save (accessible in 'Start New Game'⇝'Game save' or (live)'Game'⇝`Ctrl`+`L`) |
 > | `Ctrl`+`E` | Store seed (accessible in 'Start New Game'⇝'Custom') |
 > | `Ctrl`(+`Alt`)+`G` | Cycle through graphics settings slots |
 > | `Ctrl`+`Alt`+`B` | Toggle on/off visibility of tiles ('Blindfolded') |
-> | `Ctrl`+`Alt`+`L` | Re-load from savefile (Caution: discards current application data!) |
-> | `Ctrl`+`Alt`+`S` | Do savefile 'store' (respects save preferences i.e. deletes if 'keep save file' is off) |
-> | `Ctrl`+`C` | Exit application (respects save preferences) |
+> | `Ctrl`+`Alt`+`L` | Re-load from savefile (Caution: overwrites current data!) |
+> | `Ctrl`+`Alt`+`S` | Do savefile storage (respects save preferences) |
+> | `Ctrl`+`C` | Exit program (respects save preferences) |
 > 
 > </details>
 > 
@@ -271,28 +278,29 @@ cargo run
 > 
 > | Key | Action |
 > | -: | :- |
+> | `Enter`, `e` | Start Game from current replay state ('take over') |
 > | `Esc`, `q`, `Back` | Exit replay |
 > | `Space` | Pause replay |
 > | `↓`/`↑` , `j`/`k` | Speed up / slow down replay by ±0.25x |
-> | `Alt`+`↓`/`↑`, `Alt`+`j`/`k` | Speed up / slow down replay by ±0.05x |
 > | `-` | Reset replay speed to =1.0x |
 > | `←`/`→` , `h`/`l` | Skip forward / backward 1s in time |
+> | `.` | Skip forward one player input & pause |
 > | `1`/`2`/`3`... | Jump to 10%/20%/30%/... |
 > | `Home`/`End` | Jump to beginning/end |
-> | `.` | Skip forward one player input & pause |
-> | `Alt`+`.` | Skip forward one game state change & pause (might not work properly for modded games) |
-> | `Enter`, `e` | Start (live) Game from current replay state ('take over') |
+> | `?` | Open Keybinds Overview |
 > 
 > | Key | Special action |
 > | -: | :- |
+> | `Alt`+`↓`/`↑`, `Alt`+`j`/`k` | Speed up / slow down replay by ±0.05x |
+> | `Alt`+`.` | Skip forward one game state change & pause (might not work properly for modded games) |
 > | `Ctrl`+`L` | Toggle replay looping |
 > | `Ctrl`+`S` | Store game save (accessible in 'Start New Game'⇝'Game save' or (live)'Game'⇝`Ctrl`+`L`) |
 > | `Ctrl`+`E` | Store seed (accessible in 'Start New Game'⇝'Custom') |
 > | `Alt`+`I` | (Experimental) Toggle instantaneous interactive input intervention mode |
 > | `Ctrl`(+`Alt`)+`G` | Cycle through Graphics Settings slots |
-> | `Ctrl`+`Alt`+`L` | Re-load from savefile (Caution: discards current application data!) |
-> | `Ctrl`+`Alt`+`S` | Do savefile 'store' (respects save preferences i.e. deletes if 'keep save file' is off) |
-> | `Ctrl`+`C` | Exit application (respects save preferences) |
+> | `Ctrl`+`Alt`+`L` | Re-load from savefile (Caution: overwrites current data!) |
+> | `Ctrl`+`Alt`+`S` | Do savefile storage (respects save preferences) |
+> | `Ctrl`+`C` | Exit program (respects save preferences) |
 > 
 > </details>
 

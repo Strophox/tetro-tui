@@ -18,7 +18,7 @@ use falling_tetromino_engine::Tetromino;
 
 use crate::{
     fmt_helpers::BoolAsOnOff,
-    tui_menus::{title_bar, Menu, MenuUpdate},
+    tui_menus::{heading_line, Menu, MenuUpdate},
     Application, Settings,
 };
 
@@ -47,7 +47,7 @@ impl<T: Write> Application<T> {
                     format!("{:^w_main$}", "# Graphics Settings #").bold(),
                 ))?
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
-                .queue(Print(format!("{:^w_main$}", title_bar(&self.settings))))?;
+                .queue(Print(format!("{:^w_main$}", heading_line(&self.settings))))?;
 
             // Draw slot label.
             let slot_label = format!(
@@ -62,13 +62,13 @@ impl<T: Write> Application<T> {
                     "".to_owned()
                 } else {
                     format!(
-                        " [←|{}→] ",
+                        " [←/{}→] ",
                         if self.settings.graphics_selected
                             < self.settings.graphics_slotmachine.unmodifiable_slots
                         {
                             ""
                         } else {
-                            "Del|"
+                            "Del/"
                         }
                     )
                 }
@@ -84,7 +84,7 @@ impl<T: Write> Application<T> {
                     }
                 )))?
                 .queue(MoveTo(x_main, y_main + y_selection + 4))?
-                .queue(Print(format!("{:^w_main$}", title_bar(&self.settings))))?;
+                .queue(Print(format!("{:^w_main$}", heading_line(&self.settings))))?;
 
             let labels1 = [
                 format!(
@@ -298,6 +298,52 @@ impl<T: Write> Application<T> {
                     kind: Press | Repeat,
                     state: _,
                 }) => break Ok(MenuUpdate::Push(Menu::Quit)),
+
+                // Keybinds help menu.
+                Event::Key(KeyEvent {
+                    code: KeyCode::Char('?'),
+                    kind: Press | Repeat,
+                    ..
+                }) => {
+                    let client_menu_name = "Graphics Settings menu";
+                    let legend = vec![
+                        (
+                            "Normal keybinds".to_owned(),
+                            [
+                                ("Esc q Backspace", "Exit menu"),
+                                ("Del d", "Delete slot"),
+                                ("↓/↑ j/k", "Navigate down/up"),
+                                ("←/→ h/l", "Change slot, adjust value"),
+                                ("?", "Open Keybinds overview"),
+                            ]
+                            .into_iter()
+                            .map(|(lhs, rhs)| (lhs.to_owned(), rhs.to_owned()))
+                            .collect(),
+                        ),
+                        (
+                            "Special keybinds".to_owned(),
+                            [
+                                (
+                                    "Ctrl+Alt+L",
+                                    "Re-load from savefile (overwrites current data!)",
+                                ),
+                                (
+                                    "Ctrl+Alt+S",
+                                    "Do savefile storage (respects save preferences)",
+                                ),
+                                ("Ctrl+C", "Exit program (respects save preferences)"),
+                            ]
+                            .into_iter()
+                            .map(|(lhs, rhs)| (lhs.to_owned(), rhs.to_owned()))
+                            .collect(),
+                        ),
+                    ];
+
+                    break Ok(MenuUpdate::Push(Menu::KeybindsOverview {
+                        client_menu_name,
+                        legend,
+                    }));
+                }
 
                 // Quit menu.
                 Event::Key(KeyEvent {
