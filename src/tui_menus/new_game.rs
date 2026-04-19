@@ -216,7 +216,7 @@ impl<T: Write> Application<T> {
                                         .win_condition
                                         .is_some()
                                 {
-                                    " [↓|↑]"
+                                    " [↓/↑]"
                                 } else {
                                     ""
                                 }
@@ -337,12 +337,14 @@ impl<T: Write> Application<T> {
                                 game_renderer: Box::new(TetroTUIRenderer::with_number(
                                     self.temp_data.renderer_used,
                                 )),
-                                cached_game_and_replay_anchors: calculate_game_and_replay_anchors(
-                                    &mut self.term,
-                                    game_restoration_data,
-                                    REPLAY_ANCHOR_INTERVAL,
-                                    replay_length,
-                                )?,
+                                cached_game_and_replay_anchors: Box::new(
+                                    calculate_game_and_replay_anchors(
+                                        &mut self.term,
+                                        game_restoration_data,
+                                        REPLAY_ANCHOR_INTERVAL,
+                                        replay_length,
+                                    )?,
+                                ),
                             }));
                         }
                     }

@@ -114,7 +114,7 @@ impl<T: Write> Application<T> {
         self.term.execute(Clear(terminal::ClearType::All))?;
         game_renderer.render(
             &mut self.term,
-            &game,
+            game,
             game_meta_data,
             &self.settings,
             &self.temp_data,
@@ -304,7 +304,7 @@ impl<T: Write> Application<T> {
                                 self.game_saves.slots = vec![GameSave {
                                     game_meta_data: game_meta_data.clone(),
                                     game_restoration_data: GameRestorationData::new(
-                                        &game,
+                                        game,
                                         game_restoration_data.input_history.clone(),
                                         matches!(
                                             game.phase(),
@@ -717,7 +717,7 @@ impl<T: Write> Application<T> {
                 // Re-render full state.
                 game_renderer.render(
                     &mut self.term,
-                    &game,
+                    game,
                     game_meta_data,
                     &self.settings,
                     &self.temp_data,
@@ -810,7 +810,7 @@ impl<T: Write> Application<T> {
                 // Render current state of the game.
                 game_renderer.render(
                     &mut self.term,
-                    &game,
+                    game,
                     game_meta_data,
                     &self.settings,
                     &self.temp_data,

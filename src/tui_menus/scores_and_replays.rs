@@ -484,7 +484,9 @@ impl<T: Write> Application<T> {
                                     game_meta_data,
                                     replay_length,
                                     game_renderer,
-                                    cached_game_and_replay_anchors,
+                                    cached_game_and_replay_anchors: Box::new(
+                                        cached_game_and_replay_anchors,
+                                    ),
                                 }));
                             }
                             Err(e) => view_replay_error = e,

@@ -80,7 +80,7 @@ pub enum Menu {
         game_meta_data: GameMetaData,
         replay_length: InGameTime,
         game_renderer: Box<TetroTUIRenderer>,
-        cached_game_and_replay_anchors: (Game, Option<Vec<GameSaveAnchor>>),
+        cached_game_and_replay_anchors: Box<(Game, Option<Vec<GameSaveAnchor>>)>,
     },
     Statistics,
     About,
