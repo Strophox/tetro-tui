@@ -22,7 +22,8 @@ use crate::{
     Application, GameMetaData, GameSave,
 };
 
-struct GameSaveAnchor {
+#[derive(Debug)]
+pub struct GameSaveAnchor {
     game: Game,
     inputs_loaded: usize,
 }
@@ -34,6 +35,7 @@ impl<T: Write> Application<T> {
         game_meta_data: &GameMetaData,
         replay_length: InGameTime,
         game_renderer: &mut TetroTUIRenderer,
+        cached_game_and_replay_anchors: &mut (Game, Option<Vec<GameSaveAnchor>>),
     ) -> io::Result<MenuUpdate> {
         /* Our game loop recipe looks like this:
           * Enter 'update_and_render loop:
@@ -94,12 +96,8 @@ impl<T: Write> Application<T> {
             |replay_speed_stepper: u32| f64::from(replay_speed_stepper) * REPLAY_SPEED_STEPSIZE;
 
         // Initialized/load game and generate game_save_anchors if possible.
-        const ANCHOR_INTERVAL: Duration = Duration::from_millis(1000);
-        let (mut game, game_save_anchors) = self.calculate_game_save_anchors(
-            game_restoration_data,
-            ANCHOR_INTERVAL,
-            replay_length,
-        )?;
+        // FIXME: Precalculate this once and cache in Menu:ReplayGame struct.
+        let (game, replay_anchors) = cached_game_and_replay_anchors;
 
         let mut inputs_loaded = 0usize;
 
@@ -221,7 +219,7 @@ impl<T: Write> Application<T> {
                                         ("Alt+.", "Skip forward one game state change & pause (might not work properly for modded games)"),
                                         ("Ctrl+L", "Toggle replay loop"),
                                         ("Ctrl+S", "Store game save"),
-                                        ("Ctrl+E", "Store seed"),
+                                        ("Ctrl+E", "Store seed for custom game"),
                                         ("Alt+I", "(Experimental) Toggle instantaneous interactive input intervention mode"),
                                         ("Ctrl+G/Ctrl+Alt+G", "Cycle through Graphics Settings slots"),
                                         ("Ctrl+Alt+L", "Re-load from savefile (overwrites current data!)"),
@@ -487,16 +485,14 @@ impl<T: Write> Application<T> {
                                 KeyModifiers::NONE,
                             ) => {
                                 let mut anchor_index = (game.state().time.as_secs_f64()
-                                    / ANCHOR_INTERVAL.as_secs_f64())
+                                    / REPLAY_ANCHOR_INTERVAL.as_secs_f64())
                                 .floor()
                                     as usize;
 
                                 if matches!(code, KeyCode::Left | KeyCode::Char('h' | 'H')) {
-                                    if game
-                                        .state()
-                                        .time
-                                        .saturating_sub(ANCHOR_INTERVAL * (anchor_index as u32))
-                                        < ANCHOR_INTERVAL / 2
+                                    if game.state().time.saturating_sub(
+                                        REPLAY_ANCHOR_INTERVAL * (anchor_index as u32),
+                                    ) < REPLAY_ANCHOR_INTERVAL / 2
                                     {
                                         anchor_index = anchor_index.saturating_sub(1);
                                     }
@@ -517,8 +513,9 @@ impl<T: Write> Application<T> {
                             // [End]: Skip to ~100% anchor save.
                             (KeyCode::End, _) => {
                                 jump_to_anchor = Some(
-                                    (replay_length.as_secs_f64() / ANCHOR_INTERVAL.as_secs_f64())
-                                        .floor() as usize,
+                                    (replay_length.as_secs_f64()
+                                        / REPLAY_ANCHOR_INTERVAL.as_secs_f64())
+                                    .floor() as usize,
                                 );
                             }
 
@@ -528,7 +525,8 @@ impl<T: Write> Application<T> {
 
                                 // n/10 * (No.anchors := replen/anchor_interval)
                                 let anchor_index = (f64::from(n) / 10.0
-                                    * (replay_length.as_secs_f64() / ANCHOR_INTERVAL.as_secs_f64()))
+                                    * (replay_length.as_secs_f64()
+                                        / REPLAY_ANCHOR_INTERVAL.as_secs_f64()))
                                 .floor()
                                     as usize;
 
@@ -540,8 +538,7 @@ impl<T: Write> Application<T> {
                             // [Enter]: Start playable game from here!
                             (KeyCode::Enter | KeyCode::Char('e' | 'E'), _) if !game.has_ended() => {
                                 // We yank the *exact* gamestate. Leave some dummy in its place that shouldn't be used/relevant...
-                                let the_game =
-                                    std::mem::replace(&mut game, Game::builder().build());
+                                let the_game = std::mem::replace(game, Game::builder().build());
 
                                 let mut the_meta_data = game_meta_data.clone();
                                 the_meta_data.title.push('\'');
@@ -675,7 +672,7 @@ impl<T: Write> Application<T> {
             if let Some(anchor_index) = jump_to_anchor.take() {
                 // We don't allow skipping beyond last anchor.
                 if anchor_index
-                    > ((replay_length.as_secs_f64() / ANCHOR_INTERVAL.as_secs_f64()).floor()
+                    > ((replay_length.as_secs_f64() / REPLAY_ANCHOR_INTERVAL.as_secs_f64()).floor()
                         as usize)
                 {
                     continue 'update_and_render;
@@ -685,19 +682,19 @@ impl<T: Write> Application<T> {
                 time_last_refresh = now;
 
                 // Actually jump to position.
-                if let Some(game_save_anchors) = &game_save_anchors {
+                if let Some(game_save_anchors) = &replay_anchors {
                     if let Some(GameSaveAnchor {
                         game: anchor_game,
                         inputs_loaded: anchor_inputs_loaded,
                     }) = game_save_anchors.get(anchor_index)
                     {
-                        game = anchor_game.try_clone().unwrap();
+                        *game = anchor_game.try_clone().unwrap();
                         inputs_loaded = *anchor_inputs_loaded;
                     }
                 } else {
                     // Workaround for if we o not have a game anchor available: Restore the game from scratch actually.
                     // Note that this is currently only required for modded games.
-                    let tgt_time = ANCHOR_INTERVAL.mul_f64(anchor_index as f64);
+                    let tgt_time = REPLAY_ANCHOR_INTERVAL.mul_f64(anchor_index as f64);
                     let idx = match game_restoration_data
                         .input_history
                         .inputs
@@ -705,7 +702,7 @@ impl<T: Write> Application<T> {
                     {
                         Ok(idx) | Err(idx) => idx,
                     };
-                    game = game_restoration_data.restore(idx);
+                    *game = game_restoration_data.restore(idx);
                     match game.update(tgt_time, None) {
                         Ok(msgs) => game_renderer.update_feed(msgs, &self.settings),
                         // FIXME: Handle UpdateGameError? If not, why not?
@@ -796,7 +793,7 @@ impl<T: Write> Application<T> {
                 }
             } else if game.has_ended() && loop_replay {
                 // Loop replay.
-                game = game_restoration_data.restore(0);
+                *game = game_restoration_data.restore(0);
                 inputs_loaded = 0;
                 game_renderer.reset_veffects_state();
                 game_renderer.update_feed(
@@ -897,75 +894,58 @@ impl<T: Write> Application<T> {
 
         Ok(menu_update)
     }
+}
 
-    // FIXME: Improve error detection for fail cases, possibly use renderer feed.
-    // We currently do not treat degenerate games that end immediately (total time = 0).
-    fn calculate_game_save_anchors(
-        &mut self,
-        game_restoration_data: &GameRestorationData<RawInputHistory>,
-        anchor_interval: Duration,
-        replay_length: InGameTime,
-    ) -> io::Result<(Game, Option<Vec<GameSaveAnchor>>)> {
-        let initial_game = game_restoration_data.restore(0);
+pub const REPLAY_ANCHOR_INTERVAL: Duration = Duration::from_millis(1000);
 
-        let mut game = match initial_game.try_clone() {
-            Ok(game) => game,
-            // We don't have replay anchors for modded games, because we can't even attempt to clone the mods' internal states at time of writing.
-            Err(_e) => return Ok((initial_game, None)),
-        };
-        let mut inputs_loaded = 0usize;
+// FIXME: Improve error detection for fail cases, possibly use renderer feed.
+// We currently do not treat degenerate games that end immediately (total time = 0).
+pub fn calculate_game_and_replay_anchors(
+    term: &mut impl Write,
+    game_restoration_data: &GameRestorationData<RawInputHistory>,
+    anchor_interval: Duration,
+    replay_length: InGameTime,
+) -> io::Result<(Game, Option<Vec<GameSaveAnchor>>)> {
+    let initial_game = game_restoration_data.restore(0);
 
-        let mut game_save_anchors = vec![GameSaveAnchor {
-            game: game.try_clone().unwrap(),
-            inputs_loaded,
-        }];
+    let mut game = match initial_game.try_clone() {
+        Ok(game) => game,
+        // We don't have replay anchors for modded games, because we can't even attempt to clone the mods' internal states at time of writing.
+        Err(_e) => return Ok((initial_game, None)),
+    };
+    let mut inputs_loaded = 0usize;
 
-        let mut next_anchor_time = game.state().time + anchor_interval;
+    let mut game_save_anchors = vec![GameSaveAnchor {
+        game: game.try_clone().unwrap(),
+        inputs_loaded,
+    }];
 
-        'calculate_anchors: loop {
-            self.term.execute(MoveTo(0, 0))?;
-            self.term
-                .execute(PrintStyledContent(Stylize::italic(format!(
-                    "Loading replay... (precalculated {}/{})",
-                    fmt_duration(game.state().time),
-                    fmt_duration(replay_length)
-                ))))?;
+    let mut next_anchor_time = game.state().time + anchor_interval;
 
-            'feed_inputs: loop {
-                let Some((next_input_time, input)) = game_restoration_data
-                    .input_history
-                    .inputs
-                    .get(inputs_loaded)
-                else {
-                    // No more inputs.
-                    break 'feed_inputs;
-                };
+    'calculate_anchors: loop {
+        term.execute(MoveTo(0, 0))?;
+        term.execute(PrintStyledContent(Stylize::italic(format!(
+            "Loading replay... (precalculated {}/{})",
+            fmt_duration(game.state().time),
+            fmt_duration(replay_length)
+        ))))?;
 
-                if next_anchor_time < *next_input_time {
-                    // Anchor reached.
-                    break 'feed_inputs;
-                }
+        'feed_inputs: loop {
+            let Some((next_input_time, input)) = game_restoration_data
+                .input_history
+                .inputs
+                .get(inputs_loaded)
+            else {
+                // No more inputs.
+                break 'feed_inputs;
+            };
 
-                match game.update(*next_input_time, Some(*input)) {
-                    Ok(_msgs) => {}
-                    // FIXME: Handle UpdateGameError::TargetTimeInPast? If not, why not?
-                    Err(UpdateGameError::TargetTimeInPast) => {}
-                    // Game ended, no more anchors.
-                    Err(UpdateGameError::AlreadyEnded) => break 'calculate_anchors,
-                }
-
-                inputs_loaded += 1;
+            if next_anchor_time < *next_input_time {
+                // Anchor reached.
+                break 'feed_inputs;
             }
 
-            // Game was forfeit before anchor.
-            if let Some(forfeit_time) = game_restoration_data.forfeit {
-                if forfeit_time <= next_anchor_time {
-                    break 'calculate_anchors;
-                }
-            }
-
-            // Anchor is next.
-            match game.update(next_anchor_time, None) {
+            match game.update(*next_input_time, Some(*input)) {
                 Ok(_msgs) => {}
                 // FIXME: Handle UpdateGameError::TargetTimeInPast? If not, why not?
                 Err(UpdateGameError::TargetTimeInPast) => {}
@@ -973,19 +953,37 @@ impl<T: Write> Application<T> {
                 Err(UpdateGameError::AlreadyEnded) => break 'calculate_anchors,
             }
 
-            game_save_anchors.push(GameSaveAnchor {
-                game: game.try_clone().unwrap(),
-                inputs_loaded,
-            });
+            inputs_loaded += 1;
+        }
 
-            next_anchor_time = game.state().time + anchor_interval;
-
-            // Stop generation.
-            if next_anchor_time > replay_length {
+        // Game was forfeit before anchor.
+        if let Some(forfeit_time) = game_restoration_data.forfeit {
+            if forfeit_time <= next_anchor_time {
                 break 'calculate_anchors;
             }
         }
 
-        Ok((initial_game, Some(game_save_anchors)))
+        // Anchor is next.
+        match game.update(next_anchor_time, None) {
+            Ok(_msgs) => {}
+            // FIXME: Handle UpdateGameError::TargetTimeInPast? If not, why not?
+            Err(UpdateGameError::TargetTimeInPast) => {}
+            // Game ended, no more anchors.
+            Err(UpdateGameError::AlreadyEnded) => break 'calculate_anchors,
+        }
+
+        game_save_anchors.push(GameSaveAnchor {
+            game: game.try_clone().unwrap(),
+            inputs_loaded,
+        });
+
+        next_anchor_time = game.state().time + anchor_interval;
+
+        // Stop generation.
+        if next_anchor_time > replay_length {
+            break 'calculate_anchors;
+        }
     }
+
+    Ok((initial_game, Some(game_save_anchors)))
 }

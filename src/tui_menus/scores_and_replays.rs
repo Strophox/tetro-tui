@@ -17,7 +17,11 @@ use crate::{
     fmt_helpers::fmt_duration,
     game_renderers::TetroTUIRenderer,
     game_restoration::{EncodedInputHistory, GameRestorationData},
-    tui_menus::{heading_line, Menu, MenuUpdate},
+    tui_menus::{
+        heading_line,
+        replay_game::{calculate_game_and_replay_anchors, REPLAY_ANCHOR_INTERVAL},
+        Menu, MenuUpdate,
+    },
     Application, ScoreEntry, ScoreEntrySorting,
 };
 
@@ -464,14 +468,23 @@ impl<T: Write> Application<T> {
                         match game_restoration_data.clone().try_decode() {
                             Ok(game_restoration_data) => {
                                 let game_meta_data = score_entry.game_meta_data.clone();
+                                let replay_length = score_entry.time;
+                                let game_renderer =
+                                    TetroTUIRenderer::with_number(self.temp_data.renderer_used)
+                                        .into();
+                                let cached_game_and_replay_anchors =
+                                    calculate_game_and_replay_anchors(
+                                        &mut self.term,
+                                        &game_restoration_data,
+                                        REPLAY_ANCHOR_INTERVAL,
+                                        replay_length,
+                                    )?;
                                 break Ok(MenuUpdate::Push(Menu::ReplayGame {
                                     game_restoration_data: Box::new(game_restoration_data),
                                     game_meta_data,
-                                    replay_length: score_entry.time,
-                                    game_renderer: TetroTUIRenderer::with_number(
-                                        self.temp_data.renderer_used,
-                                    )
-                                    .into(),
+                                    replay_length,
+                                    game_renderer,
+                                    cached_game_and_replay_anchors,
                                 }));
                             }
                             Err(e) => view_replay_error = e,

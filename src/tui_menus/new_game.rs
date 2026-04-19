@@ -25,7 +25,11 @@ use crate::{
     game_mode_presets::GameModePreset,
     game_renderers::{Renderer, TetroTUIRenderer},
     game_restoration::{GameRestorationData, RawInputHistory},
-    tui_menus::{heading_line, Menu, MenuUpdate},
+    tui_menus::{
+        heading_line,
+        replay_game::{calculate_game_and_replay_anchors, REPLAY_ANCHOR_INTERVAL},
+        Menu, MenuUpdate,
+    },
     tui_settings::{GameModePreferences, GameplaySettings},
     Application, GameMetaData, GameSave,
 };
@@ -333,6 +337,12 @@ impl<T: Write> Application<T> {
                                 game_renderer: Box::new(TetroTUIRenderer::with_number(
                                     self.temp_data.renderer_used,
                                 )),
+                                cached_game_and_replay_anchors: calculate_game_and_replay_anchors(
+                                    &mut self.term,
+                                    game_restoration_data,
+                                    REPLAY_ANCHOR_INTERVAL,
+                                    replay_length,
+                                )?,
                             }));
                         }
                     }

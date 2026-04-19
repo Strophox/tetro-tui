@@ -411,7 +411,7 @@ impl<T: Write> Application<T> {
                                             ("Ctrl+Z", "Undo last input (overwrites current game)"),
                                             ("Ctrl+L", "Load game save (overwrites current game)"),
                                             ("Ctrl+S", "Store game save"),
-                                            ("Ctrl+E", "Store seed"),
+                                            ("Ctrl+E", "Store seed for custom game"),
                                             (
                                                 "Ctrl+G/Ctrl+Alt+G",
                                                 "Cycle through Graphics Settings slots",

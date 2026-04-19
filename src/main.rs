@@ -630,11 +630,13 @@ impl<T: Write> Application<T> {
                     game_meta_data,
                     replay_length,
                     game_renderer,
+                    cached_game_and_replay_anchors,
                 } => self.run_menu_replay_game(
                     game_restoration_data,
                     game_meta_data,
                     *replay_length,
                     game_renderer.as_mut(),
+                    cached_game_and_replay_anchors,
                 ),
                 Menu::Statistics => self.run_menu_statistics(),
                 Menu::About => self.run_menu_about(),

@@ -144,21 +144,21 @@ impl<T: Write> Application<T> {
                 format!("Lines: {lineclears}"),
                 format!("Score: {points_scored}"),
                 format!(
+                    "Gravity reached: {}",
+                    fmt_hertz(fall_delay_reached.as_hertz())
+                ),
+                format!(
                     "Pieces: {}",
                     fmt_tetromino_counts(
                         pieces_locked,
                         &self.settings.mini_tetromino_symbols().tets
                     )
                 ),
-                format!(
-                    "Gravity reached: {}",
-                    fmt_hertz(fall_delay_reached.as_hertz())
-                ),
             ];
 
             if let Some(lock_delay_reached) = lock_delay_reached {
                 stats.push(format!(
-                    "Lock delay: {}ms",
+                    "Lock delay reached: {}ms",
                     lock_delay_reached.saturating_duration().as_millis()
                 ));
             }

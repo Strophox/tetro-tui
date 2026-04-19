@@ -160,7 +160,7 @@ pub fn get_game_keybinds_legend(keybinds: &GameKeybinds) -> KeybindsLegend {
         fb(Button::RotateRight)
     );
     let icons_drop = format!("{}{}", fb(Button::DropSoft), fb(Button::DropHard));
-    let icons_hold = fb(Button::HoldPiece);
+    // let icons_hold = fb(Button::HoldPiece);
 
     // NOTE: This should be <= MAX_LEGEND_ENTRIES. Renderer relies on this for nicer visual alignment.
     vec![
@@ -168,7 +168,8 @@ pub fn get_game_keybinds_legend(keybinds: &GameKeybinds) -> KeybindsLegend {
         (icons_move, "move"),
         (icons_rotate, "rotate"),
         (icons_drop, "drop"),
-        (icons_hold, "hold"),
+        // (icons_hold, "hold"),
+        ("[?]".to_owned(), "see all"),
     ]
 }
 
@@ -179,7 +180,7 @@ pub fn replay_keybinds_legend() -> KeybindsLegend {
     let icons_speed = format!("{}{}", fk(KeyCode::Down), fk(KeyCode::Up));
     let icons_skip = format!("{}{}", fk(KeyCode::Left), fk(KeyCode::Right));
     // let icons_jump = format!("{}-{}", fk(KeyCode::Char('0')), fk(KeyCode::Char('9')));
-    let icons_enter = fk(KeyCode::Enter);
+    // let icons_enter = fk(KeyCode::Enter);
     let icon_stop = fk(KeyCode::Esc);
 
     // NOTE: This should be <= MAX_LEGEND_ENTRIES. Renderer relies on this for nicer visual alignment.
@@ -188,8 +189,9 @@ pub fn replay_keybinds_legend() -> KeybindsLegend {
         (icons_speed, "speed -/+"),
         (icons_skip, "timeskip -/+"),
         // (icons_jump, "timejump #0%"),
-        (icons_enter, "take over"),
+        // (icons_enter, "take over"),
         (icon_stop, "stop"),
+        ("[?]".to_owned(), "see all"),
     ]
 }
 

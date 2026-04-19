@@ -30,8 +30,9 @@ use crossterm::{
 use falling_tetromino_engine::{Game, InGameTime};
 
 use crate::{
-    game_renderers::TetroTUIRenderer, tui_settings::Settings, Application, GameMetaData,
-    GameRestorationData, RawInputHistory, ScoreEntry,
+    game_renderers::TetroTUIRenderer, tui_menus::replay_game::GameSaveAnchor,
+    tui_settings::Settings, Application, GameMetaData, GameRestorationData, RawInputHistory,
+    ScoreEntry,
 };
 
 #[derive(Debug)]
@@ -79,6 +80,7 @@ pub enum Menu {
         game_meta_data: GameMetaData,
         replay_length: InGameTime,
         game_renderer: Box<TetroTUIRenderer>,
+        cached_game_and_replay_anchors: (Game, Option<Vec<GameSaveAnchor>>),
     },
     Statistics,
     About,
@@ -133,7 +135,7 @@ impl<T: Write> Application<T> {
 
             self.term.queue(Clear(ClearType::All))?;
 
-            let y_selection = Self::H_MAIN / 5;
+            let y_selection = (Self::H_MAIN / 5).saturating_sub(2);
 
             self.term
                 .queue(MoveTo(x_main, y_main + y_selection))?
@@ -351,7 +353,7 @@ impl<T: Write> Application<T> {
                     .queue(PrintStyledContent(
                         format!(
                             "{:^w_main$}",
-                            "[Enter/Esc/Del/←↓↑→] or Vim, view keybinds anywhere with [?]",
+                            "[Enter/Esc/Del/←↓↑→] or Vim, [?] to view keybinds anywhere",
                         )
                         .italic(),
                     ))?;

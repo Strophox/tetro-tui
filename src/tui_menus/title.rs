@@ -206,7 +206,7 @@ impl<T: Write> Application<T> {
                 .queue(PrintStyledContent(
                     format!(
                         "{:^w_main$}",
-                        "[Enter/Esc/Del/←↓↑→] or Vim, view keybinds anywhere with [?]",
+                        "[Enter/Esc/Del/←↓↑→] or Vim, [?] to view keybinds anywhere",
                     )
                     .italic(),
                 ))?;
