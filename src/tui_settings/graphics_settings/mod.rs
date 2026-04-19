@@ -178,7 +178,7 @@ impl GraphicsSettings {
     pub fn elektronika_60() -> Self {
         GraphicsSettings {
             palette_selected: 0,                 // Monochrome
-            tui_symbols_selected: 3,             // Elektronika 60
+            tui_symbols_selected: 4,             // Elektronika 60
             mino_symbols_selected: 2,            // Elektronika 60
             hard_drop_selected: 0,               // None
             lock_effect_selected: 0,             // None

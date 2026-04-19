@@ -95,6 +95,7 @@ pub fn tui_symbols_presets() -> SlotMachine<TuiSymbols> {
     let slots = vec![
         ("ASCII".to_owned(), TuiSymbols::ascii()),
         ("Unicode".to_owned(), TuiSymbols::unicode()),
+        ("Rounded Unicode".to_owned(), TuiSymbols::rounded_unicode()),
         (
             "Borderless Unicode".to_owned(),
             TuiSymbols::borderless_unicode(),
@@ -142,19 +143,19 @@ impl TuiSymbols {
         .unwrap()
     }
 
-    pub fn elektronika_60() -> Self {
+    pub fn rounded_unicode() -> TuiSymbols {
         CompactTuiSymbols {
-            blocky_title_logo: false,
-            headingline: "=",
-            boardframe: "   !!=!!",
-            boardframe2: Some(r"<\/>"),
-            holdframe: "    ",
-            nextframe: "       ",
-            buttons: "<>LR@v!w{}H",
-            timer: ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
+            blocky_title_logo: true,
+            headingline: "─",
+            boardframe: "╓╴╖║╜▀╙║",
+            boardframe2: None,
+            holdframe: "─╭│╰",
+            nextframe: "─╮│┤╯┬╴",
+            buttons: "←→↺↻↔↓⤓⇓⇐⇒⇋",
+            timer: ["⡀", "⡄", "⡆", "⡇", "⡏", "⡟", "⡿", "⣿"]
                 .map(|s| s.to_owned())
                 .into(),
-            progressbar: (" .:!", '|'),
+            progressbar: (" ▏▎▍▌▋▊▉", '█'),
         }
         .try_into()
         .unwrap()
@@ -173,6 +174,24 @@ impl TuiSymbols {
                 .map(|s| s.to_owned())
                 .into(),
             progressbar: (" ▏▎▍▌▋▊▉", '█'),
+        }
+        .try_into()
+        .unwrap()
+    }
+
+    pub fn elektronika_60() -> Self {
+        CompactTuiSymbols {
+            blocky_title_logo: false,
+            headingline: "=",
+            boardframe: "   !!=!!",
+            boardframe2: Some(r"<\/>"),
+            holdframe: "    ",
+            nextframe: "       ",
+            buttons: "<>LR@v!w{}H",
+            timer: ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
+                .map(|s| s.to_owned())
+                .into(),
+            progressbar: (" .:!", '|'),
         }
         .try_into()
         .unwrap()
