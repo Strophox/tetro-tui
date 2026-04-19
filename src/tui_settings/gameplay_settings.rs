@@ -29,8 +29,8 @@ pub struct GameplaySettings {
 pub fn gameplay_settings_presets() -> SlotMachine<GameplaySettings> {
     let slots = vec![
         ("Default".to_owned(), GameplaySettings::default()),
-        ("Finesse+".to_owned(), GameplaySettings::extra_finesse()),
         ("Guideline".to_owned(), GameplaySettings::guideline()),
+        ("Finesse+".to_owned(), GameplaySettings::extra_finesse()),
         ("NES".to_owned(), GameplaySettings::nes()),
         ("Gameboy".to_owned(), GameplaySettings::gameboy()),
         (

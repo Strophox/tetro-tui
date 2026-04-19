@@ -18,8 +18,8 @@ pub struct GameKeybinds {
 pub fn game_keybinds_presets() -> SlotMachine<GameKeybinds> {
     let slots = vec![
         ("Default".to_owned(), GameKeybinds::default_tetro()),
-        ("Control+".to_owned(), GameKeybinds::extra_control()),
         ("Guideline".to_owned(), GameKeybinds::guideline()),
+        ("Control+".to_owned(), GameKeybinds::extra_control()),
         ("Terminal finesse".to_owned(), GameKeybinds::terminal_fin()),
         ("Vim".to_owned(), GameKeybinds::vim()),
         ("Blank slate".to_owned(), GameKeybinds::blank_slate()),

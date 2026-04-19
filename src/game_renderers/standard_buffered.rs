@@ -747,6 +747,11 @@ impl Renderer for StandardBufferedRenderer {
 
         const MESSAGE_EXPIRATION_TIME: Duration = Duration::from_secs(4);
         {
+            let w_aesthetic_pad = if h_viewport > h_float + H_PAD_TOP + H_BOARD + 1 {
+                1
+            } else {
+                0
+            };
             let mut dy = 0;
             self.text_message_buf.retain(|(creation_time, message)| {
                 let is_unexpired = game.state().time.saturating_sub(*creation_time) < MESSAGE_EXPIRATION_TIME;
@@ -754,7 +759,7 @@ impl Renderer for StandardBufferedRenderer {
                     let w_msg = message.chars().count() as u16;
                     // The message should be rendered centered around board middle.
                     let x_msg = (w_float + w_addhud + W_HOLD + (W_BOARD / 2)).saturating_sub(w_msg / 2);
-                    #[rustfmt::skip] self.term_buf.write_str(x_msg, h_float + H_PAD_TOP + H_BOARD + 1 + dy, message, Color::Reset);
+                    #[rustfmt::skip] self.term_buf.write_str(x_msg, h_float + H_PAD_TOP + H_BOARD + w_aesthetic_pad + dy, message, Color::Reset);
 
                     dy += 1;
                 }

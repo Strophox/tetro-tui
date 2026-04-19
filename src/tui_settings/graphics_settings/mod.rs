@@ -60,8 +60,8 @@ pub struct GraphicsSettings {
 pub fn graphics_settings_presets() -> SlotMachine<GraphicsSettings> {
     let slots = vec![
         ("Default".to_owned(), GraphicsSettings::default()),
-        ("Focus+".to_owned(), GraphicsSettings::extra_focus()),
         ("Guideline".to_owned(), GraphicsSettings::guideline()),
+        ("Focus+".to_owned(), GraphicsSettings::extra_focus()),
         (
             "Terminal compatibility".to_owned(),
             GraphicsSettings::compatibility(),
@@ -130,7 +130,7 @@ impl GraphicsSettings {
     pub fn guideline() -> Self {
         GraphicsSettings {
             palette_selected: 2,                 // Standard
-            tui_symbols_selected: 1,             // Unicode
+            tui_symbols_selected: 2,             // Rounded Unicode
             mino_symbols_selected: 1,            // Unicode
             hard_drop_selected: 4,               // Solid beam Unicode
             lock_effect_selected: 2,             // Pulse Unicode

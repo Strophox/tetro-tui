@@ -414,7 +414,7 @@ impl<T: Write> Application<T> {
                                             ("Ctrl+E", "Store seed for custom game"),
                                             (
                                                 "Ctrl+G/Ctrl+Alt+G",
-                                                "Cycle through Graphics Settings slots",
+                                                "Cycle forward/backward through Graphics slots",
                                             ),
                                             (
                                                 "Ctrl+Alt+L",

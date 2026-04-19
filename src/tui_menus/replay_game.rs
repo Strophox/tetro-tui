@@ -221,7 +221,7 @@ impl<T: Write> Application<T> {
                                         ("Ctrl+S", "Store game save"),
                                         ("Ctrl+E", "Store seed for custom game"),
                                         ("Alt+I", "(Experimental) Toggle instantaneous interactive input intervention mode"),
-                                        ("Ctrl+G/Ctrl+Alt+G", "Cycle through Graphics Settings slots"),
+                                        ("Ctrl+G/Ctrl+Alt+G", "Cycle forward/backward through Graphics slots"),
                                         ("Ctrl+Alt+L", "Re-load from savefile (overwrites current data!)"),
                                         ("Ctrl+Alt+S", "Do savefile storage (respects save preferences)"),
                                         ("Ctrl+C", "Exit program (respects save preferences)"),

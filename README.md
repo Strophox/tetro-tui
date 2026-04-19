@@ -12,6 +12,26 @@ Tetro TUI is a terminal-based but modern tetromino-stacking game that is very cu
 !["tetro-tui live demo GIF"](https://github.com/Strophox/tetro-tui/blob/b66590cb461d34c95e988ef41b6d8b7d7783f37b/demo_assets/tetro-tui-v3.0.0_demo.gif?raw=true)
 
 
+> <details>
+> <summary>
+> 6 more demo images available;
+> </summary>
+>
+> !["tetro-tui coolretroterm-monochrome-classic-elektronika"](https://github.com/Strophox/tetro-tui/blob/b66590cb461d34c95e988ef41b6d8b7d7783f37b/demo_assets/tetro-tui-v3.0.0_coolretroterm-monochrome-classic-elektronika.png?raw=true)
+>
+> !["tetro-tui alacritty-terafox-combo-advc"](https://github.com/Strophox/tetro-tui/blob/b66590cb461d34c95e988ef41b6d8b7d7783f37b/demo_assets/tetro-tui-v3.0.0_alacritty-terafox-combo-advc.png?raw=true)
+>
+> !["tetro-tui gnome-solarized-cheese-monochromeboardgrid"](https://github.com/Strophox/tetro-tui/blob/b66590cb461d34c95e988ef41b6d8b7d7783f37b/demo_assets/tetro-tui-v3.0.0_gnome-solarized-cheese-monochromeboardgrid.png?raw=true)
+>
+> !["tetro-tui gnome-standard-replay-harddrop"](https://github.com/Strophox/tetro-tui/blob/b66590cb461d34c95e988ef41b6d8b7d7783f37b/demo_assets/tetro-tui-v3.0.0_gnome-standard-replay-harddrop.png?raw=true)
+>
+> !["tetro-tui kitty-okpalette-puzzle-ascii"](https://github.com/Strophox/tetro-tui/blob/b66590cb461d34c95e988ef41b6d8b7d7783f37b/demo_assets/tetro-tui-v3.0.0_kitty-okpalette-puzzle-ascii.png?raw=true)
+>
+> !["tetro-tui wezterm-gruvbox-swift-default"](https://github.com/Strophox/tetro-tui/blob/b66590cb461d34c95e988ef41b6d8b7d7783f37b/demo_assets/tetro-tui-v3.0.0_wezterm-gruvbox-swift-default.png?raw=true)
+>
+> </details>
+
+
 ## Ways to Run
 
 ### Download & Run
@@ -67,25 +87,8 @@ cargo run
 > - **Game mode miscellany:** Swift ('40-Lines'), Classic ('Marathon'), Master, Puzzle, Cheese, Combo, Custom (select goal, initial gravity, toggle gravity progress, *cmdline flags:* start board, seed).
 > - **Highscores, replays, statistics, ...** - can can be accessed as well as backed up with a simple **savefile**.
 >
-> <details>
-> <summary>
 > Visuals depend on / can be customized together with your underlying terminal settings.
-> E.g. you can set a bigger font to scale the game, or use <a href="https://github.com/Swordfish90/cool-retro-term">cool-retro-term</a> for nostalgic gameplay etc.:
-> </summary>
->
-> !["tetro-tui coolretroterm-monochrome-classic-elektronika"](https://github.com/Strophox/tetro-tui/blob/b66590cb461d34c95e988ef41b6d8b7d7783f37b/demo_assets/tetro-tui-v3.0.0_coolretroterm-monochrome-classic-elektronika.png?raw=true)
->
-> !["tetro-tui alacritty-terafox-combo-advc"](https://github.com/Strophox/tetro-tui/blob/b66590cb461d34c95e988ef41b6d8b7d7783f37b/demo_assets/tetro-tui-v3.0.0_alacritty-terafox-combo-advc.png?raw=true)
->
-> !["tetro-tui gnome-solarized-cheese-monochromeboardgrid"](https://github.com/Strophox/tetro-tui/blob/b66590cb461d34c95e988ef41b6d8b7d7783f37b/demo_assets/tetro-tui-v3.0.0_gnome-solarized-cheese-monochromeboardgrid.png?raw=true)
->
-> !["tetro-tui gnome-standard-replay-harddrop"](https://github.com/Strophox/tetro-tui/blob/b66590cb461d34c95e988ef41b6d8b7d7783f37b/demo_assets/tetro-tui-v3.0.0_gnome-standard-replay-harddrop.png?raw=true)
->
-> !["tetro-tui kitty-okpalette-puzzle-ascii"](https://github.com/Strophox/tetro-tui/blob/b66590cb461d34c95e988ef41b6d8b7d7783f37b/demo_assets/tetro-tui-v3.0.0_kitty-okpalette-puzzle-ascii.png?raw=true)
->
-> !["tetro-tui wezterm-gruvbox-swift-default"](https://github.com/Strophox/tetro-tui/blob/b66590cb461d34c95e988ef41b6d8b7d7783f37b/demo_assets/tetro-tui-v3.0.0_wezterm-gruvbox-swift-default.png?raw=true)
->
-> </details>
+> E.g. you can set a bigger font to scale the game, or use <a href="https://github.com/Swordfish90/cool-retro-term">cool-retro-term</a> for nostalgic look etc.
 > 
 > <details>
 > <summary>
