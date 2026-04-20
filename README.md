@@ -312,7 +312,7 @@ cargo run
 
 > <details>
 > <summary>
-> The application will not store anything by default and 'Keep save file' needs to be opted in:
+> The application will not store anything by default and 'Keep save file' needs to be opted in;
 > </summary>
 > 
 > The exact location of the config file is shown in the *Advanced Settings* menu and is based on `dirs::config_dir()`:
@@ -332,7 +332,7 @@ cargo run
 
 > <details>
 > <summary>
-> We put to practical use our customizability and provide many *settings slots* (profiles/templates), e.g. to simulate guideline gameplay¹/keybinds¹/graphics (¹Handling limitations may apply to your terminal):
+> We put to practical use our customizability and provide many *settings slots* (profiles/templates), e.g. to simulate guideline gameplay¹/keybinds¹/graphics (¹Handling limitations may apply to your terminal);
 > </summary>
 >
 > Note that the 'Default' settings slots – though they should remain very familiar – do take liberties in 'shifting mechanics closer to the platonic ideal' of a tetromino stacker game. This is obviously not an objective statement, in practice it just means:
@@ -397,7 +397,7 @@ cargo run
 
 > <details>
 > <summary>
-> An extensive attempt at better tetromino rotation with regards to symmetry and visual intuition:
+> An extensive attempt at better tetromino rotation with regards to symmetry and visual intuition;
 > </summary>
 >
 > The Ocular rotation system affords:
@@ -451,7 +451,7 @@ cargo run
 
 > <details>
 > <summary>
-> Tetro TUI started as a passion project from someone who loves programming, minimalistic games and ASCII art:
+> Tetro TUI started as a passion project from someone who loves programming, minimalistic games and ASCII art;
 > </summary>
 > 
 > Out of curiosity I looked into the depths of this common type of Tetromino game:
