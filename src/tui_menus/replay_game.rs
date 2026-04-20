@@ -203,8 +203,8 @@ impl<T: Write> Application<T> {
                                 let client_menu_name = "Game Replay";
                                 let legend = vec![
                                     ("Normal keybinds".to_owned(), [
-                                        ("Enter, e", "Start Game from current replay state ('take over')"),
-                                        ("Esc", "Exit replay"),
+                                        ("Enter e", "Start Game from current replay state ('take over')"),
+                                        ("Escape Backspace q", "Exit replay"),
                                         ("Space", "Pause replay"),
                                         ("↓/↑ j/k", "Speed up / slow down replay by ±0.25x"),
                                         ("-", "Reset replay speed to =1.0x"),

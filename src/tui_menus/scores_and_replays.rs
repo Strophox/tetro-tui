@@ -246,8 +246,8 @@ impl<T: Write> Application<T> {
                             "Normal keybinds".to_owned(),
                             [
                                 ("Enter e", "View selected replay"),
-                                ("Esc q Backspace", "Exit menu"),
-                                ("Del d", "Delete selected entry"),
+                                ("Escape Backspace q", "Exit menu"),
+                                ("Delete d", "Delete selected entry"),
                                 ("↓/↑ j/k", "Navigate down/up"),
                                 ("?", "Open Keybinds overview"),
                             ]
@@ -259,7 +259,7 @@ impl<T: Write> Application<T> {
                             "Special keybinds".to_owned(),
                             [
                                 ("Home/End", "Navigate to first/last"),
-                                ("Alt+Del Alt+d", "Delete replay of selected only"),
+                                ("Alt+Delete Alt+d", "Delete replay of selected only"),
                                 (
                                     "Ctrl+Alt+L",
                                     "Re-load from savefile (overwrites current data!)",

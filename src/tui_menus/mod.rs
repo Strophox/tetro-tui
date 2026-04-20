@@ -192,7 +192,7 @@ impl<T: Write> Application<T> {
                             (
                                 "Normal keybinds".to_owned(),
                                 [
-                                    ("Esc q Backspace", "Exit menu"),
+                                    ("Escape Backspace q", "Exit menu"),
                                     ("↓/↑ j/k", "Navigate down/up"),
                                     ("?", "Open Keybinds overview"),
                                 ]
@@ -380,7 +380,7 @@ impl<T: Write> Application<T> {
                             "Normal keybinds".to_owned(),
                             [
                                 ("Enter e", "Select"),
-                                ("Esc q Backspace", "Exit menu"),
+                                ("Escape Backspace q", "Exit menu"),
                                 ("↓/↑ j/k", "Navigate down/up"),
                                 ("?", "Open Keybinds overview"),
                             ]

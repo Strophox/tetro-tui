@@ -280,14 +280,16 @@ impl<T: Write> Application<T> {
                     let legend = vec![
                         ("Normal keybinds".to_owned(), [
                             ("Enter e", "Select"),
-                            ("Esc q Backspace", "Exit menu"),
-                            ("Del d", "Delete game save, reset configuration of Combo/Cheese/Custom modes"), // TODO: not relevant.
-                            ("↓/↑ j/k", "Navigate down/up"),
-                            ("←/→ h/l", "Load/unload inputs for game save, Adjust values of Combo/Cheese/Custom modes"),
+                            ("Escape Backspace q", "Exit menu"),
+                            ("Delete d", "Delete game save, reset configuration of Combo/Cheese/Custom modes"), // TODO: not relevant.
+                            ("↓/↑ j/k", "Navigate down/up, adjust values of Custom mode"),
+                            ("←/→ h/l", "Load/unload inputs for game save, Adjust values of Combo/Cheese modes, navigate Custom mode values"),
                             ("?", "Open Keybinds overview"),
                         ].into_iter().map(|(lhs,rhs)| (lhs.to_owned(), rhs.to_owned())).collect()),
                         ("Special keybinds".to_owned(), [
                             ("Home/End", "Jump to first/last input for game save"),
+                            ("Alt+←/→", "Adjust start layout of Combo mode"),
+                            ("Alt+↓/↑ Alt+j/k", "Adjust initial fall delay of Custom mode multiplicatively"),
                             ("Alt+Enter", "View game save as replay"),
                             ("Ctrl+U", "Unlock all game modes"),
                             ("Ctrl+Alt+L", "Re-load from savefile (overwrites current data!)"),

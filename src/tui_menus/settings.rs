@@ -132,8 +132,8 @@ impl<T: Write> Application<T> {
                             "Normal keybinds".to_owned(),
                             [
                                 ("Enter e", "Select"),
-                                ("Esc q Backspace", "Exit menu"),
-                                ("Del d", "Reset slot to default, reset savefile setting"),
+                                ("Escape Backspace q", "Exit menu"),
+                                ("Delete d", "Reset slot to default, reset savefile setting"),
                                 ("↓/↑ j/k", "Navigate down/up"),
                                 ("←/→ h/l", "Change slot, adjust value"),
                                 ("?", "Open Keybinds overview"),

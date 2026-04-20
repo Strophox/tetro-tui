@@ -209,8 +209,8 @@ impl<T: Write> Application<T> {
                         (
                             "Normal keybinds".to_owned(),
                             [
-                                ("Esc q Backspace", "Exit menu"),
-                                ("Del d", "Reset value"),
+                                ("Escapte q Backspace", "Exit menu"),
+                                ("Delete d", "Reset value"),
                                 ("↓/↑ j/k", "Navigate down/up"),
                                 ("←/→ h/l", "Adjust value"),
                                 ("?", "Open Keybinds overview"),

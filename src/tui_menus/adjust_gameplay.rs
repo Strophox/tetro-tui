@@ -227,8 +227,8 @@ impl<T: Write> Application<T> {
                         (
                             "Normal keybinds".to_owned(),
                             [
-                                ("Esc q Backspace", "Exit menu"),
-                                ("Del d", "Delete slot"),
+                                ("Escape Backspace q", "Exit menu"),
+                                ("Delete d", "Delete slot"),
                                 ("↓/↑ j/k", "Navigate down/up"),
                                 ("←/→ h/l", "Change slot, adjust value"),
                                 ("?", "Open Keybinds overview"),
@@ -240,7 +240,7 @@ impl<T: Write> Application<T> {
                         (
                             "Special keybinds".to_owned(),
                             [
-                                ("Alt+←/→, Alt+h/l", "Adjust value of Piece randomizer"),
+                                ("Alt+←/→ Alt+h/l", "Adjust value of Piece randomizer"),
                                 (
                                     "Ctrl+Alt+L",
                                     "Re-load from savefile (overwrites current data!)",
