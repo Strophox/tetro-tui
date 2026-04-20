@@ -209,7 +209,7 @@ impl<T: Write> Application<T> {
                         (
                             "Normal keybinds".to_owned(),
                             [
-                                ("Escapte q Backspace", "Exit menu"),
+                                ("Escape q Backspace", "Exit menu"),
                                 ("Delete d", "Reset value"),
                                 ("↓/↑ j/k", "Navigate down/up"),
                                 ("←/→ h/l", "Adjust value"),
