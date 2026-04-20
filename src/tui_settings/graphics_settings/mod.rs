@@ -106,7 +106,7 @@ impl GraphicsSettings {
     pub fn extra_focus() -> Self {
         GraphicsSettings {
             palette_selected: 2,                 // Standard
-            tui_symbols_selected: 1,             // Unicode
+            tui_symbols_selected: 4,             // Unicode
             mino_symbols_selected: 1,            // Unicode
             hard_drop_selected: 0,               // None
             lock_effect_selected: 0,             // None
@@ -178,7 +178,7 @@ impl GraphicsSettings {
     pub fn elektronika_60() -> Self {
         GraphicsSettings {
             palette_selected: 0,                 // Monochrome
-            tui_symbols_selected: 4,             // Elektronika 60
+            tui_symbols_selected: 5,             // Elektronika 60
             mino_symbols_selected: 2,            // Elektronika 60
             hard_drop_selected: 0,               // None
             lock_effect_selected: 0,             // None
@@ -202,7 +202,7 @@ impl GraphicsSettings {
     pub fn blank_slate() -> Self {
         GraphicsSettings {
             palette_selected: 0,                 // Monochrome
-            tui_symbols_selected: 1,             // Unicode
+            tui_symbols_selected: 4,             // Borderless-Next/Hold Unicode
             mino_symbols_selected: 1,            // Unicode
             hard_drop_selected: 0,               // None
             lock_effect_selected: 0,             // None

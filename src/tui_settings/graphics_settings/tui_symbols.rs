@@ -100,6 +100,10 @@ pub fn tui_symbols_presets() -> SlotMachine<TuiSymbols> {
             "Borderless Unicode".to_owned(),
             TuiSymbols::borderless_unicode(),
         ),
+        (
+            "Borderless-Hold/Next Unicode".to_owned(),
+            TuiSymbols::borderless_hold_next_unicode(),
+        ),
         ("Elektronika 60".to_owned(), TuiSymbols::elektronika_60()),
     ];
 
@@ -166,6 +170,24 @@ impl TuiSymbols {
             blocky_title_logo: true,
             headingline: " ",
             boardframe: "        ",
+            boardframe2: None,
+            holdframe: "    ",
+            nextframe: "       ",
+            buttons: "←→↺↻↔↓⤓⇓⇐⇒⇋",
+            timer: ["⡀", "⡄", "⡆", "⡇", "⡏", "⡟", "⡿", "⣿"]
+                .map(|s| s.to_owned())
+                .into(),
+            progressbar: (" ▏▎▍▌▋▊▉", '█'),
+        }
+        .try_into()
+        .unwrap()
+    }
+
+    pub fn borderless_hold_next_unicode() -> Self {
+        CompactTuiSymbols {
+            blocky_title_logo: true,
+            headingline: "─",
+            boardframe: "╓╴╖║╜▀╙║",
             boardframe2: None,
             holdframe: "    ",
             nextframe: "       ",

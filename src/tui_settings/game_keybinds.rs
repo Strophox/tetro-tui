@@ -159,20 +159,42 @@ impl GameKeybinds {
         }
     }
 
+    /// This layout is an attempt at optimized finesse for terminal use.
+    /// It makes use of teleport left/right instead of 0 ARR for compatibility,
+    /// and distributes keys for efficient finesse.
+    ///
+    /// Reasoning:
+    /// - `MIN-FINGER-MVMT` Maximize home row usage and generally minimize finger movement.
+    /// - `COMMON-ON-RESTING-POS` Use homerow for most common actions [R180 TR ML RL - DH RR MR TL].
+    /// - `MOST-COMMON-ON-INDEX` Use right index for hard drop.
+    /// - `ROLL-FINGERS` Arrange in a way where fingers can be rolled on keyboard to execute finesse, e.g. TR->ML->RL->HD is one handstroke.
+    /// - `TELE-COMPAT-WITH-ANY` Use spacebar which is accessible from both hands indepently of other fingers to enable rare but possible TD (sonic drop) which might want to be used with any other common actions.
+    /// - `HOLD-TRADEOFF-WITH-HARDDROP` Use same finger for hard drop for hold, because most often a player will want to *either* hard drop a piece, *or* hold it.
+    /// - `SOFTDROP-TRADEOFF-WITH-HARDDROP` Use same finger for hard drop for soft drop, because most often a player will want to *either* hard drop a piece, *or* soft drop it and apply further actions (tuck) before once again soft(/hard) dropping it to lock it.
+    ///
     pub fn terminal_fin() -> GameKeybinds {
         let keys = [
-            (KeyCode::Char('e'), Button::HoldPiece),
             (KeyCode::Char('a'), Button::Rotate180),
             (KeyCode::Char('s'), Button::TeleRight),
             (KeyCode::Char('d'), Button::MoveLeft),
             (KeyCode::Char('f'), Button::RotateLeft),
             (KeyCode::Char(' '), Button::TeleDown),
+            (KeyCode::Char('n'), Button::DropSoft),
+            (KeyCode::Char('h'), Button::HoldPiece),
             (KeyCode::Char('j'), Button::DropHard),
             (KeyCode::Char('k'), Button::RotateRight),
             (KeyCode::Char('l'), Button::MoveRight),
-            (KeyCode::Char(';'), Button::TeleLeft),
-            (KeyCode::Char('ö'), Button::TeleLeft),
-            (KeyCode::Char('i'), Button::DropSoft),
+            (KeyCode::Char(';'), Button::TeleLeft), // US.
+            (KeyCode::Char('ö'), Button::TeleLeft), // German.
+            (KeyCode::Char('ø'), Button::TeleLeft), // Nordic.
+            (KeyCode::Char('ç'), Button::TeleLeft), // Italian and Portuguese.
+            (KeyCode::Char('ñ'), Button::TeleLeft), // Spanish.
+                                                    // (KeyCode::Char('æ'), Button::TeleLeft), // Icelandic?
+                                                    // (KeyCode::Char('é'), Button::TeleLeft), // Hungarian?
+                                                    // (KeyCode::Char('ů'), Button::TeleLeft), // Czech?
+                                                    // (KeyCode::Char('ł'), Button::TeleLeft), // Polish?
+                                                    // (KeyCode::Char('ș'), Button::TeleLeft), // Romanian?
+                                                    // (KeyCode::Char('+'), Button::TeleLeft), // Danish?
         ]
         .map(|(k, b)| ((k, KeyModifiers::NONE), b));
 

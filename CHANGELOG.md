@@ -8,11 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- Pressing `?` now shows a Keybind Overview for any menu it is pressed in. 
-- `Ctrl+Z` can now be used to undo the last player inputs during live game.
+- Pressing `?` now shows a **Keybinds Overview for any menu** that it is pressed in. 
+- `Ctrl+Z` can now be used to undo the last player input(s) during live game.
 - Changed some in-code / savefile terminology and improve corresponding UI element names.
-- Added 'Borderless Unicode' tui symbols preset.
-- Fixed and improved various presets.
+- Added 'Borderless Unicode' and 'Borderless-Next/Hold' TUI symbols preset.
+- Fixed and improved various presets (graphics ("Guideline"q), keybinds ("Terminal Finesse")).
 - Removed 'quick start new game' keys (1,2,3...) in New Game menu (use `Ctrl+R` to quick-restart same gamemode instead).
 - Added rounded Unicode frame TUI style.
 
