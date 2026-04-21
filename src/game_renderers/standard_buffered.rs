@@ -349,206 +349,6 @@ impl Renderer for StandardBufferedRenderer {
         // -- 'General TUI' rendering --
 
         let tui_style = settings.tui_symbols();
-        let mino_textures = settings.mino_symbols();
-        let ftch_col_or_rset = |tile_id: &TileID| {
-            settings
-                .palette()
-                .get(tile_id)
-                .copied()
-                .unwrap_or(Color::Reset)
-        };
-
-        // RENDER: 'Board' frame.
-
-        // Board frame glyphs.
-        let [c_fr_tl, c_fr_t, c_fr_tr, c_fr_r, c_fr_br, c_fr_b, c_fr_bl, c_fr_l] =
-            tui_style.boardframe;
-        let w_tmp_btl = w_float + W_PAD_LEFT + w_addhud + W_HOLD; // (width temporary board-top-left)
-        let h_tmp_btl = h_float + H_PAD_TOP;
-
-        // Complete top edge.
-        // 2x's because of font width.
-        #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl, h_tmp_btl, TermCell { ch: c_fr_tl, fg: Color::Reset });
-        #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl, h_tmp_btl + 1 + H_FIELD, TermCell { ch: c_fr_bl, fg: Color::Reset });
-        for dx in 0..W_FIELD {
-            #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + 1 + dx, h_tmp_btl, TermCell { ch: c_fr_t, fg: Color::Reset });
-            #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + 1 + dx, h_tmp_btl + 1 + H_FIELD, TermCell { ch: c_fr_b, fg: Color::Reset });
-        }
-        #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + 1 + W_FIELD, h_tmp_btl, TermCell { ch: c_fr_tr, fg: Color::Reset });
-        #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + 1 + W_FIELD, h_tmp_btl + 1 + H_FIELD, TermCell { ch: c_fr_br, fg: Color::Reset });
-
-        // Left and right edges.
-        for dy in 0..H_FIELD {
-            #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl, h_tmp_btl + 1 + dy, TermCell { ch: c_fr_l, fg: Color::Reset });
-            #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + 1 + 2 * Game::WIDTH as u16, h_tmp_btl + 1 + dy, TermCell { ch: c_fr_r, fg: Color::Reset });
-        }
-
-        // RENDER: 'Hold' widget.
-
-        if let Some((tet, is_swappable)) = game.state().piece_held {
-            // 'Hold' frame glyphs.
-            let [c_h_tb, c_h_tl, c_h_l, c_h_bl] = tui_style.holdframe;
-            let w_tmp_htl = w_float + W_PAD_LEFT + w_addhud; // (width temporary hold-top-left)
-            let h_tmp_htl = h_float + H_PAD_TOP;
-
-            // Complete top and bottom edges.
-            #[rustfmt::skip] self.term_buf.write_char(w_tmp_htl, h_tmp_htl, TermCell { ch: c_h_tl, fg: Color::Reset });
-            #[rustfmt::skip] self.term_buf.write_char(w_tmp_htl, h_tmp_htl + 2, TermCell { ch: c_h_bl, fg: Color::Reset });
-            for dx in 0..6 {
-                #[rustfmt::skip] self.term_buf.write_char(w_tmp_htl + 1 + dx, h_tmp_htl, TermCell { ch: c_h_tb, fg: Color::Reset });
-                #[rustfmt::skip] self.term_buf.write_char(w_tmp_htl + 1 + dx, h_tmp_htl + 2, TermCell { ch: c_h_tb, fg: Color::Reset });
-            }
-            #[rustfmt::skip] self.term_buf.write_str(w_tmp_htl + 2, h_tmp_htl, "hold",Color::Reset);
-            // Left edge
-            #[rustfmt::skip] self.term_buf.write_char(w_tmp_htl, h_tmp_htl + 1, TermCell { ch: c_h_l, fg: Color::Reset });
-
-            // Render 'hold' piece.
-            let small_tet = &settings.small_tetromino_symbols().tets[tet as usize];
-            let w_extra_for_o = if tet == Tetromino::O { 1 } else { 0 };
-
-            let tile_id = if is_swappable {
-                tet.tile_id()
-            } else {
-                Palette::GRAY
-            };
-            let color = ftch_col_or_rset(&tile_id);
-            #[rustfmt::skip] self.term_buf.write_str(w_tmp_htl + 2 + w_extra_for_o, h_tmp_htl + 1, small_tet, color);
-
-            // Go the extra mile to render the character 'x' if we can't hold.
-            if !is_swappable {
-                #[rustfmt::skip] self.term_buf.write_char(w_tmp_htl + 1, h_tmp_htl + 1, TermCell { ch: 'x', fg: color });
-            }
-        }
-
-        // RENDER: Preview widgets.
-
-        let [c_n_tb, c_n_tr, c_n_r, c_n_jl, c_n_br, c_n_jd, c_n_ltb] = tui_style.nextframe;
-        let w_tmp_ntl = w_float + W_PAD_LEFT + w_addhud + W_HOLD + W_BOARD; // (width temporary next-top-left)
-        let h_tmp_ntl = h_float + H_PAD_TOP;
-
-        let mut next_tetrominos = game.state().piece_preview.iter().copied();
-        'render_preview: {
-            // To begin, render normalsize previews.
-            let draw_appended_normalsize_prev =
-                |term_buf: &mut StandardTerminalBuffer, y_offset: u16, next_tet: Tetromino| {
-                    // Top and bottom edge of first prev.
-                    for dx in 0..12 {
-                        #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + dx, h_tmp_ntl + y_offset, TermCell { ch: c_n_ltb, fg: Color::Reset });
-                        #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + dx, h_tmp_ntl + y_offset + 3, TermCell { ch: c_n_tb, fg: Color::Reset });
-                    }
-                    // Complete right edge.
-                    #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + 12, h_tmp_ntl + y_offset, TermCell { ch: c_n_jl, fg: Color::Reset });
-                    #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + 12, h_tmp_ntl + y_offset + 1, TermCell { ch: c_n_r, fg: Color::Reset });
-                    #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + 12, h_tmp_ntl + y_offset + 2, TermCell { ch: c_n_r, fg: Color::Reset });
-                    #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + 12, h_tmp_ntl + y_offset + 3, TermCell { ch: c_n_br, fg: Color::Reset });
-
-                    // Render preview piece.
-                    let tile_texture = mino_textures.locked;
-                    let color = ftch_col_or_rset(&next_tet.tile_id());
-                    let w_extra_for_o = if next_tet == Tetromino::O { 2 } else { 0 };
-                    for (dx, dy) in next_tet.minos(Orientation::N) {
-                        #[rustfmt::skip] term_buf.write_tile(w_tmp_ntl + 2 + w_extra_for_o + 2 * (dx as u16), (h_tmp_ntl + y_offset + 2).saturating_sub(dy as u16), tile_texture, color);
-                    }
-                };
-
-            let Some(first_next_tet) = next_tetrominos.next() else {
-                break 'render_preview;
-            };
-            draw_appended_normalsize_prev(&mut self.term_buf, 0, first_next_tet);
-            // Override top edge of first prev.
-            for dx in 0..12 {
-                #[rustfmt::skip] self.term_buf.write_char(w_tmp_ntl + dx, h_tmp_ntl, TermCell { ch: c_n_tb, fg: Color::Reset });
-            }
-            #[rustfmt::skip] self.term_buf.write_char(w_tmp_ntl + 12, h_tmp_ntl, TermCell { ch: c_n_tr, fg: Color::Reset });
-            #[rustfmt::skip] self.term_buf.write_str(w_tmp_ntl + 4, h_tmp_ntl, "next",Color::Reset);
-
-            let mut idx = 1;
-            let mut y_offset = 3;
-
-            // Render remaining normalsize previews.
-            while y_offset + 3 < 20
-                && settings
-                    .graphics()
-                    .normalsize_preview_limit
-                    .is_none_or(|limit| idx < limit.get())
-            {
-                let Some(next_tet) = next_tetrominos.next() else {
-                    break 'render_preview;
-                };
-                draw_appended_normalsize_prev(&mut self.term_buf, y_offset, next_tet);
-                idx += 1;
-                y_offset += 3;
-            }
-
-            let draw_appended_small_prev =
-                |term_buf: &mut StandardTerminalBuffer, y_offset: u16, next_tet: Tetromino| {
-                    // Top and bottom edge of first prev.
-                    for dx in 0..8 {
-                        #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + dx, h_tmp_ntl + y_offset, TermCell { ch: c_n_ltb, fg: Color::Reset });
-                        #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + dx, h_tmp_ntl + y_offset + 2, TermCell { ch: c_n_tb, fg: Color::Reset });
-                    }
-                    // Complete right edge.
-                    #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + 8, h_tmp_ntl + y_offset, TermCell { ch: c_n_jl, fg: Color::Reset });
-                    #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + 8, h_tmp_ntl + y_offset + 1, TermCell { ch: c_n_r, fg: Color::Reset });
-                    #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + 8, h_tmp_ntl + y_offset + 2, TermCell { ch: c_n_br, fg: Color::Reset });
-
-                    // Render preview piece.
-                    let small_tet = &settings.small_tetromino_symbols().tets[next_tet as usize];
-                    let color = ftch_col_or_rset(&next_tet.tile_id());
-                    let w_extra_for_o = if next_tet == Tetromino::O { 1 } else { 0 };
-                    #[rustfmt::skip] term_buf.write_str(w_tmp_ntl + 2 + w_extra_for_o, h_tmp_ntl + y_offset + 1, small_tet, color);
-                };
-
-            // To continue, render small previews (if there's space)
-            if y_offset + 2 < 20 {
-                let Some(next_tet) = next_tetrominos.next() else {
-                    break 'render_preview;
-                };
-                draw_appended_small_prev(&mut self.term_buf, y_offset, next_tet);
-                // Override top right corner of first small prev.
-                #[rustfmt::skip] self.term_buf.write_char(w_tmp_ntl + 8, h_tmp_ntl + y_offset, TermCell { ch: c_n_jd, fg: Color::Reset });
-                y_offset += 2;
-
-                // Render remaining small previews.
-                while y_offset + 2 < 20 {
-                    let Some(next_tet) = next_tetrominos.next() else {
-                        break 'render_preview;
-                    };
-                    draw_appended_small_prev(&mut self.term_buf, y_offset, next_tet);
-                    y_offset += 2;
-                }
-            }
-
-            for (x_offset, next_tet) in next_tetrominos.enumerate() {
-                let mini_tet = settings.mini_tetromino_symbols().tets[next_tet as usize];
-                let color = ftch_col_or_rset(&next_tet.tile_id());
-                #[rustfmt::skip] self.term_buf.write_char(w_tmp_ntl + 10 + 2 * (x_offset as u16), h_tmp_ntl + y_offset.saturating_sub(1), TermCell { ch: mini_tet, fg: color });
-            }
-        }
-
-        // RENDER: Elekronika frame.
-        // - This needs to happen after next/hold widgets because clean look of this 2nd frame drawn over colliding widgets takes priority.
-
-        // Special 2nd frame rendering. Mostly relevant for Elektronika 60 style.
-        if let Some([c_f2_l, c_f2_b0, c_f2_b1, c_f2_r]) = tui_style.boardframe2 {
-            // Complete left edge (2).
-            for dy in 0..H_FIELD + 1 {
-                #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl.saturating_sub(1), h_tmp_btl + 1 + dy, TermCell { ch: c_f2_l, fg: Color::Reset });
-            }
-            // Complete right edge (2).
-            for dy in 0..H_FIELD + 1 {
-                #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + W_BOARD, h_tmp_btl + 1 + dy, TermCell { ch: c_f2_r, fg: Color::Reset });
-            }
-
-            // Complete bottom edge.
-            for dx in 0..W_FIELD {
-                if dx.is_multiple_of(2) {
-                    #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + 1 + dx, h_tmp_btl + 1 + H_FIELD + 1, TermCell { ch: c_f2_b0, fg: Color::Reset });
-                } else {
-                    #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + 1 + dx, h_tmp_btl + 1 + H_FIELD + 1, TermCell { ch: c_f2_b1, fg: Color::Reset });
-                }
-            }
-        }
 
         // RENDER: Stats HUD.
 
@@ -773,6 +573,206 @@ impl Renderer for StandardBufferedRenderer {
                 is_unexpired
             });
         }
+        let mino_textures = settings.mino_symbols();
+        let ftch_col_or_rset = |tile_id: &TileID| {
+            settings
+                .palette()
+                .get(tile_id)
+                .copied()
+                .unwrap_or(Color::Reset)
+        };
+
+        // RENDER: 'Board' frame.
+
+        // Board frame glyphs.
+        let [c_fr_tl, c_fr_t, c_fr_tr, c_fr_r, c_fr_br, c_fr_b, c_fr_bl, c_fr_l] =
+            tui_style.boardframe;
+        let w_tmp_btl = w_float + W_PAD_LEFT + w_addhud + W_HOLD; // (width temporary board-top-left)
+        let h_tmp_btl = h_float + H_PAD_TOP;
+
+        // Complete top edge.
+        // 2x's because of font width.
+        #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl, h_tmp_btl, TermCell { ch: c_fr_tl, fg: Color::Reset });
+        #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl, h_tmp_btl + 1 + H_FIELD, TermCell { ch: c_fr_bl, fg: Color::Reset });
+        for dx in 0..W_FIELD {
+            #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + 1 + dx, h_tmp_btl, TermCell { ch: c_fr_t, fg: Color::Reset });
+            #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + 1 + dx, h_tmp_btl + 1 + H_FIELD, TermCell { ch: c_fr_b, fg: Color::Reset });
+        }
+        #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + 1 + W_FIELD, h_tmp_btl, TermCell { ch: c_fr_tr, fg: Color::Reset });
+        #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + 1 + W_FIELD, h_tmp_btl + 1 + H_FIELD, TermCell { ch: c_fr_br, fg: Color::Reset });
+
+        // Left and right edges.
+        for dy in 0..H_FIELD {
+            #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl, h_tmp_btl + 1 + dy, TermCell { ch: c_fr_l, fg: Color::Reset });
+            #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + 1 + 2 * Game::WIDTH as u16, h_tmp_btl + 1 + dy, TermCell { ch: c_fr_r, fg: Color::Reset });
+        }
+
+        // RENDER: 'Hold' widget.
+
+        if let Some((tet, is_swappable)) = game.state().piece_held {
+            // 'Hold' frame glyphs.
+            let [c_h_tb, c_h_tl, c_h_l, c_h_bl] = tui_style.holdframe;
+            let w_tmp_htl = w_float + W_PAD_LEFT + w_addhud; // (width temporary hold-top-left)
+            let h_tmp_htl = h_float + H_PAD_TOP;
+
+            // Complete top and bottom edges.
+            #[rustfmt::skip] self.term_buf.write_char(w_tmp_htl, h_tmp_htl, TermCell { ch: c_h_tl, fg: Color::Reset });
+            #[rustfmt::skip] self.term_buf.write_char(w_tmp_htl, h_tmp_htl + 2, TermCell { ch: c_h_bl, fg: Color::Reset });
+            for dx in 0..6 {
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp_htl + 1 + dx, h_tmp_htl, TermCell { ch: c_h_tb, fg: Color::Reset });
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp_htl + 1 + dx, h_tmp_htl + 2, TermCell { ch: c_h_tb, fg: Color::Reset });
+            }
+            #[rustfmt::skip] self.term_buf.write_str(w_tmp_htl + 2, h_tmp_htl, "hold",Color::Reset);
+            // Left edge
+            #[rustfmt::skip] self.term_buf.write_char(w_tmp_htl, h_tmp_htl + 1, TermCell { ch: c_h_l, fg: Color::Reset });
+
+            // Render 'hold' piece.
+            let small_tet = &settings.small_tetromino_symbols().tets[tet as usize];
+            let w_extra_for_o = if tet == Tetromino::O { 1 } else { 0 };
+
+            let tile_id = if is_swappable {
+                tet.tile_id()
+            } else {
+                Palette::GRAY
+            };
+            let color = ftch_col_or_rset(&tile_id);
+            #[rustfmt::skip] self.term_buf.write_str(w_tmp_htl + 2 + w_extra_for_o, h_tmp_htl + 1, small_tet, color);
+
+            // Go the extra mile to render the character 'x' if we can't hold.
+            if !is_swappable {
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp_htl + 1, h_tmp_htl + 1, TermCell { ch: 'x', fg: color });
+            }
+        }
+
+        // RENDER: Preview widgets.
+
+        let [c_n_tb, c_n_tr, c_n_r, c_n_jl, c_n_br, c_n_jd, c_n_ltb] = tui_style.nextframe;
+        let w_tmp_ntl = w_float + W_PAD_LEFT + w_addhud + W_HOLD + W_BOARD; // (width temporary next-top-left)
+        let h_tmp_ntl = h_float + H_PAD_TOP;
+
+        let mut next_tetrominos = game.state().piece_preview.iter().copied();
+        'render_preview: {
+            // To begin, render normalsize previews.
+            let draw_appended_normalsize_prev =
+                |term_buf: &mut StandardTerminalBuffer, y_offset: u16, next_tet: Tetromino| {
+                    // Top and bottom edge of first prev.
+                    for dx in 0..12 {
+                        #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + dx, h_tmp_ntl + y_offset, TermCell { ch: c_n_ltb, fg: Color::Reset });
+                        #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + dx, h_tmp_ntl + y_offset + 3, TermCell { ch: c_n_tb, fg: Color::Reset });
+                    }
+                    // Complete right edge.
+                    #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + 12, h_tmp_ntl + y_offset, TermCell { ch: c_n_jl, fg: Color::Reset });
+                    #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + 12, h_tmp_ntl + y_offset + 1, TermCell { ch: c_n_r, fg: Color::Reset });
+                    #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + 12, h_tmp_ntl + y_offset + 2, TermCell { ch: c_n_r, fg: Color::Reset });
+                    #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + 12, h_tmp_ntl + y_offset + 3, TermCell { ch: c_n_br, fg: Color::Reset });
+
+                    // Render preview piece.
+                    let tile_texture = mino_textures.locked;
+                    let color = ftch_col_or_rset(&next_tet.tile_id());
+                    let w_extra_for_o = if next_tet == Tetromino::O { 2 } else { 0 };
+                    for (dx, dy) in next_tet.minos(Orientation::N) {
+                        #[rustfmt::skip] term_buf.write_tile(w_tmp_ntl + 2 + w_extra_for_o + 2 * (dx as u16), (h_tmp_ntl + y_offset + 2).saturating_sub(dy as u16), tile_texture, color);
+                    }
+                };
+
+            let Some(first_next_tet) = next_tetrominos.next() else {
+                break 'render_preview;
+            };
+            draw_appended_normalsize_prev(&mut self.term_buf, 0, first_next_tet);
+            // Override top edge of first prev.
+            for dx in 0..12 {
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp_ntl + dx, h_tmp_ntl, TermCell { ch: c_n_tb, fg: Color::Reset });
+            }
+            #[rustfmt::skip] self.term_buf.write_char(w_tmp_ntl + 12, h_tmp_ntl, TermCell { ch: c_n_tr, fg: Color::Reset });
+            #[rustfmt::skip] self.term_buf.write_str(w_tmp_ntl + 4, h_tmp_ntl, "next",Color::Reset);
+
+            let mut idx = 1;
+            let mut y_offset = 3;
+
+            // Render remaining normalsize previews.
+            while y_offset + 3 < 20
+                && settings
+                    .graphics()
+                    .normalsize_preview_limit
+                    .is_none_or(|limit| idx < limit.get())
+            {
+                let Some(next_tet) = next_tetrominos.next() else {
+                    break 'render_preview;
+                };
+                draw_appended_normalsize_prev(&mut self.term_buf, y_offset, next_tet);
+                idx += 1;
+                y_offset += 3;
+            }
+
+            let draw_appended_small_prev =
+                |term_buf: &mut StandardTerminalBuffer, y_offset: u16, next_tet: Tetromino| {
+                    // Top and bottom edge of first prev.
+                    for dx in 0..8 {
+                        #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + dx, h_tmp_ntl + y_offset, TermCell { ch: c_n_ltb, fg: Color::Reset });
+                        #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + dx, h_tmp_ntl + y_offset + 2, TermCell { ch: c_n_tb, fg: Color::Reset });
+                    }
+                    // Complete right edge.
+                    #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + 8, h_tmp_ntl + y_offset, TermCell { ch: c_n_jl, fg: Color::Reset });
+                    #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + 8, h_tmp_ntl + y_offset + 1, TermCell { ch: c_n_r, fg: Color::Reset });
+                    #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + 8, h_tmp_ntl + y_offset + 2, TermCell { ch: c_n_br, fg: Color::Reset });
+
+                    // Render preview piece.
+                    let small_tet = &settings.small_tetromino_symbols().tets[next_tet as usize];
+                    let color = ftch_col_or_rset(&next_tet.tile_id());
+                    let w_extra_for_o = if next_tet == Tetromino::O { 1 } else { 0 };
+                    #[rustfmt::skip] term_buf.write_str(w_tmp_ntl + 2 + w_extra_for_o, h_tmp_ntl + y_offset + 1, small_tet, color);
+                };
+
+            // To continue, render small previews (if there's space)
+            if y_offset + 2 < 20 {
+                let Some(next_tet) = next_tetrominos.next() else {
+                    break 'render_preview;
+                };
+                draw_appended_small_prev(&mut self.term_buf, y_offset, next_tet);
+                // Override top right corner of first small prev.
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp_ntl + 8, h_tmp_ntl + y_offset, TermCell { ch: c_n_jd, fg: Color::Reset });
+                y_offset += 2;
+
+                // Render remaining small previews.
+                while y_offset + 2 < 20 {
+                    let Some(next_tet) = next_tetrominos.next() else {
+                        break 'render_preview;
+                    };
+                    draw_appended_small_prev(&mut self.term_buf, y_offset, next_tet);
+                    y_offset += 2;
+                }
+            }
+
+            for (x_offset, next_tet) in next_tetrominos.enumerate() {
+                let mini_tet = settings.mini_tetromino_symbols().tets[next_tet as usize];
+                let color = ftch_col_or_rset(&next_tet.tile_id());
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp_ntl + 10 + 2 * (x_offset as u16), h_tmp_ntl + y_offset.saturating_sub(1), TermCell { ch: mini_tet, fg: color });
+            }
+        }
+
+        // RENDER: Elekronika frame.
+        // - This needs to happen after next/hold widgets because clean look of this 2nd frame drawn over colliding widgets takes priority.
+
+        // Special 2nd frame rendering. Mostly relevant for Elektronika 60 style.
+        if let Some([c_f2_l, c_f2_b0, c_f2_b1, c_f2_r]) = tui_style.boardframe2 {
+            // Complete left edge (2).
+            for dy in 0..H_FIELD + 1 {
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl.saturating_sub(1), h_tmp_btl + 1 + dy, TermCell { ch: c_f2_l, fg: Color::Reset });
+            }
+            // Complete right edge (2).
+            for dy in 0..H_FIELD + 1 {
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + W_BOARD, h_tmp_btl + 1 + dy, TermCell { ch: c_f2_r, fg: Color::Reset });
+            }
+
+            // Complete bottom edge.
+            for dx in 0..W_FIELD {
+                if dx.is_multiple_of(2) {
+                    #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + 1 + dx, h_tmp_btl + 1 + H_FIELD + 1, TermCell { ch: c_f2_b0, fg: Color::Reset });
+                } else {
+                    #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + 1 + dx, h_tmp_btl + 1 + H_FIELD + 1, TermCell { ch: c_f2_b1, fg: Color::Reset });
+                }
+            }
+        }
 
         // -- 'In-Field part of Board tiles' rendering --
 
@@ -788,6 +788,15 @@ impl Renderer for StandardBufferedRenderer {
                     let color = Color::Reset;
 
                     #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * dx as u16, h_tmp_ftl.saturating_sub(dy as u16), tile_texture, color);
+                }
+            }
+        } else {
+            // RENDER: Air.
+            // - This is to avoid anything that could accidentally overwrite things, e.g. mods or unexpectedly wide stats.
+
+            for dy in 0..Game::LOCK_OUT_HEIGHT {
+                for dx in 0..Game::WIDTH {
+                    #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * dx as u16, h_tmp_ftl.saturating_sub(dy as u16), TileTexture::EMPTY, Color::Reset);
                 }
             }
         }
@@ -1076,6 +1085,7 @@ impl Renderer for StandardBufferedRenderer {
         });
 
         // RENDER: Particle Line clear effect.
+        // - Since it's the last, it's allowed to draw over everything, even UI at this time.
 
         self.line_clear_particle_effect_buf.retain_mut(|(line_clear_particle_effect, line_clear_effect_tiles)| {
             let LineClearParticleEffect { duration_override, animation, acceleration: _, momentum_base: _, momentum_rand: _, momentum_xpos: _  } = line_clear_particle_effect;
