@@ -590,10 +590,14 @@ impl Renderer for StandardBufferedRenderer {
                 show_lockdelay.then(|| {
                     (
                         "Lock delay: ",
-                        format!(
-                            "{}ms",
-                            game.state().lock_delay.saturating_duration().as_millis()
-                        ),
+                        if game.state().lock_delay.is_infinite() {
+                            "none".to_owned()
+                        } else {
+                            format!(
+                                "{}ms",
+                                game.state().lock_delay.saturating_duration().as_millis()
+                            )
+                        },
                     )
                 }),
                 replay_extra.map(|(replay_len, _)| ("REPLAY ", fmt_duration(replay_len))),

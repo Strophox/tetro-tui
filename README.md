@@ -221,7 +221,7 @@ cargo run
 > | Keys | Meaning |
 > | -: | :- |
 > | `Alt`+`←`/`→`, `Alt`+`h`/`l` | Adjust value differently (under ⇝['Combo','Custom','Game save']) |
-> | `Home`/`End` | Jump to beginning/end of inpus (under ⇝'Game save') |
+> | `Home`/`End` | Set fall delay to infinite/zero (under ⇝'Custom'), jump to beginning/end of inpus (under ⇝'Game save') |
 > | `Alt`+`Enter` | View replay instead of starting game save (under ⇝'Game save') |
 > | `Ctrl`+`U` | (For experienced/impatient players) unlock all game modes |
 > 

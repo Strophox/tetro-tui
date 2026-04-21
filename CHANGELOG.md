@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed and improved various presets (graphics ("Guideline"q), keybinds ("Terminal Finesse")).
 - Removed 'quick start new game' keys (1,2,3...) in New Game menu (use `Ctrl+R` to quick-restart same gamemode instead).
 - Added rounded Unicode frame TUI style.
+- `Home/End` can now be used to directly set fall delay to infinite/zero during Custom mode configuration.
 
 
 ## [3.2.1] - 2026-04-18

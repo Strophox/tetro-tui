@@ -301,7 +301,7 @@ impl<T: Write> Application<T> {
                             ("?", "Open Keybinds overview"),
                         ].into_iter().map(|(lhs,rhs)| (lhs.to_owned(), rhs.to_owned())).collect()),
                         ("Special keybinds".to_owned(), [
-                            ("Home/End", "Jump to first/last input for game save"),
+                            ("Home/End", "Set fall delay to infinite/zero for Custom mode, Jump to first/last input for game save"),
                             ("Alt+←/→", "Adjust start layout of Combo mode"),
                             ("Alt+↓/↑ Alt+j/k", "Adjust initial fall delay of Custom mode multiplicatively"),
                             ("Alt+Enter", "View game save as replay"),
@@ -826,7 +826,19 @@ impl<T: Write> Application<T> {
                     kind: Press | Repeat,
                     ..
                 }) => {
-                    if Some(selected) == opt_idx_game_save {
+                    // If custom gamemode selected, allow setting speed curve to 'zero gravity'.
+                    if selected == idx_custom
+                    /*&& customization_selected == customization_selection_size - 1*/
+                    {
+                        self.settings
+                            .game_mode_preferences
+                            .custom_config
+                            .fall_params = DelayParameters::constant(ExtDuration::Infinite);
+                        self.settings
+                            .game_mode_preferences
+                            .custom_config
+                            .lock_params = DelayParameters::constant(ExtDuration::Infinite);
+                    } else if Some(selected) == opt_idx_game_save {
                         if let Some(GameSave { inputs_to_load, .. }) = self.game_saves.get_mut() {
                             *inputs_to_load = 0;
                         }
@@ -839,7 +851,19 @@ impl<T: Write> Application<T> {
                     kind: Press | Repeat,
                     ..
                 }) => {
-                    if Some(selected) == opt_idx_game_save {
+                    // If custom gamemode selected, allow setting speed curve to 'zero gravity'.
+                    if selected == idx_custom
+                    /*&& customization_selected == customization_selection_size - 1*/
+                    {
+                        self.settings
+                            .game_mode_preferences
+                            .custom_config
+                            .fall_params = DelayParameters::constant(ExtDuration::ZERO);
+                        self.settings
+                            .game_mode_preferences
+                            .custom_config
+                            .lock_params = DelayParameters::standard_lock();
+                    } else if Some(selected) == opt_idx_game_save {
                         if let Some(GameSave {
                             game_restoration_data: GameRestorationData { input_history, .. },
                             inputs_to_load,
