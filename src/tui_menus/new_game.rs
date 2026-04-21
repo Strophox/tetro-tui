@@ -100,7 +100,21 @@ impl<T: Write> Application<T> {
                 self.term
                     .queue(MoveTo(
                         x_main,
-                        y_main + y_selection + 4 + u16::try_from(i).unwrap(),
+                        y_main
+                            + y_selection
+                            + 4
+                            + u16::try_from(i).unwrap()
+                            + if i
+                                >= 2 + if self.settings.game_mode_preferences.master_mode_unlocked {
+                                    1
+                                } else {
+                                    0
+                                }
+                            {
+                                1
+                            } else {
+                                0
+                            },
                     ))?
                     .queue(Print(format!(
                         "{:^w_main$}",
@@ -115,7 +129,7 @@ impl<T: Write> Application<T> {
             self.term
                 .queue(MoveTo(
                     x_main,
-                    y_main + y_selection + 3 + u16::try_from(game_modes.len() + 2).unwrap(),
+                    y_main + y_selection + 3 + 1 + u16::try_from(game_modes.len() + 2).unwrap(),
                 ))?
                 .queue(Print(format!(
                     "{:^w_main$}",
@@ -203,7 +217,7 @@ impl<T: Write> Application<T> {
                             y_main
                                 + y_selection
                                 + 3
-                                + u16::try_from(1 + j + game_modes.len() + 2).unwrap(),
+                                + u16::try_from(1 + j + 1 + game_modes.len() + 2).unwrap(),
                         ))?
                         .queue(Print(if j + 1 == customization_selected {
                             format!(
@@ -239,7 +253,7 @@ impl<T: Write> Application<T> {
                 self.term
                     .queue(MoveTo(
                         x_main,
-                        y_main + y_selection + 4 + u16::try_from(game_modes.len() + 1).unwrap() + if selected == idx_custom { 5 } else { 2 },
+                        y_main + y_selection + 4 + 1 + u16::try_from(game_modes.len() + 1).unwrap() + if selected == idx_custom { 5 } else { 2 },
                     ))?
                     .queue(Print(format!(
                         "{:^w_main$}",
