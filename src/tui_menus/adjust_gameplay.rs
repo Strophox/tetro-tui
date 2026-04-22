@@ -102,10 +102,7 @@ impl<T: Write> Application<T> {
 
             // Draw config selection.
             let labels = [
-                format!(
-                    "Piece rotation system = {:?}",
-                    self.settings.gameplay().rotsys
-                ),
+                format!("Piece rotation = {:?}", self.settings.gameplay().rotsys),
                 format!(
                     "Piece randomization = {}",
                     match &self.settings.gameplay().tetgen {
@@ -142,13 +139,13 @@ impl<T: Write> Application<T> {
                         } => "Balance out".to_owned(),
                     }
                 ),
-                format!("Piece preview count = {}", self.settings.gameplay().preview),
+                format!("Piece preview = {}", self.settings.gameplay().preview),
                 format!(
                     "Delayed auto move (DAS) = {:?} *",
                     self.settings.gameplay().das
                 ),
                 format!(
-                    "Auto move rate (ARR) = {:?} *",
+                    "Auto repeat rate (ARR) = {:?} *",
                     self.settings.gameplay().arr
                 ),
                 format!(
@@ -161,7 +158,7 @@ impl<T: Write> Application<T> {
                 ),
                 format!("Spawn delay (ARE) = {:?}", self.settings.gameplay().are),
                 format!(
-                    "Allow initial actions (IRS/IHS/IMS/ITS) = {} *",
+                    "Allow spawn actions (IRS/IHS/IMS/ITS) = {} *",
                     self.settings.gameplay().initsys.on_off()
                 ),
                 format!(

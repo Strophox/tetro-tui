@@ -98,8 +98,10 @@ impl GameModifier for Ascent {
             return;
         }
 
-        // Guaranteed to be in `Phase::PieceInPlay`.
-        let piece = game.phase.piece_mut().unwrap();
+        // Normally guaranteed to be in `Phase::PieceInPlay`.
+        let Some(piece) = game.phase.piece_mut() else {
+            return;
+        };
 
         let piece_tiles_coords = piece.tiles().map(|(coord, _)| coord);
 
