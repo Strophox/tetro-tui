@@ -587,11 +587,8 @@ impl<T: Write> Application<T> {
         let _e = self.initialize_terminal_state();
 
         let mut menu_stack = vec![Menu::Title];
-        loop {
-            // Retrieve active menu, stop application if stack is empty.
-            let Some(menu) = menu_stack.last_mut() else {
-                break;
-            };
+        // Retrieve active menu, and stop application if stack is empty.
+        while let Some(menu) = menu_stack.last_mut() {
             // Open new menu screen, then store what it returns.
             let menu_update = match menu {
                 Menu::Title => self.run_menu_title(),
