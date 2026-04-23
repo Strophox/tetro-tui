@@ -367,7 +367,7 @@ impl Renderer for StandardBufferedRenderer {
                 .title
                 .chars()
                 .map(Some)
-                .chain([None, None].into_iter())
+                .chain([None, None])
                 .take((w_addhud + W_HOLD).saturating_sub(W_TITLE_MARGIN) as usize)
                 .enumerate()
             {

@@ -92,8 +92,8 @@ impl GameplaySettings {
             das: Duration::from_millis(266), // ≈ 16 /60.0988
             preview: 1,
             arr: Duration::from_millis(100),       // ≈ 6 /60.0988
-            are: Duration::from_millis(166),       // ≈ 10(~18) /60.0988
-            lcd: Duration::from_millis(283),       // ≈ 17(~20) /60.0988
+            are: Duration::from_millis(250),       // ≈ [10~)15(~18] /60.0988
+            lcd: Duration::from_millis(333),       // ≈ [17~)20 /60.0988
             sdf: ExtNonNegF64::new(20.0).unwrap(), // ≈ 60.0988 * (1/2 G)
             initsys: false,
             dtapfinesse: None,

@@ -109,15 +109,15 @@ impl<T: Write> Application<T> {
                         TetrominoGenerator::Classic {
                             tet_last_emitted: _,
                             aversion_to_last: 0,
-                        } => "Completely random".to_owned(),
+                        } => "Uniformly random".to_owned(),
                         TetrominoGenerator::Classic {
                             tet_last_emitted: _,
                             aversion_to_last: 1,
-                        } => "Classic".to_owned(),
+                        } => "Classic (Reroll 1x)".to_owned(),
                         TetrominoGenerator::Classic {
                             tet_last_emitted: _,
                             aversion_to_last: n,
-                        } => format!("Reroll up to {n}x"),
+                        } => format!("Reroll {n}x"),
                         TetrominoGenerator::Stock {
                             tets_stocked: _,
                             restock_multiplicity,
