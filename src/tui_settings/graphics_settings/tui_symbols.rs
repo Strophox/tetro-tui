@@ -138,7 +138,7 @@ impl TuiSymbols {
             holdframe: "─┌│└",
             nextframe: "─┐│┤┘┬╴",
             buttons: "←→↺↻↔↓⤓⇓⇐⇒⇋",
-            timer: ["⡀", "⡄", "⡆", "⡇", "⡏", "⡟", "⡿", "⣿"]
+            timer: ["⠈", "⠘", "⠸", "⢸", "⣸", "⣼", "⣾", "⣿"]
                 .map(|s| s.to_owned())
                 .into(),
             progressbar: (" ▏▎▍▌▋▊▉", '█'),
@@ -156,7 +156,7 @@ impl TuiSymbols {
             holdframe: "─╭│╰",
             nextframe: "─╮│┤╯┬╴",
             buttons: "←→↺↻↔↓⤓⇓⇐⇒⇋",
-            timer: ["⡀", "⡄", "⡆", "⡇", "⡏", "⡟", "⡿", "⣿"]
+            timer: ["⠈", "⠘", "⠸", "⢸", "⣸", "⣼", "⣾", "⣿"]
                 .map(|s| s.to_owned())
                 .into(),
             progressbar: (" ▏▎▍▌▋▊▉", '█'),
@@ -174,7 +174,7 @@ impl TuiSymbols {
             holdframe: "    ",
             nextframe: "       ",
             buttons: "←→↺↻↔↓⤓⇓⇐⇒⇋",
-            timer: ["⡀", "⡄", "⡆", "⡇", "⡏", "⡟", "⡿", "⣿"]
+            timer: ["⠈", "⠘", "⠸", "⢸", "⣸", "⣼", "⣾", "⣿"]
                 .map(|s| s.to_owned())
                 .into(),
             progressbar: (" ▏▎▍▌▋▊▉", '█'),
@@ -192,7 +192,7 @@ impl TuiSymbols {
             holdframe: "    ",
             nextframe: "       ",
             buttons: "←→↺↻↔↓⤓⇓⇐⇒⇋",
-            timer: ["⡀", "⡄", "⡆", "⡇", "⡏", "⡟", "⡿", "⣿"]
+            timer: ["⠈", "⠘", "⠸", "⢸", "⣸", "⣼", "⣾", "⣿"]
                 .map(|s| s.to_owned())
                 .into(),
             progressbar: (" ▏▎▍▌▋▊▉", '█'),

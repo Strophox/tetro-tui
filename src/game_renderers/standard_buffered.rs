@@ -928,7 +928,7 @@ impl Renderer for StandardBufferedRenderer {
                             let str =
                                 &tui_style.timer[((tui_style.timer.len() as f64 - 1.0) * elapsed
                                     / given.get())
-                                .ceil() as usize];
+                                .floor() as usize];
                             let color = ftch_col_or_rset(&Palette::WHITE);
                             #[rustfmt::skip] self.term_buf.write_str((w_tmp_ftl + 2 * (player_piece.position.0 as u16)).saturating_sub(1), h_tmp_ftl.saturating_sub(player_piece.position.1 as u16).saturating_add(1), str, color);
                         }
