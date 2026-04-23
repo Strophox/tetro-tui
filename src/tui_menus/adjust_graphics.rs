@@ -660,17 +660,16 @@ impl<T: Write> Application<T> {
                     code: KeyCode::Delete | KeyCode::Char('d' | 'D'),
                     kind: Press,
                     ..
-                }) if selected == 0 => {
+                }) if selected == 0
                     // If a custom slot, then remove it (and return to the 'default' 0th slot).
-                    if self.settings.graphics_selected
-                        >= self.settings.graphics_slotmachine.unmodifiable_slots
-                    {
-                        self.settings
-                            .graphics_slotmachine
-                            .slots
-                            .remove(self.settings.graphics_selected);
-                        self.settings.graphics_selected = 0;
-                    }
+                    && self.settings.graphics_selected
+                        >= self.settings.graphics_slotmachine.unmodifiable_slots =>
+                {
+                    self.settings
+                        .graphics_slotmachine
+                        .slots
+                        .remove(self.settings.graphics_selected);
+                    self.settings.graphics_selected = 0;
                 }
 
                 // Other event: Just ignore.
