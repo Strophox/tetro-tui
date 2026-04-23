@@ -424,11 +424,9 @@ impl<T: Write> Application<T> {
                     code: KeyCode::Enter | KeyCode::Char('e' | 'E'),
                     kind: Press,
                     ..
-                }) => {
-                    if !body.is_empty() {
-                        let menu = body.into_iter().nth(selected).unwrap();
-                        break Ok(MenuUpdate::Push(menu));
-                    }
+                }) if !body.is_empty() => {
+                    let menu = body.into_iter().nth(selected).unwrap();
+                    break Ok(MenuUpdate::Push(menu));
                 }
 
                 // Move selector up.
@@ -436,10 +434,8 @@ impl<T: Write> Application<T> {
                     code: KeyCode::Up | KeyCode::Char('k' | 'K'),
                     kind: Press | Repeat,
                     ..
-                }) => {
-                    if !body.is_empty() {
-                        selected += body.len() - 1;
-                    }
+                }) if !body.is_empty() => {
+                    selected += body.len() - 1;
                 }
 
                 // Move selector down.
@@ -447,10 +443,8 @@ impl<T: Write> Application<T> {
                     code: KeyCode::Down | KeyCode::Char('j' | 'J'),
                     kind: Press | Repeat,
                     ..
-                }) => {
-                    if !body.is_empty() {
-                        selected += 1;
-                    }
+                }) if !body.is_empty() => {
+                    selected += 1;
                 }
 
                 // Reload from savefile.

@@ -242,9 +242,9 @@ impl<T: Write> Application<T> {
                     code: KeyCode::Enter | KeyCode::Char('e' | 'E'),
                     kind: Press,
                     ..
-                }) => {
+                })
                     // `> 0` because 0 is slot selection.
-                    if selected > 0 {
+                    if selected > 0 => {
                         let current_button = buttons_available[selected - 1];
                         self.term
                             .execute(MoveTo(
@@ -300,7 +300,6 @@ impl<T: Write> Application<T> {
                             let _v = self.term.execute(event::PopKeyboardEnhancementFlags);
                         }
                     }
-                }
 
                 // Delete keybind, or entire slot.
                 Event::Key(KeyEvent {
@@ -380,27 +379,25 @@ impl<T: Write> Application<T> {
                     code: KeyCode::Right | KeyCode::Char('l' | 'L'),
                     kind: Press | Repeat,
                     ..
-                }) => {
-                    if selected == 0 {
+                })
+                    if selected == 0 => {
                         self.settings.keybinds_selected += 1;
                         self.settings.keybinds_selected %=
                             self.settings.keybinds_slotmachine.slots.len();
                     }
-                }
 
                 // Cycle slot to right.
                 Event::Key(KeyEvent {
                     code: KeyCode::Left | KeyCode::Char('h' | 'H'),
                     kind: Press | Repeat,
                     ..
-                }) => {
-                    if selected == 0 {
+                })
+                    if selected == 0 => {
                         self.settings.keybinds_selected +=
                             self.settings.keybinds_slotmachine.slots.len() - 1;
                         self.settings.keybinds_selected %=
                             self.settings.keybinds_slotmachine.slots.len();
                     }
-                }
 
                 // Other IO event: no action.
                 _ => {}

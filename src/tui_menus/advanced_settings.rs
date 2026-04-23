@@ -278,11 +278,8 @@ impl<T: Write> Application<T> {
                     code: KeyCode::Enter | KeyCode::Char('e' | 'E'),
                     kind: Press,
                     ..
-                }) => {
-                    if selected == 0 {
-                        self.temp_data.save_on_exit =
-                            SavefileGranularity::StoreSettingsScoresReplays;
-                    }
+                }) if selected == 0 => {
+                    self.temp_data.save_on_exit = SavefileGranularity::StoreSettingsScoresReplays;
                 }
 
                 // Move selector up.

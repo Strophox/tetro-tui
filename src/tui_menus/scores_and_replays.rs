@@ -294,23 +294,23 @@ impl<T: Write> Application<T> {
                     code: KeyCode::Up | KeyCode::Char('k' | 'K'),
                     kind: kind @ (Press | Repeat),
                     ..
-                }) if self.scores_and_replays.entries.len() > 0 => {
+                }) if self.scores_and_replays.entries.len() > 0
                     // We allow wrapping cursor pos, but only on manual presses (if detectable).
-                    if 0 < *cursor_pos || kind == Press {
-                        // Cursor pos possibly wraps back down.
-                        *cursor_pos += self.scores_and_replays.entries.len() - 1;
-                        *cursor_pos %= self.scores_and_replays.entries.len();
-                        // If it does, then manually reset camera to bottom of scoreboard.
-                        if *cursor_pos == self.scores_and_replays.entries.len() - 1 {
-                            *camera_pos = self
-                                .scores_and_replays
-                                .entries
-                                .len()
-                                .saturating_sub(CAMERA_SIZE);
-                        // Otherwise cursor just moved normally, and we may have to adapt camera (unless it hit scoreboard end).
-                        } else if 0 < *camera_pos && *cursor_pos < *camera_pos + CAMERA_MARGIN {
-                            *camera_pos -= 1;
-                        }
+                    && (0 < *cursor_pos || kind == Press) =>
+                {
+                    // Cursor pos possibly wraps back down.
+                    *cursor_pos += self.scores_and_replays.entries.len() - 1;
+                    *cursor_pos %= self.scores_and_replays.entries.len();
+                    // If it does, then manually reset camera to bottom of scoreboard.
+                    if *cursor_pos == self.scores_and_replays.entries.len() - 1 {
+                        *camera_pos = self
+                            .scores_and_replays
+                            .entries
+                            .len()
+                            .saturating_sub(CAMERA_SIZE);
+                    // Otherwise cursor just moved normally, and we may have to adapt camera (unless it hit scoreboard end).
+                    } else if 0 < *camera_pos && *cursor_pos < *camera_pos + CAMERA_MARGIN {
+                        *camera_pos -= 1;
                     }
                 }
 
@@ -329,26 +329,26 @@ impl<T: Write> Application<T> {
                     code: KeyCode::Down | KeyCode::Char('j' | 'J'),
                     kind: kind @ (Press | Repeat),
                     ..
-                }) if self.scores_and_replays.entries.len() > 0 => {
+                }) if self.scores_and_replays.entries.len() > 0
                     // We allow wrapping cursor pos, but only on manual presses (if detectable).
-                    if *cursor_pos < self.scores_and_replays.entries.len() - 1 || kind == Press {
-                        // Cursor pos possibly wraps back up.
-                        *cursor_pos += 1;
-                        *cursor_pos %= self.scores_and_replays.entries.len();
-                        // If it does, then manually reset camera to bottom of scoreboard.
-                        if *cursor_pos == 0 {
-                            *camera_pos = 0;
-                        // Otherwise cursor just moved normally, and we may have to adapt camera (unless it hit scoreboard end).
-                        } else if *camera_pos + CAMERA_SIZE - CAMERA_MARGIN <= *cursor_pos
-                            && *camera_pos
-                                < self
-                                    .scores_and_replays
-                                    .entries
-                                    .len()
-                                    .saturating_sub(CAMERA_SIZE)
-                        {
-                            *camera_pos += 1;
-                        }
+                    && (*cursor_pos < self.scores_and_replays.entries.len() - 1 || kind == Press) =>
+                {
+                    // Cursor pos possibly wraps back up.
+                    *cursor_pos += 1;
+                    *cursor_pos %= self.scores_and_replays.entries.len();
+                    // If it does, then manually reset camera to bottom of scoreboard.
+                    if *cursor_pos == 0 {
+                        *camera_pos = 0;
+                    // Otherwise cursor just moved normally, and we may have to adapt camera (unless it hit scoreboard end).
+                    } else if *camera_pos + CAMERA_SIZE - CAMERA_MARGIN <= *cursor_pos
+                        && *camera_pos
+                            < self
+                                .scores_and_replays
+                                .entries
+                                .len()
+                                .saturating_sub(CAMERA_SIZE)
+                    {
+                        *camera_pos += 1;
                     }
                 }
 

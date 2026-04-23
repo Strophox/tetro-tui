@@ -271,11 +271,9 @@ impl<T: Write> Application<T> {
                     code: KeyCode::Enter | KeyCode::Char('e' | 'E'),
                     kind: Press,
                     ..
-                }) => {
-                    if !selection.is_empty() {
-                        let menu = selection.into_iter().nth(selected).unwrap();
-                        break Ok(MenuUpdate::Push(menu));
-                    }
+                }) if !selection.is_empty() => {
+                    let menu = selection.into_iter().nth(selected).unwrap();
+                    break Ok(MenuUpdate::Push(menu));
                 }
 
                 // Move selector up.
