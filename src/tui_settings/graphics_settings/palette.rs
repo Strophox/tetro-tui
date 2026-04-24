@@ -420,15 +420,13 @@ impl<'de> serde_with::DeserializeAs<'de, Color> for ColorDummyType {
                                 return Ok(Color::Rgb { r, g, b });
                             }
                         }
-                    } else if let Some(hex) = value.strip_prefix('#') {
-                        if hex.is_ascii() && hex.len() == 6 {
-                            let r = u8::from_str_radix(&hex[0..2], 16);
-                            let g = u8::from_str_radix(&hex[2..4], 16);
-                            let b = u8::from_str_radix(&hex[4..6], 16);
+                    } else if let Some(hex) = value.strip_prefix('#') && hex.is_ascii() && hex.len() == 6 {
+                        let r = u8::from_str_radix(&hex[0..2], 16);
+                        let g = u8::from_str_radix(&hex[2..4], 16);
+                        let b = u8::from_str_radix(&hex[4..6], 16);
 
-                            if let (Ok(r), Ok(g), Ok(b)) = (r, g, b) {
-                                return Ok(Color::Rgb { r, g, b });
-                            }
+                        if let (Ok(r), Ok(g), Ok(b)) = (r, g, b) {
+                            return Ok(Color::Rgb { r, g, b });
                         }
                     }
 

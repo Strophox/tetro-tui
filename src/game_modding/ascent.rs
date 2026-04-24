@@ -150,18 +150,19 @@ impl GameModifier for Ascent {
         // Adjust 'camera' if needed.
         let has_hit_camera_top =
             LOCK_OUT_HEIGHT - Self::CAMERA_MARGIN_TOP <= (piece.position.1 as usize);
-        if !has_hit_camera_top {
-            return;
+        if has_hit_camera_top {
+            let mut ascent_lines =
+                Self::prng_ascent_lines(&mut self.height_loaded, &mut game.state.rng);
+            game.state.board.rotate_left(1);
+            game.state.board[HEIGHT - 1] = ascent_lines.next().unwrap();
+            piece.position.1 -= 1;
         }
 
         // Ascending virtual infinite board.
-        self.cached_height_stat[0] = format!("Height ascended: {}", self.height_loaded - HEIGHT); // TODO: This correct?
-
-        let mut ascent_lines =
-            Self::prng_ascent_lines(&mut self.height_loaded, &mut game.state.rng);
-        game.state.board.rotate_left(1);
-        game.state.board[HEIGHT - 1] = ascent_lines.next().unwrap();
-        piece.position.1 -= 1;
+        self.cached_height_stat[0] = format!(
+            "Height ascended: {}",
+            piece.position.1 as usize + self.height_loaded - HEIGHT
+        ); // TODO: This correct?
     }
 
     // The mod must pre-process: 'hold' to replace with custom hold, and 'drops' to prevent piece locking.

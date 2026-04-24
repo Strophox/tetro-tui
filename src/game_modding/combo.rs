@@ -15,7 +15,7 @@ pub struct Combo {
     config: ComboConfig,
     // Modifier state fields.
     height_loaded: usize,
-    cached_stat: [String; 1],
+    cached_stats: [String; 1],
 }
 
 #[derive(
@@ -44,7 +44,7 @@ impl Combo {
         let modifier = Box::new(Self {
             config,
             height_loaded: 0,
-            cached_stat: [format!("Current combo: {}", 0)],
+            cached_stats: [format!("Current combo: {}", 0)],
         });
 
         builder
@@ -67,7 +67,7 @@ impl GameModifier for Combo {
     }
 
     fn stats(&self) -> &[String] {
-        todo!()
+        &self.cached_stats
     }
 
     fn try_clone(&self) -> Result<Box<dyn GameModifier>, String> {
@@ -123,7 +123,7 @@ impl GameModifier for Combo {
         game.state.board[HEIGHT - 1] = Self::combo_lines(&mut self.height_loaded).next().unwrap();
 
         // Overwrite with combo length.
-        self.cached_stat[0] = format!("Current combo: {}", game.state.consecutive_lineclears);
+        self.cached_stats[0] = format!("Current combo: {}", game.state.consecutive_lineclears);
     }
 }
 

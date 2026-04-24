@@ -615,13 +615,12 @@ impl Renderer for LegacyBufferedRenderer {
         if !temp_data.blindfold_game {
             for (y, line) in game.state().board.iter().enumerate().rev() {
                 for (x, cell) in line.iter().enumerate() {
-                    if let Some(tile_id) = cell {
-                        if let Some(xy) =
+                    if let Some(tile_id) = cell
+                        && let Some(xy) =
                             pos_board((isize::try_from(x).unwrap(), isize::try_from(y).unwrap()))
-                        {
-                            let color_locked = settings.lockedminopalette().get(tile_id).copied();
-                            self.screen.buffer_str(tile_ground, color_locked, xy);
-                        }
+                    {
+                        let color_locked = settings.lockedminopalette().get(tile_id).copied();
+                        self.screen.buffer_str(tile_ground, color_locked, xy);
                     }
                 }
             }

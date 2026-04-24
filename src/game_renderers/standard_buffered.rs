@@ -8,6 +8,7 @@ mod sparse_terminal_double_buffer;
 use std::{collections::VecDeque, time::Duration};
 
 use crossterm::style::Color;
+use either::Either;
 use falling_tetromino_engine::{
     Button, Coordinate, ExtDuration, GameEndCause, LOCK_OUT_HEIGHT, Orientation, Phase, Stat,
     Tetromino, TileID, WIDTH,
@@ -377,54 +378,72 @@ impl Renderer for StandardBufferedRenderer {
             }
 
             // Render stats.
-            // Only show lock delay if fall delay lower bound has been hit and lock delay can potentially change.
-            let show_lockdelay = game
-                .state()
-                .fall_delay_lowerbound_hit_at_n_lineclears
-                .is_some();
-            let stats = [
+            let mut stats: Vec<Option<(&str, String)>> = vec![
                 Some(("Time: ", fmt_duration(game.state().time))),
                 Some(("Lines: ", game.state().lineclears.to_string())),
                 Some(("Points: ", game.state().points.to_string())),
                 Some(("Gravity: ", fmt_hertz(game.state().fall_delay.as_hertz()))),
-                show_lockdelay.then(|| {
-                    (
-                        "Lock delay: ",
-                        if let ExtDuration::Finite(lock_delay) = game.state().lock_delay {
-                            format!("{}ms", lock_delay.as_millis())
-                        } else {
-                            "none".to_owned()
-                        },
-                    )
-                }),
-                replay_extra.map(|(replay_len, _)| ("REPLAY ", fmt_duration(replay_len))),
-                replay_extra.map(|(replay_len, _)| {
-                    ("", {
-                        let (partial_glyphs, full_glyph) = &tui_style.progressbar;
-                        let w_progressbar = (W_ADD_ACTIVE_HUD + W_HOLD).saturating_sub(3);
-                        let progress = game.state().time.as_secs_f32() / replay_len.as_secs_f32();
-                        let granularity = if partial_glyphs.is_empty() {
-                            1
-                        } else {
-                            partial_glyphs.len()
-                        };
-                        let scaled = (progress * (w_progressbar as f32) * (granularity as f32))
-                            .round() as usize;
-                        let mut progress_bar = String::new();
-                        progress_bar.push_str(&full_glyph.to_string().repeat(scaled / granularity));
-                        if !scaled.is_multiple_of(granularity) {
-                            progress_bar.push(partial_glyphs[scaled % granularity]);
-                        }
-                        progress_bar.push_str(
-                            &" ".repeat(w_progressbar as usize - progress_bar.chars().count()),
-                        );
-                        progress_bar.push(']');
-                        progress_bar
-                    })
-                }),
-                replay_extra
-                    .map(|(_, replay_speed)| ("Replay speed: ", format!("{replay_speed:.02}x"))),
             ];
+
+            // Only show lock delay if fall delay lower bound has been hit AND lock delay can potentially decrease/change.
+            // If lock curve is nonexistend, or factor is 1 and subtrahend 0, or table only has one entry then we don't care.
+            let show_lockdelay = game
+                .state()
+                .fall_delay_lowerbound_hit_at_n_lineclears
+                .is_some()
+                && game.config.lock_delay_curve.as_ref().is_some_and(
+                    |lock_curve| match lock_curve {
+                        Either::Left(params) => {
+                            params.factor().get() < 1.0 || !params.subtrahend().is_zero()
+                        }
+                        Either::Right(table) => table.entries().len() > 2,
+                    },
+                );
+            if show_lockdelay {
+                stats.push(Some((
+                    "Lock delay: ",
+                    if let ExtDuration::Finite(lock_delay) = game.state().lock_delay {
+                        format!("{}ms", lock_delay.as_millis())
+                    } else {
+                        "none".to_owned()
+                    },
+                )));
+            }
+
+            // Show mod stats.
+            for modifier in &game.modifiers {
+                for stat in modifier.stats() {
+                    stats.push(Some(("", stat.to_owned())));
+                }
+            }
+
+            // Only show Replay stats if available.
+            if let Some((replay_len, replay_speed)) = replay_extra {
+                stats.push(Some(("REPLAY ", fmt_duration(replay_len))));
+                stats.push(Some(("", {
+                    let (partial_glyphs, full_glyph) = &tui_style.progressbar;
+                    let w_progressbar = (W_ADD_ACTIVE_HUD + W_HOLD).saturating_sub(3);
+                    let progress = game.state().time.as_secs_f32() / replay_len.as_secs_f32();
+                    let granularity = if partial_glyphs.is_empty() {
+                        1
+                    } else {
+                        partial_glyphs.len()
+                    };
+                    let scaled =
+                        (progress * (w_progressbar as f32) * (granularity as f32)).round() as usize;
+                    let mut progress_bar = String::new();
+                    progress_bar.push_str(&full_glyph.to_string().repeat(scaled / granularity));
+                    if !scaled.is_multiple_of(granularity) {
+                        progress_bar.push(partial_glyphs[scaled % granularity]);
+                    }
+                    progress_bar.push_str(
+                        &" ".repeat(w_progressbar as usize - progress_bar.chars().count()),
+                    );
+                    progress_bar.push(']');
+                    progress_bar
+                })));
+                stats.push(Some(("Replay speed: ", format!("{replay_speed:.02}x"))));
+            }
 
             for (dy, opt_stat) in stats.into_iter().enumerate() {
                 if let Some((str_statname, str_statval)) = opt_stat {
@@ -981,7 +1000,7 @@ impl Renderer for StandardBufferedRenderer {
                                 // FIXME: Remove this FIX-ME as soon as this is tested / sure it works correctly.
                                 let tile_texture = mino_textures.hatched;
                                 let color = Color::Reset;
-                                #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, color);
+                                #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy), tile_texture, color);
                             }
                         }
                     }

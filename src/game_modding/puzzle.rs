@@ -18,7 +18,7 @@ pub struct Puzzle {
     stage_tet_count: usize,
     stage_attempts: usize,
     end_post_spawn: Option<bool>,
-    cached_stat: [String; 1],
+    cached_stats: [String; 1],
 }
 
 impl Puzzle {
@@ -31,7 +31,7 @@ impl Puzzle {
             stage_tet_count: 0,
             stage_attempts: 0,
             end_post_spawn: None,
-            cached_stat: [format!("Stage {}", 1)],
+            cached_stats: [format!("Stage {}", 1)],
         });
 
         builder
@@ -58,7 +58,7 @@ impl GameModifier for Puzzle {
     }
 
     fn stats(&self) -> &[String] {
-        &self.cached_stat
+        &self.cached_stats
     }
 
     fn on_spawn_pre(
@@ -134,7 +134,7 @@ impl GameModifier for Puzzle {
                     *time,
                 ));
             }
-            self.cached_stat[0] = format!("Stage {}", self.stage_idx + 1);
+            self.cached_stats[0] = format!("Stage {}", self.stage_idx + 1);
         } else {
             // Reattempt stage.
             self.stage_attempts += 1;

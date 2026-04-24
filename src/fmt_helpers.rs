@@ -31,15 +31,15 @@ pub fn fmt_duration(dur: Duration) -> String {
 }
 
 pub fn fmt_hertz(f: ExtNonNegF64) -> String {
-    const LOWERBOUND: f64 = 1. / 100.0;
-    const UPPERBOUND: f64 = 10000.0; // "20 tiles per (60 Hz) frame."
+    const MIN: f64 = 1. / 100.0;
+    const MAX: f64 = 10000.0; // "20 tiles per (60 Hz) frame."
     if f.is_zero() {
         "0 Hz".to_owned()
-    } else if f.get() <= LOWERBOUND {
+    } else if f.get() <= MIN {
         "~0 Hz".to_owned()
     } else if f.is_infinite() {
         "∞ Hz".to_owned()
-    } else if UPPERBOUND <= f.get() {
+    } else if MAX <= f.get() {
         "~∞ Hz".to_owned()
     } else {
         format!("{:.02} Hz", f.get())

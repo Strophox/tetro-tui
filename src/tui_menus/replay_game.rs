@@ -405,11 +405,11 @@ impl<T: Write> Application<T> {
 
                                     let mut do_forfeit = false;
 
-                                    if let Some(forfeit_time) = game_restoration_data.forfeit {
-                                        if forfeit_time <= update_target_time {
-                                            update_target_time = forfeit_time;
-                                            do_forfeit = true;
-                                        }
+                                    if let Some(forfeit_time) = game_restoration_data.forfeit
+                                        && forfeit_time <= update_target_time
+                                    {
+                                        update_target_time = forfeit_time;
+                                        do_forfeit = true;
                                     }
 
                                     // Note how we use `inputs_loaded` as because this automatically corresponds to the *index* of the next desired input.
@@ -740,11 +740,11 @@ impl<T: Write> Application<T> {
 
                 let mut do_forfeit = false;
 
-                if let Some(forfeit_time) = game_restoration_data.forfeit {
-                    if forfeit_time <= update_target_time {
-                        update_target_time = forfeit_time;
-                        do_forfeit = true;
-                    }
+                if let Some(forfeit_time) = game_restoration_data.forfeit
+                    && forfeit_time <= update_target_time
+                {
+                    update_target_time = forfeit_time;
+                    do_forfeit = true;
                 }
 
                 'feed_inputs: loop {
@@ -957,10 +957,10 @@ pub fn calculate_game_and_replay_anchors(
         }
 
         // Game was forfeit before anchor.
-        if let Some(forfeit_time) = game_restoration_data.forfeit {
-            if forfeit_time <= next_anchor_time {
-                break 'calculate_anchors;
-            }
+        if let Some(forfeit_time) = game_restoration_data.forfeit
+            && forfeit_time <= next_anchor_time
+        {
+            break 'calculate_anchors;
         }
 
         // Anchor is next.

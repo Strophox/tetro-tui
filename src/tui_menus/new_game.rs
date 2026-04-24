@@ -38,8 +38,8 @@ impl<T: Write> Application<T> {
         let mut selected = 0usize;
         let mut customization_selected = 0usize;
 
-        let lowerbound_cheese = NonZeroU32::new(10).unwrap();
-        let lowerbound_combo = NonZeroU32::new(10).unwrap();
+        let minval_cheese = NonZeroU32::new(10).unwrap();
+        let minval_combo = NonZeroU32::new(10).unwrap();
 
         let d_time = Duration::from_secs(5);
         let d_score = 10;
@@ -48,8 +48,8 @@ impl<T: Write> Application<T> {
 
         let d_fall_delay: ExtDuration = Duration::from_millis(10).into();
         let mult_fall_delay: ExtNonNegF64 = ExtNonNegF64::new(10.0).unwrap();
-        let lowerbound_fall_delay: ExtDuration = Duration::from_secs_f64(1e-9).into();
-        let upperbound_fall_delay: ExtDuration = Duration::from_secs_f64(100.0).into();
+        let minval_fall_delay: ExtDuration = Duration::from_secs_f64(1e-9).into();
+        let maxval_fall_delay: ExtDuration = Duration::from_secs_f64(100.0).into();
 
         loop {
             // First part: rendering the menu.
@@ -331,37 +331,36 @@ impl<T: Write> Application<T> {
                     modifiers,
                     ..
                 }) => {
-                    if modifiers.contains(KeyModifiers::ALT) {
-                        if let Some(GameSave {
+                    if modifiers.contains(KeyModifiers::ALT)
+                        && let Some(GameSave {
                             game_meta_data,
                             game_restoration_data,
                             inputs_to_load: _,
                         }) = &self.game_saves.slots.get(self.game_saves.selected)
+                    {
+                        let replay_length = if let Some((time, _)) =
+                            game_restoration_data.input_history.inputs.last()
                         {
-                            let replay_length = if let Some((time, _)) =
-                                game_restoration_data.input_history.inputs.last()
-                            {
-                                *time
-                            } else {
-                                Duration::ZERO
-                            };
-                            break Ok(MenuUpdate::Push(Menu::ReplayGame {
-                                game_restoration_data: Box::new(game_restoration_data.clone()),
-                                game_meta_data: game_meta_data.clone(),
-                                replay_length,
-                                game_renderer: Box::new(TetroTUIRenderer::with_number(
-                                    self.temp_data.renderer_used,
-                                )),
-                                cached_game_and_replay_anchors: Box::new(
-                                    calculate_game_and_replay_anchors(
-                                        &mut self.term,
-                                        game_restoration_data,
-                                        REPLAY_ANCHOR_INTERVAL,
-                                        replay_length,
-                                    )?,
-                                ),
-                            }));
-                        }
+                            *time
+                        } else {
+                            Duration::ZERO
+                        };
+                        break Ok(MenuUpdate::Push(Menu::ReplayGame {
+                            game_restoration_data: Box::new(game_restoration_data.clone()),
+                            game_meta_data: game_meta_data.clone(),
+                            replay_length,
+                            game_renderer: Box::new(TetroTUIRenderer::with_number(
+                                self.temp_data.renderer_used,
+                            )),
+                            cached_game_and_replay_anchors: Box::new(
+                                calculate_game_and_replay_anchors(
+                                    &mut self.term,
+                                    game_restoration_data,
+                                    REPLAY_ANCHOR_INTERVAL,
+                                    replay_length,
+                                )?,
+                            ),
+                        }));
                     }
                     start_new_game = true;
                 }
@@ -402,7 +401,7 @@ impl<T: Write> Application<T> {
                                         base_delay + d_fall_delay
                                     };
                                     // Manually cap.
-                                    if new_base_delay > upperbound_fall_delay {
+                                    if new_base_delay > maxval_fall_delay {
                                         ExtDuration::Infinite
                                     } else {
                                         new_base_delay
@@ -533,7 +532,7 @@ impl<T: Write> Application<T> {
                                     base_delay
                                 } else if base_delay.is_infinite() {
                                     // Bootstrap(?) it down from infinity to upper bound.
-                                    upperbound_fall_delay
+                                    maxval_fall_delay
                                 } else {
                                     // Naïvely decrease first.
                                     let new_base_delay = if modifiers.contains(KeyModifiers::ALT) {
@@ -662,7 +661,7 @@ impl<T: Write> Application<T> {
                         if let Some(limit) = self.settings.game_mode_preferences.cheese_config.limit
                         {
                             self.settings.game_mode_preferences.cheese_config.limit =
-                                if limit > lowerbound_cheese {
+                                if limit > minval_cheese {
                                     NonZeroU32::try_from(limit.get() - 1).ok()
                                 } else {
                                     None
@@ -691,27 +690,26 @@ impl<T: Write> Application<T> {
                             self.settings.game_mode_preferences.combo_config.limit
                         {
                             self.settings.game_mode_preferences.combo_config.limit =
-                                if limit > lowerbound_combo {
+                                if limit > minval_combo {
                                     NonZeroU32::try_from(limit.get() - 1).ok()
                                 } else {
                                     None
                                 };
                         }
-                    } else if Some(selected) == opt_idx_game_save {
-                        if let Some(GameSave {
+                    } else if Some(selected) == opt_idx_game_save
+                        && let Some(GameSave {
                             game_restoration_data: GameRestorationData { input_history, .. },
                             inputs_to_load,
                             ..
                         }) = self.game_saves.get_mut()
-                        {
-                            *inputs_to_load += input_history.inputs.len()
-                                * if modifiers.contains(KeyModifiers::ALT) {
-                                    20
-                                } else {
-                                    1
-                                };
-                            *inputs_to_load %= input_history.inputs.len() + 1;
-                        }
+                    {
+                        *inputs_to_load += input_history.inputs.len()
+                            * if modifiers.contains(KeyModifiers::ALT) {
+                                20
+                            } else {
+                                1
+                            };
+                        *inputs_to_load %= input_history.inputs.len() + 1;
                     }
                 }
 
@@ -771,7 +769,7 @@ impl<T: Write> Application<T> {
                             {
                                 limit.checked_add(1)
                             } else {
-                                Some(lowerbound_cheese)
+                                Some(minval_cheese)
                             };
                     } else if selected == idx_combo {
                         if modifiers.contains(KeyModifiers::ALT) {
@@ -799,23 +797,22 @@ impl<T: Write> Application<T> {
                                 {
                                     limit.checked_add(1)
                                 } else {
-                                    Some(lowerbound_combo)
+                                    Some(minval_combo)
                                 };
                         }
-                    } else if Some(selected) == opt_idx_game_save {
-                        if let Some(GameSave {
+                    } else if Some(selected) == opt_idx_game_save
+                        && let Some(GameSave {
                             game_restoration_data: GameRestorationData { input_history, .. },
                             inputs_to_load,
                             ..
                         }) = self.game_saves.get_mut()
-                        {
-                            *inputs_to_load += if modifiers.contains(KeyModifiers::ALT) {
-                                20
-                            } else {
-                                1
-                            };
-                            *inputs_to_load %= input_history.inputs.len() + 1;
-                        }
+                    {
+                        *inputs_to_load += if modifiers.contains(KeyModifiers::ALT) {
+                            20
+                        } else {
+                            1
+                        };
+                        *inputs_to_load %= input_history.inputs.len() + 1;
                     }
                 }
 

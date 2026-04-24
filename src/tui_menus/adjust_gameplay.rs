@@ -43,7 +43,7 @@ impl<T: Write> Application<T> {
         let d_arr = Duration::from_millis(1);
         let d_factor_sdf = ExtNonNegF64::new(0.5).unwrap();
         let d_upperbound_sdf = Duration::from_millis(5).into();
-        let max_factor_sdf = ExtNonNegF64::from(40);
+        let maxval_factor_sdf = ExtNonNegF64::from(40);
         let d_lcd = Duration::from_millis(5);
         let d_are = Duration::from_millis(5);
 
@@ -156,7 +156,7 @@ impl<T: Write> Application<T> {
                 ),
                 format!(
                     "Soft drop speedup (SDF) = {} *",
-                    match self.settings.gameplay().sdf {
+                    match self.settings.gameplay().sdf.factor_or_upperbound {
                         Either::Left(factor) => format!("{:.01}x", factor.get()),
                         Either::Right(upperbound) =>
                             format!("bump to {:.01} Hz", upperbound.as_hertz().get()),
@@ -418,15 +418,16 @@ impl<T: Write> Application<T> {
                     6 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         if modifiers.contains(KeyModifiers::ALT) {
-                            self.settings.gameplay_mut().sdf = match self.settings.gameplay().sdf {
-                                Either::Left(_) => GameplaySettings::default().sdf,
-                                Either::Right(_) => GameplaySettings::guideline().sdf,
-                            }
+                            self.settings.gameplay_mut().sdf =
+                                match self.settings.gameplay().sdf.factor_or_upperbound {
+                                    Either::Left(_) => GameplaySettings::default().sdf,
+                                    Either::Right(_) => GameplaySettings::guideline().sdf,
+                                }
                         } else {
-                            match self.settings.gameplay_mut().sdf {
+                            match self.settings.gameplay_mut().sdf.factor_or_upperbound {
                                 Either::Left(ref mut factor) => {
                                     *factor += d_factor_sdf;
-                                    if *factor > max_factor_sdf {
+                                    if *factor > maxval_factor_sdf {
                                         *factor = ExtNonNegF64::MAX;
                                     }
                                 }
@@ -550,15 +551,16 @@ impl<T: Write> Application<T> {
                     6 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         if modifiers.contains(KeyModifiers::ALT) {
-                            self.settings.gameplay_mut().sdf = match self.settings.gameplay().sdf {
-                                Either::Left(_) => GameplaySettings::default().sdf,
-                                Either::Right(_) => GameplaySettings::guideline().sdf,
-                            }
+                            self.settings.gameplay_mut().sdf =
+                                match self.settings.gameplay().sdf.factor_or_upperbound {
+                                    Either::Left(_) => GameplaySettings::default().sdf,
+                                    Either::Right(_) => GameplaySettings::guideline().sdf,
+                                }
                         } else {
-                            match self.settings.gameplay_mut().sdf {
+                            match self.settings.gameplay_mut().sdf.factor_or_upperbound {
                                 Either::Left(ref mut factor) => {
-                                    if *factor > max_factor_sdf {
-                                        *factor = max_factor_sdf;
+                                    if *factor > maxval_factor_sdf {
+                                        *factor = maxval_factor_sdf;
                                     } else {
                                         *factor = factor.saturating_sub(d_factor_sdf)
                                     }

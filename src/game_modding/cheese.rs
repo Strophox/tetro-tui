@@ -84,7 +84,7 @@ impl GameModifier for Cheese {
     }
 
     fn stats(&self) -> &[String] {
-        todo!()
+        &self.cached_stats
     }
 
     fn try_clone(&self) -> Result<Box<dyn GameModifier>, String> {

@@ -231,134 +231,132 @@ impl<T: Write> Application<T> {
                     kind,
                     state: _,
                 }) = event
-                {
-                    if let Some(mut button) =
+                    && let Some(mut button) =
                         self.settings.keybinds().get((code, modifiers)).copied()
-                    {
-                        // We first calculate the intended time at time of reaching here.
-                        let update_target_time = ingametime_when_game_loop_entered
-                            + timestamp.saturating_duration_since(time_game_loop_entered);
+                {
+                    // We first calculate the intended time at time of reaching here.
+                    let update_target_time = ingametime_when_game_loop_entered
+                        + timestamp.saturating_duration_since(time_game_loop_entered);
 
-                        // Guarantee update cannot fail because it lies in the game's past:
-                        // Worst case react to player input as quickly as possible now.
-                        let update_target_time = game.state().time.max(update_target_time);
+                    // Guarantee update cannot fail because it lies in the game's past:
+                    // Worst case react to player input as quickly as possible now.
+                    let update_target_time = game.state().time.max(update_target_time);
 
-                        // Lastly we (artificially) compress the information of when an input happened (we essentially round it).
-                        let update_target_time = update_target_time.quantize();
+                    // Lastly we (artificially) compress the information of when an input happened (we essentially round it).
+                    let update_target_time = update_target_time.quantize();
 
-                        if self.temp_data.kitty_assumed {
-                            // Enhanced keyboard events: determinedly send a single press or release.
+                    if self.temp_data.kitty_assumed {
+                        // Enhanced keyboard events: determinedly send a single press or release.
 
-                            let mut player_input = (match kind {
-                                KeyEventKind::Press => Input::Activate,
-                                // Kitty does not actually care about terminal/OS keyboard 'repeat' events.
-                                KeyEventKind::Repeat => continue 'wait,
-                                KeyEventKind::Release => Input::Deactivate,
-                            })(button);
+                        let mut player_input = (match kind {
+                            KeyEventKind::Press => Input::Activate,
+                            // Kitty does not actually care about terminal/OS keyboard 'repeat' events.
+                            KeyEventKind::Repeat => continue 'wait,
+                            KeyEventKind::Release => Input::Deactivate,
+                        })(button);
 
-                            // FIXME: We only transform `Activate`s into teleports currently,
-                            // but we forget the release events (which will just be move releases,
-                            // i.e. teleport will remain active).
-                            // In usual games this will not lead to issues but logically unclean (also, modding behavior).
-                            // We expect primary users of double-tap finesse to be non-enhanced-terminal users anyway.
-                            if let Some(tap_move_delay) = self.settings.gameplay().dtapfinesse {
-                                match player_input {
-                                    Input::Activate(Button::MoveLeft) => {
-                                        if temp_last_move.1
-                                            && timestamp.duration_since(temp_last_move.0)
-                                                <= tap_move_delay
-                                        {
-                                            player_input = Input::Activate(Button::TeleLeft);
-                                        }
-                                        temp_last_move = (timestamp, true);
+                        // FIXME: We only transform `Activate`s into teleports currently,
+                        // but we forget the release events (which will just be move releases,
+                        // i.e. teleport will remain active).
+                        // In usual games this will not lead to issues but logically unclean (also, modding behavior).
+                        // We expect primary users of double-tap finesse to be non-enhanced-terminal users anyway.
+                        if let Some(tap_move_delay) = self.settings.gameplay().dtapfinesse {
+                            match player_input {
+                                Input::Activate(Button::MoveLeft) => {
+                                    if temp_last_move.1
+                                        && timestamp.duration_since(temp_last_move.0)
+                                            <= tap_move_delay
+                                    {
+                                        player_input = Input::Activate(Button::TeleLeft);
                                     }
-                                    Input::Activate(Button::MoveRight) => {
-                                        if !temp_last_move.1
-                                            && timestamp.duration_since(temp_last_move.0)
-                                                <= tap_move_delay
-                                        {
-                                            player_input = Input::Activate(Button::TeleRight);
-                                        }
-                                        temp_last_move = (timestamp, false);
+                                    temp_last_move = (timestamp, true);
+                                }
+                                Input::Activate(Button::MoveRight) => {
+                                    if !temp_last_move.1
+                                        && timestamp.duration_since(temp_last_move.0)
+                                            <= tap_move_delay
+                                    {
+                                        player_input = Input::Activate(Button::TeleRight);
                                     }
-                                    _ => {}
+                                    temp_last_move = (timestamp, false);
                                 }
+                                _ => {}
                             }
+                        }
 
-                            raw_input_history
-                                .inputs
-                                .push((update_target_time, player_input));
+                        raw_input_history
+                            .inputs
+                            .push((update_target_time, player_input));
 
-                            match game.update(update_target_time, Some(player_input)) {
-                                Ok(msgs) => {
-                                    temp_statistics.accumulate_from_feed(&msgs);
-                                    game_renderer.update_feed(msgs, &self.settings)
-                                }
-                                Err(UpdateGameError::AlreadyEnded) => break 'wait,
-                                Err(UpdateGameError::TargetTimeInPast) => unreachable!(),
+                        match game.update(update_target_time, Some(player_input)) {
+                            Ok(msgs) => {
+                                temp_statistics.accumulate_from_feed(&msgs);
+                                game_renderer.update_feed(msgs, &self.settings)
                             }
-                        } else {
-                            // Else: Non-kitty input handling.
+                            Err(UpdateGameError::AlreadyEnded) => break 'wait,
+                            Err(UpdateGameError::TargetTimeInPast) => unreachable!(),
+                        }
+                    } else {
+                        // Else: Non-kitty input handling.
 
-                            // Special handling here for terminals that STILL send "release" events despite us assuming it's not enhanced;
-                            // So we don't accidentally interpret them as presses.
-                            if !matches!(kind, KeyEventKind::Press | KeyEventKind::Repeat) {
-                                continue 'wait;
-                            }
+                        // Special handling here for terminals that STILL send "release" events despite us assuming it's not enhanced;
+                        // So we don't accidentally interpret them as presses.
+                        if !matches!(kind, KeyEventKind::Press | KeyEventKind::Repeat) {
+                            continue 'wait;
+                        }
 
-                            if let Some(tap_move_delay) = self.settings.gameplay().dtapfinesse {
-                                match button {
-                                    Button::MoveLeft => {
-                                        if temp_last_move.1
-                                            && timestamp.duration_since(temp_last_move.0)
-                                                <= tap_move_delay
-                                        {
-                                            button = Button::TeleLeft;
-                                        }
-                                        temp_last_move = (timestamp, true);
+                        if let Some(tap_move_delay) = self.settings.gameplay().dtapfinesse {
+                            match button {
+                                Button::MoveLeft => {
+                                    if temp_last_move.1
+                                        && timestamp.duration_since(temp_last_move.0)
+                                            <= tap_move_delay
+                                    {
+                                        button = Button::TeleLeft;
                                     }
-                                    Button::MoveRight => {
-                                        if !temp_last_move.1
-                                            && timestamp.duration_since(temp_last_move.0)
-                                                <= tap_move_delay
-                                        {
-                                            button = Button::TeleRight;
-                                        }
-                                        temp_last_move = (timestamp, false);
+                                    temp_last_move = (timestamp, true);
+                                }
+                                Button::MoveRight => {
+                                    if !temp_last_move.1
+                                        && timestamp.duration_since(temp_last_move.0)
+                                            <= tap_move_delay
+                                    {
+                                        button = Button::TeleRight;
                                     }
-                                    _ => {}
+                                    temp_last_move = (timestamp, false);
                                 }
+                                _ => {}
                             }
+                        }
 
-                            // Non-enhanced terminal - since we don't have "release" events, we just assume a button press is an instantaneous sequence of press+release.
-                            let input = Input::Activate(button);
+                        // Non-enhanced terminal - since we don't have "release" events, we just assume a button press is an instantaneous sequence of press+release.
+                        let input = Input::Activate(button);
 
-                            raw_input_history.inputs.push((update_target_time, input));
+                        raw_input_history.inputs.push((update_target_time, input));
 
-                            match game.update(update_target_time, Some(input)) {
-                                Ok(msgs) => {
-                                    temp_statistics.accumulate_from_feed(&msgs);
-                                    game_renderer.update_feed(msgs, &self.settings);
-                                }
-                                Err(UpdateGameError::AlreadyEnded) => break 'wait,
-                                Err(UpdateGameError::TargetTimeInPast) => unreachable!(),
+                        match game.update(update_target_time, Some(input)) {
+                            Ok(msgs) => {
+                                temp_statistics.accumulate_from_feed(&msgs);
+                                game_renderer.update_feed(msgs, &self.settings);
                             }
+                            Err(UpdateGameError::AlreadyEnded) => break 'wait,
+                            Err(UpdateGameError::TargetTimeInPast) => unreachable!(),
+                        }
 
-                            // Note that we do not expect a button release to actually end the game or similar, but we handle things properly anyway.
-                            let input = Input::Deactivate(button);
+                        // Note that we do not expect a button release to actually end the game or similar, but we handle things properly anyway.
+                        let input = Input::Deactivate(button);
 
-                            raw_input_history.inputs.push((update_target_time, input));
+                        raw_input_history.inputs.push((update_target_time, input));
 
-                            let update_result = game.update(update_target_time, Some(input));
+                        let update_result = game.update(update_target_time, Some(input));
 
-                            match update_result {
-                                Ok(msgs) => {
-                                    temp_statistics.accumulate_from_feed(&msgs);
-                                    game_renderer.update_feed(msgs, &self.settings)
-                                }
-                                Err(UpdateGameError::AlreadyEnded) => break 'wait,
-                                Err(UpdateGameError::TargetTimeInPast) => unreachable!(),
+                        match update_result {
+                            Ok(msgs) => {
+                                temp_statistics.accumulate_from_feed(&msgs);
+                                game_renderer.update_feed(msgs, &self.settings)
                             }
+                            Err(UpdateGameError::AlreadyEnded) => break 'wait,
+                            Err(UpdateGameError::TargetTimeInPast) => unreachable!(),
                         }
                     }
                 }
