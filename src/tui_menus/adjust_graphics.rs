@@ -4,6 +4,7 @@ use std::{
 };
 
 use crossterm::{
+    QueueableCommand,
     cursor::MoveTo,
     event::{
         self, Event, KeyCode, KeyEvent,
@@ -12,14 +13,13 @@ use crossterm::{
     },
     style::{self, Print, PrintStyledContent, Stylize},
     terminal::{Clear, ClearType},
-    QueueableCommand,
 };
 use falling_tetromino_engine::Tetromino;
 
 use crate::{
-    fmt_helpers::BoolAsOnOff,
-    tui_menus::{heading_line, Menu, MenuUpdate},
     Application, Settings,
+    fmt_helpers::BoolAsOnOff,
+    tui_menus::{Menu, MenuUpdate, heading_line},
 };
 
 impl<T: Write> Application<T> {

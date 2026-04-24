@@ -8,7 +8,7 @@ use std::io::{self, Write};
 
 use falling_tetromino_engine::{Game, InGameTime, Notification};
 
-use crate::{fmt_helpers::KeybindsLegend, GameMetaData, Settings, TemporaryAppData};
+use crate::{GameMetaData, Settings, TemporaryAppData, fmt_helpers::KeybindsLegend};
 
 pub use braille::BrailleRenderer;
 pub use legacy_buffered::LegacyBufferedRenderer;

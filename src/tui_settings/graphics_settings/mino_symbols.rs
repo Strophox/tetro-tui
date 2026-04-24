@@ -1,6 +1,6 @@
 use crate::tui_settings::{
-    graphics_settings::{TileTexture, UnwrapTileFromStr},
     SlotMachine,
+    graphics_settings::{TileTexture, UnwrapTileFromStr},
 };
 
 #[derive(

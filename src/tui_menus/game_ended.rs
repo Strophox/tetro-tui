@@ -1,6 +1,7 @@
 use std::io::{self, Write};
 
 use crossterm::{
+    QueueableCommand,
     cursor::MoveTo,
     event::{
         self, Event, KeyCode, KeyEvent,
@@ -9,14 +10,14 @@ use crossterm::{
     },
     style::{Color, Print, PrintStyledContent, Stylize},
     terminal::{Clear, ClearType},
-    QueueableCommand,
 };
+use falling_tetromino_engine::ExtDuration;
 
 use crate::{
+    Application, ScoreEntry,
     fmt_helpers::{fmt_duration, fmt_hertz, fmt_tetromino_counts},
     game_mode_presets::GameModePreset,
-    tui_menus::{heading_line, Menu, MenuUpdate},
-    Application, ScoreEntry,
+    tui_menus::{Menu, MenuUpdate, heading_line},
 };
 
 impl<T: Write> Application<T> {
@@ -63,7 +64,7 @@ impl<T: Write> Application<T> {
             std::time::Duration::from_secs_f64(self.settings.graphics().fps.get().recip());
 
         if *is_win
-            && game_meta_data.title == GameModePreset::TITLE_CLASSIC
+            && game_meta_data.title == GameModePreset::TITLE_REGULAR
             && !self.settings.game_mode_preferences.master_mode_unlocked
         {
             self.settings.game_mode_preferences.master_mode_unlocked = true;
@@ -156,11 +157,8 @@ impl<T: Write> Application<T> {
                 ),
             ];
 
-            if let Some(lock_delay_reached) = lock_delay_reached {
-                stats.push(format!(
-                    "Lock delay reached: {}ms",
-                    lock_delay_reached.saturating_duration().as_millis()
-                ));
+            if let Some(ExtDuration::Finite(lock_delay)) = lock_delay_reached {
+                stats.push(format!("Lock delay reached: {}ms", lock_delay.as_millis()));
             }
 
             for (i, s) in stats.iter().enumerate() {

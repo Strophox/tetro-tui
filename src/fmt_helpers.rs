@@ -13,11 +13,7 @@ pub trait BoolAsOnOff {
 
 impl BoolAsOnOff for bool {
     fn on_off(self) -> &'static str {
-        if self {
-            "on"
-        } else {
-            "off"
-        }
+        if self { "on" } else { "off" }
     }
 }
 
@@ -70,8 +66,8 @@ pub fn fmt_player_input(input: Input, button_glyphs: [char; Button::VARIANTS.len
 }
 
 pub fn fmt_key(key: KeyCode) -> String {
-    use crossterm::event::ModifierKeyCode as M;
     use KeyCode as K;
+    use crossterm::event::ModifierKeyCode as M;
     match key {
         K::Backspace => "Back",
         //K::Enter => "Enter",

@@ -39,9 +39,13 @@ impl GameModifier for PrintMsgs {
         Ok(Box::new(self.clone()))
     }
 
+    fn stats(&self) -> &[String] {
+        &[]
+    }
+
     fn on_spawn_pre(
         &mut self,
-        _game: GameAccess,
+        game: GameAccess,
         feed: &mut NotificationFeed,
         time: &mut InGameTime,
     ) {
@@ -50,6 +54,9 @@ impl GameModifier for PrintMsgs {
         }
         self.init = true;
 
+        if game.config.send_notifications {
+            return;
+        }
         for message in self.messages.iter() {
             feed.push((Notification::Custom(message.to_owned()), *time));
         }

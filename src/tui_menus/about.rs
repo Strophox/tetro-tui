@@ -1,6 +1,6 @@
 use std::io::{self, Write};
 
-use crate::{tui_menus::MenuUpdate, Application};
+use crate::{Application, tui_menus::MenuUpdate};
 
 impl<T: Write> Application<T> {
     pub fn run_menu_about(&mut self) -> io::Result<MenuUpdate> {

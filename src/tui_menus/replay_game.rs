@@ -4,22 +4,22 @@ use std::{
 };
 
 use crossterm::{
+    ExecutableCommand,
     cursor::MoveTo,
     event::{self, KeyCode, KeyEvent, KeyEventKind, KeyModifiers},
     style::{Print, PrintStyledContent, Stylize},
     terminal::{self, Clear},
-    ExecutableCommand,
 };
 use falling_tetromino_engine::{
     Game, GameEndCause, InGameTime, Input, Notification, Phase, UpdateGameError,
 };
 
 use crate::{
-    fmt_helpers::{fmt_duration, replay_keybinds_legend, BoolAsOnOff},
+    Application, GameMetaData, GameSave,
+    fmt_helpers::{BoolAsOnOff, fmt_duration, replay_keybinds_legend},
     game_renderers::{Renderer, TetroTUIRenderer},
     game_restoration::{GameRestorationData, RawInputHistory},
     tui_menus::{Menu, MenuUpdate},
-    Application, GameMetaData, GameSave,
 };
 
 #[derive(Debug)]

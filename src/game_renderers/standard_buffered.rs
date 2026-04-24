@@ -9,12 +9,13 @@ use std::{collections::VecDeque, time::Duration};
 
 use crossterm::style::Color;
 use falling_tetromino_engine::{
-    Button, Coordinate, GameEndCause, Orientation, Phase, Stat, Tetromino, TileID,
+    Button, Coordinate, ExtDuration, GameEndCause, LOCK_OUT_HEIGHT, Orientation, Phase, Stat,
+    Tetromino, TileID, WIDTH,
 };
 use rand::RngExt;
 
 use crate::{
-    fmt_helpers::{fmt_duration, fmt_hertz, fmt_lineclear_name, MAX_LEGEND_ENTRIES},
+    fmt_helpers::{MAX_LEGEND_ENTRIES, fmt_duration, fmt_hertz, fmt_lineclear_name},
     tui_settings::{
         HardDropEffect, LineClearEffect, LineClearInlineEffect, LineClearParticleEffect,
         LockEffect, Palette, TileTexture,
@@ -83,7 +84,7 @@ pub struct LineClearEffectLine {
     creation_time: InGameTime,
     line_clear_duration: InGameTime,
     y: usize,
-    line: [TileID; Game::WIDTH],
+    line: [TileID; WIDTH],
 }
 
 #[derive(PartialEq, PartialOrd, Clone, Debug, Default)]
@@ -192,7 +193,7 @@ impl Renderer for StandardBufferedRenderer {
                                     rand::rng().random_range(-1.0..1.0),
                                 );
                                 // `xpos` as a value inside [-1, 1] representing its horizontal position within the line.
-                                let xpos = 2.0 * (x as f32) / (Game::WIDTH as f32) - 1.0;
+                                let xpos = 2.0 * (x as f32) / (WIDTH as f32) - 1.0;
                                 let lcpe = line_clear_particle_effect;
                                 let mmx = lcpe.momentum_base.0
                                     + lcpe.momentum_rand.0 * rand0
@@ -247,10 +248,6 @@ impl Renderer for StandardBufferedRenderer {
                     };
 
                     self.text_message_buf.push_front((time, game_end_msg));
-                }
-
-                Notification::Debug(debug_msg) => {
-                    self.text_message_buf.push_front((time, debug_msg));
                 }
 
                 Notification::Custom(custom_msg) => {
@@ -309,29 +306,31 @@ impl Renderer for StandardBufferedRenderer {
     ) -> io::Result<()> {
         let (_offset, (w_viewport, h_viewport)) = self.term_buf.offset_and_area();
 
-        // Horizontal padding to the left of everything.
+        /// Horizontal padding to the left of everything.
         const W_PAD_LEFT: u16 = 1;
-        // Total *additional* width of an active game HUD (on the left);
-        // In addition to the 'hold' widget which already protrudes to the left and reserves space available underneath it.
+        /// Total *additional* width of an active game HUD (on the left);
+        /// In addition to the 'hold' widget which already protrudes to the left and reserves space available underneath it.
         const W_ADD_ACTIVE_HUD: u16 = 15;
-        // Total width of the 'hold' widget including frame.
+        /// Total width of the 'hold' widget including frame.
         const W_HOLD: u16 = 7;
-        // Total width of the inside of the game field.
-        // 2x because of font width.
-        const W_FIELD: u16 = 2 * (Game::WIDTH as u16);
-        // Total width of the board including frame.
+        /// Total width of the inside of the game field.
+        /// 2x because of font width.
+        const W_FIELD: u16 = 2 * (WIDTH as u16);
+        /// Total width of the board including frame.
         const W_BOARD: u16 = 1 + W_FIELD + 1;
-        // Total width of the 'next' widget(s) including frame.
+        /// Total width of the 'next' widget(s) including frame.
         const W_NEXT: u16 = 13;
 
-        // Vertical padding atop board.
+        /// Vertical padding atop board.
         const H_PAD_TOP: u16 = 1;
-        // Total height of the inside of the game field.
-        const H_FIELD: u16 = Game::LOCK_OUT_HEIGHT as u16;
-        // Total height of the board including frame.
+        /// Total height of the inside of the game field.
+        const H_FIELD: u16 = LOCK_OUT_HEIGHT as u16;
+        /// Total height of the board including frame.
         const H_BOARD: u16 = 1 + H_FIELD + 1;
-        // Vertical padding below board.
+        /// Vertical padding below board.
         const H_PAD_BOT: u16 = 2;
+        /// The effective number of units of the board that end up being (allowed to be) rendered on-screen.
+        const RENDERED_FIELD_HEIGHT: usize = LOCK_OUT_HEIGHT + 1 + (H_PAD_TOP as usize);
 
         // NOTE: An alternative would be to e.g. always show hud in replay, and/or dynamically adjust to terminal.
         // let enough_space_for_hud = w_viewport >= W_PAD_LEFT + W_ADD_ACTIVE_HUD + W_HOLD + W_BOARD + W_NEXT;
@@ -382,8 +381,7 @@ impl Renderer for StandardBufferedRenderer {
             let show_lockdelay = game
                 .state()
                 .fall_delay_lowerbound_hit_at_n_lineclears
-                .is_some()
-                && !game.config.lock_delay_params.is_constant();
+                .is_some();
             let stats = [
                 Some(("Time: ", fmt_duration(game.state().time))),
                 Some(("Lines: ", game.state().lineclears.to_string())),
@@ -392,13 +390,10 @@ impl Renderer for StandardBufferedRenderer {
                 show_lockdelay.then(|| {
                     (
                         "Lock delay: ",
-                        if game.state().lock_delay.is_infinite() {
-                            "none".to_owned()
+                        if let ExtDuration::Finite(lock_delay) = game.state().lock_delay {
+                            format!("{}ms", lock_delay.as_millis())
                         } else {
-                            format!(
-                                "{}ms",
-                                game.state().lock_delay.saturating_duration().as_millis()
-                            )
+                            "none".to_owned()
                         },
                     )
                 }),
@@ -585,8 +580,16 @@ impl Renderer for StandardBufferedRenderer {
         // RENDER: 'Board' frame.
 
         // Board frame glyphs.
-        let [c_fr_tl, c_fr_t, c_fr_tr, c_fr_r, c_fr_br, c_fr_b, c_fr_bl, c_fr_l] =
-            tui_style.boardframe;
+        let [
+            c_fr_tl,
+            c_fr_t,
+            c_fr_tr,
+            c_fr_r,
+            c_fr_br,
+            c_fr_b,
+            c_fr_bl,
+            c_fr_l,
+        ] = tui_style.boardframe;
         let w_tmp_btl = w_float + W_PAD_LEFT + w_addhud + W_HOLD; // (width temporary board-top-left)
         let h_tmp_btl = h_float + H_PAD_TOP;
 
@@ -604,7 +607,7 @@ impl Renderer for StandardBufferedRenderer {
         // Left and right edges.
         for dy in 0..H_FIELD {
             #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl, h_tmp_btl + 1 + dy, TermCell { ch: c_fr_l, fg: Color::Reset });
-            #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + 1 + 2 * Game::WIDTH as u16, h_tmp_btl + 1 + dy, TermCell { ch: c_fr_r, fg: Color::Reset });
+            #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + 1 + 2 * WIDTH as u16, h_tmp_btl + 1 + dy, TermCell { ch: c_fr_r, fg: Color::Reset });
         }
 
         // RENDER: 'Hold' widget.
@@ -782,8 +785,8 @@ impl Renderer for StandardBufferedRenderer {
         if settings.graphics().show_grid {
             // RENDER: Grid.
 
-            for dy in 0..Game::LOCK_OUT_HEIGHT {
-                for dx in 0..Game::WIDTH {
+            for dy in 0..LOCK_OUT_HEIGHT {
+                for dx in 0..WIDTH {
                     let tile_texture = mino_textures.grid;
                     let color = Color::Reset;
 
@@ -794,8 +797,8 @@ impl Renderer for StandardBufferedRenderer {
             // RENDER: Air.
             // - This is to avoid anything that could accidentally overwrite things, e.g. mods or unexpectedly wide stats.
 
-            for dy in 0..Game::LOCK_OUT_HEIGHT {
-                for dx in 0..Game::WIDTH {
+            for dy in 0..LOCK_OUT_HEIGHT {
+                for dx in 0..WIDTH {
                     #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * dx as u16, h_tmp_ftl.saturating_sub(dy as u16), TileTexture::EMPTY, Color::Reset);
                 }
             }
@@ -845,7 +848,7 @@ impl Renderer for StandardBufferedRenderer {
                 .state()
                 .board
                 .iter()
-                .take(Game::LOCK_OUT_HEIGHT + 1 + (H_PAD_TOP as usize))
+                .take(RENDERED_FIELD_HEIGHT)
                 .enumerate()
             {
                 for (dx, tile) in line.iter().enumerate() {
@@ -937,7 +940,7 @@ impl Renderer for StandardBufferedRenderer {
             }
 
             // We currently do not have any visual indicator to pass this phase.
-            Phase::LinesClearing {
+            Phase::ClearingLines {
                 clear_finish_time: _,
                 point_bonus: _,
             } => {}
@@ -969,9 +972,19 @@ impl Renderer for StandardBufferedRenderer {
                         }
                     }
 
-                    // FIXME: Implement visual indicator for Top out.
-                    // Currently engine does not handle this so we're safe except for mods using it.
-                    GameEndCause::TopOut { top_lines: _ } => {}
+                    // Visual indicator for Top out.
+                    GameEndCause::BufferOut { overflowing_lines } => {
+                        for dy in (h_tmp_ftl.saturating_sub(RENDERED_FIELD_HEIGHT as u16 - 1)..)
+                            .take(overflowing_lines.len())
+                        {
+                            for dx in 0..WIDTH {
+                                // FIXME: Remove this FIX-ME as soon as this is tested / sure it works correctly.
+                                let tile_texture = mino_textures.hatched;
+                                let color = Color::Reset;
+                                #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, color);
+                            }
+                        }
+                    }
 
                     // We currently do not have any visual indicator to display game-end by limit hit.
                     GameEndCause::Limit(_stat) => {}

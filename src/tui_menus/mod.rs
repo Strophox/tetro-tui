@@ -17,6 +17,7 @@ pub mod title;
 use std::io::{self, Write};
 
 use crossterm::{
+    ExecutableCommand, QueueableCommand,
     cursor::{MoveDown, MoveTo, MoveToColumn},
     event::{
         self, Event, KeyCode, KeyEvent,
@@ -25,14 +26,13 @@ use crossterm::{
     },
     style::{Print, PrintStyledContent, Stylize},
     terminal::{Clear, ClearType},
-    ExecutableCommand, QueueableCommand,
 };
 use falling_tetromino_engine::{Game, InGameTime};
 
 use crate::{
+    Application, GameMetaData, GameRestorationData, RawInputHistory, ScoreEntry,
     game_renderers::TetroTUIRenderer, tui_menus::replay_game::GameSaveAnchor,
-    tui_settings::Settings, Application, GameMetaData, GameRestorationData, RawInputHistory,
-    ScoreEntry,
+    tui_settings::Settings,
 };
 
 #[derive(Debug)]

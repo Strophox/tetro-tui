@@ -1,6 +1,7 @@
 use std::io::{self, Write};
 
 use crossterm::{
+    ExecutableCommand, QueueableCommand,
     cursor::{self, MoveTo},
     event::{
         self, Event, KeyCode, KeyEvent,
@@ -9,15 +10,14 @@ use crossterm::{
     },
     style::{Print, PrintStyledContent, Stylize},
     terminal::{Clear, ClearType},
-    ExecutableCommand, QueueableCommand,
 };
 use falling_tetromino_engine::Button;
 
 use crate::{
-    fmt_helpers::{fmt_button_keybinds, fmt_key_with_keymods},
-    tui_menus::{heading_line, Menu, MenuUpdate},
-    tui_settings::GameKeybinds,
     Application, Settings,
+    fmt_helpers::{fmt_button_keybinds, fmt_key_with_keymods},
+    tui_menus::{Menu, MenuUpdate, heading_line},
+    tui_settings::GameKeybinds,
 };
 
 impl<T: Write> Application<T> {

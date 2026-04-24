@@ -1,4 +1,4 @@
-use crossterm::{cursor, style, terminal, QueueableCommand};
+use crossterm::{QueueableCommand, cursor, style, terminal};
 
 use super::*;
 

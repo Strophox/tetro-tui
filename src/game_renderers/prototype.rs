@@ -1,9 +1,10 @@
 use std::collections::VecDeque;
 
 use crossterm::{
+    QueueableCommand,
     cursor::{self, MoveToNextLine},
     style::{self, Print},
-    terminal, QueueableCommand,
+    terminal,
 };
 
 use falling_tetromino_engine::{InGameTime, Notification, State};

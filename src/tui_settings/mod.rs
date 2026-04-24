@@ -7,6 +7,7 @@ pub use game_keybinds::GameKeybinds;
 pub use game_mode_preferences::GameModePreferences;
 pub use gameplay_settings::GameplaySettings;
 pub use graphics_settings::{
+    GraphicsSettings, TileTexture,
     hard_drop_effect::HardDropEffect,
     line_clear_effect::{LineClearEffect, LineClearInlineEffect, LineClearParticleEffect},
     lock_effect::LockEffect,
@@ -15,7 +16,6 @@ pub use graphics_settings::{
     palette::Palette,
     small_tetromino_symbols::SmallTetrominoSymbols,
     tui_symbols::TuiSymbols,
-    GraphicsSettings, TileTexture,
 };
 
 use crate::{

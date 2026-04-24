@@ -29,6 +29,10 @@ impl GameModifier for StartBoard {
         to_savefile_string(&self.encoded_board).unwrap()
     }
 
+    fn stats(&self) -> &[String] {
+        &[]
+    }
+
     fn try_clone(&self) -> Result<Box<dyn GameModifier>, String> {
         Ok(Box::new(self.clone()))
     }

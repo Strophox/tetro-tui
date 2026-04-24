@@ -5,23 +5,23 @@ use std::{
 };
 
 use crossterm::{
+    ExecutableCommand,
     cursor::MoveTo,
     event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers},
     style::Print,
     terminal::{self, Clear},
-    ExecutableCommand,
 };
 use falling_tetromino_engine::{
     Button, Game, GameEndCause, Input, Notification, Phase, UpdateGameError,
 };
 
 use crate::{
+    Application, EncodedInputHistory, GameMetaData, GameRestorationData, GameSave, RawInputHistory,
+    ScoreEntry, Statistics,
     fmt_helpers::{fmt_button_keybinds, get_game_keybinds_legend},
     game_renderers::{Renderer, TetroTUIRenderer},
     game_restoration::{InputHistoryEncoder, QuantizeInGameTime},
     tui_menus::{Menu, MenuUpdate},
-    Application, EncodedInputHistory, GameMetaData, GameRestorationData, GameSave, RawInputHistory,
-    ScoreEntry, Statistics,
 };
 
 impl<T: Write> Application<T> {
@@ -144,12 +144,11 @@ impl<T: Write> Application<T> {
                     pieces: game.state().pieces_locked,
                     lineclears: game.state().lineclears,
                     fall_delay_reached: game.state().fall_delay,
-                    lock_delay_reached: (game
+                    lock_delay_reached: game
                         .state()
                         .fall_delay_lowerbound_hit_at_n_lineclears
                         .is_some()
-                        && !game.config.lock_delay_params.is_constant())
-                    .then_some(game.state().lock_delay),
+                        .then_some(game.state().lock_delay),
                     points: game.state().points,
                 };
 
@@ -386,7 +385,7 @@ impl<T: Write> Application<T> {
 
                             // [Ctrl+C]: Exit program.
                             (KeyCode::Char('c' | 'C'), KeyModifiers::CONTROL) => {
-                                break 'update_and_render MenuUpdate::Push(Menu::Quit)
+                                break 'update_and_render MenuUpdate::Push(Menu::Quit);
                             }
 
                             // Keybinds help menu.

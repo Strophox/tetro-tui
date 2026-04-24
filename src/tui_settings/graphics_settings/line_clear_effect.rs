@@ -1,13 +1,13 @@
 use std::{num::NonZeroU8, time::Duration};
 
-use falling_tetromino_engine::{Game, InGameTime, TileID};
+use falling_tetromino_engine::{InGameTime, TileID, WIDTH};
 
 use crate::tui_settings::{
+    Palette, SlotMachine,
     graphics_settings::{
         MaybeOverride::{self, Keep, Override},
         TileTexture, UnwrapTileFromStr,
     },
-    Palette, SlotMachine,
 };
 
 #[derive(PartialEq, PartialOrd, Clone, Debug, serde::Serialize, serde::Deserialize)]
@@ -19,7 +19,7 @@ pub enum LineClearEffect {
 #[derive(PartialEq, PartialOrd, Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct LineClearInlineEffect {
     #[serde(rename = "anim_idcs")]
-    pub anim_indices: [usize; 2 * Game::WIDTH],
+    pub anim_indices: [usize; 2 * WIDTH],
 
     /// The last/max index that is animated.
     #[serde(rename = "anim_lastidx")]
@@ -100,7 +100,7 @@ impl LineClearEffect {
 
     pub fn instant() -> Self {
         LineClearEffect::Inline(LineClearInlineEffect {
-            anim_indices: [0; 2 * Game::WIDTH],
+            anim_indices: [0; 2 * WIDTH],
             anim_lastidx: 1,
             color_animation: Vec::new(),
         })
@@ -148,7 +148,7 @@ impl LineClearEffect {
 
     pub fn flash_white() -> Self {
         LineClearEffect::Inline(LineClearInlineEffect {
-            anim_indices: [1; 2 * Game::WIDTH],
+            anim_indices: [1; 2 * WIDTH],
             anim_lastidx: 0,
             color_animation: vec![Override(Palette::WHITE), Keep, Override(Palette::WHITE)],
         })

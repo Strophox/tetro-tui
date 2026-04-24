@@ -1,20 +1,21 @@
 use std::num::NonZeroU32;
 
 use falling_tetromino_engine::{
-    Game, GameAccess, GameBuilder, GameEndCause, GameLimits, GameModifier, Line, NotificationFeed,
-    Phase, Stat, Tetromino,
+    Game, GameAccess, GameBuilder, GameEndCause, GameLimits, GameModifier, HEIGHT, Line,
+    NotificationFeed, Phase, Stat, Tetromino, WIDTH,
 };
 
 use crate::{savefile_logic::to_savefile_string, tui_settings::Palette};
 
 #[derive(
-    PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug, serde::Serialize, serde::Deserialize,
+    PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]
 pub struct Combo {
     // Modifier configuration.
     config: ComboConfig,
     // Modifier state fields.
     height_loaded: usize,
+    cached_stat: [String; 1],
 }
 
 #[derive(
@@ -43,6 +44,7 @@ impl Combo {
         let modifier = Box::new(Self {
             config,
             height_loaded: 0,
+            cached_stat: [format!("Current combo: {}", 0)],
         });
 
         builder
@@ -64,8 +66,12 @@ impl GameModifier for Combo {
         to_savefile_string(&self.config).unwrap()
     }
 
+    fn stats(&self) -> &[String] {
+        todo!()
+    }
+
     fn try_clone(&self) -> Result<Box<dyn GameModifier>, String> {
-        Ok(Box::new(*self))
+        Ok(Box::new(self.clone()))
     }
 
     // Initialize board.
@@ -74,7 +80,7 @@ impl GameModifier for Combo {
             .state
             .board
             .iter_mut()
-            .take(Game::HEIGHT)
+            .take(HEIGHT)
             .zip(Self::combo_lines(&mut self.height_loaded))
         {
             *line = four_well_line;
@@ -114,13 +120,10 @@ impl GameModifier for Combo {
 
     // Insert new line.
     fn on_lines_clear_post(&mut self, game: GameAccess, _feed: &mut NotificationFeed) {
-        game.state.board[Game::HEIGHT - 1] =
-            Self::combo_lines(&mut self.height_loaded).next().unwrap();
+        game.state.board[HEIGHT - 1] = Self::combo_lines(&mut self.height_loaded).next().unwrap();
 
-        // Overwrite game score with combo length.
-        // FIXME: Proper solution for displaying combo progress instead of overwriting game 'points'?
-        // This might get resolved with general improved TUI++modding facilities.
-        game.state.points = game.state.consecutive_lineclears;
+        // Overwrite with combo length.
+        self.cached_stat[0] = format!("Current combo: {}", game.state.consecutive_lineclears);
     }
 }
 
@@ -155,7 +158,7 @@ impl Combo {
         color_tiles_0
             .zip(color_tiles_1)
             .map(move |(color_tile_0, color_tile_1)| {
-                let mut line = [None; Game::WIDTH];
+                let mut line = [None; WIDTH];
                 line[0] = color_tile_0;
                 line[1] = color_tile_1;
                 line[2] = Some(Palette::GRAY);

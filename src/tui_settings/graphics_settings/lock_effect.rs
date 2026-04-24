@@ -3,11 +3,11 @@ use std::time::Duration;
 use falling_tetromino_engine::{InGameTime, TileID};
 
 use crate::tui_settings::{
+    Palette, SlotMachine,
     graphics_settings::{
         MaybeOverride::{self, Keep, Override},
         TileTexture, UnwrapTileFromStr,
     },
-    Palette, SlotMachine,
 };
 
 #[serde_with::serde_as]

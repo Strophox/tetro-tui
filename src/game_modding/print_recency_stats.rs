@@ -1,5 +1,6 @@
 use falling_tetromino_engine::{
-    GameAccess, GameModifier, Notification, NotificationFeed, Tetromino, TetrominoGenerator,
+    GameAccess, GameModifier, Notification, NotificationFeed, StdTetGen, Tetromino,
+    TetrominoGenerator, tetromino_generation::RecencyGen,
 };
 
 #[derive(
@@ -28,13 +29,20 @@ impl GameModifier for PrintRecencyStats {
         Ok(Box::new(self.clone()))
     }
 
+    fn stats(&self) -> &[String] {
+        &[]
+    }
+
     fn on_spawn_post(&mut self, game: GameAccess, feed: &mut NotificationFeed) {
+        if !game.config.send_notifications {
+            return;
+        }
         // Only works for `Recency` generator.
-        let TetrominoGenerator::Recency {
+        let StdTetGen::Recency(RecencyGen {
             tets_last_emitted,
             factor,
             is_base_not_exp,
-        } = game.state.piece_generator
+        }) = game.state.piece_generator
         else {
             return;
         };

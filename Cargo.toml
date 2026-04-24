@@ -1,7 +1,7 @@
 [package]
 name = "tetro-tui"
 version = "3.3.0"
-edition = "2021"
+edition = "2024"
 rust-version = "1.90.0"
 authors = ["Strophox"]
 license = "MIT"
@@ -26,7 +26,8 @@ chrono = "0.4.38" # = Used to generate timestamps.
 clap = { version = "4.5.9", features = ["derive", "wrap_help"] } # = Used to handle command-line arguments.
 crossterm = { version = "0.29.0", features = ["serde"] } # = Use for cross-platform terminal handling.
 dirs = "6.0.0" # = Used for cross-platform "find the standard applications-config folder" functionality.
-rand = "0.10.0"
+either = "1.15.0" # = Basic enum.
+rand = "0.10.0" # = Base random functionality.
 
 serde = { version = "1.0.204", features = ["derive"] }
 serde_with = { version = "3.9.0" }#, features = ["json"] } # = Use to configure serialization details.
@@ -36,5 +37,5 @@ serde_with = { version = "3.9.0" }#, features = ["json"] } # = Use to configure 
 # toml = "1.1.2"
 ron = "0.12.1" # = Used to serialize in Rusty Object Notation.
 
-falling-tetromino-engine = { version = "8.2.0", features = ["serde"] } # = Core game logic.
-# falling-tetromino-engine = { path = "../falling-tetromino-engine", features = ["serde"] } # = Dev. Core game logic.
+# falling-tetromino-engine = { version = "8.2.0", features = ["serde"] } # = Core game logic.
+falling-tetromino-engine = { path = "../falling-tetromino-engine", features = ["serde"] } # = Dev. Core game logic.

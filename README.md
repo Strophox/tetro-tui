@@ -84,7 +84,7 @@ cargo run
 > - **Graphics:** Unicode/ASCII/Electronika styles, old-terminal-compatible or very modern designs, 10 color palettes, hard drop/piece lock/line clear effects and much more.
 > - **Gameplay and handling:** Various rotation systems, piece randomizers, adjustable preview, timings (DAS¹, ARR¹, SDF¹, LCD, ARE), IRS/IHS/IMS/ITS¹ ([¹caveat](#why-do-some-gameplay-settings-dasarretc-or-registering-shift-as-keypress-not-work-for-me)).
 > - **Game keybinds:** to your heart's desire. 
-> - **Game mode miscellany:** Swift ('40-Lines'), Classic ('Marathon'), Master, Puzzle, Cheese, Combo, Custom (select goal, initial gravity, toggle gravity progress, *cmdline flags:* start board, seed).
+> - **Game mode miscellany:** Swift ('40-Lines'), Regular ('Marathon'), Master, Puzzle, Cheese, Combo, Custom (select goal, initial gravity, toggle gravity progress, *cmdline flags:* start board, seed).
 > - **Highscores, replays, statistics, ...** - can can be accessed as well as backed up with a simple **savefile**.
 >
 > Visuals depend on / can be customized together with your underlying terminal settings.
@@ -97,8 +97,8 @@ cargo run
 > 
 > **New game/**
 > - Swift: How fast can you clear 40 lines?
-> - Classic: Clear 150 lines at increasing gravity.
-> - *(unlocked after Classic)* Master: Clear 150 lines at instant gravity.
+> - Regular: Clear 150 lines at increasing gravity.
+> - *(unlocked after Regular mode)* Master: Clear 150 lines at instant gravity.
 > - Puzzle: Clear 24 hand-crafted puzzles.
 > - Cheese-20: Eat through lines like Swiss cheese. Limit∈[None, Some(10), Some(11), .., Some(20), ..]
 > - Combo-30: Get consecutive line clears. Limit∈[None, Some(10), Some(11), .., Some(30), ..]

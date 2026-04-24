@@ -5,6 +5,7 @@ use std::{
 };
 
 use crossterm::{
+    QueueableCommand,
     cursor::MoveTo,
     event::{
         self, Event, KeyCode, KeyEvent,
@@ -13,25 +14,23 @@ use crossterm::{
     },
     style::{Print, PrintStyledContent, Stylize},
     terminal::{Clear, ClearType},
-    QueueableCommand,
 };
 use falling_tetromino_engine::{
     DelayParameters, ExtDuration, ExtNonNegF64, Game, GameLimits, InGameTime, Stat,
 };
 
 use crate::{
-    fmt_helpers::{fmt_duration, fmt_hertz, fmt_player_input, BoolAsOnOff},
+    Application, GameMetaData, GameSave,
+    fmt_helpers::{BoolAsOnOff, fmt_duration, fmt_hertz, fmt_player_input},
     game_modding::{self, Combo},
     game_mode_presets::GameModePreset,
     game_renderers::{Renderer, TetroTUIRenderer},
     game_restoration::{GameRestorationData, RawInputHistory},
     tui_menus::{
-        heading_line,
-        replay_game::{calculate_game_and_replay_anchors, REPLAY_ANCHOR_INTERVAL},
-        Menu, MenuUpdate,
+        Menu, MenuUpdate, heading_line,
+        replay_game::{REPLAY_ANCHOR_INTERVAL, calculate_game_and_replay_anchors},
     },
     tui_settings::{GameModePreferences, GameplaySettings},
-    Application, GameMetaData, GameSave,
 };
 
 impl<T: Write> Application<T> {
@@ -171,7 +170,7 @@ impl<T: Write> Application<T> {
                         "Custom".to_owned()
                     }
                 )))?;
-            // Render custom mode stuff.
+            /*TODO/ Render custom mode stuff.
             if selected == idx_custom {
                 let stats_strs = [
                     format!(
@@ -239,7 +238,7 @@ impl<T: Write> Application<T> {
                             stat_str
                         }))?;
                 }
-            }
+            }*/
 
             // Render load game save option.
             if let Some(GameSave {
@@ -377,7 +376,7 @@ impl<T: Write> Application<T> {
                     if customization_selected > 0 {
                         match customization_selected {
                             1 => {
-                                // Increase custom fall delay.
+                                /*TODO// Increase custom fall delay.
                                 let base_delay = self
                                     .settings
                                     .game_mode_preferences
@@ -438,10 +437,10 @@ impl<T: Write> Application<T> {
                                     .fall_params
                                     .with_bounds(new_base_delay, lowerbound)
                                     .unwrap_or_else(DelayParameters::standard_fall);
-                                // Normally lowerbound is 0, can only enter this if config was modified.
+                                // Normally lowerbound is 0, can only enter this if config was modified.*/
                             }
                             2 => {
-                                // Toggle decreasing fall/lock delay.
+                                /*TODO// Toggle decreasing fall/lock delay.
                                 let (ftemp, ltemp) = if self
                                     .settings
                                     .game_mode_preferences
@@ -479,7 +478,7 @@ impl<T: Write> Application<T> {
                                     .custom_config
                                     .lock_params
                                     .with_coefficients(ltemp.factor(), ltemp.subtrahend())
-                                    .unwrap();
+                                    .unwrap();*/
                             }
                             3 => {
                                 match self
@@ -521,7 +520,7 @@ impl<T: Write> Application<T> {
                     if customization_selected > 0 {
                         match customization_selected {
                             1 => {
-                                // Increase custom fall delay.
+                                /*TODO// Increase custom fall delay.
                                 let base_delay = self
                                     .settings
                                     .game_mode_preferences
@@ -577,10 +576,10 @@ impl<T: Write> Application<T> {
                                     .fall_params
                                     .with_bounds(new_base_delay, lowerbound)
                                     .unwrap_or_else(DelayParameters::standard_fall);
-                                // Normally lowerbound is 0, can only enter this if config was modified.
+                                // Normally lowerbound is 0, can only enter this if config was modified.*/
                             }
                             2 => {
-                                // Toggle decreasing fall/lock delay.
+                                /*TODO// Toggle decreasing fall/lock delay.
                                 let (ftemp, ltemp) = if self
                                     .settings
                                     .game_mode_preferences
@@ -618,7 +617,7 @@ impl<T: Write> Application<T> {
                                     .custom_config
                                     .lock_params
                                     .with_coefficients(ltemp.factor(), ltemp.subtrahend())
-                                    .unwrap();
+                                    .unwrap();*/
                             }
                             3 => {
                                 match self
@@ -826,7 +825,7 @@ impl<T: Write> Application<T> {
                     kind: Press | Repeat,
                     ..
                 }) => {
-                    // If custom gamemode selected, allow setting speed curve to 'zero gravity'.
+                    /*TODO// If custom gamemode selected, allow setting speed curve to 'zero gravity'.
                     if selected == idx_custom
                     /*&& customization_selected == customization_selection_size - 1*/
                     {
@@ -842,7 +841,7 @@ impl<T: Write> Application<T> {
                         if let Some(GameSave { inputs_to_load, .. }) = self.game_saves.get_mut() {
                             *inputs_to_load = 0;
                         }
-                    }
+                    }*/
                 }
 
                 // Load last input for game save.
@@ -851,7 +850,7 @@ impl<T: Write> Application<T> {
                     kind: Press | Repeat,
                     ..
                 }) => {
-                    // If custom gamemode selected, allow setting speed curve to 'zero gravity'.
+                    /*TODO// If custom gamemode selected, allow setting speed curve to 'zero gravity'.
                     if selected == idx_custom
                     /*&& customization_selected == customization_selection_size - 1*/
                     {
@@ -872,7 +871,7 @@ impl<T: Write> Application<T> {
                         {
                             *inputs_to_load = input_history.inputs.len();
                         }
-                    }
+                    }*/
                 }
 
                 // Move selector right (select stat).
@@ -882,7 +881,7 @@ impl<T: Write> Application<T> {
                     modifiers,
                     ..
                 }) => {
-                    if selected == idx_custom {
+                    /*TODOif selected == idx_custom {
                         self.settings.game_mode_preferences.custom_config.seed = None;
                         self.settings
                             .game_mode_preferences
@@ -916,7 +915,7 @@ impl<T: Write> Application<T> {
                     } else if Some(selected) == opt_idx_game_save {
                         self.game_saves.slots.remove(self.game_saves.selected);
                         self.game_saves.selected = 0;
-                    }
+                    }*/
                 }
 
                 // Secret - This unlocks things.
@@ -948,7 +947,7 @@ impl<T: Write> Application<T> {
     pub fn available_base_game_modes(&self) -> Vec<GameModePreset> {
         let mut game_modes = vec![
             GameModePreset::swift(),
-            GameModePreset::classic(),
+            GameModePreset::regular(),
             GameModePreset::puzzle(),
             GameModePreset::cheese(
                 self.settings.game_mode_preferences.cheese_config,
@@ -998,7 +997,7 @@ impl<T: Write> Application<T> {
             .generate_piece_preview(prev)
             .delayed_auto_shift(das)
             .auto_repeat_rate(arr)
-            .soft_drop_factor(sdf)
+            .soft_drop_speedup(sdf)
             .line_clear_duration(lcd)
             .spawn_delay(are)
             .allow_spawn_manipulation(initsys);
@@ -1057,8 +1056,8 @@ impl<T: Write> Application<T> {
             let n = &self.settings.game_mode_preferences;
 
             builder
-                .fall_delay_params(n.custom_config.fall_params)
-                .lock_delay_params(n.custom_config.lock_params)
+                .fall_delay_curve(n.custom_config.fall_curve.clone())
+                .lock_delay_curve(n.custom_config.lock_curve.clone())
                 .game_limits(match n.custom_config.win_condition {
                     Some(stat) => GameLimits::single(stat, true),
                     None => GameLimits::new(),

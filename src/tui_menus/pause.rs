@@ -1,8 +1,8 @@
 use std::io::{self, Write};
 
 use crate::{
-    tui_menus::{Menu, MenuUpdate},
     Application,
+    tui_menus::{Menu, MenuUpdate},
 };
 
 impl<T: Write> Application<T> {

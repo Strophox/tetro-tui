@@ -12,17 +12,17 @@ use std::{io, path::PathBuf};
 use std::{fmt::Debug, io::Write, time::Duration};
 
 use crossterm::{
+    ExecutableCommand,
     cursor::{self, MoveTo},
     event::{KeyboardEnhancementFlags, PopKeyboardEnhancementFlags, PushKeyboardEnhancementFlags},
     terminal::{self, Clear, ClearType},
-    ExecutableCommand,
 };
 
 use falling_tetromino_engine::{
     ExtDuration, GameEndCause, InGameTime, Notification, NotificationFeed, Stat, Tetromino,
 };
 
-use crate::savefile_logic::{from_savefile_str, SavefileResult};
+use crate::savefile_logic::SavefileResult;
 use crate::{
     game_mode_presets::GameModePreset,
     game_restoration::{
@@ -563,19 +563,12 @@ impl<T: Write> Application<T> {
             statistics: Statistics::default(),
         };
 
-        // TODO insert score here
-
         // Load in actual settings.
         new.temp_data.loadfile_result = new.savefile_load();
 
         if new.temp_data.loadfile_result.is_err() {
-            let demo = from_savefile_str(r#"((game_meta_data:(datetime:"2026-04-23_19:54",title:"Replay Demo",stat_and_desc_order:(PointsScored(0),false)),end_cause:Limit(PointsScored(100)),is_win:true,time:(secs:88,nanos:739000000),lineclears:14,points:105,pieces:(6,6,4,7,7,7,6),fall_delay_reached:Finite((secs:0,nanos:786323010)),lock_delay_reached:None),Some((builder:(seed:Some(17607050407454360064),tetromino_generator:Recency(lasttets:(0,0,0,0,0,0,0),factor:(2.5),is_base:false),config:(preview:4,initsys:true,rotsys:Ocular,are:(secs:0,nanos:50000000),das:(secs:0,nanos:167000000),arr:(secs:0,nanos:33000000),fallparams:(base:Finite((secs:1,nanos:0)),mul:(0.9763),sub:Finite((secs:0,nanos:42000)),lower:Finite((secs:0,nanos:0))),sdf:(15.0),lockparams:(base:Finite((secs:0,nanos:500000000)),mul:(1.0),sub:Finite((secs:0,nanos:1000000)),lower:Finite((secs:0,nanos:100000000))),sltl:false,llr:false,lcf:(8.0),lcd:(secs:0,nanos:200000000),update_every:10,limits:(time:None,pieces:None,lines:None,points:Some((100,true))),notifs:Standard)),mod_ids_cfgs:[],input_history:"1HCFPALXaF7YTlGDpEHJGD9ETRaFnYbpqF5obfGDnEHzGFHExKF_IJGDJEHNGHPERpaF7YFPlqHDODoJXMRVaF9YLtGFREHfGFVELvaJLYDFxaHJOPYHtGnMDrEHdGDtEHZGFDEF3GJbELbaHXYNVGD5EH3GD3EF_GFlEHLGH1EJhaHlYRBqFpOtoH3MLGDhEHHGFpELzaHhYNnGDrEH5GFBEFhGHBEHxGHJELdaHhYxBGDfKxEFRGDzIFBEF1GD9EF9GD5EHNGD7ETnaF5YV1GFpEDfSHzQLfaHnY1JGHfEDTDqHLoDVOFPMVnGDZEP9CHNAFNaD9YJfGFnEF3GFBEHJGD1ELNaFlYltOH1MDXGFPEbbGF_EHdGDzEHXKNGFNE1IFRGHTEJxaFRYVNGFpEHzaFXYVxGF7EvdGFHEHxGFBELTGDnEZTCHPALHCFPAHhCDlAPbaFPYLRKDzGzIDnEHFGFJEHRGFjEF5GF1ELzaF5YDXXOFpMD_CDTAPFaFPYJHGDpEHhGD5EHXGFJEFNGlOFbEDHMF_G1KDHEF7IrGD_KHEFXIDFGFNEPDaFTYNnGFjEF7GFBENZaFLYTTGFlEHfGD7EHjGFREF9GHjEF_XaDpYXdGDLKDFEFfIDFGD3EHhGFXEpBaFBYZbGD7EJHGDnEjKH9ILGDLEH9GDhEJHGD5E5pqJJoR_OHNMDvNaD7YTPGFTEbpGFBEXBOHLMPCDlA7TGDnEHPGFVEJDCHRAnPWF7UNZCFfARTaFXYlDOH3MLfaHNYV5GF5EH1GDlEXxCF9ALtCDZAHjGHPEHtCDNqDZAF3oH7GHlEDPNGDbEFhGFREJJGDRE7KF5GlI3EFfKDVGDPIvE1LaFTYJVGFREHhGFPEHZGD3EHfGFlEDLeJPctCH5AjfGHREHJCHTAD7GJdEDfCHTAHJCFrAHJCD9AHjCDjAHfCF1AZbaHRYRRCF1AHlCFRAXpSHTQDPbKFhI3TaHxYjzqHRoxCFnAHJCD5AHJCFlAFXCHfATlaHlYDLtqD_oHNCHBAlSFhQLCDNAFBHaF5YjrCFdAF3CFpAF3CHjAbpSF9QDD1aF3YV1KF7IFRCFpAlLaH3YtLqF9oDXCFlAFjCF3AF1CHRAVNaHjYXfCD7AHhCDtAHNCFPAF3CHfAvZaH3YXxCF7AF1CD7AHjCF7AdVOFzMvGHREntaH1YRpCFPAHZCFHAF7CFPAT3aHpYnRqFRoDZCFNAHLCFrAFhCFlAHLCHhAdvaD_YDPROF_CDlMrAFtCFtApHaHlYhLOHzMPCFdAHPCFnA5pqFNoH7CFlAHJCHDAFNCFjA3SHzQn3aFTYXXOJPMZZKJPIHhBqHLoPCFHAHhCFPAHTCD7AJZSJC7AFxQDVDaFPY",forfeit:None)))"#).unwrap();
-            new.scores_and_replays.entries.push(demo);
-        }
-
-        let/*TODO:dbg*/s=format!("{:?}\n", new.scores_and_replays.entries[0]);
-        if let Ok(f) = &mut std::fs::OpenOptions::new().append(true).open("dbg.txt") {
-            let _ = std::io::Write::write(f, s.as_bytes());
+            /*TODOlet demo = from_savefile_str(r#"((game_meta_data:(datetime:"2026-04-23_19:54",title:"Replay Demo",stat_and_desc_order:(PointsScored(0),false)),end_cause:Limit(PointsScored(100)),is_win:true,time:(secs:88,nanos:739000000),lineclears:14,points:105,pieces:(6,6,4,7,7,7,6),fall_delay_reached:Finite((secs:0,nanos:786323010)),lock_delay_reached:None),Some((builder:(seed:Some(17607050407454360064),tetromino_generator:Recency(lasttets:(0,0,0,0,0,0,0),factor:(2.5),is_base:false),config:(preview:4,initsys:true,rotsys:Ocular,are:(secs:0,nanos:50000000),das:(secs:0,nanos:167000000),arr:(secs:0,nanos:33000000),fallparams:(base:Finite((secs:1,nanos:0)),mul:(0.9763),sub:Finite((secs:0,nanos:42000)),lower:Finite((secs:0,nanos:0))),sdf:(15.0),lockparams:(base:Finite((secs:0,nanos:500000000)),mul:(1.0),sub:Finite((secs:0,nanos:1000000)),lower:Finite((secs:0,nanos:100000000))),sltl:false,llr:false,lcf:(8.0),lcd:(secs:0,nanos:200000000),update_every:10,limits:(time:None,pieces:None,lines:None,points:Some((100,true))),notifs:Standard)),mod_ids_cfgs:[],input_history:"1HCFPALXaF7YTlGDpEHJGD9ETRaFnYbpqF5obfGDnEHzGFHExKF_IJGDJEHNGHPERpaF7YFPlqHDODoJXMRVaF9YLtGFREHfGFVELvaJLYDFxaHJOPYHtGnMDrEHdGDtEHZGFDEF3GJbELbaHXYNVGD5EH3GD3EF_GFlEHLGH1EJhaHlYRBqFpOtoH3MLGDhEHHGFpELzaHhYNnGDrEH5GFBEFhGHBEHxGHJELdaHhYxBGDfKxEFRGDzIFBEF1GD9EF9GD5EHNGD7ETnaF5YV1GFpEDfSHzQLfaHnY1JGHfEDTDqHLoDVOFPMVnGDZEP9CHNAFNaD9YJfGFnEF3GFBEHJGD1ELNaFlYltOH1MDXGFPEbbGF_EHdGDzEHXKNGFNE1IFRGHTEJxaFRYVNGFpEHzaFXYVxGF7EvdGFHEHxGFBELTGDnEZTCHPALHCFPAHhCDlAPbaFPYLRKDzGzIDnEHFGFJEHRGFjEF5GF1ELzaF5YDXXOFpMD_CDTAPFaFPYJHGDpEHhGD5EHXGFJEFNGlOFbEDHMF_G1KDHEF7IrGD_KHEFXIDFGFNEPDaFTYNnGFjEF7GFBENZaFLYTTGFlEHfGD7EHjGFREF9GHjEF_XaDpYXdGDLKDFEFfIDFGD3EHhGFXEpBaFBYZbGD7EJHGDnEjKH9ILGDLEH9GDhEJHGD5E5pqJJoR_OHNMDvNaD7YTPGFTEbpGFBEXBOHLMPCDlA7TGDnEHPGFVEJDCHRAnPWF7UNZCFfARTaFXYlDOH3MLfaHNYV5GF5EH1GDlEXxCF9ALtCDZAHjGHPEHtCDNqDZAF3oH7GHlEDPNGDbEFhGFREJJGDRE7KF5GlI3EFfKDVGDPIvE1LaFTYJVGFREHhGFPEHZGD3EHfGFlEDLeJPctCH5AjfGHREHJCHTAD7GJdEDfCHTAHJCFrAHJCD9AHjCDjAHfCF1AZbaHRYRRCF1AHlCFRAXpSHTQDPbKFhI3TaHxYjzqHRoxCFnAHJCD5AHJCFlAFXCHfATlaHlYDLtqD_oHNCHBAlSFhQLCDNAFBHaF5YjrCFdAF3CFpAF3CHjAbpSF9QDD1aF3YV1KF7IFRCFpAlLaH3YtLqF9oDXCFlAFjCF3AF1CHRAVNaHjYXfCD7AHhCDtAHNCFPAF3CHfAvZaH3YXxCF7AF1CD7AHjCF7AdVOFzMvGHREntaH1YRpCFPAHZCFHAF7CFPAT3aHpYnRqFRoDZCFNAHLCFrAFhCFlAHLCHhAdvaD_YDPROF_CDlMrAFtCFtApHaHlYhLOHzMPCFdAHPCFnA5pqFNoH7CFlAHJCHDAFNCFjA3SHzQn3aFTYXXOJPMZZKJPIHhBqHLoPCFHAHhCFPAHTCD7AJZSJC7AFxQDVDaFPY",forfeit:None)))"#).unwrap();
+            new.scores_and_replays.entries.push(demo);*/
         }
 
         // Special: Overwrite specifically requested cmdline flags.

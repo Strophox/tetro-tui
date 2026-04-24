@@ -1,16 +1,16 @@
 use std::io::{self, Write};
 
 use crossterm::{
+    QueueableCommand,
     cursor::MoveTo,
     event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers},
     style::{Color, Print, PrintStyledContent, Stylize},
     terminal::{Clear, ClearType},
-    QueueableCommand,
 };
 
 use crate::{
-    tui_menus::{Menu, MenuUpdate},
     Application,
+    tui_menus::{Menu, MenuUpdate},
 };
 
 impl<T: Write> Application<T> {

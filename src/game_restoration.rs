@@ -1,4 +1,4 @@
-use falling_tetromino_engine::{Button, Game, GameBuilder, InGameTime, Input, NotificationLevel};
+use falling_tetromino_engine::{Button, Game, GameBuilder, InGameTime, Input};
 
 use crate::game_modding;
 
@@ -76,15 +76,15 @@ impl GameRestorationData<RawInputHistory> {
         };
 
         // Step 3: Reenact recorded game inputs.
-        let restore_notification_level = game.config.notification_level;
+        let restore_send_notifications = game.config.send_notifications;
+        game.config.send_notifications = false;
 
-        game.config.notification_level = NotificationLevel::Silent;
         for (update_time, input) in self.input_history.inputs.iter().take(inputs_to_restore) {
             // FIXME: Handle UpdateGameError? If not, why not?
             let _v = game.update(*update_time, Some(*input));
         }
 
-        game.config.notification_level = restore_notification_level;
+        game.config.send_notifications = restore_send_notifications;
 
         game
     }

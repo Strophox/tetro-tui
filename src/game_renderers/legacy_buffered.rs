@@ -5,22 +5,24 @@ use std::{
 };
 
 use crossterm::{
-    cursor,
+    QueueableCommand, cursor,
     style::{self, Color, Print, PrintStyledContent, Stylize},
-    terminal, QueueableCommand,
+    terminal,
 };
 
+use either::Either;
 use falling_tetromino_engine::{
-    Button, Coordinate, GameEndCause, InGameTime, Orientation, Phase, Stat, Tetromino, TileID,
+    Button, Coordinate, GameEndCause, InGameTime, LOCK_OUT_HEIGHT, Orientation, Phase, Stat,
+    Tetromino, TileID,
 };
 use rand::RngExt;
 
 use super::*;
 
 use crate::{
+    TemporaryAppData,
     fmt_helpers::{fmt_duration, fmt_hertz, fmt_lineclear_name},
     tui_settings::{MinoTextures, Palette},
-    TemporaryAppData,
 };
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, Default)]
@@ -305,7 +307,13 @@ impl Renderer for LegacyBufferedRenderer {
             .state()
             .fall_delay_lowerbound_hit_at_n_lineclears
             .is_some()
-            && !game.config.lock_delay_params.is_constant();
+            && if let Some(Either::Left(params)) = game.config.lock_delay_curve
+                && params.is_constant()
+            {
+                true
+            } else {
+                false
+            };
 
         // Screen: draw.
         #[allow(clippy::useless_format)]
@@ -409,7 +417,7 @@ impl Renderer for LegacyBufferedRenderer {
         let pos_board = |(x, y)| {
             Some((
                 x_board + 2 * (x as usize),
-                (y_board + Game::LOCK_OUT_HEIGHT).checked_sub_signed(y)?,
+                (y_board + LOCK_OUT_HEIGHT).checked_sub_signed(y)?,
             ))
         };
 
@@ -645,7 +653,7 @@ impl Renderer for LegacyBufferedRenderer {
             }
 
             // EX-FIX-ME: No visual indicator for lineclear phase currently.
-            Phase::LinesClearing { .. } => {
+            Phase::ClearingLines { .. } => {
                 // EX-TO-DO: Hack.
                 for m in &self.mino_particles {
                     self.screen.buffer_str("  ", None, m.0.origin);
@@ -691,7 +699,9 @@ impl Renderer for LegacyBufferedRenderer {
                     }
 
                     // EX-FIX-ME: No visual indicator for topout currently.
-                    GameEndCause::TopOut { top_lines: _ } => {}
+                    GameEndCause::BufferOut {
+                        overflowing_lines: _,
+                    } => {}
 
                     // EX-FIX-ME: No visual indicator for gameover-by-some-limit currently.
                     GameEndCause::Limit(_) => {}
@@ -885,7 +895,7 @@ impl Renderer for LegacyBufferedRenderer {
                             continue;
                         };
                         for (y_line, _line) in lines {
-                            let pos = (x_board, y_board + Game::LOCK_OUT_HEIGHT - *y_line);
+                            let pos = (x_board, y_board + LOCK_OUT_HEIGHT - *y_line);
                             self.screen
                                 .buffer_str(animation_lineclear[idx], color_lineclear, pos);
                         }
@@ -925,7 +935,7 @@ impl Renderer for LegacyBufferedRenderer {
                         continue;
                     }
                     for ((x_tile, y_tile), tile_id) in dropped_piece.tiles() {
-                        for dy in (y_tile as usize)..Game::LOCK_OUT_HEIGHT {
+                        for dy in (y_tile as usize)..LOCK_OUT_HEIGHT {
                             self.hard_drop_tiles.push((
                                 HardDropTile {
                                     creation_time: *notif_time,
@@ -976,12 +986,6 @@ impl Renderer for LegacyBufferedRenderer {
 
                 Notification::Custom(string) => {
                     self.buffered_text_msgs.push((*notif_time, string.clone()));
-
-                    *active = false;
-                }
-
-                Notification::Debug(s) => {
-                    self.buffered_text_msgs.push((*notif_time, s.clone()));
 
                     *active = false;
                 }

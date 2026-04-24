@@ -2,6 +2,7 @@ use std::num::{NonZeroU32, NonZeroUsize};
 
 use falling_tetromino_engine::{
     Game, GameAccess, GameBuilder, GameLimits, GameModifier, GameRng, Line, NotificationFeed, Stat,
+    WIDTH,
 };
 
 use rand::seq::SliceRandom;
@@ -28,6 +29,7 @@ pub struct Cheese {
     temp_last_clear_actual_cheese_lines: usize,
     cheese_generated: u32,
     last_hole_pattern_generated: Vec<usize>,
+    cached_stats: [String; 1],
 }
 
 #[derive(
@@ -59,6 +61,7 @@ impl Cheese {
             temp_last_clear_actual_cheese_lines: 0,
             cheese_generated: 0,
             last_hole_pattern_generated: Vec::new(),
+            cached_stats: [format!("Cheese eaten: {}", 0)],
         });
 
         builder
@@ -78,6 +81,10 @@ impl GameModifier for Cheese {
 
     fn cfg(&self) -> String {
         to_savefile_string(&(self.config)).unwrap()
+    }
+
+    fn stats(&self) -> &[String] {
+        todo!()
     }
 
     fn try_clone(&self) -> Result<Box<dyn GameModifier>, String> {
@@ -127,6 +134,7 @@ impl GameModifier for Cheese {
             game.state.board[0] = cheese;
         }
 
+        self.cached_stats[0] = format!("Cheese eaten: {}", self.cheese_eaten_up);
         game.state.points = self.cheese_eaten_up;
     }
 }
@@ -144,7 +152,7 @@ impl Cheese {
                 let mut line = Line::default();
                 for tile in line
                     .iter_mut()
-                    .take(Game::WIDTH.saturating_sub(config.holes_per_line.get()))
+                    .take(WIDTH.saturating_sub(config.holes_per_line.get()))
                 {
                     *tile = Some(Palette::GRAY);
                 }

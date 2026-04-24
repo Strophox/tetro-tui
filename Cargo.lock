@@ -337,6 +337,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d0881ea181b1df73ff77ffaaf9c7544ecc11e82fba9b5f27b262a3c73a332555"
 
 [[package]]
+name = "either"
+version = "1.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "48c757948c5ede0e46177b7add2e67155f70e33c07fea8284df6576da70b3719"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "equivalent"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -354,10 +363,9 @@ dependencies = [
 
 [[package]]
 name = "falling-tetromino-engine"
-version = "8.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d2c590b40872bf1381a88c95e4c28ded76300095f05e3efc1e062e73004721bb"
+version = "9.0.0"
 dependencies = [
+ "either",
  "rand",
  "rand_chacha",
  "serde",
@@ -983,6 +991,7 @@ dependencies = [
  "clap",
  "crossterm",
  "dirs",
+ "either",
  "falling-tetromino-engine",
  "rand",
  "ron",

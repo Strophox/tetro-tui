@@ -1,4 +1,4 @@
-use falling_tetromino_engine::{DelayParameters, ExtDuration, Stat};
+use falling_tetromino_engine::{Configuration, DelayData, ExtDuration, Stat};
 
 use crate::game_modding::{CheeseConfig, ComboConfig};
 
@@ -33,16 +33,17 @@ impl Default for GameModePreferences {
 pub struct CustomModeConfig {
     pub seed: Option<u64>,
     pub start_board: Option<String>, // For more compact serialization of NewGameSettings, we store an encoded `Board` (see `StartBoard` mod.)
-    pub fall_params: DelayParameters,
-    pub lock_params: DelayParameters,
+    pub fall_curve: DelayData,
+    pub lock_curve: Option<DelayData>,
     pub win_condition: Option<Stat>,
 }
 
 impl Default for CustomModeConfig {
     fn default() -> Self {
+        let config = Configuration::default();
         Self {
-            fall_params: DelayParameters::standard_fall(),
-            lock_params: DelayParameters::standard_lock(),
+            fall_curve: config.fall_delay_curve,
+            lock_curve: config.lock_delay_curve,
             win_condition: None,
             seed: None,
             start_board: None,

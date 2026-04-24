@@ -5,6 +5,7 @@ use std::{
 };
 
 use crossterm::{
+    QueueableCommand,
     cursor::MoveTo,
     event::{
         self, Event, KeyCode, KeyEvent,
@@ -13,14 +14,18 @@ use crossterm::{
     },
     style::{Print, PrintStyledContent, Stylize},
     terminal::{Clear, ClearType},
-    QueueableCommand,
 };
-use falling_tetromino_engine::{ExtNonNegF64, RotationSystem, TetrominoGenerator};
+use either::Either;
+use falling_tetromino_engine::{
+    ExtNonNegF64, StdPceRot, StdTetGen,
+    tetromino_generation::{BalanceOutGen, RecencyGen, RerollGen, StockGen},
+};
 
 use crate::{
-    fmt_helpers::BoolAsOnOff,
-    tui_menus::{heading_line, Menu, MenuUpdate},
     Application, Settings,
+    fmt_helpers::BoolAsOnOff,
+    tui_menus::{Menu, MenuUpdate, heading_line},
+    tui_settings::GameplaySettings,
 };
 
 impl<T: Write> Application<T> {
@@ -36,8 +41,9 @@ impl<T: Write> Application<T> {
 
         let d_das = Duration::from_millis(1);
         let d_arr = Duration::from_millis(1);
-        let d_sdf = ExtNonNegF64::new(0.5).unwrap();
-        let upperbound_sdf = ExtNonNegF64::from(40);
+        let d_factor_sdf = ExtNonNegF64::new(0.5).unwrap();
+        let d_upperbound_sdf = Duration::from_millis(5).into();
+        let max_factor_sdf = ExtNonNegF64::from(40);
         let d_lcd = Duration::from_millis(5);
         let d_are = Duration::from_millis(5);
 
@@ -106,27 +112,27 @@ impl<T: Write> Application<T> {
                 format!(
                     "Piece randomization = {}",
                     match &self.settings.gameplay().tetgen {
-                        TetrominoGenerator::Classic {
+                        StdTetGen::Reroll(RerollGen {
                             tet_last_emitted: _,
                             aversion_to_last: 0,
-                        } => "Uniformly random".to_owned(),
-                        TetrominoGenerator::Classic {
+                        }) => "Uniformly random".to_owned(),
+                        StdTetGen::Reroll(RerollGen {
                             tet_last_emitted: _,
                             aversion_to_last: 1,
-                        } => "Classic (Reroll 1x)".to_owned(),
-                        TetrominoGenerator::Classic {
+                        }) => "Classic (Reroll 1x)".to_owned(),
+                        StdTetGen::Reroll(RerollGen {
                             tet_last_emitted: _,
                             aversion_to_last: n,
-                        } => format!("Reroll {n}x"),
-                        TetrominoGenerator::Stock {
+                        }) => format!("Reroll {n}x"),
+                        StdTetGen::Stock(StockGen {
                             tets_stocked: _,
                             restock_multiplicity,
-                        } => format!("{}-Bag", restock_multiplicity.get() * 7),
-                        TetrominoGenerator::Recency {
+                        }) => format!("{}-Bag", restock_multiplicity.get() * 7),
+                        StdTetGen::Recency(RecencyGen {
                             tets_last_emitted: _,
                             factor,
                             is_base_not_exp,
-                        } => format!(
+                        }) => format!(
                             "Recency ({})",
                             if *is_base_not_exp {
                                 format!("{:.01}^#", factor.get())
@@ -134,9 +140,9 @@ impl<T: Write> Application<T> {
                                 format!("#^{:.01}", factor.get())
                             }
                         ),
-                        TetrominoGenerator::BalanceOut {
+                        StdTetGen::BalanceOut(BalanceOutGen {
                             tets_relative_tallies: _,
-                        } => "Balance out".to_owned(),
+                        }) => "Balance out".to_owned(),
                     }
                 ),
                 format!("Piece preview = {}", self.settings.gameplay().preview),
@@ -149,8 +155,12 @@ impl<T: Write> Application<T> {
                     self.settings.gameplay().arr
                 ),
                 format!(
-                    "Soft drop speedup (SDF) = {}x *",
-                    self.settings.gameplay().sdf.get()
+                    "Soft drop speedup (SDF) = {} *",
+                    match self.settings.gameplay().sdf {
+                        Either::Left(factor) => format!("{:.01}x", factor.get()),
+                        Either::Right(upperbound) =>
+                            format!("bump to {:.01} Hz", upperbound.as_hertz().get()),
+                    }
                 ),
                 format!(
                     "Line clear duration (LCD) = {:?}",
@@ -237,7 +247,10 @@ impl<T: Write> Application<T> {
                         (
                             "Special keybinds".to_owned(),
                             [
-                                ("Alt+←/→ Alt+h/l", "Adjust value of Piece randomizer"),
+                                (
+                                    "Alt+←/→ Alt+h/l",
+                                    "Adjust value of Piece randomizer, change Soft drop speedup",
+                                ),
                                 (
                                     "Ctrl+Alt+L",
                                     "Re-load from savefile (overwrites current data!)",
@@ -292,6 +305,7 @@ impl<T: Write> Application<T> {
                 }) => {
                     selected += selection_len - 1;
                 }
+
                 // Move selector down.
                 Event::Key(KeyEvent {
                     code: KeyCode::Down | KeyCode::Char('j' | 'J'),
@@ -300,6 +314,7 @@ impl<T: Write> Application<T> {
                 }) => {
                     selected += 1;
                 }
+
                 // Reload from savefile.
                 Event::Key(KeyEvent {
                     code: KeyCode::Char('l' | 'L'),
@@ -335,64 +350,55 @@ impl<T: Write> Application<T> {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.gameplay_mut().rotsys = match self.settings.gameplay().rotsys
                         {
-                            RotationSystem::Debug => RotationSystem::Ocular, // Set to Ocular.
-                            RotationSystem::Ocular => RotationSystem::ClassicL,
-                            RotationSystem::ClassicL => RotationSystem::ClassicR,
-                            RotationSystem::ClassicR => RotationSystem::Super,
-                            RotationSystem::Super => RotationSystem::Ocular,
+                            StdPceRot::Ocular => StdPceRot::ClassicL,
+                            StdPceRot::ClassicL => StdPceRot::ClassicR,
+                            StdPceRot::ClassicR => StdPceRot::Super,
+                            StdPceRot::Super => StdPceRot::Ocular,
                         };
                     }
                     2 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         if modifiers.contains(KeyModifiers::ALT) {
                             match &mut self.settings.gameplay_mut().tetgen {
-                                TetrominoGenerator::Classic {
+                                StdTetGen::Reroll(RerollGen {
                                     tet_last_emitted: _,
                                     aversion_to_last,
-                                } => {
+                                }) => {
                                     *aversion_to_last = aversion_to_last.saturating_add(1);
                                 }
-                                TetrominoGenerator::Stock {
+                                StdTetGen::Stock(StockGen {
                                     tets_stocked: _,
                                     restock_multiplicity,
-                                } => {
+                                }) => {
                                     *restock_multiplicity = restock_multiplicity.saturating_add(1);
                                 }
-                                TetrominoGenerator::Recency {
+                                StdTetGen::Recency(RecencyGen {
                                     tets_last_emitted: _,
                                     factor,
                                     is_base_not_exp,
-                                } => {
+                                }) => {
                                     if *is_base_not_exp {
                                         *factor += ExtNonNegF64::new(0.1).unwrap();
                                     } else {
                                         *is_base_not_exp ^= true;
                                     }
                                 }
-                                TetrominoGenerator::BalanceOut {
+                                StdTetGen::BalanceOut(BalanceOutGen {
                                     tets_relative_tallies: _,
-                                } => {}
+                                }) => {}
                             };
                         } else {
-                            self.settings.gameplay_mut().tetgen = match self
-                                .settings
-                                .gameplay()
-                                .tetgen
-                            {
-                                TetrominoGenerator::Classic {
-                                    aversion_to_last: 0,
-                                    ..
-                                } => TetrominoGenerator::snappy_recency(),
-                                TetrominoGenerator::Classic {
-                                    aversion_to_last: _,
-                                    ..
-                                } => TetrominoGenerator::uniform(),
-                                TetrominoGenerator::Stock { .. } => TetrominoGenerator::classic(),
-                                TetrominoGenerator::BalanceOut { .. } => TetrominoGenerator::bag(),
-                                TetrominoGenerator::Recency { .. } => {
-                                    TetrominoGenerator::balance_out()
-                                }
-                            };
+                            self.settings.gameplay_mut().tetgen =
+                                match self.settings.gameplay().tetgen {
+                                    StdTetGen::Reroll(RerollGen {
+                                        aversion_to_last: 0,
+                                        ..
+                                    }) => StdTetGen::snappy(),
+                                    StdTetGen::Reroll(_) => StdTetGen::uniform(),
+                                    StdTetGen::Stock(_) => StdTetGen::classic(),
+                                    StdTetGen::BalanceOut(_) => StdTetGen::bag(),
+                                    StdTetGen::Recency(_) => StdTetGen::balance_out(),
+                                };
                         }
                     }
                     3 => {
@@ -411,9 +417,23 @@ impl<T: Write> Application<T> {
                     }
                     6 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.gameplay_mut().sdf += d_sdf;
-                        if self.settings.gameplay().sdf > upperbound_sdf {
-                            self.settings.gameplay_mut().sdf = ExtNonNegF64::MAX;
+                        if modifiers.contains(KeyModifiers::ALT) {
+                            self.settings.gameplay_mut().sdf = match self.settings.gameplay().sdf {
+                                Either::Left(_) => GameplaySettings::default().sdf,
+                                Either::Right(_) => GameplaySettings::guideline().sdf,
+                            }
+                        } else {
+                            match self.settings.gameplay_mut().sdf {
+                                Either::Left(ref mut factor) => {
+                                    *factor += d_factor_sdf;
+                                    if *factor > max_factor_sdf {
+                                        *factor = ExtNonNegF64::MAX;
+                                    }
+                                }
+                                Either::Right(ref mut upperbound) => {
+                                    *upperbound = upperbound.saturating_sub(d_upperbound_sdf);
+                                }
+                            }
                         }
                     }
                     7 => {
@@ -441,6 +461,7 @@ impl<T: Write> Application<T> {
                     }
                     _ => {}
                 },
+
                 Event::Key(KeyEvent {
                     code: KeyCode::Left | KeyCode::Char('h' | 'H'),
                     kind: Press | Repeat,
@@ -457,36 +478,35 @@ impl<T: Write> Application<T> {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.gameplay_mut().rotsys = match self.settings.gameplay().rotsys
                         {
-                            RotationSystem::Debug => RotationSystem::Ocular, // Set to Ocular.
-                            RotationSystem::Ocular => RotationSystem::Super,
-                            RotationSystem::Super => RotationSystem::ClassicR,
-                            RotationSystem::ClassicR => RotationSystem::ClassicL,
-                            RotationSystem::ClassicL => RotationSystem::Ocular,
+                            StdPceRot::Ocular => StdPceRot::Super,
+                            StdPceRot::Super => StdPceRot::ClassicR,
+                            StdPceRot::ClassicR => StdPceRot::ClassicL,
+                            StdPceRot::ClassicL => StdPceRot::Ocular,
                         };
                     }
                     2 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         if modifiers.contains(KeyModifiers::ALT) {
                             match &mut self.settings.gameplay_mut().tetgen {
-                                TetrominoGenerator::Classic {
+                                StdTetGen::Reroll(RerollGen {
                                     tet_last_emitted: _,
                                     aversion_to_last,
-                                } => {
+                                }) => {
                                     *aversion_to_last = aversion_to_last.saturating_sub(1);
                                 }
-                                TetrominoGenerator::Stock {
+                                StdTetGen::Stock(StockGen {
                                     tets_stocked: _,
                                     restock_multiplicity,
-                                } => {
+                                }) => {
                                     *restock_multiplicity =
                                         NonZeroU32::new(restock_multiplicity.get() - 1)
                                             .unwrap_or(NonZeroU32::MIN);
                                 }
-                                TetrominoGenerator::Recency {
+                                StdTetGen::Recency(RecencyGen {
                                     tets_last_emitted: _,
                                     factor,
                                     is_base_not_exp,
-                                } => {
+                                }) => {
                                     if *is_base_not_exp {
                                         *is_base_not_exp ^= true;
                                     } else {
@@ -494,30 +514,21 @@ impl<T: Write> Application<T> {
                                             factor.saturating_sub(ExtNonNegF64::new(0.1).unwrap());
                                     }
                                 }
-                                TetrominoGenerator::BalanceOut {
+                                StdTetGen::BalanceOut(BalanceOutGen {
                                     tets_relative_tallies: _,
-                                } => {}
+                                }) => {}
                             };
                         } else {
                             self.settings.gameplay_mut().tetgen =
                                 match self.settings.gameplay().tetgen {
-                                    TetrominoGenerator::Classic {
+                                    StdTetGen::Reroll(RerollGen {
                                         aversion_to_last: 0,
                                         ..
-                                    } => TetrominoGenerator::classic(),
-                                    TetrominoGenerator::Classic {
-                                        aversion_to_last: _,
-                                        ..
-                                    } => TetrominoGenerator::bag(),
-                                    TetrominoGenerator::Stock { .. } => {
-                                        TetrominoGenerator::balance_out()
-                                    }
-                                    TetrominoGenerator::BalanceOut { .. } => {
-                                        TetrominoGenerator::snappy_recency()
-                                    }
-                                    TetrominoGenerator::Recency { .. } => {
-                                        TetrominoGenerator::uniform()
-                                    }
+                                    }) => StdTetGen::classic(),
+                                    StdTetGen::Reroll(_) => StdTetGen::bag(),
+                                    StdTetGen::Stock(_) => StdTetGen::balance_out(),
+                                    StdTetGen::BalanceOut(_) => StdTetGen::snappy(),
+                                    StdTetGen::Recency(_) => StdTetGen::uniform(),
                                 };
                         }
                     }
@@ -538,11 +549,24 @@ impl<T: Write> Application<T> {
                     }
                     6 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        if self.settings.gameplay().sdf > upperbound_sdf {
-                            self.settings.gameplay_mut().sdf = upperbound_sdf;
+                        if modifiers.contains(KeyModifiers::ALT) {
+                            self.settings.gameplay_mut().sdf = match self.settings.gameplay().sdf {
+                                Either::Left(_) => GameplaySettings::default().sdf,
+                                Either::Right(_) => GameplaySettings::guideline().sdf,
+                            }
                         } else {
-                            self.settings.gameplay_mut().sdf =
-                                self.settings.gameplay_mut().sdf.saturating_sub(d_sdf)
+                            match self.settings.gameplay_mut().sdf {
+                                Either::Left(ref mut factor) => {
+                                    if *factor > max_factor_sdf {
+                                        *factor = max_factor_sdf;
+                                    } else {
+                                        *factor = factor.saturating_sub(d_factor_sdf)
+                                    }
+                                }
+                                Either::Right(ref mut upperbound) => {
+                                    *upperbound += d_upperbound_sdf;
+                                }
+                            }
                         }
                     }
                     7 => {

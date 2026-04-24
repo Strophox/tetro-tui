@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use either::Either;
 use falling_tetromino_engine::{DelayParameters, ExtDuration, Game, GameBuilder, GameLimits, Stat};
 
 use crate::game_modding::{self, CheeseConfig, ComboConfig};
@@ -22,24 +23,26 @@ impl GameModePreset {
             build: Box::new(|builder: &GameBuilder| {
                 builder
                     .clone()
-                    .fall_delay_params(DelayParameters::constant(Duration::from_millis(667).into()))
+                    .fall_delay_curve(Either::Left(DelayParameters::constant(
+                        Duration::from_millis(667).into(),
+                    )))
                     .game_limits(GameLimits::single(Stat::LinesCleared(40), true))
                     .build()
             }),
         }
     }
 
-    pub const TITLE_CLASSIC: &str = "Classic";
-    pub fn classic() -> Self {
+    pub const TITLE_REGULAR: &str = "Regular";
+    pub fn regular() -> Self {
         Self {
-            title: Self::TITLE_CLASSIC.to_owned(),
+            title: Self::TITLE_REGULAR.to_owned(),
             description: "Clear 150 lines at increasing gravity.".to_owned(),
             stat_and_order_desc: (Stat::PointsScored(0), false),
             build: Box::new(|builder: &GameBuilder| {
                 builder
                     .clone()
-                    .fall_delay_params(DelayParameters::standard_fall())
-                    .lock_delay_params(DelayParameters::standard_lock())
+                    .fall_delay_curve(Either::Left(DelayParameters::standard_fall()))
+                    .lock_delay_curve(Some(Either::Left(DelayParameters::standard_lock())))
                     .game_limits(GameLimits::single(Stat::LinesCleared(150), true))
                     .build()
             }),
@@ -72,8 +75,8 @@ impl GameModePreset {
             build: Box::new(|builder: &GameBuilder| {
                 builder
                     .clone()
-                    .fall_delay_params(DelayParameters::constant(ExtDuration::ZERO))
-                    .lock_delay_params(DelayParameters::standard_lock())
+                    .fall_delay_curve(Either::Left(DelayParameters::constant(ExtDuration::ZERO)))
+                    .lock_delay_curve(Some(Either::Left(DelayParameters::standard_lock())))
                     .game_limits(GameLimits::single(Stat::LinesCleared(150), true))
                     .build()
             }),
@@ -111,8 +114,12 @@ impl GameModePreset {
                 move |builder: &GameBuilder| {
                     let mut builder = builder.clone();
                     builder
-                        .fall_delay_params(DelayParameters::constant(fall_lock_delays.0))
-                        .lock_delay_params(DelayParameters::constant(fall_lock_delays.1));
+                        .fall_delay_curve(Either::Left(DelayParameters::constant(
+                            fall_lock_delays.0,
+                        )))
+                        .lock_delay_curve(Some(Either::Left(DelayParameters::constant(
+                            fall_lock_delays.1,
+                        ))));
                     game_modding::Cheese::build(&builder, config)
                 }
             }),

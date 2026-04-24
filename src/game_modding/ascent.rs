@@ -1,30 +1,39 @@
 use std::{num::NonZeroU8, time::Duration};
 
+use either::Either;
 use rand::RngExt;
 
 use falling_tetromino_engine::{
     Button, DelayParameters, ExtDuration, Game, GameAccess, GameBuilder, GameLimits, GameModifier,
-    GameRng, InGameTime, Input, Line, NotificationFeed, Phase, Piece, Stat, Tetromino,
+    GameRng, HEIGHT, InGameTime, Input, LOCK_OUT_HEIGHT, Line, NotificationFeed, Phase, Piece,
+    Stat, Tetromino, WIDTH,
 };
 
 use crate::tui_settings::Palette;
 
 #[derive(
-    PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug, serde::Serialize, serde::Deserialize,
+    PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]
 pub struct Ascent {
     height_loaded: usize,
+
+    cached_height_stat: [String; 1],
 }
 
 impl Ascent {
     pub const MOD_ID: &str = stringify!(Ascent);
 
     pub fn build(builder: &GameBuilder) -> Game {
-        let modifier = Box::new(Self { height_loaded: 0 });
+        let modifier = Box::new(Self {
+            height_loaded: 0,
+            cached_height_stat: [format!("Height ascended: {}", 0)],
+        });
 
         builder
             .clone()
-            .lock_delay_params(DelayParameters::constant(ExtDuration::Infinite))
+            .lock_delay_curve(Some(Either::Left(DelayParameters::constant(
+                ExtDuration::Infinite,
+            ))))
             .game_limits(GameLimits::single(
                 Stat::TimeElapsed(Duration::from_secs(2 * 60)),
                 true,
@@ -42,20 +51,18 @@ impl GameModifier for Ascent {
         "".to_owned()
     }
 
+    fn stats(&self) -> &[String] {
+        &self.cached_height_stat
+    }
+
     fn try_clone(&self) -> Result<Box<dyn GameModifier>, String> {
-        Ok(Box::new(*self))
+        Ok(Box::new(self.clone()))
     }
 
     fn on_game_built(&mut self, game: GameAccess) {
         // Load in board.
         let ascent_lines = Self::prng_ascent_lines(&mut self.height_loaded, &mut game.state.rng);
-        for (line, ascent_line) in game
-            .state
-            .board
-            .iter_mut()
-            .take(Game::HEIGHT)
-            .zip(ascent_lines)
-        {
+        for (line, ascent_line) in game.state.board.iter_mut().take(HEIGHT).zip(ascent_lines) {
             *line = ascent_line;
         }
 
@@ -142,24 +149,23 @@ impl GameModifier for Ascent {
 
         // Adjust 'camera' if needed.
         let has_hit_camera_top =
-            Game::LOCK_OUT_HEIGHT - Self::CAMERA_MARGIN_TOP <= (piece.position.1 as usize);
+            LOCK_OUT_HEIGHT - Self::CAMERA_MARGIN_TOP <= (piece.position.1 as usize);
         if !has_hit_camera_top {
             return;
         }
 
         // Ascending virtual infinite board.
+        self.cached_height_stat[0] = format!("Height ascended: {}", self.height_loaded - HEIGHT); // TODO: This correct?
+
         let mut ascent_lines =
             Self::prng_ascent_lines(&mut self.height_loaded, &mut game.state.rng);
         game.state.board.rotate_left(1);
-        game.state.board[Game::HEIGHT - 1] = ascent_lines.next().unwrap();
+        game.state.board[HEIGHT - 1] = ascent_lines.next().unwrap();
         piece.position.1 -= 1;
-
-        // Count height in game state.
-        game.state.lineclears += 1;
     }
 
     // The mod must pre-process: 'hold' to replace with custom hold, and 'drops' to prevent piece locking.
-    fn on_player_input_received(
+    fn on_receive_player_input(
         &mut self,
         game: GameAccess,
         _feed: &mut NotificationFeed,
@@ -193,7 +199,7 @@ impl GameModifier for Ascent {
 
 impl Ascent {
     // Playable width needs to be odd.
-    const PLAYABLE_WIDTH: usize = Game::WIDTH - (1 - Game::WIDTH % 2);
+    const PLAYABLE_WIDTH: usize = WIDTH - (1 - WIDTH % 2);
 
     const CAMERA_MARGIN_TOP: usize = 5;
 

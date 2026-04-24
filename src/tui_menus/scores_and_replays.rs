@@ -1,6 +1,7 @@
 use std::io::{self, Write};
 
 use crossterm::{
+    QueueableCommand,
     cursor::MoveTo,
     event::{
         self, Event, KeyCode, KeyEvent,
@@ -9,20 +10,18 @@ use crossterm::{
     },
     style::{Print, PrintStyledContent, Stylize},
     terminal::{Clear, ClearType},
-    QueueableCommand,
 };
 use falling_tetromino_engine::Stat;
 
 use crate::{
+    Application, ScoreEntry, ScoreEntrySorting,
     fmt_helpers::fmt_duration,
     game_renderers::TetroTUIRenderer,
     game_restoration::{EncodedInputHistory, GameRestorationData},
     tui_menus::{
-        heading_line,
-        replay_game::{calculate_game_and_replay_anchors, REPLAY_ANCHOR_INTERVAL},
-        Menu, MenuUpdate,
+        Menu, MenuUpdate, heading_line,
+        replay_game::{REPLAY_ANCHOR_INTERVAL, calculate_game_and_replay_anchors},
     },
-    Application, ScoreEntry, ScoreEntrySorting,
 };
 
 impl<T: Write> Application<T> {

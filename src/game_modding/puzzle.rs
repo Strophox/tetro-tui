@@ -1,5 +1,6 @@
 use std::{collections::VecDeque, time::Duration};
 
+use either::Either;
 use falling_tetromino_engine::{
     Button, DelayParameters, Game, GameAccess, GameBuilder, GameEndCause, GameModifier, InGameTime,
     Input, Line, Notification, NotificationFeed, Phase, State, Tetromino,
@@ -17,6 +18,7 @@ pub struct Puzzle {
     stage_tet_count: usize,
     stage_attempts: usize,
     end_post_spawn: Option<bool>,
+    cached_stat: [String; 1],
 }
 
 impl Puzzle {
@@ -29,13 +31,14 @@ impl Puzzle {
             stage_tet_count: 0,
             stage_attempts: 0,
             end_post_spawn: None,
+            cached_stat: [format!("Stage {}", 1)],
         });
 
         builder
             .clone()
-            .fall_delay_params(DelayParameters::constant(
+            .fall_delay_curve(Either::Left(DelayParameters::constant(
                 Duration::from_millis(1000).into(),
-            ))
+            )))
             .generate_piece_preview(0)
             .build_modded(vec![modifier])
     }
@@ -54,6 +57,10 @@ impl GameModifier for Puzzle {
         Ok(Box::new(self.clone()))
     }
 
+    fn stats(&self) -> &[String] {
+        &self.cached_stat
+    }
+
     fn on_spawn_pre(
         &mut self,
         game: GameAccess,
@@ -70,11 +77,13 @@ impl GameModifier for Puzzle {
             //     Notification::Custom(format!("{:?}", Self::get_stage_data(self.stage_idx).0)),
             //     *time,
             // ));
-            feed.push((
-                Notification::Custom(format!("Stage {}", self.stage_idx + 1)),
-                *time,
-            ));
-            feed.push((Notification::Custom("Clear to advance!".to_string()), *time));
+            if game.config.send_notifications {
+                feed.push((
+                    Notification::Custom(format!("Stage {}", self.stage_idx + 1)),
+                    *time,
+                ));
+                feed.push((Notification::Custom("Clear to advance!".to_string()), *time));
+            }
 
             return;
         }
@@ -119,10 +128,13 @@ impl GameModifier for Puzzle {
             //     Notification::Custom(format!("{:?}", Self::get_stage_data(self.stage_idx).0)),
             //     *time,
             // ));
-            feed.push((
-                Notification::Custom(format!("Stage {}", self.stage_idx + 1)),
-                *time,
-            ));
+            if game.config.send_notifications {
+                feed.push((
+                    Notification::Custom(format!("Stage {}", self.stage_idx + 1)),
+                    *time,
+                ));
+            }
+            self.cached_stat[0] = format!("Stage {}", self.stage_idx + 1);
         } else {
             // Reattempt stage.
             self.stage_attempts += 1;
@@ -168,7 +180,7 @@ impl GameModifier for Puzzle {
         feed.retain(|(n, _)| !matches!(n, Notification::Accolade { .. }));
     }
 
-    fn on_player_input_received(
+    fn on_receive_player_input(
         &mut self,
         _game: GameAccess,
         _feed: &mut NotificationFeed,

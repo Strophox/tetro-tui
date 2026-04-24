@@ -1,6 +1,6 @@
 use std::io::{self, Write};
 
-use crate::{fmt_helpers::fmt_duration, tui_menus::MenuUpdate, Application, Statistics};
+use crate::{Application, Statistics, fmt_helpers::fmt_duration, tui_menus::MenuUpdate};
 
 impl<T: Write> Application<T> {
     pub fn run_menu_statistics(&mut self) -> io::Result<MenuUpdate> {

@@ -6,9 +6,9 @@ use std::{
 };
 
 use crossterm::{
-    cursor,
+    QueueableCommand, cursor,
     style::{Color, Print, PrintStyledContent, Stylize},
-    terminal, QueueableCommand,
+    terminal,
 };
 
 use crate::tui_settings::TileTexture;
