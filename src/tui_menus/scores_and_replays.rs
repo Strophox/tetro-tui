@@ -14,7 +14,7 @@ use crossterm::{
 use falling_tetromino_engine::Stat;
 
 use crate::{
-    Application, ScoreEntry, ScoreEntrySorting,
+    Application, ScoreSummaryEntry, ScoreboardSorting,
     fmt_helpers::fmt_duration,
     game_renderers::TetroTUIRenderer,
     game_restoration::{EncodedInputHistory, GameRestorationData},
@@ -49,12 +49,12 @@ impl<T: Write> Application<T> {
                 .queue(Print(format!("{:^w_main$}", heading_line(&self.settings))))?;
 
             let sorting = self.scores_and_replays.sorting;
-            let fmt_stat = |p: &ScoreEntry| {
+            let fmt_stat = |p: &ScoreSummaryEntry| {
                 let show_stat = match sorting {
-                    ScoreEntrySorting::Chronological | ScoreEntrySorting::ModeDependent => {
+                    ScoreboardSorting::Chronological | ScoreboardSorting::ModeDependent => {
                         p.game_meta_data.stat_and_desc_order.0
                     }
-                    ScoreEntrySorting::GameStat(stat) => stat,
+                    ScoreboardSorting::GameStat(stat) => stat,
                 };
                 match show_stat {
                     Stat::TimeElapsed(_) => fmt_duration(p.time),
@@ -73,11 +73,14 @@ impl<T: Write> Application<T> {
             };
             let fmt_past_game = |(rank, (entry, opt_rep)): (
                 usize,
-                &(ScoreEntry, Option<GameRestorationData<EncodedInputHistory>>),
+                &(
+                    ScoreSummaryEntry,
+                    Option<GameRestorationData<EncodedInputHistory>>,
+                ),
             )| {
                 let lhs_annotation = match sorting {
-                    ScoreEntrySorting::Chronological => entry.game_meta_data.datetime.to_owned(),
-                    ScoreEntrySorting::ModeDependent | ScoreEntrySorting::GameStat(_) => {
+                    ScoreboardSorting::Chronological => entry.game_meta_data.datetime.to_owned(),
+                    ScoreboardSorting::ModeDependent | ScoreboardSorting::GameStat(_) => {
                         format!("{rank: >2}{}", if rank == 1 { '#' } else { '.' })
                     }
                 };
@@ -371,21 +374,21 @@ impl<T: Write> Application<T> {
                     ..
                 }) => {
                     self.scores_and_replays.sorting = match self.scores_and_replays.sorting {
-                        ScoreEntrySorting::Chronological => ScoreEntrySorting::ModeDependent,
-                        ScoreEntrySorting::ModeDependent => {
-                            ScoreEntrySorting::GameStat(Stat::LinesCleared(0))
+                        ScoreboardSorting::Chronological => ScoreboardSorting::ModeDependent,
+                        ScoreboardSorting::ModeDependent => {
+                            ScoreboardSorting::GameStat(Stat::LinesCleared(0))
                         }
-                        ScoreEntrySorting::GameStat(Stat::LinesCleared(_)) => {
-                            ScoreEntrySorting::GameStat(Stat::PiecesLocked(0))
+                        ScoreboardSorting::GameStat(Stat::LinesCleared(_)) => {
+                            ScoreboardSorting::GameStat(Stat::PiecesLocked(0))
                         }
-                        ScoreEntrySorting::GameStat(Stat::PiecesLocked(_)) => {
-                            ScoreEntrySorting::GameStat(Stat::PointsScored(0))
+                        ScoreboardSorting::GameStat(Stat::PiecesLocked(_)) => {
+                            ScoreboardSorting::GameStat(Stat::PointsScored(0))
                         }
-                        ScoreEntrySorting::GameStat(Stat::PointsScored(_)) => {
-                            ScoreEntrySorting::GameStat(Stat::TimeElapsed(Default::default()))
+                        ScoreboardSorting::GameStat(Stat::PointsScored(_)) => {
+                            ScoreboardSorting::GameStat(Stat::TimeElapsed(Default::default()))
                         }
-                        ScoreEntrySorting::GameStat(Stat::TimeElapsed(_)) => {
-                            ScoreEntrySorting::Chronological
+                        ScoreboardSorting::GameStat(Stat::TimeElapsed(_)) => {
+                            ScoreboardSorting::Chronological
                         }
                     };
                     re_sort_scoreboard = true;
@@ -417,21 +420,21 @@ impl<T: Write> Application<T> {
                     ..
                 }) => {
                     self.scores_and_replays.sorting = match self.scores_and_replays.sorting {
-                        ScoreEntrySorting::Chronological => {
-                            ScoreEntrySorting::GameStat(Stat::TimeElapsed(Default::default()))
+                        ScoreboardSorting::Chronological => {
+                            ScoreboardSorting::GameStat(Stat::TimeElapsed(Default::default()))
                         }
-                        ScoreEntrySorting::ModeDependent => ScoreEntrySorting::Chronological,
-                        ScoreEntrySorting::GameStat(Stat::LinesCleared(_)) => {
-                            ScoreEntrySorting::ModeDependent
+                        ScoreboardSorting::ModeDependent => ScoreboardSorting::Chronological,
+                        ScoreboardSorting::GameStat(Stat::LinesCleared(_)) => {
+                            ScoreboardSorting::ModeDependent
                         }
-                        ScoreEntrySorting::GameStat(Stat::PiecesLocked(_)) => {
-                            ScoreEntrySorting::GameStat(Stat::LinesCleared(0))
+                        ScoreboardSorting::GameStat(Stat::PiecesLocked(_)) => {
+                            ScoreboardSorting::GameStat(Stat::LinesCleared(0))
                         }
-                        ScoreEntrySorting::GameStat(Stat::PointsScored(_)) => {
-                            ScoreEntrySorting::GameStat(Stat::PiecesLocked(0))
+                        ScoreboardSorting::GameStat(Stat::PointsScored(_)) => {
+                            ScoreboardSorting::GameStat(Stat::PiecesLocked(0))
                         }
-                        ScoreEntrySorting::GameStat(Stat::TimeElapsed(_)) => {
-                            ScoreEntrySorting::GameStat(Stat::PointsScored(0))
+                        ScoreboardSorting::GameStat(Stat::TimeElapsed(_)) => {
+                            ScoreboardSorting::GameStat(Stat::PointsScored(0))
                         }
                     };
                     re_sort_scoreboard = true;
@@ -469,8 +472,7 @@ impl<T: Write> Application<T> {
                                 let game_meta_data = score_entry.game_meta_data.clone();
                                 let replay_length = score_entry.time;
                                 let game_renderer =
-                                    TetroTUIRenderer::with_number(self.temp_data.renderer_used)
-                                        .into();
+                                    TetroTUIRenderer::with_num(self.temp_data.renderer_used).into();
                                 let cached_game_and_replay_anchors =
                                     calculate_game_and_replay_anchors(
                                         &mut self.term,

@@ -1,8 +1,8 @@
 use std::num::{NonZeroU32, NonZeroUsize};
 
 use falling_tetromino_engine::{
-    Game, GameAccess, GameBuilder, GameLimits, GameModifier, GameRng, Line, NotificationFeed, Stat,
-    WIDTH,
+    Game, GameAccess, GameBuilder, GameEndCause, GameModifier, GameRng, Line, NotificationFeed,
+    Phase, WIDTH,
 };
 
 use rand::seq::SliceRandom;
@@ -64,13 +64,7 @@ impl Cheese {
             cached_stats: [format!("Cheese eaten: {}", 0)],
         });
 
-        builder
-            .clone()
-            .game_limits(match config.limit {
-                Some(c) => GameLimits::single(Stat::PointsScored(c.get()), true),
-                None => GameLimits::new(),
-            })
-            .build_modded(vec![modifier])
+        builder.clone().build_modded(vec![modifier])
     }
 }
 
@@ -122,6 +116,16 @@ impl GameModifier for Cheese {
     }
 
     fn on_lines_clear_post(&mut self, game: GameAccess, _feed: &mut NotificationFeed) {
+        if let Some(limit) = self.config.limit
+            && self.cheese_eaten_up >= limit.get()
+        {
+            *game.phase = Phase::GameEnd {
+                cause: GameEndCause::Custom("All cheese devoured".to_owned()),
+                is_win: true,
+            };
+            return;
+        }
+
         let cheese_lines = Self::prng_cheese_lines(
             &self.config,
             &mut self.last_hole_pattern_generated,

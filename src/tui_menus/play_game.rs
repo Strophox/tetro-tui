@@ -17,9 +17,9 @@ use falling_tetromino_engine::{
 
 use crate::{
     Application, EncodedInputHistory, GameMetaData, GameRestorationData, GameSave, RawInputHistory,
-    ScoreEntry, Statistics,
-    fmt_helpers::{fmt_button_keybinds, get_game_keybinds_legend},
-    game_renderers::{Renderer, TetroTUIRenderer},
+    ScoreSummaryEntry, Statistics,
+    fmt_helpers::fmt_button_keybinds,
+    game_renderers::{Renderer, TetroTUIRenderer, calc_game_keybinds_legend},
     game_restoration::{InputHistoryEncoder, QuantizeInGameTime},
     tui_menus::{Menu, MenuUpdate},
 };
@@ -92,7 +92,7 @@ impl<T: Write> Application<T> {
         // Stores `(last_time_move_pressed, was_left_not_right)`.
         let mut temp_last_move = (Instant::now(), false);
 
-        let keybinds_legend = get_game_keybinds_legend(self.settings.keybinds());
+        let keybinds_legend = calc_game_keybinds_legend(self.settings.keybinds());
 
         // FPS counter.
         let mut renders_per_second_counter = 0u32;
@@ -136,7 +136,7 @@ impl<T: Write> Application<T> {
 
                 // Game ended, cannot actually continue playing;
                 // Convert to scoreboard entry and return appropriate game-ended menu.
-                let scores_entry = ScoreEntry {
+                let scores_entry = ScoreSummaryEntry {
                     game_meta_data: game_meta_data.clone(),
                     is_win: *is_win,
                     end_cause: cause.clone(),
@@ -144,11 +144,7 @@ impl<T: Write> Application<T> {
                     pieces: game.state().pieces_locked,
                     lineclears: game.state().lineclears,
                     fall_delay_reached: game.state().fall_delay,
-                    lock_delay_reached: game
-                        .state()
-                        .fall_delay_lowerbound_hit_at_n_lineclears
-                        .is_some()
-                        .then_some(game.state().lock_delay),
+                    lock_delay_reached: game.state().lock_delay,
                     points: game.state().points,
                 };
 

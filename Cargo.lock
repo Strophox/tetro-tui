@@ -987,6 +987,7 @@ dependencies = [
 name = "tetro-tui"
 version = "3.3.0"
 dependencies = [
+ "bitflags",
  "chrono",
  "clap",
  "crossterm",

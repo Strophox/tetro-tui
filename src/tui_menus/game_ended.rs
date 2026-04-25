@@ -14,15 +14,19 @@ use crossterm::{
 use falling_tetromino_engine::ExtDuration;
 
 use crate::{
-    Application, ScoreEntry,
+    Application, ScoreSummaryEntry,
     fmt_helpers::{fmt_duration, fmt_hertz, fmt_tetromino_counts},
     game_mode_presets::GameModePreset,
+    game_renderers::ShowStats,
     tui_menus::{Menu, MenuUpdate, heading_line},
 };
 
 impl<T: Write> Application<T> {
-    pub fn run_menu_game_ended(&mut self, game_scoring: &ScoreEntry) -> io::Result<MenuUpdate> {
-        let ScoreEntry {
+    pub fn run_menu_game_ended(
+        &mut self,
+        game_scoring: &ScoreSummaryEntry,
+    ) -> io::Result<MenuUpdate> {
+        let ScoreSummaryEntry {
             game_meta_data,
             end_cause,
             is_win,
@@ -140,25 +144,41 @@ impl<T: Write> Application<T> {
 
             timing_offset = timing_offset.saturating_add(1);
 
-            let mut stats = vec![
-                format!("Time elapsed: {}", fmt_duration(*time_elapsed)),
-                format!("Lines: {lineclears}"),
-                format!("Score: {points_scored}"),
-                format!(
+            let mut stats = vec![];
+            if game_meta_data.show_stats.contains(ShowStats::TIME) {
+                stats.push(format!("Time elapsed: {}", fmt_duration(*time_elapsed)));
+            }
+            if game_meta_data.show_stats.contains(ShowStats::LINES) {
+                stats.push(format!("Lines cleared: {lineclears}"));
+            }
+            if game_meta_data.show_stats.contains(ShowStats::POINTS) {
+                stats.push(format!("Points scored: {points_scored}"));
+            }
+            if game_meta_data.show_stats.contains(ShowStats::GRAVITY) {
+                stats.push(format!(
                     "Gravity reached: {}",
                     fmt_hertz(fall_delay_reached.as_hertz())
-                ),
-                format!(
-                    "Pieces: {}",
-                    fmt_tetromino_counts(
-                        pieces_locked,
-                        &self.settings.mini_tetromino_symbols().tets
-                    )
-                ),
-            ];
-
-            if let Some(ExtDuration::Finite(lock_delay)) = lock_delay_reached {
-                stats.push(format!("Lock delay reached: {}ms", lock_delay.as_millis()));
+                ));
+            }
+            if game_meta_data.show_stats.contains(ShowStats::LOCKDELAY) {
+                stats.push(format!(
+                    "Lock delay: {}",
+                    if let ExtDuration::Finite(lock_delay) = lock_delay_reached {
+                        format!("{}ms", lock_delay.as_millis())
+                    } else {
+                        "infty".to_owned()
+                    }
+                ));
+            }
+            if game_meta_data.show_stats.contains(ShowStats::PIECES) {
+                stats.push(format!(
+                    "Pieces locked: {}",
+                    pieces_locked.iter().sum::<u32>()
+                ));
+                stats.push(fmt_tetromino_counts(
+                    pieces_locked,
+                    &self.settings.mini_tetromino_symbols().tets,
+                ));
             }
 
             for (i, s) in stats.iter().enumerate() {

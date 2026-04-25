@@ -8,7 +8,6 @@ mod sparse_terminal_double_buffer;
 use std::{collections::VecDeque, time::Duration};
 
 use crossterm::style::Color;
-use either::Either;
 use falling_tetromino_engine::{
     Button, Coordinate, ExtDuration, GameEndCause, LOCK_OUT_HEIGHT, Orientation, Phase, Stat,
     Tetromino, TileID, WIDTH,
@@ -16,7 +15,7 @@ use falling_tetromino_engine::{
 use rand::RngExt;
 
 use crate::{
-    fmt_helpers::{MAX_LEGEND_ENTRIES, fmt_duration, fmt_hertz, fmt_lineclear_name},
+    fmt_helpers::{fmt_duration, fmt_hertz, fmt_lineclear_name},
     tui_settings::{
         HardDropEffect, LineClearEffect, LineClearInlineEffect, LineClearParticleEffect,
         LockEffect, Palette, TileTexture,
@@ -378,34 +377,41 @@ impl Renderer for StandardBufferedRenderer {
             }
 
             // Render stats.
-            let mut stats: Vec<Option<(&str, String)>> = vec![
-                Some(("Time: ", fmt_duration(game.state().time))),
-                Some(("Lines: ", game.state().lineclears.to_string())),
-                Some(("Points: ", game.state().points.to_string())),
-                Some(("Gravity: ", fmt_hertz(game.state().fall_delay.as_hertz()))),
-            ];
+            let mut stats: Vec<Option<(&str, String)>> = vec![];
 
-            // Only show lock delay if fall delay lower bound has been hit AND lock delay can potentially decrease/change.
-            // If lock curve is nonexistend, or factor is 1 and subtrahend 0, or table only has one entry then we don't care.
-            let show_lockdelay = game
-                .state()
-                .fall_delay_lowerbound_hit_at_n_lineclears
-                .is_some()
-                && game.config.lock_delay_curve.as_ref().is_some_and(
-                    |lock_curve| match lock_curve {
-                        Either::Left(params) => {
-                            params.factor().get() < 1.0 || !params.subtrahend().is_zero()
-                        }
-                        Either::Right(table) => table.entries().len() > 2,
-                    },
-                );
-            if show_lockdelay {
+            if meta_data.show_stats.contains(ShowStats::TIME) {
+                stats.push(Some(("Time: ", fmt_duration(game.state().time))));
+            }
+
+            if meta_data.show_stats.contains(ShowStats::LINES) {
+                stats.push(Some(("Lines: ", game.state().lineclears.to_string())));
+            }
+
+            if meta_data.show_stats.contains(ShowStats::POINTS) {
+                stats.push(Some(("Points: ", game.state().points.to_string())));
+            }
+
+            if meta_data.show_stats.contains(ShowStats::PIECES) {
+                stats.push(Some((
+                    "Pieces: ",
+                    game.state().pieces_locked.iter().sum::<u32>().to_string(),
+                )));
+            }
+
+            if meta_data.show_stats.contains(ShowStats::GRAVITY) {
+                stats.push(Some((
+                    "Gravity: ",
+                    fmt_hertz(game.state().fall_delay.as_hertz()),
+                )));
+            }
+
+            if meta_data.show_stats.contains(ShowStats::LOCKDELAY) {
                 stats.push(Some((
                     "Lock delay: ",
                     if let ExtDuration::Finite(lock_delay) = game.state().lock_delay {
                         format!("{}ms", lock_delay.as_millis())
                     } else {
-                        "none".to_owned()
+                        "infty".to_owned()
                     },
                 )));
             }
@@ -419,7 +425,11 @@ impl Renderer for StandardBufferedRenderer {
 
             // Only show Replay stats if available.
             if let Some((replay_len, replay_speed)) = replay_extra {
+                // Spacing.
+                stats.push(None);
+
                 stats.push(Some(("REPLAY ", fmt_duration(replay_len))));
+
                 stats.push(Some(("", {
                     let (partial_glyphs, full_glyph) = &tui_style.progressbar;
                     let w_progressbar = (W_ADD_ACTIVE_HUD + W_HOLD).saturating_sub(3);
@@ -442,6 +452,7 @@ impl Renderer for StandardBufferedRenderer {
                     progress_bar.push(']');
                     progress_bar
                 })));
+
                 stats.push(Some(("Replay speed: ", format!("{replay_speed:.02}x"))));
             }
 

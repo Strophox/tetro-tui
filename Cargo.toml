@@ -22,6 +22,7 @@ strip = true  # Automatically strip symbols from the binary.
 # codegen-units = 1 # Use fewer than 16 threads for compilation, but enable some optimizations.
 
 [dependencies]
+bitflags = { version = "2.11.1", features = ["serde"] }
 chrono = "0.4.38" # = Used to generate timestamps.
 clap = { version = "4.5.9", features = ["derive", "wrap_help"] } # = Used to handle command-line arguments.
 crossterm = { version = "0.29.0", features = ["serde"] } # = Use for cross-platform terminal handling.

@@ -6,9 +6,14 @@ mod twoxel;
 
 use std::io::{self, Write};
 
-use falling_tetromino_engine::{Game, InGameTime, Notification};
+use crossterm::event::{KeyCode, KeyModifiers};
+use falling_tetromino_engine::{Button, Game, InGameTime, Notification};
 
-use crate::{GameMetaData, Settings, TemporaryAppData, fmt_helpers::KeybindsLegend};
+use crate::{
+    GameMetaData, Settings, TemporaryAppData,
+    fmt_helpers::{KeybindsLegend, fmt_button_keybinds, fmt_key_with_keymods},
+    tui_settings::GameKeybinds,
+};
 
 pub use braille::BrailleRenderer;
 pub use legacy_buffered::LegacyBufferedRenderer;
@@ -16,7 +21,9 @@ pub use prototype::PrototypeRenderer;
 pub use standard_buffered::StandardBufferedRenderer;
 pub use twoxel::TwoxelRenderer;
 
-pub trait Renderer: Default {
+// FIXME: Remove TetroTUIRenderer enum and make trait Renderer dyn-safe. It currently is not because:
+// We have this constructor call attached to it. In practice we'll have a separate `render_from_num_and_stat_selection` function
+pub trait Renderer {
     fn update_feed(
         &mut self,
         notification_feed: impl IntoIterator<Item = (Notification, InGameTime)>,
@@ -44,6 +51,68 @@ pub trait Renderer: Default {
     ) -> io::Result<()>;
 }
 
+bitflags::bitflags! {
+    #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, Debug, Default, serde::Serialize, serde::Deserialize)]
+    pub struct ShowStats: u8 {
+        const TIME = 0b0000_0001;
+        const LINES = 0b0000_0010;
+        const POINTS = 0b0000_0100;
+        const PIECES = 0b0000_1000;
+        const GRAVITY = 0b0001_0000;
+        const LOCKDELAY = 0b0010_0000;
+    }
+}
+
+pub const MAX_LEGEND_ENTRIES: u16 = 5;
+
+pub fn calc_game_keybinds_legend(keybinds: &GameKeybinds) -> KeybindsLegend {
+    let fk = |k| fmt_key_with_keymods((k, KeyModifiers::NONE));
+    let fb = |b| fmt_button_keybinds(b, keybinds, " ");
+
+    let icon_pause = fk(KeyCode::Esc);
+    let icons_move = format!("{}{}", fb(Button::MoveLeft), fb(Button::MoveRight));
+    let icons_rotate = format!(
+        "{}{}{}",
+        fb(Button::RotateLeft),
+        fb(Button::Rotate180),
+        fb(Button::RotateRight)
+    );
+    let icons_drop = format!("{}{}", fb(Button::DropSoft), fb(Button::DropHard));
+    // let icons_hold = fb(Button::HoldPiece);
+
+    // NOTE: This should be <= MAX_LEGEND_ENTRIES. Renderer relies on this for nicer visual alignment.
+    vec![
+        (icons_move, "move"),
+        (icons_rotate, "rotate"),
+        (icons_drop, "drop"),
+        // (icons_hold, "hold"),
+        (icon_pause, "pause"),
+        ("[?]".to_owned(), "see all"),
+    ]
+}
+
+pub fn replay_keybinds_legend() -> KeybindsLegend {
+    let fk = |k| fmt_key_with_keymods((k, KeyModifiers::NONE));
+
+    let icon_pause = fk(KeyCode::Char(' '));
+    let icons_speed = format!("{}{}", fk(KeyCode::Down), fk(KeyCode::Up));
+    let icons_skip = format!("{}{}", fk(KeyCode::Left), fk(KeyCode::Right));
+    // let icons_jump = format!("{}-{}", fk(KeyCode::Char('0')), fk(KeyCode::Char('9')));
+    // let icons_enter = fk(KeyCode::Enter);
+    let icon_stop = fk(KeyCode::Esc);
+
+    // NOTE: This should be <= MAX_LEGEND_ENTRIES. Renderer relies on this for nicer visual alignment.
+    vec![
+        (icon_pause, "pause"),
+        (icons_skip, "timeskip -/+"),
+        (icons_speed, "speed -/+"),
+        // (icons_jump, "timejump #0%"),
+        // (icons_enter, "take over"),
+        (icon_stop, "exit"),
+        ("[?]".to_owned(), "see all"),
+    ]
+}
+
 #[derive(PartialEq, PartialOrd, Clone, Debug)]
 pub enum TetroTUIRenderer {
     StandardBuffered(StandardBufferedRenderer),
@@ -56,32 +125,27 @@ pub enum TetroTUIRenderer {
 impl TetroTUIRenderer {
     pub const NUM_VARIANTS: usize = 5;
 
-    pub fn with_number(n: usize) -> Self {
+    pub fn with_num(n: usize) -> Self {
         match n {
-            0 => Self::StandardBuffered(Default::default()),
-            1 => Self::LegacyBuffered(Default::default()),
-            2 => Self::Prototype(Default::default()),
-            3 => Self::Twoxel(Default::default()),
-            4 => Self::Braille(Default::default()),
+            0 => Self::StandardBuffered(StandardBufferedRenderer::default()),
+            1 => Self::LegacyBuffered(LegacyBufferedRenderer::default()),
+            2 => Self::Prototype(PrototypeRenderer::default()),
+            3 => Self::Twoxel(TwoxelRenderer::default()),
+            4 => Self::Braille(BrailleRenderer::default()),
 
-            _ => Self::StandardBuffered(Default::default()),
+            _ => Self::StandardBuffered(StandardBufferedRenderer::default()),
         }
     }
 
-    pub fn name(&self) -> &'static str {
-        match self {
-            TetroTUIRenderer::StandardBuffered(_) => "Standard",
-            TetroTUIRenderer::LegacyBuffered(_) => "Legacy",
-            TetroTUIRenderer::Prototype(_) => "Prototype",
-            TetroTUIRenderer::Twoxel(_) => "Twoxel",
-            TetroTUIRenderer::Braille(_) => "Braille",
+    pub fn name_from_num(n: usize) -> &'static str {
+        match n {
+            0 => "Standard",
+            1 => "Legacy",
+            2 => "Prototype",
+            3 => "Twoxel",
+            4 => "Braille",
+            _ => "Standard",
         }
-    }
-}
-
-impl Default for TetroTUIRenderer {
-    fn default() -> Self {
-        Self::with_number(0)
     }
 }
 

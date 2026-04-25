@@ -3,13 +3,16 @@ use std::time::Duration;
 use either::Either;
 use falling_tetromino_engine::{DelayParameters, ExtDuration, Game, GameBuilder, GameLimits, Stat};
 
-use crate::game_modding::{self, CheeseConfig, ComboConfig};
+use crate::{
+    game_modding::{self, CheeseConfig, ComboConfig},
+    game_renderers::ShowStats,
+};
 
-// Name, (Stat-to-sort-by, is-order-desc), game-builder-struct-finalizer).
 pub struct GameModePreset {
     pub title: String,
     pub description: String,
-    pub stat_and_order_desc: (Stat, bool),
+    pub show_stats: ShowStats,
+    pub stat_and_is_order_desc: (Stat, bool),
     pub build: Box<dyn Fn(&GameBuilder) -> Game>,
 }
 
@@ -19,7 +22,8 @@ impl GameModePreset {
         Self {
             title: Self::TITLE_SWIFT.to_owned(),
             description: "How fast can you clear 40 lines?".to_owned(),
-            stat_and_order_desc: (Stat::TimeElapsed(Duration::ZERO), true),
+            show_stats: ShowStats::TIME | ShowStats::LINES | ShowStats::PIECES,
+            stat_and_is_order_desc: (Stat::TimeElapsed(Duration::ZERO), true),
             build: Box::new(|builder: &GameBuilder| {
                 builder
                     .clone()
@@ -37,7 +41,8 @@ impl GameModePreset {
         Self {
             title: Self::TITLE_REGULAR.to_owned(),
             description: "Clear 150 lines at increasing gravity.".to_owned(),
-            stat_and_order_desc: (Stat::PointsScored(0), false),
+            show_stats: ShowStats::TIME | ShowStats::LINES | ShowStats::POINTS | ShowStats::GRAVITY,
+            stat_and_is_order_desc: (Stat::PointsScored(0), false),
             build: Box::new(|builder: &GameBuilder| {
                 builder
                     .clone()
@@ -71,7 +76,12 @@ impl GameModePreset {
         Self {
             title: Self::TITLE_MASTER.to_owned(),
             description: "Clear 150 lines at instant gravity.".to_owned(),
-            stat_and_order_desc: (Stat::PointsScored(0), false),
+            show_stats: ShowStats::TIME
+                | ShowStats::LINES
+                | ShowStats::POINTS
+                | ShowStats::GRAVITY
+                | ShowStats::LOCKDELAY,
+            stat_and_is_order_desc: (Stat::PointsScored(0), false),
             build: Box::new(|builder: &GameBuilder| {
                 builder
                     .clone()
@@ -88,7 +98,8 @@ impl GameModePreset {
         Self {
             title: Self::TITLE_PUZZLE.to_owned(),
             description: "Clear 24 hand-crafted puzzles.".to_owned(),
-            stat_and_order_desc: (Stat::TimeElapsed(Duration::ZERO), true),
+            show_stats: ShowStats::TIME,
+            stat_and_is_order_desc: (Stat::TimeElapsed(Duration::ZERO), true),
             build: Box::new(game_modding::Puzzle::build),
         }
     }
@@ -109,7 +120,8 @@ impl GameModePreset {
                 "Eat through lines like Swiss cheese. Limit={:?}",
                 config.limit
             ),
-            stat_and_order_desc: (Stat::PiecesLocked(0), true),
+            show_stats: ShowStats::TIME | ShowStats::LINES | ShowStats::PIECES,
+            stat_and_is_order_desc: (Stat::PiecesLocked(0), true),
             build: Box::new({
                 move |builder: &GameBuilder| {
                     let mut builder = builder.clone();
@@ -147,7 +159,8 @@ impl GameModePreset {
                     "".to_owned()
                 }
             ),
-            stat_and_order_desc: (Stat::TimeElapsed(Duration::ZERO), true),
+            show_stats: ShowStats::TIME,
+            stat_and_is_order_desc: (Stat::TimeElapsed(Duration::ZERO), true),
             build: Box::new({
                 move |builder: &GameBuilder| game_modding::Combo::build(builder, config)
             }),
@@ -159,7 +172,8 @@ impl GameModePreset {
         Self {
             title: format!("{}*", Self::TITLE_ASCENT),
             description: "(experimental, req. Ocular + 180° rot.)".to_owned(),
-            stat_and_order_desc: (Stat::PointsScored(0), false),
+            show_stats: ShowStats::TIME | ShowStats::POINTS,
+            stat_and_is_order_desc: (Stat::PointsScored(0), false),
             build: Box::new(game_modding::Ascent::build),
         }
     }

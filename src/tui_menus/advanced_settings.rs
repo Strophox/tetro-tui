@@ -64,7 +64,7 @@ impl<T: Write> Application<T> {
                 ),
                 format!(
                     "Renderer used = {} (applies on New Game)",
-                    TetroTUIRenderer::with_number(self.temp_data.renderer_used).name()
+                    TetroTUIRenderer::name_from_num(self.temp_data.renderer_used)
                 ),
             ];
 

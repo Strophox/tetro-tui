@@ -164,7 +164,7 @@ impl GameModifier for Puzzle {
         if let Some(is_win) = self.end_post_spawn {
             *game.phase = if is_win {
                 Phase::GameEnd {
-                    cause: GameEndCause::Custom("All stages completed".to_owned()),
+                    cause: GameEndCause::Custom("All puzzles completed".to_owned()),
                     is_win: true,
                 }
             } else {

@@ -24,7 +24,7 @@ use crate::{
     fmt_helpers::{BoolAsOnOff, fmt_duration, fmt_hertz, fmt_player_input},
     game_modding::{self, Combo},
     game_mode_presets::GameModePreset,
-    game_renderers::{Renderer, TetroTUIRenderer},
+    game_renderers::{Renderer, ShowStats, TetroTUIRenderer},
     game_restoration::{GameRestorationData, RawInputHistory},
     tui_menus::{
         Menu, MenuUpdate, heading_line,
@@ -91,7 +91,8 @@ impl<T: Write> Application<T> {
                 GameModePreset {
                     title,
                     description,
-                    stat_and_order_desc: _,
+                    show_stats: _,
+                    stat_and_is_order_desc: _,
                     build: _,
                 },
             ) in game_modes.iter().enumerate()
@@ -349,7 +350,7 @@ impl<T: Write> Application<T> {
                             game_restoration_data: Box::new(game_restoration_data.clone()),
                             game_meta_data: game_meta_data.clone(),
                             replay_length,
-                            game_renderer: Box::new(TetroTUIRenderer::with_number(
+                            game_renderer: Box::new(TetroTUIRenderer::with_num(
                                 self.temp_data.renderer_used,
                             )),
                             cached_game_and_replay_anchors: Box::new(
@@ -1004,7 +1005,8 @@ impl<T: Write> Application<T> {
             let GameModePreset {
                 title,
                 description: _,
-                stat_and_order_desc,
+                show_stats,
+                stat_and_is_order_desc,
                 build,
             } = &game_modes[selection];
 
@@ -1013,7 +1015,8 @@ impl<T: Write> Application<T> {
             let preset_game_meta_data = GameMetaData {
                 datetime: chrono::Utc::now().format("%Y-%m-%d_%H:%M").to_string(),
                 title: title.to_owned(),
-                stat_and_desc_order: *stat_and_order_desc,
+                show_stats: *show_stats,
+                stat_and_desc_order: *stat_and_is_order_desc,
             };
 
             let blank_input_history = RawInputHistory::default();
@@ -1083,9 +1086,13 @@ impl<T: Write> Application<T> {
                 None => "Limitless".to_owned(),
             };
 
+            // TODO: Changeable?
+            const CUSTOM_SHOW_STATS: ShowStats = ShowStats::all();
+
             let custom_game_meta_data = GameMetaData {
                 datetime: chrono::Utc::now().format("%Y-%m-%d_%H:%M").to_string(),
                 title,
+                show_stats: CUSTOM_SHOW_STATS,
                 stat_and_desc_order: (Stat::PointsScored(0), false),
             };
             let blank_input_history = RawInputHistory::default();
@@ -1101,7 +1108,7 @@ impl<T: Write> Application<T> {
         // game.modifiers.push(game_mode_presets::game_modifiers::misc_modifiers::print_recency_tet_gen_stats::modifier());
         // game.modifiers.push(falling_tetromino_engine::Modifier { descriptor: "always_clear_board".to_owned(), mod_function: Box::new(|_c, _i, s, _m, _f| { s.board = Default::default(); })});
 
-        let mut game_renderer = TetroTUIRenderer::with_number(self.temp_data.renderer_used);
+        let mut game_renderer = TetroTUIRenderer::with_num(self.temp_data.renderer_used);
 
         // We do an initial update, which allows a piece to spawn and queue to get generated.
         // We do this so the renderer does not render a first frame when game is in its raw start state.

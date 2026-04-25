@@ -1,8 +1,8 @@
 use std::num::NonZeroU32;
 
 use falling_tetromino_engine::{
-    Game, GameAccess, GameBuilder, GameEndCause, GameLimits, GameModifier, HEIGHT, Line,
-    NotificationFeed, Phase, Stat, Tetromino, WIDTH,
+    Game, GameAccess, GameBuilder, GameEndCause, GameModifier, HEIGHT, Line, NotificationFeed,
+    Phase, Tetromino, WIDTH,
 };
 
 use crate::{savefile_logic::to_savefile_string, tui_settings::Palette};
@@ -47,13 +47,7 @@ impl Combo {
             cached_stats: [format!("Current combo: {}", 0)],
         });
 
-        builder
-            .clone()
-            .game_limits(match config.limit {
-                Some(c) => GameLimits::single(Stat::PointsScored(c.get()), true),
-                None => GameLimits::new(),
-            })
-            .build_modded(vec![modifier])
+        builder.clone().build_modded(vec![modifier])
     }
 }
 
@@ -120,6 +114,16 @@ impl GameModifier for Combo {
 
     // Insert new line.
     fn on_lines_clear_post(&mut self, game: GameAccess, _feed: &mut NotificationFeed) {
+        if let Some(limit) = self.config.limit
+            && game.state.consecutive_lineclears >= limit.get()
+        {
+            *game.phase = Phase::GameEnd {
+                cause: GameEndCause::Custom("Combo reached".to_owned()),
+                is_win: true,
+            };
+            return;
+        }
+
         game.state.board[HEIGHT - 1] = Self::combo_lines(&mut self.height_loaded).next().unwrap();
 
         // Overwrite with combo length.

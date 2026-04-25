@@ -16,8 +16,8 @@ use falling_tetromino_engine::{
 
 use crate::{
     Application, GameMetaData, GameSave,
-    fmt_helpers::{BoolAsOnOff, fmt_duration, replay_keybinds_legend},
-    game_renderers::{Renderer, TetroTUIRenderer},
+    fmt_helpers::{BoolAsOnOff, fmt_duration},
+    game_renderers::{Renderer, TetroTUIRenderer, replay_keybinds_legend},
     game_restoration::{GameRestorationData, RawInputHistory},
     tui_menus::{Menu, MenuUpdate},
 };
@@ -545,7 +545,7 @@ impl<T: Write> Application<T> {
 
                                 // FIXME: Instead clone renderer when entering live game from here?
                                 let the_game_renderer =
-                                    TetroTUIRenderer::with_number(self.temp_data.renderer_used);
+                                    TetroTUIRenderer::with_num(self.temp_data.renderer_used);
 
                                 self.statistics.new_games_started += 1;
 

@@ -22,6 +22,7 @@ use falling_tetromino_engine::{
     ExtDuration, GameEndCause, InGameTime, Notification, NotificationFeed, Stat, Tetromino,
 };
 
+use crate::game_renderers::ShowStats;
 use crate::savefile_logic::SavefileResult;
 use crate::{
     game_mode_presets::GameModePreset,
@@ -109,6 +110,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 pub struct GameMetaData {
     pub datetime: String,
     pub title: String,
+    pub show_stats: ShowStats,
     pub stat_and_desc_order: (Stat, bool),
 }
 
@@ -172,7 +174,7 @@ impl<IH: InputHistoryEncoder> GameSaves<IH> {
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]
-pub struct ScoreEntry {
+pub struct ScoreSummaryEntry {
     game_meta_data: GameMetaData,
     end_cause: GameEndCause,
     is_win: bool,
@@ -181,24 +183,24 @@ pub struct ScoreEntry {
     points: u32,
     pieces: [u32; Tetromino::VARIANTS.len()],
     fall_delay_reached: ExtDuration,
-    lock_delay_reached: Option<ExtDuration>,
+    lock_delay_reached: ExtDuration,
 }
 
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug, serde::Serialize, serde::Deserialize,
 )]
-pub enum ScoreEntrySorting {
+pub enum ScoreboardSorting {
     ModeDependent,
     Chronological,
     GameStat(Stat),
 }
 
-impl std::fmt::Display for ScoreEntrySorting {
+impl std::fmt::Display for ScoreboardSorting {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let name = match self {
-            ScoreEntrySorting::ModeDependent => "Mode-dependent",
-            ScoreEntrySorting::Chronological => "Chronological",
-            ScoreEntrySorting::GameStat(stat) => match stat {
+            ScoreboardSorting::ModeDependent => "Mode-dependent",
+            ScoreboardSorting::Chronological => "Chronological",
+            ScoreboardSorting::GameStat(stat) => match stat {
                 Stat::TimeElapsed(_) => "Time elapsed",
                 Stat::PiecesLocked(_) => "Pieces locked",
                 Stat::LinesCleared(_) => "Lines cleared",
@@ -213,14 +215,17 @@ impl std::fmt::Display for ScoreEntrySorting {
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]
 pub struct Scoreboard {
-    sorting: ScoreEntrySorting,
-    entries: Vec<(ScoreEntry, Option<GameRestorationData<EncodedInputHistory>>)>,
+    sorting: ScoreboardSorting,
+    entries: Vec<(
+        ScoreSummaryEntry,
+        Option<GameRestorationData<EncodedInputHistory>>,
+    )>,
 }
 
 impl Default for Scoreboard {
     fn default() -> Self {
         Self {
-            sorting: ScoreEntrySorting::ModeDependent,
+            sorting: ScoreboardSorting::ModeDependent,
             entries: Vec::new(),
         }
     }
@@ -229,9 +234,9 @@ impl Default for Scoreboard {
 impl Scoreboard {
     fn sort(&mut self) {
         match self.sorting {
-            ScoreEntrySorting::Chronological => self.sort_chronologically(),
-            ScoreEntrySorting::ModeDependent => self.sort_semantically(),
-            ScoreEntrySorting::GameStat(stat) => self.sort_by_stat(stat),
+            ScoreboardSorting::Chronological => self.sort_chronologically(),
+            ScoreboardSorting::ModeDependent => self.sort_semantically(),
+            ScoreboardSorting::GameStat(stat) => self.sort_by_stat(stat),
         }
     }
 
