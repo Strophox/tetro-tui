@@ -51,6 +51,7 @@ pub trait TerminalBuffer {
     fn write_char(&mut self, x: u16, y: u16, cell: TermCell);
     fn write_tile(&mut self, x: u16, y: u16, tile: TileTexture, fg: Color);
     fn write_str(&mut self, x: u16, y: u16, str: &str, fg: Color);
+    fn write_str_wrapping(&mut self, x: u16, y: u16, str: &str, fg: Color);
     fn flush(&mut self, term: &mut impl Write) -> io::Result<()>;
 }
 
@@ -456,6 +457,8 @@ impl Renderer for StandardBufferedRenderer {
                 stats.push(Some(("Replay speed: ", format!("{replay_speed:.02}x"))));
             }
 
+            let h_stats = stats.len();
+
             for (dy, opt_stat) in stats.into_iter().enumerate() {
                 if let Some((str_statname, str_statval)) = opt_stat {
                     #[rustfmt::skip] self.term_buf.write_str(w_tmp_hudtl + 1, h_tmp_hudtl + 2 + (dy as u16), str_statname, Color::Reset);
@@ -469,7 +472,8 @@ impl Renderer for StandardBufferedRenderer {
             if settings.graphics().show_keybinds {
                 // Frame glyph.
                 let w_tmp_ktl = w_float + W_PAD_LEFT; // (width temporary keybinds-top-left)
-                let h_tmp_ktl = h_float + H_PAD_TOP + H_FIELD.saturating_sub(MAX_LEGEND_ENTRIES);
+                let h_tmp_ktl = (h_tmp_hudtl + 2 + (h_stats as u16) + 1)
+                    .max(h_float + H_PAD_TOP + H_FIELD.saturating_sub(MAX_LEGEND_ENTRIES));
 
                 #[rustfmt::skip] self.term_buf.write_char(w_tmp_ktl, h_tmp_ktl, TermCell { ch: c_m_tb, fg: Color::Reset });
                 #[rustfmt::skip] self.term_buf.write_char(w_tmp_ktl + 1, h_tmp_ktl, TermCell { ch: c_m_tb, fg: Color::Reset });
@@ -590,7 +594,7 @@ impl Renderer for StandardBufferedRenderer {
                     let w_msg = message.chars().count() as u16;
                     // The message should be rendered centered around board middle.
                     let x_msg = (w_float + w_addhud + W_HOLD + (W_BOARD / 2)).saturating_sub(w_msg / 2);
-                    #[rustfmt::skip] self.term_buf.write_str(x_msg, h_float + H_PAD_TOP + H_BOARD + w_aesthetic_pad + dy, message, Color::Reset);
+                    #[rustfmt::skip] self.term_buf.write_str_wrapping(x_msg, h_float + H_PAD_TOP + H_BOARD + w_aesthetic_pad + dy, message, Color::Reset);
 
                     dy += 1;
                 }

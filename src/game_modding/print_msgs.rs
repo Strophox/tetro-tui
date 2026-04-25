@@ -54,7 +54,7 @@ impl GameModifier for PrintMsgs {
         }
         self.init = true;
 
-        if game.config.send_notifications {
+        if !game.config.send_notifications {
             return;
         }
         for message in self.messages.iter() {

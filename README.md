@@ -418,7 +418,7 @@ cargo run
 
 > <details>
 > <summary>
-> This project handles quite a few aspects to provide an excellent user experience for a classic game. Among the many things that have accumulated inside the scope of this project are: 
+> This project handles a handful of aspects to try and provide excellent user experience for a classic game. Things that find themselves in the scope of this project are: 
 > </summary>
 > 
 > - A **fully-featured [Tetromino game engine/backend](<https://github.com/Strophox/falling-tetromino-engine>)** featuring:

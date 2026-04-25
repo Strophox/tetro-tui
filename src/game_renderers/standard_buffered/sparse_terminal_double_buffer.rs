@@ -85,6 +85,23 @@ impl TerminalBuffer for SparseTerminalDoubleBuffer {
         }
     }
 
+    fn write_str_wrapping(&mut self, x: u16, y: u16, str: &str, fg: Color) {
+        let mut dx = 0;
+        let mut dy = 0;
+        for ch in str.chars() {
+            if x + dx as u16 >= self.w_vp {
+                dx = 0;
+                dy += 1;
+            }
+            if y + dy as u16 >= self.h_vp {
+                return;
+            }
+            self.next_buf
+                .insert((x + dx as u16, y + dy as u16), TermCell { ch, fg });
+            dx += 1;
+        }
+    }
+
     fn flush(&mut self, term: &mut impl Write) -> io::Result<()> {
         term.queue(terminal::BeginSynchronizedUpdate)?;
 
