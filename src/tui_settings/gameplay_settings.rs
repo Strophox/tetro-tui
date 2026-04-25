@@ -128,11 +128,11 @@ impl GameplaySettings {
         GameplaySettings {
             rotsys: StdPceRot::ClassicL,
             tetgen: StdTetGen::uniform(),
-            das: Duration::from_secs(60 * 60 * 24 * 356), // ≈ No DAS/ARR
+            das: Duration::from_millis(350), // ≈ No DAS/ARR, but we add anyway.
             preview: 1,
-            arr: Duration::from_secs(60 * 60 * 24 * 356), // ≈ No DAS/ARR
-            are: Duration::from_millis(0),                // ≈ ?
-            lcd: Duration::from_millis(400),              // ≈ ?
+            arr: Duration::from_millis(100), // ≈ No DAS/ARR, but we add anyway.
+            are: Duration::from_millis(0),   // ≈ ?
+            lcd: Duration::from_millis(400), // ≈ ?
             sdf: SoftDropSpeedup {
                 delayed_auto_drop: None,
                 factor_or_upperbound: Either::Left(ExtNonNegF64::from(1)), // ≈ No Soft Drop

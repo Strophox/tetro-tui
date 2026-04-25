@@ -159,7 +159,7 @@ impl<T: Write> Application<T> {
                     match self.settings.gameplay().sdf.factor_or_upperbound {
                         Either::Left(factor) => format!("{:.01}x", factor.get()),
                         Either::Right(upperbound) =>
-                            format!("bump to {:.01} Hz", upperbound.as_hertz().get()),
+                            format!("raise to {:.01} Hz", upperbound.as_hertz().get()),
                     }
                 ),
                 format!(
