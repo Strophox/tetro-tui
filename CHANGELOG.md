@@ -9,13 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 - Pressing `?` now shows a **Keybinds Overview for any menu** that it is pressed in. 
-- `Ctrl+Z` can now be used to undo the last player input(s) during live game.
+- `Ctrl+Z` can now be used to **undo the last input(s)** during live game.
+- TUI symbols preset: 'Rounded Unicode', 'Borderless Unicode', 'Borderless-Next/Hold'.
+- Graphics and keybinds presets: Fixed and improved ("Guideline", "Terminal Finesse").
+- Niche New Game Menu controls: 'quick start new game' keys (1,2,3...) (use `Ctrl+R` to quick-restart same gamemode instead).
+- Custom Mode config controls: `Home/End` can now be used to directly set fall delay to infinite/zero.
+- New game mode: **Survival**.
 - Changed some in-code / savefile terminology and improve corresponding UI element names.
-- Added 'Borderless Unicode' and 'Borderless-Next/Hold' TUI symbols preset.
-- Fixed and improved various presets (graphics ("Guideline"q), keybinds ("Terminal Finesse")).
-- Removed 'quick start new game' keys (1,2,3...) in New Game menu (use `Ctrl+R` to quick-restart same gamemode instead).
-- Added rounded Unicode frame TUI style.
-- `Home/End` can now be used to directly set fall delay to infinite/zero during Custom mode configuration.
 
 
 ## [3.2.1] - 2026-04-18
