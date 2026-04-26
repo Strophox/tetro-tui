@@ -18,7 +18,7 @@ use falling_tetromino_engine::{
 use crate::{
     Application, EncodedInputHistory, GameMetaData, GameRestorationData, GameSave, RawInputHistory,
     ScoreSummaryEntry, Statistics,
-    fmt_helpers::fmt_button_keybinds,
+    fmt_helpers::{fmt_button_keybinds, increment_game_mode_derivative},
     game_renderers::{Renderer, TetroTUIRenderer, calc_game_keybinds_legend},
     game_restoration::{InputHistoryEncoder, QuantizeInGameTime},
     tui_menus::{Menu, MenuUpdate},
@@ -400,9 +400,9 @@ impl<T: Write> Application<T> {
                                         "Special keybinds".to_owned(),
                                         [
                                             ("Ctrl+D", "Forfeit game"),
-                                            ("Ctrl+R", "Restart game mode (discards current game)"),
-                                            ("Ctrl+Z", "Undo last input (overwrites current game)"),
-                                            ("Ctrl+L", "Load game save (overwrites current game)"),
+                                            ("Ctrl+R", "Restart game mode (overwrites current game!)"),
+                                            ("Ctrl+Z", "Undo last input (overwrites current game!)"),
+                                            ("Ctrl+L", "Load game save (overwrites current game!)"),
                                             ("Ctrl+S", "Store game save"),
                                             ("Ctrl+E", "Store seed for custom game"),
                                             (
@@ -507,8 +507,7 @@ impl<T: Write> Application<T> {
                                     *game = game_restoration_data.restore(*inputs_to_load);
 
                                     *game_meta_data = saved_meta_data.clone();
-                                    // Mark restored game as such.
-                                    game_meta_data.title.push('\'');
+                                    increment_game_mode_derivative(&mut game_meta_data.title);
 
                                     raw_input_history.inputs = game_restoration_data
                                         .input_history
@@ -567,8 +566,8 @@ impl<T: Write> Application<T> {
                                     *game = game_restoration_data
                                         .restore(game_restoration_data.input_history.inputs.len());
 
-                                    // Mark undone as such.
-                                    game_meta_data.title.push('\'');
+                                    // Mark undo as such.
+                                    increment_game_mode_derivative(&mut game_meta_data.title);
 
                                     game_renderer.reset_veffects_state();
                                     game_renderer.update_feed(

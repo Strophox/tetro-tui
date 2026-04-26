@@ -21,7 +21,10 @@ use falling_tetromino_engine::{
 
 use crate::{
     Application, GameMetaData, GameSave,
-    fmt_helpers::{BoolAsOnOff, fmt_duration, fmt_hertz, fmt_player_input, generate_timestamp},
+    fmt_helpers::{
+        BoolAsOnOff, fmt_duration, fmt_hertz, fmt_player_input, generate_timestamp,
+        increment_game_mode_derivative,
+    },
     game_modding::{self, Combo},
     game_mode_presets::GameModePreset,
     game_renderers::{Renderer, ShowStats, TetroTUIRenderer},
@@ -1036,7 +1039,7 @@ impl<T: Write> Application<T> {
 
             let mut restored_game_meta_data = game_meta_data.clone();
             // Mark restored game as such.
-            restored_game_meta_data.title.push('\'');
+            increment_game_mode_derivative(&mut restored_game_meta_data.title);
 
             let restored_input_history = game_restoration_data
                 .input_history

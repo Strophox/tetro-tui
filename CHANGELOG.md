@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Niche New Game Menu controls: 'quick start new game' keys (1,2,3...) (use `Ctrl+R` to quick-restart same gamemode instead).
 - Custom Mode config controls: `Home/End` can now be used to directly set fall delay to infinite/zero.
 - New game mode: **Survival**.
+- UI: Derived game modes are much shorter and nicer (e.g. "Survival" -undo-> ... -undo-> "Survival [7]" instead of -> "Survival'''''''").
 - Changed some in-code / savefile terminology and improve corresponding UI element names.
 
 

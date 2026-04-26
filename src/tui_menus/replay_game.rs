@@ -16,7 +16,7 @@ use falling_tetromino_engine::{
 
 use crate::{
     Application, GameMetaData, GameSave,
-    fmt_helpers::{BoolAsOnOff, fmt_duration},
+    fmt_helpers::{BoolAsOnOff, fmt_duration, increment_game_mode_derivative},
     game_renderers::{Renderer, TetroTUIRenderer, replay_keybinds_legend},
     game_restoration::{GameRestorationData, RawInputHistory},
     tui_menus::{Menu, MenuUpdate},
@@ -541,7 +541,7 @@ impl<T: Write> Application<T> {
                                 let the_game = std::mem::replace(game, Game::builder().build());
 
                                 let mut the_meta_data = game_meta_data.clone();
-                                the_meta_data.title.push('\'');
+                                increment_game_mode_derivative(&mut the_meta_data.title);
 
                                 // FIXME: Instead clone renderer when entering live game from here?
                                 let the_game_renderer =
