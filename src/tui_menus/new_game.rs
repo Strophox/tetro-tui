@@ -21,7 +21,7 @@ use falling_tetromino_engine::{
 
 use crate::{
     Application, GameMetaData, GameSave,
-    fmt_helpers::{BoolAsOnOff, fmt_duration, fmt_hertz, fmt_player_input},
+    fmt_helpers::{BoolAsOnOff, fmt_duration, fmt_hertz, fmt_player_input, generate_timestamp},
     game_modding::{self, Combo},
     game_mode_presets::GameModePreset,
     game_renderers::{Renderer, ShowStats, TetroTUIRenderer},
@@ -1014,7 +1014,7 @@ impl<T: Write> Application<T> {
             let preset_game = build(&builder);
 
             let preset_game_meta_data = GameMetaData {
-                datetime: chrono::Utc::now().format("%Y-%m-%d_%H:%M").to_string(),
+                timestamp: generate_timestamp(),
                 title: title.to_owned(),
                 show_stats: *show_stats,
                 stat_and_desc_order: *stat_and_is_order_desc,
@@ -1091,7 +1091,7 @@ impl<T: Write> Application<T> {
             const CUSTOM_SHOW_STATS: ShowStats = ShowStats::all();
 
             let custom_game_meta_data = GameMetaData {
-                datetime: chrono::Utc::now().format("%Y-%m-%d_%H:%M").to_string(),
+                timestamp: generate_timestamp(),
                 title,
                 show_stats: CUSTOM_SHOW_STATS,
                 stat_and_desc_order: (Stat::PointsScored(0), false),

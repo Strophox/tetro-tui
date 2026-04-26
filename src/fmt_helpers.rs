@@ -7,6 +7,10 @@ use crate::tui_settings::GameKeybinds;
 
 pub type KeybindsLegend = Vec<(/*(KeyCode, KeyModifiers)*/ String, &'static str)>;
 
+pub fn generate_timestamp() -> String {
+    chrono::Utc::now().format("%Y-%m-%d_%H:%M.%S").to_string()
+}
+
 pub trait BoolAsOnOff {
     fn on_off(self) -> &'static str;
 }

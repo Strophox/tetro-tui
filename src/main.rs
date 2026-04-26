@@ -108,7 +108,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]
 pub struct GameMetaData {
-    pub datetime: String,
+    pub timestamp: String,
     pub title: String,
     pub show_stats: ShowStats,
     pub stat_and_desc_order: (Stat, bool),
@@ -243,8 +243,8 @@ impl Scoreboard {
     fn sort_chronologically(&mut self) {
         self.entries.sort_by(|(pg1, _), (pg2, _)| {
             pg1.game_meta_data
-                .datetime
-                .cmp(&pg2.game_meta_data.datetime)
+                .timestamp
+                .cmp(&pg2.game_meta_data.timestamp)
                 .reverse()
         });
     }
@@ -502,9 +502,11 @@ impl<T: Write> Application<T> {
         std::panic::set_hook(Box::new(|panic_info| {
             #[cfg(debug_assertions)]
             {
+                use crate::fmt_helpers::generate_timestamp;
+
                 let crash_file_name = format!(
                     "tetro-tui_v{VERSION}_panic-info_{}.txt",
-                    chrono::Utc::now().format("%Y-%m-%d_%Hh%Mm%Ss")
+                    generate_timestamp()
                 );
                 if let Ok(mut file) = std::fs::File::create(crash_file_name) {
                     use std::io::Write;

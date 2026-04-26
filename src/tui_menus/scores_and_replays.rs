@@ -79,7 +79,7 @@ impl<T: Write> Application<T> {
                 ),
             )| {
                 let lhs_annotation = match sorting {
-                    ScoreboardSorting::Chronological => entry.game_meta_data.datetime.to_owned(),
+                    ScoreboardSorting::Chronological => entry.game_meta_data.timestamp.to_owned(),
                     ScoreboardSorting::ModeDependent | ScoreboardSorting::GameStat(_) => {
                         format!("{rank: >2}{}", if rank == 1 { '#' } else { '.' })
                     }
