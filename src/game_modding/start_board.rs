@@ -16,7 +16,7 @@ impl StartBoard {
     pub fn build(builder: &GameBuilder, encoded_board: String) -> Game {
         let modifier = Box::new(Self { encoded_board });
 
-        builder.clone().build_modded(vec![modifier])
+        builder.build_modded(vec![modifier])
     }
 }
 

@@ -22,7 +22,7 @@ pub fn mino_symbols_presets() -> SlotMachine<MinoTextures> {
         ("Elektronika 60".to_owned(), MinoTextures::elektronika_60()),
     ];
 
-    SlotMachine::with_unmodifiable_slots(slots, "Mino textures".to_owned())
+    SlotMachine::with_unmodifiable_slots(slots, "Mino symbols".to_owned())
 }
 
 impl MinoTextures {

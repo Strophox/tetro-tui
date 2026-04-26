@@ -44,10 +44,10 @@ impl Combo {
         let modifier = Box::new(Self {
             config,
             height_loaded: 0,
-            cached_stats: [format!("Current combo: {}", 0)],
+            cached_stats: [Self::fmt_current_combo(0)],
         });
 
-        builder.clone().build_modded(vec![modifier])
+        builder.build_modded(vec![modifier])
     }
 }
 
@@ -127,7 +127,7 @@ impl GameModifier for Combo {
         game.state.board[HEIGHT - 1] = Self::combo_lines(&mut self.height_loaded).next().unwrap();
 
         // Overwrite with combo length.
-        self.cached_stats[0] = format!("Current combo: {}", game.state.consecutive_lineclears);
+        self.cached_stats[0] = Self::fmt_current_combo(game.state.consecutive_lineclears);
     }
 }
 
@@ -143,6 +143,10 @@ impl Combo {
                                0b1000_1000_1100_1100, // "b"
                                0b0000_0000_1110_1011, // "rl"*/
     ];
+
+    fn fmt_current_combo(current_combo: u32) -> String {
+        format!("Current combo: {current_combo}")
+    }
 
     fn combo_lines<'a>(height_loaded: &'a mut usize) -> impl Iterator<Item = Line> + 'a {
         let rainbow_tiles = [

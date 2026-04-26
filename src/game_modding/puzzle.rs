@@ -31,7 +31,7 @@ impl Puzzle {
             stage_tet_count: 0,
             stage_attempts: 0,
             end_post_spawn: None,
-            cached_stats: [format!("Stage {}", 1)],
+            cached_stats: [Self::fmt_stage_progress(0)],
         });
 
         builder
@@ -79,7 +79,7 @@ impl GameModifier for Puzzle {
             // ));
             if game.config.send_notifications {
                 feed.push((
-                    Notification::Custom(format!("Stage {}", self.stage_idx + 1)),
+                    Notification::Custom(Self::fmt_stage_progress(self.stage_idx)),
                     *time,
                 ));
                 feed.push((Notification::Custom("Clear to advance!".to_string()), *time));
@@ -130,11 +130,11 @@ impl GameModifier for Puzzle {
             // ));
             if game.config.send_notifications {
                 feed.push((
-                    Notification::Custom(format!("Stage {}", self.stage_idx + 1)),
+                    Notification::Custom(Self::fmt_stage_progress(self.stage_idx)),
                     *time,
                 ));
             }
-            self.cached_stats[0] = format!("Stage {}", self.stage_idx + 1);
+            self.cached_stats[0] = Self::fmt_stage_progress(self.stage_idx);
         } else {
             // Reattempt stage.
             self.stage_attempts += 1;
@@ -228,6 +228,10 @@ impl Puzzle {
 impl Puzzle {
     const MAX_STAGE_ATTEMPTS: usize = 4;
     const STAGES_LEN: usize = 24;
+
+    fn fmt_stage_progress(stage_idx: usize) -> String {
+        format!("Stage {}", stage_idx + 1)
+    }
 
     #[allow(clippy::type_complexity)]
     #[rustfmt::skip]

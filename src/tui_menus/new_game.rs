@@ -947,6 +947,7 @@ impl<T: Write> Application<T> {
             GameModePreset::swift(),
             GameModePreset::regular(),
             GameModePreset::puzzle(),
+            GameModePreset::survival(self.settings.game_mode_preferences.survival_config),
             GameModePreset::cheese(
                 self.settings.game_mode_preferences.cheese_config,
                 self.settings

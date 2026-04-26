@@ -6,6 +6,7 @@ mod print_msgs;
 mod print_recency_stats;
 mod puzzle;
 mod start_board;
+mod survival;
 
 use falling_tetromino_engine::{Game, GameBuilder, GameModifier};
 
@@ -17,6 +18,7 @@ pub use combo::{Combo, ComboConfig};
 pub use print_msgs::PrintMsgs;
 pub use puzzle::Puzzle;
 pub use start_board::StartBoard;
+pub use survival::{Survival, SurvivalConfig};
 
 pub fn reconstruct_modded<'a>(
     builder: &'a GameBuilder,
@@ -60,6 +62,10 @@ pub fn reconstruct_modded<'a>(
         } else if mod_id == Cheese::MOD_ID {
             let config: CheeseConfig = get_mod_config(mod_cfg_str, mod_id)?;
             let build = Box::new(move |builder| Cheese::build(builder, config));
+            store_building_mod(mod_id, build)?;
+        } else if mod_id == Survival::MOD_ID {
+            let config: SurvivalConfig = get_mod_config(mod_cfg_str, mod_id)?;
+            let build = Box::new(move |builder| Survival::build(builder, config));
             store_building_mod(mod_id, build)?;
         } else if mod_id == Combo::MOD_ID {
             let config: ComboConfig = get_mod_config(mod_cfg_str, mod_id)?;

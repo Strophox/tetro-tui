@@ -83,7 +83,7 @@ pub fn line_clear_effect_presets() -> SlotMachine<LineClearEffect> {
         ("Sparks ASCII".to_owned(), LineClearEffect::sparks_ascii()),
     ];
 
-    SlotMachine::with_unmodifiable_slots(slots, "Lineclear".to_owned())
+    SlotMachine::with_unmodifiable_slots(slots, "Line clear".to_owned())
 }
 
 impl LineClearEffect {

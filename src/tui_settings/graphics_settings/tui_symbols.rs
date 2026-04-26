@@ -107,7 +107,7 @@ pub fn tui_symbols_presets() -> SlotMachine<TuiSymbols> {
         ("Elektronika 60".to_owned(), TuiSymbols::elektronika_60()),
     ];
 
-    SlotMachine::with_unmodifiable_slots(slots, "TUI style".to_owned())
+    SlotMachine::with_unmodifiable_slots(slots, "TUI symbols".to_owned())
 }
 
 impl TuiSymbols {

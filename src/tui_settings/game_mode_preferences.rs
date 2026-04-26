@@ -1,12 +1,13 @@
 use falling_tetromino_engine::{Configuration, DelayData, ExtDuration, Stat};
 
-use crate::game_modding::{CheeseConfig, ComboConfig};
+use crate::game_modding::{CheeseConfig, ComboConfig, SurvivalConfig};
 
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]
 pub struct GameModePreferences {
     pub custom_config: CustomModeConfig,
+    pub survival_config: SurvivalConfig,
     pub cheese_config: CheeseConfig,
     pub cheese_fall_and_lock_delays: (ExtDuration, ExtDuration),
     pub combo_config: ComboConfig,
@@ -18,6 +19,7 @@ impl Default for GameModePreferences {
     fn default() -> Self {
         Self {
             custom_config: CustomModeConfig::default(),
+            survival_config: SurvivalConfig::default(),
             cheese_config: CheeseConfig::default(),
             cheese_fall_and_lock_delays: (ExtDuration::Infinite, ExtDuration::Infinite),
             combo_config: ComboConfig::default(),

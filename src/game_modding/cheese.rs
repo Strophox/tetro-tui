@@ -24,8 +24,9 @@ use crate::{savefile_logic::to_savefile_string, tui_settings::Palette};
 pub struct Cheese {
     // Modifier configuration.
     config: CheeseConfig,
+
     // Modifier state fields.
-    cheese_eaten_up: u32,
+    cheese_eaten: u32,
     temp_last_clear_actual_cheese_lines: usize,
     cheese_generated: u32,
     last_hole_pattern_generated: Vec<usize>,
@@ -57,14 +58,14 @@ impl Cheese {
     pub fn build(builder: &GameBuilder, config: CheeseConfig) -> Game {
         let modifier = Box::new(Self {
             config,
-            cheese_eaten_up: 0,
+            cheese_eaten: 0,
             temp_last_clear_actual_cheese_lines: 0,
             cheese_generated: 0,
             last_hole_pattern_generated: Vec::new(),
-            cached_stats: [format!("Cheese eaten: {}", 0)],
+            cached_stats: [Self::fmt_cheese_eaten(0)],
         });
 
-        builder.clone().build_modded(vec![modifier])
+        builder.build_modded(vec![modifier])
     }
 }
 
@@ -86,7 +87,7 @@ impl GameModifier for Cheese {
     }
 
     fn on_game_built(&mut self, game: GameAccess) {
-        let cheese_lines = Self::prng_cheese_lines(
+        let cheese_lines = Self::cheese_lines(
             &self.config,
             &mut self.last_hole_pattern_generated,
             &mut self.cheese_generated,
@@ -108,7 +109,7 @@ impl GameModifier for Cheese {
                 // Check if line is a cheese one.
                 if line.contains(&Some(Palette::GRAY)) {
                     // In theory would never underflow.
-                    self.cheese_eaten_up += 1;
+                    self.cheese_eaten += 1;
                     self.temp_last_clear_actual_cheese_lines += 1;
                 }
             }
@@ -117,7 +118,7 @@ impl GameModifier for Cheese {
 
     fn on_lines_clear_post(&mut self, game: GameAccess, _feed: &mut NotificationFeed) {
         if let Some(limit) = self.config.limit
-            && self.cheese_eaten_up >= limit.get()
+            && self.cheese_eaten >= limit.get()
         {
             *game.phase = Phase::GameEnd {
                 cause: GameEndCause::Custom("All cheese devoured".to_owned()),
@@ -126,25 +127,30 @@ impl GameModifier for Cheese {
             return;
         }
 
-        let cheese_lines = Self::prng_cheese_lines(
+        let cheese_lines = Self::cheese_lines(
             &self.config,
             &mut self.last_hole_pattern_generated,
             &mut self.cheese_generated,
             &mut game.state.rng,
         );
 
-        for cheese in cheese_lines.take(self.temp_last_clear_actual_cheese_lines) {
+        for cheese_line in cheese_lines.take(self.temp_last_clear_actual_cheese_lines) {
             game.state.board.rotate_right(1);
-            game.state.board[0] = cheese;
+            game.state.board[0] = cheese_line;
         }
 
-        self.cached_stats[0] = format!("Cheese eaten: {}", self.cheese_eaten_up);
-        game.state.points = self.cheese_eaten_up;
+        self.cached_stats[0] = Self::fmt_cheese_eaten(self.cheese_eaten);
+        // FIXME: Do not store this in points...
+        game.state.points = self.cheese_eaten;
     }
 }
 
 impl Cheese {
-    fn prng_cheese_lines<'a>(
+    fn fmt_cheese_eaten(cheese_eaten: u32) -> String {
+        format!("Cheese eaten: {}", cheese_eaten)
+    }
+
+    pub(in crate::game_modding) fn cheese_lines<'a>(
         config: &'a CheeseConfig,
         last_hole_pattern_generated: &'a mut Vec<usize>,
         generated: &'a mut u32,

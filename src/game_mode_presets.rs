@@ -4,7 +4,7 @@ use either::Either;
 use falling_tetromino_engine::{DelayParameters, ExtDuration, Game, GameBuilder, GameLimits, Stat};
 
 use crate::{
-    game_modding::{self, CheeseConfig, ComboConfig},
+    game_modding::{self, CheeseConfig, ComboConfig, SurvivalConfig},
     game_renderers::ShowStats,
 };
 
@@ -101,6 +101,25 @@ impl GameModePreset {
             show_stats: ShowStats::TIME,
             stat_and_is_order_desc: (Stat::TimeElapsed(Duration::ZERO), true),
             build: Box::new(game_modding::Puzzle::build),
+        }
+    }
+
+    pub const TITLE_SURVIVAL: &str = "Survival";
+    pub fn survival(config: SurvivalConfig) -> Self {
+        Self {
+            title: Self::TITLE_SURVIVAL.to_owned(),
+            description: "Survive lines that regenerate with pieces placed.".to_owned(),
+            show_stats: ShowStats::TIME | ShowStats::LINES | ShowStats::PIECES,
+            stat_and_is_order_desc: (Stat::PiecesLocked(0), true),
+            build: Box::new({
+                move |builder: &GameBuilder| {
+                    let mut builder = builder.clone();
+                    builder.fall_delay_curve(Either::Left(DelayParameters::constant(
+                        Duration::from_secs_f64(1.0).into(),
+                    )));
+                    game_modding::Survival::build(&builder, config)
+                }
+            }),
         }
     }
 
