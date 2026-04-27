@@ -37,6 +37,7 @@ impl Renderer for BrailleRenderer {
         self.y = y;
         self.w = w;
         self.h = h;
+        self.cached_board = Board::default();
     }
 
     fn render<T: Write>(

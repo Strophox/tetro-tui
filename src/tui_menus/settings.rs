@@ -133,7 +133,10 @@ impl<T: Write> Application<T> {
                             [
                                 ("Enter e", "Select"),
                                 ("Escape Backspace q", "Exit menu"),
-                                ("Delete d", "Reset slot to default, reset savefile setting"),
+                                (
+                                    "Delete d",
+                                    "Reset slot to default, reset Keep save file setting",
+                                ),
                                 ("↓/↑ j/k", "Navigate down/up"),
                                 ("←/→ h/l", "Change slot, adjust value"),
                                 ("?", "Open Keybinds overview"),
