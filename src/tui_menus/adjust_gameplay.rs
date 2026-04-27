@@ -107,6 +107,11 @@ impl<T: Write> Application<T> {
                 .queue(Print(format!("{:^w_main$}", heading_line(&self.settings))))?;
 
             // Draw config selection.
+            let warning_star = if self.temp_data.kitty_detected {
+                ""
+            } else {
+                " *"
+            };
             let labels = [
                 format!("Piece rotation = {:?}", self.settings.gameplay().rotsys),
                 format!(
@@ -147,15 +152,19 @@ impl<T: Write> Application<T> {
                 ),
                 format!("Piece preview = {}", self.settings.gameplay().preview),
                 format!(
-                    "Delayed auto move (DAS) = {:?} *",
+                    "Delayed auto move (DAS) = {:?}{warning_star}",
                     self.settings.gameplay().das
                 ),
                 format!(
-                    "Auto repeat rate (ARR) = {:?} *",
+                    "Auto repeat rate (ARR) = {:?}{warning_star}",
                     self.settings.gameplay().arr
                 ),
                 format!(
-                    "Soft drop speedup (SDF) = {} *",
+                    "Delayed soft drop = {:?}{warning_star}",
+                    self.settings.gameplay().sdf.delayed_soft_drop
+                ),
+                format!(
+                    "Soft drop rate (SDF) = {}{warning_star}",
                     match self.settings.gameplay().sdf.factor_or_upperbound {
                         Either::Left(factor) => format!("{:.01}x gravity", factor.get()),
                         Either::Right(upperbound) =>
@@ -168,7 +177,7 @@ impl<T: Write> Application<T> {
                 ),
                 format!("Spawn delay (ARE) = {:?}", self.settings.gameplay().are),
                 format!(
-                    "Allow spawn actions (IRS/IHS/IMS/ITS) = {} *",
+                    "Allow spawn manipulation (hold-IRS/IHS/IMS/ITS) = {}{warning_star}",
                     self.settings.gameplay().initsys.on_off()
                 ),
                 format!(
@@ -195,22 +204,20 @@ impl<T: Write> Application<T> {
                         }
                     )))?;
             }
-            self.term
-                .queue(MoveTo(
-                    x_main,
-                    y_main + y_selection + 6 + u16::try_from(selection_len).unwrap(),
-                ))?
-                .queue(PrintStyledContent(
-                    format!(
-                        "{:^w_main$}",
-                        if self.temp_data.kitty_detected {
-                            "(*Should apply, since terminal seems to support enhanced-key-events)"
-                        } else {
+            if !self.temp_data.kitty_detected {
+                self.term
+                    .queue(MoveTo(
+                        x_main,
+                        y_main + y_selection + 6 + u16::try_from(selection_len).unwrap(),
+                    ))?
+                    .queue(PrintStyledContent(
+                        format!(
+                            "{:^w_main$}",
                             "(*Unlikely to apply, enhanced-key-events seem unsupported by terminal)"
-                        },
-                    )
-                    .italic(),
-                ))?;
+                        )
+                        .italic(),
+                    ))?;
+            }
 
             self.term.flush()?;
             // Wait for new input.

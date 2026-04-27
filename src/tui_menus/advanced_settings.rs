@@ -38,9 +38,14 @@ impl<T: Write> Application<T> {
                 .queue(Print(format!("{:^w_main$}", heading_line(&self.settings))))?;
 
             // Draw config selection.
+            let warning_star = if self.temp_data.kitty_detected {
+                ""
+            } else {
+                " *"
+            };
             let labels = [
                 format!(
-                    "Save contents: {}",
+                    "Savefile contents: {}",
                     match self.temp_data.save_on_exit {
                         SavefileGranularity::NoSavefile => "--Nothing",
                         SavefileGranularity::StoreSettings => "Only settings --No scores,replays",
@@ -51,11 +56,11 @@ impl<T: Write> Application<T> {
                     }
                 ),
                 format!(
-                    "Assume enhanced-key-events available = {} *",
+                    "Assume enhanced-key-events available = {}{warning_star}",
                     self.temp_data.kitty_assumed.on_off()
                 ),
                 format!(
-                    "Pause on focus lost = {} (may not work on some terminals)",
+                    "Pause on focus lost = {} (doesn't work on some terminals?)",
                     self.temp_data.pause_on_focus_lost.on_off()
                 ),
                 format!(
@@ -86,22 +91,20 @@ impl<T: Write> Application<T> {
                     )))?;
             }
 
-            self.term
-                .queue(MoveTo(
-                    x_main,
-                    y_main + y_selection + 4 + u16::try_from(selection_len).unwrap() + 2,
-                ))?
-                .queue(PrintStyledContent(
-                    format!(
-                        "{:^w_main$}",
-                        if self.temp_data.kitty_detected {
-                            "(*Should apply, since terminal seems to support enhanced-key-events)"
-                        } else {
+            if !self.temp_data.kitty_detected {
+                self.term
+                    .queue(MoveTo(
+                        x_main,
+                        y_main + y_selection + 4 + u16::try_from(selection_len).unwrap() + 2,
+                    ))?
+                    .queue(PrintStyledContent(
+                        format!(
+                            "{:^w_main$}",
                             "(*Unlikely to apply, enhanced-key-events seem unsupported by terminal)"
-                        },
-                    )
-                    .italic(),
-                ))?;
+                        )
+                        .italic(),
+                    ))?;
+            }
 
             let mut temp_offset = 0;
             if self.temp_data.save_on_exit != SavefileGranularity::NoSavefile {
