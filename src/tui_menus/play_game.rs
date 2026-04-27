@@ -669,6 +669,17 @@ impl<T: Write> Application<T> {
                                     };
                                 self.settings.graphics_selected %=
                                     self.settings.graphics_slotmachine.slots.len();
+                                let msg = format!(
+                                    "(Graphics: {})",
+                                    self.settings
+                                        .graphics_slotmachine
+                                        .grab(self.settings.graphics_selected)
+                                        .0
+                                );
+                                game_renderer.update_feed(
+                                    [(Notification::Custom(msg), game.state().time)],
+                                    &self.settings,
+                                );
                             }
 
                             // [Ctrl+Alt+L]: Reload app from savefile.
