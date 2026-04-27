@@ -1026,11 +1026,13 @@ impl<T: Write> Application<T> {
             let blank_input_history = RawInputHistory::default();
 
             (preset_game_meta_data, preset_game, blank_input_history)
-        } else if selection == game_modes.len() + 1 && let Some(GameSave {
+        } else if selection == game_modes.len() + 1
+            && let Some(GameSave {
                 game_meta_data,
                 game_restoration_data,
                 inputs_to_load,
-            }) = &self.game_saves.get() {
+            }) = &self.game_saves.get()
+        {
             // Load saved game.
 
             let restored_game = game_restoration_data.restore(*inputs_to_load);

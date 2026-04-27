@@ -1,5 +1,7 @@
 mod braille;
+#[allow(unused)]
 mod legacy_buffered;
+#[allow(unused)]
 mod prototype;
 mod standard_buffered;
 mod twoxel;
@@ -16,10 +18,10 @@ use crate::{
 };
 
 pub use braille::BrailleRenderer;
-pub use legacy_buffered::LegacyBufferedRenderer;
-pub use prototype::PrototypeRenderer;
 pub use standard_buffered::StandardBufferedRenderer;
 pub use twoxel::TwoxelRenderer;
+// pub use prototype::PrototypeRenderer;
+// pub use legacy_buffered::LegacyBufferedRenderer;
 
 // FIXME: Remove TetroTUIRenderer enum and make trait Renderer dyn-safe. It currently is not because:
 // We have this constructor call attached to it. In practice we'll have a separate `render_from_num_and_stat_selection` function
@@ -116,23 +118,22 @@ pub fn replay_keybinds_legend() -> KeybindsLegend {
 #[derive(PartialEq, PartialOrd, Clone, Debug)]
 pub enum TetroTUIRenderer {
     StandardBuffered(StandardBufferedRenderer),
-    LegacyBuffered(LegacyBufferedRenderer),
-    Prototype(PrototypeRenderer),
     Twoxel(TwoxelRenderer),
     Braille(BrailleRenderer),
+    // Prototype(PrototypeRenderer),
+    // LegacyBuffered(LegacyBufferedRenderer),
 }
 
 impl TetroTUIRenderer {
-    pub const NUM_VARIANTS: usize = 5;
+    pub const NUM_VARIANTS: usize = 3; //5;
 
     pub fn with_num(n: usize) -> Self {
         match n {
             0 => Self::StandardBuffered(StandardBufferedRenderer::default()),
-            1 => Self::LegacyBuffered(LegacyBufferedRenderer::default()),
-            2 => Self::Prototype(PrototypeRenderer::default()),
-            3 => Self::Twoxel(TwoxelRenderer::default()),
-            4 => Self::Braille(BrailleRenderer::default()),
-
+            1 => Self::Twoxel(TwoxelRenderer::default()),
+            2 => Self::Braille(BrailleRenderer::default()),
+            // 3 => Self::Prototype(PrototypeRenderer::default()),
+            // 4 => Self::LegacyBuffered(LegacyBufferedRenderer::default()),
             _ => Self::StandardBuffered(StandardBufferedRenderer::default()),
         }
     }
@@ -140,10 +141,10 @@ impl TetroTUIRenderer {
     pub fn name_from_num(n: usize) -> &'static str {
         match n {
             0 => "Standard",
-            1 => "Legacy",
-            2 => "Prototype",
-            3 => "Twoxel",
-            4 => "Braille",
+            1 => "Twoxel",
+            2 => "Braille",
+            // 3 => "Prototype",
+            // 4 => "Legacy",
             _ => "Standard",
         }
     }
@@ -157,20 +158,20 @@ impl Renderer for TetroTUIRenderer {
     ) {
         match self {
             TetroTUIRenderer::StandardBuffered(r) => r.update_feed(feed, settings),
-            TetroTUIRenderer::LegacyBuffered(r) => r.update_feed(feed, settings),
-            TetroTUIRenderer::Prototype(r) => r.update_feed(feed, settings),
             TetroTUIRenderer::Twoxel(r) => r.update_feed(feed, settings),
             TetroTUIRenderer::Braille(r) => r.update_feed(feed, settings),
+            // TetroTUIRenderer::Prototype(r) => r.update_feed(feed, settings),
+            // TetroTUIRenderer::LegacyBuffered(r) => r.update_feed(feed, settings),
         }
     }
 
     fn reset_veffects_state(&mut self) {
         match self {
             TetroTUIRenderer::StandardBuffered(r) => r.reset_veffects_state(),
-            TetroTUIRenderer::LegacyBuffered(r) => r.reset_veffects_state(),
-            TetroTUIRenderer::Prototype(r) => r.reset_veffects_state(),
             TetroTUIRenderer::Twoxel(r) => r.reset_veffects_state(),
             TetroTUIRenderer::Braille(r) => r.reset_veffects_state(),
+            // TetroTUIRenderer::Prototype(r) => r.reset_veffects_state(),
+            // TetroTUIRenderer::LegacyBuffered(r) => r.reset_veffects_state(),
         }
     }
 
@@ -183,18 +184,17 @@ impl Renderer for TetroTUIRenderer {
             TetroTUIRenderer::StandardBuffered(r) => {
                 r.reset_viewport_state_with_offset_and_area(offsets, dimensions)
             }
-            TetroTUIRenderer::LegacyBuffered(r) => {
-                r.reset_viewport_state_with_offset_and_area(offsets, dimensions)
-            }
-            TetroTUIRenderer::Prototype(r) => {
-                r.reset_viewport_state_with_offset_and_area(offsets, dimensions)
-            }
             TetroTUIRenderer::Twoxel(r) => {
                 r.reset_viewport_state_with_offset_and_area(offsets, dimensions)
             }
             TetroTUIRenderer::Braille(r) => {
                 r.reset_viewport_state_with_offset_and_area(offsets, dimensions)
-            }
+            } // TetroTUIRenderer::Prototype(r) => {
+              //     r.reset_viewport_state_with_offset_and_area(offsets, dimensions)
+              // }
+              // TetroTUIRenderer::LegacyBuffered(r) => {
+              //     r.reset_viewport_state_with_offset_and_area(offsets, dimensions)
+              // }
         }
     }
 
@@ -211,10 +211,10 @@ impl Renderer for TetroTUIRenderer {
     ) -> io::Result<()> {
         match self {
             TetroTUIRenderer::StandardBuffered(r) => r.render(term, game, meta_data, settings, temp_data, keybinds_legend, replay_extra),
-            TetroTUIRenderer::LegacyBuffered(r) => r.render(term, game, meta_data, settings, temp_data, keybinds_legend, replay_extra),
-            TetroTUIRenderer::Prototype(r) => r.render(term, game, meta_data, settings, temp_data, keybinds_legend, replay_extra),
             TetroTUIRenderer::Twoxel(r) => r.render(term, game, meta_data, settings, temp_data, keybinds_legend, replay_extra),
             TetroTUIRenderer::Braille(r) => r.render(term, game, meta_data, settings, temp_data, keybinds_legend, replay_extra),
+            // TetroTUIRenderer::Prototype(r) => r.render(term, game, meta_data, settings, temp_data, keybinds_legend, replay_extra),
+            // TetroTUIRenderer::LegacyBuffered(r) => r.render(term, game, meta_data, settings, temp_data, keybinds_legend, replay_extra),
         }
     }
 }
