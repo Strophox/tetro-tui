@@ -400,8 +400,14 @@ impl<T: Write> Application<T> {
                                         "Special keybinds".to_owned(),
                                         [
                                             ("Ctrl+D", "Forfeit game"),
-                                            ("Ctrl+R", "Restart game mode (overwrites current game!)"),
-                                            ("Ctrl+Z", "Undo last input (overwrites current game!)"),
+                                            (
+                                                "Ctrl+R",
+                                                "Restart game mode (overwrites current game!)",
+                                            ),
+                                            (
+                                                "Ctrl+Z",
+                                                "Undo last input (overwrites current game!)",
+                                            ),
                                             ("Ctrl+L", "Load game save (overwrites current game!)"),
                                             ("Ctrl+S", "Store game save"),
                                             ("Ctrl+E", "Store seed for custom game"),

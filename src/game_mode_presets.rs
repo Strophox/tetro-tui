@@ -108,7 +108,7 @@ impl GameModePreset {
     pub fn survival(config: SurvivalConfig) -> Self {
         Self {
             title: Self::TITLE_SURVIVAL.to_owned(),
-            description: "Survive lines that regenerate with pieces placed.".to_owned(),
+            description: "Survive lines that regenerate with placed pieces.".to_owned(),
             show_stats: ShowStats::TIME | ShowStats::LINES | ShowStats::PIECES,
             stat_and_is_order_desc: (Stat::PiecesLocked(0), true),
             build: Box::new({

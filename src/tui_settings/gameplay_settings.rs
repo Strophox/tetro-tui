@@ -81,7 +81,7 @@ impl GameplaySettings {
             das: Duration::from_millis(167), // ≈ 0.3s
             arr: Duration::from_millis(33),  // ≈ 0.5s / 8
             sdf: SoftDropSpeedup {
-                delayed_auto_drop: None,
+                delayed_soft_drop: None,
                 factor_or_upperbound: Either::Left(ExtNonNegF64::new(20.0).unwrap()), // = 20
             },
             lcd: Duration::from_millis(200), // (See spawn_delay.)
@@ -116,7 +116,7 @@ impl GameplaySettings {
             are: Duration::from_millis(33),   // ≈ 2 /59.73
             lcd: Duration::from_millis(1500), // ≈ 91 /59.73
             sdf: SoftDropSpeedup {
-                delayed_auto_drop: None,
+                delayed_soft_drop: None,
                 factor_or_upperbound: Either::Right(Duration::from_millis(50).into()), // ≈ 59.73 * (1/3 G)
             },
             initsys: false,
@@ -134,7 +134,7 @@ impl GameplaySettings {
             are: Duration::from_millis(0),   // ≈ ?
             lcd: Duration::from_millis(400), // ≈ ?
             sdf: SoftDropSpeedup {
-                delayed_auto_drop: None,
+                delayed_soft_drop: None,
                 factor_or_upperbound: Either::Left(ExtNonNegF64::from(1)), // ≈ No Soft Drop
             },
             initsys: false,

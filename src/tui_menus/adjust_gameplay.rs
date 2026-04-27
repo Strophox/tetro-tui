@@ -157,9 +157,9 @@ impl<T: Write> Application<T> {
                 format!(
                     "Soft drop speedup (SDF) = {} *",
                     match self.settings.gameplay().sdf.factor_or_upperbound {
-                        Either::Left(factor) => format!("{:.01}x", factor.get()),
+                        Either::Left(factor) => format!("{:.01}x gravity", factor.get()),
                         Either::Right(upperbound) =>
-                            format!("raise to {:.01} Hz", upperbound.as_hertz().get()),
+                            format!("raise gravity to {:.01} Hz", upperbound.as_hertz().get()),
                     }
                 ),
                 format!(
@@ -249,7 +249,7 @@ impl<T: Write> Application<T> {
                             [
                                 (
                                     "Alt+←/→ Alt+h/l",
-                                    "Adjust value of Piece randomizer, change Soft drop speedup",
+                                    "Finely adjust value of Piece randomizer, toggle Soft drop speedup mechanic",
                                 ),
                                 (
                                     "Ctrl+Alt+L",
@@ -393,11 +393,11 @@ impl<T: Write> Application<T> {
                                     StdTetGen::Reroll(RerollGen {
                                         aversion_to_last: 0,
                                         ..
-                                    }) => StdTetGen::snappy(),
-                                    StdTetGen::Reroll(_) => StdTetGen::uniform(),
-                                    StdTetGen::Stock(_) => StdTetGen::classic(),
-                                    StdTetGen::BalanceOut(_) => StdTetGen::bag(),
-                                    StdTetGen::Recency(_) => StdTetGen::balance_out(),
+                                    }) => StdTetGen::classic(),
+                                    StdTetGen::Reroll(_) => StdTetGen::bag(),
+                                    StdTetGen::Stock(_) => StdTetGen::balance_out(),
+                                    StdTetGen::BalanceOut(_) => StdTetGen::snappy(),
+                                    StdTetGen::Recency(_) => StdTetGen::uniform(),
                                 };
                         }
                     }
@@ -525,11 +525,11 @@ impl<T: Write> Application<T> {
                                     StdTetGen::Reroll(RerollGen {
                                         aversion_to_last: 0,
                                         ..
-                                    }) => StdTetGen::classic(),
-                                    StdTetGen::Reroll(_) => StdTetGen::bag(),
-                                    StdTetGen::Stock(_) => StdTetGen::balance_out(),
-                                    StdTetGen::BalanceOut(_) => StdTetGen::snappy(),
-                                    StdTetGen::Recency(_) => StdTetGen::uniform(),
+                                    }) => StdTetGen::snappy(),
+                                    StdTetGen::Reroll(_) => StdTetGen::uniform(),
+                                    StdTetGen::Stock(_) => StdTetGen::classic(),
+                                    StdTetGen::BalanceOut(_) => StdTetGen::bag(),
+                                    StdTetGen::Recency(_) => StdTetGen::balance_out(),
                                 };
                         }
                     }
