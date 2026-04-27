@@ -30,7 +30,7 @@ pub struct Cheese {
     temp_last_clear_actual_cheese_lines: usize,
     cheese_generated: u32,
     last_hole_pattern_generated: Vec<usize>,
-    cached_stats: [String; 1],
+    cached_stats: [String; 2],
 }
 
 #[derive(
@@ -47,7 +47,7 @@ impl Default for CheeseConfig {
         Self {
             holes_per_line: NonZeroUsize::MIN,
             ensure_distinct_holes: true,
-            limit: Some(NonZeroU32::try_from(20).unwrap()),
+            limit: Some(NonZeroU32::try_from(40).unwrap()),
         }
     }
 }
@@ -62,7 +62,7 @@ impl Cheese {
             temp_last_clear_actual_cheese_lines: 0,
             cheese_generated: 0,
             last_hole_pattern_generated: Vec::new(),
-            cached_stats: [Self::fmt_cheese_eaten(0)],
+            cached_stats: [Self::fmt_cheese_eaten(0), Self::fmt_efficiency(0, 0)],
         });
 
         builder.build_modded(vec![modifier])
@@ -140,6 +140,10 @@ impl GameModifier for Cheese {
         }
 
         self.cached_stats[0] = Self::fmt_cheese_eaten(self.cheese_eaten);
+        self.cached_stats[1] = Self::fmt_efficiency(
+            self.cheese_eaten,
+            game.state.pieces_locked.iter().sum::<u32>(),
+        );
         // FIXME: Do not store this in points...
         game.state.points = self.cheese_eaten;
     }
@@ -148,6 +152,17 @@ impl GameModifier for Cheese {
 impl Cheese {
     fn fmt_cheese_eaten(cheese_eaten: u32) -> String {
         format!("Cheese eaten: {}", cheese_eaten)
+    }
+
+    fn fmt_efficiency(cheese_eaten: u32, pieces: u32) -> String {
+        if pieces == 0 {
+            "Efficiency: -".to_owned()
+        } else {
+            format!(
+                "Efficiency: {:.03}",
+                f64::from(cheese_eaten) / f64::from(pieces)
+            )
+        }
     }
 
     pub(in crate::game_modding) fn cheese_lines<'a>(

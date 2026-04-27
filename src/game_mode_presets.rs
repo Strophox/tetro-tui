@@ -170,7 +170,7 @@ impl GameModePreset {
                 }
             ),
             description: format!(
-                "Get consecutive line clears. Limit={:?}{}",
+                "The first rule of Combo is Do not break the combo. Limit={:?}{}",
                 config.limit,
                 if config.start_layout != game_modding::Combo::LAYOUTS[0] {
                     format!(", Layout={:b}", config.start_layout)

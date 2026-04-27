@@ -314,7 +314,7 @@ impl Palette {
     }
 }
 
-// - Symphony of Serialzation Boilerplate -
+// -- ♪ Symphony of Serialization Boilerplate ♫ --
 
 // FIXME: Refactor using  #[serde(try_from = "FromType")]  and  #[serde(into = "IntoType")]  ? (See <https://serde.rs/container-attrs.html>)
 

@@ -235,7 +235,8 @@ pub fn increment_game_mode_derivative(game_mode_title: &mut String) {
                     break;
                 } else {
                     // Closing bracket with some digits. Happy path!
-                    game_mode_title.truncate(game_mode_title.len() - 1 - i);
+                    game_mode_title
+                        .truncate(game_mode_title.len() - 1/*bracket*/ - i /*chars*/);
                     game_mode_title.push_str(&format!("{}]", n + 1));
                     return;
                 }

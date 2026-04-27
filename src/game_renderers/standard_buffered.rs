@@ -434,19 +434,28 @@ impl Renderer for StandardBufferedRenderer {
                 stats.push(Some(("", {
                     let (partial_glyphs, full_glyph) = &tui_style.progressbar;
                     let w_progressbar = (W_ADD_ACTIVE_HUD + W_HOLD).saturating_sub(3);
-                    let progress = game.state().time.as_secs_f32() / replay_len.as_secs_f32();
-                    let granularity = if partial_glyphs.is_empty() {
+                    let progress = (game.state().time.as_secs_f32() / replay_len.as_secs_f32())
+                        .clamp(0.0, 1.0);
+                    let pip_granularity = if partial_glyphs.is_empty() {
                         1
                     } else {
                         partial_glyphs.len()
                     };
-                    let scaled =
-                        (progress * (w_progressbar as f32) * (granularity as f32)).round() as usize;
+                    let pips_available = (w_progressbar as f32) * (pip_granularity as f32);
+                    let pips_to_fill = (progress * pips_available).round() as usize;
+
                     let mut progress_bar = String::new();
-                    progress_bar.push_str(&full_glyph.to_string().repeat(scaled / granularity));
-                    if !scaled.is_multiple_of(granularity) {
-                        progress_bar.push(partial_glyphs[scaled % granularity]);
+
+                    progress_bar.push_str(
+                        &full_glyph
+                            .to_string()
+                            .repeat(pips_to_fill / pip_granularity),
+                    );
+
+                    if !pips_to_fill.is_multiple_of(pip_granularity) {
+                        progress_bar.push(partial_glyphs[pips_to_fill % pip_granularity]);
                     }
+                    // Padding.
                     progress_bar.push_str(
                         &" ".repeat(w_progressbar as usize - progress_bar.chars().count()),
                     );
