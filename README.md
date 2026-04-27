@@ -207,8 +207,8 @@ cargo run
 > | `↓`/`↑`, `j`/`k` | Navigate down/up |
 > | `←`/`→`, `h`/`l` | Adjust value |
 > | `?` | Open Keybinds Overview |
-> | `Ctrl`+`Alt`+`L` | Re-load from savefile (Caution: overwrites current data!) |
-> | `Ctrl`+`Alt`+`S` | Do savefile storage (respects save preferences) |
+> | `Ctrl`+`Alt`+`L` | Reload app from savefile (Caution: overwrites current data!) |
+> | `Ctrl`+`Alt`+`S` | Perform savefile store (respects save preferences) |
 > | `Ctrl`+`C` | Exit program (respects save preferences) |
 >
 > Specific to 'Scores and Replays':
@@ -267,8 +267,8 @@ cargo run
 > | `Ctrl`+`E` | Store seed (accessible in 'Start New Game'⇝'Custom') |
 > | `Ctrl`(+`Alt`)+`G` | Cycle through graphics settings slots |
 > | `Ctrl`+`Alt`+`B` | Toggle on/off visibility of tiles ('Blindfolded') |
-> | `Ctrl`+`Alt`+`L` | Re-load from savefile (Caution: overwrites current data!) |
-> | `Ctrl`+`Alt`+`S` | Do savefile storage (respects save preferences) |
+> | `Ctrl`+`Alt`+`L` | Reload app from savefile (Caution: overwrites current data!) |
+> | `Ctrl`+`Alt`+`S` | Perform savefile store (respects save preferences) |
 > | `Ctrl`+`C` | Exit program (respects save preferences) |
 > 
 > </details>
@@ -301,8 +301,8 @@ cargo run
 > | `Ctrl`+`E` | Store seed (accessible in 'Start New Game'⇝'Custom') |
 > | `Alt`+`I` | (Experimental) Toggle instantaneous interactive input intervention mode |
 > | `Ctrl`(+`Alt`)+`G` | Cycle through Graphics Settings slots |
-> | `Ctrl`+`Alt`+`L` | Re-load from savefile (Caution: overwrites current data!) |
-> | `Ctrl`+`Alt`+`S` | Do savefile storage (respects save preferences) |
+> | `Ctrl`+`Alt`+`L` | Reload app from savefile (Caution: overwrites current data!) |
+> | `Ctrl`+`Alt`+`S` | Perform savefile store (respects save preferences) |
 > | `Ctrl`+`C` | Exit program (respects save preferences) |
 > 
 > </details>

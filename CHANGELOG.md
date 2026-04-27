@@ -72,7 +72,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fixed unloadable savefile due to floating point `inf`inity not being representable in strict json.
 - Make experimental input mode toggle during replays work (`Alt+I` instead of `Ctrl+I`).
-- Allow hot re-loading from savefile (`Ctrl+Alt+L`) from every menu now.
+- Allow hot Reloading from savefile (`Ctrl+Alt+L`) from every menu now.
 
 
 ## [3.0.0] - 2026-04-16
@@ -95,7 +95,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New keybinds:
     * Game: `Ctrl+R` to **restart game** mode!
     * Game/Replay: `Ctrl(+Alt)+G` to cycle through graphics slots in-game
-    * Game/Replay: `Ctrl+Alt+L` to re-load savefile data (e.g. for graphics settings experimentation, but current app data gets overwritten).
+    * Game/Replay: `Ctrl+Alt+L` to Reload savefile data (e.g. for graphics settings experimentation, but current app data gets overwritten).
     * Replay: `Ctrl+L` to toggle loop.
 - Experimental 'pause on focus lost' option in Advanced settings.
 - All-time statistics menu.

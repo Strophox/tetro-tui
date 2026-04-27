@@ -198,17 +198,21 @@ impl<T: Write> Application<T> {
                         }
                     )))?;
             }
+
             self.term
                 .queue(MoveTo(
                     x_main,
                     y_main + y_selection + 5 + u16::try_from(n_names).unwrap() + 2,
                 ))?
                 .queue(PrintStyledContent(
-                    format!(
-                        "{:^w_main$}",
-                        "[Enter/Esc/Del/←↓↑→] or Vim, [?] to view keybinds anywhere",
-                    )
-                    .italic(),
+                    format!("{:^w_main$}", "[Enter/Esc/Del/←↓↑→] or Vim,",).italic(),
+                ))?
+                .queue(MoveTo(
+                    x_main,
+                    y_main + y_selection + 5 + u16::try_from(n_names).unwrap() + 3,
+                ))?
+                .queue(PrintStyledContent(
+                    format!("{:^w_main$}", "press [?] to view keybinds anytime",).italic(),
                 ))?;
 
             self.term.flush()?;
@@ -247,11 +251,11 @@ impl<T: Write> Application<T> {
                             [
                                 (
                                     "Ctrl+Alt+L",
-                                    "Re-load from savefile (overwrites current data!)",
+                                    "Reload app from savefile (overwrites current data!)",
                                 ),
                                 (
                                     "Ctrl+Alt+S",
-                                    "Do savefile storage (respects save preferences)",
+                                    "Perform savefile store (respects save preferences)",
                                 ),
                                 ("Ctrl+C", "Exit program (respects save preferences)"),
                             ]

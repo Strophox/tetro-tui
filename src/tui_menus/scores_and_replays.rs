@@ -264,11 +264,11 @@ impl<T: Write> Application<T> {
                                 ("Alt+Delete Alt+d", "Delete replay of selected only"),
                                 (
                                     "Ctrl+Alt+L",
-                                    "Re-load from savefile (overwrites current data!)",
+                                    "Reload app from savefile (overwrites current data!)",
                                 ),
                                 (
                                     "Ctrl+Alt+S",
-                                    "Do savefile storage (respects save preferences)",
+                                    "Perform savefile store (respects save preferences)",
                                 ),
                                 ("Ctrl+C", "Exit program (respects save preferences)"),
                             ]

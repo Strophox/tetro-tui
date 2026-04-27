@@ -222,8 +222,8 @@ impl<T: Write> Application<T> {
                                         ("Ctrl+E", "Store seed for custom game"),
                                         ("Alt+I", "(Experimental) Toggle instantaneous interactive input intervention mode"),
                                         ("Ctrl+G/Ctrl+Alt+G", "Cycle forward/backward through Graphics slots"),
-                                        ("Ctrl+Alt+L", "Re-load from savefile (overwrites current data!)"),
-                                        ("Ctrl+Alt+S", "Do savefile storage (respects save preferences)"),
+                                        ("Ctrl+Alt+L", "Reload app from savefile (overwrites current data!)"),
+                                        ("Ctrl+Alt+S", "Perform savefile store (respects save preferences)"),
                                         ("Ctrl+C", "Exit program (respects save preferences)"),
                                     ].into_iter().map(|(lhs,rhs)| (lhs.to_owned(), rhs.to_owned())).collect()),
                                 ];
@@ -599,7 +599,7 @@ impl<T: Write> Application<T> {
                                 );
                             }
 
-                            // [Ctrl+Alt+L]: Re-load from savefile.
+                            // [Ctrl+Alt+L]: Reload app from savefile.
                             (KeyCode::Char('l' | 'L'), _)
                                 if {
                                     modifiers

@@ -205,11 +205,11 @@ impl<T: Write> Application<T> {
                                 [
                                     (
                                         "Ctrl+Alt+L",
-                                        "Re-load from savefile (overwrites current data!)",
+                                        "Reload app from savefile (overwrites current data!)",
                                     ),
                                     (
                                         "Ctrl+Alt+S",
-                                        "Do savefile storage (respects save preferences)",
+                                        "Perform savefile store (respects save preferences)",
                                     ),
                                     ("Ctrl+C", "Exit program (respects save preferences)"),
                                 ]
@@ -283,7 +283,7 @@ impl<T: Write> Application<T> {
         }
     }
 
-    const EGG: &str = r#" ▀█▀ "I am like Solomon because I built God's temple, an operating system. God said 640x480 16 color graphics but the operating system is 64-bit and multi-cored! Go draw a 16 color elephant. Then, draw a 24-bit elephant in MS Paint and be enlightened. Artist stopped photorealism when the camera was invented. A cartoon is actually better than photorealistic. For the next thousand years, first-person shooters are going to get boring. Tetris looks good." - Terry Davis"#;
+    const EGG: &str = r#""I am like Solomon because I built God's temple, an operating system. God said 640x480 16 color graphics but the operating system is 64-bit and multi-cored! Go draw a 16 color elephant. Then, draw a 24-bit elephant in MS Paint and be enlightened. Artists stopped photorealism when the camera was invented. A cartoon is actually better than photorealistic. For the next thousand years, first-person shooters are going to get boring. Tetris looks good." - ▀█▀."#;
 
     /// A transitory menu that only consists of selectable links to other menus.
     pub fn run_liminal_menu(
@@ -351,11 +351,14 @@ impl<T: Write> Application<T> {
                         y_main + y_selection + 4 + u16::try_from(n_names).unwrap() + 2,
                     ))?
                     .queue(PrintStyledContent(
-                        format!(
-                            "{:^w_main$}",
-                            "[Enter/Esc/Del/←↓↑→] or Vim, [?] to view keybinds anywhere",
-                        )
-                        .italic(),
+                        format!("{:^w_main$}", "[Enter/Esc/Del/←↓↑→] or Vim,",).italic(),
+                    ))?
+                    .queue(MoveTo(
+                        x_main,
+                        y_main + y_selection + 4 + u16::try_from(n_names).unwrap() + 3,
+                    ))?
+                    .queue(PrintStyledContent(
+                        format!("{:^w_main$}", "press [?] to view keybinds anytime",).italic(),
                     ))?;
             }
             self.term.flush()?;
@@ -393,11 +396,11 @@ impl<T: Write> Application<T> {
                             [
                                 (
                                     "Ctrl+Alt+L",
-                                    "Re-load from savefile (overwrites current data!)",
+                                    "Reload app from savefile (overwrites current data!)",
                                 ),
                                 (
                                     "Ctrl+Alt+S",
-                                    "Do savefile storage (respects save preferences)",
+                                    "Perform savefile store (respects save preferences)",
                                 ),
                                 ("Ctrl+C", "Exit program (respects save preferences)"),
                             ]

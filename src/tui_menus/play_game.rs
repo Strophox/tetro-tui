@@ -417,11 +417,11 @@ impl<T: Write> Application<T> {
                                             ),
                                             (
                                                 "Ctrl+Alt+L",
-                                                "Re-load from savefile (overwrites current data!)",
+                                                "Reload app from savefile (overwrites current data!)",
                                             ),
                                             (
                                                 "Ctrl+Alt+S",
-                                                "Do savefile storage (respects save preferences)",
+                                                "Perform savefile store (respects save preferences)",
                                             ),
                                             ("Ctrl+C", "Exit program (respects save preferences)"),
                                         ]
@@ -671,7 +671,7 @@ impl<T: Write> Application<T> {
                                     self.settings.graphics_slotmachine.slots.len();
                             }
 
-                            // [Ctrl+Alt+L]: Re-load from savefile.
+                            // [Ctrl+Alt+L]: Reload app from savefile.
                             (KeyCode::Char('l' | 'L'), _)
                                 if {
                                     modifiers
