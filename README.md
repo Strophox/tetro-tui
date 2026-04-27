@@ -458,7 +458,7 @@ cargo run
 > Basic versions are simple to code up, but it gets surprisingly nontrivial when it comes to comprehensively supporting of modern/advanced features and slews of QOL mechanics while dealing with terminal limitations!
 > 
 > I've given it my best effort to implement a most featureful and customizable version that not only remains totally faithful to the basic idea of the game, but also runs and looks nice within the confines of a mere terminal - Enjoy!
-> ☻ [L. Werner](<https://github.com/Strophox>)
+> ☺ [L. Werner](<https://github.com/Strophox>)
 > 
 > </details>
 

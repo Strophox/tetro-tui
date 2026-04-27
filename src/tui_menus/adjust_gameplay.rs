@@ -41,13 +41,13 @@ impl<T: Write> Application<T> {
 
         let d_das = Duration::from_millis(1);
         let d_arr = Duration::from_millis(1);
+        let d_dsd = Duration::from_millis(5).into();
         let d_factor_sdf = ExtNonNegF64::new(0.5).unwrap();
         let d_upperbound_sdf = Duration::from_millis(5).into();
         let maxval_factor_sdf = ExtNonNegF64::from(40);
         let d_lcd = Duration::from_millis(5);
         let d_are = Duration::from_millis(5);
-
-        let d_dtf = Duration::from_millis(5);
+        let d_dtapfinesse = Duration::from_millis(5);
 
         let mut selected = 1usize;
         loop {
@@ -424,6 +424,17 @@ impl<T: Write> Application<T> {
                     }
                     6 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
+                        self.settings.gameplay_mut().sdf.delayed_soft_drop = Some(
+                            self.settings
+                                .gameplay_mut()
+                                .sdf
+                                .delayed_soft_drop
+                                .unwrap_or_default()
+                                + d_dsd,
+                        );
+                    }
+                    7 => {
+                        if_unmodifiable_clone_and_switch(&mut self.settings);
                         if modifiers.contains(KeyModifiers::ALT) {
                             self.settings.gameplay_mut().sdf =
                                 match self.settings.gameplay().sdf.factor_or_upperbound {
@@ -444,27 +455,27 @@ impl<T: Write> Application<T> {
                             }
                         }
                     }
-                    7 => {
+                    8 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.gameplay_mut().lcd += d_lcd;
                     }
-                    8 => {
+                    9 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.gameplay_mut().are =
                             self.settings.gameplay().are.saturating_add(d_are);
                     }
-                    9 => {
+                    10 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.gameplay_mut().initsys ^= true;
                     }
-                    10 => {
+                    11 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.gameplay_mut().dtapfinesse = Some(
                             self.settings
                                 .gameplay_mut()
                                 .dtapfinesse
                                 .unwrap_or_default()
-                                .saturating_add(d_dtf),
+                                .saturating_add(d_dtapfinesse),
                         );
                     }
                     _ => {}
@@ -557,6 +568,24 @@ impl<T: Write> Application<T> {
                     }
                     6 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
+                        self.settings.gameplay_mut().sdf.delayed_soft_drop = if self
+                            .settings
+                            .gameplay()
+                            .sdf
+                            .delayed_soft_drop
+                            .is_none_or(|d| d <= d_dsd)
+                        {
+                            None
+                        } else {
+                            self.settings
+                                .gameplay()
+                                .sdf
+                                .delayed_soft_drop
+                                .map(|d| d.saturating_sub(d_dsd))
+                        };
+                    }
+                    7 => {
+                        if_unmodifiable_clone_and_switch(&mut self.settings);
                         if modifiers.contains(KeyModifiers::ALT) {
                             self.settings.gameplay_mut().sdf =
                                 match self.settings.gameplay().sdf.factor_or_upperbound {
@@ -578,28 +607,28 @@ impl<T: Write> Application<T> {
                             }
                         }
                     }
-                    7 => {
+                    8 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.gameplay_mut().lcd =
                             self.settings.gameplay().lcd.saturating_sub(d_lcd);
                     }
-                    8 => {
+                    9 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.gameplay_mut().are =
                             self.settings.gameplay().are.saturating_sub(d_are);
                     }
-                    9 => {
+                    10 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.gameplay_mut().initsys ^= true;
                     }
-                    10 => {
+                    11 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.gameplay_mut().dtapfinesse = self
                             .settings
                             .gameplay()
                             .dtapfinesse
                             .unwrap_or_default()
-                            .checked_sub(d_dtf);
+                            .checked_sub(d_dtapfinesse);
                     }
                     _ => {}
                 },

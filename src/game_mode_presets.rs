@@ -110,7 +110,7 @@ impl GameModePreset {
             title: Self::TITLE_SURVIVAL.to_owned(),
             description: "Survive lines that regenerate with placed pieces.".to_owned(),
             show_stats: ShowStats::TIME | ShowStats::LINES | ShowStats::PIECES,
-            stat_and_is_order_desc: (Stat::PiecesLocked(0), true),
+            stat_and_is_order_desc: (Stat::LinesCleared(0), true),
             build: Box::new({
                 move |builder: &GameBuilder| {
                     let mut builder = builder.clone();
