@@ -311,7 +311,7 @@ impl<T: Write> Application<T> {
                             ("Ctrl+U", "Unlock all game modes"),
                             ("Ctrl+Alt+L", "Reload app from savefile (overwrites current data!)"),
                             ("Ctrl+Alt+S", "Perform savefile store (respects save preferences)"),
-                            ("Ctrl+C", "Exit program (respects save preferences)"),
+                            ("Ctrl+C", "Quit program (respects save preferences)"),
                         ].into_iter().map(|(lhs,rhs)| (lhs.to_owned(), rhs.to_owned())).collect()),
                     ];
 

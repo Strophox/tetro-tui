@@ -263,7 +263,7 @@ impl<T: Write> Application<T> {
                                     "Ctrl+Alt+S",
                                     "Perform savefile store (respects save preferences)",
                                 ),
-                                ("Ctrl+C", "Exit program (respects save preferences)"),
+                                ("Ctrl+C", "Quit program (respects save preferences)"),
                             ]
                             .into_iter()
                             .map(|(lhs, rhs)| (lhs.to_owned(), rhs.to_owned()))

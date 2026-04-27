@@ -209,7 +209,7 @@ cargo run
 > | `?` | Open Keybinds Overview |
 > | `Ctrl`+`Alt`+`L` | Reload app from savefile (Caution: overwrites current data!) |
 > | `Ctrl`+`Alt`+`S` | Perform savefile store (respects save preferences) |
-> | `Ctrl`+`C` | Exit program (respects save preferences) |
+> | `Ctrl`+`C` | Quit program (respects save preferences) |
 >
 > Specific to 'Scores and Replays':
 > | Keys | Meaning |
@@ -269,7 +269,7 @@ cargo run
 > | `Ctrl`+`Alt`+`B` | Toggle on/off visibility of tiles ('Blindfolded') |
 > | `Ctrl`+`Alt`+`L` | Reload app from savefile (Caution: overwrites current data!) |
 > | `Ctrl`+`Alt`+`S` | Perform savefile store (respects save preferences) |
-> | `Ctrl`+`C` | Exit program (respects save preferences) |
+> | `Ctrl`+`C` | Quit program (respects save preferences) |
 > 
 > </details>
 > 
@@ -303,7 +303,7 @@ cargo run
 > | `Ctrl`(+`Alt`)+`G` | Cycle through Graphics Settings slots |
 > | `Ctrl`+`Alt`+`L` | Reload app from savefile (Caution: overwrites current data!) |
 > | `Ctrl`+`Alt`+`S` | Perform savefile store (respects save preferences) |
-> | `Ctrl`+`C` | Exit program (respects save preferences) |
+> | `Ctrl`+`C` | Quit program (respects save preferences) |
 > 
 > </details>
 

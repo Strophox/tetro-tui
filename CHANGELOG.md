@@ -199,7 +199,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     * Now remembers which game you had selected when you return from watching a replay.
     * Switching between scoreboard ordering automatically keeps selection on same game as well.
 - Changes/refactors of in the game engine (falling-tetromino-engine v1.4) should make it more robust now; bugs fixed/prevented.
-- `Ctrl`+`C` should now consistently exit program + save (if applicable) from all menus.
+- `Ctrl`+`C` should now consistently Quit program + save (if applicable) from all menus.
 - 'ASCII' graphics should now properly only use ASCII graphics even for small tetromino previews, button state icons.
 
 ### Removed

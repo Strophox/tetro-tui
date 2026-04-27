@@ -193,7 +193,7 @@ impl<T: Write> Application<T> {
                         }
 
                         match (code, modifiers) {
-                            // [Ctrl+C]: Exit program.
+                            // [Ctrl+C]: Quit program.
                             (KeyCode::Char('c' | 'C'), KeyModifiers::CONTROL) => {
                                 break 'update_and_render MenuUpdate::Push(Menu::Quit);
                             }
@@ -224,7 +224,7 @@ impl<T: Write> Application<T> {
                                         ("Ctrl+G/Ctrl+Alt+G", "Cycle forward/backward through Graphics slots"),
                                         ("Ctrl+Alt+L", "Reload app from savefile (overwrites current data!)"),
                                         ("Ctrl+Alt+S", "Perform savefile store (respects save preferences)"),
-                                        ("Ctrl+C", "Exit program (respects save preferences)"),
+                                        ("Ctrl+C", "Quit program (respects save preferences)"),
                                     ].into_iter().map(|(lhs,rhs)| (lhs.to_owned(), rhs.to_owned())).collect()),
                                 ];
 

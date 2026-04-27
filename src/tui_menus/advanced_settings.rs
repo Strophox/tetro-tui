@@ -48,11 +48,12 @@ impl<T: Write> Application<T> {
                     "Savefile contents: {}",
                     match self.temp_data.save_on_exit {
                         SavefileGranularity::NoSavefile => "--Nothing",
-                        SavefileGranularity::StoreSettings => "Only settings --No scores,replays",
+                        SavefileGranularity::StoreSettings =>
+                            "Only settings,stats --No scoreboard,replays",
                         SavefileGranularity::StoreSettingsScores =>
-                            "Only settings,scores --No replays",
+                            "Only settings,stats,scoreboard --No replays",
                         SavefileGranularity::StoreSettingsScoresReplays =>
-                            "Everything (settings,scores,replays)",
+                            "Everything (settings,stats,scoreboard,replays)",
                     }
                 ),
                 format!(
@@ -233,7 +234,7 @@ impl<T: Write> Application<T> {
                                     "Ctrl+Alt+S",
                                     "Perform savefile store (respects save preferences)",
                                 ),
-                                ("Ctrl+C", "Exit program (respects save preferences)"),
+                                ("Ctrl+C", "Quit program (respects save preferences)"),
                             ]
                             .into_iter()
                             .map(|(lhs, rhs)| (lhs.to_owned(), rhs.to_owned()))
