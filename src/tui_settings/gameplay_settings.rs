@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use either::Either;
 use falling_tetromino_engine::{
-    Configuration, ExtNonNegF64, SoftDropSpeedup, StdPceRot, StdTetGen,
+    Configuration, ExtDuration, ExtNonNegF64, SoftDropRate, StdPceRot, StdTetGen,
 };
 
 use crate::tui_settings::SlotMachine;
@@ -19,7 +19,9 @@ pub struct GameplaySettings {
     pub das: Duration,
     #[serde_as(as = "serde_with::DurationSecondsWithFrac<f64>")]
     pub arr: Duration,
-    pub sdf: SoftDropSpeedup,
+    #[serde_as(as = "Option<serde_with::DurationSecondsWithFrac<f64>>")]
+    pub dsd: Option<Duration>,
+    pub sdr: SoftDropRate,
     #[serde_as(as = "serde_with::DurationSecondsWithFrac<f64>")]
     pub lcd: Duration,
     #[serde_as(as = "serde_with::DurationSecondsWithFrac<f64>")]
@@ -54,7 +56,8 @@ impl Default for GameplaySettings {
             preview: c.generate_piece_preview,
             das: c.delayed_auto_shift,
             arr: c.auto_repeat_rate,
-            sdf: c.soft_drop_speedup,
+            dsd: c.delayed_soft_drop,
+            sdr: c.soft_drop_rate,
             lcd: c.line_clear_duration,
             are: c.spawn_delay,
             initsys: c.allow_spawn_manipulation,
@@ -68,6 +71,7 @@ impl GameplaySettings {
         GameplaySettings {
             das: Duration::from_millis(110),
             arr: Duration::from_millis(0),
+            sdr: Either::Right(ExtDuration::ZERO),
             preview: 6,
             ..Self::default()
         }
@@ -80,11 +84,9 @@ impl GameplaySettings {
             preview: 3,
             das: Duration::from_millis(167), // ≈ 0.3s
             arr: Duration::from_millis(33),  // ≈ 0.5s / 8
-            sdf: SoftDropSpeedup {
-                delayed_soft_drop: None,
-                factor_or_upperbound: Either::Left(ExtNonNegF64::new(20.0).unwrap()), // = 20
-            },
-            lcd: Duration::from_millis(200), // (See spawn_delay.)
+            dsd: None,
+            sdr: Either::Left(ExtNonNegF64::new(20.0).unwrap()), // = 20
+            lcd: Duration::from_millis(200),                     // (See spawn_delay.)
             are: Duration::from_millis(50), // (Should be =0.2s but use that for line clear duration.)
             initsys: true,
             dtapfinesse: None,
@@ -100,7 +102,8 @@ impl GameplaySettings {
             arr: Duration::from_millis(100), // ≈ 6 /60.0988
             are: Duration::from_millis(250), // ≈ [10~)15(~18] /60.0988
             lcd: Duration::from_millis(333), // ≈ [17~)20 /60.0988
-            sdf: SoftDropSpeedup::classic(), // ≈ 60.0988 * (1/2 G) TODO
+            dsd: Some(Duration::from_millis(50)),
+            sdr: Either::Right(Duration::from_millis(33).into()), // ≈ 60.0988 * (1/2 G)
             initsys: false,
             dtapfinesse: None,
         }
@@ -115,10 +118,8 @@ impl GameplaySettings {
             arr: Duration::from_millis(150),  // ≈ 9 /59.73
             are: Duration::from_millis(33),   // ≈ 2 /59.73
             lcd: Duration::from_millis(1500), // ≈ 91 /59.73
-            sdf: SoftDropSpeedup {
-                delayed_soft_drop: None,
-                factor_or_upperbound: Either::Right(Duration::from_millis(50).into()), // ≈ 59.73 * (1/3 G)
-            },
+            dsd: None,
+            sdr: Either::Right(Duration::from_millis(50).into()), // ≈ 59.73 * (1/3 G)
             initsys: false,
             dtapfinesse: None,
         }
@@ -128,15 +129,13 @@ impl GameplaySettings {
         GameplaySettings {
             rotsys: StdPceRot::ClassicL,
             tetgen: StdTetGen::uniform(),
-            das: Duration::from_millis(350), // ≈ No DAS/ARR, but we add anyway.
+            das: Duration::from_millis(350), // ≈ Originally no DAS, but we add an interesting one for better feel if needed.
             preview: 1,
-            arr: Duration::from_millis(100), // ≈ No DAS/ARR, but we add anyway.
+            arr: Duration::from_millis(100), // ≈ Originally no ARR, but we add an interesting one for better feel if needed.
             are: Duration::from_millis(0),   // ≈ ?
             lcd: Duration::from_millis(400), // ≈ ?
-            sdf: SoftDropSpeedup {
-                delayed_soft_drop: None,
-                factor_or_upperbound: Either::Left(ExtNonNegF64::from(1)), // ≈ No Soft Drop
-            },
+            dsd: Some(Duration::from_millis(350)), // ≈ Originally no DSD, but we add an interesting one for better feel.
+            sdr: Either::Right(Duration::from_millis(100).into()), // ≈ Originally no SDF, but we add an interesting one for better feel.
             initsys: false,
             dtapfinesse: None,
         }

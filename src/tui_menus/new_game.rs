@@ -984,7 +984,8 @@ impl<T: Write> Application<T> {
             preview: prev,
             das,
             arr,
-            sdf,
+            dsd,
+            sdr,
             lcd,
             are,
             initsys,
@@ -999,7 +1000,8 @@ impl<T: Write> Application<T> {
             .generate_piece_preview(prev)
             .delayed_auto_shift(das)
             .auto_repeat_rate(arr)
-            .soft_drop_speedup(sdf)
+            .delayed_soft_drop(dsd)
+            .soft_drop_rate(sdr)
             .line_clear_duration(lcd)
             .spawn_delay(are)
             .allow_spawn_manipulation(initsys);

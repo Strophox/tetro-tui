@@ -41,7 +41,7 @@ impl<T: Write> Application<T> {
 
         let d_das = Duration::from_millis(1);
         let d_arr = Duration::from_millis(1);
-        let d_dsd = Duration::from_millis(5).into();
+        let d_dsd = Duration::from_millis(5);
         let d_factor_sdf = ExtNonNegF64::new(0.5).unwrap();
         let d_upperbound_sdf = Duration::from_millis(5).into();
         let maxval_factor_sdf = ExtNonNegF64::from(40);
@@ -161,11 +161,11 @@ impl<T: Write> Application<T> {
                 ),
                 format!(
                     "Delayed soft drop = {:?}{warning_star}",
-                    self.settings.gameplay().sdf.delayed_soft_drop
+                    self.settings.gameplay().dsd
                 ),
                 format!(
                     "Soft drop rate (SDF) = {}{warning_star}",
-                    match self.settings.gameplay().sdf.factor_or_upperbound {
+                    match self.settings.gameplay().sdr {
                         Either::Left(factor) => format!("{:.01}x gravity", factor.get()),
                         Either::Right(upperbound) =>
                             format!("raise gravity to {:.01} Hz", upperbound.as_hertz().get()),
@@ -424,25 +424,23 @@ impl<T: Write> Application<T> {
                     }
                     6 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.gameplay_mut().sdf.delayed_soft_drop = Some(
+                        self.settings.gameplay_mut().dsd = Some(
                             self.settings
                                 .gameplay_mut()
-                                .sdf
-                                .delayed_soft_drop
+                                .dsd
                                 .unwrap_or_default()
-                                + d_dsd,
+                                .saturating_add(d_dsd),
                         );
                     }
                     7 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         if modifiers.contains(KeyModifiers::ALT) {
-                            self.settings.gameplay_mut().sdf =
-                                match self.settings.gameplay().sdf.factor_or_upperbound {
-                                    Either::Left(_) => GameplaySettings::default().sdf,
-                                    Either::Right(_) => GameplaySettings::guideline().sdf,
-                                }
+                            self.settings.gameplay_mut().sdr = match self.settings.gameplay().sdr {
+                                Either::Left(_) => GameplaySettings::default().sdr,
+                                Either::Right(_) => GameplaySettings::guideline().sdr,
+                            }
                         } else {
-                            match self.settings.gameplay_mut().sdf.factor_or_upperbound {
+                            match self.settings.gameplay_mut().sdr {
                                 Either::Left(ref mut factor) => {
                                     *factor += d_factor_sdf;
                                     if *factor > maxval_factor_sdf {
@@ -568,32 +566,22 @@ impl<T: Write> Application<T> {
                     }
                     6 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.gameplay_mut().sdf.delayed_soft_drop = if self
+                        self.settings.gameplay_mut().dsd = self
                             .settings
                             .gameplay()
-                            .sdf
-                            .delayed_soft_drop
-                            .is_none_or(|d| d <= d_dsd)
-                        {
-                            None
-                        } else {
-                            self.settings
-                                .gameplay()
-                                .sdf
-                                .delayed_soft_drop
-                                .map(|d| d.saturating_sub(d_dsd))
-                        };
+                            .dsd
+                            .unwrap_or_default()
+                            .checked_sub(d_dsd);
                     }
                     7 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         if modifiers.contains(KeyModifiers::ALT) {
-                            self.settings.gameplay_mut().sdf =
-                                match self.settings.gameplay().sdf.factor_or_upperbound {
-                                    Either::Left(_) => GameplaySettings::default().sdf,
-                                    Either::Right(_) => GameplaySettings::guideline().sdf,
-                                }
+                            self.settings.gameplay_mut().sdr = match self.settings.gameplay().sdr {
+                                Either::Left(_) => GameplaySettings::default().sdr,
+                                Either::Right(_) => GameplaySettings::guideline().sdr,
+                            }
                         } else {
-                            match self.settings.gameplay_mut().sdf.factor_or_upperbound {
+                            match self.settings.gameplay_mut().sdr {
                                 Either::Left(ref mut factor) => {
                                     if *factor > maxval_factor_sdf {
                                         *factor = maxval_factor_sdf;
