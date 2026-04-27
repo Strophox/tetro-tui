@@ -1,4 +1,5 @@
 use crossterm::{QueueableCommand, cursor, style, terminal};
+use falling_tetromino_engine::Board;
 
 use super::*;
 
@@ -11,6 +12,7 @@ pub struct BrailleRenderer {
     y: u16,
     w: u16,
     h: u16,
+    cached_board: Board,
 }
 
 impl Renderer for BrailleRenderer {
@@ -53,6 +55,12 @@ impl Renderer for BrailleRenderer {
                 board[y as usize][x as usize] = Some(tile_id);
             }
         }
+
+        // Simple optimization: Do not do anything if board (=our entire view state) has not changed!
+        if board == self.cached_board {
+            return Ok(());
+        }
+        self.cached_board = board;
 
         let braille = BRAILLE.chars().collect::<Vec<char>>();
         let (delim_l, delim_r) = ('▐', '▌'); //'░';
