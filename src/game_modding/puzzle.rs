@@ -40,6 +40,7 @@ impl Puzzle {
                 Duration::from_millis(1000).into(),
             )))
             .generate_piece_preview(0)
+            .rotation_system(falling_tetromino_engine::StdPceRot::Ocular) // TODO: Write it somewhere that this is set so players don't get confused.
             .build_modded(vec![modifier])
     }
 }

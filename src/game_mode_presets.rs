@@ -1,7 +1,9 @@
 use std::time::Duration;
 
 use either::Either;
-use falling_tetromino_engine::{DelayParameters, ExtDuration, Game, GameBuilder, GameLimits, Stat};
+use falling_tetromino_engine::{
+    DelayParameters, DelayTable, ExtDuration, Game, GameBuilder, GameLimits, Stat,
+};
 
 use crate::{
     game_modding::{self, CheeseConfig, ComboConfig, SurvivalConfig},
@@ -49,6 +51,35 @@ impl GameModePreset {
                     .fall_delay_curve(Either::Left(DelayParameters::standard_fall()))
                     .lock_delay_curve(Some(Either::Left(DelayParameters::standard_lock())))
                     .game_limits(GameLimits::single(Stat::LinesCleared(150), true))
+                    .build()
+            }),
+        }
+    }
+
+    pub const TITLE_CLASSIC: &str = "CLASSIC (A-TYPE)";
+    pub fn classic() -> Self {
+        Self {
+            title: Self::TITLE_CLASSIC.to_owned(),
+            description: "'NES' Graphics Settings recommended(<-TODO: Implement).".to_owned(),
+            show_stats: ShowStats::TIME | ShowStats::LINES | ShowStats::PIECES_COUNTS,
+            stat_and_is_order_desc: (Stat::PointsScored(0), false),
+            build: Box::new(|builder: &GameBuilder| {
+                // let nes = tui_settings::GameplaySettings::nes();
+                builder
+                    .clone()
+                    .fall_delay_curve(Either::Right(DelayTable::classic_fall()))
+                    .lock_delay_curve(None)
+                    .game_limits(GameLimits::single(Stat::LinesCleared(2560), true))
+                    // .rotation_system(nes.rotsys)
+                    // .tetromino_generator(nes.tetgen)
+                    // .generate_piece_preview(nes.preview)
+                    // .delayed_auto_shift(nes.das)
+                    // .auto_repeat_rate(nes.arr)
+                    // .delayed_soft_drop(nes.dsd)
+                    // .soft_drop_rate(nes.sdr)
+                    // .line_clear_duration(nes.lcd)
+                    // .spawn_delay(nes.are)
+                    // .allow_spawn_manipulation(nes.initsys)
                     .build()
             }),
         }
@@ -136,7 +167,7 @@ impl GameModePreset {
                 }
             ),
             description: format!(
-                "Eat through lines like Swiss cheese. Limit={:?}",
+                "Efficiently eat through lines like cheese. Limit={:?}",
                 config.limit
             ),
             show_stats: ShowStats::TIME | ShowStats::LINES | ShowStats::PIECES,

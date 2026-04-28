@@ -60,15 +60,25 @@ impl<T: Write> Application<T> {
             let (x_main, y_main) = Self::viewport_offset();
             let y_selection = Self::H_MAIN / 5;
 
-            let game_modes = self.available_base_game_modes();
+            let game_modes = self.available_game_mode_presets();
 
             let game_save_available = if !self.game_saves.slots.is_empty() {
                 1
             } else {
                 0
             };
-            let idx_cheese = 3;
-            let idx_combo = 4;
+            let inc_if_mstr_unlckd = if self.settings.game_mode_preferences.unlock_master_mode {
+                1
+            } else {
+                0
+            };
+            let inc_if_clsc_unlckd = if self.settings.game_mode_preferences.unlock_classic_mode {
+                1
+            } else {
+                0
+            };
+            let idx_cheese = 3 + inc_if_mstr_unlckd + inc_if_clsc_unlckd;
+            let idx_combo = 5 + inc_if_mstr_unlckd + inc_if_clsc_unlckd;
             let idx_custom = game_modes.len();
             let opt_idx_game_save =
                 (!self.game_saves.slots.is_empty()).then_some(game_modes.len() + 1);
@@ -107,13 +117,7 @@ impl<T: Write> Application<T> {
                             + y_selection
                             + 4
                             + u16::try_from(i).unwrap()
-                            + if i
-                                >= 2 + if self.settings.game_mode_preferences.master_mode_unlocked {
-                                    1
-                                } else {
-                                    0
-                                }
-                            {
+                            + if i >= 2 + inc_if_mstr_unlckd + inc_if_clsc_unlckd {
                                 1
                             } else {
                                 0
@@ -926,10 +930,9 @@ impl<T: Write> Application<T> {
                     kind: Press | Repeat,
                     ..
                 }) => {
-                    self.settings.game_mode_preferences.master_mode_unlocked = true;
-                    self.settings
-                        .game_mode_preferences
-                        .experimental_mode_unlocked = true;
+                    self.settings.game_mode_preferences.unlock_master_mode = true;
+                    self.settings.game_mode_preferences.unlock_classic_mode = true;
+                    self.settings.game_mode_preferences.unlock_experimental_mode = true;
                 }
 
                 // Other event: don't care.
@@ -945,30 +948,31 @@ impl<T: Write> Application<T> {
         }
     }
 
-    pub fn available_base_game_modes(&self) -> Vec<GameModePreset> {
+    pub fn available_game_mode_presets(&self) -> Vec<GameModePreset> {
         let mut game_modes = vec![
             GameModePreset::swift(),
             GameModePreset::regular(),
             GameModePreset::puzzle(),
-            GameModePreset::survival(self.settings.game_mode_preferences.survival_config),
             GameModePreset::cheese(
                 self.settings.game_mode_preferences.cheese_config,
                 self.settings
                     .game_mode_preferences
                     .cheese_fall_and_lock_delays,
             ),
+            GameModePreset::survival(self.settings.game_mode_preferences.survival_config),
             GameModePreset::combo(self.settings.game_mode_preferences.combo_config),
         ];
 
-        if self.settings.game_mode_preferences.master_mode_unlocked {
+        if self.settings.game_mode_preferences.unlock_master_mode {
             game_modes.insert(2, GameModePreset::master());
         }
 
-        if self
-            .settings
-            .game_mode_preferences
-            .experimental_mode_unlocked
-        {
+        if self.settings.game_mode_preferences.unlock_classic_mode {
+            // ...Do not ask the programmer about what indices to use for `insert` results.
+            game_modes.insert(2, GameModePreset::classic());
+        }
+
+        if self.settings.game_mode_preferences.unlock_experimental_mode {
             game_modes.push(GameModePreset::ascent())
         }
 
@@ -976,7 +980,7 @@ impl<T: Write> Application<T> {
     }
 
     pub fn create_game_menu(&self, selection: usize) -> Menu {
-        let game_modes = self.available_base_game_modes();
+        let game_modes = self.available_game_mode_presets();
 
         let GameplaySettings {
             rotsys,

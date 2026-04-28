@@ -67,21 +67,18 @@ impl<T: Write> Application<T> {
         let animation_delay =
             std::time::Duration::from_secs_f64(self.settings.graphics().fps.get().recip());
 
+        // Unlock modes if specific modes beaten.
         if *is_win
             && game_meta_data.title == GameModePreset::TITLE_REGULAR
-            && !self.settings.game_mode_preferences.master_mode_unlocked
+            && (!self.settings.game_mode_preferences.unlock_master_mode || !self.settings.game_mode_preferences.unlock_classic_mode)
         {
-            self.settings.game_mode_preferences.master_mode_unlocked = true;
+            self.settings.game_mode_preferences.unlock_master_mode = true;
+            self.settings.game_mode_preferences.unlock_classic_mode = true;
         } else if *is_win
             && game_meta_data.title == GameModePreset::TITLE_PUZZLE
-            && !self
-                .settings
-                .game_mode_preferences
-                .experimental_mode_unlocked
+            && !self.settings.game_mode_preferences.unlock_experimental_mode
         {
-            self.settings
-                .game_mode_preferences
-                .experimental_mode_unlocked = true;
+            self.settings.game_mode_preferences.unlock_experimental_mode = true;
         }
 
         let mut selected = 0usize;
@@ -177,7 +174,7 @@ impl<T: Write> Application<T> {
                 ));
                 stats.push(fmt_tetromino_counts(
                     pieces_locked,
-                    &self.settings.mini_tetromino_symbols(),
+                    self.settings.mini_tetromino_symbols(),
                 ));
             }
 

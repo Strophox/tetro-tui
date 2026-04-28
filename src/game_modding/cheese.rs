@@ -159,8 +159,8 @@ impl Cheese {
             "Efficiency: -".to_owned()
         } else {
             format!(
-                "Efficiency: {:.03}",
-                f64::from(cheese_eaten) / f64::from(pieces)
+                "Efficiency: {:.01}%",
+                100.0 * f64::from(cheese_eaten) / f64::from(pieces)
             )
         }
     }

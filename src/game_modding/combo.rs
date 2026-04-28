@@ -160,7 +160,7 @@ impl Combo {
         ]
         .map(|tet| Some(tet.tile_id()));
 
-        let color_tiles_0 = (*height_loaded..).map(move |i| rainbow_tiles[i / 2 % 7]);
+        let color_tiles_0 = (*height_loaded..).map(move |i| rainbow_tiles[i / 3 % 7]);
         let color_tiles_1 = color_tiles_0.clone().skip(1);
 
         color_tiles_0

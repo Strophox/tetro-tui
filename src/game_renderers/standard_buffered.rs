@@ -400,10 +400,17 @@ impl Renderer for StandardBufferedRenderer {
             }
 
             if meta_data.show_stats.contains(ShowStats::PIECES_COUNTS) {
-                let mut tet_infos = game.state().pieces_locked
+                let mut tet_infos = game
+                    .state()
+                    .pieces_locked
                     .iter()
                     .zip(Tetromino::VARIANTS)
-                    .map(|(n, t)| format!("{n}{}", settings.mini_tetromino_symbols().tets[t as usize].to_ascii_lowercase()));
+                    .map(|(n, t)| {
+                        format!(
+                            "{n}{}",
+                            settings.mini_tetromino_symbols().tets[t as usize].to_ascii_lowercase()
+                        )
+                    });
                 let pieces_l1 = tet_infos.by_ref().take(4).collect::<Vec<_>>().join(" ");
                 let pieces_l2 = tet_infos.collect::<Vec<_>>().join(" ");
                 stats.push(Some(("", pieces_l1)));
@@ -982,10 +989,11 @@ impl Renderer for StandardBufferedRenderer {
                         let given = game.state().lock_delay.as_secs_ennf64();
                         // Only render if lock delay is nonzero
                         if !given.is_zero() && !given.is_infinite() && elapsed < given.get() {
-                            let str =
-                                &tui_symbols.timer[((tui_symbols.timer.len() as f64 - 1.0) * elapsed
-                                    / given.get())
-                                .floor() as usize];
+                            let str = &tui_symbols.timer[((tui_symbols.timer.len() as f64 - 1.0)
+                                * elapsed
+                                / given.get())
+                            .floor()
+                                as usize];
                             let color = ftch_col_or_rset(&Palette::WHITE);
                             #[rustfmt::skip] self.term_buf.write_str((w_tmp_ftl + 2 * (player_piece.position.0 as u16)).saturating_sub(1), h_tmp_ftl.saturating_sub(player_piece.position.1 as u16).saturating_add(1), str, color);
                         }

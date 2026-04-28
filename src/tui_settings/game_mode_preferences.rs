@@ -11,8 +11,9 @@ pub struct GameModePreferences {
     pub cheese_config: CheeseConfig,
     pub cheese_fall_and_lock_delays: (ExtDuration, ExtDuration),
     pub combo_config: ComboConfig,
-    pub master_mode_unlocked: bool,
-    pub experimental_mode_unlocked: bool,
+    pub unlock_master_mode: bool,
+    pub unlock_classic_mode: bool,
+    pub unlock_experimental_mode: bool,
 }
 
 impl Default for GameModePreferences {
@@ -23,8 +24,9 @@ impl Default for GameModePreferences {
             cheese_config: CheeseConfig::default(),
             cheese_fall_and_lock_delays: (ExtDuration::Infinite, ExtDuration::Infinite),
             combo_config: ComboConfig::default(),
-            master_mode_unlocked: false,
-            experimental_mode_unlocked: false,
+            unlock_master_mode: false,
+            unlock_classic_mode: false,
+            unlock_experimental_mode: false,
         }
     }
 }
