@@ -70,7 +70,8 @@ impl<T: Write> Application<T> {
         // Unlock modes if specific modes beaten.
         if *is_win
             && game_meta_data.title == GameModePreset::TITLE_REGULAR
-            && (!self.settings.game_mode_preferences.unlock_master_mode || !self.settings.game_mode_preferences.unlock_classic_mode)
+            && (!self.settings.game_mode_preferences.unlock_master_mode
+                || !self.settings.game_mode_preferences.unlock_classic_mode)
         {
             self.settings.game_mode_preferences.unlock_master_mode = true;
             self.settings.game_mode_preferences.unlock_classic_mode = true;
