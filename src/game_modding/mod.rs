@@ -1,6 +1,7 @@
 mod ascent;
 mod cheese;
 mod combo;
+mod display_finesse;
 mod print_msgs;
 #[allow(unused)]
 mod print_recency_stats;
@@ -15,6 +16,7 @@ use crate::savefile_logic::from_savefile_str;
 pub use ascent::Ascent;
 pub use cheese::{Cheese, CheeseConfig};
 pub use combo::{Combo, ComboConfig};
+pub use display_finesse::DisplayFinesse;
 pub use print_msgs::PrintMsgs;
 pub use puzzle::Puzzle;
 pub use start_board::StartBoard;
@@ -81,6 +83,9 @@ pub fn reconstruct_modded<'a>(
         } else if mod_id == PrintMsgs::MOD_ID {
             let messages: Vec<String> = get_mod_config(mod_cfg_str, mod_id)?;
             let modifier = PrintMsgs::modifier(messages);
+            compounding_mods.push(modifier);
+        } else if mod_id == DisplayFinesse::MOD_ID {
+            let modifier = DisplayFinesse::modifier();
             compounding_mods.push(modifier);
         } else {
             unrecognized_mod_ids.push(mod_id.to_owned());

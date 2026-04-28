@@ -1129,6 +1129,7 @@ impl<T: Write> Application<T> {
                 Err(_update_game_error) => {}
             }
         }
+        // FIXME: Make this accessible: game.modifiers.push(crate::game_modding::DisplayFinesse::modifier());
 
         Menu::PlayGame {
             game: game.into(),
