@@ -177,7 +177,7 @@ impl<T: Write> Application<T> {
                 ));
                 stats.push(fmt_tetromino_counts(
                     pieces_locked,
-                    &self.settings.mini_tetromino_symbols().tets,
+                    &self.settings.mini_tetromino_symbols(),
                 ));
             }
 

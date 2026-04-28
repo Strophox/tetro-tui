@@ -3,7 +3,7 @@ use std::time::Duration;
 use crossterm::event::{KeyCode, KeyModifiers};
 use falling_tetromino_engine::{Button, ExtNonNegF64, Input, Tetromino};
 
-use crate::tui_settings::GameKeybinds;
+use crate::tui_settings::{GameKeybinds, MiniTetrominoSymbols};
 
 pub type KeybindsLegend = Vec<(/*(KeyCode, KeyModifiers)*/ String, &'static str)>;
 
@@ -52,12 +52,17 @@ pub fn fmt_hertz(f: ExtNonNegF64) -> String {
 
 pub fn fmt_tetromino_counts(
     counts: &[u32; Tetromino::VARIANTS.len()],
-    mini_tet_glyphs: &[char; Tetromino::VARIANTS.len()],
+    mini_tet_symbols: &MiniTetrominoSymbols,
 ) -> String {
     counts
         .iter()
         .zip(Tetromino::VARIANTS)
-        .map(|(n, t)| format!("{n}{}", mini_tet_glyphs[t as usize].to_ascii_lowercase()))
+        .map(|(n, t)| {
+            format!(
+                "{n}{}",
+                mini_tet_symbols.tets[t as usize].to_ascii_lowercase()
+            )
+        })
         .collect::<Vec<_>>()
         .join(" ")
 }

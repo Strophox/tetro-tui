@@ -60,8 +60,9 @@ bitflags::bitflags! {
         const LINES = 0b0000_0010;
         const POINTS = 0b0000_0100;
         const PIECES = 0b0000_1000;
-        const GRAVITY = 0b0001_0000;
-        const LOCKDELAY = 0b0010_0000;
+        const PIECES_COUNTS = 0b0001_0000;
+        const GRAVITY = 0b0010_0000;
+        const LOCKDELAY = 0b0100_0000;
     }
 }
 

@@ -348,13 +348,13 @@ impl Renderer for StandardBufferedRenderer {
 
         // -- 'General TUI' rendering --
 
-        let tui_style = settings.tui_symbols();
+        let tui_symbols = settings.tui_symbols();
 
         // RENDER: Stats HUD.
 
         if hud_active {
             // Frame glyph.
-            let [c_m_tb] = tui_style.headingline;
+            let [c_m_tb] = tui_symbols.headingline;
             const W_TITLE_MARGIN: u16 = 2;
             let w_tmp_hudtl = w_float + W_PAD_LEFT; // (width temporary HUD-top-left)
             const H_TITLE_OFFSET: u16 = 3;
@@ -399,6 +399,17 @@ impl Renderer for StandardBufferedRenderer {
                 )));
             }
 
+            if meta_data.show_stats.contains(ShowStats::PIECES_COUNTS) {
+                let mut tet_infos = game.state().pieces_locked
+                    .iter()
+                    .zip(Tetromino::VARIANTS)
+                    .map(|(n, t)| format!("{n}{}", settings.mini_tetromino_symbols().tets[t as usize].to_ascii_lowercase()));
+                let pieces_l1 = tet_infos.by_ref().take(4).collect::<Vec<_>>().join(" ");
+                let pieces_l2 = tet_infos.collect::<Vec<_>>().join(" ");
+                stats.push(Some(("", pieces_l1)));
+                stats.push(Some(("", pieces_l2)));
+            }
+
             if meta_data.show_stats.contains(ShowStats::GRAVITY) {
                 stats.push(Some((
                     "Gravity: ",
@@ -432,7 +443,7 @@ impl Renderer for StandardBufferedRenderer {
                 stats.push(Some(("REPLAY ", fmt_duration(replay_len))));
 
                 stats.push(Some(("", {
-                    let (partial_glyphs, full_glyph) = &tui_style.progressbar;
+                    let (partial_glyphs, full_glyph) = &tui_symbols.progressbar;
                     let w_progressbar = (W_ADD_ACTIVE_HUD + W_HOLD).saturating_sub(3);
                     let progress = (game.state().time.as_secs_f32() / replay_len.as_secs_f32())
                         .clamp(0.0, 1.0);
@@ -632,7 +643,7 @@ impl Renderer for StandardBufferedRenderer {
             c_fr_b,
             c_fr_bl,
             c_fr_l,
-        ] = tui_style.boardframe;
+        ] = tui_symbols.boardframe;
         let w_tmp_btl = w_float + W_PAD_LEFT + w_addhud + W_HOLD; // (width temporary board-top-left)
         let h_tmp_btl = h_float + H_PAD_TOP;
 
@@ -657,7 +668,7 @@ impl Renderer for StandardBufferedRenderer {
 
         if let Some((tet, is_swappable)) = game.state().piece_held {
             // 'Hold' frame glyphs.
-            let [c_h_tb, c_h_tl, c_h_l, c_h_bl] = tui_style.holdframe;
+            let [c_h_tb, c_h_tl, c_h_l, c_h_bl] = tui_symbols.holdframe;
             let w_tmp_htl = w_float + W_PAD_LEFT + w_addhud; // (width temporary hold-top-left)
             let h_tmp_htl = h_float + H_PAD_TOP;
 
@@ -692,7 +703,7 @@ impl Renderer for StandardBufferedRenderer {
 
         // RENDER: Preview widgets.
 
-        let [c_n_tb, c_n_tr, c_n_r, c_n_jl, c_n_br, c_n_jd, c_n_ltb] = tui_style.nextframe;
+        let [c_n_tb, c_n_tr, c_n_r, c_n_jl, c_n_br, c_n_jd, c_n_ltb] = tui_symbols.nextframe;
         let w_tmp_ntl = w_float + W_PAD_LEFT + w_addhud + W_HOLD + W_BOARD; // (width temporary next-top-left)
         let h_tmp_ntl = h_float + H_PAD_TOP;
 
@@ -800,7 +811,7 @@ impl Renderer for StandardBufferedRenderer {
         // - This needs to happen after next/hold widgets because clean look of this 2nd frame drawn over colliding widgets takes priority.
 
         // Special 2nd frame rendering. Mostly relevant for Elektronika 60 style.
-        if let Some([c_f2_l, c_f2_b0, c_f2_b1, c_f2_r]) = tui_style.boardframe2 {
+        if let Some([c_f2_l, c_f2_b0, c_f2_b1, c_f2_r]) = tui_symbols.boardframe2 {
             // Complete left edge (2).
             for dy in 0..H_FIELD + 1 {
                 #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl.saturating_sub(1), h_tmp_btl + 1 + dy, TermCell { ch: c_f2_l, fg: Color::Reset });
@@ -972,7 +983,7 @@ impl Renderer for StandardBufferedRenderer {
                         // Only render if lock delay is nonzero
                         if !given.is_zero() && !given.is_infinite() && elapsed < given.get() {
                             let str =
-                                &tui_style.timer[((tui_style.timer.len() as f64 - 1.0) * elapsed
+                                &tui_symbols.timer[((tui_symbols.timer.len() as f64 - 1.0) * elapsed
                                     / given.get())
                                 .floor() as usize];
                             let color = ftch_col_or_rset(&Palette::WHITE);
