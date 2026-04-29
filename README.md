@@ -59,7 +59,7 @@ yay -S tetro-tui # Or paru, etc.
 
 ### Compile from source
 
-Tetro TUI is written in [Rust](<https://doc.rust-lang.org/book/ch01-01-installation.html>) and can be compiled as usual:
+Tetro TUI is written in [Rust](<https://doc.rust-lang.org/book/ch01-00-getting-started.html>) and can be compiled as usual:
 ```bash
 git clone https://github.com/Strophox/tetro-tui
 cd tetro-tui
