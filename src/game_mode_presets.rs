@@ -56,7 +56,7 @@ impl GameModePreset {
         }
     }
 
-    pub const TITLE_CLASSIC: &str = "CLASSIC (A-TYPE)";
+    pub const TITLE_CLASSIC: &str = "Classic (A-Type)";
     pub fn classic() -> Self {
         Self {
             title: Self::TITLE_CLASSIC.to_owned(),

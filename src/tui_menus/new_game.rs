@@ -950,8 +950,8 @@ impl<T: Write> Application<T> {
 
     pub fn available_game_mode_presets(&self) -> Vec<GameModePreset> {
         let mut game_modes = vec![
-            GameModePreset::swift(),
             GameModePreset::regular(),
+            GameModePreset::swift(),
             GameModePreset::puzzle(),
             GameModePreset::cheese(
                 self.settings.game_mode_preferences.cheese_config,
