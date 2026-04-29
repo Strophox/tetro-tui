@@ -23,8 +23,8 @@ pub fn small_tetromino_symbols_presets() -> SlotMachine<SmallTetrominoSymbols> {
 impl SmallTetrominoSymbols {
     pub fn dots_ascii() -> Self {
         SmallTetrominoSymbols {
-            tets: ["::", "....", ".:°", "°:.", ".:.", "..:", ":.."].map(ToOwned::to_owned),
-            parts: [' ', '.', '°', ':'],
+            tets: ["::", "....", ".:'", "':.", ".:.", "..:", ":.."].map(ToOwned::to_owned),
+            parts: [' ', '.', '\'', ':'],
         }
     }
 
