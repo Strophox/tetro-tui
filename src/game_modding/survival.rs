@@ -16,6 +16,7 @@ pub struct Survival {
 
     // Modifier state fields.
     piece_budget: f64,
+    // is_caught_up: bool,
 
     // Fields needed to use Cheese:prng_cheese_lines
     cheese_config: CheeseConfig,
@@ -50,7 +51,7 @@ impl Survival {
             config,
 
             piece_budget: 0.0,
-
+            // is_caught_up: false,
             cheese_generated: 0,
             last_hole_pattern_generated: Vec::new(),
             cheese_config: CheeseConfig {
@@ -127,6 +128,11 @@ impl GameModifier for Survival {
 
         self.try_regenerate_lines(&mut game);
         self.cached_stats[0] = Self::fmt_regen_period(game.state.lineclears);
+
+        // if !self.is_caught_up && !game.state.board.iter().any(|line| line.contains(&Some(Palette::GRAY))) {
+        //     self.is_caught_up = true;
+        //     feed.push((Notification::Custom("All caught up for now!".to_owned()), game.state.time));
+        // }
     }
 }
 
@@ -172,6 +178,7 @@ impl Survival {
 
         while self.piece_budget >= regen_period {
             self.piece_budget -= regen_period;
+            // self.is_caught_up = false;
 
             let Some(mut cheese_line) = cheese_lines.next() else {
                 // Our cheese_config says limit = None, so this shouldn't happen.
