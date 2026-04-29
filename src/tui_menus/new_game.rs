@@ -77,6 +77,11 @@ impl<T: Write> Application<T> {
             } else {
                 0
             };
+            let opt_idx_classic = self
+                .settings
+                .game_mode_preferences
+                .unlock_classic_mode
+                .then_some(2);
             let idx_cheese = 3 + inc_if_mstr_unlckd + inc_if_clsc_unlckd;
             let idx_combo = 5 + inc_if_mstr_unlckd + inc_if_clsc_unlckd;
             let idx_custom = game_modes.len();
@@ -665,6 +670,18 @@ impl<T: Write> Application<T> {
                 }) => {
                     if selected == idx_custom && customization_selected > 0 {
                         customization_selected += customization_selection_size - 1
+                    } else if Some(selected) == opt_idx_classic {
+                        if modifiers.contains(KeyModifiers::ALT) {
+                            self.settings
+                                .game_mode_preferences
+                                .classic_easier_lock_delay ^= true;
+                        } else {
+                            self.settings.game_mode_preferences.classic_lvl_offset = self
+                                .settings
+                                .game_mode_preferences
+                                .classic_lvl_offset
+                                .saturating_sub(1);
+                        }
                     } else if selected == idx_cheese {
                         if let Some(limit) = self.settings.game_mode_preferences.cheese_config.limit
                         {
@@ -769,6 +786,16 @@ impl<T: Write> Application<T> {
                             };
                         } else {
                             customization_selected += 1
+                        }
+                    } else if Some(selected) == opt_idx_classic {
+                        if modifiers.contains(KeyModifiers::ALT) {
+                            self.settings
+                                .game_mode_preferences
+                                .classic_easier_lock_delay ^= true;
+                        } else {
+                            self.settings.game_mode_preferences.classic_lvl_offset =
+                                (self.settings.game_mode_preferences.classic_lvl_offset + 1)
+                                    .min(29);
                         }
                     } else if selected == idx_cheese {
                         self.settings.game_mode_preferences.cheese_config.limit =
@@ -904,6 +931,12 @@ impl<T: Write> Application<T> {
                             .game_mode_preferences
                             .custom_config
                             .win_condition = None;
+                    } else if Some(selected) == opt_idx_classic {
+                        if modifiers.contains(KeyModifiers::ALT) {
+                            self.settings.game_mode_preferences.classic_easier_lock_delay = false;
+                        } else {
+                            self.settings.game_mode_preferences.classic_lvl_offset = 0;
+                        }
                     } else if selected == idx_cheese {
                         self.settings.game_mode_preferences.cheese_config.limit =
                             GameModePreferences::default().cheese_config.limit;
@@ -969,7 +1002,15 @@ impl<T: Write> Application<T> {
 
         if self.settings.game_mode_preferences.unlock_classic_mode {
             // ...Do not ask the programmer about what indices to use for `insert` results.
-            game_modes.insert(2, GameModePreset::classic());
+            game_modes.insert(
+                2,
+                GameModePreset::classic(
+                    self.settings.game_mode_preferences.classic_lvl_offset,
+                    self.settings
+                        .game_mode_preferences
+                        .classic_easier_lock_delay,
+                ),
+            );
         }
 
         if self.settings.game_mode_preferences.unlock_experimental_mode {

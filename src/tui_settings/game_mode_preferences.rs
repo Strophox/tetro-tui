@@ -6,11 +6,13 @@ use crate::game_modding::{CheeseConfig, ComboConfig, SurvivalConfig};
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]
 pub struct GameModePreferences {
-    pub custom_config: CustomModeConfig,
-    pub survival_config: SurvivalConfig,
+    pub classic_lvl_offset: u32,
+    pub classic_easier_lock_delay: bool,
     pub cheese_config: CheeseConfig,
     pub cheese_fall_and_lock_delays: (ExtDuration, ExtDuration),
+    pub survival_config: SurvivalConfig,
     pub combo_config: ComboConfig,
+    pub custom_config: CustomModeConfig,
     pub unlock_master_mode: bool,
     pub unlock_classic_mode: bool,
     pub unlock_experimental_mode: bool,
@@ -19,11 +21,13 @@ pub struct GameModePreferences {
 impl Default for GameModePreferences {
     fn default() -> Self {
         Self {
-            custom_config: CustomModeConfig::default(),
-            survival_config: SurvivalConfig::default(),
+            classic_lvl_offset: 0,
+            classic_easier_lock_delay: false,
             cheese_config: CheeseConfig::default(),
             cheese_fall_and_lock_delays: (ExtDuration::Infinite, ExtDuration::Infinite),
+            survival_config: SurvivalConfig::default(),
             combo_config: ComboConfig::default(),
+            custom_config: CustomModeConfig::default(),
             unlock_master_mode: false,
             unlock_classic_mode: false,
             unlock_experimental_mode: false,

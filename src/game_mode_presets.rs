@@ -56,19 +56,44 @@ impl GameModePreset {
         }
     }
 
-    pub const TITLE_CLASSIC: &str = "Classic (A-Type)";
-    pub fn classic() -> Self {
+    pub const TITLE_CLASSIC: &str = "Classic";
+    pub fn classic(lvl_offset: u32, easier_lock_delay: bool) -> Self {
+        let lvl_offset = lvl_offset.min(29);
         Self {
-            title: Self::TITLE_CLASSIC.to_owned(),
+            title: format!(
+                "{}{} (lvl {}+)",
+                Self::TITLE_CLASSIC,
+                if easier_lock_delay { "*" } else { "" },
+                lvl_offset
+            ),
             description: "'NES' Graphics Settings recommended(<-TODO: Implement).".to_owned(),
-            show_stats: ShowStats::TIME | ShowStats::LINES | ShowStats::PIECES_COUNTS,
+            show_stats: ShowStats::TIME
+                | ShowStats::LINES
+                | ShowStats::POINTS
+                | ShowStats::PIECES_COUNTS,
             stat_and_is_order_desc: (Stat::PointsScored(0), false),
-            build: Box::new(|builder: &GameBuilder| {
-                // let nes = tui_settings::GameplaySettings::nes();
+            build: Box::new(move |builder: &GameBuilder| {
+                let fall_delay_curve = if lvl_offset > 0 {
+                    let mut delay_table_entries = DelayTable::classic_fall().entries().clone();
+                    let start_delay = delay_table_entries[lvl_offset as usize];
+                    delay_table_entries[..lvl_offset as usize].fill(start_delay);
+                    Either::Right(DelayTable::new(delay_table_entries).unwrap())
+                } else {
+                    Either::Right(DelayTable::classic_fall())
+                };
+                let lock_delay_curve = if easier_lock_delay {
+                    // let lock_delay  = DelayTable::classic_fall().entries()[7];
+                    let lock_delay = DelayTable::classic_fall().entries()[4];
+                    let lock_delay_table = DelayTable::new(vec![lock_delay]).unwrap();
+                    Some(Either::Right(lock_delay_table))
+                } else {
+                    None
+                };
+                let nes = crate::tui_settings::GameplaySettings::nes();
                 builder
                     .clone()
-                    .fall_delay_curve(Either::Right(DelayTable::classic_fall()))
-                    .lock_delay_curve(None)
+                    .fall_delay_curve(fall_delay_curve)
+                    .lock_delay_curve(lock_delay_curve)
                     .game_limits(GameLimits::single(Stat::LinesCleared(2560), true))
                     // .rotation_system(nes.rotsys)
                     // .tetromino_generator(nes.tetgen)
@@ -77,8 +102,8 @@ impl GameModePreset {
                     // .auto_repeat_rate(nes.arr)
                     // .delayed_soft_drop(nes.dsd)
                     // .soft_drop_rate(nes.sdr)
-                    // .line_clear_duration(nes.lcd)
-                    // .spawn_delay(nes.are)
+                    .line_clear_duration(nes.lcd)
+                    .spawn_delay(nes.are)
                     // .allow_spawn_manipulation(nes.initsys)
                     .build()
             }),
@@ -220,7 +245,7 @@ impl GameModePreset {
     pub const TITLE_ASCENT: &str = "Ascent";
     pub fn ascent() -> Self {
         Self {
-            title: format!("{}*", Self::TITLE_ASCENT),
+            title: Self::TITLE_ASCENT.to_owned(),
             description: "(experimental, req. Ocular + 180° rot.)".to_owned(),
             show_stats: ShowStats::TIME | ShowStats::POINTS,
             stat_and_is_order_desc: (Stat::PointsScored(0), false),
