@@ -63,7 +63,7 @@ impl<T: Write> Application<T> {
                     "".to_owned()
                 } else {
                     format!(
-                        " [←/{}→] ",
+                        " [←/{}→]",
                         if self.settings.keybinds_selected
                             < self.settings.keybinds_slotmachine.unmodifiable_slots
                         {

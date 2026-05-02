@@ -82,7 +82,7 @@ impl<T: Write> Application<T> {
                     "".to_owned()
                 } else {
                     format!(
-                        " [←/{}→] ",
+                        " [←/{}→]",
                         if self.settings.gameplay_selected
                             < self.settings.gameplay_slotmachine.unmodifiable_slots
                         {

@@ -9,6 +9,7 @@ pub struct GameModePreferences {
     pub classic_lvl_offset: u32,
     pub classic_easier_lock_delay: bool,
     pub cheese_config: CheeseConfig,
+    // FIXME: Serialize this using #[serde_as(as = "serde_with::DurationSecondsWithFrac<f64>")] somehow ?
     pub cheese_fall_and_lock_delays: (ExtDuration, ExtDuration),
     pub survival_config: SurvivalConfig,
     pub combo_config: ComboConfig,

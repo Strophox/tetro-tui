@@ -202,7 +202,7 @@ impl GraphicsSettings {
     pub fn blank_slate() -> Self {
         GraphicsSettings {
             palette_selected: 0,                 // Monochrome
-            tui_symbols_selected: 4,             // Borderless-Next/Hold Unicode
+            tui_symbols_selected: 3,             // Borderless-Next/Hold Unicode
             mino_symbols_selected: 1,            // Unicode
             hard_drop_selected: 0,               // None
             lock_effect_selected: 0,             // None

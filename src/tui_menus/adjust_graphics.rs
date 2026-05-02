@@ -62,7 +62,7 @@ impl<T: Write> Application<T> {
                     "".to_owned()
                 } else {
                     format!(
-                        " [←/{}→] ",
+                        " [←/{}→]",
                         if self.settings.graphics_selected
                             < self.settings.graphics_slotmachine.unmodifiable_slots
                         {
@@ -116,24 +116,17 @@ impl<T: Write> Application<T> {
                         .0
                 ),
                 format!(
-                    "TUI symbols = {}",
+                    "UI symbols = {}",
                     self.settings
                         .tui_style_slotmachine
                         .grab(self.settings.graphics().tui_symbols_selected)
                         .0
                 ),
                 format!(
-                    "Mino symbols = {}",
+                    "Tetromino symbols = {}",
                     self.settings
                         .mino_symbols_slotmachine
                         .grab(self.settings.graphics().mino_symbols_selected)
-                        .0
-                ),
-                format!(
-                    "Mini tet. symbols = {}",
-                    self.settings
-                        .mini_tetromino_symbols_slotmachine
-                        .grab(self.settings.graphics().mini_tetromino_symbols_selected)
                         .0
                 ),
                 format!(
@@ -144,7 +137,15 @@ impl<T: Write> Application<T> {
                         .0
                 ),
                 format!(
-                    "Normalsize previews pieces = {}",
+                    "Mini tet. symbols = {} {}",
+                    self.settings
+                        .mini_tetromino_symbols_slotmachine
+                        .grab(self.settings.graphics().mini_tetromino_symbols_selected)
+                        .0,
+                    self.settings.mini_tetromino_symbols().tets.map(|ch| ch.to_string()).join("")
+                ),
+                format!(
+                    "Normalsized tet. previews = {}",
                     self.settings
                         .graphics()
                         .normalsize_preview_limit
@@ -152,7 +153,7 @@ impl<T: Write> Application<T> {
                         .unwrap_or("unlimited".to_owned())
                 ),
                 format!(
-                    "Frames per second = {:.1}",
+                    "Frames rendered per second = {:.1}",
                     self.settings.graphics().fps.get()
                 ),
             ];
@@ -440,12 +441,6 @@ impl<T: Write> Application<T> {
                     }
                     7 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().mini_tetromino_symbols_selected += 1;
-                        self.settings.graphics_mut().mini_tetromino_symbols_selected %=
-                            self.settings.mini_tetromino_symbols_slotmachine.slots.len();
-                    }
-                    8 => {
-                        if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings
                             .graphics_mut()
                             .small_tetromino_symbols_selected += 1;
@@ -456,6 +451,12 @@ impl<T: Write> Application<T> {
                             .small_tetromino_symbols_slotmachine
                             .slots
                             .len();
+                    }
+                    8 => {
+                        if_unmodifiable_clone_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().mini_tetromino_symbols_selected += 1;
+                        self.settings.graphics_mut().mini_tetromino_symbols_selected %=
+                            self.settings.mini_tetromino_symbols_slotmachine.slots.len();
                     }
                     9 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
@@ -571,13 +572,6 @@ impl<T: Write> Application<T> {
                     }
                     7 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().mini_tetromino_symbols_selected +=
-                            self.settings.mini_tetromino_symbols_slotmachine.slots.len() - 1;
-                        self.settings.graphics_mut().mini_tetromino_symbols_selected %=
-                            self.settings.mini_tetromino_symbols_slotmachine.slots.len();
-                    }
-                    8 => {
-                        if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings
                             .graphics_mut()
                             .small_tetromino_symbols_selected += self
@@ -593,6 +587,13 @@ impl<T: Write> Application<T> {
                             .small_tetromino_symbols_slotmachine
                             .slots
                             .len();
+                    }
+                    8 => {
+                        if_unmodifiable_clone_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().mini_tetromino_symbols_selected +=
+                            self.settings.mini_tetromino_symbols_slotmachine.slots.len() - 1;
+                        self.settings.graphics_mut().mini_tetromino_symbols_selected %=
+                            self.settings.mini_tetromino_symbols_slotmachine.slots.len();
                     }
                     9 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
