@@ -52,7 +52,7 @@ impl<T: Write> Application<T> {
             let fmt_stat = |p: &ScoreSummaryEntry| {
                 let show_stat = match sorting {
                     ScoreboardSorting::Chronological | ScoreboardSorting::ModeDependent => {
-                        p.game_meta_data.stat_and_desc_order.0
+                        p.game_meta_data.objective_sort_descending.0
                     }
                     ScoreboardSorting::GameStat(stat) => stat,
                 };

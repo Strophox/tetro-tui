@@ -17,7 +17,7 @@ use crate::{
     Application, ScoreSummaryEntry,
     fmt_helpers::{fmt_duration, fmt_hertz, fmt_tetromino_counts},
     game_mode_presets::GameModePreset,
-    game_renderers::ShowStats,
+    game_renderers::ShowStatsHud,
     tui_menus::{Menu, MenuUpdate, heading_line},
 };
 
@@ -143,22 +143,22 @@ impl<T: Write> Application<T> {
             timing_offset = timing_offset.saturating_add(1);
 
             let mut stats = vec![];
-            if game_meta_data.show_stats.contains(ShowStats::TIME) {
+            if game_meta_data.show_stats.contains(ShowStatsHud::TIME) {
                 stats.push(format!("Time elapsed: {}", fmt_duration(*time_elapsed)));
             }
-            if game_meta_data.show_stats.contains(ShowStats::LINES) {
+            if game_meta_data.show_stats.contains(ShowStatsHud::LINES) {
                 stats.push(format!("Lines cleared: {lineclears}"));
             }
-            if game_meta_data.show_stats.contains(ShowStats::POINTS) {
+            if game_meta_data.show_stats.contains(ShowStatsHud::POINTS) {
                 stats.push(format!("Points scored: {points_scored}"));
             }
-            if game_meta_data.show_stats.contains(ShowStats::GRAVITY) {
+            if game_meta_data.show_stats.contains(ShowStatsHud::GRAVITY) {
                 stats.push(format!(
                     "Gravity reached: {}",
                     fmt_hertz(fall_delay_reached.as_hertz())
                 ));
             }
-            if game_meta_data.show_stats.contains(ShowStats::LOCKDELAY) {
+            if game_meta_data.show_stats.contains(ShowStatsHud::LOCKDELAY) {
                 stats.push(format!(
                     "Lock delay: {}",
                     if let ExtDuration::Finite(lock_delay) = lock_delay_reached {
@@ -168,7 +168,7 @@ impl<T: Write> Application<T> {
                     }
                 ));
             }
-            if game_meta_data.show_stats.contains(ShowStats::PIECES) {
+            if game_meta_data.show_stats.contains(ShowStatsHud::PIECES) {
                 stats.push(format!(
                     "Pieces locked: {}",
                     pieces_locked.iter().sum::<u32>()

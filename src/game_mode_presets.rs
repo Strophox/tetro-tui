@@ -7,14 +7,14 @@ use falling_tetromino_engine::{
 
 use crate::{
     game_modding::{self, CheeseConfig, ComboConfig, SurvivalConfig},
-    game_renderers::ShowStats,
+    game_renderers::ShowStatsHud,
 };
 
 pub struct GameModePreset {
     pub title: String,
     pub description: String,
-    pub show_stats: ShowStats,
-    pub stat_and_is_order_desc: (Stat, bool),
+    pub show_stats_hud: ShowStatsHud,
+    pub objective_sort_descending: (Stat, bool),
     pub build: Box<dyn Fn(&GameBuilder) -> Game>,
 }
 
@@ -24,8 +24,8 @@ impl GameModePreset {
         Self {
             title: Self::TITLE_SWIFT.to_owned(),
             description: "How fast can you clear 40 lines?".to_owned(),
-            show_stats: ShowStats::TIME | ShowStats::LINES | ShowStats::PIECES,
-            stat_and_is_order_desc: (Stat::TimeElapsed(Duration::ZERO), true),
+            show_stats_hud: ShowStatsHud::TIME | ShowStatsHud::LINES | ShowStatsHud::PIECES,
+            objective_sort_descending: (Stat::TimeElapsed(Duration::ZERO), true),
             build: Box::new(|builder: &GameBuilder| {
                 builder
                     .clone()
@@ -43,8 +43,11 @@ impl GameModePreset {
         Self {
             title: Self::TITLE_REGULAR.to_owned(),
             description: "Clear 150 lines at increasing gravity.".to_owned(),
-            show_stats: ShowStats::TIME | ShowStats::LINES | ShowStats::POINTS | ShowStats::GRAVITY,
-            stat_and_is_order_desc: (Stat::PointsScored(0), false),
+            show_stats_hud: ShowStatsHud::TIME
+                | ShowStatsHud::LINES
+                | ShowStatsHud::POINTS
+                | ShowStatsHud::GRAVITY,
+            objective_sort_descending: (Stat::PointsScored(0), false),
             build: Box::new(|builder: &GameBuilder| {
                 builder
                     .clone()
@@ -67,11 +70,11 @@ impl GameModePreset {
                 lvl_offset
             ),
             description: "'NES' Graphics Settings recommended(<-TODO: Implement).".to_owned(),
-            show_stats: ShowStats::TIME
-                | ShowStats::LINES
-                | ShowStats::POINTS
-                | ShowStats::PIECES_COUNTS,
-            stat_and_is_order_desc: (Stat::PointsScored(0), false),
+            show_stats_hud: ShowStatsHud::TIME
+                | ShowStatsHud::LINES
+                | ShowStatsHud::POINTS
+                | ShowStatsHud::PIECES_COUNTS,
+            objective_sort_descending: (Stat::PointsScored(0), false),
             build: Box::new(move |builder: &GameBuilder| {
                 let fall_delay_curve = if lvl_offset > 0 {
                     let mut delay_table_entries = DelayTable::classic_fall().entries().clone();
@@ -132,12 +135,12 @@ impl GameModePreset {
         Self {
             title: Self::TITLE_MASTER.to_owned(),
             description: "Clear 150 lines at instant gravity.".to_owned(),
-            show_stats: ShowStats::TIME
-                | ShowStats::LINES
-                | ShowStats::POINTS
-                | ShowStats::GRAVITY
-                | ShowStats::LOCKDELAY,
-            stat_and_is_order_desc: (Stat::PointsScored(0), false),
+            show_stats_hud: ShowStatsHud::TIME
+                | ShowStatsHud::LINES
+                | ShowStatsHud::POINTS
+                | ShowStatsHud::GRAVITY
+                | ShowStatsHud::LOCKDELAY,
+            objective_sort_descending: (Stat::PointsScored(0), false),
             build: Box::new(|builder: &GameBuilder| {
                 builder
                     .clone()
@@ -154,8 +157,8 @@ impl GameModePreset {
         Self {
             title: Self::TITLE_PUZZLE.to_owned(),
             description: "Clear 24 hand-crafted puzzles.".to_owned(),
-            show_stats: ShowStats::TIME,
-            stat_and_is_order_desc: (Stat::TimeElapsed(Duration::ZERO), true),
+            show_stats_hud: ShowStatsHud::TIME,
+            objective_sort_descending: (Stat::TimeElapsed(Duration::ZERO), true),
             build: Box::new(game_modding::Puzzle::build),
         }
     }
@@ -165,8 +168,8 @@ impl GameModePreset {
         Self {
             title: Self::TITLE_SURVIVAL.to_owned(),
             description: "Survive lines that regenerate with placed pieces.".to_owned(),
-            show_stats: ShowStats::TIME | ShowStats::LINES | ShowStats::PIECES,
-            stat_and_is_order_desc: (Stat::LinesCleared(0), true),
+            show_stats_hud: ShowStatsHud::TIME | ShowStatsHud::LINES | ShowStatsHud::PIECES,
+            objective_sort_descending: (Stat::LinesCleared(0), true),
             build: Box::new({
                 move |builder: &GameBuilder| {
                     let mut builder = builder.clone();
@@ -195,8 +198,8 @@ impl GameModePreset {
                 "Efficiently eat through lines like cheese. Limit={:?}",
                 config.limit
             ),
-            show_stats: ShowStats::TIME | ShowStats::LINES | ShowStats::PIECES,
-            stat_and_is_order_desc: (Stat::PiecesLocked(0), true),
+            show_stats_hud: ShowStatsHud::TIME | ShowStatsHud::LINES | ShowStatsHud::PIECES,
+            objective_sort_descending: (Stat::PiecesLocked(0), true),
             build: Box::new({
                 move |builder: &GameBuilder| {
                     let mut builder = builder.clone();
@@ -226,7 +229,7 @@ impl GameModePreset {
                 }
             ),
             description: format!(
-                "The first rule of Combo is Do not break the combo. Limit={:?}{}",
+                "The first rule of Combo is do not break the combo. Limit={:?}{}",
                 config.limit,
                 if config.start_layout != game_modding::Combo::LAYOUTS[0] {
                     format!(", Layout={:b}", config.start_layout)
@@ -234,8 +237,8 @@ impl GameModePreset {
                     "".to_owned()
                 }
             ),
-            show_stats: ShowStats::TIME,
-            stat_and_is_order_desc: (Stat::TimeElapsed(Duration::ZERO), true),
+            show_stats_hud: ShowStatsHud::TIME,
+            objective_sort_descending: (Stat::TimeElapsed(Duration::ZERO), true),
             build: Box::new({
                 move |builder: &GameBuilder| game_modding::Combo::build(builder, config)
             }),
@@ -247,8 +250,8 @@ impl GameModePreset {
         Self {
             title: Self::TITLE_ASCENT.to_owned(),
             description: "(experimental, req. Ocular + 180° rot.)".to_owned(),
-            show_stats: ShowStats::TIME | ShowStats::POINTS,
-            stat_and_is_order_desc: (Stat::PointsScored(0), false),
+            show_stats_hud: ShowStatsHud::TIME | ShowStatsHud::POINTS,
+            objective_sort_descending: (Stat::PointsScored(0), false),
             build: Box::new(game_modding::Ascent::build),
         }
     }

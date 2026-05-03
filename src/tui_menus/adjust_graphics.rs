@@ -142,7 +142,11 @@ impl<T: Write> Application<T> {
                         .mini_tetromino_symbols_slotmachine
                         .grab(self.settings.graphics().mini_tetromino_symbols_selected)
                         .0,
-                    self.settings.mini_tetromino_symbols().tets.map(|ch| ch.to_string()).join("")
+                    self.settings
+                        .mini_tetromino_symbols()
+                        .tets
+                        .map(|ch| ch.to_string())
+                        .join("")
                 ),
                 format!(
                     "Normalsized tet. previews = {}",

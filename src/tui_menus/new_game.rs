@@ -15,8 +15,10 @@ use crossterm::{
     style::{Print, PrintStyledContent, Stylize},
     terminal::{Clear, ClearType},
 };
+use either::Either;
 use falling_tetromino_engine::{
-    DelayParameters, ExtDuration, ExtNonNegF64, Game, GameLimits, InGameTime, Stat,
+    Configuration, DelayParameters, ExtDuration, ExtNonNegF64, Game, GameLimits, InGameTime, Stat,
+    core::DelayCurveExt,
 };
 
 use crate::{
@@ -27,13 +29,13 @@ use crate::{
     },
     game_modding::{self, Combo},
     game_mode_presets::GameModePreset,
-    game_renderers::{Renderer, ShowStats, TetroTUIRenderer},
+    game_renderers::{Renderer, ShowStatsHud, TetroTUIRenderer},
     game_restoration::{GameRestorationData, RawInputHistory},
     tui_menus::{
         Menu, MenuUpdate, heading_line,
         replay_game::{REPLAY_ANCHOR_INTERVAL, calculate_game_and_replay_anchors},
     },
-    tui_settings::{GameModePreferences, GameplaySettings},
+    tui_settings::{CustomModeConfig, GameModePreferences, GameplaySettings},
 };
 
 impl<T: Write> Application<T> {
@@ -109,8 +111,8 @@ impl<T: Write> Application<T> {
                 GameModePreset {
                     title,
                     description,
-                    show_stats: _,
-                    stat_and_is_order_desc: _,
+                    show_stats_hud: _,
+                    objective_sort_descending: _,
                     build: _,
                 },
             ) in game_modes.iter().enumerate()
@@ -183,37 +185,29 @@ impl<T: Write> Application<T> {
                         "Custom".to_owned()
                     }
                 )))?;
-            /*TODO/ Render custom mode stuff.
+            // Render custom mode stuff.
             if selected == idx_custom {
                 let stats_strs = [
-                    format!(
-                        "| Initial fall delay = {:?}s (Gravity: {})",
-                        self.settings
-                            .game_mode_preferences
-                            .custom_config
-                            .fall_params
-                            .base_delay()
-                            .as_secs_ennf64()
-                            .get(),
-                        fmt_hertz(
-                            self.settings
-                                .game_mode_preferences
-                                .custom_config
-                                .fall_params
-                                .base_delay()
-                                .as_hertz()
-                        ),
-                    ),
-                    format!(
-                        "| Progressive gravity = {}",
-                        (!self
-                            .settings
-                            .game_mode_preferences
-                            .custom_config
-                            .fall_params
-                            .is_constant())
-                        .on_off()
-                    ),
+                    {
+                        let fall_delay =
+                            match &self.settings.game_mode_preferences.custom_config.fall_curve {
+                                Either::Left(params) => params.base_delay(),
+                                Either::Right(table) => table.entries()[0],
+                            };
+                        format!(
+                            "| Initial fall delay = {} s (Gravity: {})",
+                            fall_delay.as_secs_ennf64().get(),
+                            fmt_hertz(fall_delay.as_hertz())
+                        )
+                    },
+                    {
+                        let is_constant =
+                            match &self.settings.game_mode_preferences.custom_config.fall_curve {
+                                Either::Left(params) => params.is_constant(),
+                                Either::Right(table) => table.entries().len() <= 1,
+                            };
+                        format!("| Progressive gravity = {}", (!is_constant).on_off())
+                    },
                     format!(
                         "| Limit = {:?} [→]",
                         self.settings
@@ -251,7 +245,7 @@ impl<T: Write> Application<T> {
                             stat_str
                         }))?;
                 }
-            }*/
+            }
 
             // Render load game save option.
             if let Some(GameSave {
@@ -315,7 +309,7 @@ impl<T: Write> Application<T> {
                         ("Special keybinds".to_owned(), [
                             ("Home/End", "Set fall delay to infinite/zero for Custom mode, Jump to first/last input for game save"),
                             ("Alt+←/→", "Adjust start layout of Combo mode"),
-                            ("Alt+↓/↑ Alt+j/k", "Adjust initial fall delay of Custom mode multiplicatively"),
+                            ("Alt+↓/↑ Alt+j/k", "Multiply/divide initial fall delay of Custom mode by 10"),
                             ("Alt+Enter", "View game save as replay"),
                             ("Ctrl+U", "Unlock all game modes"),
                             ("Ctrl+Alt+L", "Reload app from savefile (overwrites current data!)"),
@@ -378,7 +372,7 @@ impl<T: Write> Application<T> {
                     start_new_game = true;
                 }
 
-                // Move selector up or increase stat.
+                // Adjust custom mode values..
                 Event::Key(KeyEvent {
                     code: KeyCode::Up | KeyCode::Char('k' | 'K'),
                     kind: Press | Repeat,
@@ -387,110 +381,146 @@ impl<T: Write> Application<T> {
                 }) => {
                     if customization_selected > 0 {
                         match customization_selected {
+                            // Increase Custom mode's Base delay.
                             1 => {
-                                /*TODO// Increase custom fall delay.
-                                let base_delay = self
+                                match &mut self
                                     .settings
                                     .game_mode_preferences
                                     .custom_config
-                                    .fall_params
-                                    .base_delay();
-
-                                let new_base_delay = if base_delay.is_zero() {
-                                    // Bootstrap from zero to baseline.
-                                    if modifiers.contains(KeyModifiers::ALT) {
-                                        lowerbound_fall_delay
-                                    } else {
-                                        d_fall_delay
-                                    }
-                                } else if base_delay.is_infinite() {
-                                    // Already at max.
-                                    base_delay
-                                } else {
-                                    // Naïvely increase first.
-                                    let new_base_delay = if modifiers.contains(KeyModifiers::ALT) {
-                                        base_delay.mul_ennf64(mult_fall_delay)
-                                    } else {
-                                        base_delay + d_fall_delay
-                                    };
-                                    // Manually cap.
-                                    if new_base_delay > maxval_fall_delay {
-                                        ExtDuration::Infinite
-                                    } else {
-                                        new_base_delay
-                                    }
-                                };
-
-                                // Adjust lock curve to either be decreasing or infinite as well.
-                                self.settings
-                                    .game_mode_preferences
-                                    .custom_config
-                                    .lock_params = if new_base_delay.is_infinite() {
-                                    DelayParameters::constant(ExtDuration::Infinite)
-                                } else {
-                                    DelayParameters::standard_lock()
-                                };
-
-                                // Get previous fall lowerbound.
-                                let lowerbound = self
-                                    .settings
-                                    .game_mode_preferences
-                                    .custom_config
-                                    .fall_params
-                                    .lowerbound();
-
-                                self.settings
-                                    .game_mode_preferences
-                                    .custom_config
-                                    .fall_params = self
-                                    .settings
-                                    .game_mode_preferences
-                                    .custom_config
-                                    .fall_params
-                                    .with_bounds(new_base_delay, lowerbound)
-                                    .unwrap_or_else(DelayParameters::standard_fall);
-                                // Normally lowerbound is 0, can only enter this if config was modified.*/
-                            }
-                            2 => {
-                                /*TODO// Toggle decreasing fall/lock delay.
-                                let (ftemp, ltemp) = if self
-                                    .settings
-                                    .game_mode_preferences
-                                    .custom_config
-                                    .fall_params
-                                    .is_constant()
+                                    .fall_curve
                                 {
-                                    (
-                                        DelayParameters::standard_fall(),
-                                        DelayParameters::standard_lock(),
-                                    )
-                                } else {
-                                    // Note delay args don't matter, we're interested in constant factor and subtrahend coefficients not the delay.
-                                    (
-                                        DelayParameters::constant(Default::default()),
-                                        DelayParameters::constant(Default::default()),
-                                    )
-                                };
-                                self.settings
-                                    .game_mode_preferences
-                                    .custom_config
-                                    .fall_params = self
+                                    Either::Left(params) => {
+                                        // Increase custom fall delay.
+                                        let old_fall_base_delay = params.base_delay();
+
+                                        let new_fall_base_delay = if old_fall_base_delay.is_zero() {
+                                            // Bootstrap from zero to baseline.
+                                            if modifiers.contains(KeyModifiers::ALT) {
+                                                minval_fall_delay
+                                            } else {
+                                                d_fall_delay
+                                            }
+                                        } else if old_fall_base_delay.is_infinite() {
+                                            // Already at max.
+                                            old_fall_base_delay
+                                        } else {
+                                            // Else we can try increasing.
+                                            // Naïvely increase first.
+                                            let new_base_delay =
+                                                if modifiers.contains(KeyModifiers::ALT) {
+                                                    old_fall_base_delay.mul_ennf64(mult_fall_delay)
+                                                } else {
+                                                    old_fall_base_delay + d_fall_delay
+                                                };
+                                            // Manually cap.
+                                            if new_base_delay > maxval_fall_delay {
+                                                ExtDuration::Infinite
+                                            } else {
+                                                new_base_delay
+                                            }
+                                        };
+
+                                        // Adjust lock curve to either be decreasing or infinite as well.
+                                        self.settings
+                                            .game_mode_preferences
+                                            .custom_config
+                                            .lock_curve = if new_fall_base_delay.is_infinite() {
+                                            Some(Either::Left(DelayParameters::constant(
+                                                ExtDuration::Infinite,
+                                            )))
+                                        } else {
+                                            Some(Either::Left(DelayParameters::standard_lock()))
+                                        };
+
+                                        *params = params
+                                            .with_base_delay(new_fall_base_delay)
+                                            .unwrap_or_else(DelayParameters::standard_fall);
+                                        // Normally lowerbound is 0, can only enter this if config was modified.
+                                    }
+                                    Either::Right(_table) => {
+                                        // Can't toggle progression for custom tables right now, just reset to parameterization.
+                                        self.settings
+                                            .game_mode_preferences
+                                            .custom_config
+                                            .fall_curve = CustomModeConfig::default().fall_curve;
+                                        self.settings
+                                            .game_mode_preferences
+                                            .custom_config
+                                            .lock_curve = CustomModeConfig::default().lock_curve;
+                                    }
+                                }
+                            }
+
+                            // Toggle progressive gravity.
+                            2 => {
+                                match &mut self
                                     .settings
                                     .game_mode_preferences
                                     .custom_config
-                                    .fall_params
-                                    .with_coefficients(ftemp.factor(), ftemp.subtrahend())
-                                    .unwrap();
-                                self.settings
-                                    .game_mode_preferences
-                                    .custom_config
-                                    .lock_params = self
-                                    .settings
-                                    .game_mode_preferences
-                                    .custom_config
-                                    .lock_params
-                                    .with_coefficients(ltemp.factor(), ltemp.subtrahend())
-                                    .unwrap();*/
+                                    .fall_curve
+                                {
+                                    Either::Left(params) => {
+                                        // Toggle decreasing fall/lock delay.
+                                        if params.is_constant() {
+                                            // Was constant, make decreasing.
+                                            *params = params
+                                                .with_subtrahend(
+                                                    DelayParameters::standard_fall().subtrahend(),
+                                                )
+                                                .with_factor(
+                                                    DelayParameters::standard_fall().factor(),
+                                                )
+                                                .unwrap();
+                                            if let Some(lock_curve) = &mut self
+                                                .settings
+                                                .game_mode_preferences
+                                                .custom_config
+                                                .lock_curve
+                                            {
+                                                *lock_curve = Either::Left(
+                                                    DelayParameters::standard_lock()
+                                                        .with_base_delay(
+                                                            lock_curve.retrieve_and_check(0, 1).0,
+                                                        )
+                                                        .unwrap(),
+                                                );
+                                            }
+                                        } else {
+                                            // Was nonconstant, make constant.
+                                            let constant_params =
+                                                DelayParameters::constant(Default::default());
+                                            *params = params
+                                                .with_subtrahend(constant_params.subtrahend())
+                                                .with_factor(constant_params.factor())
+                                                .unwrap();
+                                            if let Some(lock_curve) = &mut self
+                                                .settings
+                                                .game_mode_preferences
+                                                .custom_config
+                                                .lock_curve
+                                            {
+                                                *lock_curve = Either::Left(
+                                                    DelayParameters::constant(ExtDuration::ZERO)
+                                                        .with_base_delay(
+                                                            lock_curve.retrieve_and_check(0, 1).0,
+                                                        )
+                                                        .unwrap(),
+                                                );
+                                            }
+                                        };
+                                    }
+                                    Either::Right(_table) => {
+                                        // Can't toggle progression for custom tables right now, just reset to parameterization.
+                                        self.settings
+                                            .game_mode_preferences
+                                            .custom_config
+                                            .fall_curve = CustomModeConfig::default().fall_curve;
+                                        self.settings
+                                            .game_mode_preferences
+                                            .custom_config
+                                            .lock_curve = CustomModeConfig::default().lock_curve;
+                                    }
+                                }
                             }
                             3 => {
                                 match self
@@ -531,106 +561,144 @@ impl<T: Write> Application<T> {
                     // Selected custom stat; decrease it.
                     if customization_selected > 0 {
                         match customization_selected {
+                            // Dencrease Custom mode's Base delay.
                             1 => {
-                                /*TODO// Increase custom fall delay.
-                                let base_delay = self
+                                match &mut self
                                     .settings
                                     .game_mode_preferences
                                     .custom_config
-                                    .fall_params
-                                    .base_delay();
-
-                                let new_base_delay = if base_delay.is_zero() {
-                                    // Already at zero, leave it.
-                                    base_delay
-                                } else if base_delay.is_infinite() {
-                                    // Bootstrap(?) it down from infinity to upper bound.
-                                    maxval_fall_delay
-                                } else {
-                                    // Naïvely decrease first.
-                                    let new_base_delay = if modifiers.contains(KeyModifiers::ALT) {
-                                        base_delay.div_ennf64(mult_fall_delay)
-                                    } else {
-                                        base_delay.saturating_sub(d_fall_delay)
-                                    };
-                                    // Manually cap.
-                                    if new_base_delay < lowerbound_fall_delay {
-                                        ExtDuration::ZERO
-                                    } else {
-                                        new_base_delay
-                                    }
-                                };
-
-                                // Adjust lock curve to either be decreasing or infinite as well.
-                                self.settings
-                                    .game_mode_preferences
-                                    .custom_config
-                                    .lock_params = if new_base_delay.is_infinite() {
-                                    DelayParameters::constant(ExtDuration::Infinite)
-                                } else {
-                                    DelayParameters::standard_lock()
-                                };
-
-                                let lowerbound = self
-                                    .settings
-                                    .game_mode_preferences
-                                    .custom_config
-                                    .fall_params
-                                    .lowerbound();
-
-                                self.settings
-                                    .game_mode_preferences
-                                    .custom_config
-                                    .fall_params = self
-                                    .settings
-                                    .game_mode_preferences
-                                    .custom_config
-                                    .fall_params
-                                    .with_bounds(new_base_delay, lowerbound)
-                                    .unwrap_or_else(DelayParameters::standard_fall);
-                                // Normally lowerbound is 0, can only enter this if config was modified.*/
-                            }
-                            2 => {
-                                /*TODO// Toggle decreasing fall/lock delay.
-                                let (ftemp, ltemp) = if self
-                                    .settings
-                                    .game_mode_preferences
-                                    .custom_config
-                                    .fall_params
-                                    .is_constant()
+                                    .fall_curve
                                 {
-                                    (
-                                        DelayParameters::standard_fall(),
-                                        DelayParameters::standard_lock(),
-                                    )
-                                } else {
-                                    // Note delay args don't matter, we're interested in constant factor and subtrahend coefficients not the delay.
-                                    (
-                                        DelayParameters::constant(Default::default()),
-                                        DelayParameters::constant(Default::default()),
-                                    )
-                                };
-                                self.settings
-                                    .game_mode_preferences
-                                    .custom_config
-                                    .fall_params = self
-                                    .settings
-                                    .game_mode_preferences
-                                    .custom_config
-                                    .fall_params
-                                    .with_coefficients(ftemp.factor(), ftemp.subtrahend())
-                                    .unwrap();
-                                self.settings
-                                    .game_mode_preferences
-                                    .custom_config
-                                    .lock_params = self
-                                    .settings
-                                    .game_mode_preferences
-                                    .custom_config
-                                    .lock_params
-                                    .with_coefficients(ltemp.factor(), ltemp.subtrahend())
-                                    .unwrap();*/
+                                    Either::Left(params) => {
+                                        // Increase custom fall delay.
+                                        let old_fall_base_delay = params.base_delay();
+
+                                        let new_fall_base_delay = if old_fall_base_delay.is_zero() {
+                                            // Already at zero, leave it.
+                                            old_fall_base_delay
+                                        } else if old_fall_base_delay.is_infinite() {
+                                            // Bootstrap(?) down to upper bound from infinity.
+                                            maxval_fall_delay
+                                        } else {
+                                            // Else we can try decreasing.
+                                            // Naïvely decrease first.
+                                            let new_base_delay =
+                                                if modifiers.contains(KeyModifiers::ALT) {
+                                                    old_fall_base_delay.div_ennf64(mult_fall_delay)
+                                                } else {
+                                                    old_fall_base_delay.saturating_sub(d_fall_delay)
+                                                };
+                                            // Manually cap.
+                                            if new_base_delay < minval_fall_delay {
+                                                ExtDuration::ZERO
+                                            } else {
+                                                new_base_delay
+                                            }
+                                        };
+
+                                        // Adjust lock curve to either be decreasing or infinite as well.
+                                        self.settings
+                                            .game_mode_preferences
+                                            .custom_config
+                                            .lock_curve = if new_fall_base_delay.is_infinite() {
+                                            Some(Either::Left(DelayParameters::constant(
+                                                ExtDuration::Infinite,
+                                            )))
+                                        } else {
+                                            Configuration::default().lock_delay_curve
+                                        };
+
+                                        *params = params
+                                            .with_base_delay(new_fall_base_delay)
+                                            .unwrap_or_else(DelayParameters::standard_fall);
+                                        // Normally lowerbound is 0, can only enter this if config was modified.
+                                    }
+                                    Either::Right(_table) => {
+                                        // Can't toggle progression for custom tables right now, just reset to parameterization.
+                                        self.settings
+                                            .game_mode_preferences
+                                            .custom_config
+                                            .fall_curve = CustomModeConfig::default().fall_curve;
+                                        self.settings
+                                            .game_mode_preferences
+                                            .custom_config
+                                            .lock_curve = CustomModeConfig::default().lock_curve;
+                                    }
+                                }
                             }
+
+                            // Toggle progressive gravity.
+                            2 => {
+                                match &mut self
+                                    .settings
+                                    .game_mode_preferences
+                                    .custom_config
+                                    .fall_curve
+                                {
+                                    Either::Left(params) => {
+                                        // Toggle decreasing fall/lock delay.
+                                        if params.is_constant() {
+                                            // Was constant, make decreasing.
+                                            *params = params
+                                                .with_subtrahend(
+                                                    DelayParameters::standard_fall().subtrahend(),
+                                                )
+                                                .with_factor(
+                                                    DelayParameters::standard_fall().factor(),
+                                                )
+                                                .unwrap();
+                                            if let Some(lock_curve) = &mut self
+                                                .settings
+                                                .game_mode_preferences
+                                                .custom_config
+                                                .lock_curve
+                                            {
+                                                *lock_curve = Either::Left(
+                                                    DelayParameters::standard_lock()
+                                                        .with_base_delay(
+                                                            lock_curve.retrieve_and_check(0, 1).0,
+                                                        )
+                                                        .unwrap(),
+                                                );
+                                            }
+                                        } else {
+                                            // Was nonconstant, make constant.
+                                            let constant_params =
+                                                DelayParameters::constant(Default::default());
+                                            *params = params
+                                                .with_subtrahend(constant_params.subtrahend())
+                                                .with_factor(constant_params.factor())
+                                                .unwrap();
+                                            if let Some(lock_curve) = &mut self
+                                                .settings
+                                                .game_mode_preferences
+                                                .custom_config
+                                                .lock_curve
+                                            {
+                                                *lock_curve = Either::Left(
+                                                    DelayParameters::constant(ExtDuration::ZERO)
+                                                        .with_base_delay(
+                                                            lock_curve.retrieve_and_check(0, 1).0,
+                                                        )
+                                                        .unwrap(),
+                                                );
+                                            }
+                                        };
+                                    }
+                                    Either::Right(_table) => {
+                                        // Can't toggle progression for custom tables right now, just reset to parameterization.
+                                        self.settings
+                                            .game_mode_preferences
+                                            .custom_config
+                                            .fall_curve = CustomModeConfig::default().fall_curve;
+                                        self.settings
+                                            .game_mode_preferences
+                                            .custom_config
+                                            .lock_curve = CustomModeConfig::default().lock_curve;
+                                    }
+                                }
+                            }
+
                             3 => {
                                 match self
                                     .settings
@@ -857,23 +925,20 @@ impl<T: Write> Application<T> {
                     kind: Press | Repeat,
                     ..
                 }) => {
-                    /*TODO// If custom gamemode selected, allow setting speed curve to 'zero gravity'.
+                    // If custom gamemode selected, allow setting speed curve to 'zero gravity'.
                     if selected == idx_custom
                     /*&& customization_selected == customization_selection_size - 1*/
                     {
-                        self.settings
-                            .game_mode_preferences
-                            .custom_config
-                            .fall_params = DelayParameters::constant(ExtDuration::Infinite);
-                        self.settings
-                            .game_mode_preferences
-                            .custom_config
-                            .lock_params = DelayParameters::constant(ExtDuration::Infinite);
-                    } else if Some(selected) == opt_idx_game_save {
-                        if let Some(GameSave { inputs_to_load, .. }) = self.game_saves.get_mut() {
-                            *inputs_to_load = 0;
-                        }
-                    }*/
+                        self.settings.game_mode_preferences.custom_config.fall_curve =
+                            Either::Left(DelayParameters::constant(ExtDuration::Infinite));
+                        self.settings.game_mode_preferences.custom_config.lock_curve = Some(
+                            Either::Left(DelayParameters::constant(ExtDuration::Infinite)),
+                        );
+                    } else if Some(selected) == opt_idx_game_save
+                        && let Some(GameSave { inputs_to_load, .. }) = self.game_saves.get_mut()
+                    {
+                        *inputs_to_load = 0;
+                    }
                 }
 
                 // Load last input for game save.
@@ -882,28 +947,23 @@ impl<T: Write> Application<T> {
                     kind: Press | Repeat,
                     ..
                 }) => {
-                    /*TODO// If custom gamemode selected, allow setting speed curve to 'zero gravity'.
+                    // If custom gamemode selected, allow setting speed curve to 'zero gravity'.
                     if selected == idx_custom
                     /*&& customization_selected == customization_selection_size - 1*/
                     {
-                        self.settings
-                            .game_mode_preferences
-                            .custom_config
-                            .fall_params = DelayParameters::constant(ExtDuration::ZERO);
-                        self.settings
-                            .game_mode_preferences
-                            .custom_config
-                            .lock_params = DelayParameters::standard_lock();
-                    } else if Some(selected) == opt_idx_game_save {
-                        if let Some(GameSave {
+                        self.settings.game_mode_preferences.custom_config.fall_curve =
+                            Either::Left(DelayParameters::constant(ExtDuration::ZERO));
+                        self.settings.game_mode_preferences.custom_config.lock_curve =
+                            Configuration::default().lock_delay_curve;
+                    } else if Some(selected) == opt_idx_game_save
+                        && let Some(GameSave {
                             game_restoration_data: GameRestorationData { input_history, .. },
                             inputs_to_load,
                             ..
                         }) = self.game_saves.get_mut()
-                        {
-                            *inputs_to_load = input_history.inputs.len();
-                        }
-                    }*/
+                    {
+                        *inputs_to_load = input_history.inputs.len();
+                    }
                 }
 
                 // Move selector right (select stat).
@@ -913,27 +973,14 @@ impl<T: Write> Application<T> {
                     modifiers,
                     ..
                 }) => {
-                    /*TODOif selected == idx_custom {
-                        self.settings.game_mode_preferences.custom_config.seed = None;
-                        self.settings
-                            .game_mode_preferences
-                            .custom_config
-                            .start_board = None;
-                        self.settings
-                            .game_mode_preferences
-                            .custom_config
-                            .fall_params = DelayParameters::standard_fall();
-                        self.settings
-                            .game_mode_preferences
-                            .custom_config
-                            .lock_params = DelayParameters::standard_lock();
-                        self.settings
-                            .game_mode_preferences
-                            .custom_config
-                            .win_condition = None;
+                    if selected == idx_custom {
+                        self.settings.game_mode_preferences.custom_config =
+                            CustomModeConfig::default();
                     } else if Some(selected) == opt_idx_classic {
                         if modifiers.contains(KeyModifiers::ALT) {
-                            self.settings.game_mode_preferences.classic_easier_lock_delay = false;
+                            self.settings
+                                .game_mode_preferences
+                                .classic_easier_lock_delay = false;
                         } else {
                             self.settings.game_mode_preferences.classic_lvl_offset = 0;
                         }
@@ -953,7 +1000,7 @@ impl<T: Write> Application<T> {
                     } else if Some(selected) == opt_idx_game_save {
                         self.game_saves.slots.remove(self.game_saves.selected);
                         self.game_saves.selected = 0;
-                    }*/
+                    }
                 }
 
                 // Secret - This unlocks things.
@@ -1056,8 +1103,8 @@ impl<T: Write> Application<T> {
             let GameModePreset {
                 title,
                 description: _,
-                show_stats,
-                stat_and_is_order_desc,
+                show_stats_hud,
+                objective_sort_descending,
                 build,
             } = &game_modes[selection];
 
@@ -1066,8 +1113,8 @@ impl<T: Write> Application<T> {
             let preset_game_meta_data = GameMetaData {
                 timestamp: generate_timestamp(),
                 title: title.to_owned(),
-                show_stats: *show_stats,
-                stat_and_desc_order: *stat_and_is_order_desc,
+                show_stats: *show_stats_hud,
+                objective_sort_descending: *objective_sort_descending,
             };
 
             let blank_input_history = RawInputHistory::default();
@@ -1138,13 +1185,13 @@ impl<T: Write> Application<T> {
             };
 
             // TODO: Changeable?
-            const CUSTOM_SHOW_STATS: ShowStats = ShowStats::all();
+            const CUSTOM_SHOW_STATS: ShowStatsHud = ShowStatsHud::all();
 
             let custom_game_meta_data = GameMetaData {
                 timestamp: generate_timestamp(),
                 title,
                 show_stats: CUSTOM_SHOW_STATS,
-                stat_and_desc_order: (Stat::PointsScored(0), false),
+                objective_sort_descending: (Stat::PointsScored(0), false),
             };
             let blank_input_history = RawInputHistory::default();
             (

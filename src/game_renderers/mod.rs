@@ -55,7 +55,7 @@ pub trait Renderer {
 
 bitflags::bitflags! {
     #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, Debug, Default, serde::Serialize, serde::Deserialize)]
-    pub struct ShowStats: u8 {
+    pub struct ShowStatsHud: u8 {
         const TIME = 0b0000_0001;
         const LINES = 0b0000_0010;
         const POINTS = 0b0000_0100;

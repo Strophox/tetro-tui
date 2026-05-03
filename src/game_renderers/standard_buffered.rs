@@ -282,7 +282,7 @@ impl Renderer for StandardBufferedRenderer {
     // * 'Next' widgets.
     // * Stats HUD.
     // * Keybinds HUD.
-    // * Goal HUD.
+    // * Win condition HUD.
     // * Buttons HUD.
     // * Text message feed.
     // 'Board tiles':
@@ -380,26 +380,26 @@ impl Renderer for StandardBufferedRenderer {
             // Render stats.
             let mut stats: Vec<Option<(&str, String)>> = vec![];
 
-            if meta_data.show_stats.contains(ShowStats::TIME) {
+            if meta_data.show_stats.contains(ShowStatsHud::TIME) {
                 stats.push(Some(("Time: ", fmt_duration(game.state().time))));
             }
 
-            if meta_data.show_stats.contains(ShowStats::LINES) {
+            if meta_data.show_stats.contains(ShowStatsHud::LINES) {
                 stats.push(Some(("Lines: ", game.state().lineclears.to_string())));
             }
 
-            if meta_data.show_stats.contains(ShowStats::POINTS) {
+            if meta_data.show_stats.contains(ShowStatsHud::POINTS) {
                 stats.push(Some(("Points: ", game.state().points.to_string())));
             }
 
-            if meta_data.show_stats.contains(ShowStats::PIECES) {
+            if meta_data.show_stats.contains(ShowStatsHud::PIECES) {
                 stats.push(Some((
                     "Pieces: ",
                     game.state().pieces_locked.iter().sum::<u32>().to_string(),
                 )));
             }
 
-            if meta_data.show_stats.contains(ShowStats::PIECES_COUNTS) {
+            if meta_data.show_stats.contains(ShowStatsHud::PIECES_COUNTS) {
                 let mut tet_infos = game
                     .state()
                     .pieces_locked
@@ -417,14 +417,14 @@ impl Renderer for StandardBufferedRenderer {
                 stats.push(Some(("", pieces_l2)));
             }
 
-            if meta_data.show_stats.contains(ShowStats::GRAVITY) {
+            if meta_data.show_stats.contains(ShowStatsHud::GRAVITY) {
                 stats.push(Some((
                     "Gravity: ",
                     fmt_hertz(game.state().fall_delay.as_hertz()),
                 )));
             }
 
-            if meta_data.show_stats.contains(ShowStats::LOCKDELAY) {
+            if meta_data.show_stats.contains(ShowStatsHud::LOCKDELAY) {
                 stats.push(Some((
                     "Lock delay: ",
                     if let ExtDuration::Finite(lock_delay) = game.state().lock_delay {
@@ -559,11 +559,11 @@ impl Renderer for StandardBufferedRenderer {
                 ),
             };
 
-            let w_tmp_gtl = w_float + W_PAD_LEFT + w_addhud + W_HOLD + W_BOARD + 2; // (width temporary goal-top-left)
-            let h_tmp_tl = h_float + H_PAD_TOP + H_FIELD;
-            #[rustfmt::skip] self.term_buf.write_str(w_tmp_gtl, h_tmp_tl, &str_statval, Color::Reset);
+            let w_tmp_wtl = w_float + W_PAD_LEFT + w_addhud + W_HOLD + W_BOARD + 2; // (width temporary win condition-top-left)
+            let h_tmp_wtl = h_float + H_PAD_TOP + H_FIELD;
+            #[rustfmt::skip] self.term_buf.write_str(w_tmp_wtl, h_tmp_wtl, &str_statval, Color::Reset);
             let w_str_val = str_statval.len();
-            #[rustfmt::skip] self.term_buf.write_str(w_tmp_gtl + 1 + (w_str_val as u16), h_tmp_tl, str_stattxt, Color::Reset);
+            #[rustfmt::skip] self.term_buf.write_str(w_tmp_wtl + 1 + (w_str_val as u16), h_tmp_wtl, str_stattxt, Color::Reset);
         }
 
         // RENDER: Buttons HUD.

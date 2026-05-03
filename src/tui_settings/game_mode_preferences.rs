@@ -1,4 +1,5 @@
-use falling_tetromino_engine::{Configuration, DelayCurve, ExtDuration, Stat};
+use either::Either;
+use falling_tetromino_engine::{DelayCurve, DelayParameters, ExtDuration, Stat};
 
 use crate::game_modding::{CheeseConfig, ComboConfig, SurvivalConfig};
 
@@ -49,10 +50,9 @@ pub struct CustomModeConfig {
 
 impl Default for CustomModeConfig {
     fn default() -> Self {
-        let config = Configuration::default();
         Self {
-            fall_curve: config.fall_delay_curve,
-            lock_curve: config.lock_delay_curve,
+            fall_curve: Either::Left(DelayParameters::standard_fall()),
+            lock_curve: Some(Either::Left(DelayParameters::standard_lock())),
             win_condition: None,
             seed: None,
             start_board: None,

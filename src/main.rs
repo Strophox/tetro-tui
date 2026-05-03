@@ -22,7 +22,7 @@ use falling_tetromino_engine::{
     ExtDuration, GameEndCause, InGameTime, Notification, NotificationFeed, Stat, Tetromino,
 };
 
-use crate::game_renderers::ShowStats;
+use crate::game_renderers::ShowStatsHud;
 use crate::savefile_logic::SavefileResult;
 use crate::{
     game_mode_presets::GameModePreset,
@@ -110,8 +110,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 pub struct GameMetaData {
     pub timestamp: String,
     pub title: String,
-    pub show_stats: ShowStats,
-    pub stat_and_desc_order: (Stat, bool),
+    pub show_stats: ShowStatsHud,
+    pub objective_sort_descending: (Stat, bool),
 }
 
 #[derive(
@@ -257,7 +257,7 @@ impl Scoreboard {
             // Sort by if game mode was finished successfully.
             pg1.is_win.cmp(&pg2.is_win).reverse().then_with(|| {
                 // Sort by comparison stat...
-                let o = match pg1.game_meta_data.stat_and_desc_order.0 {
+                let o = match pg1.game_meta_data.objective_sort_descending.0 {
                     Stat::TimeElapsed(_)    => pg1.time.cmp(&pg2.time),
                     Stat::PiecesLocked(_)   => pg1.pieces.cmp(&pg2.pieces),
                     Stat::LinesCleared(_)   => pg1.lineclears.cmp(&pg2.lineclears),
@@ -267,7 +267,7 @@ impl Scoreboard {
                 // how comparison stat compares to 'most important'(??) (often sole) end condition.
                 // This is shady, but the special order we subtly chose and never publicly document
                 // makes this make sense...
-                if pg1.game_meta_data.stat_and_desc_order.1
+                if pg1.game_meta_data.objective_sort_descending.1
                     { o } else { o.reverse() }
             })
             )

@@ -4,7 +4,7 @@ mod gameplay_settings;
 mod graphics_settings;
 
 pub use game_keybinds::GameKeybinds;
-pub use game_mode_preferences::GameModePreferences;
+pub use game_mode_preferences::{CustomModeConfig, GameModePreferences};
 pub use gameplay_settings::GameplaySettings;
 pub use graphics_settings::{
     GraphicsSettings, TileTexture,
