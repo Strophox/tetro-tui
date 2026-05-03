@@ -1073,7 +1073,7 @@ impl<T: Write> Application<T> {
         let GameplaySettings {
             rotsys,
             tetgen,
-            preview: prev,
+            preview,
             das,
             arr,
             dsd,
@@ -1089,7 +1089,7 @@ impl<T: Write> Application<T> {
         builder
             .rotation_system(rotsys)
             .tetromino_generator(tetgen)
-            .generate_piece_preview(prev)
+            .generate_piece_preview(preview)
             .delayed_auto_shift(das)
             .auto_repeat_rate(arr)
             .delayed_soft_drop(dsd)

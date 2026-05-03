@@ -115,7 +115,7 @@ impl GameModifier for Survival {
     }
 
     fn on_lines_clear_post(&mut self, mut game: GameAccess, _feed: &mut NotificationFeed) {
-        if f64::from(game.state.lineclears) >= Survival::LINECLEARS_LIMIT {
+        if game.state.lineclears >= Survival::LINECLEARS_LIMIT {
             *game.phase = Phase::GameEnd {
                 cause: GameEndCause::Custom(format!(
                     "Survived {} lines",
@@ -137,7 +137,8 @@ impl GameModifier for Survival {
 }
 
 impl Survival {
-    const LINECLEARS_LIMIT: f64 = 300.0;
+    const LINECLEARS_LIMIT: u32 = 300;
+
     fn fmt_regen_period(lineclears: u32) -> String {
         format!(
             "Regen. period: {:.01}",
@@ -161,7 +162,7 @@ impl Survival {
         // When lineclears == LIMIT, then exponent == 1.0 and multiplier becomes exactly `() * TARGET / ORIGIN`
         let raw_regen_period = ORIGIN_PERIOD
             * (TARGET_PERIOD / ORIGIN_PERIOD)
-                .powf(f64::from(trunc10_lineclears) / Survival::LINECLEARS_LIMIT);
+                .powf(f64::from(trunc10_lineclears) / f64::from(Survival::LINECLEARS_LIMIT));
 
         // Round regen period to halves for neatness.
         (raw_regen_period * 2.0).round() / 2.0
