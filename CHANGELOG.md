@@ -8,15 +8,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- *NOTE: Listed unreleased changes might not be comprehensive. Check using `git diff vX.Y.Z HEAD` with latest `vX.Y.Z`.*
+
+
+## [3.3.0] - 2026-05-04
+
+### Added
+- New game mode: **Survival**.
+- New game mode: **Classic** corresponding to retro versions (the previous 'classic' mode is now just called Regular).
+    * Unlocked after Regular mode.
+    * Accurate fall timings (leveling) corresponding to Classic gameplay.
+    * Starting level can be set using `←/→`.
+    * Easier lock delay (500ms) can be toggled using `Alt+←/→`.
 - Pressing `?` now shows a **Keybinds Overview for any menu** that it is pressed in. 
 - `Ctrl+Z` can now be used to **undo the last input(s)** during live game.
+- `Home/End` can now be used to directly set fall delay to infinite/zero for custom mode.
 - TUI symbols preset: 'Rounded Unicode', 'Borderless Unicode', 'Borderless-Next/Hold'.
+- Gameplay settings:
+    * `Alt+←/→` can be used to toggle to **'Fixed' Soft Drop Rate** variant (instead of factor-based).
+    * **Delayed soft drop**.
+
+### Changed
+- Stats HUD on the left side now displays fewer stats ('only the relevant ones') depending on game mode.
+- Nicer 'derived game mode' naming (e.g. "Survival" -> .. -> "Survival [7]" instead of "Survival'''''''").
+- Retro Gameplay presets: now have more accurate mechanics (soft drop speed, reroll randomizer).
 - Graphics and keybinds presets: Fixed and improved ("Guideline", "Terminal Finesse").
+- Many UI (text etc.) improvements.
+
+### Fixed
+- Fix game messages being displayed on smaller terminals (y=24).
+- Basic Twoxel/Braille renderers much more efficient in I/O (only re-render board when a change happens now).
+- Puzzle and Ascent modes are guaranteed to use the Ocular rotation system now (regardless of gameplay config).
+
+### Removed
+- Legacy and Prototype renderers are not included in compilation anymore, and thus unselectable.
 - Niche New Game Menu controls: 'quick start new game' keys (1,2,3...) (use `Ctrl+R` to quick-restart same gamemode instead).
-- Custom Mode config controls: `Home/End` can now be used to directly set fall delay to infinite/zero.
-- New game mode: **Survival**.
-- UI: Derived game modes are much shorter and nicer (e.g. "Survival" -undo-> ... -undo-> "Survival [7]" instead of -> "Survival'''''''").
-- Changed some in-code / savefile terminology and improve corresponding UI element names.
 
 
 ## [3.2.1] - 2026-04-18
@@ -186,7 +212,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     * 'Custom' mode -> dynamic: 'Lines-40'/'Score-900'/'Limitless'/...
     * 'Single', 'Double', 'Triple', 'Quadruple', 'Quintuple' ... -> 'Mono', 'Duo', 'Tri', 'Tetra', 'Penta' ...
 - 'Master' mode is now only unlocked if 'Classic' has been completed. (secret command for the experienced/impatient: `Ctrl`+`U`.)
-- Certain special controls that used `[Shift+?]` now use `[Alt+?]` (for better compatibility).
+- Certain special controls that used `[Shift+..]` now use `[Alt+..]` (for better compatibility).
 - Animated Game Complete menu; and Title menu is fancier now, too (even with its different design in ASCII mode)!
 - Many, many small TUI tweaks: text/labels, menu navigation...
 
