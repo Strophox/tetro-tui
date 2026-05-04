@@ -42,7 +42,7 @@ impl GameModifier for PrintRecencyStats {
             tets_last_emitted,
             factor,
             is_base_not_exp,
-        }) = game.state.piece_generator
+        }) = game.state.tetromino_generator
         else {
             return;
         };

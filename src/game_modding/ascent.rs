@@ -82,7 +82,7 @@ impl GameModifier for Ascent {
         };
 
         // Provide hold piece.
-        game.state.piece_held = Some((asc_tet_02, true));
+        game.state.tetromino_held = Some((asc_tet_02, true));
 
         // No other pieces required.
         game.config.generate_piece_preview = 0;
@@ -180,7 +180,7 @@ impl GameModifier for Ascent {
 
                 // Manually swap pieces if available.
                 let (Some(piece), Some((held_tetromino, _))) =
-                    (game.phase.piece_mut(), game.state.piece_held.as_mut())
+                    (game.phase.piece_mut(), game.state.tetromino_held.as_mut())
                 else {
                     return;
                 };

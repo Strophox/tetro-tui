@@ -219,7 +219,7 @@ impl Puzzle {
         }
 
         // Load in stage tetrominos.
-        state.piece_preview.clone_from(&stage_tetrominos);
+        state.tetromino_preview.clone_from(&stage_tetrominos);
 
         // Save stage length.
         self.stage_tet_count = stage_tetrominos.len();

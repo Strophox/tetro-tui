@@ -673,7 +673,7 @@ impl Renderer for StandardBufferedRenderer {
 
         // RENDER: 'Hold' widget.
 
-        if let Some((tet, is_swappable)) = game.state().piece_held {
+        if let Some((tet, is_swappable)) = game.state().tetromino_held {
             // 'Hold' frame glyphs.
             let [c_h_tb, c_h_tl, c_h_l, c_h_bl] = tui_symbols.holdframe;
             let w_tmp_htl = w_float + W_PAD_LEFT + w_addhud; // (width temporary hold-top-left)
@@ -714,7 +714,7 @@ impl Renderer for StandardBufferedRenderer {
         let w_tmp_ntl = w_float + W_PAD_LEFT + w_addhud + W_HOLD + W_BOARD; // (width temporary next-top-left)
         let h_tmp_ntl = h_float + H_PAD_TOP;
 
-        let mut next_tetrominos = game.state().piece_preview.iter().copied();
+        let mut next_tetrominos = game.state().tetromino_preview.iter().copied();
         'render_preview: {
             // To begin, render normalsize previews.
             let draw_appended_normalsize_prev =
@@ -931,7 +931,7 @@ impl Renderer for StandardBufferedRenderer {
 
             if settings.graphics().show_spawn && !game.has_ended() {
                 // Get upcoming piece if possible.
-                if let Some(next_tetromino) = game.state().piece_preview.front() {
+                if let Some(next_tetromino) = game.state().tetromino_preview.front() {
                     let spawn_piece = next_tetromino.spawn_piece();
                     // Only show it if the highest tile is 4 units below us or less.
                     if spawn_piece.position.1 <= y_highest_tile + 4 {

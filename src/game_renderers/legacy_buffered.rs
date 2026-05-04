@@ -301,8 +301,8 @@ impl Renderer for LegacyBufferedRenderer {
             ("", "".to_owned())
         };
 
-        let show_hold = game.state().piece_held.is_some();
-        let show_next = !game.state().piece_preview.is_empty();
+        let show_hold = game.state().tetromino_held.is_some();
+        let show_next = !game.state().tetromino_preview.is_empty();
         let show_lockdelay = game
             .state()
             .fall_delay_lowerbound_hit_at_n_lineclears
@@ -528,7 +528,7 @@ impl Renderer for LegacyBufferedRenderer {
         let tile_preview = tile_active;
 
         // Draw preview.
-        if let Some(next_piece) = game.state().piece_preview.front() {
+        if let Some(next_piece) = game.state().tetromino_preview.front() {
             let color = get_color(next_piece.tile_id());
             for (x, y) in next_piece.minos(Orientation::N) {
                 let pos = (
@@ -541,7 +541,7 @@ impl Renderer for LegacyBufferedRenderer {
 
         // Draw small preview pieces 2,3,4.
         let mut x_offset_small = 0;
-        for tet in game.state().piece_preview.iter().skip(1).take(3) {
+        for tet in game.state().tetromino_preview.iter().skip(1).take(3) {
             let tetstr = &settings.small_tetromino_symbols().tets[*tet as usize];
             self.screen.buffer_str(
                 tetstr,
@@ -554,7 +554,7 @@ impl Renderer for LegacyBufferedRenderer {
         // Draw minuscule preview pieces 5,6,7,8...
         let mut x_offset_minuscule = 0;
         #[allow(clippy::explicit_counter_loop)]
-        for tet in game.state().piece_preview.iter().skip(4) {
+        for tet in game.state().tetromino_preview.iter().skip(4) {
             //.take(5) {
             let mut bs = vec![0; 4];
             self.screen.buffer_str(
@@ -566,7 +566,7 @@ impl Renderer for LegacyBufferedRenderer {
         }
 
         // Draw held piece.
-        if let Some((tet, swap_allowed)) = game.state().piece_held {
+        if let Some((tet, swap_allowed)) = game.state().tetromino_held {
             let tetstr = &settings.small_tetromino_symbols().tets[tet as usize];
             let color = get_color(if swap_allowed {
                 tet.tile_id()
