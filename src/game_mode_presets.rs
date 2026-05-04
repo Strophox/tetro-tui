@@ -249,7 +249,7 @@ impl GameModePreset {
     pub fn ascent() -> Self {
         Self {
             title: Self::TITLE_ASCENT.to_owned(),
-            description: "(experimental, req. Ocular + 180° rot.)".to_owned(),
+            description: "Experimental, requires 180° rot.".to_owned(),
             show_stats_hud: ShowStatsHud::TIME | ShowStatsHud::POINTS,
             objective_sort_descending: (Stat::PointsScored(0), false),
             build: Box::new(game_modding::Ascent::build),

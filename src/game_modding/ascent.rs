@@ -31,6 +31,7 @@ impl Ascent {
 
         builder
             .clone()
+            .rotation_system(falling_tetromino_engine::StdPceRot::Ocular)
             .lock_delay_curve(Some(Either::Left(DelayParameters::constant(
                 ExtDuration::Infinite,
             ))))
