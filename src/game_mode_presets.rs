@@ -69,7 +69,7 @@ impl GameModePreset {
                 if easier_lock_delay { "*" } else { "" },
                 lvl_offset
             ),
-            description: "'NES' Graphics Settings recommended(<-TODO: Implement).".to_owned(),
+            description: "'NES' Gameplay settings recommended.".to_owned(), /* TODO: Implement NES graphics. */
             show_stats_hud: ShowStatsHud::TIME
                 | ShowStatsHud::LINES
                 | ShowStatsHud::POINTS
