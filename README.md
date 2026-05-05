@@ -348,7 +348,7 @@ cargo run
 >   - '1pt for simple line clear, with increasing bonus for larger lineclears, combos, spins and perfect clears.'
 >   - *Note:* 'Allspin' (instead of: preoccupation with 'T-spins'), currently no 'minis'.
 >   - *Note:* Combos (but no additional points for 'back to back' other than existing incentives for special maneuvers).
->   - Exact formula: `point_bonus = if is_perfect_clear{ 4 }else{ 1 } * if is_spin{ 2 }else{ 1 } * (lineclears * 2 - 1) + (combo - 1)`
+>   - Exact formula: `point_bonus = lineclears*lineclears * if is_spin{ 4 }else{ 1 } * if is_perfect{ 4 }else{ 1 } + (combo - 1)`
 > - Different **lock reset** limit: 'max time = 10⋅current lock delay' (instead of: 'max 15 moves with current lock delay').
 > - Speed/gravity/fall curve slightly less fast but very close to 'standard'.
 >

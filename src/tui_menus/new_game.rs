@@ -195,8 +195,8 @@ impl<T: Write> Application<T> {
                                 Either::Right(table) => table.entries()[0],
                             };
                         format!(
-                            "| Initial fall delay = {} s (Gravity: {})",
-                            fall_delay.as_secs_ennf64().get(),
+                            "| Initial fall delay = {:.9} s (Gravity: {})", /* NOTE: the 9 corresponds to the exponent in minval_fall_delay */
+                            fall_delay.as_secs_ennf64().get() * 1.0,
                             fmt_hertz(fall_delay.as_hertz())
                         )
                     },
