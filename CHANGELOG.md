@@ -8,7 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- *NOTE: Listed unreleased changes might not be comprehensive. Check using `git diff vX.Y.Z HEAD` with latest `vX.Y.Z`.*
+- UI and savefile renames/improvements.
+
+- _NOTE: Listed unreleased changes might not be comprehensive. Check using `git diff vX.Y.Z HEAD` with latest `vX.Y.Z`._
+- _NOTE: Savefiles are versioned by `MAJOR.MINOR`. When a new such version releases, it will *not* touch the previous savefiles._
 
 
 ## [3.3.0] - 2026-05-04

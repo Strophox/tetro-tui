@@ -6,7 +6,7 @@ use crate::tui_settings::{
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]
-pub struct MinoTextures {
+pub struct TileSymbols {
     pub grid: TileTexture,
     pub play: TileTexture,
     pub shadow: TileTexture,
@@ -15,19 +15,19 @@ pub struct MinoTextures {
     pub crossed: TileTexture,
 }
 
-pub fn mino_symbols_presets() -> SlotMachine<MinoTextures> {
+pub fn mino_symbols_presets() -> SlotMachine<TileSymbols> {
     let slots = vec![
-        ("ASCII".to_owned(), MinoTextures::ascii()),
-        ("Unicode".to_owned(), MinoTextures::unicode()),
-        ("Elektronika 60".to_owned(), MinoTextures::elektronika_60()),
+        ("ASCII".to_owned(), TileSymbols::ascii()),
+        ("Unicode".to_owned(), TileSymbols::unicode()),
+        ("Elektronika 60".to_owned(), TileSymbols::elektronika_60()),
     ];
 
-    SlotMachine::with_unmodifiable_slots(slots, "Mino symbols".to_owned())
+    SlotMachine::with_unmodifiable_slots(slots, "Tile symbols".to_owned())
 }
 
-impl MinoTextures {
+impl TileSymbols {
     pub fn ascii() -> Self {
-        MinoTextures {
+        TileSymbols {
             grid: " .".tile(),
             play: "[]".tile(),
             shadow: "::".tile(),
@@ -38,7 +38,7 @@ impl MinoTextures {
     }
 
     pub fn unicode() -> Self {
-        MinoTextures {
+        TileSymbols {
             grid: " ⢀".tile(), // " ⌟" ?
             play: "▓▓".tile(),
             shadow: "░░".tile(),
@@ -49,7 +49,7 @@ impl MinoTextures {
     }
 
     pub fn elektronika_60() -> Self {
-        MinoTextures {
+        TileSymbols {
             grid: " .".tile(),
             play: "▮▮".tile(),
             shadow: "▯▯".tile(),

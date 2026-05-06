@@ -629,7 +629,7 @@ impl Renderer for StandardBufferedRenderer {
                 is_unexpired
             });
         }
-        let mino_textures = settings.mino_symbols();
+        let tile_symbols = settings.tile_symbols();
         let ftch_col_or_rset = |tile_id: &TileID| {
             settings
                 .palette()
@@ -731,7 +731,7 @@ impl Renderer for StandardBufferedRenderer {
                     #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + 12, h_tmp_ntl + y_offset + 3, TermCell { ch: c_n_br, fg: Color::Reset });
 
                     // Render preview piece.
-                    let tile_texture = mino_textures.locked;
+                    let tile_texture = tile_symbols.locked;
                     let color = ftch_col_or_rset(&next_tet.tile_id());
                     let w_extra_for_o = if next_tet == Tetromino::O { 2 } else { 0 };
                     for (dx, dy) in next_tet.minos(Orientation::N) {
@@ -843,25 +843,18 @@ impl Renderer for StandardBufferedRenderer {
         let w_tmp_ftl = w_float + W_PAD_LEFT + w_addhud + W_HOLD + 1; // (width temporary field-top-left)
         let h_tmp_ftl = h_float + H_PAD_TOP + H_FIELD;
 
-        if settings.graphics().show_grid {
-            // RENDER: Grid.
+        // RENDER: Grid or Air.
+        // - Air is to avoid anything that could accidentally write things onto the field, e.g. unexpectedly wide stats.
 
-            for dy in 0..LOCK_OUT_HEIGHT {
-                for dx in 0..WIDTH {
-                    let tile_texture = mino_textures.grid;
-                    let color = Color::Reset;
+        for dy in 0..LOCK_OUT_HEIGHT {
+            for dx in 0..WIDTH {
+                let (tile, color) = if settings.graphics().show_grid {
+                    (tile_symbols.grid, Color::Reset)
+                } else {
+                    (TileTexture::EMPTY, Color::Reset)
+                };
 
-                    #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * dx as u16, h_tmp_ftl.saturating_sub(dy as u16), tile_texture, color);
-                }
-            }
-        } else {
-            // RENDER: Air.
-            // - This is to avoid anything that could accidentally overwrite things, e.g. mods or unexpectedly wide stats.
-
-            for dy in 0..LOCK_OUT_HEIGHT {
-                for dx in 0..WIDTH {
-                    #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * dx as u16, h_tmp_ftl.saturating_sub(dy as u16), TileTexture::EMPTY, Color::Reset);
-                }
+                #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * dx as u16, h_tmp_ftl.saturating_sub(dy as u16), tile, color);
             }
         }
 
@@ -914,9 +907,9 @@ impl Renderer for StandardBufferedRenderer {
             {
                 for (dx, tile) in line.iter().enumerate() {
                     if let Some(tile_id) = tile {
-                        let tile_texture = mino_textures.locked;
+                        let tile_texture = tile_symbols.locked;
                         let color = settings
-                            .lockedminopalette()
+                            .lockedtilepalette()
                             .get(tile_id)
                             .copied()
                             .unwrap_or(Color::Reset);
@@ -939,7 +932,7 @@ impl Renderer for StandardBufferedRenderer {
                             if game.state().board[dy as usize][dx as usize].is_some() {
                                 continue;
                             }
-                            let tile_texture = mino_textures.shadow;
+                            let tile_texture = tile_symbols.shadow;
                             let color = ftch_col_or_rset(&tile_id);
                             #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, color);
                         }
@@ -964,7 +957,7 @@ impl Renderer for StandardBufferedRenderer {
                 if settings.graphics().show_shadow {
                     let shadow_piece = player_piece.teleported(&game.state().board, (0, -1));
                     for ((dx, dy), tile_id) in shadow_piece.tiles() {
-                        let tile_texture = mino_textures.shadow;
+                        let tile_texture = tile_symbols.shadow;
                         let color = ftch_col_or_rset(&tile_id);
                         #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, color);
                     }
@@ -973,7 +966,7 @@ impl Renderer for StandardBufferedRenderer {
                 // RENDER: Active piece.
 
                 for ((dx, dy), tile_id) in player_piece.tiles() {
-                    let tile_texture = mino_textures.play;
+                    let tile_texture = tile_symbols.play;
                     let color = ftch_col_or_rset(&tile_id);
                     #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, color);
                 }
@@ -1013,7 +1006,7 @@ impl Renderer for StandardBufferedRenderer {
                         // RENDER: Active piece when locked out.
 
                         for ((dx, dy), tile_id) in locking_piece.tiles() {
-                            let tile_texture = mino_textures.crossed;
+                            let tile_texture = tile_symbols.crossed;
                             let color = ftch_col_or_rset(&tile_id);
                             #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, color);
                         }
@@ -1026,9 +1019,9 @@ impl Renderer for StandardBufferedRenderer {
                             let (tile_texture, color) = if let Some(blocking_tile_id) =
                                 game.state().board[dy as usize][dx as usize]
                             {
-                                (mino_textures.crossed, ftch_col_or_rset(&blocking_tile_id))
+                                (tile_symbols.crossed, ftch_col_or_rset(&blocking_tile_id))
                             } else {
-                                (mino_textures.hatched, ftch_col_or_rset(&tile_id))
+                                (tile_symbols.hatched, ftch_col_or_rset(&tile_id))
                             };
                             #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, color);
                         }
@@ -1041,7 +1034,7 @@ impl Renderer for StandardBufferedRenderer {
                         {
                             for dx in 0..WIDTH {
                                 // FIXME: Remove this FIX-ME as soon as this is tested / sure it works correctly.
-                                let tile_texture = mino_textures.hatched;
+                                let tile_texture = tile_symbols.hatched;
                                 let color = Color::Reset;
                                 #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy), tile_texture, color);
                             }
@@ -1056,7 +1049,7 @@ impl Renderer for StandardBufferedRenderer {
                             // RENDER: Active piece when forfeited.
 
                             for ((dx, dy), tile_id) in forfeit_piece.tiles() {
-                                let tile_texture = mino_textures.hatched;
+                                let tile_texture = tile_symbols.hatched;
                                 let color = ftch_col_or_rset(&tile_id);
                                 #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, color);
                             }
@@ -1095,10 +1088,10 @@ impl Renderer for StandardBufferedRenderer {
 
                     // render the tile
                     let (retexture, recolor) = animation[(timeshift * (animation.len() - 1) as f32).round() as usize];
-                    let tile_texture = retexture.unwrap_or(mino_textures.locked);
+                    let tile_texture = retexture.unwrap_or(tile_symbols.locked);
                     let tile_id = recolor.unwrap_or(original_tile_id);
                     let color = settings
-                        .lockedminopalette()
+                        .lockedtilepalette()
                         .get(&tile_id)
                         .copied()
                         .unwrap_or(Color::Reset);
@@ -1130,14 +1123,14 @@ impl Renderer for StandardBufferedRenderer {
 
                 // rerender the line
                 for (dx, original_tile_id) in line.iter().enumerate() {
-                    let tile_texture = mino_textures.locked;
+                    let tile_texture = tile_symbols.locked;
                     let tile_id = if !color_animation.is_empty() {
                         color_animation[(timeshift * (color_animation.len() - 1) as f32).round() as usize].unwrap_or(*original_tile_id)
                     } else {
                         *original_tile_id
                     };
                     let color = settings
-                        .lockedminopalette()
+                        .lockedtilepalette()
                         .get(&tile_id)
                         .copied()
                         .unwrap_or(Color::Reset);
@@ -1184,16 +1177,21 @@ impl Renderer for StandardBufferedRenderer {
 
                 // Render manually cleared out tiles at original position if we still have to.
                 if elapsed < line_clear_duration {
+                    let (tile, color) = if settings.graphics().show_grid {
+                        (tile_symbols.grid, Color::Reset)
+                    } else {
+                        (TileTexture::EMPTY, Color::Reset)
+                    };
                     // empty the tile at original position
-                    #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), TileTexture::EMPTY, Color::Reset);
+                    #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile, color);
                 }
 
                 // render the tile
                 let (retexture, recolor) = animation[(timeshift * (animation.len() - 1) as f32).round() as usize];
-                let tile_texture = retexture.unwrap_or(mino_textures.locked);
+                let tile_texture = retexture.unwrap_or(tile_symbols.locked);
                 let tile_id = recolor.unwrap_or(original_tile_id);
                 let color = settings
-                    .lockedminopalette()
+                    .lockedtilepalette()
                     .get(&tile_id)
                     .copied()
                     .unwrap_or(Color::Reset);

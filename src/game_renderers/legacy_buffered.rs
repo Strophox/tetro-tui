@@ -22,7 +22,7 @@ use super::*;
 use crate::{
     TemporaryAppData,
     fmt_helpers::{fmt_duration, fmt_hertz, fmt_lineclear_name},
-    tui_settings::{MinoTextures, Palette},
+    tui_settings::{TileSymbols, Palette},
 };
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, Default)]
@@ -514,14 +514,14 @@ impl Renderer for LegacyBufferedRenderer {
             }
         }
 
-        let MinoTextures {
+        let TileSymbols {
             play,
             locked,
             shadow,
             grid: _,
             hatched: _,
             crossed: _,
-        } = settings.mino_symbols();
+        } = settings.tile_symbols();
         let tile_active = &play.0.iter().collect::<String>();
         let tile_ground = &locked.0.iter().collect::<String>();
         let tile_shadow = &shadow.0.iter().collect::<String>();
@@ -619,7 +619,7 @@ impl Renderer for LegacyBufferedRenderer {
                         && let Some(xy) =
                             pos_board((isize::try_from(x).unwrap(), isize::try_from(y).unwrap()))
                     {
-                        let color_locked = settings.lockedminopalette().get(tile_id).copied();
+                        let color_locked = settings.lockedtilepalette().get(tile_id).copied();
                         self.screen.buffer_str(tile_ground, color_locked, xy);
                     }
                 }

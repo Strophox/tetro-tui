@@ -12,7 +12,7 @@ pub use graphics_settings::{
     line_clear_effect::{LineClearEffect, LineClearInlineEffect, LineClearParticleEffect},
     lock_effect::LockEffect,
     mini_tetromino_symbols::MiniTetrominoSymbols,
-    mino_symbols::MinoTextures,
+    tile_symbols::TileSymbols,
     palette::Palette,
     small_tetromino_symbols::SmallTetrominoSymbols,
     tui_symbols::TuiSymbols,
@@ -27,7 +27,7 @@ use crate::{
             graphics_settings_presets, hard_drop_effect::hard_drop_effect_presets,
             line_clear_effect::line_clear_effect_presets, lock_effect::lock_effect_presets,
             mini_tetromino_symbols::mini_tetromino_symbols_presets,
-            mino_symbols::mino_symbols_presets, palette::palette_presets,
+            tile_symbols::mino_symbols_presets, palette::palette_presets,
             small_tetromino_symbols::small_tetromino_symbols_presets,
             tui_symbols::tui_symbols_presets,
         },
@@ -42,10 +42,10 @@ pub struct Settings {
     pub graphics_slotmachine: SlotMachine<GraphicsSettings>,
     #[serde(rename = "PALETTE_SLOTS")]
     pub palette_slotmachine: SlotMachine<Palette>,
-    #[serde(rename = "TUI_SYMBOLS_SLOTS")]
-    pub tui_style_slotmachine: SlotMachine<TuiSymbols>,
-    #[serde(rename = "MINO_SYMBOLS_SLOTS")]
-    pub mino_symbols_slotmachine: SlotMachine<MinoTextures>,
+    #[serde(rename = "UI_SYMBOLS_SLOTS")]
+    pub tui_symbols_slotmachine: SlotMachine<TuiSymbols>,
+    #[serde(rename = "TILE_SYMBOLS_SLOTS")]
+    pub tile_symbols_slotmachine: SlotMachine<TileSymbols>,
     #[serde(rename = "HARD_DROP_EFFECT_SLOTS")]
     pub hard_drop_effect_slotmachine: SlotMachine<HardDropEffect>,
     #[serde(rename = "LOCK_EFFECT_SLOTS")]
@@ -75,8 +75,8 @@ impl Default for Settings {
             graphics_selected: 0,
             graphics_slotmachine: graphics_settings_presets(),
             palette_slotmachine: palette_presets(),
-            tui_style_slotmachine: tui_symbols_presets(),
-            mino_symbols_slotmachine: mino_symbols_presets(),
+            tui_symbols_slotmachine: tui_symbols_presets(),
+            tile_symbols_slotmachine: mino_symbols_presets(),
             hard_drop_effect_slotmachine: hard_drop_effect_presets(),
             lock_effect_slotmachine: lock_effect_presets(),
             line_clear_effect_slotmachine: line_clear_effect_presets(),
@@ -107,14 +107,14 @@ impl Settings {
     }
     pub fn tui_symbols(&self) -> &TuiSymbols {
         &self
-            .tui_style_slotmachine
+            .tui_symbols_slotmachine
             .grab(self.graphics().tui_symbols_selected)
             .1
     }
-    pub fn mino_symbols(&self) -> &MinoTextures {
+    pub fn tile_symbols(&self) -> &TileSymbols {
         &self
-            .mino_symbols_slotmachine
-            .grab(self.graphics().mino_symbols_selected)
+            .tile_symbols_slotmachine
+            .grab(self.graphics().tile_symbols_selected)
             .1
     }
     pub fn hard_drop_effect(&self) -> &HardDropEffect {
@@ -147,10 +147,10 @@ impl Settings {
             .grab(self.graphics().small_tetromino_symbols_selected)
             .1
     }
-    pub fn lockedminopalette(&self) -> &Palette {
+    pub fn lockedtilepalette(&self) -> &Palette {
         &self
             .palette_slotmachine
-            .grab(self.graphics().lockedminopalette_selected)
+            .grab(self.graphics().lockedtilepalette_selected)
             .1
     }
 

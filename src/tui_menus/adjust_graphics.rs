@@ -118,23 +118,27 @@ impl<T: Write> Application<T> {
                 format!(
                     "UI symbols = {}",
                     self.settings
-                        .tui_style_slotmachine
+                        .tui_symbols_slotmachine
                         .grab(self.settings.graphics().tui_symbols_selected)
                         .0
                 ),
                 format!(
-                    "Tetromino symbols = {}",
+                    "Tile/Tetromino symbols = {} {}{}{}",
                     self.settings
-                        .mino_symbols_slotmachine
-                        .grab(self.settings.graphics().mino_symbols_selected)
-                        .0
+                        .tile_symbols_slotmachine
+                        .grab(self.settings.graphics().tile_symbols_selected)
+                        .0,
+                    self.settings.tile_symbols().shadow.0.map(|ch| ch.to_string()).join(""),
+                    self.settings.tile_symbols().play.0.map(|ch| ch.to_string()).join(""),
+                    self.settings.tile_symbols().locked.0.map(|ch| ch.to_string()).join(""),
                 ),
                 format!(
-                    "Small tet. symbols = {}",
+                    "Small tet. symbols = {} {}",
                     self.settings
                         .small_tetromino_symbols_slotmachine
                         .grab(self.settings.graphics().small_tetromino_symbols_selected)
-                        .0
+                        .0,
+                    self.settings.small_tetromino_symbols().tets[Tetromino::S as usize]
                 ),
                 format!(
                     "Mini tet. symbols = {} {}",
@@ -169,8 +173,8 @@ impl<T: Write> Application<T> {
                         self.settings.graphics().show_grid.then_some("Grid"),
                         self.settings.graphics().show_shadow.then_some("Shadow"),
                         self.settings.graphics().show_spawn.then_some("Spawn"),
-                        (self.settings.graphics().lockedminopalette_selected != 0)
-                            .then_some("Col'minos"),
+                        (self.settings.graphics().lockedtilepalette_selected != 0)
+                            .then_some("Col'tiles"),
                         self.settings.graphics().show_main_hud.then_some("HUD"),
                         self.settings.graphics().show_keybinds.then_some("Keybinds"),
                         self.settings.graphics().show_buttons.then_some("Buttons"),
@@ -197,30 +201,30 @@ impl<T: Write> Application<T> {
             ];
 
             let labels2 = [
-                ("Show grid", self.settings.graphics().show_grid),
-                ("Show piece shadow", self.settings.graphics().show_shadow),
+                ("Grid", self.settings.graphics().show_grid),
+                ("Piece shadow", self.settings.graphics().show_shadow),
                 (
-                    "Preview upcoming spawn if stack high",
+                    "Upcoming spawn preview (if stack high)",
                     self.settings.graphics().show_spawn,
                 ),
                 (
-                    "Colored locked minos",
-                    self.settings.graphics().lockedminopalette_selected != 0,
+                    "Color locked tiles",
+                    self.settings.graphics().lockedtilepalette_selected != 0,
                 ),
-                ("Show main HUD", self.settings.graphics().show_main_hud),
+                ("Main HUD", self.settings.graphics().show_main_hud),
                 (
-                    "Include keybinds legend",
+                    "Include basic keybinds HUD",
                     self.settings.graphics().show_keybinds,
                 ),
                 (
-                    "Show active(=held) buttons",
+                    "Show active/held buttons",
                     self.settings.graphics().show_buttons,
                 ),
                 (
-                    "Show lock delay timer",
+                    "Lock delay visualizer",
                     self.settings.graphics().show_lockdelay,
                 ),
-                ("Show FPS counter", self.settings.graphics().show_fps),
+                ("FPS counter", self.settings.graphics().show_fps),
             ]
             .map(|(name, is_on)| format!("{name} = {}", is_on.on_off()));
 
@@ -410,7 +414,7 @@ impl<T: Write> Application<T> {
                         self.settings.graphics_mut().palette_selected += 1;
                         self.settings.graphics_mut().palette_selected %=
                             self.settings.palette_slotmachine.slots.len();
-                        self.settings.graphics_mut().lockedminopalette_selected =
+                        self.settings.graphics_mut().lockedtilepalette_selected =
                             self.settings.graphics_mut().palette_selected;
                     }
                     2 => {
@@ -435,13 +439,13 @@ impl<T: Write> Application<T> {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.graphics_mut().tui_symbols_selected += 1;
                         self.settings.graphics_mut().tui_symbols_selected %=
-                            self.settings.tui_style_slotmachine.slots.len();
+                            self.settings.tui_symbols_slotmachine.slots.len();
                     }
                     6 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().mino_symbols_selected += 1;
-                        self.settings.graphics_mut().mino_symbols_selected %=
-                            self.settings.mino_symbols_slotmachine.slots.len();
+                        self.settings.graphics_mut().tile_symbols_selected += 1;
+                        self.settings.graphics_mut().tile_symbols_selected %=
+                            self.settings.tile_symbols_slotmachine.slots.len();
                     }
                     7 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
@@ -489,8 +493,8 @@ impl<T: Write> Application<T> {
                     }
                     14 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().lockedminopalette_selected =
-                            if self.settings.graphics().lockedminopalette_selected == 0 {
+                        self.settings.graphics_mut().lockedtilepalette_selected =
+                            if self.settings.graphics().lockedtilepalette_selected == 0 {
                                 self.settings.graphics_mut().palette_selected
                             } else {
                                 0
@@ -536,7 +540,7 @@ impl<T: Write> Application<T> {
                             self.settings.palette_slotmachine.slots.len() - 1;
                         self.settings.graphics_mut().palette_selected %=
                             self.settings.palette_slotmachine.slots.len();
-                        self.settings.graphics_mut().lockedminopalette_selected =
+                        self.settings.graphics_mut().lockedtilepalette_selected =
                             self.settings.graphics_mut().palette_selected;
                     }
                     2 => {
@@ -563,16 +567,16 @@ impl<T: Write> Application<T> {
                     5 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.graphics_mut().tui_symbols_selected +=
-                            self.settings.tui_style_slotmachine.slots.len() - 1;
+                            self.settings.tui_symbols_slotmachine.slots.len() - 1;
                         self.settings.graphics_mut().tui_symbols_selected %=
-                            self.settings.tui_style_slotmachine.slots.len();
+                            self.settings.tui_symbols_slotmachine.slots.len();
                     }
                     6 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().mino_symbols_selected +=
-                            self.settings.mino_symbols_slotmachine.slots.len() - 1;
-                        self.settings.graphics_mut().mino_symbols_selected %=
-                            self.settings.mino_symbols_slotmachine.slots.len();
+                        self.settings.graphics_mut().tile_symbols_selected +=
+                            self.settings.tile_symbols_slotmachine.slots.len() - 1;
+                        self.settings.graphics_mut().tile_symbols_selected %=
+                            self.settings.tile_symbols_slotmachine.slots.len();
                     }
                     7 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
@@ -630,8 +634,8 @@ impl<T: Write> Application<T> {
                     }
                     14 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().lockedminopalette_selected =
-                            if self.settings.graphics().lockedminopalette_selected == 0 {
+                        self.settings.graphics_mut().lockedtilepalette_selected =
+                            if self.settings.graphics().lockedtilepalette_selected == 0 {
                                 self.settings.graphics_mut().palette_selected
                             } else {
                                 0

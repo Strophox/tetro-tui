@@ -8,7 +8,7 @@ pub mod hard_drop_effect;
 pub mod line_clear_effect;
 pub mod lock_effect;
 pub mod mini_tetromino_symbols;
-pub mod mino_symbols;
+pub mod tile_symbols;
 pub mod palette;
 pub mod small_tetromino_symbols;
 pub mod tui_symbols;
@@ -21,8 +21,8 @@ pub struct GraphicsSettings {
     pub palette_selected: usize,
     #[serde(rename = "tuisymb_sel")]
     pub tui_symbols_selected: usize,
-    #[serde(rename = "minosymb_sel")]
-    pub mino_symbols_selected: usize,
+    #[serde(rename = "tilesymb_sel")]
+    pub tile_symbols_selected: usize,
     #[serde(rename = "harddrop_sel")]
     pub hard_drop_selected: usize,
     #[serde(rename = "lock_sel")]
@@ -38,7 +38,7 @@ pub struct GraphicsSettings {
     #[serde(rename = "fps")]
     pub fps: ExtNonNegF64,
     #[serde(rename = "lockedminopalette_sel")]
-    pub lockedminopalette_selected: usize,
+    pub lockedtilepalette_selected: usize,
     #[serde(rename = "s_hud")]
     pub show_main_hud: bool,
     #[serde(rename = "s_keybinds")]
@@ -81,7 +81,7 @@ impl Default for GraphicsSettings {
         GraphicsSettings {
             palette_selected: 3,                 // Okpalette
             tui_symbols_selected: 1,             // Unicode
-            mino_symbols_selected: 1,            // Unicode
+            tile_symbols_selected: 1,            // Unicode
             hard_drop_selected: 1,               // ASCII particles
             lock_effect_selected: 2,             // Unicode pulse
             line_clear_selected: 10,             // Blast
@@ -89,7 +89,7 @@ impl Default for GraphicsSettings {
             small_tetromino_symbols_selected: 1, // Blocks
             normalsize_preview_limit: Some(NonZeroUsize::MIN),
             fps: ExtNonNegF64::from(60),
-            lockedminopalette_selected: 3, // Okpalette
+            lockedtilepalette_selected: 3, // Okpalette
             show_main_hud: true,
             show_lockdelay: false,
             show_keybinds: true,
@@ -107,7 +107,7 @@ impl GraphicsSettings {
         GraphicsSettings {
             palette_selected: 2,                 // Standard
             tui_symbols_selected: 4,             // Unicode
-            mino_symbols_selected: 1,            // Unicode
+            tile_symbols_selected: 1,            // Unicode
             hard_drop_selected: 0,               // None
             lock_effect_selected: 0,             // None
             line_clear_selected: 0,              // None (vacate)
@@ -115,7 +115,7 @@ impl GraphicsSettings {
             small_tetromino_symbols_selected: 1, // Blocks
             normalsize_preview_limit: None,
             fps: ExtNonNegF64::from(60),
-            lockedminopalette_selected: 0, // Monochrome
+            lockedtilepalette_selected: 0, // Monochrome
             show_main_hud: true,
             show_lockdelay: false,
             show_keybinds: false,
@@ -131,7 +131,7 @@ impl GraphicsSettings {
         GraphicsSettings {
             palette_selected: 2,                 // Standard
             tui_symbols_selected: 2,             // Rounded Unicode
-            mino_symbols_selected: 1,            // Unicode
+            tile_symbols_selected: 1,            // Unicode
             hard_drop_selected: 4,               // Solid beam Unicode
             lock_effect_selected: 2,             // Pulse Unicode
             line_clear_selected: 5,              // Clear inward
@@ -139,7 +139,7 @@ impl GraphicsSettings {
             small_tetromino_symbols_selected: 1, // Blocks
             normalsize_preview_limit: Some(NonZeroUsize::new(4).unwrap()),
             fps: ExtNonNegF64::from(60),
-            lockedminopalette_selected: 2, // Standard
+            lockedtilepalette_selected: 2, // Standard
             show_main_hud: true,
             show_lockdelay: false,
             show_keybinds: true,
@@ -155,7 +155,7 @@ impl GraphicsSettings {
         GraphicsSettings {
             palette_selected: 1,                 // ANSI
             tui_symbols_selected: 0,             // ASCII
-            mino_symbols_selected: 0,            // ASCII
+            tile_symbols_selected: 0,            // ASCII
             hard_drop_selected: 1,               // ASCII particles
             lock_effect_selected: 1,             // ASCII transform
             line_clear_selected: 13,             // Sparks
@@ -163,7 +163,7 @@ impl GraphicsSettings {
             small_tetromino_symbols_selected: 0, // ASCII
             normalsize_preview_limit: None,
             fps: ExtNonNegF64::from(30),
-            lockedminopalette_selected: 1, // ANSI
+            lockedtilepalette_selected: 1, // ANSI
             show_main_hud: true,
             show_lockdelay: false,
             show_keybinds: true,
@@ -179,7 +179,7 @@ impl GraphicsSettings {
         GraphicsSettings {
             palette_selected: 0,                 // Monochrome
             tui_symbols_selected: 5,             // Elektronika 60
-            mino_symbols_selected: 2,            // Elektronika 60
+            tile_symbols_selected: 2,            // Elektronika 60
             hard_drop_selected: 0,               // None
             lock_effect_selected: 0,             // None
             line_clear_selected: 4,              // Left-to-right
@@ -187,7 +187,7 @@ impl GraphicsSettings {
             small_tetromino_symbols_selected: 0, // ASCII
             normalsize_preview_limit: None,
             fps: ExtNonNegF64::from(60),
-            lockedminopalette_selected: 0, // Monochrome
+            lockedtilepalette_selected: 0, // Monochrome
             show_main_hud: true,
             show_lockdelay: false,
             show_keybinds: true,
@@ -203,15 +203,15 @@ impl GraphicsSettings {
         GraphicsSettings {
             palette_selected: 0,                 // Monochrome
             tui_symbols_selected: 3,             // Borderless-Next/Hold Unicode
-            mino_symbols_selected: 1,            // Unicode
+            tile_symbols_selected: 1,            // Unicode
             hard_drop_selected: 0,               // None
             lock_effect_selected: 0,             // None
             line_clear_selected: 0,              // None
-            mini_tetromino_symbols_selected: 0,  // Letters
+            mini_tetromino_symbols_selected: 1,  // Braille
             small_tetromino_symbols_selected: 1, // Blocks
             normalsize_preview_limit: None,
             fps: ExtNonNegF64::from(60),
-            lockedminopalette_selected: 0, // Monochrome
+            lockedtilepalette_selected: 0, // Monochrome
             show_main_hud: false,
             show_lockdelay: false,
             show_keybinds: false,
