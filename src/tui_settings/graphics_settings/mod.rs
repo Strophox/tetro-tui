@@ -8,9 +8,9 @@ pub mod hard_drop_effect;
 pub mod line_clear_effect;
 pub mod lock_effect;
 pub mod mini_tetromino_symbols;
-pub mod tile_symbols;
 pub mod palette;
 pub mod small_tetromino_symbols;
+pub mod tile_symbols;
 pub mod tui_symbols;
 
 #[derive(

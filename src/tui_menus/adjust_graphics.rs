@@ -128,9 +128,24 @@ impl<T: Write> Application<T> {
                         .tile_symbols_slotmachine
                         .grab(self.settings.graphics().tile_symbols_selected)
                         .0,
-                    self.settings.tile_symbols().shadow.0.map(|ch| ch.to_string()).join(""),
-                    self.settings.tile_symbols().play.0.map(|ch| ch.to_string()).join(""),
-                    self.settings.tile_symbols().locked.0.map(|ch| ch.to_string()).join(""),
+                    self.settings
+                        .tile_symbols()
+                        .shadow
+                        .0
+                        .map(|ch| ch.to_string())
+                        .join(""),
+                    self.settings
+                        .tile_symbols()
+                        .play
+                        .0
+                        .map(|ch| ch.to_string())
+                        .join(""),
+                    self.settings
+                        .tile_symbols()
+                        .locked
+                        .0
+                        .map(|ch| ch.to_string())
+                        .join(""),
                 ),
                 format!(
                     "Small tet. symbols = {} {}",

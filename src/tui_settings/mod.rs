@@ -12,9 +12,9 @@ pub use graphics_settings::{
     line_clear_effect::{LineClearEffect, LineClearInlineEffect, LineClearParticleEffect},
     lock_effect::LockEffect,
     mini_tetromino_symbols::MiniTetrominoSymbols,
-    tile_symbols::TileSymbols,
     palette::Palette,
     small_tetromino_symbols::SmallTetrominoSymbols,
+    tile_symbols::TileSymbols,
     tui_symbols::TuiSymbols,
 };
 
@@ -26,10 +26,9 @@ use crate::{
         graphics_settings::{
             graphics_settings_presets, hard_drop_effect::hard_drop_effect_presets,
             line_clear_effect::line_clear_effect_presets, lock_effect::lock_effect_presets,
-            mini_tetromino_symbols::mini_tetromino_symbols_presets,
-            tile_symbols::mino_symbols_presets, palette::palette_presets,
+            mini_tetromino_symbols::mini_tetromino_symbols_presets, palette::palette_presets,
             small_tetromino_symbols::small_tetromino_symbols_presets,
-            tui_symbols::tui_symbols_presets,
+            tile_symbols::mino_symbols_presets, tui_symbols::tui_symbols_presets,
         },
     },
 };
