@@ -268,7 +268,7 @@ impl<T: Write> Application<T> {
                         if self.temp_data.kitty_assumed {
                             let f = Self::GAME_KEYBOARD_ENHANCEMENT_FLAGS;
                             // NOTE: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm minds if we do this on Windows.
-                            let _v = self.term.execute(event::PushKeyboardEnhancementFlags(f));
+                            let _r: Result<&mut T, io::Error> = self.term.execute(event::PushKeyboardEnhancementFlags(f));
                         }
                         loop {
                             if let Event::Key(KeyEvent {
@@ -297,7 +297,7 @@ impl<T: Write> Application<T> {
                         // Console epilogue: De-initialization.
                         if self.temp_data.kitty_assumed {
                             // NOTE: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm minds if we do this on Windows.
-                            let _v = self.term.execute(event::PopKeyboardEnhancementFlags);
+                            let _r = self.term.execute(event::PopKeyboardEnhancementFlags);
                         }
                     }
 

@@ -452,21 +452,21 @@ impl<T: Write> Application<T> {
             // 1. Enter alternate screen. This allows us not to trash the terminal's contents from before the app is run.
             self.term.execute(terminal::EnterAlternateScreen)?;
 
-            // 2a. Enable raw input mode (no enter required to read keyboard input).
+            // 2. Enable raw input mode (no enter required to read keyboard input).
             terminal::enable_raw_mode()?;
 
-            // 2b. Hide cursor.
+            // 3. Hide cursor.
             self.term.execute(cursor::Hide)?;
 
-            // 2c. Set title.
+            // 4. Set title.
             self.term
                 .execute(terminal::SetTitle(Self::TERMINAL_TITLE))?;
 
-            // 2d. For technical reasons we do not want default keyboard enhancement in the TUI's menus.
+            // 5. For technical reasons we do not want default keyboard enhancement in the TUI's menus.
             // - Default enhancement trigger screen refreshes, discarding text selection and preventing Ctrl+Shift+C (copy, e.g. of savefile path in Advanced Settings menu).
             // - Enhancement-sensitive menus (e.g. game, replay, keybind settings) should set their own custom enhancement flags if applicable, so this should really only affect menus which rely on the "default" terminal enhancement state.
             // NOTE: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm minds if we do this on Windows.
-            let _v = self.term.execute(PushKeyboardEnhancementFlags(
+            let _r = self.term.execute(PushKeyboardEnhancementFlags(
                 KeyboardEnhancementFlags::empty(),
             ));
         }
@@ -477,14 +477,21 @@ impl<T: Write> Application<T> {
         if self.temp_data.custom_terminal_state_initialized {
             // (Try to) undo terminal setup.
 
-            // 2d.
-            // NOTE: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm minds if we do this on Windows.
-            let _v = self.term.execute(PopKeyboardEnhancementFlags);
+            // Bonus Step. Clean up terminal and reposition cursor.
+            // This ensures we don't leave stuff in the middle of the terminal in case the terminal did not support switching between alternate screens and just reuses the same buffer.
+            self.term.execute(Clear(ClearType::All))?;
+            self.term.execute(MoveTo(0, 0))?;
 
-            // 2b.
+            // 5.
+            // NOTE: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm minds if we do this on Windows.
+            let _r = self.term.execute(PopKeyboardEnhancementFlags);
+
+            // FIXME: 4. Unset title?
+
+            // 3.
             self.term.execute(cursor::Show)?;
 
-            // 2a.
+            // 2.
             terminal::disable_raw_mode()?;
 
             // 1.

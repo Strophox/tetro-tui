@@ -59,7 +59,7 @@ impl<T: Write> Application<T> {
         if self.temp_data.kitty_assumed {
             let f = Self::GAME_KEYBOARD_ENHANCEMENT_FLAGS;
             // NOTE: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm doesn't like operating on Windows.
-            let _v = self.term.execute(event::PushKeyboardEnhancementFlags(f));
+            let _r = self.term.execute(event::PushKeyboardEnhancementFlags(f));
         }
 
         // Replay data/variables setup:
@@ -901,7 +901,7 @@ impl<T: Write> Application<T> {
 
         if self.temp_data.kitty_assumed {
             // NOTE: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm doesn't like operating on Windows.
-            let _v = self.term.execute(event::PopKeyboardEnhancementFlags);
+            let _r = self.term.execute(event::PopKeyboardEnhancementFlags);
         }
 
         Ok(menu_update)

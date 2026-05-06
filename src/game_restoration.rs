@@ -85,7 +85,7 @@ impl GameRestorationData<RawInputHistory> {
 
         for (update_time, input) in self.input_history.inputs.iter().take(inputs_to_restore) {
             // FIXME: Handle UpdateGameError? If not, why not?
-            let _v = game.update(*update_time, Some(*input));
+            let _r = game.update(*update_time, Some(*input));
         }
 
         game.config.send_notifications = restore_send_notifications;
