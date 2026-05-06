@@ -1,0 +1,111 @@
+name: Deploy # Source (2026-05-06): https://dzfrias.dev/blog/deploy-rust-cross-platform-github-actions/
+
+on:
+  push:
+    tags:
+     - "v[0-9]+.[0-9]+.[0-9]+"
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-upload:
+    name: Build and upload
+    runs-on: ${{ matrix.os }}
+
+    # Some triples considered:
+    # (Source (2026-05-06): https://blog.logrocket.com/guide-cross-compilation-rust/#how-rust-represents-platforms )
+    # + x86_64-pc-windows-msvc     64-bit MSVC (Windows 7+)
+    # + x86_64-pc-windows-gnu      ?
+    # + x86_64-unknown-linux-gnu   64-bit Linux (kernel 3.2+, glibc 2.17+)
+    # + x86_64-unknown-linux-musl  ?
+    # + x86_64-apple-darwin        64-bit macOS (10.7+, Lion+)
+    # + aarch64-unknown-linux-gnu  ARM64 Linux (kernel 4.1, glibc 2.17+)
+    # + aarch64-apple-darwin       ARM64 macOS (11.0+, Big Sur+)
+    # - aarch64-apple-ios          ARM64 iOS
+    # - aarch64-apple-ios-sim      Apple iOS Simulator on ARM64
+    # + armv7-linux-androideabi    ARMv7a Android
+    # - ...
+    # See also: https://doc.rust-lang.org/nightly/rustc/platform-support.html
+    strategy:
+      matrix:
+        # One could add more, for any target one likes.
+        include:
+          - build: windows-msvc
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+
+          - build: x86-linux-gnu
+            os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+
+          - build: x86-linux-musl
+            os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+
+          - build: aarch64-linux-gnu
+            os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+
+          - build: armv7-linux-gnu
+            os: ubuntu-latest
+            target: armv7-unknown-linux-gnueabihf
+
+          - build: x86-macos
+            os: macos-latest
+            target: x86_64-apple-darwin
+
+          - build: aarch64-macos
+            os: macos-latest
+            target: aarch64-apple-darwin
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Get the release version from the tag
+        shell: bash
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+
+      - name: Install Rust
+        # Or `@nightly`.
+        uses: dtolnay/rust-toolchain@stable
+        # Arguments to pass in.
+        with:
+          # Make Rust compile to our target (defined in the matrix).
+          targets: ${{ matrix.target }}
+
+      - name: Build
+        uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build
+          args: --verbose --release --target ${{ matrix.target }}
+
+      - name: Build archive
+        shell: bash
+        run: |
+          # NOTE: Name of our binary.
+          binary_name="tetro-tui"
+
+          dirname="$binary_name-${{ env.VERSION }}-${{ matrix.target }}"
+          mkdir "$dirname"
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            mv "target/${{ matrix.target }}/release/$binary_name.exe" "$dirname"
+          else
+            mv "target/${{ matrix.target }}/release/$binary_name" "$dirname"
+          fi
+
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            7z a "$dirname.zip" "$dirname"
+            echo "ASSET=$dirname.zip" >> $GITHUB_ENV
+          else
+            tar -czf "$dirname.tar.gz" "$dirname"
+            echo "ASSET=$dirname.tar.gz" >> $GITHUB_ENV
+          fi
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            ${{ env.ASSET }}
