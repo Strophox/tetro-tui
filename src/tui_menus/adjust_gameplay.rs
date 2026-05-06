@@ -98,7 +98,11 @@ impl<T: Write> Application<T> {
                 .queue(Print(format!(
                     "{:^w_main$}",
                     if selected == 0 {
-                        format!(">> {slot_label} <<")
+                        format!(
+                            "{} {slot_label} {}",
+                            self.settings.tui_symbols().menu_pointers[0],
+                            self.settings.tui_symbols().menu_pointers[1]
+                        )
                     } else {
                         slot_label
                     }
@@ -198,7 +202,11 @@ impl<T: Write> Application<T> {
                     .queue(Print(format!(
                         "{:^w_main$}",
                         if i + 1 == selected {
-                            format!(">> {label} <<")
+                            format!(
+                                "{} {label} {}",
+                                self.settings.tui_symbols().menu_pointers[0],
+                                self.settings.tui_symbols().menu_pointers[1]
+                            )
                         } else {
                             label
                         }

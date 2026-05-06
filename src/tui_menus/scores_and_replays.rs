@@ -162,9 +162,22 @@ impl<T: Write> Application<T> {
                         y_main + y_selection + 4 + u16::try_from(i).unwrap(),
                     ))?
                     .queue(PrintStyledContent(if *cursor_pos == *camera_pos + i {
-                        format!("{:<w_main$}", format!(">{}", entry)).bold()
+                        format!(
+                            "{:<w_main$}",
+                            format!("{}{entry}", self.settings.tui_symbols().menu_pointers[0])
+                        )
+                        .bold()
                     } else {
-                        format!("{:<w_main$}", format!(" {}", entry)).reset()
+                        format!(
+                            "{:<w_main$}",
+                            format!(
+                                "{}{entry}",
+                                " ".repeat(
+                                    self.settings.tui_symbols().menu_pointers[0].chars().count()
+                                )
+                            )
+                        )
+                        .reset()
                     }))?;
             }
 

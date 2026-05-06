@@ -21,6 +21,7 @@ impl BoolAsOnOff for bool {
     }
 }
 
+// FIXME: Consider showing full millisecond precision? This would agree with the chosen precision of inputs that we currently handle.
 pub fn fmt_duration(dur: Duration) -> String {
     if dur.as_secs() / 60 == 0 {
         format!("{}.{:02}s", dur.as_secs() % 60, dur.as_millis() % 1000 / 10)

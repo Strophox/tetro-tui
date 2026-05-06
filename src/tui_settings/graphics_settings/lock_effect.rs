@@ -34,7 +34,7 @@ pub fn lock_effect_presets() -> SlotMachine<LockEffect> {
         ("Highlight white".to_owned(), LockEffect::color_white()),
         ("Transform ASCII".to_owned(), LockEffect::ascii_transform()),
         ("Pulse blocks".to_owned(), LockEffect::unicode_pulse()),
-        ("Spiral braille".to_owned(), LockEffect::braille()),
+        ("Spiral Braille".to_owned(), LockEffect::braille()),
     ];
 
     SlotMachine::with_unmodifiable_slots(slots, "Lock effect".to_owned())

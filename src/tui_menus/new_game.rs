@@ -133,7 +133,11 @@ impl<T: Write> Application<T> {
                     .queue(Print(format!(
                         "{:^w_main$}",
                         if i == selected {
-                            format!(">> {title}: {description} <<")
+                            format!(
+                                "{} {title}: {description} {}",
+                                self.settings.tui_symbols().menu_pointers[0],
+                                self.settings.tui_symbols().menu_pointers[1]
+                            )
                         } else {
                             title.to_string()
                         }
@@ -153,9 +157,17 @@ impl<T: Write> Application<T> {
                             format!(
                                 "{} Custom: [Del]=reset{}{}",
                                 if customization_selected == 0 {
-                                    ">>"
+                                    self.settings.tui_symbols().menu_pointers[0].clone()
                                 } else {
-                                    " |"
+                                    format!(
+                                        "{}|",
+                                        " ".repeat(
+                                            self.settings.tui_symbols().menu_pointers[0]
+                                                .chars()
+                                                .count()
+                                                .saturating_sub(1)
+                                        )
+                                    )
                                 },
                                 if self
                                     .settings
@@ -227,7 +239,8 @@ impl<T: Write> Application<T> {
                         ))?
                         .queue(Print(if j + 1 == customization_selected {
                             format!(
-                                ">{stat_str}{}",
+                                "{}{stat_str}{}",
+                                self.settings.tui_symbols().menu_pointers[0],
                                 if customization_selected != 3
                                     || self
                                         .settings
@@ -265,12 +278,12 @@ impl<T: Write> Application<T> {
                         "{:^w_main$}",
                         if Some(selected) == opt_idx_game_save {
                             if *inputs_to_load == 0 {
-                                format!(">> Load {load_title} from beginning [Del] <<")
+                                format!("{} Load {load_title} from beginning [Del] {}", self.settings.tui_symbols().menu_pointers[0], self.settings.tui_symbols().menu_pointers[1])
                             } else {
                                 let (load_time, load_input) = input_history.inputs[(inputs_to_load - 1) % input_history.inputs.len()];
                                 let load_time = fmt_duration(load_time);
                                 let load_input = fmt_player_input(load_input, self.settings.tui_symbols().buttons);
-                                format!(">> Load {load_title} from input {inputs_to_load}/{load_offset_max} ({load_input} @ {load_time}) [Del] <<")
+                                format!("{} Load {load_title} from input {inputs_to_load}/{load_offset_max} ({load_input} @ {load_time}) [Del] {}", self.settings.tui_symbols().menu_pointers[0], self.settings.tui_symbols().menu_pointers[1])
                             }
                         } else {
                             format!("Game save ({load_title})")

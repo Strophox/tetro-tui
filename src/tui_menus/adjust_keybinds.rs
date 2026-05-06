@@ -79,7 +79,11 @@ impl<T: Write> Application<T> {
                 .queue(Print(format!(
                     "{:^w_main$}",
                     if selected == 0 {
-                        format!(">> {slot_label} <<")
+                        format!(
+                            "{} {slot_label} {}",
+                            self.settings.tui_symbols().menu_pointers[0],
+                            self.settings.tui_symbols().menu_pointers[1]
+                        )
                     } else {
                         slot_label
                     }
@@ -104,7 +108,11 @@ impl<T: Write> Application<T> {
                         "{:^w_main$}",
                         // +1 because the first button is Slot selection.
                         if i + 1 == selected {
-                            format!(">> {name} <<")
+                            format!(
+                                "{} {name} {}",
+                                self.settings.tui_symbols().menu_pointers[0],
+                                self.settings.tui_symbols().menu_pointers[1]
+                            )
                         } else {
                             name
                         }
@@ -118,7 +126,11 @@ impl<T: Write> Application<T> {
                     y_main + y_selection + 6 + u16::try_from(buttons_available.len()).unwrap() + 1,
                 ))?
                 .queue(PrintStyledContent(
-                    format!("{:^w_main$}", "[Enter]=add [Esc]=cancel [Del]=clear",).italic(),
+                    format!(
+                        "{:^w_main$}",
+                        "[Enter]=add [Esc]=cancel during add [Del]=clear",
+                    )
+                    .italic(),
                 ))?;
             let dangerous_keybinds: Vec<_> = self
                 .settings
@@ -191,7 +203,7 @@ impl<T: Write> Application<T> {
                                 ("Enter e", "Add new keybind to selected action"),
                                 (
                                     "Escape Backspace q",
-                                    "Exit menu or cancel adding new keybind",
+                                    "Exit menu or cancel when adding new keybind",
                                 ),
                                 (
                                     "Delete d",

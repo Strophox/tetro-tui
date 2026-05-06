@@ -73,6 +73,8 @@ In practice, we decompose it as such:
 pub struct TuiSymbols {
     /// Whether to use the ASCII title screen variant.
     pub blocky_title_logo: bool,
+    /// Left- and right indicators used to show what is selected in a menu.
+    pub menu_pointers: [String; 2],
     /// "Z"
     pub headingline: [char; 1],
     /// "ABCDEFGH"
@@ -115,6 +117,7 @@ impl TuiSymbols {
     pub fn ascii() -> Self {
         CompactTuiSymbols {
             blocky_title_logo: false,
+            menu_pointers: [">>", "<<"].map(|s| s.to_owned()),
             headingline: "-",
             boardframe: "+-+|#=#|",
             boardframe2: None,
@@ -133,12 +136,13 @@ impl TuiSymbols {
     pub fn unicode() -> TuiSymbols {
         CompactTuiSymbols {
             blocky_title_logo: true,
+            menu_pointers: ["▶", "◀"].map(|s| s.to_owned()), // ▶◀ ▷◁ ◆◆ ►◄ ▻◅ ?
             headingline: "─",
             boardframe: "╓╴╖║╜▀╙║",
             boardframe2: None,
             holdframe: "─┌│└",
             nextframe: "─┐│┤┘┬╴",
-            buttons: "←→↺↻↔↓⤓⇓⇐⇒⇋",
+            buttons: "←→↺↻↔↓↨⇓⇐⇒⇋", // ⤓🗘 ?
             timer: ["⠈", "⠘", "⠸", "⢸", "⣸", "⣼", "⣾", "⣿"]
                 .map(|s| s.to_owned())
                 .into(),
@@ -151,12 +155,13 @@ impl TuiSymbols {
     pub fn rounded_unicode() -> TuiSymbols {
         CompactTuiSymbols {
             blocky_title_logo: true,
+            menu_pointers: ["▶", "◀"].map(|s| s.to_owned()),
             headingline: "─",
             boardframe: "╓╴╖║╜▀╙║",
             boardframe2: None,
             holdframe: "─╭│╰",
             nextframe: "─╮│┤╯┬╴",
-            buttons: "←→↺↻↔↓⤓⇓⇐⇒⇋",
+            buttons: "←→↺↻↔↓↨⇓⇐⇒⇋",
             timer: ["⠈", "⠘", "⠸", "⢸", "⣸", "⣼", "⣾", "⣿"]
                 .map(|s| s.to_owned())
                 .into(),
@@ -169,12 +174,13 @@ impl TuiSymbols {
     pub fn borderless_unicode() -> Self {
         CompactTuiSymbols {
             blocky_title_logo: true,
+            menu_pointers: ["▶", "◀"].map(|s| s.to_owned()),
             headingline: " ",
             boardframe: "        ",
             boardframe2: None,
             holdframe: "    ",
             nextframe: "       ",
-            buttons: "←→↺↻↔↓⤓⇓⇐⇒⇋",
+            buttons: "←→↺↻↔↓↨⇓⇐⇒⇋",
             timer: ["⠈", "⠘", "⠸", "⢸", "⣸", "⣼", "⣾", "⣿"]
                 .map(|s| s.to_owned())
                 .into(),
@@ -187,12 +193,13 @@ impl TuiSymbols {
     pub fn borderless_hold_next_unicode() -> Self {
         CompactTuiSymbols {
             blocky_title_logo: true,
+            menu_pointers: ["▶", "◀"].map(|s| s.to_owned()),
             headingline: "─",
             boardframe: "╓╴╖║╜▀╙║",
             boardframe2: None,
             holdframe: "    ",
             nextframe: "       ",
-            buttons: "←→↺↻↔↓⤓⇓⇐⇒⇋",
+            buttons: "←→↺↻↔↓↨⇓⇐⇒⇋",
             timer: ["⠈", "⠘", "⠸", "⢸", "⣸", "⣼", "⣾", "⣿"]
                 .map(|s| s.to_owned())
                 .into(),
@@ -205,12 +212,13 @@ impl TuiSymbols {
     pub fn braille() -> TuiSymbols {
         CompactTuiSymbols {
             blocky_title_logo: true,
+            menu_pointers: ["⠕⠕", "⠪⠪"].map(|s| s.to_owned()), // ⠒⠗⠺ ?
             headingline: "⠒",
             boardframe: "⡖⠂⢲⢸⠚⠒⠓⡇",
             boardframe2: None,
             holdframe: "⠒⡖⡇⠓",
             nextframe: "⠒⢲⢸⢺⠚⢲⠂",
-            buttons: "←→↺↻↔↓⤓⇓⇐⇒⇋",
+            buttons: "←→↺↻↔↓↨⇓⇐⇒⇋",
             timer: ["⠈", "⠘", "⠸", "⢸", "⣸", "⣼", "⣾", "⣿"]
                 .map(|s| s.to_owned())
                 .into(),
@@ -223,6 +231,7 @@ impl TuiSymbols {
     pub fn elektronika_60() -> Self {
         CompactTuiSymbols {
             blocky_title_logo: false,
+            menu_pointers: [">>", "<<"].map(|s| s.to_owned()),
             headingline: "=",
             boardframe: "   !!=!!",
             boardframe2: Some(r"<\/>"),
@@ -302,6 +311,7 @@ impl<S: AsRef<str>> TryFrom<CompactTuiSymbols<S>> for TuiSymbols {
         );
         Ok(TuiSymbols {
             blocky_title_logo: value.blocky_title_logo,
+            menu_pointers: value.menu_pointers,
             headingline: menuglyphs,
             boardframe: frameglyphs,
             boardframe2: frame2glyphs,
@@ -319,6 +329,7 @@ impl<S: AsRef<str>> TryFrom<CompactTuiSymbols<S>> for TuiSymbols {
 )]
 pub struct CompactTuiSymbols<T> {
     pub blocky_title_logo: bool,
+    pub menu_pointers: [String; 2],
     pub headingline: T,
     pub boardframe: T,
     pub boardframe2: Option<T>,
@@ -333,6 +344,7 @@ impl From<TuiSymbols> for CompactTuiSymbols<String> {
     fn from(value: TuiSymbols) -> Self {
         CompactTuiSymbols {
             blocky_title_logo: value.blocky_title_logo,
+            menu_pointers: value.menu_pointers,
             headingline: value.headingline.iter().collect(),
             boardframe: value.boardframe.iter().collect(),
             boardframe2: value.boardframe2.map(|frame2| frame2.iter().collect()),

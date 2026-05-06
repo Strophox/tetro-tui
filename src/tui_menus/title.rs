@@ -192,7 +192,11 @@ impl<T: Write> Application<T> {
                     .queue(Print(format!(
                         "{:^w_main$}",
                         if i == selected {
-                            format!(">> {name} <<")
+                            format!(
+                                "{} {name} {}",
+                                self.settings.tui_symbols().menu_pointers[0],
+                                self.settings.tui_symbols().menu_pointers[1]
+                            )
                         } else {
                             name.to_owned()
                         }
