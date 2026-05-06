@@ -13,7 +13,7 @@ pub struct SmallTetrominoSymbols {
 pub fn small_tetromino_symbols_presets() -> SlotMachine<SmallTetrominoSymbols> {
     let slots = vec![
         ("Dots ASCII".to_owned(), SmallTetrominoSymbols::dots_ascii()),
-        ("Blocks".to_owned(), SmallTetrominoSymbols::blocks()),
+        ("Blocks UTF8".to_owned(), SmallTetrominoSymbols::blocks()),
         ("Braille".to_owned(), SmallTetrominoSymbols::braille()),
     ];
 

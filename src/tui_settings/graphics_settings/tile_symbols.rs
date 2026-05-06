@@ -18,7 +18,8 @@ pub struct TileSymbols {
 pub fn mino_symbols_presets() -> SlotMachine<TileSymbols> {
     let slots = vec![
         ("ASCII".to_owned(), TileSymbols::ascii()),
-        ("Unicode".to_owned(), TileSymbols::unicode()),
+        ("Blocks UTF8".to_owned(), TileSymbols::blocks()),
+        ("Braille".to_owned(), TileSymbols::braille()),
         ("Elektronika 60".to_owned(), TileSymbols::elektronika_60()),
     ];
 
@@ -37,14 +38,25 @@ impl TileSymbols {
         }
     }
 
-    pub fn unicode() -> Self {
+    pub fn blocks() -> Self {
         TileSymbols {
             grid: " ⢀".tile(), // " ⌟" ?
-            play: "▓▓".tile(),
+            play: "▓▓".tile(), // "▒▒"
             shadow: "░░".tile(),
-            locked: "██".tile(), // "▒▒"
+            locked: "██".tile(),
             hatched: "╱╱".tile(),
             crossed: "╳╳".tile(),
+        }
+    }
+
+    pub fn braille() -> Self {
+        TileSymbols {
+            grid: " ⢀".tile(),
+            play: "⣏⣹".tile(),
+            shadow: "⠰⠆".tile(), // "⡁⢈" "⡐⠌"
+            locked: "⣿⣿".tile(),
+            hatched: "⡜⡜".tile(),
+            crossed: "⡱⢎".tile(),
         }
     }
 

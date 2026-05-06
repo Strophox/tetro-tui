@@ -301,7 +301,7 @@ impl<T: Write> Application<T> {
                         ("Normal keybinds".to_owned(), [
                             ("Enter e", "Select"),
                             ("Escape Backspace q", "Exit menu"),
-                            ("Delete d", "Delete game save, reset configuration of Combo/Cheese/Custom modes"), // TODO: not relevant.
+                            ("Delete d", "Delete game save, reset configuration of Combo/Cheese/Custom modes"),
                             ("↓/↑ j/k", "Navigate down/up, adjust values of Custom mode"),
                             ("←/→ h/l", "Load/unload inputs for game save, Adjust values of Combo/Cheese modes, navigate Custom mode values"),
                             ("?", "Open Keybinds overview"),
@@ -1184,7 +1184,7 @@ impl<T: Write> Application<T> {
                 None => "Limitless".to_owned(),
             };
 
-            // TODO: Changeable?
+            // FIXME: Make customizable?
             const CUSTOM_SHOW_STATS: ShowStatsHud = ShowStatsHud::all();
 
             let custom_game_meta_data = GameMetaData {

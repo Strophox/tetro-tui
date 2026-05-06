@@ -156,7 +156,7 @@ impl GameModePreset {
     pub fn puzzle() -> Self {
         Self {
             title: Self::TITLE_PUZZLE.to_owned(),
-            description: "Clear 24 hand-crafted puzzles.".to_owned(),
+            description: "Clear 24 hand-crafted puzzles (feat.Ocular rot.)".to_owned(),
             show_stats_hud: ShowStatsHud::TIME,
             objective_sort_descending: (Stat::TimeElapsed(Duration::ZERO), true),
             build: Box::new(game_modding::Puzzle::build),

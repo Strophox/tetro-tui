@@ -62,6 +62,7 @@ pub fn graphics_settings_presets() -> SlotMachine<GraphicsSettings> {
         ("Default".to_owned(), GraphicsSettings::default()),
         ("Guideline".to_owned(), GraphicsSettings::guideline()),
         ("Focus+".to_owned(), GraphicsSettings::extra_focus()),
+        ("I⠐⢷⠗ Braille".to_owned(), GraphicsSettings::braille()), // ⠺⡾⠂
         (
             "Terminal compatibility".to_owned(),
             GraphicsSettings::compatibility(),
@@ -83,7 +84,7 @@ impl Default for GraphicsSettings {
             tui_symbols_selected: 1,             // Unicode
             tile_symbols_selected: 1,            // Unicode
             hard_drop_selected: 1,               // ASCII particles
-            lock_effect_selected: 2,             // Unicode pulse
+            lock_effect_selected: 3,             // Unicode pulse
             line_clear_selected: 10,             // Blast
             mini_tetromino_symbols_selected: 1,  // Braille
             small_tetromino_symbols_selected: 1, // Blocks
@@ -133,10 +134,34 @@ impl GraphicsSettings {
             tui_symbols_selected: 2,             // Rounded Unicode
             tile_symbols_selected: 1,            // Unicode
             hard_drop_selected: 4,               // Solid beam Unicode
-            lock_effect_selected: 2,             // Pulse Unicode
+            lock_effect_selected: 3,             // Pulse Unicode
             line_clear_selected: 5,              // Clear inward
             mini_tetromino_symbols_selected: 1,  // Braille
             small_tetromino_symbols_selected: 1, // Blocks
+            normalsize_preview_limit: Some(NonZeroUsize::new(4).unwrap()),
+            fps: ExtNonNegF64::from(60),
+            lockedtilepalette_selected: 2, // Standard
+            show_main_hud: true,
+            show_lockdelay: false,
+            show_keybinds: true,
+            show_buttons: false,
+            show_shadow: true,
+            show_spawn: true,
+            show_grid: false,
+            show_fps: false,
+        }
+    }
+
+    pub fn braille() -> Self {
+        GraphicsSettings {
+            palette_selected: 2,                 // Standard
+            tui_symbols_selected: 5,             // Braille
+            tile_symbols_selected: 2,            // Braille
+            hard_drop_selected: 6,               // Braille helix
+            lock_effect_selected: 4,             // Spiral Braille
+            line_clear_selected: 13,             // Sparks Braille
+            mini_tetromino_symbols_selected: 1,  // Braille
+            small_tetromino_symbols_selected: 2, // Braille
             normalsize_preview_limit: Some(NonZeroUsize::new(4).unwrap()),
             fps: ExtNonNegF64::from(60),
             lockedtilepalette_selected: 2, // Standard
@@ -157,8 +182,8 @@ impl GraphicsSettings {
             tui_symbols_selected: 0,             // ASCII
             tile_symbols_selected: 0,            // ASCII
             hard_drop_selected: 1,               // ASCII particles
-            lock_effect_selected: 1,             // ASCII transform
-            line_clear_selected: 13,             // Sparks
+            lock_effect_selected: 2,             // ASCII transform
+            line_clear_selected: 14,             // Sparks ASCII
             mini_tetromino_symbols_selected: 0,  // Letters
             small_tetromino_symbols_selected: 0, // ASCII
             normalsize_preview_limit: None,
@@ -178,8 +203,8 @@ impl GraphicsSettings {
     pub fn elektronika_60() -> Self {
         GraphicsSettings {
             palette_selected: 0,                 // Monochrome
-            tui_symbols_selected: 5,             // Elektronika 60
-            tile_symbols_selected: 2,            // Elektronika 60
+            tui_symbols_selected: 6,             // Elektronika 60
+            tile_symbols_selected: 3,            // Elektronika 60
             hard_drop_selected: 0,               // None
             lock_effect_selected: 0,             // None
             line_clear_selected: 4,              // Left-to-right

@@ -94,16 +94,17 @@ pub struct TuiSymbols {
 pub fn tui_symbols_presets() -> SlotMachine<TuiSymbols> {
     let slots = vec![
         ("ASCII".to_owned(), TuiSymbols::ascii()),
-        ("Unicode".to_owned(), TuiSymbols::unicode()),
-        ("Rounded Unicode".to_owned(), TuiSymbols::rounded_unicode()),
+        ("Frame UTF8".to_owned(), TuiSymbols::unicode()),
         (
-            "Borderless Unicode".to_owned(),
-            TuiSymbols::borderless_unicode(),
+            "Rounded frame UTF8".to_owned(),
+            TuiSymbols::rounded_unicode(),
         ),
+        ("No frame UTF8".to_owned(), TuiSymbols::borderless_unicode()),
         (
-            "Borderless-Hold/Next Unicode".to_owned(),
+            "No hold/next-frame UTF8".to_owned(),
             TuiSymbols::borderless_hold_next_unicode(),
         ),
+        ("Braille".to_owned(), TuiSymbols::braille()),
         ("Elektronika 60".to_owned(), TuiSymbols::elektronika_60()),
     ];
 
@@ -196,6 +197,24 @@ impl TuiSymbols {
                 .map(|s| s.to_owned())
                 .into(),
             progressbar: (" ▏▎▍▌▋▊▉", '█'),
+        }
+        .try_into()
+        .unwrap()
+    }
+
+    pub fn braille() -> TuiSymbols {
+        CompactTuiSymbols {
+            blocky_title_logo: true,
+            headingline: "⠒",
+            boardframe: "⡖⠂⢲⢸⠚⠒⠓⡇",
+            boardframe2: None,
+            holdframe: "⠒⡖⡇⠓",
+            nextframe: "⠒⢲⢸⢺⠚⢲⠂",
+            buttons: "←→↺↻↔↓⤓⇓⇐⇒⇋",
+            timer: ["⠈", "⠘", "⠸", "⢸", "⣸", "⣼", "⣾", "⣿"]
+                .map(|s| s.to_owned())
+                .into(),
+            progressbar: (" ⡀⡄⡆⡇⡏⡟⡿", '⣿'),
         }
         .try_into()
         .unwrap()

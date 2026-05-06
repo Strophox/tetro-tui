@@ -40,21 +40,22 @@ pub fn hard_drop_effect_presets() -> SlotMachine<HardDropEffect> {
             HardDropEffect::particle_trail_ascii(),
         ),
         (
-            "Streak trail ASCII".to_owned(),
+            "Particle trail 2 ASCII".to_owned(),
             HardDropEffect::streak_trail_ascii(),
         ),
         (
-            "Streak beam ASCII".to_owned(),
+            "Particle beam ASCII".to_owned(),
             HardDropEffect::streak_beam_ascii(),
         ),
         (
-            "Solid beam Unicode".to_owned(),
+            "Colored beam UTF8".to_owned(),
             HardDropEffect::solid_beam_unicode(),
         ),
         (
-            "White beam Unicode".to_owned(),
+            "White beam UTF8".to_owned(),
             HardDropEffect::white_beam_unicode(),
         ),
+        ("Braille helix".to_owned(), HardDropEffect::braille()),
     ];
 
     SlotMachine::with_unmodifiable_slots(slots, "Hard drop".to_owned())
@@ -110,6 +111,21 @@ impl HardDropEffect {
                 .map(|ss| (ss.tile(), Override(Palette::WHITE)))
                 .into(),
             y_decay: 0.00,
+        }
+    }
+
+    pub fn braille() -> Self {
+        // let color_animation = [1, 6, 4, 5, 7, 2, 3]
+        //     .map(|n| Override(std::num::NonZeroU8::new(n).unwrap()));
+        // let animation = color_animation
+        //     .into_iter()
+        //     .map(|recolor| ("⢆⠱".tile(), recolor))
+        //     .collect();
+
+        HardDropEffect {
+            duration: Duration::from_millis(100),
+            animation: vec![("⢆⠱".tile(), Override(Palette::WHITE)), ("⢆⠱".tile(), Keep)],
+            y_decay: 1.0,
         }
     }
 }

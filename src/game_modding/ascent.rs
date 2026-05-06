@@ -163,7 +163,7 @@ impl GameModifier for Ascent {
         self.cached_height_stat[0] = format!(
             "Height ascended: {}",
             piece.position.1 as usize + self.height_loaded - HEIGHT
-        ); // TODO: This correct?
+        ); // FIXME: Check if correct.
     }
 
     // The mod must pre-process: 'hold' to replace with custom hold, and 'drops' to prevent piece locking.

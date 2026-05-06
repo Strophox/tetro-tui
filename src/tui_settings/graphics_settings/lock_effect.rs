@@ -31,9 +31,10 @@ pub struct LockEffect {
 pub fn lock_effect_presets() -> SlotMachine<LockEffect> {
     let slots = vec![
         ("None".to_owned(), LockEffect::none()),
-        ("Transform ASCII".to_owned(), LockEffect::ascii_transform()),
-        ("Pulse Unicode".to_owned(), LockEffect::unicode_pulse()),
         ("Highlight white".to_owned(), LockEffect::color_white()),
+        ("Transform ASCII".to_owned(), LockEffect::ascii_transform()),
+        ("Pulse blocks".to_owned(), LockEffect::unicode_pulse()),
+        ("Spiral braille".to_owned(), LockEffect::braille()),
     ];
 
     SlotMachine::with_unmodifiable_slots(slots, "Lock effect".to_owned())
@@ -47,10 +48,17 @@ impl LockEffect {
         }
     }
 
+    pub fn color_white() -> Self {
+        LockEffect {
+            duration: Duration::from_millis(125),
+            animation: vec![(Keep, Override(Palette::WHITE))],
+        }
+    }
+
     pub fn ascii_transform() -> Self {
         LockEffect {
-            duration: Duration::from_millis(200),
-            animation: ["()", "{}", "<>"]
+            duration: Duration::from_millis(175),
+            animation: ["[]", "()", "{}", "<>", "=="]
                 .map(|t| (Override(t.tile()), Override(Palette::WHITE)))
                 .into(),
         }
@@ -65,10 +73,14 @@ impl LockEffect {
         }
     }
 
-    pub fn color_white() -> Self {
+    pub fn braille() -> Self {
         LockEffect {
-            duration: Duration::from_millis(125),
-            animation: vec![(Keep, Override(Palette::WHITE))],
+            duration: Duration::from_millis(200),
+            animation: [
+                /*"⠠⠂", "⢠⠃",*/ "⢀⠁", "⢈⡁", "⢊⡡", "⢎⡱", "⢮⡳", "⢾⡷",
+            ]
+            .map(|t| (Override(t.tile()), Override(Palette::WHITE)))
+            .into(),
         }
     }
 }

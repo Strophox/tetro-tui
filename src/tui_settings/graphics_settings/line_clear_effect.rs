@@ -80,6 +80,10 @@ pub fn line_clear_effect_presets() -> SlotMachine<LineClearEffect> {
         ("Stardust".to_owned(), LineClearEffect::stardust()),
         ("Blast".to_owned(), LineClearEffect::blast()),
         ("Sparks".to_owned(), LineClearEffect::sparks()),
+        (
+            "Sparks Braille".to_owned(),
+            LineClearEffect::sparks_braille(),
+        ),
         ("Sparks ASCII".to_owned(), LineClearEffect::sparks_ascii()),
     ];
 
@@ -254,6 +258,22 @@ impl LineClearEffect {
             acceleration: (0.0, 0.0),
             momentum_base: (0.0, 0.0),
             momentum_rand: (60.0, 60.0),
+            momentum_xpos: 100.0,
+        })
+    }
+
+    pub fn sparks_braille() -> Self {
+        let tile_animation = ["⢾⡷", "⡱⢎", "⡱⢎", "⡡⢊", "⡁⢈", "⡀⠈"].map(|ss| Override(ss.tile()));
+        let color_animation =
+            [255, 3, 2, 1, 2, 7, 5, 4].map(|n| Override(NonZeroU8::new(n).unwrap()));
+        let animation = tile_animation.into_iter().zip(color_animation).collect();
+
+        LineClearEffect::Particle(LineClearParticleEffect {
+            duration_override: Override(Duration::from_millis(300)),
+            animation,
+            acceleration: (0.0, 0.0),
+            momentum_base: (0.0, 40.0),
+            momentum_rand: (0.0, 40.0),
             momentum_xpos: 100.0,
         })
     }

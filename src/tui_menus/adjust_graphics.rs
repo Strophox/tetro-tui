@@ -130,7 +130,7 @@ impl<T: Write> Application<T> {
                         .0,
                     self.settings
                         .tile_symbols()
-                        .shadow
+                        .locked
                         .0
                         .map(|ch| ch.to_string())
                         .join(""),
@@ -142,7 +142,7 @@ impl<T: Write> Application<T> {
                         .join(""),
                     self.settings
                         .tile_symbols()
-                        .locked
+                        .shadow
                         .0
                         .map(|ch| ch.to_string())
                         .join(""),
