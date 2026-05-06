@@ -8,10 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- UI and savefile renames/improvements.
+
 
 - _NOTE: Listed unreleased changes might not be comprehensive. Check using `git diff vX.Y.Z HEAD` with latest `vX.Y.Z`._
-- _NOTE: Savefiles are versioned by `MAJOR.MINOR`. When a new such version releases, it will *not* touch the previous savefiles._
+- _NOTE: Savefiles are versioned using `MAJOR.MINOR`. Currently - whenever major/minor changes - the application will not interact with previous savefiles anymore._
+
+
+## [3.4.0] - 2026-05-06
+
+### Added
+- More visuals in Graphics Settings menu.
+- Graphics preset and corresponding ui/tiles/effects: **'I⠐⢷⠗ Braille'**
+
+### Changed
+- UI and savefile renames/improvements.
 
 
 ## [3.3.0] - 2026-05-04
