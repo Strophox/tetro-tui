@@ -59,7 +59,7 @@ yay -S tetro-tui # Or paru, etc.
 
 ### Compile from source
 
-Tetro TUI is written in [Rust](<https://doc.rust-lang.org/book/ch01-00-getting-started.html>) and can be compiled as usual:
+Tetro TUI is written in [Rust 1.95.0](<https://doc.rust-lang.org/book/ch01-00-getting-started.html>) and can be compiled as usual:
 ```bash
 git clone https://github.com/Strophox/tetro-tui
 cd tetro-tui
@@ -81,7 +81,7 @@ cargo run
 ### How good is it in terms of customization / features?
 
 > We provide a solid amount of configuration options and features:
-> - **Graphics:** Unicode/ASCII/Elektronika styles, old-terminal-compatible or very modern designs, 10 color palettes, hard drop/piece lock/line clear effects and much more.
+> - **Graphics:** Unicode/ASCII/Elektronika styles, old-terminal-compatible (58x24) or very modern designs, 10 color palettes, hard drop/piece lock/line clear effects and much more.
 > - **Gameplay and handling:** Various rotation systems, piece randomizers, adjustable preview, timings (DAS¹, ARR¹, SDF¹, LCD, ARE), IRS/IHS/.. ([¹caveat](#why-do-some-gameplay-settings-dasarretc-or-registering-shift-as-keypress-not-work-for-me)).
 > - **Game keybinds:** to your heart's desire. 
 > - **Game mode miscellany:** Regular ('Marathon'), Swift ('40-Lines'), Classic & Master (unlocked after Regular), Puzzle, Cheese, Combo, Custom (select win condition, initial gravity, toggle gravity progress, *cmdline flags:* start board, seed).

@@ -428,7 +428,7 @@ impl<T: Write> Drop for Application<T> {
 
 impl<T: Write> Application<T> {
     pub const W_MAIN: u16 = 62;
-    pub const H_MAIN: u16 = 23;
+    pub const H_MAIN: u16 = 24;
 
     pub const TERMINAL_TITLE: &str = "Tetro TUI";
 

@@ -365,9 +365,9 @@ impl<T: Write> Application<T> {
                         kind,
                         state: _,
                     }) => {
-                        if !matches!(kind, KeyEventKind::Press) {
+                        if !matches!(kind, KeyEventKind::Press | KeyEventKind::Repeat) {
                             // It just so happens that, once we're done considering in-game-relevant presses,
-                            // for the remaining controls we only care about key*down*s.
+                            // for the remaining controls we don't care about releases.
                             continue 'wait;
                         }
 
