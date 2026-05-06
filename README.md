@@ -82,7 +82,7 @@ cargo run
 
 > We provide a solid amount of configuration options and features:
 > - **Graphics:** Unicode/ASCII/Elektronika styles, old-terminal-compatible or very modern designs, 10 color palettes, hard drop/piece lock/line clear effects and much more.
-> - **Gameplay and handling:** Various rotation systems, piece randomizers, adjustable preview, timings (DAS¹, ARR¹, SDF¹, LCD, ARE), IRS/IHS/IMS/ITS¹ ([¹caveat](#why-do-some-gameplay-settings-dasarretc-or-registering-shift-as-keypress-not-work-for-me)).
+> - **Gameplay and handling:** Various rotation systems, piece randomizers, adjustable preview, timings (DAS¹, ARR¹, SDF¹, LCD, ARE), IRS/IHS/.. ([¹caveat](#why-do-some-gameplay-settings-dasarretc-or-registering-shift-as-keypress-not-work-for-me)).
 > - **Game keybinds:** to your heart's desire. 
 > - **Game mode miscellany:** Regular ('Marathon'), Swift ('40-Lines'), Classic & Master (unlocked after Regular), Puzzle, Cheese, Combo, Custom (select win condition, initial gravity, toggle gravity progress, *cmdline flags:* start board, seed).
 > - **Highscores, replays, statistics, ...** - can can be accessed as well as backed up with a simple **savefile**.
@@ -450,15 +450,17 @@ cargo run
 
 ### What is the motivation behind this project?
 
+<!--NOTE: This text is the same as in the program 'About' menu. -->
 > <details>
 > <summary>
 > Tetro TUI started as a passion project from someone who loves programming, minimalistic games and ASCII art;
 > </summary>
 > 
-> Out of curiosity I looked into the depths of this common type of Tetromino game:
-> Basic versions are simple to code up, but it gets surprisingly nontrivial when it comes to comprehensively supporting of modern/advanced features and slews of QOL mechanics while dealing with terminal limitations!
+> Out of curiosity I snuck a peek to see how deep the mechanics of such a universal game can go:
+> Basic versions are simple to code up, but it gets surprisingly complex when it comes to supporting all the modern/advanced features (especially while dealing with terminal limitations)!
 > 
-> I've given it my best effort to implement a most featureful and customizable version that not only remains totally faithful to the basic idea of the game, but also runs and looks nice within the confines of a mere terminal - Enjoy!
+> To the best of my abilities I have implemented a most featureful / customizable version that still remains faithful to the essential
+idea and also looks/runs nicely within a 'mere' terminal - Enjoy!
 > ☺ [L. Werner](<https://github.com/Strophox>)
 > 
 > </details>
