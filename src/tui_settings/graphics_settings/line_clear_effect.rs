@@ -278,7 +278,7 @@ impl LineClearEffect {
     }
 
     pub fn sparks_braille() -> Self {
-        let tile_animation = ["⢾⡷", "⡱⢎", "⡱⢎", "⡡⢊", "⡁⢈", "⡀⠈"].map(|ss| Override(ss.tile()));
+        let tile_animation = ["⢾⡷", "⡱⢎", "⡡⢊", "⡁⢈", "⡀⠈"].map(|ss| Override(ss.tile()));
         let color_animation =
             [255, 3, 2, 1, 2, 7, 5, 4].map(|n| Override(NonZeroU8::new(n).unwrap()));
         let animation = tile_animation.into_iter().zip(color_animation).collect();
