@@ -11,19 +11,17 @@ use crate::{
 
 #[derive(PartialEq, PartialOrd, Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Survival {
-    // Modifier configuration.
+    // Configuration/reproducibility fields.
     config: SurvivalConfig,
 
-    // Modifier state fields.
+    // Stateful fields.
     piece_budget: f64,
-    // is_caught_up: bool,
-
-    // Fields needed to use Cheese:prng_cheese_lines
+    //is_caught_up: bool,
+    cached_stats: [String; 1],
+    // Some more fields needed to use Cheese:prng_cheese_lines...
     cheese_config: CheeseConfig,
     cheese_generated: u32,
     last_hole_pattern_generated: Vec<usize>,
-
-    cached_stats: [String; 1],
 }
 
 #[derive(

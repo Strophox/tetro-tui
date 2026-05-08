@@ -15,8 +15,10 @@ use crate::tui_settings::Palette;
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]
 pub struct Ascent {
-    height_loaded: usize,
+    // This modifier does not have fields for configuration/reproducibility.
 
+    // Stateful fields.
+    height_loaded: usize,
     cached_height_stat: [String; 1],
 }
 

@@ -11,9 +11,10 @@ use crate::{savefile_logic::to_savefile_string, tui_settings::Palette};
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]
 pub struct Combo {
-    // Modifier configuration.
+    // Configuration/reproducibility fields.
     config: ComboConfig,
-    // Modifier state fields.
+
+    // Stateful fields.
     height_loaded: usize,
     cached_stats: [String; 1],
 }

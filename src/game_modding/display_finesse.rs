@@ -4,6 +4,9 @@ use falling_tetromino_engine::{GameAccess, GameModifier, NotificationFeed};
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]
 pub struct DisplayFinesse {
+    // This modifier does not have fields for configuration/reproducibility.
+
+    // Stateful fields.
     player_inputs_counted: u32,
     cached_stats: [String; 1],
 }

@@ -3,6 +3,7 @@ use falling_tetromino_engine::{
     TetrominoGenerator, tetromino_generation::RecencyGen,
 };
 
+// This modifier does not have fields for configuration/reproducibility and does not keep state.
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]

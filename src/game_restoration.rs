@@ -57,7 +57,7 @@ impl GameRestorationData<RawInputHistory> {
                             .into_iter()
                             .map(|mod_desc| {
                                 format!(
-                                    "WARNING: mod not recognized for reconstruction '{mod_desc}'"
+                                    "WARNING: unrecognized mod id for reconstruction '{mod_desc}'"
                                 )
                             })
                             .collect();

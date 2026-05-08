@@ -72,7 +72,7 @@ pub enum SavefileGranularity {
 
 #[derive(serde::Serialize, serde::Deserialize)]
 struct SaveContents<'a> {
-    #[serde(rename = "SAVEFILE_ON_EXIT")]
+    #[serde(rename = "SAVE_ON_EXIT")]
     save_on_exit: SavefileGranularity,
 
     #[serde(rename = "SETTINGS")]

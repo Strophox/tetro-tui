@@ -22,10 +22,10 @@ use crate::{savefile_logic::to_savefile_string, tui_settings::Palette};
     serde::Deserialize,
 )]
 pub struct Cheese {
-    // Modifier configuration.
+    // Configuration/reproducibility fields.
     config: CheeseConfig,
 
-    // Modifier state fields.
+    // Stateful fields.
     cheese_eaten: u32,
     temp_last_clear_actual_cheese_lines: usize,
     cheese_generated: u32,

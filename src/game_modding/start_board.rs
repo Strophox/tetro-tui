@@ -6,8 +6,9 @@ use crate::{savefile_logic::to_savefile_string, tui_settings::Palette};
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]
 pub struct StartBoard {
-    // Modifier configuration.
+    // Configuration/reproducibility fields.
     encoded_board: String,
+    // This modifier does not have fields for keeping state.
 }
 
 impl StartBoard {

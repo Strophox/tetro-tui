@@ -8,10 +8,10 @@ use crate::savefile_logic::to_savefile_string;
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]
 pub struct PrintMsgs {
-    // Modifier configuration.
+    // Configuration/reproducibility fields.
     messages: Vec<String>,
 
-    // Modifier state fields.
+    // Stateful fields.
     init: bool,
 }
 

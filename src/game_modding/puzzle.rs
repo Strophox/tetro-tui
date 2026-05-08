@@ -12,7 +12,9 @@ use crate::tui_settings::Palette;
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]
 pub struct Puzzle {
-    // Modifier state fields.
+    // This modifier does not have fields for configuration/reproducibility.
+
+    // Stateful fields.
     init: bool,
     stage_idx: usize,
     stage_tet_count: usize,
