@@ -7,7 +7,7 @@ use std::{
 
 use crossterm::{
     QueueableCommand, cursor,
-    style::{Color, Print, PrintStyledContent, Stylize},
+    style::{Color, PrintStyledContent, Stylize},
     terminal,
 };
 
@@ -16,7 +16,7 @@ use crate::settings::TileTexture;
 use super::{TermCell, TerminalBuffer};
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, Default)]
-pub struct SparseTerminalDoubleBuffer {
+pub struct SparseDoubleBuffer {
     prev_buf: BTreeMap<(u16, u16), TermCell>,
     next_buf: BTreeMap<(u16, u16), TermCell>,
     x_vp: u16,
@@ -25,7 +25,7 @@ pub struct SparseTerminalDoubleBuffer {
     h_vp: u16,
 }
 
-impl TerminalBuffer for SparseTerminalDoubleBuffer {
+impl TerminalBuffer for SparseDoubleBuffer {
     // fn with_offset_and_area((x, y): (u16, u16), (w, h): (u16, u16)) -> Self {
     //     SparseTerminalBuffer {
     //         prev_buf: BTreeMap::new(),
@@ -118,10 +118,10 @@ impl TerminalBuffer for SparseTerminalDoubleBuffer {
 
                 #[rustfmt::skip]
                 // Old buffer contains something the new one doesn't: Overwrite it to clear it.
-                (Some((old_x_y, TermCell { ch: _old_ch, fg: old_fg })),
+                (Some((old_x_y, TermCell { ch: _old_ch, fg: _old_fg })),
                  None
                 ) => {
-                    term.queue(cursor::MoveTo(self.x_vp + old_x_y.0, self.y_vp + old_x_y.1));
+                    term.queue(cursor::MoveTo(self.x_vp + old_x_y.0, self.y_vp + old_x_y.1))?;
                     term.queue(PrintStyledContent(' '.with(Color::Reset)))?;
                     old_pos_cell = old_buffer.next();
                 }
@@ -131,7 +131,7 @@ impl TerminalBuffer for SparseTerminalDoubleBuffer {
                 (None,
                  Some((new_x_y, TermCell { ch: new_ch, fg: new_fg })),
                 ) => {
-                    term.queue(cursor::MoveTo(self.x_vp + new_x_y.0, self.y_vp + new_x_y.1));
+                    term.queue(cursor::MoveTo(self.x_vp + new_x_y.0, self.y_vp + new_x_y.1))?;
                     term.queue(PrintStyledContent(new_ch.with(*new_fg)))?;
                     new_pos_cell = new_buffer.next();
                 }
@@ -143,14 +143,14 @@ impl TerminalBuffer for SparseTerminalDoubleBuffer {
                     match old_x_y.cmp(new_x_y) {
                         // Old buffer contains something the new one doesn't: Overwrite it to clear it.
                         Ordering::Less => {
-                            term.queue(cursor::MoveTo(self.x_vp + old_x_y.0, self.y_vp + old_x_y.1));
+                            term.queue(cursor::MoveTo(self.x_vp + old_x_y.0, self.y_vp + old_x_y.1))?;
                             term.queue(PrintStyledContent(' '.with(Color::Reset)))?;
                             old_pos_cell = old_buffer.next();
                         }
 
                         // New buffer contains something the old one doesn't: Write it.
                         Ordering::Greater => {
-                            term.queue(cursor::MoveTo(self.x_vp + new_x_y.0, self.y_vp + new_x_y.1));
+                            term.queue(cursor::MoveTo(self.x_vp + new_x_y.0, self.y_vp + new_x_y.1))?;
                             term.queue(PrintStyledContent(new_ch.with(*new_fg)))?;
                             new_pos_cell = new_buffer.next();
                         }
@@ -158,7 +158,7 @@ impl TerminalBuffer for SparseTerminalDoubleBuffer {
                         // Old and new overlap! Handle possible difference.
                         Ordering::Equal => {
                             if new_fg != old_fg || new_ch != old_ch {
-                                term.queue(cursor::MoveTo(self.x_vp + new_x_y.0, self.y_vp + new_x_y.1));
+                                term.queue(cursor::MoveTo(self.x_vp + new_x_y.0, self.y_vp + new_x_y.1))?;
                                 term.queue(PrintStyledContent(new_ch.with(*new_fg)))?;
                             }
                             old_pos_cell = old_buffer.next();

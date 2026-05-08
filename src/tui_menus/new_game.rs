@@ -31,11 +31,11 @@ use crate::{
     game_mode_blueprints::GameModeBlueprint,
     game_renderers::{Renderer, ShowStatsHud, TetroTUIRenderer},
     game_restoration::{GameRestorationData, RawInputHistory},
+    settings::{CustomModeConfig, GameModeSettings, GameplayPreferences},
     tui_menus::{
         Menu, MenuUpdate, heading_line,
         replay_game::{REPLAY_ANCHOR_INTERVAL, calculate_game_and_replay_anchors},
     },
-    settings::{CustomModeConfig, GameModeSettings, GameplayPreferences},
 };
 
 impl<T: Write> Application<T> {

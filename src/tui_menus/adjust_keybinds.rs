@@ -16,8 +16,8 @@ use falling_tetromino_engine::Button;
 use crate::{
     Application, Settings,
     fmt_helpers::{fmt_button_keybinds, fmt_key_with_keymods},
-    tui_menus::{Menu, MenuUpdate, heading_line},
     settings::GameKeybinds,
+    tui_menus::{Menu, MenuUpdate, heading_line},
 };
 
 impl<T: Write> Application<T> {

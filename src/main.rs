@@ -4,8 +4,9 @@ mod game_mode_blueprints;
 mod game_renderers;
 mod game_restoration;
 mod savefile_logic;
-mod tui_menus;
 mod settings;
+mod terminal_buffers;
+mod tui_menus;
 
 use std::{io, path::PathBuf};
 
@@ -30,8 +31,8 @@ use crate::{
         EncodedInputHistory, GameRestorationData, InputHistoryEncoder, RawInputHistory,
     },
     savefile_logic::SavefileGranularity,
-    tui_menus::{Menu, MenuUpdate},
     settings::Settings,
+    tui_menus::{Menu, MenuUpdate},
 };
 
 // Same as `clap::crate_version!()`.

@@ -22,10 +22,7 @@ use crate::{
 };
 
 impl<T: Write> Application<T> {
-    pub fn run_menu_game_ended(
-        &mut self,
-        game_scoring: &ScoreSummary,
-    ) -> io::Result<MenuUpdate> {
+    pub fn run_menu_game_ended(&mut self, game_scoring: &ScoreSummary) -> io::Result<MenuUpdate> {
         let ScoreSummary {
             game_meta_data,
             end_cause,

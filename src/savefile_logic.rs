@@ -6,8 +6,7 @@ use std::{
 };
 
 use crate::{
-    Application, GameSave, GameSaves, RawInputHistory, Scoreboard, Statistics,
-    settings::Settings,
+    Application, GameSave, GameSaves, RawInputHistory, Scoreboard, Statistics, settings::Settings,
 };
 
 pub type SavefileResult<T> = Result<T, Box<dyn std::error::Error>>;

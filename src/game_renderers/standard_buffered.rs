@@ -1,10 +1,3 @@
-#[allow(unused)]
-mod dense_terminal_double_buffer;
-#[allow(unused)]
-mod dense_terminal_single_buffer;
-#[allow(unused)]
-mod sparse_terminal_double_buffer;
-
 use std::{collections::VecDeque, time::Duration};
 
 use crossterm::style::Color;
@@ -20,40 +13,10 @@ use crate::{
         HardDropEffect, LineClearEffect, LineClearInlineEffect, LineClearParticleEffect,
         LockEffect, Palette, TileTexture,
     },
+    terminal_buffers::{DenseDoubleBuffer, TermCell, TerminalBuffer},
 };
 
 use super::*;
-
-// use dense_terminal_single_buffer::DenseTerminalSingleBuffer as StandardTerminalBuffer;
-use dense_terminal_double_buffer::DenseTerminalDoubleBuffer as StandardTerminalBuffer;
-// use sparse_terminal_double_buffer::SparseTerminalDoubleBuffer as StandardTerminalBuffer;
-
-#[derive(
-    PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
-)]
-pub struct TermCell {
-    ch: char,
-    fg: Color,
-}
-
-impl TermCell {
-    const EMPTY: TermCell = TermCell {
-        ch: ' ',
-        fg: Color::Reset,
-    };
-}
-
-pub trait TerminalBuffer {
-    // fn with_offset_and_area(offsets: (u16, u16), dimensions: (u16, u16)) -> Self;
-    fn offset_and_area(&self) -> ((u16, u16), (u16, u16));
-    fn reset_with_offset_and_area(&mut self, offsets: (u16, u16), dimensions: (u16, u16));
-
-    fn write_char(&mut self, x: u16, y: u16, cell: TermCell);
-    fn write_tile(&mut self, x: u16, y: u16, tile: TileTexture, fg: Color);
-    fn write_str(&mut self, x: u16, y: u16, str: &str, fg: Color);
-    fn write_str_wrapping(&mut self, x: u16, y: u16, str: &str, fg: Color);
-    fn flush(&mut self, term: &mut impl Write) -> io::Result<()>;
-}
 
 #[derive(PartialEq, PartialOrd, Clone, Debug)]
 pub struct HardDropEffectTile {
@@ -91,7 +54,7 @@ pub struct LineClearEffectLine {
 #[derive(PartialEq, PartialOrd, Clone, Debug, Default)]
 pub struct StandardBufferedRenderer {
     // NOTE: Deriving default also means that this terminal buffers has offsets and dimensions 0.
-    term_buf: StandardTerminalBuffer,
+    term_buf: DenseDoubleBuffer,
     text_message_buf: VecDeque<(InGameTime, String)>,
     hard_drop_effect_buf: Vec<(HardDropEffect, Vec<HardDropEffectTile>)>,
     lock_effect_buf: Vec<(LockEffect, Vec<LockEffectTile>)>,
@@ -718,7 +681,7 @@ impl Renderer for StandardBufferedRenderer {
         'render_preview: {
             // To begin, render normalsize previews.
             let draw_appended_normalsize_prev =
-                |term_buf: &mut StandardTerminalBuffer, y_offset: u16, next_tet: Tetromino| {
+                |term_buf: &mut DenseDoubleBuffer, y_offset: u16, next_tet: Tetromino| {
                     // Top and bottom edge of first prev.
                     for dx in 0..12 {
                         #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + dx, h_tmp_ntl + y_offset, TermCell { ch: c_n_ltb, fg: Color::Reset });
@@ -769,7 +732,7 @@ impl Renderer for StandardBufferedRenderer {
             }
 
             let draw_appended_small_prev =
-                |term_buf: &mut StandardTerminalBuffer, y_offset: u16, next_tet: Tetromino| {
+                |term_buf: &mut DenseDoubleBuffer, y_offset: u16, next_tet: Tetromino| {
                     // Top and bottom edge of first prev.
                     for dx in 0..8 {
                         #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + dx, h_tmp_ntl + y_offset, TermCell { ch: c_n_ltb, fg: Color::Reset });

@@ -24,8 +24,8 @@ use falling_tetromino_engine::{
 use crate::{
     Application, Settings,
     fmt_helpers::BoolAsOnOff,
-    tui_menus::{Menu, MenuUpdate, heading_line},
     settings::GameplayPreferences,
+    tui_menus::{Menu, MenuUpdate, heading_line},
 };
 
 impl<T: Write> Application<T> {

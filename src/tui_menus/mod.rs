@@ -31,8 +31,7 @@ use falling_tetromino_engine::{Game, InGameTime};
 
 use crate::{
     Application, GameMetaData, GameRestorationData, RawInputHistory, ScoreSummary,
-    game_renderers::TetroTUIRenderer, tui_menus::replay_game::GameSaveAnchor,
-    settings::Settings,
+    game_renderers::TetroTUIRenderer, settings::Settings, tui_menus::replay_game::GameSaveAnchor,
 };
 
 #[derive(Debug)]
