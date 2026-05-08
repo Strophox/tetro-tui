@@ -25,7 +25,7 @@ use crate::{
     Application, Settings,
     fmt_helpers::BoolAsOnOff,
     tui_menus::{Menu, MenuUpdate, heading_line},
-    tui_settings::GameplaySettings,
+    tui_settings::GameplayPreferences,
 };
 
 impl<T: Write> Application<T> {
@@ -62,7 +62,7 @@ impl<T: Write> Application<T> {
                 .queue(PrintStyledContent(
                     format!(
                         "{:^w_main$}",
-                        "= Gameplay Configuration (applies on New Game) ="
+                        "= Gameplay Preferences (applies on New Game) ="
                     )
                     .bold(),
                 ))?
@@ -244,7 +244,7 @@ impl<T: Write> Application<T> {
                     kind: Press | Repeat,
                     ..
                 }) => {
-                    let client_menu_name = "Gameplay Configuration menu";
+                    let client_menu_name = "Gameplay Preferences menu";
                     let legend = vec![
                         (
                             "Normal keybinds".to_owned(),
@@ -444,8 +444,8 @@ impl<T: Write> Application<T> {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         if modifiers.contains(KeyModifiers::ALT) {
                             self.settings.gameplay_mut().sdr = match self.settings.gameplay().sdr {
-                                Either::Left(_) => GameplaySettings::default().sdr,
-                                Either::Right(_) => GameplaySettings::guideline().sdr,
+                                Either::Left(_) => GameplayPreferences::default().sdr,
+                                Either::Right(_) => GameplayPreferences::guideline().sdr,
                             }
                         } else {
                             match self.settings.gameplay_mut().sdr {
@@ -585,8 +585,8 @@ impl<T: Write> Application<T> {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         if modifiers.contains(KeyModifiers::ALT) {
                             self.settings.gameplay_mut().sdr = match self.settings.gameplay().sdr {
-                                Either::Left(_) => GameplaySettings::default().sdr,
-                                Either::Right(_) => GameplaySettings::guideline().sdr,
+                                Either::Left(_) => GameplayPreferences::default().sdr,
+                                Either::Right(_) => GameplayPreferences::guideline().sdr,
                             }
                         } else {
                             match self.settings.gameplay_mut().sdr {

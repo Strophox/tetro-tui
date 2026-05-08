@@ -6,7 +6,7 @@ use crate::game_modding::{CheeseConfig, ComboConfig, SurvivalConfig};
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]
-pub struct GameModePreferences {
+pub struct GameModeSettings {
     pub classic_lvl_offset: u32,
     pub classic_easier_lock_delay: bool,
     pub cheese_config: CheeseConfig,
@@ -20,7 +20,7 @@ pub struct GameModePreferences {
     pub unlock_experimental_mode: bool,
 }
 
-impl Default for GameModePreferences {
+impl Default for GameModeSettings {
     fn default() -> Self {
         Self {
             classic_lvl_offset: 0,

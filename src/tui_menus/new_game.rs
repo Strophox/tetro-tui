@@ -28,14 +28,14 @@ use crate::{
         increment_game_mode_derivative,
     },
     game_modding::{self, Combo},
-    game_mode_presets::GameModePreset,
+    game_mode_blueprints::GameModeBlueprint,
     game_renderers::{Renderer, ShowStatsHud, TetroTUIRenderer},
     game_restoration::{GameRestorationData, RawInputHistory},
     tui_menus::{
         Menu, MenuUpdate, heading_line,
         replay_game::{REPLAY_ANCHOR_INTERVAL, calculate_game_and_replay_anchors},
     },
-    tui_settings::{CustomModeConfig, GameModePreferences, GameplaySettings},
+    tui_settings::{CustomModeConfig, GameModeSettings, GameplayPreferences},
 };
 
 impl<T: Write> Application<T> {
@@ -62,7 +62,7 @@ impl<T: Write> Application<T> {
             let (x_main, y_main) = Self::viewport_offset();
             let y_selection = Self::H_MAIN / 5;
 
-            let game_modes = self.available_game_mode_presets();
+            let game_modes = self.available_game_mode_blueprints();
 
             let game_save_available = if !self.game_saves.slots.is_empty() {
                 1
@@ -108,7 +108,7 @@ impl<T: Write> Application<T> {
             // Render normal and special game modes.
             for (
                 i,
-                GameModePreset {
+                GameModeBlueprint {
                     title,
                     description,
                     show_stats_hud: _,
@@ -999,7 +999,7 @@ impl<T: Write> Application<T> {
                         }
                     } else if selected == idx_cheese {
                         self.settings.game_mode_preferences.cheese_config.limit =
-                            GameModePreferences::default().cheese_config.limit;
+                            GameModeSettings::default().cheese_config.limit;
                     } else if selected == idx_combo {
                         if modifiers.contains(KeyModifiers::ALT) {
                             self.settings
@@ -1008,7 +1008,7 @@ impl<T: Write> Application<T> {
                                 .start_layout = Combo::LAYOUTS[0];
                         } else {
                             self.settings.game_mode_preferences.combo_config.limit =
-                                GameModePreferences::default().combo_config.limit;
+                                GameModeSettings::default().combo_config.limit;
                         }
                     } else if Some(selected) == opt_idx_game_save {
                         self.game_saves.slots.remove(self.game_saves.selected);
@@ -1041,30 +1041,30 @@ impl<T: Write> Application<T> {
         }
     }
 
-    pub fn available_game_mode_presets(&self) -> Vec<GameModePreset> {
+    pub fn available_game_mode_blueprints(&self) -> Vec<GameModeBlueprint> {
         let mut game_modes = vec![
-            GameModePreset::regular(),
-            GameModePreset::swift(),
-            GameModePreset::puzzle(),
-            GameModePreset::cheese(
+            GameModeBlueprint::regular(),
+            GameModeBlueprint::swift(),
+            GameModeBlueprint::puzzle(),
+            GameModeBlueprint::cheese(
                 self.settings.game_mode_preferences.cheese_config,
                 self.settings
                     .game_mode_preferences
                     .cheese_fall_and_lock_delays,
             ),
-            GameModePreset::survival(self.settings.game_mode_preferences.survival_config),
-            GameModePreset::combo(self.settings.game_mode_preferences.combo_config),
+            GameModeBlueprint::survival(self.settings.game_mode_preferences.survival_config),
+            GameModeBlueprint::combo(self.settings.game_mode_preferences.combo_config),
         ];
 
         if self.settings.game_mode_preferences.unlock_master_mode {
-            game_modes.insert(2, GameModePreset::master());
+            game_modes.insert(2, GameModeBlueprint::master());
         }
 
         if self.settings.game_mode_preferences.unlock_classic_mode {
             // ...Do not ask the programmer about what indices to use for `insert` results.
             game_modes.insert(
                 2,
-                GameModePreset::classic(
+                GameModeBlueprint::classic(
                     self.settings.game_mode_preferences.classic_lvl_offset,
                     self.settings
                         .game_mode_preferences
@@ -1074,16 +1074,16 @@ impl<T: Write> Application<T> {
         }
 
         if self.settings.game_mode_preferences.unlock_experimental_mode {
-            game_modes.push(GameModePreset::ascent())
+            game_modes.push(GameModeBlueprint::ascent())
         }
 
         game_modes
     }
 
     pub fn create_game_menu(&self, selection: usize) -> Menu {
-        let game_modes = self.available_game_mode_presets();
+        let game_modes = self.available_game_mode_blueprints();
 
-        let GameplaySettings {
+        let GameplayPreferences {
             rotsys,
             tetgen,
             preview,
@@ -1113,7 +1113,7 @@ impl<T: Write> Application<T> {
 
         let (game_meta_data, mut game, raw_input_history) = if selection < game_modes.len() {
             // Build one of the selected game modes.
-            let GameModePreset {
+            let GameModeBlueprint {
                 title,
                 description: _,
                 show_stats_hud,
@@ -1215,8 +1215,8 @@ impl<T: Write> Application<T> {
             )
         };
         // FIXME: Unused code: modifier addition.
-        // game.modifiers.push(game_mode_presets::game_modifiers::print_fall_delay::modifier());
-        // game.modifiers.push(game_mode_presets::game_modifiers::misc_modifiers::print_recency_tet_gen_stats::modifier());
+        // game.modifiers.push(game_mode_blueprints::game_modifiers::print_fall_delay::modifier());
+        // game.modifiers.push(game_mode_blueprints::game_modifiers::misc_modifiers::print_recency_tet_gen_stats::modifier());
         // game.modifiers.push(falling_tetromino_engine::Modifier { descriptor: "always_clear_board".to_owned(), mod_function: Box::new(|_c, _i, s, _m, _f| { s.board = Default::default(); })});
 
         let mut game_renderer = TetroTUIRenderer::with_num(self.temp_data.renderer_used);

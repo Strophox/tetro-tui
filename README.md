@@ -82,7 +82,7 @@ cargo run
 
 > We provide a solid amount of configuration options and features:
 > - **Graphics:** Unicode/ASCII/Elektronika styles, old-terminal-compatible (58x24) or very modern designs, 10 color palettes, hard drop/piece lock/line clear effects and much more.
-> - **Gameplay and handling:** Various rotation systems, piece randomizers, adjustable preview, timings (DAS¹, ARR¹, SDF¹, LCD, ARE), IRS/IHS/.. ([¹caveat](#why-do-some-gameplay-settings-dasarretc-or-registering-shift-as-keypress-not-work-for-me)).
+> - **Gameplay and handling:** Various rotation systems, piece randomizers, adjustable preview, timings (DAS¹, ARR¹, SDF¹, LCD, ARE), IRS/IHS/.. ([¹caveat](#why-do-some-gameplay-preferences-dasarrsdf-or-some-keybinds-ctrlshiftalt-not-work-for-me)).
 > - **Game keybinds:** to your heart's desire. 
 > - **Game mode miscellany:** Regular ('Marathon'), Swift ('40-Lines'), Classic & Master (unlocked after Regular), Puzzle, Cheese, Combo, Custom (select win condition, initial gravity, toggle gravity progress, *cmdline flags:* start board, seed).
 > - **Highscores, replays, statistics, ...** - can can be accessed as well as backed up with a simple **savefile**.
@@ -161,7 +161,7 @@ cargo run
 > </details>
 
 
-### Why do some gameplay (DAS/ARR/SDF...) settings (or some keybinds like Ctrl/Shift/Alt/...) not work for me?
+### Why do some gameplay preferences (DAS/ARR/SDF...) or some keybinds (Ctrl/Shift/Alt/...) not work for me?
 
 > It is likely that your current terminal provides **too little input information** to enable custom timings¹ or those special keys.
 > (¹Instead, DAS/ARR/SDF will be determined by how quickly your *terminal* sends key-repeat events.)
@@ -338,7 +338,7 @@ cargo run
 > Note that the 'Default' settings slots – though they should remain very familiar – do take liberties in 'shifting mechanics closer to the platonic ideal' of a tetromino stacker game. This is obviously not an objective statement, in practice it just means:
 > 
 > **Keybinds:**
-> - Default controls set to **WASD + Arrow keys** (also preferred due to common [terminal limitations](#why-do-some-gameplay-dasarrsdf-settings-or-some-keybinds-like-ctrlshiftalt-not-work-for-me)).
+> - Default controls set to **WASD + Arrow keys** (also preferred due to common [terminal limitations](#why-do-some-gameplay-preferences-dasarrsdf-or-some-keybinds-ctrlshiftalt-not-work-for-me)).
 > - Dedicated keys possible for **Rotate 180°**, **Teleport Down** ('Sonic Drop'), even Teleport Left/Right.
 > 
 > **Gameplay:**

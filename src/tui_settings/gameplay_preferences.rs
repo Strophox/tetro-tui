@@ -11,7 +11,7 @@ use crate::tui_settings::SlotMachine;
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug, serde::Serialize, serde::Deserialize,
 )]
-pub struct GameplaySettings {
+pub struct GameplayPreferences {
     pub rotsys: StdPceRot,
     pub tetgen: StdTetGen,
     pub preview: usize,
@@ -31,23 +31,23 @@ pub struct GameplaySettings {
     pub dtapfinesse: Option<Duration>,
 }
 
-pub fn gameplay_settings_presets() -> SlotMachine<GameplaySettings> {
+pub fn gameplay_settings_presets() -> SlotMachine<GameplayPreferences> {
     let slots = vec![
-        ("Default".to_owned(), GameplaySettings::default()),
-        ("Guideline".to_owned(), GameplaySettings::guideline()),
-        ("Finesse+".to_owned(), GameplaySettings::extra_finesse()),
-        ("NES".to_owned(), GameplaySettings::nes()),
-        ("Gameboy".to_owned(), GameplaySettings::gameboy()),
+        ("Default".to_owned(), GameplayPreferences::default()),
+        ("Guideline".to_owned(), GameplayPreferences::guideline()),
+        ("Finesse+".to_owned(), GameplayPreferences::extra_finesse()),
+        ("NES".to_owned(), GameplayPreferences::nes()),
+        ("Gameboy".to_owned(), GameplayPreferences::gameboy()),
         (
             "Elektronika 60".to_owned(),
-            GameplaySettings::elektronika_60(),
+            GameplayPreferences::elektronika_60(),
         ),
     ];
 
     SlotMachine::with_unmodifiable_slots(slots, "Gameplay".to_owned())
 }
 
-impl Default for GameplaySettings {
+impl Default for GameplayPreferences {
     fn default() -> Self {
         let c = Configuration::default();
         Self {
@@ -66,9 +66,9 @@ impl Default for GameplaySettings {
     }
 }
 
-impl GameplaySettings {
-    pub fn extra_finesse() -> GameplaySettings {
-        GameplaySettings {
+impl GameplayPreferences {
+    pub fn extra_finesse() -> GameplayPreferences {
+        GameplayPreferences {
             das: Duration::from_millis(110),
             arr: Duration::from_millis(0),
             sdr: Either::Right(ExtDuration::ZERO),
@@ -77,8 +77,8 @@ impl GameplaySettings {
         }
     }
 
-    pub fn guideline() -> GameplaySettings {
-        GameplaySettings {
+    pub fn guideline() -> GameplayPreferences {
+        GameplayPreferences {
             rotsys: StdPceRot::Super,
             tetgen: StdTetGen::bag(),
             preview: 3,
@@ -93,8 +93,8 @@ impl GameplaySettings {
         }
     }
 
-    pub fn nes() -> GameplaySettings {
-        GameplaySettings {
+    pub fn nes() -> GameplayPreferences {
+        GameplayPreferences {
             rotsys: StdPceRot::ClassicR,
             tetgen: StdTetGen::classic(),
             das: Duration::from_millis(266), // ≈ 16 /60.0988
@@ -109,8 +109,8 @@ impl GameplaySettings {
         }
     }
 
-    pub fn gameboy() -> GameplaySettings {
-        GameplaySettings {
+    pub fn gameboy() -> GameplayPreferences {
+        GameplayPreferences {
             rotsys: StdPceRot::ClassicL,
             tetgen: StdTetGen::uniform(),
             das: Duration::from_millis(400), // ≈ 24 /59.73
@@ -125,8 +125,8 @@ impl GameplaySettings {
         }
     }
 
-    pub fn elektronika_60() -> GameplaySettings {
-        GameplaySettings {
+    pub fn elektronika_60() -> GameplayPreferences {
+        GameplayPreferences {
             rotsys: StdPceRot::ClassicL,
             tetgen: StdTetGen::uniform(),
             das: Duration::from_millis(350), // ≈ Originally no DAS, but we add an interesting one for better feel if needed.

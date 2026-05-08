@@ -10,7 +10,7 @@ use crate::{
     game_renderers::ShowStatsHud,
 };
 
-pub struct GameModePreset {
+pub struct GameModeBlueprint {
     pub title: String,
     pub description: String,
     pub show_stats_hud: ShowStatsHud,
@@ -18,7 +18,7 @@ pub struct GameModePreset {
     pub build: Box<dyn Fn(&GameBuilder) -> Game>,
 }
 
-impl GameModePreset {
+impl GameModeBlueprint {
     pub const TITLE_SWIFT: &str = "Swift";
     pub fn swift() -> Self {
         Self {
@@ -92,7 +92,7 @@ impl GameModePreset {
                 } else {
                     None
                 };
-                let nes = crate::tui_settings::GameplaySettings::nes();
+                let nes = crate::tui_settings::GameplayPreferences::nes();
                 builder
                     .clone()
                     .fall_delay_curve(fall_delay_curve)
@@ -114,7 +114,7 @@ impl GameModePreset {
     }
 
     // pub fn time_trial() -> GameModePreset {// (
-    //     game_mode_presets::time_trial(),
+    //     game_mode_blueprints::time_trial(),
     //     "How many points can you score in 3min.?".to_owned(),
 
     //     (

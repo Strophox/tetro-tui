@@ -1,6 +1,6 @@
 mod fmt_helpers;
 mod game_modding;
-mod game_mode_presets;
+mod game_mode_blueprints;
 mod game_renderers;
 mod game_restoration;
 mod savefile_logic;
@@ -25,7 +25,7 @@ use falling_tetromino_engine::{
 use crate::game_renderers::ShowStatsHud;
 use crate::savefile_logic::SavefileResult;
 use crate::{
-    game_mode_presets::GameModePreset,
+    game_mode_blueprints::GameModeBlueprint,
     game_restoration::{
         EncodedInputHistory, GameRestorationData, InputHistoryEncoder, RawInputHistory,
     },
@@ -314,8 +314,10 @@ pub struct Statistics {
 
 impl Statistics {
     // This simple blacklist is used to prevent certain game modes from being counted toward stats (e.g. Puzzle's perfect clears).
-    const GAME_MODE_TITLE_PREFIX_BLACKLIST: &[&str] =
-        &[GameModePreset::TITLE_PUZZLE, GameModePreset::TITLE_COMBO];
+    const GAME_MODE_TITLE_PREFIX_BLACKLIST: &[&str] = &[
+        GameModeBlueprint::TITLE_PUZZLE,
+        GameModeBlueprint::TITLE_COMBO,
+    ];
 
     fn accumulate_from_feed(&mut self, feed: &NotificationFeed) {
         for (notification, _notif_time) in feed {

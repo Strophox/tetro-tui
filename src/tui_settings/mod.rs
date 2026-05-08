@@ -1,11 +1,11 @@
 mod game_keybinds;
-mod game_mode_preferences;
-mod gameplay_settings;
+mod game_mode_settings;
+mod gameplay_preferences;
 mod graphics_settings;
 
 pub use game_keybinds::GameKeybinds;
-pub use game_mode_preferences::{CustomModeConfig, GameModePreferences};
-pub use gameplay_settings::GameplaySettings;
+pub use game_mode_settings::{CustomModeConfig, GameModeSettings};
+pub use gameplay_preferences::GameplayPreferences;
 pub use graphics_settings::{
     GraphicsSettings, TileTexture,
     hard_drop_effect::HardDropEffect,
@@ -22,7 +22,7 @@ use crate::{
     fmt_helpers::to_roman,
     tui_settings::{
         game_keybinds::game_keybinds_presets,
-        gameplay_settings::gameplay_settings_presets,
+        gameplay_preferences::gameplay_settings_presets,
         graphics_settings::{
             graphics_settings_presets, hard_drop_effect::hard_drop_effect_presets,
             line_clear_effect::line_clear_effect_presets, lock_effect::lock_effect_presets,
@@ -61,11 +61,11 @@ pub struct Settings {
     pub keybinds_slotmachine: SlotMachine<GameKeybinds>,
 
     pub gameplay_selected: usize,
-    #[serde(rename = "GAMEPLAY_SETTINGS_SLOTS")]
-    pub gameplay_slotmachine: SlotMachine<GameplaySettings>,
+    #[serde(rename = "GAMEPLAY_PREFERENCES_SLOTS")]
+    pub gameplay_slotmachine: SlotMachine<GameplayPreferences>,
 
-    #[serde(rename = "GAME_MODE_PREFERENCES")]
-    pub game_mode_preferences: GameModePreferences,
+    #[serde(rename = "GAME_MODE_SETTINGS")]
+    pub game_mode_preferences: GameModeSettings,
 }
 
 impl Default for Settings {
@@ -88,7 +88,7 @@ impl Default for Settings {
             gameplay_selected: 0,
             gameplay_slotmachine: gameplay_settings_presets(),
 
-            game_mode_preferences: GameModePreferences::default(),
+            game_mode_preferences: GameModeSettings::default(),
         }
     }
 }
@@ -159,7 +159,7 @@ impl Settings {
     pub fn keybinds(&self) -> &GameKeybinds {
         &self.keybinds_slotmachine.grab(self.keybinds_selected).1
     }
-    pub fn gameplay(&self) -> &GameplaySettings {
+    pub fn gameplay(&self) -> &GameplayPreferences {
         &self.gameplay_slotmachine.grab(self.gameplay_selected).1
     }
     pub fn graphics_mut(&mut self) -> &mut GraphicsSettings {
@@ -168,7 +168,7 @@ impl Settings {
     pub fn keybinds_mut(&mut self) -> &mut GameKeybinds {
         &mut self.keybinds_slotmachine.grab_mut(self.keybinds_selected).1
     }
-    pub fn gameplay_mut(&mut self) -> &mut GameplaySettings {
+    pub fn gameplay_mut(&mut self) -> &mut GameplayPreferences {
         &mut self.gameplay_slotmachine.grab_mut(self.gameplay_selected).1
     }
 }

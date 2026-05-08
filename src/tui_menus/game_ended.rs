@@ -16,7 +16,7 @@ use falling_tetromino_engine::ExtDuration;
 use crate::{
     Application, ScoreSummaryEntry,
     fmt_helpers::{fmt_duration, fmt_hertz, fmt_tetromino_counts},
-    game_mode_presets::GameModePreset,
+    game_mode_blueprints::GameModeBlueprint,
     game_renderers::ShowStatsHud,
     tui_menus::{Menu, MenuUpdate, heading_line},
 };
@@ -69,7 +69,7 @@ impl<T: Write> Application<T> {
 
         // Unlock modes if specific modes beaten.
         if *is_win
-            && game_meta_data.title == GameModePreset::TITLE_REGULAR
+            && game_meta_data.title == GameModeBlueprint::TITLE_REGULAR
             && (!self.settings.game_mode_preferences.unlock_master_mode
                 || !self.settings.game_mode_preferences.unlock_classic_mode)
         {
