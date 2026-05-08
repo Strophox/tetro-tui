@@ -979,13 +979,17 @@ impl Renderer for StandardBufferedRenderer {
                         let elapsed = fall_or_lock_time
                             .saturating_sub(game.state().time)
                             .as_secs_f64();
-                        let given = game.state().lock_delay.as_secs_ennf64();
+                        let provided_lock_delay = game.state().lock_delay.as_secs_ennf64();
                         // Only render if lock delay is nonzero
-                        if !given.is_zero() && !given.is_infinite() && elapsed < given.get() {
-                            let str = &tui_symbols.timer[((tui_symbols.timer.len() as f64 - 1.0)
+                        if !provided_lock_delay.is_zero()
+                            && !provided_lock_delay.is_infinite()
+                            && elapsed < provided_lock_delay.get()
+                        {
+                            let str = &tui_symbols.timer[((tui_symbols.timer.len() as f64)
                                 * elapsed
-                                / given.get())
-                            .floor()
+                                / provided_lock_delay.get()
+                                - 1.0)
+                                .ceil()
                                 as usize];
                             let color = ftch_col_or_rset(&Palette::WHITE);
                             #[rustfmt::skip] self.term_buf.write_str((w_tmp_ftl + 2 * (player_piece.position.0 as u16)).saturating_sub(1), h_tmp_ftl.saturating_sub(player_piece.position.1 as u16).saturating_add(1), str, color);

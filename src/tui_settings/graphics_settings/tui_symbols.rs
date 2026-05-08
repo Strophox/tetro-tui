@@ -124,7 +124,7 @@ impl TuiSymbols {
             holdframe: "-+|+",
             nextframe: "-+|+++-",
             buttons: "<>LR@v!w{}H",
-            timer: ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
+            timer: ["1", "2", "3", "4", "5", "6", "7", "8", "9"]
                 .map(|s| s.to_owned())
                 .into(),
             progressbar: (" .:!", '|'),
@@ -238,7 +238,7 @@ impl TuiSymbols {
             holdframe: "    ",
             nextframe: "       ",
             buttons: "<>LR@v!w{}H",
-            timer: ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
+            timer: ["1", "2", "3", "4", "5", "6", "7", "8", "9"]
                 .map(|s| s.to_owned())
                 .into(),
             progressbar: (" .:!", '|'),
