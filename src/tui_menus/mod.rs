@@ -203,15 +203,15 @@ impl<T: Write> Application<T> {
                             (
                                 "Special keybinds".to_owned(),
                                 [
-                                    (
-                                        "Ctrl+Alt+L",
-                                        "Reload app from savefile (overwrites current data!)",
-                                    ),
+                                    ("Ctrl+C", "Quit program (respects save preferences)"),
                                     (
                                         "Ctrl+Alt+S",
                                         "Perform savefile store (respects save preferences)",
                                     ),
-                                    ("Ctrl+C", "Quit program (respects save preferences)"),
+                                    (
+                                        "Ctrl+Alt+L",
+                                        "Reload app from savefile (overwrites current data!)",
+                                    ),
                                 ]
                                 .into_iter()
                                 .map(|(lhs, rhs)| (lhs.to_owned(), rhs.to_owned()))
@@ -398,15 +398,15 @@ impl<T: Write> Application<T> {
                         (
                             "Special keybinds".to_owned(),
                             [
-                                (
-                                    "Ctrl+Alt+L",
-                                    "Reload app from savefile (overwrites current data!)",
-                                ),
+                                ("Ctrl+C", "Quit program (respects save preferences)"),
                                 (
                                     "Ctrl+Alt+S",
                                     "Perform savefile store (respects save preferences)",
                                 ),
-                                ("Ctrl+C", "Quit program (respects save preferences)"),
+                                (
+                                    "Ctrl+Alt+L",
+                                    "Reload app from savefile (overwrites current data!)",
+                                ),
                             ]
                             .into_iter()
                             .map(|(lhs, rhs)| (lhs.to_owned(), rhs.to_owned()))
