@@ -2,7 +2,7 @@ use std::{num::NonZeroU8, time::Duration};
 
 use falling_tetromino_engine::{InGameTime, TileID, WIDTH};
 
-use crate::tui_settings::{
+use crate::settings::{
     Palette, SlotMachine,
     graphics_settings::{
         MaybeOverride::{self, Keep, Override},

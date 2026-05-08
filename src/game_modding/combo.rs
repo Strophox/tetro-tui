@@ -5,7 +5,7 @@ use falling_tetromino_engine::{
     Phase, Tetromino, WIDTH,
 };
 
-use crate::{savefile_logic::to_savefile_string, tui_settings::Palette};
+use crate::{savefile_logic::to_savefile_string, settings::Palette};
 
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,

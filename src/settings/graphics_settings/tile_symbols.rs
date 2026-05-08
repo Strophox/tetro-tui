@@ -1,4 +1,4 @@
-use crate::tui_settings::{
+use crate::settings::{
     SlotMachine,
     graphics_settings::{TileTexture, UnwrapTileFromStr},
 };

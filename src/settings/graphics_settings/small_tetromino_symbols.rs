@@ -1,6 +1,6 @@
 use falling_tetromino_engine::Tetromino;
 
-use crate::tui_settings::SlotMachine;
+use crate::settings::SlotMachine;
 
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,

@@ -7,7 +7,7 @@ use falling_tetromino_engine::{
 
 use rand::seq::SliceRandom;
 
-use crate::{savefile_logic::to_savefile_string, tui_settings::Palette};
+use crate::{savefile_logic::to_savefile_string, settings::Palette};
 
 #[derive(
     PartialEq,

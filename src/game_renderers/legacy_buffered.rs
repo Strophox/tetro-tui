@@ -22,7 +22,7 @@ use super::*;
 use crate::{
     TemporaryAppData,
     fmt_helpers::{fmt_duration, fmt_hertz, fmt_lineclear_name},
-    tui_settings::{Palette, TileSymbols},
+    settings::{Palette, TileSymbols},
 };
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, Default)]

@@ -16,7 +16,7 @@ use rand::RngExt;
 
 use crate::{
     fmt_helpers::{fmt_duration, fmt_hertz, fmt_lineclear_name},
-    tui_settings::{
+    settings::{
         HardDropEffect, LineClearEffect, LineClearInlineEffect, LineClearParticleEffect,
         LockEffect, Palette, TileTexture,
     },

@@ -25,7 +25,7 @@ use crate::{
     Application, Settings,
     fmt_helpers::BoolAsOnOff,
     tui_menus::{Menu, MenuUpdate, heading_line},
-    tui_settings::GameplayPreferences,
+    settings::GameplayPreferences,
 };
 
 impl<T: Write> Application<T> {

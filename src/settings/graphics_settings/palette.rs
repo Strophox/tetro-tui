@@ -6,7 +6,7 @@ use std::{
 use crossterm::style::Color;
 use falling_tetromino_engine::TileID;
 
-use crate::tui_settings::SlotMachine;
+use crate::settings::SlotMachine;
 
 #[derive(PartialEq, Eq, Clone, Debug, serde::Serialize, serde::Deserialize)]
 #[serde(transparent)]

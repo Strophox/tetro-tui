@@ -14,7 +14,7 @@ use crossterm::{
 use falling_tetromino_engine::Stat;
 
 use crate::{
-    Application, ScoreSummaryEntry, ScoreboardSorting,
+    Application, ScoreSummary, ScoreboardSorting,
     fmt_helpers::fmt_duration,
     game_renderers::TetroTUIRenderer,
     game_restoration::{EncodedInputHistory, GameRestorationData},
@@ -49,7 +49,7 @@ impl<T: Write> Application<T> {
                 .queue(Print(format!("{:^w_main$}", heading_line(&self.settings))))?;
 
             let sorting = self.scores_and_replays.sorting;
-            let fmt_stat = |p: &ScoreSummaryEntry| {
+            let fmt_stat = |p: &ScoreSummary| {
                 let show_stat = match sorting {
                     ScoreboardSorting::Chronological | ScoreboardSorting::ModeDependent => {
                         p.game_meta_data.objective_sort_descending.0
@@ -74,7 +74,7 @@ impl<T: Write> Application<T> {
             let fmt_past_game = |(rank, (entry, opt_rep)): (
                 usize,
                 &(
-                    ScoreSummaryEntry,
+                    ScoreSummary,
                     Option<GameRestorationData<EncodedInputHistory>>,
                 ),
             )| {

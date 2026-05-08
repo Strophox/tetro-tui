@@ -6,7 +6,7 @@ use falling_tetromino_engine::{
     Input, Line, Notification, NotificationFeed, Phase, State, Tetromino,
 };
 
-use crate::tui_settings::Palette;
+use crate::settings::Palette;
 
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,

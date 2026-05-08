@@ -14,7 +14,7 @@ use falling_tetromino_engine::{Button, Game, InGameTime, Notification};
 use crate::{
     GameMetaData, Settings, TemporaryAppData,
     fmt_helpers::{KeybindsLegend, fmt_button_keybinds, fmt_key_with_keymods},
-    tui_settings::GameKeybinds,
+    settings::GameKeybinds,
 };
 
 pub use braille::BrailleRenderer;

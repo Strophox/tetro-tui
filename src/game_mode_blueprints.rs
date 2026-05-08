@@ -92,7 +92,7 @@ impl GameModeBlueprint {
                 } else {
                     None
                 };
-                let nes = crate::tui_settings::GameplayPreferences::nes();
+                let nes = crate::settings::GameplayPreferences::nes();
                 builder
                     .clone()
                     .fall_delay_curve(fall_delay_curve)

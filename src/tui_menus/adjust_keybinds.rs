@@ -17,7 +17,7 @@ use crate::{
     Application, Settings,
     fmt_helpers::{fmt_button_keybinds, fmt_key_with_keymods},
     tui_menus::{Menu, MenuUpdate, heading_line},
-    tui_settings::GameKeybinds,
+    settings::GameKeybinds,
 };
 
 impl<T: Write> Application<T> {

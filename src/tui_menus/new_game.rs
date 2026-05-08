@@ -35,7 +35,7 @@ use crate::{
         Menu, MenuUpdate, heading_line,
         replay_game::{REPLAY_ANCHOR_INTERVAL, calculate_game_and_replay_anchors},
     },
-    tui_settings::{CustomModeConfig, GameModeSettings, GameplayPreferences},
+    settings::{CustomModeConfig, GameModeSettings, GameplayPreferences},
 };
 
 impl<T: Write> Application<T> {

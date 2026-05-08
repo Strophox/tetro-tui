@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crossterm::event::{KeyCode, KeyModifiers};
 use falling_tetromino_engine::Button;
 
-use crate::tui_settings::SlotMachine;
+use crate::settings::SlotMachine;
 
 #[derive(PartialEq, Eq, Clone, Debug)]
 #[serde_with::serde_as] // Do **NOT** place this after #[derive(..)] !!

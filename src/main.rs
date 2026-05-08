@@ -5,7 +5,7 @@ mod game_renderers;
 mod game_restoration;
 mod savefile_logic;
 mod tui_menus;
-mod tui_settings;
+mod settings;
 
 use std::{io, path::PathBuf};
 
@@ -31,7 +31,7 @@ use crate::{
     },
     savefile_logic::SavefileGranularity,
     tui_menus::{Menu, MenuUpdate},
-    tui_settings::Settings,
+    settings::Settings,
 };
 
 // Same as `clap::crate_version!()`.
@@ -174,7 +174,7 @@ impl<IH: InputHistoryEncoder> GameSaves<IH> {
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
 )]
-pub struct ScoreSummaryEntry {
+pub struct ScoreSummary {
     game_meta_data: GameMetaData,
     end_cause: GameEndCause,
     is_win: bool,
@@ -217,7 +217,7 @@ impl std::fmt::Display for ScoreboardSorting {
 pub struct Scoreboard {
     sorting: ScoreboardSorting,
     entries: Vec<(
-        ScoreSummaryEntry,
+        ScoreSummary,
         Option<GameRestorationData<EncodedInputHistory>>,
     )>,
 }

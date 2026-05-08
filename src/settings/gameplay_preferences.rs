@@ -5,7 +5,7 @@ use falling_tetromino_engine::{
     Configuration, ExtDuration, ExtNonNegF64, SoftDropRate, StdPceRot, StdTetGen,
 };
 
-use crate::tui_settings::SlotMachine;
+use crate::settings::SlotMachine;
 
 #[serde_with::serde_as]
 #[derive(

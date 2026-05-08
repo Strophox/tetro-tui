@@ -17,7 +17,7 @@ use falling_tetromino_engine::{
 
 use crate::{
     Application, EncodedInputHistory, GameMetaData, GameRestorationData, GameSave, RawInputHistory,
-    ScoreSummaryEntry, Statistics,
+    ScoreSummary, Statistics,
     fmt_helpers::{fmt_button_keybinds, increment_game_mode_derivative},
     game_renderers::{Renderer, TetroTUIRenderer, calc_game_keybinds_legend},
     game_restoration::{InputHistoryEncoder, QuantizeInGameTime},
@@ -136,7 +136,7 @@ impl<T: Write> Application<T> {
 
                 // Game ended, cannot actually continue playing;
                 // Convert to scoreboard entry and return appropriate game-ended menu.
-                let scores_entry = ScoreSummaryEntry {
+                let scores_entry = ScoreSummary {
                     game_meta_data: game_meta_data.clone(),
                     is_win: *is_win,
                     end_cause: cause.clone(),

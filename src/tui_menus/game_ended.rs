@@ -14,7 +14,7 @@ use crossterm::{
 use falling_tetromino_engine::ExtDuration;
 
 use crate::{
-    Application, ScoreSummaryEntry,
+    Application, ScoreSummary,
     fmt_helpers::{fmt_duration, fmt_hertz, fmt_tetromino_counts},
     game_mode_blueprints::GameModeBlueprint,
     game_renderers::ShowStatsHud,
@@ -24,9 +24,9 @@ use crate::{
 impl<T: Write> Application<T> {
     pub fn run_menu_game_ended(
         &mut self,
-        game_scoring: &ScoreSummaryEntry,
+        game_scoring: &ScoreSummary,
     ) -> io::Result<MenuUpdate> {
-        let ScoreSummaryEntry {
+        let ScoreSummary {
             game_meta_data,
             end_cause,
             is_win,

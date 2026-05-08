@@ -494,5 +494,4 @@ Special Thanks
 - madkiwi – help with 4-wide-6-residual combo layouts
 - mathmaster13 and Kitaru – help with retro mechanics
 - RayZN and ˗ˋˏthe One and Onlyˎˊ˗ – help with *Tetro* logo choice
-- Alexey Leonidovich Pajitnov – for discovering a universal genre of games
-and any others which contributed to shaping this project!
+- and Alexey Leonidovich Pajitnov – for discovering this universal genre of game

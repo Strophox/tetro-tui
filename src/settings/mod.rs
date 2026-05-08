@@ -20,7 +20,7 @@ pub use graphics_settings::{
 
 use crate::{
     fmt_helpers::to_roman,
-    tui_settings::{
+    settings::{
         game_keybinds::game_keybinds_presets,
         gameplay_preferences::gameplay_settings_presets,
         graphics_settings::{

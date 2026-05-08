@@ -2,7 +2,7 @@ use std::num::NonZeroUsize;
 
 use falling_tetromino_engine::ExtNonNegF64;
 
-use crate::tui_settings::SlotMachine;
+use crate::settings::SlotMachine;
 
 pub mod hard_drop_effect;
 pub mod line_clear_effect;

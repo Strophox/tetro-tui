@@ -30,9 +30,9 @@ use crossterm::{
 use falling_tetromino_engine::{Game, InGameTime};
 
 use crate::{
-    Application, GameMetaData, GameRestorationData, RawInputHistory, ScoreSummaryEntry,
+    Application, GameMetaData, GameRestorationData, RawInputHistory, ScoreSummary,
     game_renderers::TetroTUIRenderer, tui_menus::replay_game::GameSaveAnchor,
-    tui_settings::Settings,
+    settings::Settings,
 };
 
 #[derive(Debug)]
@@ -64,11 +64,11 @@ pub enum Menu {
     AdjustGameplay,
     AdvancedSettings,
     GameOver {
-        game_scoring: Box<ScoreSummaryEntry>,
+        game_scoring: Box<ScoreSummary>,
         // game_statistics: Statistics,
     },
     GameComplete {
-        game_scoring: Box<ScoreSummaryEntry>,
+        game_scoring: Box<ScoreSummary>,
         // game_statistics: Statistics,
     },
     ScoresAndReplays {

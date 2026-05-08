@@ -9,7 +9,7 @@ use crossterm::{
     terminal,
 };
 
-use crate::tui_settings::TileTexture;
+use crate::settings::TileTexture;
 
 use super::{TermCell, TerminalBuffer};
 

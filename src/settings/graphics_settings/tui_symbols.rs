@@ -1,6 +1,6 @@
 use falling_tetromino_engine::Button;
 
-use crate::tui_settings::SlotMachine;
+use crate::settings::SlotMachine;
 
 /**
 Currently, we want to deal with TUI styles with the form like this:
