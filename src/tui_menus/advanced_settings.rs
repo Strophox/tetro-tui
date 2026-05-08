@@ -157,7 +157,7 @@ impl<T: Write> Application<T> {
                             + 1,
                     ))?
                     .queue(PrintStyledContent(
-                        format!("{:^w_main$}", format!("{e}")).italic(),
+                        format!("{:^w_main$}", format!("'{e}'")).italic(),
                     ))?;
                 temp_offset += 1;
             }
@@ -191,7 +191,7 @@ impl<T: Write> Application<T> {
                             + 1,
                     ))?
                     .queue(PrintStyledContent(
-                        format!("{:^w_main$}", format!("{e}")).italic(),
+                        format!("{:^w_main$}", format!("'{e}'")).italic(),
                     ))?;
             }
 
