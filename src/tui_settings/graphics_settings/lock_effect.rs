@@ -33,7 +33,7 @@ pub fn lock_effect_presets() -> SlotMachine<LockEffect> {
         ("None".to_owned(), LockEffect::none()),
         ("Highlight white".to_owned(), LockEffect::color_white()),
         ("Transform ASCII".to_owned(), LockEffect::ascii_transform()),
-        ("Pulse blocks".to_owned(), LockEffect::unicode_pulse()),
+        ("Pulse blocks UTF8".to_owned(), LockEffect::unicode_pulse()),
         ("Spiral Braille".to_owned(), LockEffect::braille()),
     ];
 

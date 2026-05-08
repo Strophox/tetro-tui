@@ -134,7 +134,7 @@ impl GameModePreset {
     pub fn master() -> Self {
         Self {
             title: Self::TITLE_MASTER.to_owned(),
-            description: "Clear 240 lines at instant gravity.".to_owned(),
+            description: "Clear 320 lines at instant gravity.".to_owned(),
             show_stats_hud: ShowStatsHud::TIME
                 | ShowStatsHud::LINES
                 | ShowStatsHud::POINTS
@@ -146,7 +146,7 @@ impl GameModePreset {
                     .clone()
                     .fall_delay_curve(Either::Left(DelayParameters::constant(ExtDuration::ZERO)))
                     .lock_delay_curve(Some(Either::Left(DelayParameters::standard_lock())))
-                    .game_limits(GameLimits::single(Stat::LinesCleared(240), true))
+                    .game_limits(GameLimits::single(Stat::LinesCleared(320), true))
                     .build()
             }),
         }

@@ -19,8 +19,8 @@ pub fn palette_presets() -> SlotMachine<Palette> {
     let slots = vec![
         ("Monochrome".to_owned(), Palette::monochrome()), // NOTE: The slot at index 0 is the special 'monochrome'/no palette slot.
         ("ANSI".to_owned(), Palette::ansi()),
-        ("Standard".to_owned(), Palette::standard()),
         ("Tetro Pastel".to_owned(), Palette::tetro_pastel()),
+        ("Guideline".to_owned(), Palette::guideline()),
         ("Gruvbox".to_owned(), Palette::gruvbox()),
         ("Solarized".to_owned(), Palette::solarized()),
         ("Terafox".to_owned(), Palette::terafox()),
@@ -102,7 +102,7 @@ impl Palette {
         }
     }
 
-    pub fn standard() -> Palette {
+    pub fn guideline() -> Palette {
         #[rustfmt::skip]
         let colors = [
             (  1, Color::Rgb{r:254,g:203,b:  1}), // #FECB01

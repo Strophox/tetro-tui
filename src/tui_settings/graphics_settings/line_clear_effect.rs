@@ -65,14 +65,21 @@ pub struct LineClearParticleEffect {
 pub fn line_clear_effect_presets() -> SlotMachine<LineClearEffect> {
     let slots = vec![
         ("None".to_owned(), LineClearEffect::none()),
-        ("Vanish instantly".to_owned(), LineClearEffect::instant()),
+        (
+            "Disappear halfway".to_owned(),
+            LineClearEffect::vanish_delayed(),
+        ),
+        ("Disappear instantly".to_owned(), LineClearEffect::instant()),
         ("Blink".to_owned(), LineClearEffect::blink()),
         ("Flash white".to_owned(), LineClearEffect::flash_white()),
-        ("Left to right".to_owned(), LineClearEffect::left_to_right()),
+        (
+            "Clear left-to-right".to_owned(),
+            LineClearEffect::left_to_right(),
+        ),
         ("Clear inward".to_owned(), LineClearEffect::inward()),
         ("Burn outward".to_owned(), LineClearEffect::burn_outward()),
         ("Pop".to_owned(), LineClearEffect::pop()),
-        ("Pop (higher)".to_owned(), LineClearEffect::pop_high()),
+        ("Pop (more)".to_owned(), LineClearEffect::pop_high()),
         (
             "Confetti (gratuitous)".to_owned(),
             LineClearEffect::confetti(),
@@ -99,6 +106,14 @@ impl LineClearEffect {
             momentum_base: (0.0, 0.0),
             momentum_rand: (0.0, 0.0),
             momentum_xpos: 0.0,
+        })
+    }
+
+    pub fn vanish_delayed() -> Self {
+        LineClearEffect::Inline(LineClearInlineEffect {
+            anim_indices: [1; 2 * WIDTH],
+            anim_lastidx: 2,
+            color_animation: Vec::new(),
         })
     }
 

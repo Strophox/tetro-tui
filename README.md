@@ -480,16 +480,19 @@ Color palettes featured: [Gruvbox](<https://github.com/morhetz/gruvbox>), [Solar
 
 ## Acknowledgements
 
-A big thank you to the [AUR package](#install-on-arch-linux) maintainers:
-- [wcasanova](<https://github.com/wcasanova>) and [druxorey](<https://github.com/druxorey>), and Dominiquini
+A big thank you to the [AUR package](#arch-linux-aurarchlinuxorg) maintainers!
+- [wcasanova](<https://github.com/wcasanova>), [druxorey](<https://github.com/druxorey>) and Dominiquini
 
-Thank you to the people who provided inspiration:
+Thank you to various sources of inspiration:
 - Dunspixel – regarding ['O'-spins](<https://dunspixel.github.io/ospin-guide/chapter4.html#tetro-tui>)
-- Martín G – regarding new line clear effect from his own PICO-8 game
-- thehuglet – for showing the [potential](<https://github.com/thehuglet/germterm>) of terminal graphics
+- Martín G / mg1399 – regarding particle-based line clear effects from his own PICO-8 game
+- thehuglet – regarding the [potential of terminal graphics](<https://github.com/thehuglet/germterm>)
 - Akousoukos – for making [Apotris](<https://apotris.com/>)
 
 Special Thanks
-- GrBtAce, KonSola5 and bennxt – support during early dev and research
-- madkiwi – for advice regarding 4-wide-6-residual combo layouts
-- and RayZN and ˗ˋˏthe One and Onlyˎˊ˗ – for advice regarding the Tetro logo
+- GrBtAce, KonSola5 and bennxt – help during early dev/research
+- madkiwi – help with 4-wide-6-residual combo layouts
+- mathmaster13 and Kitaru – help with retro mechanics
+- RayZN and ˗ˋˏthe One and Onlyˎˊ˗ – help with *Tetro* logo choice
+- Alexey Leonidovich Pajitnov – for discovering a universal genre of games
+and any others which contributed to shaping this project!
