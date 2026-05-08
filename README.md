@@ -81,7 +81,7 @@ cargo run
 ### How good is it in terms of customization / features?
 
 > We provide a solid amount of configuration options and features:
-> - **Graphics:** Unicode/ASCII/Elektronika styles, old-terminal-compatible (58x24) or very modern designs, 10 color palettes, hard drop/piece lock/line clear effects and much more.
+> - **Graphics:** Unicode/ASCII/Elektronika styles, old-terminal-compatible or very modern designs, 10 color palettes, hard drop/piece lock/line clear effects and much more.
 > - **Gameplay and handling:** Various rotation systems, piece randomizers, adjustable preview, timings (DAS¹, ARR¹, SDF¹, LCD, ARE), IRS/IHS/.. ([¹caveat](#why-do-some-gameplay-preferences-dasarrsdf-or-some-keybinds-ctrlshiftalt-not-work-for-me)).
 > - **Game keybinds:** to your heart's desire. 
 > - **Game mode miscellany:** Regular ('Marathon'), Swift ('40-Lines'), Classic & Master (unlocked after Regular), Puzzle, Cheese, Combo, Custom (select win condition, initial gravity, toggle gravity progress, *cmdline flags:* start board, seed).

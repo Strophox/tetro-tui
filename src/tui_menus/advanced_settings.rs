@@ -1,15 +1,15 @@
 use std::io::{self, Write};
 
 use crossterm::{
-    QueueableCommand,
+    ExecutableCommand, QueueableCommand,
     cursor::MoveTo,
     event::{
         self, Event, KeyCode, KeyEvent,
-        KeyEventKind::{Press, Repeat},
+        KeyEventKind::{self, Press, Repeat},
         KeyModifiers,
     },
     style::{Print, PrintStyledContent, Stylize},
-    terminal::{Clear, ClearType},
+    terminal::{self, Clear, ClearType},
 };
 
 use crate::{
@@ -21,8 +21,15 @@ use crate::{
 
 impl<T: Write> Application<T> {
     pub fn run_menu_advanced_settings(&mut self) -> io::Result<MenuUpdate> {
+        if self.temp_data.kitty_assumed {
+            let f = Self::GAME_KEYBOARD_ENHANCEMENT_FLAGS;
+            // FIXME: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm doesn't like operating on Windows.
+            let _r = self.term.execute(event::PushKeyboardEnhancementFlags(f));
+        }
+
         let mut selected = 0usize;
-        loop {
+        let mut latest_input_info: Option<(KeyCode, KeyModifiers, KeyEventKind)> = None;
+        let menu_update = loop {
             let w_main = Self::W_MAIN.into();
             let (x_main, y_main) = Self::viewport_offset();
             let y_selection = Self::H_MAIN / 5;
@@ -45,7 +52,7 @@ impl<T: Write> Application<T> {
             };
             let labels = [
                 format!(
-                    "Savefile contents: {}",
+                    "Save: {}",
                     match self.temp_data.save_on_exit {
                         SavefileGranularity::NoSavefile => "--Nothing",
                         SavefileGranularity::StoreSettings =>
@@ -57,11 +64,11 @@ impl<T: Write> Application<T> {
                     }
                 ),
                 format!(
-                    "Assume enhanced-key-events available = {}{warning_star}",
-                    self.temp_data.kitty_assumed.on_off()
+                    "Renderer used = {} (applies on New Game)",
+                    TetroTUIRenderer::name_from_num(self.temp_data.renderer_used)
                 ),
                 format!(
-                    "Pause on focus lost = {} (doesn't work on some terminals?)",
+                    "Pause on focus lost = {} (experimental)",
                     self.temp_data.pause_on_focus_lost.on_off()
                 ),
                 format!(
@@ -69,8 +76,8 @@ impl<T: Write> Application<T> {
                     self.temp_data.blindfold_game.on_off()
                 ),
                 format!(
-                    "Renderer used = {} (applies on New Game)",
-                    TetroTUIRenderer::name_from_num(self.temp_data.renderer_used)
+                    "Assume enhanced-key-events available = {}{warning_star}",
+                    self.temp_data.kitty_assumed.on_off()
                 ),
             ];
 
@@ -96,27 +103,39 @@ impl<T: Write> Application<T> {
                     )))?;
             }
 
+            let mut temp_offset = 0;
+
             if !self.temp_data.kitty_detected {
                 self.term
                     .queue(MoveTo(
                         x_main,
-                        y_main + y_selection + 4 + u16::try_from(selection_len).unwrap() + 2,
+                        y_main
+                            + y_selection
+                            + 4
+                            + u16::try_from(selection_len).unwrap()
+                            + 1
+                            + temp_offset,
                     ))?
                     .queue(PrintStyledContent(
                         format!(
                             "{:^w_main$}",
-                            "(*Unlikely to apply, enhanced-key-events seem unsupported by terminal)"
+                            "(*Unlikely to work; Enhanced-key-events seem unsupported by terminal)"
                         )
                         .italic(),
                     ))?;
+                temp_offset += 1;
             }
 
-            let mut temp_offset = 0;
             if self.temp_data.save_on_exit != SavefileGranularity::NoSavefile {
                 self.term
                     .queue(MoveTo(
                         x_main,
-                        y_main + y_selection + 4 + u16::try_from(selection_len).unwrap() + 3,
+                        y_main
+                            + y_selection
+                            + 4
+                            + u16::try_from(selection_len).unwrap()
+                            + 1
+                            + temp_offset,
                     ))?
                     .queue(PrintStyledContent(
                         format!(
@@ -128,7 +147,29 @@ impl<T: Write> Application<T> {
                 temp_offset += 1;
             }
 
-            if let Err(e) = &self.temp_data.loadfile_result {
+            self.term
+                .queue(MoveTo(
+                    x_main,
+                    y_main
+                        + y_selection
+                        + 4
+                        + u16::try_from(selection_len).unwrap()
+                        + 1
+                        + temp_offset,
+                ))?
+                .queue(PrintStyledContent(
+                    format!(
+                        "{:^w_main$}",
+                        format!(
+                            "Current terminal size (>=58x24 recommended): {:?}",
+                            terminal::size()?
+                        )
+                    )
+                    .italic(),
+                ))?;
+            temp_offset += 1;
+
+            if let Err(e) = &self.temp_data.load_savefile_result {
                 self.term
                     .queue(MoveTo(
                         x_main,
@@ -136,7 +177,7 @@ impl<T: Write> Application<T> {
                             + y_selection
                             + 4
                             + u16::try_from(selection_len).unwrap()
-                            + 3
+                            + 1
                             + temp_offset,
                     ))?
                     .queue(PrintStyledContent(
@@ -152,17 +193,17 @@ impl<T: Write> Application<T> {
                             + y_selection
                             + 4
                             + u16::try_from(selection_len).unwrap()
-                            + 3
+                            + 1
                             + temp_offset
                             + 1,
                     ))?
                     .queue(PrintStyledContent(
                         format!("{:^w_main$}", format!("'{e}'")).italic(),
                     ))?;
-                temp_offset += 1;
+                temp_offset += 2;
             }
 
-            if let Err(e) = &self.temp_data.storefile_result {
+            if let Err(e) = &self.temp_data.store_savefile_result {
                 self.term
                     .queue(MoveTo(
                         x_main,
@@ -170,7 +211,7 @@ impl<T: Write> Application<T> {
                             + y_selection
                             + 4
                             + u16::try_from(selection_len).unwrap()
-                            + 3
+                            + 1
                             + temp_offset,
                     ))?
                     .queue(PrintStyledContent(
@@ -186,18 +227,49 @@ impl<T: Write> Application<T> {
                             + y_selection
                             + 4
                             + u16::try_from(selection_len).unwrap()
-                            + 3
+                            + 1
                             + temp_offset
                             + 1,
                     ))?
                     .queue(PrintStyledContent(
                         format!("{:^w_main$}", format!("'{e}'")).italic(),
                     ))?;
+                temp_offset += 2;
+            }
+
+            if let Some((code, modifiers, kind)) = latest_input_info {
+                self.term
+                    .queue(MoveTo(
+                        x_main,
+                        y_main
+                            + y_selection
+                            + 4
+                            + u16::try_from(selection_len).unwrap()
+                            + 1
+                            + temp_offset,
+                    ))?
+                    .queue(PrintStyledContent(
+                        format!(
+                            "{:^w_main$}",
+                            format!("Latest input: {kind:?} {modifiers:?} {code:?}")
+                        )
+                        .italic(),
+                    ))?;
             }
 
             self.term.flush()?;
             // Wait for new input.
-            match event::read()? {
+            let evt = event::read()?;
+            if let Event::Key(KeyEvent {
+                code,
+                modifiers,
+                kind,
+                state: _,
+            }) = evt
+            {
+                latest_input_info = Some((code, modifiers, kind));
+            }
+            match evt {
                 // Abort program.
                 Event::Key(KeyEvent {
                     code: KeyCode::Char('c' | 'C'),
@@ -268,7 +340,7 @@ impl<T: Write> Application<T> {
                         self.temp_data.save_on_exit = SavefileGranularity::NoSavefile;
                     }
                     1 => {
-                        self.temp_data.kitty_assumed = self.temp_data.kitty_detected;
+                        self.temp_data.renderer_used = 0;
                     }
                     2 => {
                         self.temp_data.pause_on_focus_lost = false;
@@ -277,7 +349,16 @@ impl<T: Write> Application<T> {
                         self.temp_data.blindfold_game = false;
                     }
                     4 => {
-                        self.temp_data.renderer_used = 0;
+                        if !self.temp_data.kitty_assumed && self.temp_data.kitty_detected {
+                            let f = Self::GAME_KEYBOARD_ENHANCEMENT_FLAGS;
+                            // FIXME: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm doesn't like operating on Windows.
+                            let _r: Result<&mut T, io::Error> =
+                                self.term.execute(event::PushKeyboardEnhancementFlags(f));
+                        } else if self.temp_data.kitty_assumed && !self.temp_data.kitty_detected {
+                            // FIXME: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm doesn't like operating on Windows.
+                            let _r = self.term.execute(event::PopKeyboardEnhancementFlags);
+                        }
+                        self.temp_data.kitty_assumed = self.temp_data.kitty_detected;
                     }
                     _ => {}
                 },
@@ -315,7 +396,7 @@ impl<T: Write> Application<T> {
                     kind: Press | Repeat,
                     ..
                 }) if { modifiers.contains(KeyModifiers::CONTROL.union(KeyModifiers::ALT)) } => {
-                    self.temp_data.loadfile_result = self.savefile_load();
+                    self.temp_data.load_savefile_result = self.savefile_load();
                 }
 
                 // Store to savefile.
@@ -325,7 +406,7 @@ impl<T: Write> Application<T> {
                     kind: Press | Repeat,
                     ..
                 }) if { modifiers.contains(KeyModifiers::CONTROL.union(KeyModifiers::ALT)) } => {
-                    self.temp_data.storefile_result = self.savefile_store();
+                    self.temp_data.store_savefile_result = self.savefile_store();
                 }
 
                 Event::Key(KeyEvent {
@@ -348,7 +429,8 @@ impl<T: Write> Application<T> {
                         };
                     }
                     1 => {
-                        self.temp_data.kitty_assumed ^= true;
+                        self.temp_data.renderer_used += 1;
+                        self.temp_data.renderer_used %= TetroTUIRenderer::NUM_VARIANTS;
                     }
                     2 => {
                         self.temp_data.pause_on_focus_lost ^= true;
@@ -357,8 +439,16 @@ impl<T: Write> Application<T> {
                         self.temp_data.blindfold_game ^= true;
                     }
                     4 => {
-                        self.temp_data.renderer_used += 1;
-                        self.temp_data.renderer_used %= TetroTUIRenderer::NUM_VARIANTS;
+                        self.temp_data.kitty_assumed ^= true;
+                        if self.temp_data.kitty_assumed {
+                            let f = Self::GAME_KEYBOARD_ENHANCEMENT_FLAGS;
+                            // FIXME: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm doesn't like operating on Windows.
+                            let _r: Result<&mut T, io::Error> =
+                                self.term.execute(event::PushKeyboardEnhancementFlags(f));
+                        } else {
+                            // FIXME: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm doesn't like operating on Windows.
+                            let _r = self.term.execute(event::PopKeyboardEnhancementFlags);
+                        }
                     }
                     _ => {}
                 },
@@ -382,7 +472,8 @@ impl<T: Write> Application<T> {
                         };
                     }
                     1 => {
-                        self.temp_data.kitty_assumed ^= true;
+                        self.temp_data.renderer_used += TetroTUIRenderer::NUM_VARIANTS - 1;
+                        self.temp_data.renderer_used %= TetroTUIRenderer::NUM_VARIANTS;
                     }
                     2 => {
                         self.temp_data.pause_on_focus_lost ^= true;
@@ -391,8 +482,16 @@ impl<T: Write> Application<T> {
                         self.temp_data.blindfold_game ^= true;
                     }
                     4 => {
-                        self.temp_data.renderer_used += TetroTUIRenderer::NUM_VARIANTS - 1;
-                        self.temp_data.renderer_used %= TetroTUIRenderer::NUM_VARIANTS;
+                        self.temp_data.kitty_assumed ^= true;
+                        if self.temp_data.kitty_assumed {
+                            let f = Self::GAME_KEYBOARD_ENHANCEMENT_FLAGS;
+                            // FIXME: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm doesn't like operating on Windows.
+                            let _r: Result<&mut T, io::Error> =
+                                self.term.execute(event::PushKeyboardEnhancementFlags(f));
+                        } else {
+                            // FIXME: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm doesn't like operating on Windows.
+                            let _r = self.term.execute(event::PopKeyboardEnhancementFlags);
+                        }
                     }
                     _ => {}
                 },
@@ -400,6 +499,13 @@ impl<T: Write> Application<T> {
                 _ => {}
             }
             selected %= selection_len;
+        };
+
+        if self.temp_data.kitty_assumed {
+            // FIXME: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm doesn't like operating on Windows.
+            let _r = self.term.execute(event::PopKeyboardEnhancementFlags);
         }
+
+        menu_update
     }
 }

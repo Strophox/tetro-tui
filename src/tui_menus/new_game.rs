@@ -826,7 +826,7 @@ impl<T: Write> Application<T> {
                     kind: Press | Repeat,
                     ..
                 }) if { modifiers.contains(KeyModifiers::CONTROL.union(KeyModifiers::ALT)) } => {
-                    self.temp_data.loadfile_result = self.savefile_load();
+                    self.temp_data.load_savefile_result = self.savefile_load();
                 }
 
                 // Store to savefile.
@@ -836,7 +836,7 @@ impl<T: Write> Application<T> {
                     kind: Press | Repeat,
                     ..
                 }) if { modifiers.contains(KeyModifiers::CONTROL.union(KeyModifiers::ALT)) } => {
-                    self.temp_data.storefile_result = self.savefile_store();
+                    self.temp_data.store_savefile_result = self.savefile_store();
                 }
 
                 // Move selector right (select stat).

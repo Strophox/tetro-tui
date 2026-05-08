@@ -62,7 +62,7 @@ impl<T: Write> Application<T> {
                 .queue(PrintStyledContent(
                     format!(
                         "{:^w_main$}",
-                        "= Gameplay Preferences (applies on New Game) ="
+                        "= Gameplay Preferences (apply on New Game) ="
                     )
                     .bold(),
                 ))?
@@ -221,7 +221,7 @@ impl<T: Write> Application<T> {
                     .queue(PrintStyledContent(
                         format!(
                             "{:^w_main$}",
-                            "(*Unlikely to apply, enhanced-key-events seem unsupported by terminal)"
+                            "(*Unlikely to work; Enhanced-key-events seem unsupported by terminal)"
                         )
                         .italic(),
                     ))?;
@@ -337,7 +337,7 @@ impl<T: Write> Application<T> {
                     kind: Press | Repeat,
                     ..
                 }) if { modifiers.contains(KeyModifiers::CONTROL.union(KeyModifiers::ALT)) } => {
-                    self.temp_data.loadfile_result = self.savefile_load();
+                    self.temp_data.load_savefile_result = self.savefile_load();
                 }
 
                 // Store to savefile.
@@ -347,7 +347,7 @@ impl<T: Write> Application<T> {
                     kind: Press | Repeat,
                     ..
                 }) if { modifiers.contains(KeyModifiers::CONTROL.union(KeyModifiers::ALT)) } => {
-                    self.temp_data.storefile_result = self.savefile_store();
+                    self.temp_data.store_savefile_result = self.savefile_store();
                 }
 
                 Event::Key(KeyEvent {
