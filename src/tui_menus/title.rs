@@ -209,14 +209,14 @@ impl<T: Write> Application<T> {
                     y_main + y_selection + 5 + u16::try_from(n_names).unwrap() + 2,
                 ))?
                 .queue(PrintStyledContent(
-                    format!("{:^w_main$}", "[Enter/Esc/Del/←↓↑→] or Vim,",).italic(),
+                    format!("{:^w_main$}", "[←↓↑→/Enter/Esc/Del] or Vim,",).italic(),
                 ))?
                 .queue(MoveTo(
                     x_main,
                     y_main + y_selection + 5 + u16::try_from(n_names).unwrap() + 3,
                 ))?
                 .queue(PrintStyledContent(
-                    format!("{:^w_main$}", "press [?] to view keybinds anytime",).italic(),
+                    format!("{:^w_main$}", "Press [?] to view keybinds anytime",).italic(),
                 ))?;
 
             self.term.flush()?;
