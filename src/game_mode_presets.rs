@@ -23,7 +23,7 @@ impl GameModePreset {
     pub fn swift() -> Self {
         Self {
             title: Self::TITLE_SWIFT.to_owned(),
-            description: "How fast can you clear 40 lines?".to_owned(),
+            description: "How quickly can you clear 40 lines?".to_owned(),
             show_stats_hud: ShowStatsHud::TIME | ShowStatsHud::LINES | ShowStatsHud::PIECES,
             objective_sort_descending: (Stat::TimeElapsed(Duration::ZERO), true),
             build: Box::new(|builder: &GameBuilder| {
@@ -42,7 +42,7 @@ impl GameModePreset {
     pub fn regular() -> Self {
         Self {
             title: Self::TITLE_REGULAR.to_owned(),
-            description: "Clear 150 lines at increasing gravity.".to_owned(),
+            description: "Clear 160 lines as gravity increases.".to_owned(),
             show_stats_hud: ShowStatsHud::TIME
                 | ShowStatsHud::LINES
                 | ShowStatsHud::POINTS
@@ -53,7 +53,7 @@ impl GameModePreset {
                     .clone()
                     .fall_delay_curve(Either::Left(DelayParameters::standard_fall()))
                     .lock_delay_curve(Some(Either::Left(DelayParameters::standard_lock())))
-                    .game_limits(GameLimits::single(Stat::LinesCleared(150), true))
+                    .game_limits(GameLimits::single(Stat::LinesCleared(160), true))
                     .build()
             }),
         }
@@ -69,7 +69,7 @@ impl GameModePreset {
                 if easier_lock_delay { "*" } else { "" },
                 lvl_offset
             ),
-            description: "'NES' Gameplay settings recommended.".to_owned(), /* TODO: Implement NES graphics. */
+            description: "Pair this with 'NES' Gameplay settings.".to_owned(), /* TODO: Implement&recommend NES Graphics settings. */
             show_stats_hud: ShowStatsHud::TIME
                 | ShowStatsHud::LINES
                 | ShowStatsHud::POINTS
@@ -115,7 +115,7 @@ impl GameModePreset {
 
     // pub fn time_trial() -> GameModePreset {// (
     //     game_mode_presets::time_trial(),
-    //     "What highscore can you get in 3min.?".to_owned(),
+    //     "How many points can you score in 3min.?".to_owned(),
 
     //     (
     //         "Time Trial".to_owned(),
@@ -134,7 +134,7 @@ impl GameModePreset {
     pub fn master() -> Self {
         Self {
             title: Self::TITLE_MASTER.to_owned(),
-            description: "Clear 150 lines at instant gravity.".to_owned(),
+            description: "Clear 240 lines at instant gravity.".to_owned(),
             show_stats_hud: ShowStatsHud::TIME
                 | ShowStatsHud::LINES
                 | ShowStatsHud::POINTS
@@ -146,7 +146,7 @@ impl GameModePreset {
                     .clone()
                     .fall_delay_curve(Either::Left(DelayParameters::constant(ExtDuration::ZERO)))
                     .lock_delay_curve(Some(Either::Left(DelayParameters::standard_lock())))
-                    .game_limits(GameLimits::single(Stat::LinesCleared(150), true))
+                    .game_limits(GameLimits::single(Stat::LinesCleared(240), true))
                     .build()
             }),
         }
@@ -167,7 +167,7 @@ impl GameModePreset {
     pub fn survival(config: SurvivalConfig) -> Self {
         Self {
             title: Self::TITLE_SURVIVAL.to_owned(),
-            description: "Survive lines that regenerate with placed pieces.".to_owned(),
+            description: "Lines regenerate as you place more pieces.".to_owned(),
             show_stats_hud: ShowStatsHud::TIME | ShowStatsHud::LINES | ShowStatsHud::PIECES,
             objective_sort_descending: (Stat::LinesCleared(0), true),
             build: Box::new({
@@ -195,7 +195,7 @@ impl GameModePreset {
                 }
             ),
             description: format!(
-                "Efficiently eat through lines like cheese. Limit={:?}",
+                "Efficiently eat through some lines. Limit={:?}",
                 config.limit
             ),
             show_stats_hud: ShowStatsHud::TIME | ShowStatsHud::LINES | ShowStatsHud::PIECES,
@@ -229,7 +229,7 @@ impl GameModePreset {
                 }
             ),
             description: format!(
-                "The first rule of Combo is do not break the combo. Limit={:?}{}",
+                "Rule #1 of Combo is don't break the combo. Limit={:?}{}",
                 config.limit,
                 if config.start_layout != game_modding::Combo::LAYOUTS[0] {
                     format!(", Layout={:b}", config.start_layout)
@@ -249,7 +249,7 @@ impl GameModePreset {
     pub fn ascent() -> Self {
         Self {
             title: Self::TITLE_ASCENT.to_owned(),
-            description: "Experimental, requires 180° rot.".to_owned(),
+            description: "Experimental gamemode (requires 180° rot.)".to_owned(),
             show_stats_hud: ShowStatsHud::TIME | ShowStatsHud::POINTS,
             objective_sort_descending: (Stat::PointsScored(0), false),
             build: Box::new(game_modding::Ascent::build),

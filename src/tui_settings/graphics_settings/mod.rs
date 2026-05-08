@@ -118,7 +118,7 @@ impl GraphicsSettings {
             fps: ExtNonNegF64::from(60),
             lockedtilepalette_selected: 0, // Monochrome
             show_main_hud: true,
-            show_lockdelay: false,
+            show_lockdelay: true,
             show_keybinds: false,
             show_buttons: true,
             show_shadow: true,

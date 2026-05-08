@@ -32,7 +32,7 @@ impl Default for ComboConfig {
     fn default() -> Self {
         Self {
             start_layout: Combo::LAYOUTS[0],
-            limit: NonZeroU32::try_from(30).ok(),
+            limit: NonZeroU32::try_from(24).ok(),
         }
     }
 }
