@@ -90,7 +90,7 @@ impl Default for GraphicsSettings {
             small_tetromino_symbols_selected: 1, // Blocks
             normalsize_preview_limit: Some(NonZeroUsize::MIN),
             fps: ExtNonNegF64::from(60),
-            lockedtilepalette_selected: 3, // Okpalette
+            lockedtilepalette_selected: 2, // Okpalette
             show_main_hud: true,
             show_lockdelay: false,
             show_keybinds: true,
@@ -140,7 +140,7 @@ impl GraphicsSettings {
             small_tetromino_symbols_selected: 1, // Blocks
             normalsize_preview_limit: Some(NonZeroUsize::new(4).unwrap()),
             fps: ExtNonNegF64::from(60),
-            lockedtilepalette_selected: 2, // Standard
+            lockedtilepalette_selected: 3, // Standard
             show_main_hud: true,
             show_lockdelay: false,
             show_keybinds: true,
@@ -164,7 +164,7 @@ impl GraphicsSettings {
             small_tetromino_symbols_selected: 2, // Braille
             normalsize_preview_limit: Some(NonZeroUsize::new(4).unwrap()),
             fps: ExtNonNegF64::from(60),
-            lockedtilepalette_selected: 2, // Standard
+            lockedtilepalette_selected: 3, // Standard
             show_main_hud: true,
             show_lockdelay: false,
             show_keybinds: true,
