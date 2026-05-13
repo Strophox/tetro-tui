@@ -25,184 +25,6 @@ use crate::{
     settings::{Palette, TileSymbols},
 };
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, Default)]
-struct TerminalScreenBuffer {
-    prev: Vec<Vec<(char, Option<Color>)>>,
-    next: Vec<Vec<(char, Option<Color>)>>,
-    x_draw: usize,
-    y_draw: usize,
-}
-
-impl TerminalScreenBuffer {
-    // This has been ported / copied / split off from Application<T>.
-    pub const W_DRAW: u16 = 62;
-    pub const H_DRAW: u16 = 23;
-
-    fn buffer_reset(&mut self) {
-        self.prev.clear();
-    }
-
-    fn buffer_from<'a>(&mut self, base_screen: impl IntoIterator<Item = &'a str>) {
-        self.next = base_screen
-            .into_iter()
-            .map(|str: &str| str.chars().zip(std::iter::repeat(None)).collect())
-            .collect();
-    }
-
-    fn buffer_str(&mut self, str: &str, fg_color: Option<Color>, (x, y): (usize, usize)) {
-        for (x_c, c) in str.chars().enumerate() {
-            // Lazy: just fill up until desired starting row and column exist.
-            while y >= self.next.len() {
-                self.next.push(Vec::new());
-            }
-            let row = &mut self.next[y];
-            while x + x_c >= row.len() {
-                row.push((' ', None));
-            }
-            row[x + x_c] = (c, fg_color);
-        }
-    }
-
-    fn put(&self, term: &mut impl Write, c: char, x: usize, y: usize) -> io::Result<()> {
-        term.queue(cursor::MoveTo(
-            u16::try_from(self.x_draw + x).unwrap(),
-            u16::try_from(self.y_draw + y).unwrap(),
-        ))?
-        .queue(Print(c))?;
-        Ok(())
-    }
-
-    fn put_styled<D: Display>(
-        &self,
-        term: &mut impl Write,
-        content: style::StyledContent<D>,
-        x: usize,
-        y: usize,
-    ) -> io::Result<()> {
-        term.queue(cursor::MoveTo(
-            u16::try_from(self.x_draw + x).unwrap(),
-            u16::try_from(self.y_draw + y).unwrap(),
-        ))?
-        .queue(PrintStyledContent(content))?;
-        Ok(())
-    }
-
-    fn flush(&mut self, term: &mut impl Write) -> io::Result<()> {
-        // Begin frame update.
-        term.queue(terminal::BeginSynchronizedUpdate)?;
-        if self.prev.is_empty() {
-            // Redraw entire screen.
-            term.queue(terminal::Clear(terminal::ClearType::All))?;
-            for (y, line) in self.next.iter().enumerate() {
-                for (x, (c, col)) in line.iter().enumerate() {
-                    if let Some(col) = col {
-                        self.put_styled(term, c.with(*col), x, y)?;
-                    } else {
-                        self.put(term, *c, x, y)?;
-                    }
-                }
-            }
-        } else {
-            // Compare next to previous frames and only write differences.
-            for (y, (line_prev, line_next)) in self.prev.iter().zip(self.next.iter()).enumerate() {
-                // Overwrite common line characters.
-                for (x, (cell_prev @ (_c_prev, col_prev), cell_next @ (c_next, col_next))) in
-                    line_prev.iter().zip(line_next.iter()).enumerate()
-                {
-                    // Relevant change occurred.
-                    if cell_prev != cell_next {
-                        // New color.
-                        if let Some(col) = col_next {
-                            self.put_styled(term, c_next.with(*col), x, y)?;
-                        // Previously colored but not anymore, explicit reset.
-                        } else if col_prev.is_some() && col_next.is_none() {
-                            self.put_styled(term, c_next.reset(), x, y)?;
-                        // Uncolored before and after, simple reprint.
-                        } else {
-                            self.put(term, *c_next, x, y)?;
-                        }
-                    }
-                }
-                // Handle differences in line length.
-                match line_prev.len().cmp(&line_next.len()) {
-                    // Previously shorter, just write out new characters now.
-                    Ordering::Less => {
-                        for (x, (c_next, col_next)) in
-                            line_next.iter().enumerate().skip(line_prev.len())
-                        {
-                            // Write new colored char.
-                            if let Some(col) = col_next {
-                                self.put_styled(term, c_next.with(*col), x, y)?;
-                            // Write new uncolored char.
-                            } else {
-                                self.put(term, *c_next, x, y)?;
-                            }
-                        }
-                    }
-                    Ordering::Equal => {}
-                    // Previously longer, delete new characters.
-                    Ordering::Greater => {
-                        for (x, (_c_prev, col_prev)) in
-                            line_prev.iter().enumerate().skip(line_next.len())
-                        {
-                            // Previously colored but now erased, explicit reset.
-                            if col_prev.is_some() {
-                                self.put_styled(term, ' '.reset(), x, y)?;
-                            // Otherwise simply erase previous character.
-                            } else {
-                                self.put(term, ' ', x, y)?;
-                            }
-                        }
-                    }
-                }
-            }
-            // Handle differences in text height.
-            match self.prev.len().cmp(&self.next.len()) {
-                // Previously shorter in height.
-                Ordering::Less => {
-                    for (y, next_line) in self.next.iter().enumerate().skip(self.prev.len()) {
-                        // Write entire line.
-                        for (x, (c_next, col_next)) in next_line.iter().enumerate() {
-                            // Write new colored char.
-                            if let Some(col) = col_next {
-                                self.put_styled(term, c_next.with(*col), x, y)?;
-                            // Write new uncolored char.
-                            } else {
-                                self.put(term, *c_next, x, y)?;
-                            }
-                        }
-                    }
-                }
-                Ordering::Equal => {}
-                // Previously taller, delete excess lines.
-                Ordering::Greater => {
-                    for (y, prev_line) in self.prev.iter().enumerate().skip(self.next.len()) {
-                        // Erase entire line.
-                        for (x, (_c_prev, col_prev)) in prev_line.iter().enumerate() {
-                            // Previously colored but now erased, explicit reset.
-                            if col_prev.is_some() {
-                                self.put_styled(term, ' '.reset(), x, y)?;
-                            // Otherwise simply erase previous character.
-                            } else {
-                                self.put(term, ' ', x, y)?;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        // End frame update and flush.
-        term.queue(cursor::MoveTo(0, 0))?;
-        term.queue(terminal::EndSynchronizedUpdate)?;
-        term.flush()?;
-        // Clear old.
-        self.prev.clear();
-        // Swap buffers.
-        std::mem::swap(&mut self.prev, &mut self.next);
-        Ok(())
-    }
-}
-
 #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug)]
 struct HardDropTile {
     creation_time: InGameTime,
@@ -222,7 +44,7 @@ struct MinoParticle {
 }
 
 #[derive(PartialEq, PartialOrd, Clone, Debug, Default)]
-pub struct LegacyBufferedRenderer {
+pub struct LegacyBufRenderer {
     screen: TerminalScreenBuffer,
     notification_feed_buffer: Vec<(Notification, InGameTime, bool)>,
     buffered_text_msgs: Vec<(InGameTime, String)>,
@@ -230,7 +52,7 @@ pub struct LegacyBufferedRenderer {
     mino_particles: Vec<(MinoParticle, bool)>,
 }
 
-impl Renderer for LegacyBufferedRenderer {
+impl GameRenderer for LegacyBufRenderer {
     fn update_feed(
         &mut self,
         feed: impl IntoIterator<Item = (Notification, InGameTime)>,
@@ -1075,5 +897,183 @@ impl Renderer for LegacyBufferedRenderer {
         });
 
         self.screen.flush(term)
+    }
+}
+
+#[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, Default)]
+struct TerminalScreenBuffer {
+    prev: Vec<Vec<(char, Option<Color>)>>,
+    next: Vec<Vec<(char, Option<Color>)>>,
+    x_draw: usize,
+    y_draw: usize,
+}
+
+impl TerminalScreenBuffer {
+    // This has been ported / copied / split off from Application<T>.
+    pub const W_DRAW: u16 = 62;
+    pub const H_DRAW: u16 = 23;
+
+    fn buffer_reset(&mut self) {
+        self.prev.clear();
+    }
+
+    fn buffer_from<'a>(&mut self, base_screen: impl IntoIterator<Item = &'a str>) {
+        self.next = base_screen
+            .into_iter()
+            .map(|str: &str| str.chars().zip(std::iter::repeat(None)).collect())
+            .collect();
+    }
+
+    fn buffer_str(&mut self, str: &str, fg_color: Option<Color>, (x, y): (usize, usize)) {
+        for (x_c, c) in str.chars().enumerate() {
+            // Lazy: just fill up until desired starting row and column exist.
+            while y >= self.next.len() {
+                self.next.push(Vec::new());
+            }
+            let row = &mut self.next[y];
+            while x + x_c >= row.len() {
+                row.push((' ', None));
+            }
+            row[x + x_c] = (c, fg_color);
+        }
+    }
+
+    fn put(&self, term: &mut impl Write, c: char, x: usize, y: usize) -> io::Result<()> {
+        term.queue(cursor::MoveTo(
+            u16::try_from(self.x_draw + x).unwrap(),
+            u16::try_from(self.y_draw + y).unwrap(),
+        ))?
+        .queue(Print(c))?;
+        Ok(())
+    }
+
+    fn put_styled<D: Display>(
+        &self,
+        term: &mut impl Write,
+        content: style::StyledContent<D>,
+        x: usize,
+        y: usize,
+    ) -> io::Result<()> {
+        term.queue(cursor::MoveTo(
+            u16::try_from(self.x_draw + x).unwrap(),
+            u16::try_from(self.y_draw + y).unwrap(),
+        ))?
+        .queue(PrintStyledContent(content))?;
+        Ok(())
+    }
+
+    fn flush(&mut self, term: &mut impl Write) -> io::Result<()> {
+        // Begin frame update.
+        term.queue(terminal::BeginSynchronizedUpdate)?;
+        if self.prev.is_empty() {
+            // Redraw entire screen.
+            term.queue(terminal::Clear(terminal::ClearType::All))?;
+            for (y, line) in self.next.iter().enumerate() {
+                for (x, (c, col)) in line.iter().enumerate() {
+                    if let Some(col) = col {
+                        self.put_styled(term, c.with(*col), x, y)?;
+                    } else {
+                        self.put(term, *c, x, y)?;
+                    }
+                }
+            }
+        } else {
+            // Compare next to previous frames and only write differences.
+            for (y, (line_prev, line_next)) in self.prev.iter().zip(self.next.iter()).enumerate() {
+                // Overwrite common line characters.
+                for (x, (cell_prev @ (_c_prev, col_prev), cell_next @ (c_next, col_next))) in
+                    line_prev.iter().zip(line_next.iter()).enumerate()
+                {
+                    // Relevant change occurred.
+                    if cell_prev != cell_next {
+                        // New color.
+                        if let Some(col) = col_next {
+                            self.put_styled(term, c_next.with(*col), x, y)?;
+                        // Previously colored but not anymore, explicit reset.
+                        } else if col_prev.is_some() && col_next.is_none() {
+                            self.put_styled(term, c_next.reset(), x, y)?;
+                        // Uncolored before and after, simple reprint.
+                        } else {
+                            self.put(term, *c_next, x, y)?;
+                        }
+                    }
+                }
+                // Handle differences in line length.
+                match line_prev.len().cmp(&line_next.len()) {
+                    // Previously shorter, just write out new characters now.
+                    Ordering::Less => {
+                        for (x, (c_next, col_next)) in
+                            line_next.iter().enumerate().skip(line_prev.len())
+                        {
+                            // Write new colored char.
+                            if let Some(col) = col_next {
+                                self.put_styled(term, c_next.with(*col), x, y)?;
+                            // Write new uncolored char.
+                            } else {
+                                self.put(term, *c_next, x, y)?;
+                            }
+                        }
+                    }
+                    Ordering::Equal => {}
+                    // Previously longer, delete new characters.
+                    Ordering::Greater => {
+                        for (x, (_c_prev, col_prev)) in
+                            line_prev.iter().enumerate().skip(line_next.len())
+                        {
+                            // Previously colored but now erased, explicit reset.
+                            if col_prev.is_some() {
+                                self.put_styled(term, ' '.reset(), x, y)?;
+                            // Otherwise simply erase previous character.
+                            } else {
+                                self.put(term, ' ', x, y)?;
+                            }
+                        }
+                    }
+                }
+            }
+            // Handle differences in text height.
+            match self.prev.len().cmp(&self.next.len()) {
+                // Previously shorter in height.
+                Ordering::Less => {
+                    for (y, next_line) in self.next.iter().enumerate().skip(self.prev.len()) {
+                        // Write entire line.
+                        for (x, (c_next, col_next)) in next_line.iter().enumerate() {
+                            // Write new colored char.
+                            if let Some(col) = col_next {
+                                self.put_styled(term, c_next.with(*col), x, y)?;
+                            // Write new uncolored char.
+                            } else {
+                                self.put(term, *c_next, x, y)?;
+                            }
+                        }
+                    }
+                }
+                Ordering::Equal => {}
+                // Previously taller, delete excess lines.
+                Ordering::Greater => {
+                    for (y, prev_line) in self.prev.iter().enumerate().skip(self.next.len()) {
+                        // Erase entire line.
+                        for (x, (_c_prev, col_prev)) in prev_line.iter().enumerate() {
+                            // Previously colored but now erased, explicit reset.
+                            if col_prev.is_some() {
+                                self.put_styled(term, ' '.reset(), x, y)?;
+                            // Otherwise simply erase previous character.
+                            } else {
+                                self.put(term, ' ', x, y)?;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        // End frame update and flush.
+        term.queue(cursor::MoveTo(0, 0))?;
+        term.queue(terminal::EndSynchronizedUpdate)?;
+        term.flush()?;
+        // Clear old.
+        self.prev.clear();
+        // Swap buffers.
+        std::mem::swap(&mut self.prev, &mut self.next);
+        Ok(())
     }
 }

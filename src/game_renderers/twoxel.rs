@@ -12,7 +12,7 @@ pub struct TwoxelRenderer {
     cached_board: Board,
 }
 
-impl Renderer for TwoxelRenderer {
+impl GameRenderer for TwoxelRenderer {
     fn update_feed(
         &mut self,
         _feed: impl IntoIterator<Item = (Notification, InGameTime)>,

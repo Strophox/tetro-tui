@@ -17,7 +17,7 @@ use crossterm::{
 use crate::{
     Application, GameMetaData, GameSave,
     fmt_helpers::{BoolAsOnOff, fmt_duration, increment_game_mode_derivative},
-    game_renderers::{Renderer, TetroTUIRenderer, replay_keybinds_legend},
+    game_renderers::{GameRenderer, MiscGameRenderers, replay_keybinds_legend},
     game_restoration::{GameRestorationData, RawInputHistory},
     tui_menus::{Menu, MenuUpdate},
 };
@@ -34,7 +34,7 @@ impl<T: Write> Application<T> {
         game_restoration_data: &GameRestorationData<RawInputHistory>,
         game_meta_data: &GameMetaData,
         replay_length: InGameTime,
-        game_renderer: &mut TetroTUIRenderer,
+        game_renderer: &mut MiscGameRenderers,
         cached_game_and_replay_anchors: &mut (Game, Option<Vec<GameSaveAnchor>>),
     ) -> io::Result<MenuUpdate> {
         /* Our game loop recipe looks like this:
@@ -545,7 +545,7 @@ impl<T: Write> Application<T> {
 
                                 // FIXME: Instead clone renderer when entering live game from here?
                                 let the_game_renderer =
-                                    TetroTUIRenderer::with_num(self.temp_data.renderer_used);
+                                    MiscGameRenderers::with_num(self.temp_data.renderer_used);
 
                                 self.statistics.new_games_started += 1;
 

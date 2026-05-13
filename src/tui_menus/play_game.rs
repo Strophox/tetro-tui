@@ -19,7 +19,7 @@ use crate::{
     Application, EncodedInputHistory, GameMetaData, GameRestorationData, GameSave, RawInputHistory,
     ScoreSummary, Statistics,
     fmt_helpers::{fmt_button_keybinds, increment_game_mode_derivative},
-    game_renderers::{Renderer, TetroTUIRenderer, calc_game_keybinds_legend},
+    game_renderers::{GameRenderer, MiscGameRenderers, calc_game_keybinds_legend},
     game_restoration::{InputHistoryEncoder, QuantizeInGameTime},
     tui_menus::{Menu, MenuUpdate},
 };
@@ -30,7 +30,7 @@ impl<T: Write> Application<T> {
         game: &mut Game,
         raw_input_history: &mut RawInputHistory,
         game_meta_data: &mut GameMetaData,
-        game_renderer: &mut TetroTUIRenderer,
+        game_renderer: &mut MiscGameRenderers,
         selection_id_for_game_retry: Option<usize>,
     ) -> io::Result<MenuUpdate> {
         /* Our game loop recipe looks like this:

@@ -1,9 +1,9 @@
 mod braille;
 #[allow(unused)]
 mod legacy_buffered;
+mod main_buffered;
 #[allow(unused)]
 mod prototype;
-mod standard_buffered;
 mod twoxel;
 
 use std::io::{self, Write};
@@ -18,14 +18,15 @@ use crate::{
 };
 
 pub use braille::BrailleRenderer;
-pub use standard_buffered::StandardBufferedRenderer;
+pub use main_buffered::MainBufRenderer;
 pub use twoxel::TwoxelRenderer;
 // pub use prototype::PrototypeRenderer;
 // pub use legacy_buffered::LegacyBufferedRenderer;
 
-// FIXME: Remove TetroTUIRenderer enum and make trait Renderer dyn-safe. It currently is not because:
+/// Trait for things that are able to render one frame of game state to a terminal buffer.
+// FIXME: Remove GameRenderer enum and make trait Renderer dyn-safe? It currently is not because:
 // We have this constructor call attached to it. In practice we'll have a separate `render_from_num_and_stat_selection` function
-pub trait Renderer {
+pub trait GameRenderer {
     fn update_feed(
         &mut self,
         notification_feed: impl IntoIterator<Item = (Notification, InGameTime)>,
@@ -117,50 +118,50 @@ pub fn replay_keybinds_legend() -> KeybindsLegend {
 }
 
 #[derive(PartialEq, PartialOrd, Clone, Debug)]
-pub enum TetroTUIRenderer {
-    StandardBuffered(StandardBufferedRenderer),
+pub enum MiscGameRenderers {
+    MainBuf(MainBufRenderer),
     Twoxel(TwoxelRenderer),
     Braille(BrailleRenderer),
     // Prototype(PrototypeRenderer),
-    // LegacyBuffered(LegacyBufferedRenderer),
+    // LegacyBuf(LegacyBufRenderer),
 }
 
-impl TetroTUIRenderer {
+impl MiscGameRenderers {
     pub const NUM_VARIANTS: usize = 3; //5;
 
     pub fn with_num(n: usize) -> Self {
         match n {
-            0 => Self::StandardBuffered(StandardBufferedRenderer::default()),
+            0 => Self::MainBuf(MainBufRenderer::default()),
             1 => Self::Twoxel(TwoxelRenderer::default()),
             2 => Self::Braille(BrailleRenderer::default()),
             // 3 => Self::Prototype(PrototypeRenderer::default()),
             // 4 => Self::LegacyBuffered(LegacyBufferedRenderer::default()),
-            _ => Self::StandardBuffered(StandardBufferedRenderer::default()),
+            _ => Self::MainBuf(MainBufRenderer::default()),
         }
     }
 
     pub fn name_from_num(n: usize) -> &'static str {
         match n {
-            0 => "Standard",
+            0 => "Main",
             1 => "Twoxel",
             2 => "Braille",
             // 3 => "Prototype",
             // 4 => "Legacy",
-            _ => "Standard",
+            _ => "Main",
         }
     }
 }
 
-impl Renderer for TetroTUIRenderer {
+impl GameRenderer for MiscGameRenderers {
     fn update_feed(
         &mut self,
         feed: impl IntoIterator<Item = (Notification, InGameTime)>,
         settings: &Settings,
     ) {
         match self {
-            TetroTUIRenderer::StandardBuffered(r) => r.update_feed(feed, settings),
-            TetroTUIRenderer::Twoxel(r) => r.update_feed(feed, settings),
-            TetroTUIRenderer::Braille(r) => r.update_feed(feed, settings),
+            MiscGameRenderers::MainBuf(r) => r.update_feed(feed, settings),
+            MiscGameRenderers::Twoxel(r) => r.update_feed(feed, settings),
+            MiscGameRenderers::Braille(r) => r.update_feed(feed, settings),
             // TetroTUIRenderer::Prototype(r) => r.update_feed(feed, settings),
             // TetroTUIRenderer::LegacyBuffered(r) => r.update_feed(feed, settings),
         }
@@ -168,9 +169,9 @@ impl Renderer for TetroTUIRenderer {
 
     fn reset_veffects_state(&mut self) {
         match self {
-            TetroTUIRenderer::StandardBuffered(r) => r.reset_veffects_state(),
-            TetroTUIRenderer::Twoxel(r) => r.reset_veffects_state(),
-            TetroTUIRenderer::Braille(r) => r.reset_veffects_state(),
+            MiscGameRenderers::MainBuf(r) => r.reset_veffects_state(),
+            MiscGameRenderers::Twoxel(r) => r.reset_veffects_state(),
+            MiscGameRenderers::Braille(r) => r.reset_veffects_state(),
             // TetroTUIRenderer::Prototype(r) => r.reset_veffects_state(),
             // TetroTUIRenderer::LegacyBuffered(r) => r.reset_veffects_state(),
         }
@@ -182,13 +183,13 @@ impl Renderer for TetroTUIRenderer {
         dimensions: (u16, u16),
     ) {
         match self {
-            TetroTUIRenderer::StandardBuffered(r) => {
+            MiscGameRenderers::MainBuf(r) => {
                 r.reset_viewport_state_with_offset_and_area(offsets, dimensions)
             }
-            TetroTUIRenderer::Twoxel(r) => {
+            MiscGameRenderers::Twoxel(r) => {
                 r.reset_viewport_state_with_offset_and_area(offsets, dimensions)
             }
-            TetroTUIRenderer::Braille(r) => {
+            MiscGameRenderers::Braille(r) => {
                 r.reset_viewport_state_with_offset_and_area(offsets, dimensions)
             } // TetroTUIRenderer::Prototype(r) => {
               //     r.reset_viewport_state_with_offset_and_area(offsets, dimensions)
@@ -211,9 +212,9 @@ impl Renderer for TetroTUIRenderer {
         replay_extra: Option<(InGameTime, f64)>,
     ) -> io::Result<()> {
         match self {
-            TetroTUIRenderer::StandardBuffered(r) => r.render(term, game, meta_data, settings, temp_data, keybinds_legend, replay_extra),
-            TetroTUIRenderer::Twoxel(r) => r.render(term, game, meta_data, settings, temp_data, keybinds_legend, replay_extra),
-            TetroTUIRenderer::Braille(r) => r.render(term, game, meta_data, settings, temp_data, keybinds_legend, replay_extra),
+            MiscGameRenderers::MainBuf(r) => r.render(term, game, meta_data, settings, temp_data, keybinds_legend, replay_extra),
+            MiscGameRenderers::Twoxel(r) => r.render(term, game, meta_data, settings, temp_data, keybinds_legend, replay_extra),
+            MiscGameRenderers::Braille(r) => r.render(term, game, meta_data, settings, temp_data, keybinds_legend, replay_extra),
             // TetroTUIRenderer::Prototype(r) => r.render(term, game, meta_data, settings, temp_data, keybinds_legend, replay_extra),
             // TetroTUIRenderer::LegacyBuffered(r) => r.render(term, game, meta_data, settings, temp_data, keybinds_legend, replay_extra),
         }

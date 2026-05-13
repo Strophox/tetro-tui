@@ -16,7 +16,7 @@ pub struct PrototypeRenderer {
     notification_feed_buffer: VecDeque<(Notification, InGameTime)>,
 }
 
-impl Renderer for PrototypeRenderer {
+impl GameRenderer for PrototypeRenderer {
     fn update_feed(
         &mut self,
         feed: impl IntoIterator<Item = (Notification, InGameTime)>,

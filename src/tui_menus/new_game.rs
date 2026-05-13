@@ -29,7 +29,7 @@ use crate::{
     },
     game_modding::{self, Combo},
     game_mode_blueprints::GameModeBlueprint,
-    game_renderers::{Renderer, ShowStatsHud, TetroTUIRenderer},
+    game_renderers::{GameRenderer, MiscGameRenderers, ShowStatsHud},
     game_restoration::{GameRestorationData, RawInputHistory},
     settings::{CustomModeConfig, GameModeSettings, GameplayPreferences},
     tui_menus::{
@@ -369,7 +369,7 @@ impl<T: Write> Application<T> {
                             game_restoration_data: Box::new(game_restoration_data.clone()),
                             game_meta_data: game_meta_data.clone(),
                             replay_length,
-                            game_renderer: Box::new(TetroTUIRenderer::with_num(
+                            game_renderer: Box::new(MiscGameRenderers::with_num(
                                 self.temp_data.renderer_used,
                             )),
                             cached_game_and_replay_anchors: Box::new(
@@ -1219,7 +1219,7 @@ impl<T: Write> Application<T> {
         // game.modifiers.push(game_mode_blueprints::game_modifiers::misc_modifiers::print_recency_tet_gen_stats::modifier());
         // game.modifiers.push(crate::tetromino_engine::Modifier { descriptor: "always_clear_board".to_owned(), mod_function: Box::new(|_c, _i, s, _m, _f| { s.board = Default::default(); })});
 
-        let mut game_renderer = TetroTUIRenderer::with_num(self.temp_data.renderer_used);
+        let mut game_renderer = MiscGameRenderers::with_num(self.temp_data.renderer_used);
 
         // We do an initial update, which allows a piece to spawn and queue to get generated.
         // We do this so the renderer does not render a first frame when game is in its raw start state.

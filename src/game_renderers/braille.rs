@@ -15,7 +15,7 @@ pub struct BrailleRenderer {
     cached_board: Board,
 }
 
-impl Renderer for BrailleRenderer {
+impl GameRenderer for BrailleRenderer {
     fn update_feed(
         &mut self,
         _feed: impl IntoIterator<Item = (Notification, InGameTime)>,

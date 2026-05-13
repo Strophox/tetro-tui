@@ -52,7 +52,7 @@ pub struct LineClearEffectLine {
 }
 
 #[derive(PartialEq, PartialOrd, Clone, Debug, Default)]
-pub struct StandardBufferedRenderer {
+pub struct MainBufRenderer {
     // NOTE: Deriving default also means that this terminal buffers has offsets and dimensions 0.
     term_buf: DenseDoubleBuffer,
     text_message_buf: VecDeque<(InGameTime, String)>,
@@ -62,7 +62,7 @@ pub struct StandardBufferedRenderer {
     line_clear_particle_effect_buf: Vec<(LineClearParticleEffect, Vec<LineClearEffectTile>)>,
 }
 
-impl Renderer for StandardBufferedRenderer {
+impl GameRenderer for MainBufRenderer {
     fn update_feed(
         &mut self,
         feed: impl IntoIterator<Item = (Notification, InGameTime)>,

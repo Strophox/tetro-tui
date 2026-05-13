@@ -16,7 +16,7 @@ use crossterm::{
 use crate::{
     Application, ScoreSummary, ScoreboardSorting,
     fmt_helpers::fmt_duration,
-    game_renderers::TetroTUIRenderer,
+    game_renderers::MiscGameRenderers,
     game_restoration::{EncodedInputHistory, GameRestorationData},
     tui_menus::{
         Menu, MenuUpdate, heading_line,
@@ -485,7 +485,8 @@ impl<T: Write> Application<T> {
                                 let game_meta_data = score_entry.game_meta_data.clone();
                                 let replay_length = score_entry.time;
                                 let game_renderer =
-                                    TetroTUIRenderer::with_num(self.temp_data.renderer_used).into();
+                                    MiscGameRenderers::with_num(self.temp_data.renderer_used)
+                                        .into();
                                 let cached_game_and_replay_anchors =
                                     calculate_game_and_replay_anchors(
                                         &mut self.term,

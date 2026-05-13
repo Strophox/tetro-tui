@@ -31,7 +31,7 @@ use crossterm::{
 
 use crate::{
     Application, GameMetaData, GameRestorationData, RawInputHistory, ScoreSummary,
-    game_renderers::TetroTUIRenderer, settings::Settings, tui_menus::replay_game::GameSaveAnchor,
+    game_renderers::MiscGameRenderers, settings::Settings, tui_menus::replay_game::GameSaveAnchor,
 };
 
 #[derive(Debug)]
@@ -53,7 +53,7 @@ pub enum Menu {
         raw_input_history: RawInputHistory,
         game_meta_data: GameMetaData,
         // game_statistics: Statistics,
-        game_renderer: Box<TetroTUIRenderer>,
+        game_renderer: Box<MiscGameRenderers>,
         selection_id_for_game_retry: Option<usize>,
     },
     Pause,
@@ -78,7 +78,7 @@ pub enum Menu {
         game_restoration_data: Box<GameRestorationData<RawInputHistory>>,
         game_meta_data: GameMetaData,
         replay_length: InGameTime,
-        game_renderer: Box<TetroTUIRenderer>,
+        game_renderer: Box<MiscGameRenderers>,
         cached_game_and_replay_anchors: Box<(Game, Option<Vec<GameSaveAnchor>>)>,
     },
     Statistics,

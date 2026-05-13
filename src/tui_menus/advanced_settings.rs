@@ -15,7 +15,7 @@ use crossterm::{
 use crate::{
     Application, SavefileGranularity,
     fmt_helpers::BoolAsOnOff,
-    game_renderers::TetroTUIRenderer,
+    game_renderers::MiscGameRenderers,
     tui_menus::{Menu, MenuUpdate, heading_line},
 };
 
@@ -65,7 +65,7 @@ impl<T: Write> Application<T> {
                 ),
                 format!(
                     "Renderer used = {} (applies on New Game)",
-                    TetroTUIRenderer::name_from_num(self.temp_data.renderer_used)
+                    MiscGameRenderers::name_from_num(self.temp_data.renderer_used)
                 ),
                 format!(
                     "Pause on focus lost = {} (experimental)",
@@ -430,7 +430,7 @@ impl<T: Write> Application<T> {
                     }
                     1 => {
                         self.temp_data.renderer_used += 1;
-                        self.temp_data.renderer_used %= TetroTUIRenderer::NUM_VARIANTS;
+                        self.temp_data.renderer_used %= MiscGameRenderers::NUM_VARIANTS;
                     }
                     2 => {
                         self.temp_data.pause_on_focus_lost ^= true;
@@ -472,8 +472,8 @@ impl<T: Write> Application<T> {
                         };
                     }
                     1 => {
-                        self.temp_data.renderer_used += TetroTUIRenderer::NUM_VARIANTS - 1;
-                        self.temp_data.renderer_used %= TetroTUIRenderer::NUM_VARIANTS;
+                        self.temp_data.renderer_used += MiscGameRenderers::NUM_VARIANTS - 1;
+                        self.temp_data.renderer_used %= MiscGameRenderers::NUM_VARIANTS;
                     }
                     2 => {
                         self.temp_data.pause_on_focus_lost ^= true;
