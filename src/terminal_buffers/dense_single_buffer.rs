@@ -62,7 +62,7 @@ impl TerminalBuffer for DenseSingleBuffer {
         }
     }
 
-    fn write_tile(&mut self, x: u16, y: u16, tile: TileTexture, fg: Color) {
+    fn write_tile(&mut self, x: u16, y: u16, tile: TileTexture, fg: Color, bg: Color) {
         if y >= self.h_vp {
             return;
         }
@@ -71,15 +71,15 @@ impl TerminalBuffer for DenseSingleBuffer {
             return;
         }
         let idx = x as usize + self.w_vp as usize * y as usize;
-        self.buf[idx] = TermCell { ch: ch0, fg };
+        self.buf[idx] = TermCell { ch: ch0, fg, bg };
 
         if x + 1 >= self.w_vp {
             return;
         }
-        self.buf[idx + 1] = TermCell { ch: ch1, fg };
+        self.buf[idx + 1] = TermCell { ch: ch1, fg, bg };
     }
 
-    fn write_str(&mut self, x: u16, y: u16, str: &str, fg: Color) {
+    fn write_str(&mut self, x: u16, y: u16, str: &str, fg: Color, bg: Color) {
         if y >= self.h_vp {
             return;
         }
@@ -88,11 +88,11 @@ impl TerminalBuffer for DenseSingleBuffer {
                 return;
             }
             let idx = x as usize + dx + self.w_vp as usize * y as usize;
-            self.buf[idx] = TermCell { ch, fg };
+            self.buf[idx] = TermCell { ch, fg, bg };
         }
     }
 
-    fn write_str_wrapping(&mut self, x: u16, y: u16, str: &str, fg: Color) {
+    fn write_str_wrapping(&mut self, x: u16, y: u16, str: &str, fg: Color, bg: Color) {
         let mut dx = 0;
         let mut dy = 0;
         for ch in str.chars() {
@@ -104,7 +104,7 @@ impl TerminalBuffer for DenseSingleBuffer {
                 return;
             }
             let idx = (x as usize + dx) + (self.w_vp as usize) * (y as usize + dy);
-            self.buf[idx] = TermCell { ch, fg };
+            self.buf[idx] = TermCell { ch, fg, bg };
             dx += 1;
         }
     }
@@ -115,9 +115,9 @@ impl TerminalBuffer for DenseSingleBuffer {
         for x in 0..self.w_vp {
             for y in 0..self.h_vp {
                 let idx = x as usize + self.w_vp as usize * y as usize;
-                #[rustfmt::skip] let TermCell { ch, fg } = self.buf[idx];
+                #[rustfmt::skip] let TermCell { ch, fg, bg } = self.buf[idx];
                 term.queue(cursor::MoveTo(self.x_vp + x, self.y_vp + y))?;
-                term.queue(PrintStyledContent(ch.with(fg)))?;
+                term.queue(PrintStyledContent(ch.with(fg).on(bg)))?;
             }
         }
 

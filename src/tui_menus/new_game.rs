@@ -4,6 +4,10 @@ use std::{
     time::Duration,
 };
 
+use crate::tetromino_engine::{
+    Configuration, DelayCurveExt, DelayParameters, ExtDuration, ExtNonNegF64, Game, GameLimits,
+    InGameTime, Stat,
+};
 use crossterm::{
     QueueableCommand,
     cursor::MoveTo,
@@ -16,10 +20,6 @@ use crossterm::{
     terminal::{Clear, ClearType},
 };
 use either::Either;
-use falling_tetromino_engine::{
-    Configuration, DelayParameters, ExtDuration, ExtNonNegF64, Game, GameLimits, InGameTime, Stat,
-    core::DelayCurveExt,
-};
 
 use crate::{
     Application, GameMetaData, GameSave,
@@ -1217,7 +1217,7 @@ impl<T: Write> Application<T> {
         // FIXME: Unused code: modifier addition.
         // game.modifiers.push(game_mode_blueprints::game_modifiers::print_fall_delay::modifier());
         // game.modifiers.push(game_mode_blueprints::game_modifiers::misc_modifiers::print_recency_tet_gen_stats::modifier());
-        // game.modifiers.push(falling_tetromino_engine::Modifier { descriptor: "always_clear_board".to_owned(), mod_function: Box::new(|_c, _i, s, _m, _f| { s.board = Default::default(); })});
+        // game.modifiers.push(crate::tetromino_engine::Modifier { descriptor: "always_clear_board".to_owned(), mod_function: Box::new(|_c, _i, s, _m, _f| { s.board = Default::default(); })});
 
         let mut game_renderer = TetroTUIRenderer::with_num(self.temp_data.renderer_used);
 

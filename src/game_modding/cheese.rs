@@ -1,13 +1,13 @@
 use std::num::{NonZeroU32, NonZeroUsize};
 
-use falling_tetromino_engine::{
-    Game, GameAccess, GameBuilder, GameEndCause, GameModifier, GameRng, Line, NotificationFeed,
-    Phase, WIDTH,
+use crate::tetromino_engine::{
+    BOARD_WIDTH, Game, GameAccess, GameBuilder, GameEndCause, GameModifier, GameRng, Line,
+    MiscPceRots, MiscTetGens, NotificationFeed, Phase, TileType,
 };
 
 use rand::seq::SliceRandom;
 
-use crate::{savefile_logic::to_savefile_string, settings::Palette};
+use crate::savefile_logic::to_savefile_string;
 
 #[derive(
     PartialEq,
@@ -30,7 +30,7 @@ pub struct Cheese {
     temp_last_clear_actual_cheese_lines: usize,
     cheese_generated: u32,
     last_hole_pattern_generated: Vec<usize>,
-    cached_stats: [String; 2],
+    cached_display_values: [(String, String); 2],
 }
 
 #[derive(
@@ -62,14 +62,17 @@ impl Cheese {
             temp_last_clear_actual_cheese_lines: 0,
             cheese_generated: 0,
             last_hole_pattern_generated: Vec::new(),
-            cached_stats: [Self::fmt_cheese_eaten(0), Self::fmt_efficiency(0, 0)],
+            cached_display_values: [
+                ("Cheese eaten".to_owned(), 0.to_string()),
+                ("Efficiency".to_owned(), Self::fmt_efficiency(0, 0)),
+            ],
         });
 
         builder.build_modded(vec![modifier])
     }
 }
 
-impl GameModifier for Cheese {
+impl GameModifier<MiscTetGens, MiscPceRots, TileType> for Cheese {
     fn id(&self) -> String {
         Self::MOD_ID.to_owned()
     }
@@ -78,11 +81,13 @@ impl GameModifier for Cheese {
         to_savefile_string(&(self.config)).unwrap()
     }
 
-    fn stats(&self) -> &[String] {
-        &self.cached_stats
+    fn values(&self) -> &[(String, String)] {
+        &self.cached_display_values
     }
 
-    fn try_clone(&self) -> Result<Box<dyn GameModifier>, String> {
+    fn try_clone(
+        &self,
+    ) -> Result<Box<dyn GameModifier<MiscTetGens, MiscPceRots, TileType>>, String> {
         Ok(Box::new(self.clone()))
     }
 
@@ -94,7 +99,15 @@ impl GameModifier for Cheese {
             &mut game.state.rng,
         );
 
-        for (line, cheese) in game.state.board.iter_mut().take(10).zip(cheese_lines) {
+        const INIT_HEIGHT: usize = 10;
+        game.state.board.resize(INIT_HEIGHT, Default::default());
+        for ((line, _is_frozen), cheese) in game
+            .state
+            .board
+            .iter_mut()
+            .take(INIT_HEIGHT)
+            .zip(cheese_lines)
+        {
             *line = cheese;
         }
     }
@@ -103,11 +116,11 @@ impl GameModifier for Cheese {
         self.temp_last_clear_actual_cheese_lines = 0;
 
         // Check entire board.
-        for line in game.state.board.iter() {
+        for (line, _is_frozen) in game.state.board.iter() {
             // Check if line is complete.
             if line.iter().all(|mino| mino.is_some()) {
                 // Check if line is a cheese one.
-                if line.contains(&Some(Palette::GRAY)) {
+                if line.contains(&Some(TileType::Generic)) {
                     // In theory would never underflow.
                     self.cheese_eaten += 1;
                     self.temp_last_clear_actual_cheese_lines += 1;
@@ -135,12 +148,11 @@ impl GameModifier for Cheese {
         );
 
         for cheese_line in cheese_lines.take(self.temp_last_clear_actual_cheese_lines) {
-            game.state.board.rotate_right(1);
-            game.state.board[0] = cheese_line;
+            game.state.board.insert(0, (cheese_line, false));
         }
 
-        self.cached_stats[0] = Self::fmt_cheese_eaten(self.cheese_eaten);
-        self.cached_stats[1] = Self::fmt_efficiency(
+        self.cached_display_values[0].1 = Self::fmt_cheese_eaten(self.cheese_eaten);
+        self.cached_display_values[1].1 = Self::fmt_efficiency(
             self.cheese_eaten,
             game.state.pieces_locked.iter().sum::<u32>(),
         );
@@ -151,15 +163,15 @@ impl GameModifier for Cheese {
 
 impl Cheese {
     fn fmt_cheese_eaten(cheese_eaten: u32) -> String {
-        format!("Cheese eaten: {}", cheese_eaten)
+        format!("{}", cheese_eaten)
     }
 
     fn fmt_efficiency(cheese_eaten: u32, pieces: u32) -> String {
         if pieces == 0 {
-            "Efficiency: -".to_owned()
+            "-".to_owned()
         } else {
             format!(
-                "Efficiency: {:.01}%",
+                "{:.01}%",
                 100.0 * f64::from(cheese_eaten) / f64::from(pieces)
             )
         }
@@ -177,9 +189,9 @@ impl Cheese {
                 let mut line = Line::default();
                 for tile in line
                     .iter_mut()
-                    .take(WIDTH.saturating_sub(config.holes_per_line.get()))
+                    .take(BOARD_WIDTH.saturating_sub(config.holes_per_line.get()))
                 {
-                    *tile = Some(Palette::GRAY);
+                    *tile = Some(TileType::Generic);
                 }
                 // Currently completely random.
                 loop {

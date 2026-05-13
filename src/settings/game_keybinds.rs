@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
+use crate::tetromino_engine::Button;
 use crossterm::event::{KeyCode, KeyModifiers};
-use falling_tetromino_engine::Button;
 
 use crate::settings::SlotMachine;
 

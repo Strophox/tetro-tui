@@ -4,15 +4,15 @@ use std::{
     time::{Duration, Instant},
 };
 
+use crate::tetromino_engine::{
+    Button, Game, GameEndCause, Input, Notification, Phase, UpdateGameError,
+};
 use crossterm::{
     ExecutableCommand,
     cursor::MoveTo,
     event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers},
     style::Print,
     terminal::{self, Clear},
-};
-use falling_tetromino_engine::{
-    Button, Game, GameEndCause, Input, Notification, Phase, UpdateGameError,
 };
 
 use crate::{
@@ -562,7 +562,7 @@ impl<T: Write> Application<T> {
                                     }
 
                                     // Manually restore game to previous state.
-                                    let (builder, mod_ids_cfgs) = game.blueprint();
+                                    let (builder, mod_ids_cfgs) = game.reproduce_builder();
                                     let game_restoration_data = GameRestorationData {
                                         builder,
                                         mod_ids_cfgs,

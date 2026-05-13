@@ -1,12 +1,12 @@
+use crate::tetromino_engine::Board;
 use crossterm::{QueueableCommand, cursor, style, terminal};
-use falling_tetromino_engine::Board;
 
 use super::*;
 
 // "|⠁|⠂|⠄|⠈|⠐|⠠|⡀|⢀|"
 const BRAILLE: &str = "⠀⠁⠂⠃⠄⠅⠆⠇⠈⠉⠊⠋⠌⠍⠎⠏⠐⠑⠒⠓⠔⠕⠖⠗⠘⠙⠚⠛⠜⠝⠞⠟⠠⠡⠢⠣⠤⠥⠦⠧⠨⠩⠪⠫⠬⠭⠮⠯⠰⠱⠲⠳⠴⠵⠶⠷⠸⠹⠺⠻⠼⠽⠾⠿⡀⡁⡂⡃⡄⡅⡆⡇⡈⡉⡊⡋⡌⡍⡎⡏⡐⡑⡒⡓⡔⡕⡖⡗⡘⡙⡚⡛⡜⡝⡞⡟⡠⡡⡢⡣⡤⡥⡦⡧⡨⡩⡪⡫⡬⡭⡮⡯⡰⡱⡲⡳⡴⡵⡶⡷⡸⡹⡺⡻⡼⡽⡾⡿⢀⢁⢂⢃⢄⢅⢆⢇⢈⢉⢊⢋⢌⢍⢎⢏⢐⢑⢒⢓⢔⢕⢖⢗⢘⢙⢚⢛⢜⢝⢞⢟⢠⢡⢢⢣⢤⢥⢦⢧⢨⢩⢪⢫⢬⢭⢮⢯⢰⢱⢲⢳⢴⢵⢶⢷⢸⢹⢺⢻⢼⢽⢾⢿⣀⣁⣂⣃⣄⣅⣆⣇⣈⣉⣊⣋⣌⣍⣎⣏⣐⣑⣒⣓⣔⣕⣖⣗⣘⣙⣚⣛⣜⣝⣞⣟⣠⣡⣢⣣⣤⣥⣦⣧⣨⣩⣪⣫⣬⣭⣮⣯⣰⣱⣲⣳⣴⣵⣶⣷⣸⣹⣺⣻⣼⣽⣾⣿";
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug, Default)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, Default)]
 pub struct BrailleRenderer {
     x: u16,
     y: u16,
@@ -50,10 +50,10 @@ impl Renderer for BrailleRenderer {
         _keybinds_legend: &KeybindsLegend,
         _replay_extra: Option<(InGameTime, f64)>,
     ) -> io::Result<()> {
-        let mut board = game.state().board;
+        let mut board = game.state().board.clone();
         if let Some(piece) = game.phase().piece() {
-            for ((x, y), tile_id) in piece.tiles() {
-                board[y as usize][x as usize] = Some(tile_id);
+            for (x, y) in piece.coords() {
+                board[y as usize].0[x as usize] = Some(piece.tetromino.into());
             }
         }
 
@@ -75,18 +75,23 @@ impl Renderer for BrailleRenderer {
         ]
         .iter()
         .map(|[i0, i1, i2, i3]| {
-            let [l0, l1, l2, l3] = [board[*i0], board[*i1], board[*i2], board[*i3]];
+            let [l0, l1, l2, l3] = [
+                self.cached_board[*i0],
+                self.cached_board[*i1],
+                self.cached_board[*i2],
+                self.cached_board[*i3],
+            ];
             [[0, 1], [2, 3], [4, 5], [6, 7], [8, 9]]
                 .iter()
                 .map(|[j0, j1]| {
-                    let b0 = if l0[*j0].is_some() { 1 } else { 0 };
-                    let b1 = if l1[*j0].is_some() { 2 } else { 0 };
-                    let b2 = if l2[*j0].is_some() { 4 } else { 0 };
-                    let b3 = if l3[*j0].is_some() { 64 } else { 0 };
-                    let b4 = if l0[*j1].is_some() { 8 } else { 0 };
-                    let b5 = if l1[*j1].is_some() { 16 } else { 0 };
-                    let b6 = if l2[*j1].is_some() { 32 } else { 0 };
-                    let b7 = if l3[*j1].is_some() { 128 } else { 0 };
+                    let b0 = if l0.0[*j0].is_some() { 1 } else { 0 };
+                    let b1 = if l1.0[*j0].is_some() { 2 } else { 0 };
+                    let b2 = if l2.0[*j0].is_some() { 4 } else { 0 };
+                    let b3 = if l3.0[*j0].is_some() { 64 } else { 0 };
+                    let b4 = if l0.0[*j1].is_some() { 8 } else { 0 };
+                    let b5 = if l1.0[*j1].is_some() { 16 } else { 0 };
+                    let b6 = if l2.0[*j1].is_some() { 32 } else { 0 };
+                    let b7 = if l3.0[*j1].is_some() { 128 } else { 0 };
                     braille[b0 + b1 + b2 + b3 + b4 + b5 + b6 + b7]
                 })
                 .collect::<String>()

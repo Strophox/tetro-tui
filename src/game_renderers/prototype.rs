@@ -7,7 +7,7 @@ use crossterm::{
     terminal,
 };
 
-use falling_tetromino_engine::{InGameTime, Notification, State};
+use crate::tetromino_engine::{InGameTime, Notification, State, Tetromino};
 
 use super::*;
 
@@ -53,38 +53,33 @@ impl Renderer for PrototypeRenderer {
         T: Write,
     {
         // Draw game stuf
-        let State {
-            time: game_time,
-            board,
-            ..
-        } = game.state();
-        let mut board = *board;
+        let game_time = game.state().time;
+        let mut board = game.state().board.clone();
         if let Some(piece) = game.phase().piece() {
-            for ((x, y), tile_id) in piece.tiles() {
-                board[y as usize][x as usize] = Some(tile_id);
+            for (x, y) in piece.coords() {
+                board[y as usize].0[x as usize] = Some(piece.tetromino.into());
             }
         }
         term.queue(cursor::MoveTo(0, 0))?
             .queue(terminal::Clear(terminal::ClearType::FromCursorDown))?;
         term.queue(Print("   +--------------------+"))?
             .queue(MoveToNextLine(1))?;
-        for (idx, line) in board.iter().take(20).enumerate().rev() {
+        for (idx, (line, _is_frozen)) in board.iter().take(20).enumerate().rev() {
             let txt_line = format!(
                 "{idx:02} |{}|",
                 line.iter()
                     .map(|cell| {
-                        cell.map_or(" .", |tile| match tile.get() {
-                            1 => "OO",
-                            2 => "II",
-                            3 => "SS",
-                            4 => "ZZ",
-                            5 => "TT",
-                            6 => "LL",
-                            7 => "JJ",
-                            253 => "WW",
-                            254 => "WW",
-                            255 => "WW",
-                            t => unimplemented!("formatting unknown tile id {t}"),
+                        cell.map_or(" .", |tile| match tile {
+                            crate::tetromino_engine::TileType::Tet(t) => match t {
+                                Tetromino::O => "OO",
+                                Tetromino::I => "II",
+                                Tetromino::S => "SS",
+                                Tetromino::Z => "ZZ",
+                                Tetromino::T => "TT",
+                                Tetromino::L => "LL",
+                                Tetromino::J => "JJ",
+                            },
+                            crate::tetromino_engine::TileType::Generic => "WW",
                         })
                     })
                     .collect::<Vec<_>>()

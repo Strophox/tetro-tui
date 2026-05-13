@@ -1,11 +1,11 @@
 use std::num::NonZeroU32;
 
-use falling_tetromino_engine::{
-    Game, GameAccess, GameBuilder, GameEndCause, GameModifier, HEIGHT, Line, NotificationFeed,
-    Phase, Tetromino, WIDTH,
+use crate::tetromino_engine::{
+    BOARD_WIDTH, Game, GameAccess, GameBuilder, GameEndCause, GameModifier, LOCK_OUT_HEIGHT, Line,
+    MiscPceRots, MiscTetGens, NotificationFeed, Phase, Tetromino, TileType,
 };
 
-use crate::{savefile_logic::to_savefile_string, settings::Palette};
+use crate::savefile_logic::to_savefile_string;
 
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
@@ -16,7 +16,7 @@ pub struct Combo {
 
     // Stateful fields.
     height_loaded: usize,
-    cached_stats: [String; 1],
+    cached_display_values: [(String, String); 1],
 }
 
 #[derive(
@@ -45,14 +45,14 @@ impl Combo {
         let modifier = Box::new(Self {
             config,
             height_loaded: 0,
-            cached_stats: [Self::fmt_current_combo(0)],
+            cached_display_values: [("Current Combo".to_string(), 0.to_string())],
         });
 
         builder.build_modded(vec![modifier])
     }
 }
 
-impl GameModifier for Combo {
+impl GameModifier<MiscTetGens, MiscPceRots, TileType> for Combo {
     fn id(&self) -> String {
         Self::MOD_ID.to_owned()
     }
@@ -61,21 +61,26 @@ impl GameModifier for Combo {
         to_savefile_string(&self.config).unwrap()
     }
 
-    fn stats(&self) -> &[String] {
-        &self.cached_stats
+    fn values(&self) -> &[(String, String)] {
+        &self.cached_display_values
     }
 
-    fn try_clone(&self) -> Result<Box<dyn GameModifier>, String> {
+    fn try_clone(
+        &self,
+    ) -> Result<Box<dyn GameModifier<MiscTetGens, MiscPceRots, TileType>>, String> {
         Ok(Box::new(self.clone()))
     }
 
     // Initialize board.
     fn on_game_built(&mut self, game: GameAccess) {
-        for (line, four_well_line) in game
+        game.state
+            .board
+            .resize(Self::PREGENERATED_HEIGHT, Default::default());
+        for ((line, _is_frozen), four_well_line) in game
             .state
             .board
             .iter_mut()
-            .take(HEIGHT)
+            .take(Self::PREGENERATED_HEIGHT)
             .zip(Self::combo_lines(&mut self.height_loaded))
         {
             *line = four_well_line;
@@ -85,16 +90,16 @@ impl GameModifier for Combo {
         let mut layout = self.config.start_layout;
         while layout != 0 {
             if layout & 0b1000 != 0 {
-                game.state.board[y][3] = Some(Palette::GRAY);
+                game.state.board[y].0[3] = Some(TileType::Generic);
             }
             if layout & 0b0100 != 0 {
-                game.state.board[y][4] = Some(Palette::GRAY);
+                game.state.board[y].0[4] = Some(TileType::Generic);
             }
             if layout & 0b0010 != 0 {
-                game.state.board[y][5] = Some(Palette::GRAY);
+                game.state.board[y].0[5] = Some(TileType::Generic);
             }
             if layout & 0b0001 != 0 {
-                game.state.board[y][6] = Some(Palette::GRAY);
+                game.state.board[y].0[6] = Some(TileType::Generic);
             }
 
             layout /= 0b1_0000;
@@ -125,10 +130,13 @@ impl GameModifier for Combo {
             return;
         }
 
-        game.state.board[HEIGHT - 1] = Self::combo_lines(&mut self.height_loaded).next().unwrap();
+        game.state.board.push((
+            Self::combo_lines(&mut self.height_loaded).next().unwrap(),
+            false,
+        ));
 
         // Overwrite with combo length.
-        self.cached_stats[0] = Self::fmt_current_combo(game.state.consecutive_lineclears);
+        self.cached_display_values[0].1 = game.state.consecutive_lineclears.to_string();
     }
 }
 
@@ -145,9 +153,7 @@ impl Combo {
                                0b0000_0000_1110_1011, // "rl"*/
     ];
 
-    fn fmt_current_combo(current_combo: u32) -> String {
-        format!("Current combo: {current_combo}")
-    }
+    const PREGENERATED_HEIGHT: usize = LOCK_OUT_HEIGHT + 4;
 
     fn combo_lines<'a>(height_loaded: &'a mut usize) -> impl Iterator<Item = Line> + 'a {
         let rainbow_tiles = [
@@ -159,7 +165,7 @@ impl Combo {
             Tetromino::J,
             Tetromino::T,
         ]
-        .map(|tet| Some(tet.tile_id()));
+        .map(|tet| Some(TileType::Tet(tet)));
 
         let color_tiles_0 = (*height_loaded..).map(move |i| rainbow_tiles[i / 3 % 7]);
         let color_tiles_1 = color_tiles_0.clone().skip(1);
@@ -167,11 +173,11 @@ impl Combo {
         color_tiles_0
             .zip(color_tiles_1)
             .map(move |(color_tile_0, color_tile_1)| {
-                let mut line = [None; WIDTH];
+                let mut line = [None; BOARD_WIDTH];
                 line[0] = color_tile_0;
                 line[1] = color_tile_1;
-                line[2] = Some(Palette::GRAY);
-                line[7] = Some(Palette::GRAY);
+                line[2] = Some(TileType::Generic);
+                line[7] = Some(TileType::Generic);
                 line[8] = color_tile_1;
                 line[9] = color_tile_0;
 

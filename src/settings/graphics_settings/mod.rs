@@ -1,6 +1,6 @@
 use std::num::NonZeroUsize;
 
-use falling_tetromino_engine::ExtNonNegF64;
+use crate::tetromino_engine::ExtNonNegF64;
 
 use crate::settings::SlotMachine;
 
@@ -8,8 +8,8 @@ pub mod hard_drop_effect;
 pub mod line_clear_effect;
 pub mod lock_effect;
 pub mod mini_tetromino_symbols;
-pub mod palette;
 pub mod small_tetromino_symbols;
+pub mod tile_coloring;
 pub mod tile_symbols;
 pub mod tui_symbols;
 
@@ -17,8 +17,8 @@ pub mod tui_symbols;
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug, serde::Serialize, serde::Deserialize,
 )]
 pub struct GraphicsSettings {
-    #[serde(rename = "palette_sel")]
-    pub palette_selected: usize,
+    #[serde(rename = "tilecol_sel")]
+    pub tile_coloring_selected: usize,
     #[serde(rename = "tuisymb_sel")]
     pub tui_symbols_selected: usize,
     #[serde(rename = "tilesymb_sel")]
@@ -37,8 +37,8 @@ pub struct GraphicsSettings {
     pub normalsize_preview_limit: Option<NonZeroUsize>,
     #[serde(rename = "fps")]
     pub fps: ExtNonNegF64,
-    #[serde(rename = "lockedminopalette_sel")]
-    pub lockedtilepalette_selected: usize,
+    #[serde(rename = "lockedtilecol_sel")]
+    pub locked_tile_coloring_selected: usize,
     #[serde(rename = "s_hud")]
     pub show_main_hud: bool,
     #[serde(rename = "s_keybinds")]
@@ -80,7 +80,7 @@ pub fn graphics_settings_presets() -> SlotMachine<GraphicsSettings> {
 impl Default for GraphicsSettings {
     fn default() -> Self {
         GraphicsSettings {
-            palette_selected: 2,                 // Okpalette
+            tile_coloring_selected: 2,           // Okpalette
             tui_symbols_selected: 1,             // Unicode
             tile_symbols_selected: 1,            // Unicode
             hard_drop_selected: 1,               // ASCII particles
@@ -90,7 +90,7 @@ impl Default for GraphicsSettings {
             small_tetromino_symbols_selected: 1, // Blocks
             normalsize_preview_limit: Some(NonZeroUsize::MIN),
             fps: ExtNonNegF64::from(60),
-            lockedtilepalette_selected: 2, // Okpalette
+            locked_tile_coloring_selected: 2, // Okpalette
             show_main_hud: true,
             show_lockdelay: false,
             show_keybinds: true,
@@ -106,7 +106,7 @@ impl Default for GraphicsSettings {
 impl GraphicsSettings {
     pub fn extra_focus() -> Self {
         GraphicsSettings {
-            palette_selected: 3,                 // Standard
+            tile_coloring_selected: 3,           // Standard
             tui_symbols_selected: 4,             // Unicode
             tile_symbols_selected: 1,            // Unicode
             hard_drop_selected: 0,               // None
@@ -116,7 +116,7 @@ impl GraphicsSettings {
             small_tetromino_symbols_selected: 1, // Blocks
             normalsize_preview_limit: None,
             fps: ExtNonNegF64::from(60),
-            lockedtilepalette_selected: 0, // Monochrome
+            locked_tile_coloring_selected: 0, // Monochrome
             show_main_hud: true,
             show_lockdelay: true,
             show_keybinds: false,
@@ -130,7 +130,7 @@ impl GraphicsSettings {
 
     pub fn guideline() -> Self {
         GraphicsSettings {
-            palette_selected: 3,                 // Standard
+            tile_coloring_selected: 3,           // Standard
             tui_symbols_selected: 2,             // Rounded Unicode
             tile_symbols_selected: 1,            // Unicode
             hard_drop_selected: 4,               // Solid beam Unicode
@@ -140,7 +140,7 @@ impl GraphicsSettings {
             small_tetromino_symbols_selected: 1, // Blocks
             normalsize_preview_limit: Some(NonZeroUsize::new(4).unwrap()),
             fps: ExtNonNegF64::from(60),
-            lockedtilepalette_selected: 3, // Standard
+            locked_tile_coloring_selected: 3, // Standard
             show_main_hud: true,
             show_lockdelay: false,
             show_keybinds: true,
@@ -154,7 +154,7 @@ impl GraphicsSettings {
 
     pub fn braille() -> Self {
         GraphicsSettings {
-            palette_selected: 3,                 // Standard
+            tile_coloring_selected: 3,           // Standard
             tui_symbols_selected: 5,             // Braille
             tile_symbols_selected: 2,            // Braille
             hard_drop_selected: 6,               // Braille helix
@@ -164,7 +164,7 @@ impl GraphicsSettings {
             small_tetromino_symbols_selected: 2, // Braille
             normalsize_preview_limit: Some(NonZeroUsize::new(4).unwrap()),
             fps: ExtNonNegF64::from(60),
-            lockedtilepalette_selected: 3, // Standard
+            locked_tile_coloring_selected: 3, // Standard
             show_main_hud: true,
             show_lockdelay: false,
             show_keybinds: true,
@@ -178,7 +178,7 @@ impl GraphicsSettings {
 
     pub fn compatibility() -> Self {
         GraphicsSettings {
-            palette_selected: 1,                 // ANSI
+            tile_coloring_selected: 1,           // ANSI
             tui_symbols_selected: 0,             // ASCII
             tile_symbols_selected: 0,            // ASCII
             hard_drop_selected: 1,               // ASCII particles
@@ -188,7 +188,7 @@ impl GraphicsSettings {
             small_tetromino_symbols_selected: 0, // ASCII
             normalsize_preview_limit: None,
             fps: ExtNonNegF64::from(30),
-            lockedtilepalette_selected: 1, // ANSI
+            locked_tile_coloring_selected: 1, // ANSI
             show_main_hud: true,
             show_lockdelay: false,
             show_keybinds: true,
@@ -202,9 +202,9 @@ impl GraphicsSettings {
 
     pub fn elektronika_60() -> Self {
         GraphicsSettings {
-            palette_selected: 0,                 // Monochrome
+            tile_coloring_selected: 0,           // Monochrome
             tui_symbols_selected: 6,             // Elektronika 60
-            tile_symbols_selected: 3,            // Elektronika 60
+            tile_symbols_selected: 4,            // Elektronika 60
             hard_drop_selected: 0,               // None
             lock_effect_selected: 0,             // None
             line_clear_selected: 5,              // Clear left-to-right
@@ -212,7 +212,7 @@ impl GraphicsSettings {
             small_tetromino_symbols_selected: 0, // ASCII
             normalsize_preview_limit: None,
             fps: ExtNonNegF64::from(60),
-            lockedtilepalette_selected: 0, // Monochrome
+            locked_tile_coloring_selected: 0, // Monochrome
             show_main_hud: true,
             show_lockdelay: false,
             show_keybinds: true,
@@ -226,7 +226,7 @@ impl GraphicsSettings {
 
     pub fn minimal() -> Self {
         GraphicsSettings {
-            palette_selected: 0,                 // Monochrome
+            tile_coloring_selected: 0,           // Monochrome
             tui_symbols_selected: 3,             // Borderless-Next/Hold Unicode
             tile_symbols_selected: 1,            // Unicode
             hard_drop_selected: 0,               // None
@@ -236,7 +236,7 @@ impl GraphicsSettings {
             small_tetromino_symbols_selected: 1, // Blocks
             normalsize_preview_limit: None,
             fps: ExtNonNegF64::from(60),
-            lockedtilepalette_selected: 0, // Monochrome
+            locked_tile_coloring_selected: 0, // Monochrome
             show_main_hud: false,
             show_lockdelay: false,
             show_keybinds: false,

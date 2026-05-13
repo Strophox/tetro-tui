@@ -1,7 +1,8 @@
 use std::num::NonZeroUsize;
 
-use falling_tetromino_engine::{
-    Game, GameAccess, GameBuilder, GameEndCause, GameModifier, Line, NotificationFeed, Phase,
+use crate::tetromino_engine::{
+    Game, GameAccess, GameBuilder, GameEndCause, GameModifier, MAX_BOARD_HEIGHT, MiscPceRots,
+    MiscTetGens, NotificationFeed, Phase, TileType,
 };
 
 use crate::{
@@ -17,7 +18,7 @@ pub struct Survival {
     // Stateful fields.
     piece_budget: f64,
     //is_caught_up: bool,
-    cached_stats: [String; 1],
+    cached_display_values: [(String, String); 1],
     // Some more fields needed to use Cheese:prng_cheese_lines...
     cheese_config: CheeseConfig,
     cheese_generated: u32,
@@ -58,14 +59,14 @@ impl Survival {
                 limit: None,
             },
 
-            cached_stats: [Self::fmt_regen_period(0)],
+            cached_display_values: [("Regen. period".to_owned(), Self::fmt_regen_period(0))],
         });
 
         builder.build_modded(vec![modifier])
     }
 }
 
-impl GameModifier for Survival {
+impl GameModifier<MiscTetGens, MiscPceRots, TileType> for Survival {
     fn id(&self) -> String {
         Self::MOD_ID.to_owned()
     }
@@ -74,34 +75,36 @@ impl GameModifier for Survival {
         to_savefile_string(&(self.config)).unwrap()
     }
 
-    fn stats(&self) -> &[String] {
-        &self.cached_stats
+    fn values(&self) -> &[(String, String)] {
+        &self.cached_display_values
     }
 
-    fn try_clone(&self) -> Result<Box<dyn GameModifier>, String> {
+    fn try_clone(
+        &self,
+    ) -> Result<Box<dyn GameModifier<MiscTetGens, MiscPceRots, TileType>>, String> {
         Ok(Box::new(self.clone()))
     }
 
     fn on_game_built(&mut self, game: GameAccess) {
         // Initialize board with some lines, otherwise the empty board seems weird.
 
-        let cheese_lines = Cheese::cheese_lines(
+        let mut cheese_lines = Cheese::cheese_lines(
             &self.cheese_config,
             &mut self.last_hole_pattern_generated,
             &mut self.cheese_generated,
             &mut game.state.rng,
         );
 
-        for (line, cheese) in game.state.board.iter_mut().take(1).zip(cheese_lines) {
-            *line = cheese;
-        }
+        game.state
+            .board
+            .insert(0, (cheese_lines.next().unwrap(), false));
     }
 
     fn on_lock_post(&mut self, mut game: GameAccess, _feed: &mut NotificationFeed) {
         self.piece_budget += 1.0;
         // Check entire board for a complete line:
         // If a line clear will occur, do not regenerate lines yet.
-        for line in game.state.board.iter() {
+        for (line, _is_frozen) in game.state.board.iter() {
             if line.iter().all(|mino| mino.is_some()) {
                 return;
             }
@@ -109,7 +112,7 @@ impl GameModifier for Survival {
 
         // Possibly regenerate lines.
         self.try_regenerate_lines(&mut game);
-        self.cached_stats[0] = Self::fmt_regen_period(game.state.lineclears);
+        self.cached_display_values[0].1 = Self::fmt_regen_period(game.state.lineclears);
     }
 
     fn on_lines_clear_post(&mut self, mut game: GameAccess, _feed: &mut NotificationFeed) {
@@ -125,7 +128,7 @@ impl GameModifier for Survival {
         }
 
         self.try_regenerate_lines(&mut game);
-        self.cached_stats[0] = Self::fmt_regen_period(game.state.lineclears);
+        self.cached_display_values[0].1 = Self::fmt_regen_period(game.state.lineclears);
 
         // if !self.is_caught_up && !game.state.board.iter().any(|line| line.contains(&Some(Palette::GRAY))) {
         //     self.is_caught_up = true;
@@ -138,10 +141,7 @@ impl Survival {
     const LINECLEARS_LIMIT: u32 = 300;
 
     fn fmt_regen_period(lineclears: u32) -> String {
-        format!(
-            "Regen. period: {:.01}",
-            Self::calc_regeneration_period(lineclears)
-        )
+        format!("{:.01}", Self::calc_regeneration_period(lineclears))
     }
 
     // The speed curve is vaguely inspired by tetr*s.js enhanced.
@@ -179,21 +179,13 @@ impl Survival {
             self.piece_budget -= regen_period;
             // self.is_caught_up = false;
 
-            let Some(mut cheese_line) = cheese_lines.next() else {
-                // Our cheese_config says limit = None, so this shouldn't happen.
-                unreachable!()
-            };
+            game.state
+                .board
+                .insert(0, (cheese_lines.next().unwrap(), false));
 
-            // Cycle everything up.
-            game.state.board.rotate_right(1);
-            // Swap out lowest row.
-            std::mem::swap(&mut game.state.board[0], &mut cheese_line);
-
-            if cheese_line != Line::default() {
+            if game.state.board.len() >= MAX_BOARD_HEIGHT {
                 *game.phase = Phase::GameEnd {
-                    cause: GameEndCause::BufferOut {
-                        overflowing_lines: vec![cheese_line],
-                    },
+                    cause: GameEndCause::BufferOut,
                     is_win: false,
                 };
                 return;

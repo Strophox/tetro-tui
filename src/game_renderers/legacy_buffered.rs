@@ -10,11 +10,11 @@ use crossterm::{
     terminal,
 };
 
-use either::Either;
-use falling_tetromino_engine::{
+use crate::tetromino_engine::{
     Button, Coordinate, GameEndCause, InGameTime, LOCK_OUT_HEIGHT, Orientation, Phase, Stat,
-    Tetromino, TileID,
+    Tetromino, TileType,
 };
+use either::Either;
 use rand::RngExt;
 
 use super::*;
@@ -208,7 +208,7 @@ struct HardDropTile {
     creation_time: InGameTime,
     pos: Coordinate,
     y_offset: usize,
-    tile_id: TileID,
+    tile_type: TileType,
 }
 
 #[derive(PartialEq, PartialOrd, Clone, Debug)]
@@ -218,7 +218,7 @@ struct MinoParticle {
     momentum: (f32, f32),
     acceleration: (f32, f32),
     actually_render: bool,
-    tile_id: TileID,
+    tile_type: TileType,
 }
 
 #[derive(PartialEq, PartialOrd, Clone, Debug, Default)]
@@ -422,7 +422,14 @@ impl Renderer for LegacyBufferedRenderer {
         };
 
         // Color helpers.
-        let get_color = |tile_id: TileID| settings.palette().get(&tile_id).copied();
+        let get_color = |tile: TileType| {
+            let level = game
+                .config
+                .update_delays_every_n_lineclears
+                .checked_div(game.config.update_delays_every_n_lineclears)
+                .unwrap_or(0) as usize;
+            Some(settings.tile_coloring().get(tile, level).0)
+        };
 
         // Print keybinds legend.
         const W_KEYBINDS: usize = 23;
@@ -471,11 +478,16 @@ impl Renderer for LegacyBufferedRenderer {
         // Draw button state.
         if settings.graphics().show_buttons || replay_extra.is_some() {
             let bc = |b: Button| {
-                get_color(if game.state().active_buttons[b].is_some() {
-                    Palette::WHITE
-                } else {
-                    Palette::BLACK
-                })
+                settings
+                    .tile_coloring()
+                    .palette
+                    .map
+                    .get(&if game.state().active_buttons[b].is_some() {
+                        Palette::WHITE
+                    } else {
+                        Palette::BLACK
+                    })
+                    .copied()
             };
             let es = [
                 Err("("),
@@ -515,24 +527,27 @@ impl Renderer for LegacyBufferedRenderer {
         }
 
         let TileSymbols {
-            play,
+            player: play,
             locked,
             shadow,
             grid: _,
             hatched: _,
             crossed: _,
         } = settings.tile_symbols();
-        let tile_active = &play.0.iter().collect::<String>();
-        let tile_ground = &locked.0.iter().collect::<String>();
         let tile_shadow = &shadow.0.iter().collect::<String>();
-        let tile_preview = tile_active;
 
         // Draw preview.
-        if let Some(next_piece) = game.state().tetromino_preview.front() {
-            let color = get_color(next_piece.tile_id());
-            for (x, y) in next_piece.minos(Orientation::N) {
+        if let Some(next_tet) = game.state().tetromino_preview.front().copied() {
+            let tile_preview = &settings
+                .tile_symbols()
+                .player(next_tet)
+                .0
+                .iter()
+                .collect::<String>();
+            let color = get_color(next_tet.into());
+            for (x, y) in next_tet.minos(Orientation::N) {
                 let pos = (
-                    (if *next_piece == Tetromino::O { 2 } else { 0 } + x_preview + 2 * x) as usize,
+                    (if next_tet == Tetromino::O { 2 } else { 0 } + x_preview + 2 * x) as usize,
                     (y_preview - y) as usize,
                 );
                 self.screen.buffer_str(tile_preview, color, pos);
@@ -541,11 +556,18 @@ impl Renderer for LegacyBufferedRenderer {
 
         // Draw small preview pieces 2,3,4.
         let mut x_offset_small = 0;
-        for tet in game.state().tetromino_preview.iter().skip(1).take(3) {
-            let tetstr = &settings.small_tetromino_symbols().tets[*tet as usize];
+        for tet in game
+            .state()
+            .tetromino_preview
+            .iter()
+            .skip(1)
+            .take(3)
+            .copied()
+        {
+            let tetstr = &settings.small_tetromino_symbols().tets[tet as usize];
             self.screen.buffer_str(
                 tetstr,
-                get_color(tet.tile_id()),
+                get_color(tet.into()),
                 (x_preview_small + x_offset_small, y_preview_small),
             );
             x_offset_small += tetstr.chars().count() + 1;
@@ -554,12 +576,12 @@ impl Renderer for LegacyBufferedRenderer {
         // Draw minuscule preview pieces 5,6,7,8...
         let mut x_offset_minuscule = 0;
         #[allow(clippy::explicit_counter_loop)]
-        for tet in game.state().tetromino_preview.iter().skip(4) {
+        for tet in game.state().tetromino_preview.iter().skip(4).copied() {
             //.take(5) {
             let mut bs = vec![0; 4];
             self.screen.buffer_str(
-                settings.mini_tetromino_symbols().tets[*tet as usize].encode_utf8(&mut bs),
-                get_color(tet.tile_id()),
+                settings.mini_tetromino_symbols().tets[tet as usize].encode_utf8(&mut bs),
+                get_color(tet.into()),
                 (x_preview_mini + x_offset_minuscule, y_preview_mini),
             );
             x_offset_minuscule += 1;
@@ -569,9 +591,9 @@ impl Renderer for LegacyBufferedRenderer {
         if let Some((tet, swap_allowed)) = game.state().tetromino_held {
             let tetstr = &settings.small_tetromino_symbols().tets[tet as usize];
             let color = get_color(if swap_allowed {
-                tet.tile_id()
+                tet.into()
             } else {
-                Palette::GRAY
+                TileType::Generic
             });
             self.screen.buffer_str(tetstr, color, (x_hold, y_hold));
         }
@@ -582,7 +604,7 @@ impl Renderer for LegacyBufferedRenderer {
                 creation_time,
                 pos,
                 y_offset,
-                tile_id,
+                tile_type: tile_id,
             },
             active,
         ) in self.hard_drop_tiles.iter_mut()
@@ -613,14 +635,25 @@ impl Renderer for LegacyBufferedRenderer {
 
         // Board: draw locked tiles.
         if !temp_data.blindfold_game {
-            for (y, line) in game.state().board.iter().enumerate().rev() {
+            for (y, (line, _is_frozen)) in game.state().board.iter().enumerate().rev() {
                 for (x, cell) in line.iter().enumerate() {
-                    if let Some(tile_id) = cell
+                    if let Some(tile) = *cell
                         && let Some(xy) =
                             pos_board((isize::try_from(x).unwrap(), isize::try_from(y).unwrap()))
                     {
-                        let color_locked = settings.lockedtilepalette().get(tile_id).copied();
-                        self.screen.buffer_str(tile_ground, color_locked, xy);
+                        let tile_ground = &settings
+                            .tile_symbols()
+                            .locked(tile)
+                            .0
+                            .iter()
+                            .collect::<String>();
+                        let level = game
+                            .config
+                            .update_delays_every_n_lineclears
+                            .checked_div(game.config.update_delays_every_n_lineclears)
+                            .unwrap_or(0) as usize;
+                        let color_ground = Some(settings.locked_tile_coloring().get(tile, level).0);
+                        self.screen.buffer_str(tile_ground, color_ground, xy);
                     }
                 }
             }
@@ -634,19 +667,28 @@ impl Renderer for LegacyBufferedRenderer {
             Phase::PieceInPlay { piece, .. } => {
                 // Draw shadow piece.
                 if settings.graphics().show_shadow {
-                    for (tile_pos, tile_id) in
-                        piece.teleported(&game.state().board, (0, -1)).tiles()
-                    {
+                    for tile_pos in piece.teleported(&game.state().board, (0, -1)).coords() {
                         if let Some(xy) = pos_board(tile_pos) {
-                            self.screen.buffer_str(tile_shadow, get_color(tile_id), xy);
+                            self.screen.buffer_str(
+                                tile_shadow,
+                                get_color(piece.tetromino.into()),
+                                xy,
+                            );
                         }
                     }
                 }
 
                 // Draw active piece.
-                for (tile_pos, tile_id) in piece.tiles() {
+                let tile_player = &settings
+                    .tile_symbols()
+                    .player(piece.tetromino)
+                    .0
+                    .iter()
+                    .collect::<String>();
+                for tile_pos in piece.coords() {
                     if let Some(xy) = pos_board(tile_pos) {
-                        self.screen.buffer_str(tile_active, get_color(tile_id), xy);
+                        self.screen
+                            .buffer_str(tile_player, get_color(piece.tetromino.into()), xy);
                     }
                 }
             }
@@ -662,11 +704,11 @@ impl Renderer for LegacyBufferedRenderer {
             Phase::GameEnd { cause, is_win: _ } => {
                 match cause {
                     GameEndCause::LockOut { locking_piece } => {
-                        for (tile_pos, tile_id) in locking_piece.tiles() {
+                        for tile_pos in locking_piece.coords() {
                             if let Some(xy) = pos_board(tile_pos) {
                                 self.screen.buffer_str(
                                     "XX",
-                                    get_color(tile_id), /*Some(Color::Red)*/
+                                    get_color(locking_piece.tetromino.into()), /*Some(Color::Red)*/
                                     xy,
                                 );
                             }
@@ -682,14 +724,17 @@ impl Renderer for LegacyBufferedRenderer {
                             }
                         }
 
-                        for (tile_pos @ (x, y), tile_id) in blocked_piece.tiles() {
+                        for tile_pos @ (x, y) in blocked_piece.coords() {
                             if let Some(xy) = pos_board(tile_pos) {
                                 let (t, c) = if let Some(board_tile) =
-                                    game.state().board[y as usize][x as usize]
+                                    game.state().board[y as usize].0[x as usize]
                                 {
                                     ("XX", get_color(board_tile))
                                 } else {
-                                    ("XX", get_color(tile_id) /*Some(Color::Red)*/)
+                                    (
+                                        "XX",
+                                        get_color(blocked_piece.tetromino.into()), /*Some(Color::Red)*/
+                                    )
                                 };
 
                                 self.screen.buffer_str(t, c, xy);
@@ -698,20 +743,18 @@ impl Renderer for LegacyBufferedRenderer {
                     }
 
                     // EX-FIX-ME: No visual indicator for topout currently.
-                    GameEndCause::BufferOut {
-                        overflowing_lines: _,
-                    } => {}
+                    GameEndCause::BufferOut => {}
 
                     // EX-FIX-ME: No visual indicator for gameover-by-some-limit currently.
                     GameEndCause::Limit(_) => {}
 
                     GameEndCause::Forfeit { piece_in_play } => {
                         if let Some(piece) = piece_in_play {
-                            for (tile_pos, tile_id) in piece.tiles() {
+                            for tile_pos in piece.coords() {
                                 if let Some(xy) = pos_board(tile_pos) {
                                     self.screen.buffer_str(
                                         "XX",
-                                        get_color(tile_id), /*Some(Color::Red)*/
+                                        get_color(piece.tetromino.into()), /*Some(Color::Red)*/
                                         xy,
                                     );
                                 }
@@ -733,7 +776,7 @@ impl Renderer for LegacyBufferedRenderer {
                 momentum: (m_x, m_y),
                 acceleration: (a_x, a_y),
                 actually_render,
-                tile_id,
+                tile_type,
             },
             active,
         ) in &mut self.mino_particles
@@ -770,9 +813,15 @@ impl Renderer for LegacyBufferedRenderer {
                 continue;
             }
 
+            let tile_ground = &settings
+                .tile_symbols()
+                .locked(*tile_type)
+                .0
+                .iter()
+                .collect::<String>();
             self.screen.buffer_str(
                 tile_ground,
-                get_color(*tile_id /*Palette::GRAY*/),
+                get_color(*tile_type /*Palette::GRAY*/),
                 (pos_x.round() as usize, pos_y.round() as usize),
             );
         }
@@ -817,7 +866,12 @@ impl Renderer for LegacyBufferedRenderer {
                             (150, "▓▓"),
                         ],
                     };
-                    let color_locking = get_color(Palette::WHITE);
+                    let color_locking = settings
+                        .tile_coloring()
+                        .palette
+                        .map
+                        .get(&Palette::WHITE)
+                        .copied();
                     // EX-FIX-ME: Possibly replace these manual find-tile snippets with flexible/parameterized/interpolated-time animations (see lineclear animation).
                     let Some(tile) = animation_locking.iter().find_map(|(ms, tile)| {
                         (elapsed < Duration::from_millis(*ms)).then_some(tile)
@@ -826,7 +880,7 @@ impl Renderer for LegacyBufferedRenderer {
                         continue;
                     };
 
-                    for (tile_pos, _tile_id) in piece.tiles() {
+                    for tile_pos in piece.coords() {
                         if let Some(xy) = pos_board(tile_pos) {
                             self.screen.buffer_str(tile, color_locking, xy);
                         }
@@ -882,7 +936,12 @@ impl Renderer for LegacyBufferedRenderer {
                                 "         ██         ",
                             ],
                         };
-                        let color_lineclear = get_color(Palette::WHITE);
+                        let color_lineclear = settings
+                            .tile_coloring()
+                            .palette
+                            .map
+                            .get(&Palette::WHITE)
+                            .copied();
                         let percent = elapsed.as_secs_f64() / line_clear_duration.as_secs_f64();
                         let max_idx =
                             f64::from(i32::try_from(animation_lineclear.len() - 1).unwrap());
@@ -900,7 +959,7 @@ impl Renderer for LegacyBufferedRenderer {
                         }
                     } else {
                         for (y, line) in lines.iter().copied() {
-                            for (x, tile_id) in line.iter().enumerate() {
+                            for (x, tile_type) in line.iter().enumerate() {
                                 if let Some(origin) = pos_board((
                                     isize::try_from(x).unwrap(),
                                     isize::try_from(y).unwrap(),
@@ -913,7 +972,7 @@ impl Renderer for LegacyBufferedRenderer {
                                         momentum: (mult_m_x * 60.0, mult_m_y * 50.0),
                                         acceleration: (0.0, -200.0),
                                         actually_render: true, /*(x /*+ rand::rng().random_range(0..=1)*/).is_multiple_of(2),*/
-                                        tile_id: *tile_id,
+                                        tile_type: *tile_type,
                                     };
 
                                     self.mino_particles.push((new_particle, true));
@@ -933,14 +992,14 @@ impl Renderer for LegacyBufferedRenderer {
                         *active = false;
                         continue;
                     }
-                    for ((x_tile, y_tile), tile_id) in dropped_piece.tiles() {
+                    for (x_tile, y_tile) in dropped_piece.coords() {
                         for dy in (y_tile as usize)..LOCK_OUT_HEIGHT {
                             self.hard_drop_tiles.push((
                                 HardDropTile {
                                     creation_time: *notif_time,
                                     pos: (x_tile, isize::try_from(dy).unwrap()),
                                     y_offset: dy - (y_tile as usize),
-                                    tile_id,
+                                    tile_type: dropped_piece.tetromino.into(),
                                 },
                                 true,
                             ));

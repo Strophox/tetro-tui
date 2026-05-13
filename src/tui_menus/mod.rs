@@ -16,6 +16,7 @@ pub mod title;
 
 use std::io::{self, Write};
 
+use crate::tetromino_engine::{Game, InGameTime};
 use crossterm::{
     ExecutableCommand, QueueableCommand,
     cursor::{MoveDown, MoveTo, MoveToColumn},
@@ -27,7 +28,6 @@ use crossterm::{
     style::{Print, PrintStyledContent, Stylize},
     terminal::{Clear, ClearType},
 };
-use falling_tetromino_engine::{Game, InGameTime};
 
 use crate::{
     Application, GameMetaData, GameRestorationData, RawInputHistory, ScoreSummary,

@@ -1,6 +1,6 @@
-use falling_tetromino_engine::{
-    GameAccess, GameModifier, Notification, NotificationFeed, StdTetGen, Tetromino,
-    TetrominoGenerator, tetromino_generation::RecencyGen,
+use crate::tetromino_engine::{
+    GameAccess, GameModifier, MiscPceRots, MiscTetGens, Notification, NotificationFeed, RecencyGen,
+    Tetromino, TetrominoGenerator, TileType,
 };
 
 // This modifier does not have fields for configuration/reproducibility and does not keep state.
@@ -12,12 +12,12 @@ pub struct PrintRecencyStats;
 impl PrintRecencyStats {
     pub const MOD_ID: &str = stringify!(PrintRecencyStats);
 
-    pub fn modifier() -> Box<dyn GameModifier> {
+    pub fn modifier() -> Box<dyn GameModifier<MiscTetGens, MiscPceRots, TileType>> {
         Box::new(Self)
     }
 }
 
-impl GameModifier for PrintRecencyStats {
+impl GameModifier<MiscTetGens, MiscPceRots, TileType> for PrintRecencyStats {
     fn id(&self) -> String {
         Self::MOD_ID.to_owned()
     }
@@ -26,11 +26,13 @@ impl GameModifier for PrintRecencyStats {
         "".to_owned()
     }
 
-    fn try_clone(&self) -> Result<Box<dyn GameModifier>, String> {
+    fn try_clone(
+        &self,
+    ) -> Result<Box<dyn GameModifier<MiscTetGens, MiscPceRots, TileType>>, String> {
         Ok(Box::new(self.clone()))
     }
 
-    fn stats(&self) -> &[String] {
+    fn values(&self) -> &[(String, String)] {
         &[]
     }
 
@@ -39,7 +41,7 @@ impl GameModifier for PrintRecencyStats {
             return;
         }
         // Only works for `Recency` generator.
-        let StdTetGen::Recency(RecencyGen {
+        let MiscTetGens::Recency(RecencyGen {
             tets_last_emitted,
             factor,
             is_base_not_exp,

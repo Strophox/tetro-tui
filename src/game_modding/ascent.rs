@@ -1,15 +1,14 @@
-use std::{num::NonZeroU8, time::Duration};
+use std::time::Duration;
 
 use either::Either;
+use falling_tetromino_engine::{MiscPceRots, MiscTetGens};
 use rand::RngExt;
 
-use falling_tetromino_engine::{
-    Button, DelayParameters, ExtDuration, Game, GameAccess, GameBuilder, GameLimits, GameModifier,
-    GameRng, HEIGHT, InGameTime, Input, LOCK_OUT_HEIGHT, Line, NotificationFeed, Phase, Piece,
-    Stat, Tetromino, WIDTH,
+use crate::tetromino_engine::{
+    BOARD_WIDTH, Button, DelayParameters, ExtDuration, Game, GameAccess, GameBuilder, GameLimits,
+    GameModifier, GameRng, InGameTime, Input, LOCK_OUT_HEIGHT, Line, NotificationFeed, Phase,
+    Piece, Stat, Tetromino, TileType,
 };
-
-use crate::settings::Palette;
 
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
@@ -19,7 +18,7 @@ pub struct Ascent {
 
     // Stateful fields.
     height_loaded: usize,
-    cached_height_stat: [String; 1],
+    cached_display_values: [(String, String); 1],
 }
 
 impl Ascent {
@@ -28,12 +27,12 @@ impl Ascent {
     pub fn build(builder: &GameBuilder) -> Game {
         let modifier = Box::new(Self {
             height_loaded: 0,
-            cached_height_stat: [format!("Height ascended: {}", 0)],
+            cached_display_values: [("Height ascended".to_owned(), 0.to_string())],
         });
 
         builder
             .clone()
-            .rotation_system(falling_tetromino_engine::StdPceRot::Ocular)
+            .rotation_system(crate::tetromino_engine::MiscPceRots::Ocular)
             .lock_delay_curve(Some(Either::Left(DelayParameters::constant(
                 ExtDuration::Infinite,
             ))))
@@ -45,7 +44,7 @@ impl Ascent {
     }
 }
 
-impl GameModifier for Ascent {
+impl GameModifier<MiscTetGens, MiscPceRots, TileType> for Ascent {
     fn id(&self) -> String {
         Self::MOD_ID.to_owned()
     }
@@ -54,18 +53,29 @@ impl GameModifier for Ascent {
         "".to_owned()
     }
 
-    fn stats(&self) -> &[String] {
-        &self.cached_height_stat
+    fn values(&self) -> &[(String, String)] {
+        &self.cached_display_values
     }
 
-    fn try_clone(&self) -> Result<Box<dyn GameModifier>, String> {
+    fn try_clone(
+        &self,
+    ) -> Result<Box<dyn GameModifier<MiscTetGens, MiscPceRots, TileType>>, String> {
         Ok(Box::new(self.clone()))
     }
 
     fn on_game_built(&mut self, game: GameAccess) {
         // Load in board.
         let ascent_lines = Self::prng_ascent_lines(&mut self.height_loaded, &mut game.state.rng);
-        for (line, ascent_line) in game.state.board.iter_mut().take(HEIGHT).zip(ascent_lines) {
+        game.state
+            .board
+            .resize(Self::PREGENERATED_HEIGHT, Default::default());
+        for ((line, _is_frozen), ascent_line) in game
+            .state
+            .board
+            .iter_mut()
+            .take(Self::PREGENERATED_HEIGHT)
+            .zip(ascent_lines)
+        {
             *line = ascent_line;
         }
 
@@ -75,7 +85,7 @@ impl GameModifier for Ascent {
         *game.phase = Phase::PieceInPlay {
             piece: Piece {
                 tetromino: asc_tet_01,
-                orientation: falling_tetromino_engine::Orientation::N,
+                orientation: crate::tetromino_engine::Orientation::N,
                 position: (0, 0),
             },
             autoshift_scheduled: None,
@@ -113,39 +123,39 @@ impl GameModifier for Ascent {
             return;
         };
 
-        let piece_tiles_coords = piece.tiles().map(|(coord, _)| coord);
+        let piece_tiles_coords = piece.coords();
 
         // Update entire board by cycling colors.
-        for (y, line) in game.state.board.iter_mut().enumerate() {
+        for (y, (line, _is_frozen)) in game.state.board.iter_mut().enumerate() {
             for (x, tile) in line.iter_mut().take(Self::PLAYABLE_WIDTH).enumerate() {
-                let Some(tiletypeid) = tile else {
+                let Some(tile_type) = tile else {
                     continue;
                 };
-                let i = tiletypeid.get();
                 // Modify only certain tiles.
-                if i <= 7 {
+                if matches!(tile_type, TileType::Tet(_)) {
                     // Piece is touching the tile.
-                    let tile = if piece_tiles_coords.iter().any(|&(x_p, y_p)| {
+                    let new_tile_type = if piece_tiles_coords.iter().any(|&(x_p, y_p)| {
                         (x_p as usize).abs_diff(x) + (y_p as usize).abs_diff(y) <= 1
                     }) {
                         // Increase score.s
                         game.state.points += 1;
-                        Palette::GRAY
+                        TileType::Generic
                     } else {
-                        NonZeroU8::try_from(match i {
-                            4 => 6,
-                            6 => 1,
-                            1 => 3,
-                            3 => 2,
-                            2 => 7,
-                            7 => 5,
-                            5 => 4,
-                            _ => unreachable!(),
-                        })
-                        .unwrap()
+                        match tile_type {
+                            TileType::Tet(tet) => TileType::Tet(match tet {
+                                Tetromino::O => Tetromino::S,
+                                Tetromino::I => Tetromino::J,
+                                Tetromino::S => Tetromino::I,
+                                Tetromino::Z => Tetromino::L,
+                                Tetromino::T => Tetromino::Z,
+                                Tetromino::L => Tetromino::O,
+                                Tetromino::J => Tetromino::T,
+                            }),
+                            TileType::Generic => TileType::Generic,
+                        }
                     };
 
-                    *tiletypeid = tile;
+                    *tile = Some(new_tile_type);
                 }
             }
         }
@@ -156,16 +166,15 @@ impl GameModifier for Ascent {
         if has_hit_camera_top {
             let mut ascent_lines =
                 Self::prng_ascent_lines(&mut self.height_loaded, &mut game.state.rng);
-            game.state.board.rotate_left(1);
-            game.state.board[HEIGHT - 1] = ascent_lines.next().unwrap();
+            game.state.board.push((ascent_lines.next().unwrap(), false));
             piece.position.1 -= 1;
         }
 
         // Ascending virtual infinite board.
-        self.cached_height_stat[0] = format!(
-            "Height ascended: {}",
-            piece.position.1 as usize + self.height_loaded - HEIGHT
-        ); // FIXME: Check if correct.
+        // FIXME: Check if correct.
+        self.cached_display_values[0].1 = (piece.position.1 as usize + self.height_loaded
+            - Self::PREGENERATED_HEIGHT)
+            .to_string();
     }
 
     // The mod must pre-process: 'hold' to replace with custom hold, and 'drops' to prevent piece locking.
@@ -203,7 +212,8 @@ impl GameModifier for Ascent {
 
 impl Ascent {
     // Playable width needs to be odd.
-    const PLAYABLE_WIDTH: usize = WIDTH - (1 - WIDTH % 2);
+    const PLAYABLE_WIDTH: usize = BOARD_WIDTH - (1 - BOARD_WIDTH % 2);
+    const PREGENERATED_HEIGHT: usize = LOCK_OUT_HEIGHT + 4;
 
     const CAMERA_MARGIN_TOP: usize = 5;
 
@@ -217,29 +227,28 @@ impl Ascent {
                 // Add hinges.
                 for (j, tile) in line.iter_mut().enumerate() {
                     if j % 2 == 1 {
-                        let white_tile = Some(Palette::WHITE);
-                        *tile = white_tile;
+                        *tile = Some(TileType::Generic);
                     }
                 }
 
                 // Add gem.
                 let gem_idx = rng.random_range(0..Self::PLAYABLE_WIDTH);
                 if line[gem_idx].is_some() {
-                    line[gem_idx] = Some(NonZeroU8::try_from(rng.random_range(1..=7)).unwrap());
+                    line[gem_idx] = Some(Tetromino::VARIANTS[rng.random_range(1..=7)].into());
                 }
             }
 
             // Extra tile for even board width and odd playable width.
             if Self::PLAYABLE_WIDTH != line.len() {
-                let tile_id = if (*height_loaded / 10).is_multiple_of(2)
+                let tile_ty = if (*height_loaded / 10).is_multiple_of(2)
                     ^ (height_loaded.is_multiple_of(10) || *height_loaded % 10 == 9)
                 {
-                    Palette::WHITE
+                    TileType::Generic
                 } else {
-                    NonZeroU8::try_from(2).unwrap() /*sky*/
+                    TileType::Tet(Tetromino::I)
                 };
 
-                line[Self::PLAYABLE_WIDTH] = Some(tile_id);
+                line[Self::PLAYABLE_WIDTH] = Some(tile_ty);
             }
 
             *height_loaded += 1;

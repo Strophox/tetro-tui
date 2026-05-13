@@ -1,4 +1,4 @@
-use falling_tetromino_engine::Tetromino;
+use crate::tetromino_engine::Tetromino;
 
 use crate::settings::SlotMachine;
 

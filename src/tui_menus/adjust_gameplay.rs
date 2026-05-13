@@ -4,6 +4,9 @@ use std::{
     time::Duration,
 };
 
+use crate::tetromino_engine::{
+    BalanceOutGen, ExtNonNegF64, MiscPceRots, MiscTetGens, RecencyGen, RerollGen, StockGen,
+};
 use crossterm::{
     QueueableCommand,
     cursor::MoveTo,
@@ -16,10 +19,6 @@ use crossterm::{
     terminal::{Clear, ClearType},
 };
 use either::Either;
-use falling_tetromino_engine::{
-    ExtNonNegF64, StdPceRot, StdTetGen,
-    tetromino_generation::{BalanceOutGen, RecencyGen, RerollGen, StockGen},
-};
 
 use crate::{
     Application, Settings,
@@ -121,23 +120,23 @@ impl<T: Write> Application<T> {
                 format!(
                     "Piece randomization = {}",
                     match &self.settings.gameplay().tetgen {
-                        StdTetGen::Reroll(RerollGen {
+                        MiscTetGens::Reroll(RerollGen {
                             tet_last_emitted: _,
                             aversion_to_last: 0,
                         }) => "Uniformly random".to_owned(),
-                        StdTetGen::Reroll(RerollGen {
+                        MiscTetGens::Reroll(RerollGen {
                             tet_last_emitted: _,
                             aversion_to_last: 1,
                         }) => "Classic (Reroll 1x)".to_owned(),
-                        StdTetGen::Reroll(RerollGen {
+                        MiscTetGens::Reroll(RerollGen {
                             tet_last_emitted: _,
                             aversion_to_last: n,
                         }) => format!("Reroll {n}x"),
-                        StdTetGen::Stock(StockGen {
+                        MiscTetGens::Stock(StockGen {
                             tets_stocked: _,
                             restock_multiplicity,
                         }) => format!("{}-Bag", restock_multiplicity.get() * 7),
-                        StdTetGen::Recency(RecencyGen {
+                        MiscTetGens::Recency(RecencyGen {
                             tets_last_emitted: _,
                             factor,
                             is_base_not_exp,
@@ -149,7 +148,7 @@ impl<T: Write> Application<T> {
                                 format!("#^{:.01}", factor.get())
                             }
                         ),
-                        StdTetGen::BalanceOut(BalanceOutGen {
+                        MiscTetGens::BalanceOut(BalanceOutGen {
                             tets_relative_tallies: _,
                         }) => "Balance out".to_owned(),
                     }
@@ -365,29 +364,29 @@ impl<T: Write> Application<T> {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.gameplay_mut().rotsys = match self.settings.gameplay().rotsys
                         {
-                            StdPceRot::Ocular => StdPceRot::ClassicL,
-                            StdPceRot::ClassicL => StdPceRot::ClassicR,
-                            StdPceRot::ClassicR => StdPceRot::Super,
-                            StdPceRot::Super => StdPceRot::Ocular,
+                            MiscPceRots::Ocular => MiscPceRots::ClassicL,
+                            MiscPceRots::ClassicL => MiscPceRots::ClassicR,
+                            MiscPceRots::ClassicR => MiscPceRots::Super,
+                            MiscPceRots::Super => MiscPceRots::Ocular,
                         };
                     }
                     2 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         if modifiers.contains(KeyModifiers::ALT) {
                             match &mut self.settings.gameplay_mut().tetgen {
-                                StdTetGen::Reroll(RerollGen {
+                                MiscTetGens::Reroll(RerollGen {
                                     tet_last_emitted: _,
                                     aversion_to_last,
                                 }) => {
                                     *aversion_to_last = aversion_to_last.saturating_add(1);
                                 }
-                                StdTetGen::Stock(StockGen {
+                                MiscTetGens::Stock(StockGen {
                                     tets_stocked: _,
                                     restock_multiplicity,
                                 }) => {
                                     *restock_multiplicity = restock_multiplicity.saturating_add(1);
                                 }
-                                StdTetGen::Recency(RecencyGen {
+                                MiscTetGens::Recency(RecencyGen {
                                     tets_last_emitted: _,
                                     factor,
                                     is_base_not_exp,
@@ -398,21 +397,21 @@ impl<T: Write> Application<T> {
                                         *is_base_not_exp ^= true;
                                     }
                                 }
-                                StdTetGen::BalanceOut(BalanceOutGen {
+                                MiscTetGens::BalanceOut(BalanceOutGen {
                                     tets_relative_tallies: _,
                                 }) => {}
                             };
                         } else {
                             self.settings.gameplay_mut().tetgen =
                                 match self.settings.gameplay().tetgen {
-                                    StdTetGen::Reroll(RerollGen {
+                                    MiscTetGens::Reroll(RerollGen {
                                         aversion_to_last: 0,
                                         ..
-                                    }) => StdTetGen::classic(),
-                                    StdTetGen::Reroll(_) => StdTetGen::bag(),
-                                    StdTetGen::Stock(_) => StdTetGen::balance_out(),
-                                    StdTetGen::BalanceOut(_) => StdTetGen::snappy(),
-                                    StdTetGen::Recency(_) => StdTetGen::uniform(),
+                                    }) => MiscTetGens::classic(),
+                                    MiscTetGens::Reroll(_) => MiscTetGens::bag(),
+                                    MiscTetGens::Stock(_) => MiscTetGens::balance_out(),
+                                    MiscTetGens::BalanceOut(_) => MiscTetGens::snappy(),
+                                    MiscTetGens::Recency(_) => MiscTetGens::uniform(),
                                 };
                         }
                     }
@@ -503,23 +502,23 @@ impl<T: Write> Application<T> {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.gameplay_mut().rotsys = match self.settings.gameplay().rotsys
                         {
-                            StdPceRot::Ocular => StdPceRot::Super,
-                            StdPceRot::Super => StdPceRot::ClassicR,
-                            StdPceRot::ClassicR => StdPceRot::ClassicL,
-                            StdPceRot::ClassicL => StdPceRot::Ocular,
+                            MiscPceRots::Ocular => MiscPceRots::Super,
+                            MiscPceRots::Super => MiscPceRots::ClassicR,
+                            MiscPceRots::ClassicR => MiscPceRots::ClassicL,
+                            MiscPceRots::ClassicL => MiscPceRots::Ocular,
                         };
                     }
                     2 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         if modifiers.contains(KeyModifiers::ALT) {
                             match &mut self.settings.gameplay_mut().tetgen {
-                                StdTetGen::Reroll(RerollGen {
+                                MiscTetGens::Reroll(RerollGen {
                                     tet_last_emitted: _,
                                     aversion_to_last,
                                 }) => {
                                     *aversion_to_last = aversion_to_last.saturating_sub(1);
                                 }
-                                StdTetGen::Stock(StockGen {
+                                MiscTetGens::Stock(StockGen {
                                     tets_stocked: _,
                                     restock_multiplicity,
                                 }) => {
@@ -527,7 +526,7 @@ impl<T: Write> Application<T> {
                                         NonZeroU32::new(restock_multiplicity.get() - 1)
                                             .unwrap_or(NonZeroU32::MIN);
                                 }
-                                StdTetGen::Recency(RecencyGen {
+                                MiscTetGens::Recency(RecencyGen {
                                     tets_last_emitted: _,
                                     factor,
                                     is_base_not_exp,
@@ -539,21 +538,21 @@ impl<T: Write> Application<T> {
                                             factor.saturating_sub(ExtNonNegF64::new(0.1).unwrap());
                                     }
                                 }
-                                StdTetGen::BalanceOut(BalanceOutGen {
+                                MiscTetGens::BalanceOut(BalanceOutGen {
                                     tets_relative_tallies: _,
                                 }) => {}
                             };
                         } else {
                             self.settings.gameplay_mut().tetgen =
                                 match self.settings.gameplay().tetgen {
-                                    StdTetGen::Reroll(RerollGen {
+                                    MiscTetGens::Reroll(RerollGen {
                                         aversion_to_last: 0,
                                         ..
-                                    }) => StdTetGen::snappy(),
-                                    StdTetGen::Reroll(_) => StdTetGen::uniform(),
-                                    StdTetGen::Stock(_) => StdTetGen::classic(),
-                                    StdTetGen::BalanceOut(_) => StdTetGen::bag(),
-                                    StdTetGen::Recency(_) => StdTetGen::balance_out(),
+                                    }) => MiscTetGens::snappy(),
+                                    MiscTetGens::Reroll(_) => MiscTetGens::uniform(),
+                                    MiscTetGens::Stock(_) => MiscTetGens::classic(),
+                                    MiscTetGens::BalanceOut(_) => MiscTetGens::bag(),
+                                    MiscTetGens::Recency(_) => MiscTetGens::balance_out(),
                                 };
                         }
                     }

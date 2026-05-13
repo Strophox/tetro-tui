@@ -20,12 +20,14 @@ use crate::settings::TileTexture;
 pub struct TermCell {
     pub ch: char,
     pub fg: Color,
+    pub bg: Color,
 }
 
 impl TermCell {
     const EMPTY: TermCell = TermCell {
         ch: ' ',
         fg: Color::Reset,
+        bg: Color::Reset,
     };
 }
 
@@ -35,8 +37,8 @@ pub trait TerminalBuffer {
     fn reset_with_offset_and_area(&mut self, offsets: (u16, u16), dimensions: (u16, u16));
 
     fn write_char(&mut self, x: u16, y: u16, cell: TermCell);
-    fn write_tile(&mut self, x: u16, y: u16, tile: TileTexture, fg: Color);
-    fn write_str(&mut self, x: u16, y: u16, str: &str, fg: Color);
-    fn write_str_wrapping(&mut self, x: u16, y: u16, str: &str, fg: Color);
+    fn write_tile(&mut self, x: u16, y: u16, tile: TileTexture, fg: Color, bg: Color);
+    fn write_str(&mut self, x: u16, y: u16, str: &str, fg: Color, bg: Color);
+    fn write_str_wrapping(&mut self, x: u16, y: u16, str: &str, fg: Color, bg: Color);
     fn flush(&mut self, term: &mut impl Write) -> io::Result<()>;
 }

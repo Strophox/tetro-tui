@@ -70,7 +70,7 @@ impl TerminalBuffer for DenseDoubleBuffer {
         }
     }
 
-    fn write_tile(&mut self, x: u16, y: u16, tile: TileTexture, fg: Color) {
+    fn write_tile(&mut self, x: u16, y: u16, tile: TileTexture, fg: Color, bg: Color) {
         if y >= self.h_vp {
             return;
         }
@@ -79,15 +79,15 @@ impl TerminalBuffer for DenseDoubleBuffer {
             return;
         }
         let idx = x as usize + self.w_vp as usize * y as usize;
-        self.next_buf[idx] = TermCell { ch: ch0, fg };
+        self.next_buf[idx] = TermCell { ch: ch0, fg, bg };
 
         if x + 1 >= self.w_vp {
             return;
         }
-        self.next_buf[idx + 1] = TermCell { ch: ch1, fg };
+        self.next_buf[idx + 1] = TermCell { ch: ch1, fg, bg };
     }
 
-    fn write_str(&mut self, x: u16, y: u16, str: &str, fg: Color) {
+    fn write_str(&mut self, x: u16, y: u16, str: &str, fg: Color, bg: Color) {
         if y >= self.h_vp {
             return;
         }
@@ -96,11 +96,11 @@ impl TerminalBuffer for DenseDoubleBuffer {
                 return;
             }
             let idx = x as usize + dx + self.w_vp as usize * y as usize;
-            self.next_buf[idx] = TermCell { ch, fg };
+            self.next_buf[idx] = TermCell { ch, fg, bg };
         }
     }
 
-    fn write_str_wrapping(&mut self, x: u16, y: u16, str: &str, fg: Color) {
+    fn write_str_wrapping(&mut self, x: u16, y: u16, str: &str, fg: Color, bg: Color) {
         let mut dx = 0;
         let mut dy = 0;
         for ch in str.chars() {
@@ -112,7 +112,7 @@ impl TerminalBuffer for DenseDoubleBuffer {
                 return;
             }
             let idx = (x as usize + dx) + (self.w_vp as usize) * (y as usize + dy);
-            self.next_buf[idx] = TermCell { ch, fg };
+            self.next_buf[idx] = TermCell { ch, fg, bg };
             dx += 1;
         }
     }
@@ -124,17 +124,15 @@ impl TerminalBuffer for DenseDoubleBuffer {
         for x in 0..self.w_vp {
             for y in 0..self.h_vp {
                 let idx = x as usize + self.w_vp as usize * y as usize;
-                #[rustfmt::skip] let TermCell { ch: old_ch, fg: old_fg } = self.prev_buf[idx];
-                #[rustfmt::skip] let TermCell { ch: new_ch, fg: new_fg } = self.next_buf[idx];
-
-                if new_fg != old_fg || new_ch != old_ch {
+                if self.prev_buf[idx] != self.next_buf[idx] {
                     if !diff_issued {
                         diff_issued = true;
                         term.queue(terminal::BeginSynchronizedUpdate)?;
                     }
                     // Always reprint styled if anything changed.
                     term.queue(cursor::MoveTo(self.x_vp + x, self.y_vp + y))?;
-                    term.queue(PrintStyledContent(new_ch.with(new_fg)))?;
+                    #[rustfmt::skip] let TermCell { ch: new_ch, fg: new_fg, bg: new_bg } = self.next_buf[idx];
+                    term.queue(PrintStyledContent(new_ch.with(new_fg).on(new_bg)))?;
                 }
             }
         }

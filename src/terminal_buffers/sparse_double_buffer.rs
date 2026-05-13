@@ -56,7 +56,7 @@ impl TerminalBuffer for SparseDoubleBuffer {
         }
     }
 
-    fn write_tile(&mut self, x: u16, y: u16, tile: TileTexture, fg: Color) {
+    fn write_tile(&mut self, x: u16, y: u16, tile: TileTexture, fg: Color, bg: Color) {
         if y >= self.h_vp {
             return;
         }
@@ -64,15 +64,16 @@ impl TerminalBuffer for SparseDoubleBuffer {
         if x >= self.w_vp {
             return;
         }
-        self.next_buf.insert((x, y), TermCell { ch: ch0, fg });
+        self.next_buf.insert((x, y), TermCell { ch: ch0, fg, bg });
 
         if x + 1 >= self.w_vp {
             return;
         }
-        self.next_buf.insert((x + 1, y), TermCell { ch: ch1, fg });
+        self.next_buf
+            .insert((x + 1, y), TermCell { ch: ch1, fg, bg });
     }
 
-    fn write_str(&mut self, x: u16, y: u16, str: &str, fg: Color) {
+    fn write_str(&mut self, x: u16, y: u16, str: &str, fg: Color, bg: Color) {
         if y >= self.h_vp {
             return;
         }
@@ -81,11 +82,11 @@ impl TerminalBuffer for SparseDoubleBuffer {
                 return;
             }
             self.next_buf
-                .insert((x + dx as u16, y), TermCell { ch, fg });
+                .insert((x + dx as u16, y), TermCell { ch, fg, bg });
         }
     }
 
-    fn write_str_wrapping(&mut self, x: u16, y: u16, str: &str, fg: Color) {
+    fn write_str_wrapping(&mut self, x: u16, y: u16, str: &str, fg: Color, bg: Color) {
         let mut dx = 0;
         let mut dy = 0;
         for ch in str.chars() {
@@ -97,7 +98,7 @@ impl TerminalBuffer for SparseDoubleBuffer {
                 return;
             }
             self.next_buf
-                .insert((x + dx as u16, y + dy as u16), TermCell { ch, fg });
+                .insert((x + dx as u16, y + dy as u16), TermCell { ch, fg, bg });
             dx += 1;
         }
     }
@@ -118,48 +119,48 @@ impl TerminalBuffer for SparseDoubleBuffer {
 
                 #[rustfmt::skip]
                 // Old buffer contains something the new one doesn't: Overwrite it to clear it.
-                (Some((old_x_y, TermCell { ch: _old_ch, fg: _old_fg })),
+                (Some((old_x_y, _old_cell)),
                  None
                 ) => {
                     term.queue(cursor::MoveTo(self.x_vp + old_x_y.0, self.y_vp + old_x_y.1))?;
-                    term.queue(PrintStyledContent(' '.with(Color::Reset)))?;
+                    term.queue(PrintStyledContent(' '.with(Color::Reset).on(Color::Reset)))?;
                     old_pos_cell = old_buffer.next();
                 }
 
                 #[rustfmt::skip]
                 // New buffer contains something the old one doesn't: Write it.
                 (None,
-                 Some((new_x_y, TermCell { ch: new_ch, fg: new_fg })),
+                 Some((new_x_y, TermCell { ch: new_ch, fg: new_fg, bg: new_bg })),
                 ) => {
                     term.queue(cursor::MoveTo(self.x_vp + new_x_y.0, self.y_vp + new_x_y.1))?;
-                    term.queue(PrintStyledContent(new_ch.with(*new_fg)))?;
+                    term.queue(PrintStyledContent(new_ch.with(*new_fg).on(*new_bg)))?;
                     new_pos_cell = new_buffer.next();
                 }
 
                 #[rustfmt::skip]
-                (Some((old_x_y, TermCell { ch: old_ch, fg: old_fg })),
-                 Some((new_x_y, TermCell { ch: new_ch, fg: new_fg })),
+                (Some((old_x_y, old_cell)),
+                 Some((new_x_y, new_cell @ TermCell { ch: new_ch, fg: new_fg, bg: new_bg })),
                 ) => {
                     match old_x_y.cmp(new_x_y) {
                         // Old buffer contains something the new one doesn't: Overwrite it to clear it.
                         Ordering::Less => {
                             term.queue(cursor::MoveTo(self.x_vp + old_x_y.0, self.y_vp + old_x_y.1))?;
-                            term.queue(PrintStyledContent(' '.with(Color::Reset)))?;
+                            term.queue(PrintStyledContent(' '.with(Color::Reset).on(Color::Reset)))?;
                             old_pos_cell = old_buffer.next();
                         }
 
                         // New buffer contains something the old one doesn't: Write it.
                         Ordering::Greater => {
                             term.queue(cursor::MoveTo(self.x_vp + new_x_y.0, self.y_vp + new_x_y.1))?;
-                            term.queue(PrintStyledContent(new_ch.with(*new_fg)))?;
+                            term.queue(PrintStyledContent(new_ch.with(*new_fg).on(*new_bg)))?;
                             new_pos_cell = new_buffer.next();
                         }
 
                         // Old and new overlap! Handle possible difference.
                         Ordering::Equal => {
-                            if new_fg != old_fg || new_ch != old_ch {
+                            if new_cell != old_cell {
                                 term.queue(cursor::MoveTo(self.x_vp + new_x_y.0, self.y_vp + new_x_y.1))?;
-                                term.queue(PrintStyledContent(new_ch.with(*new_fg)))?;
+                                term.queue(PrintStyledContent(new_ch.with(*new_fg).on(*new_bg)))?;
                             }
                             old_pos_cell = old_buffer.next();
                             new_pos_cell = new_buffer.next();

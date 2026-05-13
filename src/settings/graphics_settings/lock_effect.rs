@@ -1,9 +1,9 @@
 use std::time::Duration;
 
-use falling_tetromino_engine::{InGameTime, TileID};
+use crate::tetromino_engine::InGameTime;
 
 use crate::settings::{
-    Palette, SlotMachine,
+    Palette, PaletteIdx, SlotMachine,
     graphics_settings::{
         MaybeOverride::{self, Keep, Override},
         TileTexture, UnwrapTileFromStr,
@@ -25,7 +25,7 @@ pub struct LockEffect {
     /// - `None` tile texture falls back to locked piece tile texture.
     /// - `None` tile id falls back to locked piece tile id.
     #[serde(rename = "anim")]
-    pub animation: Vec<(MaybeOverride<TileTexture>, MaybeOverride<TileID>)>,
+    pub animation: Vec<(MaybeOverride<TileTexture>, MaybeOverride<PaletteIdx>)>,
 }
 
 pub fn lock_effect_presets() -> SlotMachine<LockEffect> {

@@ -1,9 +1,9 @@
 use std::time::Duration;
 
-use either::Either;
-use falling_tetromino_engine::{
-    Configuration, ExtDuration, ExtNonNegF64, SoftDropRate, StdPceRot, StdTetGen,
+use crate::tetromino_engine::{
+    Configuration, ExtDuration, ExtNonNegF64, MiscPceRots, MiscTetGens, SoftDropRate,
 };
+use either::Either;
 
 use crate::settings::SlotMachine;
 
@@ -12,8 +12,8 @@ use crate::settings::SlotMachine;
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug, serde::Serialize, serde::Deserialize,
 )]
 pub struct GameplayPreferences {
-    pub rotsys: StdPceRot,
-    pub tetgen: StdTetGen,
+    pub rotsys: MiscPceRots,
+    pub tetgen: MiscTetGens,
     pub preview: usize,
     #[serde_as(as = "serde_with::DurationSecondsWithFrac<f64>")]
     pub das: Duration,
@@ -52,7 +52,7 @@ impl Default for GameplayPreferences {
         let c = Configuration::default();
         Self {
             rotsys: c.rotation_system,
-            tetgen: StdTetGen::default(),
+            tetgen: MiscTetGens::default(),
             preview: c.generate_piece_preview,
             das: c.delayed_auto_shift,
             arr: c.auto_repeat_rate,
@@ -79,8 +79,8 @@ impl GameplayPreferences {
 
     pub fn guideline() -> GameplayPreferences {
         GameplayPreferences {
-            rotsys: StdPceRot::Super,
-            tetgen: StdTetGen::bag(),
+            rotsys: MiscPceRots::Super,
+            tetgen: MiscTetGens::bag(),
             preview: 3,
             das: Duration::from_millis(167), // ≈ 0.3s
             arr: Duration::from_millis(33),  // ≈ 0.5s / 8
@@ -95,8 +95,8 @@ impl GameplayPreferences {
 
     pub fn nes() -> GameplayPreferences {
         GameplayPreferences {
-            rotsys: StdPceRot::ClassicR,
-            tetgen: StdTetGen::classic(),
+            rotsys: MiscPceRots::ClassicR,
+            tetgen: MiscTetGens::classic(),
             das: Duration::from_millis(266), // ≈ 16 /60.0988
             preview: 1,
             arr: Duration::from_millis(100), // ≈ 6 /60.0988
@@ -111,8 +111,8 @@ impl GameplayPreferences {
 
     pub fn gameboy() -> GameplayPreferences {
         GameplayPreferences {
-            rotsys: StdPceRot::ClassicL,
-            tetgen: StdTetGen::uniform(),
+            rotsys: MiscPceRots::ClassicL,
+            tetgen: MiscTetGens::uniform(),
             das: Duration::from_millis(400), // ≈ 24 /59.73
             preview: 1,
             arr: Duration::from_millis(150),  // ≈ 9 /59.73
@@ -127,8 +127,8 @@ impl GameplayPreferences {
 
     pub fn elektronika_60() -> GameplayPreferences {
         GameplayPreferences {
-            rotsys: StdPceRot::ClassicL,
-            tetgen: StdTetGen::uniform(),
+            rotsys: MiscPceRots::ClassicL,
+            tetgen: MiscTetGens::uniform(),
             das: Duration::from_millis(350), // ≈ Originally no DAS, but we add an interesting one for better feel if needed.
             preview: 1,
             arr: Duration::from_millis(100), // ≈ Originally no ARR, but we add an interesting one for better feel if needed.

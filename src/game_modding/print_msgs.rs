@@ -1,5 +1,6 @@
-use falling_tetromino_engine::{
-    GameAccess, GameModifier, InGameTime, Notification, NotificationFeed,
+use crate::tetromino_engine::{
+    GameAccess, GameModifier, InGameTime, MiscPceRots, MiscTetGens, Notification, NotificationFeed,
+    TileType,
 };
 
 use crate::savefile_logic::to_savefile_string;
@@ -18,7 +19,9 @@ pub struct PrintMsgs {
 impl PrintMsgs {
     pub const MOD_ID: &str = stringify!(PrintMsgs);
 
-    pub fn modifier(messages: Vec<String>) -> Box<dyn GameModifier> {
+    pub fn modifier(
+        messages: Vec<String>,
+    ) -> Box<dyn GameModifier<MiscTetGens, MiscPceRots, TileType>> {
         Box::new(Self {
             messages,
             init: false,
@@ -26,7 +29,7 @@ impl PrintMsgs {
     }
 }
 
-impl GameModifier for PrintMsgs {
+impl GameModifier<MiscTetGens, MiscPceRots, TileType> for PrintMsgs {
     fn id(&self) -> String {
         Self::MOD_ID.to_owned()
     }
@@ -35,11 +38,13 @@ impl GameModifier for PrintMsgs {
         to_savefile_string(&self.messages).unwrap()
     }
 
-    fn try_clone(&self) -> Result<Box<dyn GameModifier>, String> {
+    fn try_clone(
+        &self,
+    ) -> Result<Box<dyn GameModifier<MiscTetGens, MiscPceRots, TileType>>, String> {
         Ok(Box::new(self.clone()))
     }
 
-    fn stats(&self) -> &[String] {
+    fn values(&self) -> &[(String, String)] {
         &[]
     }
 

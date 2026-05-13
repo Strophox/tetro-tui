@@ -1,4 +1,4 @@
-use falling_tetromino_engine::{Button, Game, GameBuilder, InGameTime, Input};
+use crate::tetromino_engine::{Button, Game, GameBuilder, InGameTime, Input};
 
 use crate::game_modding;
 
@@ -29,7 +29,7 @@ impl<IH: InputHistoryEncoder> GameRestorationData<IH> {
         input_history: IH,
         forfeit: Option<InGameTime>,
     ) -> GameRestorationData<IH> {
-        let (builder, mod_ids_cfgs) = game.blueprint();
+        let (builder, mod_ids_cfgs) = game.reproduce_builder();
 
         GameRestorationData {
             builder,

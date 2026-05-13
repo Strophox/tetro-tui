@@ -1,9 +1,9 @@
 use std::time::Duration;
 
-use either::Either;
-use falling_tetromino_engine::{
+use crate::tetromino_engine::{
     DelayParameters, DelayTable, ExtDuration, Game, GameBuilder, GameLimits, Stat,
 };
+use either::Either;
 
 use crate::{
     game_modding::{self, CheeseConfig, ComboConfig, SurvivalConfig},

@@ -11,14 +11,14 @@ use crossterm::{
         KeyEventKind::{Press, Repeat},
         KeyModifiers,
     },
-    style::{self, Print, PrintStyledContent, Stylize},
+    style::{Print, PrintStyledContent, Stylize},
     terminal::{Clear, ClearType},
 };
-use falling_tetromino_engine::Tetromino;
 
 use crate::{
     Application, Settings,
     fmt_helpers::BoolAsOnOff,
+    tetromino_engine::{Tetromino, TileType},
     tui_menus::{Menu, MenuUpdate, heading_line},
 };
 
@@ -92,10 +92,10 @@ impl<T: Write> Application<T> {
 
             let labels1 = [
                 format!(
-                    "Color palette = {}",
+                    "Tile coloring = {}",
                     self.settings
-                        .palette_slotmachine
-                        .grab(self.settings.graphics().palette_selected)
+                        .tile_coloring_slotmachine
+                        .grab(self.settings.graphics().tile_coloring_selected)
                         .0
                 ),
                 format!(
@@ -134,13 +134,13 @@ impl<T: Write> Application<T> {
                         .0,
                     self.settings
                         .tile_symbols()
-                        .locked
+                        .locked(TileType::Tet(Tetromino::O))
                         .0
                         .map(|ch| ch.to_string())
                         .join(""),
                     self.settings
                         .tile_symbols()
-                        .play
+                        .player(Tetromino::O)
                         .0
                         .map(|ch| ch.to_string())
                         .join(""),
@@ -192,7 +192,7 @@ impl<T: Write> Application<T> {
                         self.settings.graphics().show_grid.then_some("Grid"),
                         self.settings.graphics().show_shadow.then_some("Shadow"),
                         self.settings.graphics().show_spawn.then_some("Spawn"),
-                        (self.settings.graphics().lockedtilepalette_selected != 0)
+                        (self.settings.graphics().locked_tile_coloring_selected != 0)
                             .then_some("Col'tiles"),
                         self.settings.graphics().show_main_hud.then_some("HUD"),
                         self.settings.graphics().show_keybinds.then_some("Keybinds"),
@@ -228,7 +228,7 @@ impl<T: Write> Application<T> {
                 ),
                 (
                     "Color locked tiles",
-                    self.settings.graphics().lockedtilepalette_selected != 0,
+                    self.settings.graphics().locked_tile_coloring_selected != 0,
                 ),
                 ("Main HUD", self.settings.graphics().show_main_hud),
                 (
@@ -311,13 +311,7 @@ impl<T: Write> Application<T> {
                     self.term.queue(PrintStyledContent(
                         self.settings.small_tetromino_symbols().tets[tet as usize]
                             .clone()
-                            .with(
-                                *self
-                                    .settings
-                                    .palette()
-                                    .get(&tet.tile_id())
-                                    .unwrap_or(&style::Color::Reset),
-                            ),
+                            .with(self.settings.tile_coloring().get(tet.into(), 0).0),
                     ))?;
                     self.term.queue(Print(' '))?;
                 }
@@ -438,11 +432,11 @@ impl<T: Write> Application<T> {
                     }
                     1 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().palette_selected += 1;
-                        self.settings.graphics_mut().palette_selected %=
-                            self.settings.palette_slotmachine.slots.len();
-                        self.settings.graphics_mut().lockedtilepalette_selected =
-                            self.settings.graphics_mut().palette_selected;
+                        self.settings.graphics_mut().tile_coloring_selected += 1;
+                        self.settings.graphics_mut().tile_coloring_selected %=
+                            self.settings.tile_coloring_slotmachine.slots.len();
+                        self.settings.graphics_mut().locked_tile_coloring_selected =
+                            self.settings.graphics_mut().tile_coloring_selected;
                     }
                     2 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
@@ -520,9 +514,9 @@ impl<T: Write> Application<T> {
                     }
                     14 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().lockedtilepalette_selected =
-                            if self.settings.graphics().lockedtilepalette_selected == 0 {
-                                self.settings.graphics_mut().palette_selected
+                        self.settings.graphics_mut().locked_tile_coloring_selected =
+                            if self.settings.graphics().locked_tile_coloring_selected == 0 {
+                                self.settings.graphics_mut().tile_coloring_selected
                             } else {
                                 0
                             };
@@ -563,12 +557,12 @@ impl<T: Write> Application<T> {
                     }
                     1 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().palette_selected +=
-                            self.settings.palette_slotmachine.slots.len() - 1;
-                        self.settings.graphics_mut().palette_selected %=
-                            self.settings.palette_slotmachine.slots.len();
-                        self.settings.graphics_mut().lockedtilepalette_selected =
-                            self.settings.graphics_mut().palette_selected;
+                        self.settings.graphics_mut().tile_coloring_selected +=
+                            self.settings.tile_coloring_slotmachine.slots.len() - 1;
+                        self.settings.graphics_mut().tile_coloring_selected %=
+                            self.settings.tile_coloring_slotmachine.slots.len();
+                        self.settings.graphics_mut().locked_tile_coloring_selected =
+                            self.settings.graphics_mut().tile_coloring_selected;
                     }
                     2 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
@@ -661,9 +655,9 @@ impl<T: Write> Application<T> {
                     }
                     14 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().lockedtilepalette_selected =
-                            if self.settings.graphics().lockedtilepalette_selected == 0 {
-                                self.settings.graphics_mut().palette_selected
+                        self.settings.graphics_mut().locked_tile_coloring_selected =
+                            if self.settings.graphics().locked_tile_coloring_selected == 0 {
+                                self.settings.graphics_mut().tile_coloring_selected
                             } else {
                                 0
                             };

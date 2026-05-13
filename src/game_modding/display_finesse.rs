@@ -1,4 +1,6 @@
-use falling_tetromino_engine::{GameAccess, GameModifier, NotificationFeed};
+use crate::tetromino_engine::{
+    GameAccess, GameModifier, MiscPceRots, MiscTetGens, NotificationFeed, TileType,
+};
 
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
@@ -8,22 +10,22 @@ pub struct DisplayFinesse {
 
     // Stateful fields.
     player_inputs_counted: u32,
-    cached_stats: [String; 1],
+    cached_display_values: [(String, String); 1],
 }
 
 impl DisplayFinesse {
     pub const MOD_ID: &str = stringify!(DisplayFinesse);
 
-    pub fn modifier() -> Box<dyn GameModifier> {
+    pub fn modifier() -> Box<dyn GameModifier<MiscTetGens, MiscPceRots, TileType>> {
         let modifier = DisplayFinesse {
             player_inputs_counted: 0,
-            cached_stats: [Self::fmt_finesse(0)],
+            cached_display_values: [("Finesse".to_owned(), 0.to_string())],
         };
         Box::new(modifier)
     }
 }
 
-impl GameModifier for DisplayFinesse {
+impl GameModifier<MiscTetGens, MiscPceRots, TileType> for DisplayFinesse {
     fn id(&self) -> String {
         Self::MOD_ID.to_owned()
     }
@@ -32,33 +34,29 @@ impl GameModifier for DisplayFinesse {
         "".to_owned()
     }
 
-    fn try_clone(&self) -> Result<Box<dyn GameModifier>, String> {
+    fn try_clone(
+        &self,
+    ) -> Result<Box<dyn GameModifier<MiscTetGens, MiscPceRots, TileType>>, String> {
         Ok(Box::new(self.clone()))
     }
 
-    fn stats(&self) -> &[String] {
-        &self.cached_stats
+    fn values(&self) -> &[(String, String)] {
+        &self.cached_display_values
     }
 
     fn on_receive_player_input(
         &mut self,
         _game: GameAccess,
         _feed: &mut NotificationFeed,
-        _time: &mut falling_tetromino_engine::InGameTime,
-        player_input: &mut Option<falling_tetromino_engine::Input>,
+        _time: &mut crate::tetromino_engine::InGameTime,
+        player_input: &mut Option<crate::tetromino_engine::Input>,
     ) {
         if matches!(
             player_input,
-            Some(falling_tetromino_engine::Input::Activate(_))
+            Some(crate::tetromino_engine::Input::Activate(_))
         ) {
             self.player_inputs_counted += 1;
-            self.cached_stats[0] = Self::fmt_finesse(self.player_inputs_counted);
+            self.cached_display_values[0].1 = self.player_inputs_counted.to_string();
         }
-    }
-}
-
-impl DisplayFinesse {
-    fn fmt_finesse(num: u32) -> String {
-        format!("Finesse: {num}")
     }
 }

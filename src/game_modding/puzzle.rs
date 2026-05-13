@@ -1,12 +1,11 @@
 use std::{collections::VecDeque, time::Duration};
 
-use either::Either;
-use falling_tetromino_engine::{
+use crate::tetromino_engine::{
     Button, DelayParameters, Game, GameAccess, GameBuilder, GameEndCause, GameModifier, InGameTime,
-    Input, Line, Notification, NotificationFeed, Phase, State, Tetromino,
+    Input, Line, MiscPceRots, MiscTetGens, Notification, NotificationFeed, Phase, State, Tetromino,
+    TileType,
 };
-
-use crate::settings::Palette;
+use either::Either;
 
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
@@ -20,7 +19,7 @@ pub struct Puzzle {
     stage_tet_count: usize,
     stage_attempts: usize,
     end_post_spawn: Option<bool>,
-    cached_stats: [String; 1],
+    cached_display_values: [(String, String); 1],
 }
 
 impl Puzzle {
@@ -33,7 +32,7 @@ impl Puzzle {
             stage_tet_count: 0,
             stage_attempts: 0,
             end_post_spawn: None,
-            cached_stats: [Self::fmt_stage_progress(0)],
+            cached_display_values: [("Stage".to_owned(), Self::fmt_stage_idx(0))],
         });
 
         builder
@@ -42,12 +41,12 @@ impl Puzzle {
                 Duration::from_millis(1000).into(),
             )))
             .generate_piece_preview(0)
-            .rotation_system(falling_tetromino_engine::StdPceRot::Ocular)
+            .rotation_system(crate::tetromino_engine::MiscPceRots::Ocular)
             .build_modded(vec![modifier])
     }
 }
 
-impl GameModifier for Puzzle {
+impl GameModifier<MiscTetGens, MiscPceRots, TileType> for Puzzle {
     fn id(&self) -> String {
         Self::MOD_ID.to_owned()
     }
@@ -56,12 +55,14 @@ impl GameModifier for Puzzle {
         "".to_owned()
     }
 
-    fn try_clone(&self) -> Result<Box<dyn GameModifier>, String> {
+    fn try_clone(
+        &self,
+    ) -> Result<Box<dyn GameModifier<MiscTetGens, MiscPceRots, TileType>>, String> {
         Ok(Box::new(self.clone()))
     }
 
-    fn stats(&self) -> &[String] {
-        &self.cached_stats
+    fn values(&self) -> &[(String, String)] {
+        &self.cached_display_values
     }
 
     fn on_spawn_pre(
@@ -82,7 +83,10 @@ impl GameModifier for Puzzle {
             // ));
             if game.config.send_notifications {
                 feed.push((
-                    Notification::Custom(Self::fmt_stage_progress(self.stage_idx)),
+                    Notification::Custom(format!(
+                        "Begin - Stage {}",
+                        Self::fmt_stage_idx(self.stage_idx)
+                    )),
                     *time,
                 ));
                 feed.push((Notification::Custom("Clear to advance!".to_string()), *time));
@@ -103,7 +107,11 @@ impl GameModifier for Puzzle {
         // From here assume player used up all pieces.
 
         // A stage has been successfully finished if every line on the board is empty.
-        let stage_is_success = game.state.board.iter().all(|line| *line == Line::default());
+        let stage_is_success = game
+            .state
+            .board
+            .iter()
+            .all(|(line, _is_frozen)| *line == Line::default());
 
         // Failed on last attempt, this is game over.
         if !stage_is_success && self.stage_attempts == Self::MAX_STAGE_ATTEMPTS {
@@ -133,11 +141,11 @@ impl GameModifier for Puzzle {
             // ));
             if game.config.send_notifications {
                 feed.push((
-                    Notification::Custom(Self::fmt_stage_progress(self.stage_idx)),
+                    Notification::Custom(format!("Stage {}", Self::fmt_stage_idx(self.stage_idx))),
                     *time,
                 ));
             }
-            self.cached_stats[0] = Self::fmt_stage_progress(self.stage_idx);
+            self.cached_display_values[0].1 = Self::fmt_stage_idx(self.stage_idx);
         } else {
             // Reattempt stage.
             self.stage_attempts += 1;
@@ -201,20 +209,22 @@ impl Puzzle {
     fn load_stage(&mut self, state: &mut State) {
         let (_stage_name, stage_lines, stage_tetrominos) = Self::get_stage_data(self.stage_idx);
 
-        for (stage_line, game_line) in stage_lines
+        state.board.fill(Default::default());
+        state.board.resize(stage_lines.len(), Default::default());
+
+        for (stage_line, (game_line, _is_frozen)) in stage_lines
             .iter()
             .rev()
             .chain(std::iter::repeat(&&[b' '; 10]))
             .zip(state.board.iter_mut())
         {
-            *game_line = Line::default();
             if stage_line.iter().any(|c| c != &b' ') {
                 for (game_cell, puzzle_tile) in game_line
                     .iter_mut()
                     .zip(stage_line.iter().chain(std::iter::repeat(&b'O')))
                 {
                     if puzzle_tile != &b' ' {
-                        *game_cell = Some(Palette::GRAY);
+                        *game_cell = Some(TileType::Generic);
                     }
                 }
             }
@@ -232,8 +242,8 @@ impl Puzzle {
     const MAX_STAGE_ATTEMPTS: usize = 4;
     const STAGES_LEN: usize = 24;
 
-    fn fmt_stage_progress(stage_idx: usize) -> String {
-        format!("Stage {}", stage_idx + 1)
+    fn fmt_stage_idx(stage_idx: usize) -> String {
+        (stage_idx + 1).to_string()
     }
 
     #[allow(clippy::type_complexity)]

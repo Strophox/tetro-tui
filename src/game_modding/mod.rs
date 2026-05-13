@@ -9,7 +9,7 @@ mod puzzle;
 mod start_board;
 mod survival;
 
-use falling_tetromino_engine::{Game, GameBuilder, GameModifier};
+use crate::tetromino_engine::{Game, GameBuilder, GameModifier, TileType};
 
 use crate::savefile_logic::from_savefile_str;
 
@@ -17,6 +17,7 @@ pub use ascent::Ascent;
 pub use cheese::{Cheese, CheeseConfig};
 pub use combo::{Combo, ComboConfig};
 pub use display_finesse::DisplayFinesse;
+use falling_tetromino_engine::{MiscPceRots, MiscTetGens};
 pub use print_msgs::PrintMsgs;
 pub use puzzle::Puzzle;
 pub use start_board::StartBoard;
@@ -26,7 +27,8 @@ pub fn reconstruct_modded<'a>(
     builder: &'a GameBuilder,
     mod_ids_cfgs: &Vec<(String, String)>,
 ) -> Result<(Game, Vec<String>), String> {
-    let mut compounding_mods: Vec<Box<dyn GameModifier>> = Vec::new();
+    let mut compounding_mods: Vec<Box<dyn GameModifier<MiscTetGens, MiscPceRots, TileType>>> =
+        Vec::new();
 
     #[allow(clippy::type_complexity)]
     let mut building_mod: Option<(&str, Box<dyn FnOnce(&'a GameBuilder) -> Game>)> = None;

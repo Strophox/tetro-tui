@@ -1,17 +1,17 @@
 use std::{collections::VecDeque, time::Duration};
 
-use crossterm::style::Color;
-use falling_tetromino_engine::{
-    Button, Coordinate, ExtDuration, GameEndCause, LOCK_OUT_HEIGHT, Orientation, Phase, Stat,
-    Tetromino, TileID, WIDTH,
+use crate::tetromino_engine::{
+    BOARD_WIDTH, Button, Coordinate, ExtDuration, GameEndCause, LOCK_OUT_HEIGHT, Orientation,
+    Phase, Stat, Tetromino, TileType,
 };
+use crossterm::style::Color;
 use rand::RngExt;
 
 use crate::{
     fmt_helpers::{fmt_duration, fmt_hertz, fmt_lineclear_name},
     settings::{
         HardDropEffect, LineClearEffect, LineClearInlineEffect, LineClearParticleEffect,
-        LockEffect, Palette, TileTexture,
+        LockEffect, MaybeOverride::Override, TileTexture,
     },
     terminal_buffers::{DenseDoubleBuffer, TermCell, TerminalBuffer},
 };
@@ -23,14 +23,14 @@ pub struct HardDropEffectTile {
     creation_time: InGameTime,
     pos: Coordinate,
     normalized_height: f32,
-    original_tile_id: TileID,
+    original_tile_type: TileType,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug)]
 pub struct LockEffectTile {
     creation_time: InGameTime,
     pos: Coordinate,
-    original_tile_id: TileID,
+    original_tile_type: TileType,
 }
 
 #[derive(PartialEq, PartialOrd, Clone, Debug)]
@@ -40,7 +40,7 @@ pub struct LineClearEffectTile {
     origin: (usize, usize),
     momentum: (f32, f32),
     acceleration: (f32, f32),
-    tile_id: TileID,
+    original_tile_type: TileType,
 }
 
 #[derive(PartialEq, PartialOrd, Hash, Clone, Debug)]
@@ -48,7 +48,7 @@ pub struct LineClearEffectLine {
     creation_time: InGameTime,
     line_clear_duration: InGameTime,
     y: usize,
-    line: [TileID; WIDTH],
+    line: [TileType; BOARD_WIDTH],
 }
 
 #[derive(PartialEq, PartialOrd, Clone, Debug, Default)]
@@ -86,7 +86,7 @@ impl Renderer for StandardBufferedRenderer {
 
                     // Iterate through tiles starting top right, downwards then leftwards.
                     let mut current_x = None;
-                    for ((x, y), tile_id) in dropped_piece.tiles().into_iter().rev() {
+                    for (x, y) in dropped_piece.coords().into_iter().rev() {
                         if Some(x) == current_x {
                             // Skip duplicate tile in same column.
                             continue;
@@ -98,7 +98,7 @@ impl Renderer for StandardBufferedRenderer {
                                 creation_time: time,
                                 pos: (x, y + (dy as isize)),
                                 normalized_height: (dy as f32) / (height_dropped as f32),
-                                original_tile_id: tile_id,
+                                original_tile_type: dropped_piece.tetromino.into(),
                             });
                         }
                     }
@@ -116,11 +116,11 @@ impl Renderer for StandardBufferedRenderer {
                     }
                     let mut lock_effect_tiles = Vec::new();
 
-                    for (pos, tile_id) in piece.tiles() {
+                    for pos in piece.coords() {
                         lock_effect_tiles.push(LockEffectTile {
                             creation_time: time,
                             pos,
-                            original_tile_id: tile_id,
+                            original_tile_type: piece.tetromino.into(),
                         });
                     }
 
@@ -157,7 +157,7 @@ impl Renderer for StandardBufferedRenderer {
                                     rand::rng().random_range(-1.0..1.0),
                                 );
                                 // `xpos` as a value inside [-1, 1] representing its horizontal position within the line.
-                                let xpos = 2.0 * (x as f32) / (WIDTH as f32) - 1.0;
+                                let xpos = 2.0 * (x as f32) / (BOARD_WIDTH as f32) - 1.0;
                                 let lcpe = line_clear_particle_effect;
                                 let mmx = lcpe.momentum_base.0
                                     + lcpe.momentum_rand.0 * rand0
@@ -169,7 +169,7 @@ impl Renderer for StandardBufferedRenderer {
                                     origin: (x, y),
                                     momentum: (mmx, mmy),
                                     acceleration: line_clear_particle_effect.acceleration,
-                                    tile_id,
+                                    original_tile_type: tile_id,
                                 });
                             }
                         }
@@ -279,7 +279,7 @@ impl Renderer for StandardBufferedRenderer {
         const W_HOLD: u16 = 7;
         /// Total width of the inside of the game field.
         /// 2x because of font width.
-        const W_FIELD: u16 = 2 * (WIDTH as u16);
+        const W_FIELD: u16 = 2 * (BOARD_WIDTH as u16);
         /// Total width of the board including frame.
         const W_BOARD: u16 = 1 + W_FIELD + 1;
         /// Total width of the 'next' widget(s) including frame.
@@ -324,8 +324,8 @@ impl Renderer for StandardBufferedRenderer {
             let h_tmp_hudtl = h_float + H_PAD_TOP + H_TITLE_OFFSET;
 
             // Render game/mode title.
-            #[rustfmt::skip] self.term_buf.write_char(w_tmp_hudtl, h_tmp_hudtl + 1, TermCell { ch: c_m_tb, fg: Color::Reset });
-            #[rustfmt::skip] self.term_buf.write_char(w_tmp_hudtl + 1, h_tmp_hudtl + 1, TermCell { ch: c_m_tb, fg: Color::Reset });
+            #[rustfmt::skip] self.term_buf.write_char(w_tmp_hudtl, h_tmp_hudtl + 1, TermCell { ch: c_m_tb, fg: Color::Reset, bg: Color::Reset });
+            #[rustfmt::skip] self.term_buf.write_char(w_tmp_hudtl + 1, h_tmp_hudtl + 1, TermCell { ch: c_m_tb, fg: Color::Reset, bg: Color::Reset });
             for (dx, opt_ch) in meta_data
                 .title
                 .chars()
@@ -335,9 +335,9 @@ impl Renderer for StandardBufferedRenderer {
                 .enumerate()
             {
                 if let Some(ch) = opt_ch {
-                    #[rustfmt::skip] self.term_buf.write_char(w_tmp_hudtl + W_TITLE_MARGIN + (dx as u16), h_tmp_hudtl, TermCell { ch, fg: Color::Reset });
+                    #[rustfmt::skip] self.term_buf.write_char(w_tmp_hudtl + W_TITLE_MARGIN + (dx as u16), h_tmp_hudtl, TermCell { ch, fg: Color::Reset, bg: Color::Reset });
                 }
-                #[rustfmt::skip] self.term_buf.write_char(w_tmp_hudtl + W_TITLE_MARGIN + (dx as u16), h_tmp_hudtl + 1, TermCell { ch: c_m_tb, fg: Color::Reset });
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp_hudtl + W_TITLE_MARGIN + (dx as u16), h_tmp_hudtl + 1, TermCell { ch: c_m_tb, fg: Color::Reset, bg: Color::Reset });
             }
 
             // Render stats.
@@ -400,8 +400,8 @@ impl Renderer for StandardBufferedRenderer {
 
             // Show mod stats.
             for modifier in &game.modifiers {
-                for stat in modifier.stats() {
-                    stats.push(Some(("", stat.to_owned())));
+                for (s1, s2) in modifier.values() {
+                    stats.push(Some(("", format!("{s1}: {s2}"))));
                 }
             }
 
@@ -451,9 +451,9 @@ impl Renderer for StandardBufferedRenderer {
 
             for (dy, opt_stat) in stats.into_iter().enumerate() {
                 if let Some((str_statname, str_statval)) = opt_stat {
-                    #[rustfmt::skip] self.term_buf.write_str(w_tmp_hudtl + 1, h_tmp_hudtl + 2 + (dy as u16), str_statname, Color::Reset);
+                    #[rustfmt::skip] self.term_buf.write_str(w_tmp_hudtl + 1, h_tmp_hudtl + 2 + (dy as u16), str_statname, Color::Reset, Color::Reset);
                     let w_statname = str_statname.len() as u16;
-                    #[rustfmt::skip] self.term_buf.write_str(w_tmp_hudtl + 1 + w_statname, h_tmp_hudtl + 2 + (dy as u16), &str_statval, Color::Reset);
+                    #[rustfmt::skip] self.term_buf.write_str(w_tmp_hudtl + 1 + w_statname, h_tmp_hudtl + 2 + (dy as u16), &str_statval, Color::Reset, Color::Reset);
                 }
             }
 
@@ -465,11 +465,11 @@ impl Renderer for StandardBufferedRenderer {
                 let h_tmp_ktl = (h_tmp_hudtl + 2 + (h_stats as u16) + 1)
                     .max(h_float + H_PAD_TOP + H_FIELD.saturating_sub(MAX_LEGEND_ENTRIES));
 
-                #[rustfmt::skip] self.term_buf.write_char(w_tmp_ktl, h_tmp_ktl, TermCell { ch: c_m_tb, fg: Color::Reset });
-                #[rustfmt::skip] self.term_buf.write_char(w_tmp_ktl + 1, h_tmp_ktl, TermCell { ch: c_m_tb, fg: Color::Reset });
-                #[rustfmt::skip] self.term_buf.write_str(w_tmp_ktl + 1 + 1, h_tmp_ktl, "basic keybinds", Color::Reset);
-                #[rustfmt::skip] self.term_buf.write_char(w_tmp_ktl + 1 + 1 + 14, h_tmp_ktl, TermCell { ch: c_m_tb, fg: Color::Reset });
-                #[rustfmt::skip] self.term_buf.write_char(w_tmp_ktl + 1 + 1 + 14 + 1, h_tmp_ktl, TermCell { ch: c_m_tb, fg: Color::Reset });
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp_ktl, h_tmp_ktl, TermCell { ch: c_m_tb, fg: Color::Reset, bg: Color::Reset });
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp_ktl + 1, h_tmp_ktl, TermCell { ch: c_m_tb, fg: Color::Reset, bg: Color::Reset });
+                #[rustfmt::skip] self.term_buf.write_str(w_tmp_ktl + 1 + 1, h_tmp_ktl, "basic keybinds", Color::Reset, Color::Reset);
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp_ktl + 1 + 1 + 14, h_tmp_ktl, TermCell { ch: c_m_tb, fg: Color::Reset, bg: Color::Reset });
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp_ktl + 1 + 1 + 14 + 1, h_tmp_ktl, TermCell { ch: c_m_tb, fg: Color::Reset, bg: Color::Reset });
 
                 const W_KEYBINDS: usize = (W_ADD_ACTIVE_HUD + W_HOLD).saturating_sub(1) as usize;
                 // FIXME: Correct but kinda inefficient?
@@ -488,7 +488,7 @@ impl Renderer for StandardBufferedRenderer {
                 for (dy, (icons, description)) in keybinds_legend.iter().enumerate() {
                     let icons = icons.chars().take(w_icons).collect::<String>();
                     let str = format!("{icons: >w_icons$} {description}");
-                    #[rustfmt::skip] self.term_buf.write_str(w_tmp_ktl + 1, h_tmp_ktl + (dy as u16) + 1, &str, Color::Reset);
+                    #[rustfmt::skip] self.term_buf.write_str(w_tmp_ktl + 1, h_tmp_ktl + (dy as u16) + 1, &str, Color::Reset, Color::Reset);
                 }
             }
         }
@@ -524,9 +524,9 @@ impl Renderer for StandardBufferedRenderer {
 
             let w_tmp_wtl = w_float + W_PAD_LEFT + w_addhud + W_HOLD + W_BOARD + 2; // (width temporary win condition-top-left)
             let h_tmp_wtl = h_float + H_PAD_TOP + H_FIELD;
-            #[rustfmt::skip] self.term_buf.write_str(w_tmp_wtl, h_tmp_wtl, &str_statval, Color::Reset);
+            #[rustfmt::skip] self.term_buf.write_str(w_tmp_wtl, h_tmp_wtl, &str_statval, Color::Reset, Color::Reset);
             let w_str_val = str_statval.len();
-            #[rustfmt::skip] self.term_buf.write_str(w_tmp_wtl + 1 + (w_str_val as u16), h_tmp_wtl, str_stattxt, Color::Reset);
+            #[rustfmt::skip] self.term_buf.write_str(w_tmp_wtl + 1 + (w_str_val as u16), h_tmp_wtl, str_stattxt, Color::Reset, Color::Reset);
         }
 
         // RENDER: Buttons HUD.
@@ -564,7 +564,7 @@ impl Renderer for StandardBufferedRenderer {
                     }
                 });
 
-                #[rustfmt::skip] self.term_buf.write_char(w_tmp_btntl + (dx as u16), h_tmp_btntl, TermCell { ch, fg: Color::Reset });
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp_btntl + (dx as u16), h_tmp_btntl, TermCell { ch, fg: Color::Reset, bg: Color::Reset });
             }
         }
 
@@ -584,7 +584,7 @@ impl Renderer for StandardBufferedRenderer {
                     let w_msg = message.chars().count() as u16;
                     // The message should be rendered centered around board middle.
                     let x_msg = (w_float + w_addhud + W_HOLD + (W_BOARD / 2)).saturating_sub(w_msg / 2);
-                    #[rustfmt::skip] self.term_buf.write_str_wrapping(x_msg, h_float + H_PAD_TOP + H_BOARD + w_aesthetic_pad + dy, message, Color::Reset);
+                    #[rustfmt::skip] self.term_buf.write_str_wrapping(x_msg, h_float + H_PAD_TOP + H_BOARD + w_aesthetic_pad + dy, message, Color::Reset, Color::Reset);
 
                     dy += 1;
                 }
@@ -592,14 +592,14 @@ impl Renderer for StandardBufferedRenderer {
                 is_unexpired
             });
         }
+
         let tile_symbols = settings.tile_symbols();
-        let ftch_col_or_rset = |tile_id: &TileID| {
-            settings
-                .palette()
-                .get(tile_id)
-                .copied()
-                .unwrap_or(Color::Reset)
-        };
+        let level = game
+            .config
+            .update_delays_every_n_lineclears
+            .checked_div(game.config.update_delays_every_n_lineclears)
+            .unwrap_or(0) as usize;
+        let fetchcols = |tile_type: TileType| settings.tile_coloring().get(tile_type, level);
 
         // RENDER: 'Board' frame.
 
@@ -619,19 +619,19 @@ impl Renderer for StandardBufferedRenderer {
 
         // Complete top edge.
         // 2x's because of font width.
-        #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl, h_tmp_btl, TermCell { ch: c_fr_tl, fg: Color::Reset });
-        #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl, h_tmp_btl + 1 + H_FIELD, TermCell { ch: c_fr_bl, fg: Color::Reset });
+        #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl, h_tmp_btl, TermCell { ch: c_fr_tl, fg: Color::Reset, bg: Color::Reset });
+        #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl, h_tmp_btl + 1 + H_FIELD, TermCell { ch: c_fr_bl, fg: Color::Reset, bg: Color::Reset });
         for dx in 0..W_FIELD {
-            #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + 1 + dx, h_tmp_btl, TermCell { ch: c_fr_t, fg: Color::Reset });
-            #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + 1 + dx, h_tmp_btl + 1 + H_FIELD, TermCell { ch: c_fr_b, fg: Color::Reset });
+            #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + 1 + dx, h_tmp_btl, TermCell { ch: c_fr_t, fg: Color::Reset, bg: Color::Reset });
+            #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + 1 + dx, h_tmp_btl + 1 + H_FIELD, TermCell { ch: c_fr_b, fg: Color::Reset, bg: Color::Reset });
         }
-        #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + 1 + W_FIELD, h_tmp_btl, TermCell { ch: c_fr_tr, fg: Color::Reset });
-        #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + 1 + W_FIELD, h_tmp_btl + 1 + H_FIELD, TermCell { ch: c_fr_br, fg: Color::Reset });
+        #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + 1 + W_FIELD, h_tmp_btl, TermCell { ch: c_fr_tr, fg: Color::Reset, bg: Color::Reset });
+        #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + 1 + W_FIELD, h_tmp_btl + 1 + H_FIELD, TermCell { ch: c_fr_br, fg: Color::Reset, bg: Color::Reset });
 
         // Left and right edges.
         for dy in 0..H_FIELD {
-            #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl, h_tmp_btl + 1 + dy, TermCell { ch: c_fr_l, fg: Color::Reset });
-            #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + 1 + 2 * WIDTH as u16, h_tmp_btl + 1 + dy, TermCell { ch: c_fr_r, fg: Color::Reset });
+            #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl, h_tmp_btl + 1 + dy, TermCell { ch: c_fr_l, fg: Color::Reset, bg: Color::Reset });
+            #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + 1 + 2 * BOARD_WIDTH as u16, h_tmp_btl + 1 + dy, TermCell { ch: c_fr_r, fg: Color::Reset, bg: Color::Reset });
         }
 
         // RENDER: 'Hold' widget.
@@ -643,31 +643,31 @@ impl Renderer for StandardBufferedRenderer {
             let h_tmp_htl = h_float + H_PAD_TOP;
 
             // Complete top and bottom edges.
-            #[rustfmt::skip] self.term_buf.write_char(w_tmp_htl, h_tmp_htl, TermCell { ch: c_h_tl, fg: Color::Reset });
-            #[rustfmt::skip] self.term_buf.write_char(w_tmp_htl, h_tmp_htl + 2, TermCell { ch: c_h_bl, fg: Color::Reset });
+            #[rustfmt::skip] self.term_buf.write_char(w_tmp_htl, h_tmp_htl, TermCell { ch: c_h_tl, fg: Color::Reset, bg: Color::Reset });
+            #[rustfmt::skip] self.term_buf.write_char(w_tmp_htl, h_tmp_htl + 2, TermCell { ch: c_h_bl, fg: Color::Reset, bg: Color::Reset });
             for dx in 0..6 {
-                #[rustfmt::skip] self.term_buf.write_char(w_tmp_htl + 1 + dx, h_tmp_htl, TermCell { ch: c_h_tb, fg: Color::Reset });
-                #[rustfmt::skip] self.term_buf.write_char(w_tmp_htl + 1 + dx, h_tmp_htl + 2, TermCell { ch: c_h_tb, fg: Color::Reset });
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp_htl + 1 + dx, h_tmp_htl, TermCell { ch: c_h_tb, fg: Color::Reset, bg: Color::Reset });
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp_htl + 1 + dx, h_tmp_htl + 2, TermCell { ch: c_h_tb, fg: Color::Reset, bg: Color::Reset });
             }
-            #[rustfmt::skip] self.term_buf.write_str(w_tmp_htl + 2, h_tmp_htl, "hold",Color::Reset);
+            #[rustfmt::skip] self.term_buf.write_str(w_tmp_htl + 2, h_tmp_htl, "hold", Color::Reset, Color::Reset);
             // Left edge
-            #[rustfmt::skip] self.term_buf.write_char(w_tmp_htl, h_tmp_htl + 1, TermCell { ch: c_h_l, fg: Color::Reset });
+            #[rustfmt::skip] self.term_buf.write_char(w_tmp_htl, h_tmp_htl + 1, TermCell { ch: c_h_l, fg: Color::Reset, bg: Color::Reset });
 
             // Render 'hold' piece.
             let small_tet = &settings.small_tetromino_symbols().tets[tet as usize];
             let w_extra_for_o = if tet == Tetromino::O { 1 } else { 0 };
 
-            let tile_id = if is_swappable {
-                tet.tile_id()
+            let tile_type = if is_swappable {
+                tet.into()
             } else {
-                Palette::GRAY
+                TileType::Generic
             };
-            let color = ftch_col_or_rset(&tile_id);
-            #[rustfmt::skip] self.term_buf.write_str(w_tmp_htl + 2 + w_extra_for_o, h_tmp_htl + 1, small_tet, color);
+            let (fg, bg) = fetchcols(tile_type);
+            #[rustfmt::skip] self.term_buf.write_str(w_tmp_htl + 2 + w_extra_for_o, h_tmp_htl + 1, small_tet, fg, bg);
 
             // Go the extra mile to render the character 'x' if we can't hold.
             if !is_swappable {
-                #[rustfmt::skip] self.term_buf.write_char(w_tmp_htl + 1, h_tmp_htl + 1, TermCell { ch: 'x', fg: color });
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp_htl + 1, h_tmp_htl + 1, TermCell { ch: 'x', fg, bg: Color::Reset });
             }
         }
 
@@ -684,21 +684,21 @@ impl Renderer for StandardBufferedRenderer {
                 |term_buf: &mut DenseDoubleBuffer, y_offset: u16, next_tet: Tetromino| {
                     // Top and bottom edge of first prev.
                     for dx in 0..12 {
-                        #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + dx, h_tmp_ntl + y_offset, TermCell { ch: c_n_ltb, fg: Color::Reset });
-                        #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + dx, h_tmp_ntl + y_offset + 3, TermCell { ch: c_n_tb, fg: Color::Reset });
+                        #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + dx, h_tmp_ntl + y_offset, TermCell { ch: c_n_ltb, fg: Color::Reset, bg: Color::Reset });
+                        #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + dx, h_tmp_ntl + y_offset + 3, TermCell { ch: c_n_tb, fg: Color::Reset, bg: Color::Reset });
                     }
                     // Complete right edge.
-                    #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + 12, h_tmp_ntl + y_offset, TermCell { ch: c_n_jl, fg: Color::Reset });
-                    #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + 12, h_tmp_ntl + y_offset + 1, TermCell { ch: c_n_r, fg: Color::Reset });
-                    #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + 12, h_tmp_ntl + y_offset + 2, TermCell { ch: c_n_r, fg: Color::Reset });
-                    #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + 12, h_tmp_ntl + y_offset + 3, TermCell { ch: c_n_br, fg: Color::Reset });
+                    #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + 12, h_tmp_ntl + y_offset, TermCell { ch: c_n_jl, fg: Color::Reset, bg: Color::Reset });
+                    #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + 12, h_tmp_ntl + y_offset + 1, TermCell { ch: c_n_r, fg: Color::Reset, bg: Color::Reset });
+                    #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + 12, h_tmp_ntl + y_offset + 2, TermCell { ch: c_n_r, fg: Color::Reset, bg: Color::Reset });
+                    #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + 12, h_tmp_ntl + y_offset + 3, TermCell { ch: c_n_br, fg: Color::Reset, bg: Color::Reset });
 
                     // Render preview piece.
-                    let tile_texture = tile_symbols.locked;
-                    let color = ftch_col_or_rset(&next_tet.tile_id());
+                    let tile_texture = tile_symbols.player(next_tet);
+                    let (fg, bg) = fetchcols(next_tet.into());
                     let w_extra_for_o = if next_tet == Tetromino::O { 2 } else { 0 };
                     for (dx, dy) in next_tet.minos(Orientation::N) {
-                        #[rustfmt::skip] term_buf.write_tile(w_tmp_ntl + 2 + w_extra_for_o + 2 * (dx as u16), (h_tmp_ntl + y_offset + 2).saturating_sub(dy as u16), tile_texture, color);
+                        #[rustfmt::skip] term_buf.write_tile(w_tmp_ntl + 2 + w_extra_for_o + 2 * (dx as u16), (h_tmp_ntl + y_offset + 2).saturating_sub(dy as u16), tile_texture, fg, bg);
                     }
                 };
 
@@ -708,10 +708,10 @@ impl Renderer for StandardBufferedRenderer {
             draw_appended_normalsize_prev(&mut self.term_buf, 0, first_next_tet);
             // Override top edge of first prev.
             for dx in 0..12 {
-                #[rustfmt::skip] self.term_buf.write_char(w_tmp_ntl + dx, h_tmp_ntl, TermCell { ch: c_n_tb, fg: Color::Reset });
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp_ntl + dx, h_tmp_ntl, TermCell { ch: c_n_tb, fg: Color::Reset, bg: Color::Reset });
             }
-            #[rustfmt::skip] self.term_buf.write_char(w_tmp_ntl + 12, h_tmp_ntl, TermCell { ch: c_n_tr, fg: Color::Reset });
-            #[rustfmt::skip] self.term_buf.write_str(w_tmp_ntl + 4, h_tmp_ntl, "next",Color::Reset);
+            #[rustfmt::skip] self.term_buf.write_char(w_tmp_ntl + 12, h_tmp_ntl, TermCell { ch: c_n_tr, fg: Color::Reset, bg: Color::Reset });
+            #[rustfmt::skip] self.term_buf.write_str(w_tmp_ntl + 4, h_tmp_ntl, "next", Color::Reset, Color::Reset);
 
             let mut idx = 1;
             let mut y_offset = 3;
@@ -735,19 +735,19 @@ impl Renderer for StandardBufferedRenderer {
                 |term_buf: &mut DenseDoubleBuffer, y_offset: u16, next_tet: Tetromino| {
                     // Top and bottom edge of first prev.
                     for dx in 0..8 {
-                        #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + dx, h_tmp_ntl + y_offset, TermCell { ch: c_n_ltb, fg: Color::Reset });
-                        #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + dx, h_tmp_ntl + y_offset + 2, TermCell { ch: c_n_tb, fg: Color::Reset });
+                        #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + dx, h_tmp_ntl + y_offset, TermCell { ch: c_n_ltb, fg: Color::Reset, bg: Color::Reset });
+                        #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + dx, h_tmp_ntl + y_offset + 2, TermCell { ch: c_n_tb, fg: Color::Reset, bg: Color::Reset });
                     }
                     // Complete right edge.
-                    #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + 8, h_tmp_ntl + y_offset, TermCell { ch: c_n_jl, fg: Color::Reset });
-                    #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + 8, h_tmp_ntl + y_offset + 1, TermCell { ch: c_n_r, fg: Color::Reset });
-                    #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + 8, h_tmp_ntl + y_offset + 2, TermCell { ch: c_n_br, fg: Color::Reset });
+                    #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + 8, h_tmp_ntl + y_offset, TermCell { ch: c_n_jl, fg: Color::Reset, bg: Color::Reset });
+                    #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + 8, h_tmp_ntl + y_offset + 1, TermCell { ch: c_n_r, fg: Color::Reset, bg: Color::Reset });
+                    #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + 8, h_tmp_ntl + y_offset + 2, TermCell { ch: c_n_br, fg: Color::Reset, bg: Color::Reset });
 
                     // Render preview piece.
                     let small_tet = &settings.small_tetromino_symbols().tets[next_tet as usize];
-                    let color = ftch_col_or_rset(&next_tet.tile_id());
+                    let (fg, bg) = fetchcols(next_tet.into());
                     let w_extra_for_o = if next_tet == Tetromino::O { 1 } else { 0 };
-                    #[rustfmt::skip] term_buf.write_str(w_tmp_ntl + 2 + w_extra_for_o, h_tmp_ntl + y_offset + 1, small_tet, color);
+                    #[rustfmt::skip] term_buf.write_str(w_tmp_ntl + 2 + w_extra_for_o, h_tmp_ntl + y_offset + 1, small_tet, fg, bg);
                 };
 
             // To continue, render small previews (if there's space)
@@ -757,7 +757,7 @@ impl Renderer for StandardBufferedRenderer {
                 };
                 draw_appended_small_prev(&mut self.term_buf, y_offset, next_tet);
                 // Override top right corner of first small prev.
-                #[rustfmt::skip] self.term_buf.write_char(w_tmp_ntl + 8, h_tmp_ntl + y_offset, TermCell { ch: c_n_jd, fg: Color::Reset });
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp_ntl + 8, h_tmp_ntl + y_offset, TermCell { ch: c_n_jd, fg: Color::Reset, bg: Color::Reset });
                 y_offset += 2;
 
                 // Render remaining small previews.
@@ -772,8 +772,8 @@ impl Renderer for StandardBufferedRenderer {
 
             for (x_offset, next_tet) in next_tetrominos.enumerate() {
                 let mini_tet = settings.mini_tetromino_symbols().tets[next_tet as usize];
-                let color = ftch_col_or_rset(&next_tet.tile_id());
-                #[rustfmt::skip] self.term_buf.write_char(w_tmp_ntl + 10 + 2 * (x_offset as u16), h_tmp_ntl + y_offset.saturating_sub(1), TermCell { ch: mini_tet, fg: color });
+                let (fg, bg) = fetchcols(next_tet.into());
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp_ntl + 10 + 2 * (x_offset as u16), h_tmp_ntl + y_offset.saturating_sub(1), TermCell { ch: mini_tet, fg, bg });
             }
         }
 
@@ -784,19 +784,19 @@ impl Renderer for StandardBufferedRenderer {
         if let Some([c_f2_l, c_f2_b0, c_f2_b1, c_f2_r]) = tui_symbols.boardframe2 {
             // Complete left edge (2).
             for dy in 0..H_FIELD + 1 {
-                #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl.saturating_sub(1), h_tmp_btl + 1 + dy, TermCell { ch: c_f2_l, fg: Color::Reset });
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl.saturating_sub(1), h_tmp_btl + 1 + dy, TermCell { ch: c_f2_l, fg: Color::Reset, bg: Color::Reset });
             }
             // Complete right edge (2).
             for dy in 0..H_FIELD + 1 {
-                #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + W_BOARD, h_tmp_btl + 1 + dy, TermCell { ch: c_f2_r, fg: Color::Reset });
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + W_BOARD, h_tmp_btl + 1 + dy, TermCell { ch: c_f2_r, fg: Color::Reset, bg: Color::Reset });
             }
 
             // Complete bottom edge.
             for dx in 0..W_FIELD {
                 if dx.is_multiple_of(2) {
-                    #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + 1 + dx, h_tmp_btl + 1 + H_FIELD + 1, TermCell { ch: c_f2_b0, fg: Color::Reset });
+                    #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + 1 + dx, h_tmp_btl + 1 + H_FIELD + 1, TermCell { ch: c_f2_b0, fg: Color::Reset, bg: Color::Reset });
                 } else {
-                    #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + 1 + dx, h_tmp_btl + 1 + H_FIELD + 1, TermCell { ch: c_f2_b1, fg: Color::Reset });
+                    #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + 1 + dx, h_tmp_btl + 1 + H_FIELD + 1, TermCell { ch: c_f2_b1, fg: Color::Reset, bg: Color::Reset });
                 }
             }
         }
@@ -810,14 +810,14 @@ impl Renderer for StandardBufferedRenderer {
         // - Air is to avoid anything that could accidentally write things onto the field, e.g. unexpectedly wide stats.
 
         for dy in 0..LOCK_OUT_HEIGHT {
-            for dx in 0..WIDTH {
-                let (tile, color) = if settings.graphics().show_grid {
-                    (tile_symbols.grid, Color::Reset)
+            for dx in 0..BOARD_WIDTH {
+                let tile = if settings.graphics().show_grid {
+                    tile_symbols.grid
                 } else {
-                    (TileTexture::EMPTY, Color::Reset)
+                    TileTexture::EMPTY
                 };
 
-                #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * dx as u16, h_tmp_ftl.saturating_sub(dy as u16), tile, color);
+                #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * dx as u16, h_tmp_ftl.saturating_sub(dy as u16), tile, Color::Reset, Color::Reset);
             }
         }
 
@@ -831,7 +831,7 @@ impl Renderer for StandardBufferedRenderer {
             }
 
             hard_drop_effect_tiles.retain(|hard_drop_effect_tile| {
-                let HardDropEffectTile { creation_time, pos: (dx, dy), normalized_height, original_tile_id } = *hard_drop_effect_tile;
+                let HardDropEffectTile { creation_time, pos: (dx, dy), normalized_height, original_tile_type } = *hard_drop_effect_tile;
 
                 // How much time has elapsed since creation.
                 let elapsed = game.state().time.saturating_sub(creation_time);
@@ -846,9 +846,12 @@ impl Renderer for StandardBufferedRenderer {
 
                 // render the tile
                 let (tile_texture, recolor) = animation[(factor * (animation.len() - 1) as f32).round() as usize];
-                let tile_id = recolor.unwrap_or(original_tile_id);
-                let color = ftch_col_or_rset(&tile_id);
-                #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, color);
+                let (fg, bg) = if let Override(palette_idx) = recolor {
+                    (*settings.tile_coloring().palette.map.get(&palette_idx).unwrap_or(&Color::Reset), Color::Reset)
+                } else {
+                    fetchcols(original_tile_type)
+                };
+                #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, fg, bg);
 
                 true
             });
@@ -861,7 +864,7 @@ impl Renderer for StandardBufferedRenderer {
             // RENDER: Locked tiles.
 
             let mut y_highest_tile: isize = -1;
-            for (dy, line) in game
+            for (dy, (line, _is_frozen /*TODO: Implement frozen hinting? */)) in game
                 .state()
                 .board
                 .iter()
@@ -869,14 +872,10 @@ impl Renderer for StandardBufferedRenderer {
                 .enumerate()
             {
                 for (dx, tile) in line.iter().enumerate() {
-                    if let Some(tile_id) = tile {
-                        let tile_texture = tile_symbols.locked;
-                        let color = settings
-                            .lockedtilepalette()
-                            .get(tile_id)
-                            .copied()
-                            .unwrap_or(Color::Reset);
-                        #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, color);
+                    if let Some(tile_type) = *tile {
+                        let tile_texture = tile_symbols.locked(tile_type);
+                        let (fg, bg) = settings.locked_tile_coloring().get(tile_type, level);
+                        #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, fg, bg);
 
                         y_highest_tile = dy as isize;
                     }
@@ -887,17 +886,22 @@ impl Renderer for StandardBufferedRenderer {
 
             if settings.graphics().show_spawn && !game.has_ended() {
                 // Get upcoming piece if possible.
-                if let Some(next_tetromino) = game.state().tetromino_preview.front() {
+                if let Some(next_tetromino) = game.state().tetromino_preview.front().copied() {
                     let spawn_piece = next_tetromino.spawn_piece();
                     // Only show it if the highest tile is 4 units below us or less.
                     if spawn_piece.position.1 <= y_highest_tile + 4 {
-                        for ((dx, dy), tile_id) in spawn_piece.tiles() {
-                            if game.state().board[dy as usize][dx as usize].is_some() {
+                        for (dx, dy) in spawn_piece.coords() {
+                            if game
+                                .state()
+                                .board
+                                .get(dy as usize)
+                                .is_some_and(|(line, _is_frozen)| line[dx as usize].is_some())
+                            {
                                 continue;
                             }
                             let tile_texture = tile_symbols.shadow;
-                            let color = ftch_col_or_rset(&tile_id);
-                            #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, color);
+                            let (fg, bg) = fetchcols(next_tetromino.into());
+                            #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, fg, bg);
                         }
                     }
                 }
@@ -919,19 +923,19 @@ impl Renderer for StandardBufferedRenderer {
 
                 if settings.graphics().show_shadow {
                     let shadow_piece = player_piece.teleported(&game.state().board, (0, -1));
-                    for ((dx, dy), tile_id) in shadow_piece.tiles() {
+                    for (dx, dy) in shadow_piece.coords() {
                         let tile_texture = tile_symbols.shadow;
-                        let color = ftch_col_or_rset(&tile_id);
-                        #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, color);
+                        let (fg, bg) = fetchcols(player_piece.tetromino.into());
+                        #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, fg, bg);
                     }
                 }
 
                 // RENDER: Active piece.
 
-                for ((dx, dy), tile_id) in player_piece.tiles() {
-                    let tile_texture = tile_symbols.play;
-                    let color = ftch_col_or_rset(&tile_id);
-                    #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, color);
+                for (dx, dy) in player_piece.coords() {
+                    let tile_texture = tile_symbols.player(player_piece.tetromino);
+                    let (fg, bg) = fetchcols(player_piece.tetromino.into());
+                    #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, fg, bg);
                 }
 
                 // RENDER: Lock delay countdown visual indicator.
@@ -954,8 +958,17 @@ impl Renderer for StandardBufferedRenderer {
                                 - 1.0)
                                 .ceil()
                                 as usize];
-                            let color = ftch_col_or_rset(&Palette::WHITE);
-                            #[rustfmt::skip] self.term_buf.write_str((w_tmp_ftl + 2 * (player_piece.position.0 as u16)).saturating_sub(1), h_tmp_ftl.saturating_sub(player_piece.position.1 as u16).saturating_add(1), str, color);
+                            let (fg, bg) = (
+                                Color::Reset,
+                                // &settings
+                                //     .tile_coloring()
+                                //     .palette
+                                //     .map
+                                //     .get(&Palette::WHITE)
+                                //     .unwrap_or(&Color::Reset),
+                                Color::Reset,
+                            );
+                            #[rustfmt::skip] self.term_buf.write_str((w_tmp_ftl + 2 * (player_piece.position.0 as u16)).saturating_sub(1), h_tmp_ftl.saturating_sub(player_piece.position.1 as u16).saturating_add(1), str, fg, bg);
                         }
                     }
                 }
@@ -972,40 +985,47 @@ impl Renderer for StandardBufferedRenderer {
                     GameEndCause::LockOut { locking_piece } => {
                         // RENDER: Active piece when locked out.
 
-                        for ((dx, dy), tile_id) in locking_piece.tiles() {
+                        for (dx, dy) in locking_piece.coords() {
                             let tile_texture = tile_symbols.crossed;
-                            let color = ftch_col_or_rset(&tile_id);
-                            #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, color);
+                            let (fg, bg) = fetchcols(locking_piece.tetromino.into());
+                            #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, fg, bg);
                         }
                     }
 
                     GameEndCause::BlockOut { blocked_piece } => {
                         // RENDER: Active piece when blocked out.
 
-                        for ((dx, dy), tile_id) in blocked_piece.tiles() {
-                            let (tile_texture, color) = if let Some(blocking_tile_id) =
-                                game.state().board[dy as usize][dx as usize]
+                        for (dx, dy) in blocked_piece.coords() {
+                            let (tile_texture, (fg, bg)) = if let Some(blocking_tile_type) = game
+                                .state()
+                                .board
+                                .get(dy as usize)
+                                .and_then(|(line, _is_frozen)| line[dx as usize])
                             {
-                                (tile_symbols.crossed, ftch_col_or_rset(&blocking_tile_id))
+                                (tile_symbols.crossed, fetchcols(blocking_tile_type))
                             } else {
-                                (tile_symbols.hatched, ftch_col_or_rset(&tile_id))
+                                (
+                                    tile_symbols.hatched,
+                                    fetchcols(blocked_piece.tetromino.into()),
+                                )
                             };
-                            #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, color);
+                            #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, fg, bg);
                         }
                     }
 
                     // Visual indicator for Top out.
-                    GameEndCause::BufferOut { overflowing_lines } => {
-                        for dy in (h_tmp_ftl.saturating_sub(RENDERED_FIELD_HEIGHT as u16 - 1)..)
-                            .take(overflowing_lines.len())
-                        {
-                            for dx in 0..WIDTH {
-                                // FIXME: Remove this FIX-ME as soon as this is tested / sure it works correctly.
-                                let tile_texture = tile_symbols.hatched;
-                                let color = Color::Reset;
-                                #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy), tile_texture, color);
-                            }
-                        }
+                    // TODO: Implement this.
+                    GameEndCause::BufferOut => {
+                        // for dy in (h_tmp_ftl.saturating_sub(RENDERED_FIELD_HEIGHT as u16 - 1)..)
+                        //     .take(overflowing_lines.len())
+                        // {
+                        //     for dx in 0..WIDTH {
+                        //         // FIXME: Remove this FIX-ME as soon as this is tested / sure it works correctly.
+                        //         let tile_texture = tile_symbols.hatched;
+                        //         let color = Color::Reset;
+                        //         #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy), tile_texture, color);
+                        //     }
+                        // }
                     }
 
                     // We currently do not have any visual indicator to display game-end by limit hit.
@@ -1015,10 +1035,10 @@ impl Renderer for StandardBufferedRenderer {
                         if let Some(forfeit_piece) = piece_in_play {
                             // RENDER: Active piece when forfeited.
 
-                            for ((dx, dy), tile_id) in forfeit_piece.tiles() {
+                            for (dx, dy) in forfeit_piece.coords() {
                                 let tile_texture = tile_symbols.hatched;
-                                let color = ftch_col_or_rset(&tile_id);
-                                #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, color);
+                                let (fg, bg) = fetchcols(forfeit_piece.tetromino.into());
+                                #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, fg, bg);
                             }
                         }
                     }
@@ -1042,7 +1062,7 @@ impl Renderer for StandardBufferedRenderer {
                 }
 
                 lock_effect_tiles.retain(|lock_effect_tile| {
-                    let LockEffectTile { creation_time, pos: (dx, dy), original_tile_id } = *lock_effect_tile;
+                    let LockEffectTile { creation_time, pos: (dx, dy), original_tile_type } = *lock_effect_tile;
 
                     // How much time has elapsed since creation.
                     let elapsed = game.state().time.saturating_sub(creation_time);
@@ -1055,14 +1075,15 @@ impl Renderer for StandardBufferedRenderer {
 
                     // render the tile
                     let (retexture, recolor) = animation[(timeshift * (animation.len() - 1) as f32).round() as usize];
-                    let tile_texture = retexture.unwrap_or(tile_symbols.locked);
-                    let tile_id = recolor.unwrap_or(original_tile_id);
-                    let color = settings
-                        .lockedtilepalette()
-                        .get(&tile_id)
-                        .copied()
-                        .unwrap_or(Color::Reset);
-                    #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, color);
+
+                    let tile_texture = retexture.unwrap_or(tile_symbols.locked(original_tile_type));
+
+                    let (fg, bg) = if let Override(palette_idx) = recolor {
+                        (*settings.locked_tile_coloring().palette.map.get(&palette_idx).unwrap_or(&Color::Reset), Color::Reset)
+                    } else {
+                        fetchcols(original_tile_type)
+                    };
+                    #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, fg, bg);
 
                     true
                 });
@@ -1089,26 +1110,23 @@ impl Renderer for StandardBufferedRenderer {
                 }
 
                 // rerender the line
-                for (dx, original_tile_id) in line.iter().enumerate() {
-                    let tile_texture = tile_symbols.locked;
-                    let tile_id = if !color_animation.is_empty() {
-                        color_animation[(timeshift * (color_animation.len() - 1) as f32).round() as usize].unwrap_or(*original_tile_id)
+                for (dx, original_tile_type) in line.iter().copied().enumerate() {
+                    let tile_texture = tile_symbols.locked(original_tile_type);
+
+                    let (fg, bg) = if !color_animation.is_empty() && let Override(palette_idx) = color_animation[(timeshift * (color_animation.len() - 1) as f32).round() as usize] {
+                        (*settings.locked_tile_coloring().palette.map.get(&palette_idx).unwrap_or(&Color::Reset), Color::Reset)
                     } else {
-                        *original_tile_id
+                        settings.locked_tile_coloring().get(original_tile_type, level)
                     };
-                    let color = settings
-                        .lockedtilepalette()
-                        .get(&tile_id)
-                        .copied()
-                        .unwrap_or(Color::Reset);
-                    #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, color);
+
+                    #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, fg, bg);
                 }
 
                 // render carving progress
                 let threshold = timeshift * (*anim_lastidx as f32);
                 for (dx, anim_idx) in anim_indices.iter().enumerate() {
                     if (*anim_idx as f32) < threshold {
-                        #[rustfmt::skip] self.term_buf.write_char(w_tmp_ftl + (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), TermCell { ch: ' ', fg: Color::Reset });
+                        #[rustfmt::skip] self.term_buf.write_char(w_tmp_ftl + (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), TermCell { ch: ' ', fg: Color::Reset, bg: Color::Reset });
                     }
                 }
 
@@ -1126,7 +1144,7 @@ impl Renderer for StandardBufferedRenderer {
             let LineClearParticleEffect { duration_override, animation, acceleration: _, momentum_base: _, momentum_rand: _, momentum_xpos: _  } = line_clear_particle_effect;
 
             line_clear_effect_tiles.retain(|line_clear_effect_tile| {
-                let LineClearEffectTile { creation_time, line_clear_duration, origin: (dx, dy), momentum: (m_x, m_y), acceleration: (a_x, a_y), tile_id: original_tile_id  } = *line_clear_effect_tile;
+                let LineClearEffectTile { creation_time, line_clear_duration, origin: (dx, dy), momentum: (m_x, m_y), acceleration: (a_x, a_y), original_tile_type  } = *line_clear_effect_tile;
                 let lifetime = duration_override.unwrap_or(line_clear_duration);
                 // Empty effect.
                 if lifetime.is_zero() || animation.is_empty() {
@@ -1144,29 +1162,30 @@ impl Renderer for StandardBufferedRenderer {
 
                 // Render manually cleared out tiles at original position if we still have to.
                 if elapsed < line_clear_duration {
-                    let (tile, color) = if settings.graphics().show_grid {
-                        (tile_symbols.grid, Color::Reset)
+                    let tile = if settings.graphics().show_grid {
+                        tile_symbols.grid
                     } else {
-                        (TileTexture::EMPTY, Color::Reset)
+                        TileTexture::EMPTY
                     };
                     // empty the tile at original position
-                    #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile, color);
+                    #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile, Color::Reset, Color::Reset);
                 }
 
                 // render the tile
                 let (retexture, recolor) = animation[(timeshift * (animation.len() - 1) as f32).round() as usize];
-                let tile_texture = retexture.unwrap_or(tile_symbols.locked);
-                let tile_id = recolor.unwrap_or(original_tile_id);
-                let color = settings
-                    .lockedtilepalette()
-                    .get(&tile_id)
-                    .copied()
-                    .unwrap_or(Color::Reset);
+
+                let tile_texture = retexture.unwrap_or(tile_symbols.locked(original_tile_type));
+
+                let (fg, bg) = if let Override(palette_idx) = recolor {
+                    (*settings.locked_tile_coloring().palette.map.get(&palette_idx).unwrap_or(&Color::Reset), Color::Reset)
+                } else {
+                    fetchcols(original_tile_type)
+                };
 
                 let t = elapsed.as_secs_f32();
                 let x = (w_tmp_ftl + 2 * (dx as u16)) as f32 + m_x * t + a_x * t.powi(2) / 2.0;
                 let y = (h_tmp_ftl.saturating_sub(dy as u16)) as f32 - m_y * t - a_y * t.powi(2) / 2.0;
-                #[rustfmt::skip] self.term_buf.write_tile(x.round() as u16, y.round() as u16, tile_texture, color);
+                #[rustfmt::skip] self.term_buf.write_tile(x.round() as u16, y.round() as u16, tile_texture, fg, bg);
 
                 true
             });

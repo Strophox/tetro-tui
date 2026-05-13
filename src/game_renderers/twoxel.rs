@@ -1,9 +1,9 @@
+use crate::tetromino_engine::Board;
 use crossterm::{QueueableCommand, cursor, style, terminal};
-use falling_tetromino_engine::Board;
 
 use super::*;
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug, Default)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, Default)]
 pub struct TwoxelRenderer {
     x: u16,
     y: u16,
@@ -47,11 +47,11 @@ impl Renderer for TwoxelRenderer {
         _keybinds_legend: &KeybindsLegend,
         _replay_extra: Option<(InGameTime, f64)>,
     ) -> io::Result<()> {
-        let mut board = game.state().board;
+        let mut board = game.state().board.clone();
 
         if let Some(piece) = game.phase().piece() {
-            for ((x, y), tile_id) in piece.tiles() {
-                board[y as usize][x as usize] = Some(tile_id);
+            for (x, y) in piece.coords() {
+                board[y as usize].0[x as usize] = Some(piece.tetromino.into());
             }
         }
 
@@ -75,12 +75,12 @@ impl Renderer for TwoxelRenderer {
         ]
         .iter()
         .map(|[i0, i1]| {
-            let [l0, l1] = [board[*i0], board[*i1]];
+            let [l0, l1] = [self.cached_board[*i0], self.cached_board[*i1]];
             [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
                 .iter()
                 .map(|j0| {
-                    let b0 = if l0[*j0].is_some() { 1 } else { 0 };
-                    let b1 = if l1[*j0].is_some() { 2 } else { 0 };
+                    let b0 = if l0.0[*j0].is_some() { 1 } else { 0 };
+                    let b1 = if l1.0[*j0].is_some() { 2 } else { 0 };
                     settings.small_tetromino_symbols().parts[b0 + b1]
                 })
                 .collect::<String>()

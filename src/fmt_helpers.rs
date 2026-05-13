@@ -1,7 +1,7 @@
 use std::time::Duration;
 
+use crate::tetromino_engine::{Button, ExtNonNegF64, Input, Tetromino};
 use crossterm::event::{KeyCode, KeyModifiers};
-use falling_tetromino_engine::{Button, ExtNonNegF64, Input, Tetromino};
 
 use crate::settings::{GameKeybinds, MiniTetrominoSymbols};
 

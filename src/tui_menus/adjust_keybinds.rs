@@ -1,5 +1,6 @@
 use std::io::{self, Write};
 
+use crate::tetromino_engine::Button;
 use crossterm::{
     ExecutableCommand, QueueableCommand,
     cursor::{self, MoveTo},
@@ -11,7 +12,6 @@ use crossterm::{
     style::{Print, PrintStyledContent, Stylize},
     terminal::{Clear, ClearType},
 };
-use falling_tetromino_engine::Button;
 
 use crate::{
     Application, Settings,

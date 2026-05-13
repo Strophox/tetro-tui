@@ -3,15 +3,15 @@ use std::{
     time::{Duration, Instant},
 };
 
+use crate::tetromino_engine::{
+    Game, GameEndCause, InGameTime, Input, Notification, Phase, UpdateGameError,
+};
 use crossterm::{
     ExecutableCommand,
     cursor::MoveTo,
     event::{self, KeyCode, KeyEvent, KeyEventKind, KeyModifiers},
     style::{Print, PrintStyledContent, Stylize},
     terminal::{self, Clear},
-};
-use falling_tetromino_engine::{
-    Game, GameEndCause, InGameTime, Input, Notification, Phase, UpdateGameError,
 };
 
 use crate::{

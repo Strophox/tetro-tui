@@ -10,6 +10,7 @@ use crossterm::{
 
 use crate::{
     Application,
+    tetromino_engine::Tetromino,
     tui_menus::{Menu, MenuUpdate},
 };
 
@@ -54,20 +55,6 @@ impl<T: Write> Application<T> {
                     "   ▄▀   █▄▄      ▄▀   ▄█▄▄▀  ▄█   ▄█",
                     "  █▀   █▄▄▄▄▄▄  █▀   █▀  ▀█  ▀▄▄▄▄▀ ",
                 ];
-                let color_tetromino_rainbow = "1643502"
-                    .chars()
-                    .map(|ch| {
-                        self.settings
-                            .palette()
-                            .get(
-                                &falling_tetromino_engine::Tetromino::VARIANTS
-                                    [ch.to_string().parse::<usize>().unwrap()]
-                                .tile_id(),
-                            )
-                            .unwrap_or(&Color::Reset)
-                    })
-                    .copied()
-                    .collect::<Vec<_>>();
 
                 for (dy, ((t_line, c_line), co_line)) in title_unicode
                     .iter()
@@ -93,36 +80,37 @@ impl<T: Write> Application<T> {
                                 if c_char == ' ' {
                                     Color::Reset
                                 } else {
-                                    *self
-                                        .settings
-                                        .palette()
+                                    self.settings
+                                        .tile_coloring()
                                         .get(
-                                            &falling_tetromino_engine::Tetromino::VARIANTS
+                                            crate::tetromino_engine::Tetromino::VARIANTS
                                                 [c_char.to_string().parse::<usize>().unwrap()]
-                                            .tile_id(),
+                                            .into(),
+                                            0,
                                         )
-                                        .unwrap_or(&Color::Reset)
+                                        .0
                                 }
                             }
                             1 => {
                                 if co_char == ' ' {
                                     Color::Reset
                                 } else {
-                                    color_tetromino_rainbow[(co_char
+                                    self.settings.tile_coloring().tetromino_rainbow()[(co_char
                                         .to_string()
                                         .parse::<isize>()
                                         .unwrap()
                                         + dynamic_color_offset)
-                                        .rem_euclid(color_tetromino_rainbow.len() as isize)
+                                        .rem_euclid(Tetromino::VARIANTS.len() as isize)
                                         as usize]
                                 }
                             }
                             n => {
                                 let width = n - 1;
-                                color_tetromino_rainbow[(((dx + dy) as isize
+                                self.settings.tile_coloring().tetromino_rainbow()[(((dx + dy)
+                                    as isize
                                     + dynamic_color_offset)
                                     / width)
-                                    .rem_euclid(color_tetromino_rainbow.len() as isize)
+                                    .rem_euclid(Tetromino::VARIANTS.len() as isize)
                                     as usize]
                             }
                         };
@@ -144,20 +132,6 @@ impl<T: Write> Application<T> {
                 // ];
 
                 //let color16_rainbow = [Color::DarkRed, Color::Red, Color::DarkYellow, Color::Yellow, Color::DarkGreen, Color::Green, Color::DarkBlue, Color::Blue, Color::DarkCyan, Color::Cyan, Color::DarkMagenta, Color::Magenta];
-                let color_tetromino_rainbow = "1643502"
-                    .chars()
-                    .map(|ch| {
-                        self.settings
-                            .palette()
-                            .get(
-                                &falling_tetromino_engine::Tetromino::VARIANTS
-                                    [ch.to_string().parse::<usize>().unwrap()]
-                                .tile_id(),
-                            )
-                            .unwrap_or(&Color::Reset)
-                    })
-                    .copied()
-                    .collect::<Vec<_>>();
 
                 for (dy, bline) in title_ascii.iter().enumerate() {
                     for (dx, bchar) in bline.chars().enumerate() {
@@ -166,10 +140,11 @@ impl<T: Write> Application<T> {
                             y_main + y_selection + u16::try_from(dy).unwrap(),
                         ))?;
 
-                        let color = color_tetromino_rainbow[(((dx + dy) as isize
+                        let color = self.settings.tile_coloring().tetromino_rainbow()[(((dx + dy)
+                            as isize
                             + dynamic_color_offset)
                             / (dynamic_title_style.rem_euclid(Self::W_MAIN as isize) + 1))
-                            .rem_euclid(color_tetromino_rainbow.len() as isize)
+                            .rem_euclid(Tetromino::VARIANTS.len() as isize)
                             as usize];
 
                         self.term

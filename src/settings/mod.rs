@@ -7,13 +7,15 @@ pub use game_keybinds::GameKeybinds;
 pub use game_mode_settings::{CustomModeConfig, GameModeSettings};
 pub use gameplay_preferences::GameplayPreferences;
 pub use graphics_settings::{
-    GraphicsSettings, TileTexture,
+    GraphicsSettings, MaybeOverride, TileTexture,
     hard_drop_effect::HardDropEffect,
     line_clear_effect::{LineClearEffect, LineClearInlineEffect, LineClearParticleEffect},
     lock_effect::LockEffect,
     mini_tetromino_symbols::MiniTetrominoSymbols,
-    palette::Palette,
     small_tetromino_symbols::SmallTetrominoSymbols,
+    tile_coloring::{
+        Palette, PaletteIdx, TileColoring, /*FIXME: Unused code?: , TilePaletteIndexing*/
+    },
     tile_symbols::TileSymbols,
     tui_symbols::TuiSymbols,
 };
@@ -26,9 +28,10 @@ use crate::{
         graphics_settings::{
             graphics_settings_presets, hard_drop_effect::hard_drop_effect_presets,
             line_clear_effect::line_clear_effect_presets, lock_effect::lock_effect_presets,
-            mini_tetromino_symbols::mini_tetromino_symbols_presets, palette::palette_presets,
+            mini_tetromino_symbols::mini_tetromino_symbols_presets,
             small_tetromino_symbols::small_tetromino_symbols_presets,
-            tile_symbols::mino_symbols_presets, tui_symbols::tui_symbols_presets,
+            tile_coloring::tile_coloring_presets, tile_symbols::tile_symbols_presets,
+            tui_symbols::tui_symbols_presets,
         },
     },
 };
@@ -39,10 +42,10 @@ pub struct Settings {
     pub graphics_selected: usize,
     #[serde(rename = "GRAPHICS_SLOTS")]
     pub graphics_slotmachine: SlotMachine<GraphicsSettings>,
-    #[serde(rename = "PALETTE_SLOTS")]
-    pub palette_slotmachine: SlotMachine<Palette>,
     #[serde(rename = "UI_SYMBOLS_SLOTS")]
     pub tui_symbols_slotmachine: SlotMachine<TuiSymbols>,
+    #[serde(rename = "TILE_COLORING_SLOTS")]
+    pub tile_coloring_slotmachine: SlotMachine<TileColoring>,
     #[serde(rename = "TILE_SYMBOLS_SLOTS")]
     pub tile_symbols_slotmachine: SlotMachine<TileSymbols>,
     #[serde(rename = "HARD_DROP_EFFECT_SLOTS")]
@@ -73,9 +76,9 @@ impl Default for Settings {
         Self {
             graphics_selected: 0,
             graphics_slotmachine: graphics_settings_presets(),
-            palette_slotmachine: palette_presets(),
+            tile_coloring_slotmachine: tile_coloring_presets(),
             tui_symbols_slotmachine: tui_symbols_presets(),
-            tile_symbols_slotmachine: mino_symbols_presets(),
+            tile_symbols_slotmachine: tile_symbols_presets(),
             hard_drop_effect_slotmachine: hard_drop_effect_presets(),
             lock_effect_slotmachine: lock_effect_presets(),
             line_clear_effect_slotmachine: line_clear_effect_presets(),
@@ -98,10 +101,10 @@ impl Settings {
     // 1. Have a SlotMachine<T>.
     // 2. Store an index into the slots somewhere.
     // 3. Implementing 'getter' on the place that owns the slots (not where the index is stored.)
-    pub fn palette(&self) -> &Palette {
+    pub fn tile_coloring(&self) -> &TileColoring {
         &self
-            .palette_slotmachine
-            .grab(self.graphics().palette_selected)
+            .tile_coloring_slotmachine
+            .grab(self.graphics().tile_coloring_selected)
             .1
     }
     pub fn tui_symbols(&self) -> &TuiSymbols {
@@ -146,10 +149,10 @@ impl Settings {
             .grab(self.graphics().small_tetromino_symbols_selected)
             .1
     }
-    pub fn lockedtilepalette(&self) -> &Palette {
+    pub fn locked_tile_coloring(&self) -> &TileColoring {
         &self
-            .palette_slotmachine
-            .grab(self.graphics().lockedtilepalette_selected)
+            .tile_coloring_slotmachine
+            .grab(self.graphics().locked_tile_coloring_selected)
             .1
     }
 

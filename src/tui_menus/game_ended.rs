@@ -1,5 +1,6 @@
 use std::io::{self, Write};
 
+use crate::tetromino_engine::ExtDuration;
 use crossterm::{
     QueueableCommand,
     cursor::MoveTo,
@@ -8,10 +9,9 @@ use crossterm::{
         KeyEventKind::{Press, Repeat},
         KeyModifiers,
     },
-    style::{Color, Print, PrintStyledContent, Stylize},
+    style::{Print, PrintStyledContent, Stylize},
     terminal::{Clear, ClearType},
 };
-use falling_tetromino_engine::ExtDuration;
 
 use crate::{
     Application, ScoreSummary,
@@ -45,19 +45,20 @@ impl<T: Write> Application<T> {
             Menu::Quit,
         ];
 
-        let color_tetromino_rainbow = "1643502"
+        // FIXME: Does this code have to be THIS ugly?
+        let color_rainbow = "1643502"
             .chars()
             .map(|ch| {
                 self.settings
-                    .palette()
+                    .tile_coloring()
                     .get(
-                        &falling_tetromino_engine::Tetromino::VARIANTS
+                        crate::tetromino_engine::Tetromino::VARIANTS
                             [ch.to_string().parse::<usize>().unwrap()]
-                        .tile_id(),
+                        .into(),
+                        0,
                     )
-                    .unwrap_or(&Color::Reset)
+                    .0
             })
-            .copied()
             .collect::<Vec<_>>();
         let mut timing_offset = 0usize;
         let mut coloring_width = 2;
@@ -119,9 +120,10 @@ impl<T: Write> Application<T> {
                             x_main + u16::try_from(x_offset).unwrap(),
                             y_main + y_selection,
                         ))?
-                        .queue(PrintStyledContent(c.bold().with(
-                            color_tetromino_rainbow[rainbow_offset % color_tetromino_rainbow.len()],
-                        )))?;
+                        .queue(PrintStyledContent(
+                            c.bold()
+                                .with(color_rainbow[rainbow_offset % color_rainbow.len()]),
+                        ))?;
                 }
             } else {
                 self.term.queue(PrintStyledContent(

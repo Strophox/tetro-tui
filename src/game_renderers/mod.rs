@@ -8,8 +8,8 @@ mod twoxel;
 
 use std::io::{self, Write};
 
+use crate::tetromino_engine::{Button, Game, InGameTime, Notification};
 use crossterm::event::{KeyCode, KeyModifiers};
-use falling_tetromino_engine::{Button, Game, InGameTime, Notification};
 
 use crate::{
     GameMetaData, Settings, TemporaryAppData,
