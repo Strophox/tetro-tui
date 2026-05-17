@@ -7,9 +7,9 @@
 [![License](https://img.shields.io/crates/l/tetro-tui)](https://github.com/Strophox/tetro-tui#license)
 <!--[![Documentation](https://docs.rs/tetro-tui/badge.svg)](https://docs.rs/tetro-tui)-->
 
-Tetro TUI is a terminal-based but modern tetromino-stacking game that is very customizable and runs cross-platform.
+Tetro TUI is a terminal-based but modern tetromino-stacking game that is customizable and cross-platform.
 
-!["tetro-tui live demo GIF"](https://github.com/Strophox/tetro-tui/blob/b66590cb461d34c95e988ef41b6d8b7d7783f37b/demo_assets/tetro-tui-v3.0.0_demo.gif?raw=true)
+!["tetro-tui demo GIF"](https://github.com/Strophox/tetro-tui/blob/b66590cb461d34c95e988ef41b6d8b7d7783f37b/demo_assets/tetro-tui-v3.0.0_demo.gif?raw=true)
 
 
 > <details>
@@ -72,27 +72,27 @@ cargo run
 
 ### How does the base game work?
 
-> *Tetro TUI* is about [tetromino](<https://en.wikipedia.org/wiki/Tetromino>) pieces falling from the sky and stacking inside a 2D playing field. When a horizontal line is full it automatically clears away and everything 'stacked' above shifts down.
+> *Tetro TUI* is about [tetromino](<https://en.wikipedia.org/wiki/Tetromino>) pieces falling from the sky and stacking inside a 2D playing field. When horizontal lines are filled they automatically clear away and everything 'stacked' above moves down.
 > 
 > A skilled player may keep playing indefinitely.
 > Different game modes will change up the gameplay while still using the same base mechanics.
 
 
-### How good is it in terms of customization / features?
+### How good is it in terms of configuration / features?
 
-> We provide a solid amount of configuration options and features:
+> We provide a solid amount of customization options / features for casual and (potentially) experienced players alike:
 > - **Graphics:** Unicode/ASCII/Elektronika styles, old-terminal-compatible or very modern designs, 10 color palettes, hard drop/piece lock/line clear effects and much more.
-> - **Gameplay and handling:** Various rotation systems, piece randomizers, adjustable preview, timings (DAS¹, ARR¹, SDF¹, LCD, ARE), IRS/IHS/.. ([¹caveat](#why-do-some-gameplay-preferences-dasarrsdf-or-some-keybinds-ctrlshiftalt-not-work-for-me)).
 > - **Game keybinds:** to your heart's desire. 
+> - **Gameplay/handling:** Various rotation systems, piece randomizers, adjustable preview, timings (DAS¹, ARR¹, SDF¹, LCD, ARE), IRS/IHS/.. ([¹caveat](#why-do-some-gameplay-preferences-dasarrsdf-or-some-keybinds-ctrlshiftalt-not-work-for-me)).
 > - **Game mode miscellany:** Regular ('Marathon'), Swift ('40-Lines'), Classic & Master (unlocked after Regular), Puzzle, Cheese, Combo, Custom (select win condition, initial gravity, toggle gravity progress, *cmdline flags:* start board, seed).
-> - **Highscores, replays, statistics, ...** - can can be accessed as well as backed up with a simple **savefile**.
+> - **Highscores, replays, statistics, ...** - can be viewed as well as backed up with a simple **savefile**.
 >
-> Visuals depend on / can be customized together with your underlying terminal settings.
-> E.g. you can set a bigger font to scale the game, or use <a href="https://github.com/Swordfish90/cool-retro-term">cool-retro-term</a> for nostalgic look etc.
+> Visuals can be customized together with your underlying terminal settings.
+> E.g. one can set a bigger font to scale the game, or use <a href="https://github.com/Swordfish90/cool-retro-term">cool-retro-term</a> for a nostalgic look etc.
 > 
 > <details>
 > <summary>
-> See also: Complete list of Tetro TUI v3.0 menus contents:
+> See also: Complete overview of Tetro TUI v3.0 menus content:
 > </summary>
 > 
 > **New game/**
@@ -176,17 +176,18 @@ cargo run
 > - Due to historical reasons, most will only send "key pressed" but **not** "key released again".
 >   This makes it impossible to implement mechanics such as:
 >   "If `[←]` is pressed, move left with a certain speed *until key is released again*."
->   * Affected mechanics: Fixed DAS, Fixed ARR, Fixed SDF (& holding Soft Drop will lock the piece), Unable to hold Teleport, Unable to hold buttons for IRS/IHS/IMS/ITS.
+>   * Affected mechanics: Generally unable to actually 'hold' any buttons; DAS & ARR & SDF determined by terminal (& holding Soft Drop may 'accidentally' lock the piece), unable to hold Teleport, unable to hold for IRS/IHS/IMS/ITS.
 >   * Note that some terminals e.g. on Windows *do* send key-release signals, without this being auto-detected:
-> Use the 'Override' in *Advanced Settings* for such cases.
+>     Use the override in *Advanced Settings* for such cases.
 > - Also due to history, modifier keys can only modify 'actual' text signals and are never sent by themselves. 
 >   * Affected mechanics: Cannot register modifier `Ctrl`/`Alt`/`Shift`/`Win`/`⌘`/... as individual key presses.
 > 
-> Precisely these issues are fixed with 'enhanced keyboard events' / ['progressive enhancement'](<https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement>) / 'kitty protocol'.
+> Precisely these issues are fixed with ['enhanced keyboard events' / 'kitty keyboard protocol'](<https://sw.kovidgoyal.net/kitty/keyboard-protocol>).
 >
 > </details>
 
 
+<!--NOTE: This list has not been updated since the addition of the in-app `?` (help) command in ~v3.X.
 ### Can you give me a table of all controls / shortcuts / keybinds?
 
 > You can press `?` in every single menu to access a keybinds overview for it.
@@ -305,7 +306,7 @@ cargo run
 > | `Ctrl`+`Alt`+`S` | Perform savefile store (respects save preferences) |
 > | `Ctrl`+`C` | Quit program (respects save preferences) |
 > 
-> </details>
+> </details>-->
 
 
 ### Where's the config file? Will it clutter my system?
@@ -328,45 +329,41 @@ cargo run
 > </details>
 
 
-### *Experienced players:* How does it compare to / deviate from common stacker games?
+### *Experienced players:* How does it compare to (or deviate from) common stacker games?
 
+> At the time of writing we implement all the most common mechanics found in the wild (and then some).
+> Groups of (e.g. gameplay) settings are bundled in a 'slot'(= settings template/profile) which allows us to provide common presets as well as our suggested defaults. 
+> 
 > <details>
 > <summary>
-> We put to practical use our customizability and provide many *settings slots* (profiles/templates), e.g. to simulate guideline gameplay¹/keybinds¹/graphics (¹Handling limitations may apply to your terminal);
+> See list of notable differences:
 > </summary>
 >
-> Note that the 'Default' settings slots – though they should remain very familiar – do take liberties in 'shifting mechanics closer to the platonic ideal' of a tetromino stacker game. This is obviously not an objective statement, in practice it just means:
-> 
 > **Keybinds:**
-> - Default controls set to **WASD + Arrow keys** (also preferred due to common [terminal limitations](#why-do-some-gameplay-preferences-dasarrsdf-or-some-keybinds-ctrlshiftalt-not-work-for-me)).
-> - Dedicated keys possible for **Rotate 180°**, **Teleport Down** ('Sonic Drop'), even Teleport Left/Right.
+> - Default controls suggested to be **WASD + Arrow keys** (reasoning: We prefer to assign movement and rotation to separate hands instead of mixing; do not use Shift key due to common [terminal limitations](#why-do-some-gameplay-preferences-dasarrsdf-or-some-keybinds-ctrlshiftalt-not-work-for-me)).
+> - Dedicated buttons supplied for **Rotate 180°**, **Teleport Down** ('Sonic Drop') and Teleport Left/Right.
 > 
 > **Gameplay:**
-> - Default use of the flexible/intuitive/symmetrical [**Ocular Rotation** System](#experienced-players-what-is-this-ocular-rotation-system) (instead of: the quirky / sometimes asymmetrical industry default).
-> - Default **Recency Randomizer** which is random but biases toward choosing less recent pieces (instead of: 'overdeterministic' 7-Bag).
+> - Default rotation system suggested to be the [**Ocular Rotation** System](#experienced-players-what-is-this-ocular-rotation-system) (reasoning: Ocular is designed to be symmetrical, intuitive and flexible (in different ways) compared to the quirky / sometimes asymmetrical 'Super' Rot.Sys.).
+> - Default piece randomizer suggested to be a **Recency Randomizer** (reasoning: 'Recency' is biased toward 'fairly' choosing less recent pieces but still technically allowing arbitrary piece sequences, compared to the 'overdeterministic' 7-Bag).
 > - **Points (score) bonus** system is currently kept custom and simple.
 >   - '1pt for simple line clear, with increasing bonus for larger lineclears, combos, spins and perfect clears.'
->   - *Note:* 'Allspin' (instead of: preoccupation with 'T-spins'), currently no 'minis'.
->   - *Note:* Combos (but no additional points for 'back to back' other than existing incentives for special maneuvers).
+>   - *Note:* 'Allspin' without 'minis' (reasoning: we are not preoccupied with just 'T-spins').
+>   - *Note:* Combos, without 'back-to-back' (reasoning: Back-to-back incentivizes playing special maneuvers, but those already yield disproportionate score bonus by themselves).
 >   - Exact formula: `point_bonus = lineclears*lineclears * if is_spin{ 4 }else{ 1 } * if is_perfect{ 4 }else{ 1 } + (combo - 1)`
-> - Different **lock reset** limit: 'max time = 10⋅current lock delay' (instead of: 'max 15 moves with current lock delay').
-> - Speed/gravity/fall curve slightly less fast but very close to 'standard'.
+> - **Time-based lock reset limit** (reasoning: Providing a 'hard time limit before lock'(= `N`⋅current lock delay) seems more flexible/natural than 'hard move limit before lock'(=`N` 'moves').
+> - Default speed/gravity/fall curve is slightly less aggressive but very close to standard (reason: We use a simpler formula).
 >
 > **Graphics:**
-> - Chosen default palette is more pastel with **uniform perceptual brightness**.
+> - Default palette is more pastel (reasoning: Uniform perceptual brightness, 'looks pretty').
 > 
 > </details>
-
-
-### *Experienced players:* And how extensive are the stacker mechanics exactly?
-
+> 
 > <details>
 > <summary>
-> See this list quoted from the <a href="https://crates.io/crates/falling-tetromino-engine">Falling Tetromino Engine</a> that powers the core game logic:
-> </summary>
+> See list of <a href="https://crates.io/crates/falling-tetromino-engine">core game engine</a> mechanics:
+> </summary><!--NOTE: This list is quoted from the core game engine repository.-->
 > 
-> In terms of advanced game mechanics the engine aims to compare with other modern tetromino stackers.
-> It should already incorporate many features desired by familiar/experienced players, such as:
 > - Available player actions:
 >     - **Move** left/right,
 >     - **Rotate** left/right/180°
@@ -406,7 +403,7 @@ cargo run
 > - Rotation generally based on 'proximity where it looks like the piece should (be able to) go'.
 > - Pieces should prefer downwards placement, not 'teleport up' in general.
 >
-> See this visual/'heatmap' comparison of industry default vs. Ocular rotation:
+> See this visual/'heatmap' comparison of the 'industry default' rotation system vs. Ocular rotation:
 > 
 > !["super rotation system heatmap"](https://github.com/Strophox/tetro-tui/blob/b66590cb461d34c95e988ef41b6d8b7d7783f37b/demo_assets/rotation-system-heatmap_srs.png?raw=true)
 > 
@@ -415,11 +412,11 @@ cargo run
 > </details>
 
 
-### *Programmers / Terminal enthusiasts:* Can you tell me more about the programming behind this terminal game?
+### *Programmers / Terminal enthusiasts:* Can you provide some insight into the programming of this terminal game?
 
 > <details>
 > <summary>
-> This project handles a handful of aspects to try and provide excellent user experience for a classic game. Things that find themselves in the scope of this project are: 
+> This project handles a handful of aspects to try and provide excellent user experience for a classic game. It also aims to maintain a decently high quality in code. The scope of this project consists of: 
 > </summary>
 > 
 > - A **fully-featured [Tetromino game engine/backend](<https://github.com/Strophox/falling-tetromino-engine>)** featuring:
@@ -432,18 +429,18 @@ cargo run
     * **Graphics** options, **Configurable keybinds**, **Gameplay settings**.
 >   * Providing many **curated configuration templates** for everything, inspired by existing standards and games.
 >   * *Sidenote:* Ever since its inception as a proof-of-concept the terminal user interface (TUI) has directly and only relied on [Crossterm](<https://crates.io/crates/crossterm>). Currently there appears no need to change this situation, though a full TUI library like [Ratatui](<https://ratatui.rs/>) might be reconsidered e.g. to handle UI translation (displaying other languages) etc.
-> - A good **input-update-render game loop**.
-> - Implementing **game replay**.
+> - A competent **input-update-render game loop**.
+> - Implementing **game replays**.
 > - **Savefile** storage:
->   * Especially **replay data serialization and compression**.
+>   * In particular **replay data serialization and compression**.
 > - **Scoreboard** and **statistics**.
 > - Game **graphics renderer** that handles all of the **effects** and dozens of graphics settings, efficiently.
 >   * Custom **buffer diff'ing** so we can guarantee we only send the minimum number of required changes to the terminal (this minimizes flicker), see <https://github.com/Strophox/tetro-tui/blob/7f0ebacee7a1ed8d399057e270f9071aa13aaaa8/src/game_renderers/standard_buffered/dense_terminal_double_buffer.rs#L103>.
 > - Miscellaneous:
 >   * Commandline arguments.
->   * Terminal limitations, all the time.
->   * Doing all of the above as simply, ergonomically and as correctly as possible while providing feedback to the user when something doesn't work as expected.
->   * Code quality.
+>   * Terminal limitations, all the time...
+>   * Doing all of the above as simply, ergonomically and as correctly as possible while providing feedback to the user when something doesn't work as expected...
+>   * Rust code quality.
 > 
 > </details>
 
@@ -459,9 +456,9 @@ cargo run
 > Out of curiosity I snuck a peek to see how deep the mechanics of such a universal game can go:
 > Basic versions are simple to code up, but it gets surprisingly complex when it comes to supporting all the modern/advanced features (especially while dealing with terminal limitations)!
 > 
-> To the best of my abilities I have implemented a most featureful / customizable version that still remains faithful to the essential
+> To the best of my abilities I have implemented a most featureful & customizable version that still remains faithful to the essential
 idea and also looks/runs nicely within a 'mere' terminal - Enjoy!
-> ☺ [L. Werner](<https://github.com/Strophox>)
+> ☺ [L.C.Werner](<https://github.com/Strophox>)
 > 
 > </details>
 
@@ -483,11 +480,12 @@ Color palettes featured: [Gruvbox](<https://github.com/morhetz/gruvbox>), [Solar
 A big thank you to the [AUR package](#arch-linux-aurarchlinuxorg) maintainers!
 - [wcasanova](<https://github.com/wcasanova>), [druxorey](<https://github.com/druxorey>) and Dominiquini
 
-Thank you to various sources of inspiration:
+Thank you to many sources of inspiration:
 - Dunspixel – regarding ['O'-spins](<https://dunspixel.github.io/ospin-guide/chapter4.html#tetro-tui>)
 - Martín G / mg1399 – regarding particle-based line clear effects from his own PICO-8 game
 - thehuglet – regarding the [potential of terminal graphics](<https://github.com/thehuglet/germterm>)
-- Akousoukos – for making [Apotris](<https://apotris.com/>)
+- Akousoukos – regarding the [customizability of Apotris](<https://apotris.com/>)
+- DoktorOcelot – regarding the addition of [Survival Zen mode in Tetr.js Enhanced](<https://doktorocelot.com/tetr.js/>)
 
 Special Thanks
 - GrBtAce, KonSola5 and bennxt – help during early dev/research
