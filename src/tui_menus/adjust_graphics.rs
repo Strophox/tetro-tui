@@ -17,12 +17,12 @@ use crossterm::{
 
 use crate::{
     Application, Settings,
+    core_game_engine::{Tetromino, TileType},
     fmt_helpers::BoolAsOnOff,
-    tetromino_engine::{Tetromino, TileType},
     tui_menus::{Menu, MenuUpdate, heading_line},
 };
 
-impl<T: Write> Application<T> {
+impl<W: Write> Application<W> {
     pub fn run_menu_adjust_graphics(&mut self) -> io::Result<MenuUpdate> {
         let if_unmodifiable_clone_and_switch = |s: &mut Settings| {
             if let Some(cloned_slot_idx) = s

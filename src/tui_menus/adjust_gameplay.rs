@@ -4,7 +4,7 @@ use std::{
     time::Duration,
 };
 
-use crate::tetromino_engine::{
+use crate::core_game_engine::{
     BalanceOutGen, ExtNonNegF64, MiscPceRots, MiscTetGens, RecencyGen, RerollGen, StockGen,
 };
 use crossterm::{
@@ -27,7 +27,7 @@ use crate::{
     tui_menus::{Menu, MenuUpdate, heading_line},
 };
 
-impl<T: Write> Application<T> {
+impl<W: Write> Application<W> {
     pub fn run_menu_adjust_gameplay(&mut self) -> io::Result<MenuUpdate> {
         let if_unmodifiable_clone_and_switch = |s: &mut Settings| {
             if let Some(cloned_slot_idx) = s

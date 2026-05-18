@@ -1,5 +1,10 @@
-use crate::tetromino_engine::Board;
-use crossterm::{QueueableCommand, cursor, style, terminal};
+use crossterm::{
+    QueueableCommand, cursor,
+    style::{self, Stylize},
+    terminal,
+};
+
+use crate::core_game_engine::{Board, LOCK_OUT_HEIGHT};
 
 use super::*;
 
@@ -28,10 +33,11 @@ impl GameRenderer for BrailleRenderer {
         // We do not store any effects state associated with the game at this time.
     }
 
-    fn reset_viewport_state_with_offset_and_area(
+    fn reset_viewport_state(
         &mut self,
         (x, y): (u16, u16),
         (w, h): (u16, u16),
+        _ambience: TermCell,
     ) {
         self.x = x;
         self.y = y;
@@ -40,20 +46,23 @@ impl GameRenderer for BrailleRenderer {
         self.cached_board = Board::default();
     }
 
-    fn render<T: Write>(
+    fn render<W: Write>(
         &mut self,
-        term: &mut T,
+        term: &mut W,
         game: &Game,
         _meta_data: &GameMetaData,
-        _settings: &Settings,
+        settings: &Settings,
         _temp_data: &TemporaryAppData,
         _keybinds_legend: &KeybindsLegend,
         _replay_extra: Option<(InGameTime, f64)>,
     ) -> io::Result<()> {
         let mut board = game.state().board.clone();
+        board.resize(LOCK_OUT_HEIGHT, Default::default());
         if let Some(piece) = game.phase().piece() {
             for (x, y) in piece.coords() {
-                board[y as usize].0[x as usize] = Some(piece.tetromino.into());
+                if (y as usize) < LOCK_OUT_HEIGHT {
+                    board[y as usize].0[x as usize] = Some(piece.tetromino.into());
+                }
             }
         }
 
@@ -76,10 +85,10 @@ impl GameRenderer for BrailleRenderer {
         .iter()
         .map(|[i0, i1, i2, i3]| {
             let [l0, l1, l2, l3] = [
-                self.cached_board[*i0],
-                self.cached_board[*i1],
-                self.cached_board[*i2],
-                self.cached_board[*i3],
+                self.cached_board.get(*i0).copied().unwrap_or_default(),
+                self.cached_board.get(*i1).copied().unwrap_or_default(),
+                self.cached_board.get(*i2).copied().unwrap_or_default(),
+                self.cached_board.get(*i3).copied().unwrap_or_default(),
             ];
             [[0, 1], [2, 3], [4, 5], [6, 7], [8, 9]]
                 .iter()
@@ -110,7 +119,11 @@ impl GameRenderer for BrailleRenderer {
                 x_render,
                 y_render + u16::try_from(dy).unwrap(),
             ))?
-            .queue(style::Print(format!("{delim_l}{b_line}{delim_r}")))?;
+            .queue(style::PrintStyledContent(
+                format!("{delim_l}{b_line}{delim_r}")
+                    .with(settings.tui_coloring().text)
+                    .on(settings.tui_coloring().bg),
+            ))?;
         }
 
         term.flush()?;

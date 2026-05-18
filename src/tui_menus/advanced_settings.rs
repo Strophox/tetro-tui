@@ -19,7 +19,7 @@ use crate::{
     tui_menus::{Menu, MenuUpdate, heading_line},
 };
 
-impl<T: Write> Application<T> {
+impl<W: Write> Application<W> {
     pub fn run_menu_advanced_settings(&mut self) -> io::Result<MenuUpdate> {
         if self.temp_data.kitty_assumed {
             let f = Self::GAME_KEYBOARD_ENHANCEMENT_FLAGS;
@@ -352,7 +352,7 @@ impl<T: Write> Application<T> {
                         if !self.temp_data.kitty_assumed && self.temp_data.kitty_detected {
                             let f = Self::GAME_KEYBOARD_ENHANCEMENT_FLAGS;
                             // FIXME: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm doesn't like operating on Windows.
-                            let _r: Result<&mut T, io::Error> =
+                            let _r: Result<&mut W, io::Error> =
                                 self.term.execute(event::PushKeyboardEnhancementFlags(f));
                         } else if self.temp_data.kitty_assumed && !self.temp_data.kitty_detected {
                             // FIXME: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm doesn't like operating on Windows.
@@ -443,7 +443,7 @@ impl<T: Write> Application<T> {
                         if self.temp_data.kitty_assumed {
                             let f = Self::GAME_KEYBOARD_ENHANCEMENT_FLAGS;
                             // FIXME: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm doesn't like operating on Windows.
-                            let _r: Result<&mut T, io::Error> =
+                            let _r: Result<&mut W, io::Error> =
                                 self.term.execute(event::PushKeyboardEnhancementFlags(f));
                         } else {
                             // FIXME: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm doesn't like operating on Windows.
@@ -486,7 +486,7 @@ impl<T: Write> Application<T> {
                         if self.temp_data.kitty_assumed {
                             let f = Self::GAME_KEYBOARD_ENHANCEMENT_FLAGS;
                             // FIXME: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm doesn't like operating on Windows.
-                            let _r: Result<&mut T, io::Error> =
+                            let _r: Result<&mut W, io::Error> =
                                 self.term.execute(event::PushKeyboardEnhancementFlags(f));
                         } else {
                             // FIXME: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm doesn't like operating on Windows.

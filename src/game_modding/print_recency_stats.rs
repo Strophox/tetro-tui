@@ -1,4 +1,4 @@
-use crate::tetromino_engine::{
+use crate::core_game_engine::{
     GameAccess, GameModifier, MiscPceRots, MiscTetGens, Notification, NotificationFeed, RecencyGen,
     Tetromino, TetrominoGenerator, TileType,
 };

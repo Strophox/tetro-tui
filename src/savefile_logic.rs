@@ -89,7 +89,7 @@ struct SaveContents<'a> {
     scores_and_replays: Cow<'a, Scoreboard>,
 }
 
-impl<T: Write> Application<T> {
+impl<W: Write> Application<W> {
     pub fn savefile_store(&mut self) -> SavefileResult<()> {
         match self.temp_data.save_on_exit {
             // Explicitly check for savefile and try to make sure we don't leave it around.

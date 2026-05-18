@@ -1,11 +1,11 @@
 use either::Either::{self, Left, Right};
 
 use crate::{
+    core_game_engine::{Tetromino, TileType},
     settings::{
         SlotMachine,
         graphics_settings::{TileTexture, UnwrapTileFromStr},
     },
-    tetromino_engine::{Tetromino, TileType},
 };
 
 #[derive(

@@ -7,7 +7,7 @@ use crossterm::{
     terminal,
 };
 
-use crate::tetromino_engine::{InGameTime, Notification, State, Tetromino};
+use crate::core_game_engine::{InGameTime, Notification, State, Tetromino};
 
 use super::*;
 
@@ -31,17 +31,18 @@ impl GameRenderer for PrototypeRenderer {
         self.notification_feed_buffer.clear();
     }
 
-    fn reset_viewport_state_with_offset_and_area(
+    fn reset_viewport_state(
         &mut self,
-        _offsets: (u16, u16),
-        _dimensions: (u16, u16),
+        _offset: (u16, u16),
+        _area: (u16, u16),
+        _ambience: TermCell,
     ) {
         // We do not implement any special viewport handling here.
     }
 
-    fn render<T>(
+    fn render<W>(
         &mut self,
-        term: &mut T,
+        term: &mut W,
         game: &Game,
         _meta_data: &GameMetaData,
         _settings: &Settings,
@@ -50,7 +51,7 @@ impl GameRenderer for PrototypeRenderer {
         _replay_extra: Option<(InGameTime, f64)>,
     ) -> io::Result<()>
     where
-        T: Write,
+        W: Write,
     {
         // Draw game stuf
         let game_time = game.state().time;
@@ -70,7 +71,7 @@ impl GameRenderer for PrototypeRenderer {
                 line.iter()
                     .map(|cell| {
                         cell.map_or(" .", |tile| match tile {
-                            crate::tetromino_engine::TileType::Tet(t) => match t {
+                            crate::core_game_engine::TileType::Tet(t) => match t {
                                 Tetromino::O => "OO",
                                 Tetromino::I => "II",
                                 Tetromino::S => "SS",
@@ -79,7 +80,7 @@ impl GameRenderer for PrototypeRenderer {
                                 Tetromino::L => "LL",
                                 Tetromino::J => "JJ",
                             },
-                            crate::tetromino_engine::TileType::Generic => "WW",
+                            crate::core_game_engine::TileType::Generic => "WW",
                         })
                     })
                     .collect::<Vec<_>>()

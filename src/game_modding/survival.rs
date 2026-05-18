@@ -1,6 +1,6 @@
 use std::num::NonZeroUsize;
 
-use crate::tetromino_engine::{
+use crate::core_game_engine::{
     Game, GameAccess, GameBuilder, GameEndCause, GameModifier, MAX_BOARD_HEIGHT, MiscPceRots,
     MiscTetGens, NotificationFeed, Phase, TileType,
 };

@@ -1,6 +1,6 @@
 use std::io::{self, Write};
 
-use crate::tetromino_engine::ExtDuration;
+use crate::core_game_engine::ExtDuration;
 use crossterm::{
     QueueableCommand,
     cursor::MoveTo,
@@ -21,7 +21,7 @@ use crate::{
     tui_menus::{Menu, MenuUpdate, heading_line},
 };
 
-impl<T: Write> Application<T> {
+impl<W: Write> Application<W> {
     pub fn run_menu_game_ended(&mut self, game_scoring: &ScoreSummary) -> io::Result<MenuUpdate> {
         let ScoreSummary {
             game_meta_data,
@@ -52,7 +52,7 @@ impl<T: Write> Application<T> {
                 self.settings
                     .tile_coloring()
                     .get(
-                        crate::tetromino_engine::Tetromino::VARIANTS
+                        crate::core_game_engine::Tetromino::VARIANTS
                             [ch.to_string().parse::<usize>().unwrap()]
                         .into(),
                         0,

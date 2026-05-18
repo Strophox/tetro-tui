@@ -3,8 +3,11 @@ use std::{
     time::{Duration, Instant},
 };
 
-use crate::tetromino_engine::{
-    Game, GameEndCause, InGameTime, Input, Notification, Phase, UpdateGameError,
+use crate::{
+    core_game_engine::{
+        Game, GameEndCause, InGameTime, Input, Notification, Phase, UpdateGameError,
+    },
+    terminal_buffers::TermCell,
 };
 use crossterm::{
     ExecutableCommand,
@@ -28,7 +31,7 @@ pub struct GameSaveAnchor {
     inputs_loaded: usize,
 }
 
-impl<T: Write> Application<T> {
+impl<W: Write> Application<W> {
     pub fn run_menu_replay_game(
         &mut self,
         game_restoration_data: &GameRestorationData<RawInputHistory>,
@@ -107,9 +110,13 @@ impl<T: Write> Application<T> {
 
         // Initial render.
 
-        game_renderer.reset_viewport_state_with_offset_and_area(
+        game_renderer.reset_viewport_state(
             (0, 0),
             terminal::size().unwrap_or_default(),
+            TermCell {
+                bg: self.settings.tui_coloring().bg,
+                ..TermCell::BLANK
+            },
         );
         self.term.execute(Clear(terminal::ClearType::All))?;
         game_renderer.render(
@@ -589,6 +596,14 @@ impl<T: Write> Application<T> {
                                     [(Notification::Custom(msg), game.state().time)],
                                     &self.settings,
                                 );
+                                game_renderer.reset_viewport_state(
+                                    (0, 0),
+                                    terminal::size().unwrap_or_default(),
+                                    TermCell {
+                                        bg: self.settings.tui_coloring().bg,
+                                        ..TermCell::BLANK
+                                    },
+                                );
 
                                 if paused {
                                     next_paused_with_extra_render_request = Some(true);
@@ -664,8 +679,14 @@ impl<T: Write> Application<T> {
                     event::Event::FocusLost => {}
                     event::Event::Resize(cols, rows) => {
                         // Need to redraw screen for proper centering etc.
-                        game_renderer
-                            .reset_viewport_state_with_offset_and_area((0, 0), (cols, rows));
+                        game_renderer.reset_viewport_state(
+                            (0, 0),
+                            (cols, rows),
+                            TermCell {
+                                bg: self.settings.tui_coloring().bg,
+                                ..TermCell::BLANK
+                            },
+                        );
                         self.term.execute(Clear(terminal::ClearType::All))?;
 
                         if paused {

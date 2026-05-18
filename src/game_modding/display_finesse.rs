@@ -1,4 +1,4 @@
-use crate::tetromino_engine::{
+use crate::core_game_engine::{
     GameAccess, GameModifier, MiscPceRots, MiscTetGens, NotificationFeed, TileType,
 };
 
@@ -48,12 +48,12 @@ impl GameModifier<MiscTetGens, MiscPceRots, TileType> for DisplayFinesse {
         &mut self,
         _game: GameAccess,
         _feed: &mut NotificationFeed,
-        _time: &mut crate::tetromino_engine::InGameTime,
-        player_input: &mut Option<crate::tetromino_engine::Input>,
+        _time: &mut crate::core_game_engine::InGameTime,
+        player_input: &mut Option<crate::core_game_engine::Input>,
     ) {
         if matches!(
             player_input,
-            Some(crate::tetromino_engine::Input::Activate(_))
+            Some(crate::core_game_engine::Input::Activate(_))
         ) {
             self.player_inputs_counted += 1;
             self.cached_display_values[0].1 = self.player_inputs_counted.to_string();

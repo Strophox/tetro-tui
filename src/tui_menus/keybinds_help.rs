@@ -2,7 +2,7 @@ use std::io::{self, Write};
 
 use crate::{Application, tui_menus::MenuUpdate};
 
-impl<T: Write> Application<T> {
+impl<W: Write> Application<W> {
     pub fn run_menu_keybinds_help(
         &mut self,
         client_menu_name: &str,

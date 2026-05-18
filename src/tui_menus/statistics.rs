@@ -2,7 +2,7 @@ use std::io::{self, Write};
 
 use crate::{Application, Statistics, fmt_helpers::fmt_duration, tui_menus::MenuUpdate};
 
-impl<T: Write> Application<T> {
+impl<W: Write> Application<W> {
     pub fn run_menu_statistics(&mut self) -> io::Result<MenuUpdate> {
         let head = "¦ All-Time Game Statistics ¦";
 

@@ -17,10 +17,11 @@ use super::{TermCell, TerminalBuffer};
 pub struct DenseDoubleBuffer {
     /// INVARIANT:
     /// - `prev_buf.len() == width * height`.
-    prev_buf: Vec<TermCell>,
+    prev_buf: Option<Vec<TermCell>>,
     /// INVARIANT:
     /// - `next_buf.len() == width * height`.
-    next_buf: Vec<TermCell>,
+    curr_buf: Vec<TermCell>,
+    curr_ambience: TermCell,
     x_vp: u16,
     y_vp: u16,
     w_vp: u16,
@@ -38,35 +39,47 @@ impl TerminalBuffer for DenseDoubleBuffer {
     //         h_vp: h,
     //     }
     // }
+    fn reset_buffer(&mut self) {
+        self.curr_buf.fill(self.curr_ambience);
+    }
 
-    fn offset_and_area(&self) -> ((u16, u16), (u16, u16)) {
-        ((self.x_vp, self.y_vp), (self.w_vp, self.h_vp))
+    fn reset_with_ambience(&mut self, cell: TermCell) {
+        self.curr_ambience = cell;
+        self.reset_buffer();
     }
 
     fn reset_with_offset_and_area(&mut self, (x, y): (u16, u16), (w, h): (u16, u16)) {
         let old_len = (self.w_vp * self.h_vp).into();
         let new_len = (w * h).into();
-        if new_len > old_len {
-            self.prev_buf.fill(TermCell::EMPTY);
-            self.next_buf.fill(TermCell::EMPTY);
-            self.prev_buf.resize(new_len, TermCell::EMPTY);
-            self.next_buf.resize(new_len, TermCell::EMPTY);
-        } else {
-            self.prev_buf.resize(new_len, TermCell::EMPTY);
-            self.next_buf.resize(new_len, TermCell::EMPTY);
-            self.prev_buf.fill(TermCell::EMPTY);
-            self.next_buf.fill(TermCell::EMPTY);
-        }
+
         self.x_vp = x;
         self.y_vp = y;
         self.w_vp = w;
         self.h_vp = h;
+
+        // Reset current buffer.
+        // We think it is faster to first fill and resize with rest if the buffer is expected to grow,
+        // and faster to resize and then fill if the buffer will shrink.
+        if new_len > old_len {
+            self.curr_buf.fill(self.curr_ambience);
+            self.curr_buf.resize(new_len, self.curr_ambience);
+        } else {
+            self.curr_buf.resize(new_len, self.curr_ambience);
+            self.curr_buf.fill(self.curr_ambience);
+        }
+
+        // Explicitly redraw whole screen next time.
+        self.prev_buf = None;
+    }
+
+    fn offset_and_area(&self) -> ((u16, u16), (u16, u16)) {
+        ((self.x_vp, self.y_vp), (self.w_vp, self.h_vp))
     }
 
     fn write_char(&mut self, x: u16, y: u16, cell: TermCell) {
         if x < self.w_vp && y < self.h_vp {
             let idx = x as usize + self.w_vp as usize * y as usize;
-            self.next_buf[idx] = cell;
+            self.curr_buf[idx] = cell;
         }
     }
 
@@ -79,12 +92,12 @@ impl TerminalBuffer for DenseDoubleBuffer {
             return;
         }
         let idx = x as usize + self.w_vp as usize * y as usize;
-        self.next_buf[idx] = TermCell { ch: ch0, fg, bg };
+        self.curr_buf[idx] = TermCell { ch: ch0, fg, bg };
 
         if x + 1 >= self.w_vp {
             return;
         }
-        self.next_buf[idx + 1] = TermCell { ch: ch1, fg, bg };
+        self.curr_buf[idx + 1] = TermCell { ch: ch1, fg, bg };
     }
 
     fn write_str(&mut self, x: u16, y: u16, str: &str, fg: Color, bg: Color) {
@@ -96,7 +109,7 @@ impl TerminalBuffer for DenseDoubleBuffer {
                 return;
             }
             let idx = x as usize + dx + self.w_vp as usize * y as usize;
-            self.next_buf[idx] = TermCell { ch, fg, bg };
+            self.curr_buf[idx] = TermCell { ch, fg, bg };
         }
     }
 
@@ -112,42 +125,61 @@ impl TerminalBuffer for DenseDoubleBuffer {
                 return;
             }
             let idx = (x as usize + dx) + (self.w_vp as usize) * (y as usize + dy);
-            self.next_buf[idx] = TermCell { ch, fg, bg };
+            self.curr_buf[idx] = TermCell { ch, fg, bg };
             dx += 1;
         }
     }
 
-    fn flush(&mut self, term: &mut impl Write) -> io::Result<()> {
-        // Use flag to possibly avoid having to do any I/O at all.
-        let mut diff_issued = false;
-
-        for x in 0..self.w_vp {
-            for y in 0..self.h_vp {
-                let idx = x as usize + self.w_vp as usize * y as usize;
-                if self.prev_buf[idx] != self.next_buf[idx] {
-                    if !diff_issued {
-                        diff_issued = true;
-                        term.queue(terminal::BeginSynchronizedUpdate)?;
-                    }
+    fn flush<W: Write>(&mut self, term: &mut W) -> io::Result<()> {
+        if let Some(prev_buf) = &mut self.prev_buf {
+            // Use flag to possibly avoid having to do any I/O at all.
+            let mut diff_issued = false;
+            for x in 0..self.w_vp {
+                for y in 0..self.h_vp {
+                    let idx = x as usize + self.w_vp as usize * y as usize;
                     // Always reprint styled if anything changed.
+                    if prev_buf[idx] != self.curr_buf[idx] {
+                        if !diff_issued {
+                            diff_issued = true;
+                            term.queue(terminal::BeginSynchronizedUpdate)?;
+                        }
+                        #[rustfmt::skip] let TermCell { ch: new_ch, fg: new_fg, bg: new_bg } = self.curr_buf[idx];
+                        term.queue(cursor::MoveTo(self.x_vp + x, self.y_vp + y))?;
+                        term.queue(PrintStyledContent(new_ch.with(new_fg).on(new_bg)))?;
+                    }
+                }
+            }
+            if diff_issued {
+                term.queue(cursor::MoveTo(0, 0))?
+                    .queue(terminal::EndSynchronizedUpdate)?
+                    .flush()?;
+            }
+
+            // Double buffer.
+            std::mem::swap(prev_buf, &mut self.curr_buf);
+            self.reset_buffer();
+        } else {
+            // In this case, explicitly draw entire buffer.
+            term.queue(terminal::BeginSynchronizedUpdate)?;
+            for x in 0..self.w_vp {
+                for y in 0..self.h_vp {
+                    let idx = x as usize + self.w_vp as usize * y as usize;
+                    #[rustfmt::skip] let TermCell { ch: new_ch, fg: new_fg, bg: new_bg } = self.curr_buf[idx];
                     term.queue(cursor::MoveTo(self.x_vp + x, self.y_vp + y))?;
-                    #[rustfmt::skip] let TermCell { ch: new_ch, fg: new_fg, bg: new_bg } = self.next_buf[idx];
                     term.queue(PrintStyledContent(new_ch.with(new_fg).on(new_bg)))?;
                 }
             }
-        }
-
-        if diff_issued {
             term.queue(cursor::MoveTo(0, 0))?
                 .queue(terminal::EndSynchronizedUpdate)?
                 .flush()?;
+
+            // Create new blank canvas for next_buf.
+            let mut temp_buf = vec![self.curr_ambience; (self.w_vp * self.h_vp) as usize];
+            // Swap buffers so `prev_buf` correctly contains the one we just wrote and want to keep for next time.
+            std::mem::swap(&mut temp_buf, &mut self.curr_buf);
+            // Store previous buffer.
+            self.prev_buf = Some(temp_buf);
         }
-
-        // Swap buffers so `prev_buf` correctly contains the one we just wrote and want to keep for next time.
-        std::mem::swap(&mut self.prev_buf, &mut self.next_buf);
-
-        // Reset buffer by overwriting nonempty cells.
-        self.next_buf.fill(TermCell::EMPTY);
 
         Ok(())
     }

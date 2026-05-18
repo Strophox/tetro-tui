@@ -17,6 +17,7 @@ pub use graphics_settings::{
         Palette, PaletteIdx, TileColoring, /*FIXME: Unused code?: , TilePaletteIndexing*/
     },
     tile_symbols::TileSymbols,
+    tui_coloring::TuiColoring,
     tui_symbols::TuiSymbols,
 };
 
@@ -31,7 +32,7 @@ use crate::{
             mini_tetromino_symbols::mini_tetromino_symbols_presets,
             small_tetromino_symbols::small_tetromino_symbols_presets,
             tile_coloring::tile_coloring_presets, tile_symbols::tile_symbols_presets,
-            tui_symbols::tui_symbols_presets,
+            tui_coloring::tui_coloring_presets, tui_symbols::tui_symbols_presets,
         },
     },
 };
@@ -42,6 +43,8 @@ pub struct Settings {
     pub graphics_selected: usize,
     #[serde(rename = "GRAPHICS_SLOTS")]
     pub graphics_slotmachine: SlotMachine<GraphicsSettings>,
+    #[serde(rename = "UI_COLORING_SLOTS")]
+    pub tui_coloring_slotmachine: SlotMachine<TuiColoring>,
     #[serde(rename = "UI_SYMBOLS_SLOTS")]
     pub tui_symbols_slotmachine: SlotMachine<TuiSymbols>,
     #[serde(rename = "TILE_COLORING_SLOTS")]
@@ -76,6 +79,7 @@ impl Default for Settings {
         Self {
             graphics_selected: 0,
             graphics_slotmachine: graphics_settings_presets(),
+            tui_coloring_slotmachine: tui_coloring_presets(),
             tile_coloring_slotmachine: tile_coloring_presets(),
             tui_symbols_slotmachine: tui_symbols_presets(),
             tile_symbols_slotmachine: tile_symbols_presets(),
@@ -101,6 +105,12 @@ impl Settings {
     // 1. Have a SlotMachine<T>.
     // 2. Store an index into the slots somewhere.
     // 3. Implementing 'getter' on the place that owns the slots (not where the index is stored.)
+    pub fn tui_coloring(&self) -> &TuiColoring {
+        &self
+            .tui_coloring_slotmachine
+            .grab(self.graphics().tui_coloring_selected)
+            .1
+    }
     pub fn tile_coloring(&self) -> &TileColoring {
         &self
             .tile_coloring_slotmachine

@@ -3,8 +3,8 @@ use std::collections::{BTreeMap, HashMap};
 use crossterm::style::Color;
 
 use crate::{
+    core_game_engine::{Tetromino, TileType},
     settings::SlotMachine,
-    tetromino_engine::{Tetromino, TileType},
 };
 
 pub type PaletteIdx = u8;
@@ -16,11 +16,11 @@ pub struct TileColoring {
 }
 
 pub fn tile_coloring_presets() -> SlotMachine<TileColoring> {
-    // NOTE: The slot at index 0 is the special 'monochrome'/no palette slot.
+    // NOTE: The slot at index 0 is the special 'monochrome'/no color slot.
     let slots = vec![
         (
-            "Monochrome".to_owned(),
-            TileColoring::simple(Palette::monochrome()),
+            "No color".to_owned(),
+            TileColoring::simple(Palette::no_color()),
         ),
         ("ANSI".to_owned(), TileColoring::simple(Palette::ansi())),
         (
@@ -105,7 +105,7 @@ impl TileColoring {
             .chars()
             .map(|ch| {
                 self.get(
-                    crate::tetromino_engine::Tetromino::VARIANTS
+                    crate::core_game_engine::Tetromino::VARIANTS
                         [ch.to_string().parse::<usize>().unwrap()]
                     .into(),
                     0,
@@ -165,7 +165,7 @@ impl Palette {
     pub const BLACK: u8 = 248;
     pub const WHITE: u8 = 255;
 
-    pub fn monochrome() -> Palette {
+    pub fn no_color() -> Palette {
         Palette {
             map: Default::default(),
         }

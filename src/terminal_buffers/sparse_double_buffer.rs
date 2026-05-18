@@ -17,8 +17,10 @@ use super::{TermCell, TerminalBuffer};
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, Default)]
 pub struct SparseDoubleBuffer {
-    prev_buf: BTreeMap<(u16, u16), TermCell>,
-    next_buf: BTreeMap<(u16, u16), TermCell>,
+    #[allow(clippy::type_complexity)]
+    prev_buf_and_ambience: Option<(BTreeMap<(u16, u16), TermCell>, TermCell)>,
+    curr_buf: BTreeMap<(u16, u16), TermCell>,
+    curr_ambience: TermCell,
     x_vp: u16,
     y_vp: u16,
     w_vp: u16,
@@ -41,18 +43,30 @@ impl TerminalBuffer for SparseDoubleBuffer {
         ((self.x_vp, self.y_vp), (self.w_vp, self.h_vp))
     }
 
+    fn reset_buffer(&mut self) {
+        self.curr_buf.clear();
+    }
+
+    fn reset_with_ambience(&mut self, cell: TermCell) {
+        self.curr_ambience = cell;
+        self.reset_buffer();
+    }
+
     fn reset_with_offset_and_area(&mut self, (x, y): (u16, u16), (w, h): (u16, u16)) {
-        self.prev_buf.clear();
-        self.next_buf.clear();
         self.x_vp = x;
         self.y_vp = y;
         self.w_vp = w;
         self.h_vp = h;
+
+        self.reset_buffer();
+
+        // Explicitly force redraw on next flush.
+        self.prev_buf_and_ambience = None;
     }
 
     fn write_char(&mut self, x: u16, y: u16, cell: TermCell) {
         if x < self.w_vp && y < self.h_vp {
-            self.next_buf.insert((x, y), cell);
+            self.curr_buf.insert((x, y), cell);
         }
     }
 
@@ -64,12 +78,12 @@ impl TerminalBuffer for SparseDoubleBuffer {
         if x >= self.w_vp {
             return;
         }
-        self.next_buf.insert((x, y), TermCell { ch: ch0, fg, bg });
+        self.curr_buf.insert((x, y), TermCell { ch: ch0, fg, bg });
 
         if x + 1 >= self.w_vp {
             return;
         }
-        self.next_buf
+        self.curr_buf
             .insert((x + 1, y), TermCell { ch: ch1, fg, bg });
     }
 
@@ -81,7 +95,7 @@ impl TerminalBuffer for SparseDoubleBuffer {
             if x + dx as u16 >= self.w_vp {
                 return;
             }
-            self.next_buf
+            self.curr_buf
                 .insert((x + dx as u16, y), TermCell { ch, fg, bg });
         }
     }
@@ -97,85 +111,113 @@ impl TerminalBuffer for SparseDoubleBuffer {
             if y + dy as u16 >= self.h_vp {
                 return;
             }
-            self.next_buf
+            self.curr_buf
                 .insert((x + dx as u16, y + dy as u16), TermCell { ch, fg, bg });
             dx += 1;
         }
     }
 
-    fn flush(&mut self, term: &mut impl Write) -> io::Result<()> {
-        term.queue(terminal::BeginSynchronizedUpdate)?;
+    fn flush<W: Write>(&mut self, term: &mut W) -> io::Result<()> {
+        if let Some((prev_buf, prev_ambience)) = &mut self.prev_buf_and_ambience
+            && self.curr_ambience == *prev_ambience
+        {
+            // Use flag to possibly avoid having to do any I/O at all.
+            let mut diff_issued = false;
 
-        // We'll be consuming both iterators and compare.
-        let mut old_buffer = self.prev_buf.iter();
-        let mut new_buffer = self.next_buf.iter();
+            // We'll be consuming both iterators and compare.
+            let mut prev_buffer = prev_buf.iter();
+            let mut curr_buffer = self.curr_buf.iter();
 
-        let mut old_pos_cell = old_buffer.next();
-        let mut new_pos_cell = new_buffer.next();
-        loop {
-            match (old_pos_cell, new_pos_cell) {
-                // Both are empty, nothing to do.
-                (None, None) => break,
+            let mut prev_pos_and_cell = prev_buffer.next();
+            let mut curr_pos_and_cell = curr_buffer.next();
+            loop {
+                let ((x, y), TermCell { ch, fg, bg }) = match (prev_pos_and_cell, curr_pos_and_cell)
+                {
+                    // Both are empty, nothing to do.
+                    (None, None) => break,
 
-                #[rustfmt::skip]
-                // Old buffer contains something the new one doesn't: Overwrite it to clear it.
-                (Some((old_x_y, _old_cell)),
-                 None
-                ) => {
-                    term.queue(cursor::MoveTo(self.x_vp + old_x_y.0, self.y_vp + old_x_y.1))?;
-                    term.queue(PrintStyledContent(' '.with(Color::Reset).on(Color::Reset)))?;
-                    old_pos_cell = old_buffer.next();
-                }
+                    // Old buffer contains something the new one doesn't: Overwrite it to clear it.
+                    (Some((prev_pos, _prev_cell)), None) => {
+                        prev_pos_and_cell = prev_buffer.next();
+                        (prev_pos, self.curr_ambience)
+                    }
 
-                #[rustfmt::skip]
-                // New buffer contains something the old one doesn't: Write it.
-                (None,
-                 Some((new_x_y, TermCell { ch: new_ch, fg: new_fg, bg: new_bg })),
-                ) => {
-                    term.queue(cursor::MoveTo(self.x_vp + new_x_y.0, self.y_vp + new_x_y.1))?;
-                    term.queue(PrintStyledContent(new_ch.with(*new_fg).on(*new_bg)))?;
-                    new_pos_cell = new_buffer.next();
-                }
+                    // New buffer contains something the old one doesn't: Write it.
+                    (None, Some((curr_pos, curr_cell))) => {
+                        curr_pos_and_cell = curr_buffer.next();
+                        (curr_pos, *curr_cell)
+                    }
 
-                #[rustfmt::skip]
-                (Some((old_x_y, old_cell)),
-                 Some((new_x_y, new_cell @ TermCell { ch: new_ch, fg: new_fg, bg: new_bg })),
-                ) => {
-                    match old_x_y.cmp(new_x_y) {
-                        // Old buffer contains something the new one doesn't: Overwrite it to clear it.
-                        Ordering::Less => {
-                            term.queue(cursor::MoveTo(self.x_vp + old_x_y.0, self.y_vp + old_x_y.1))?;
-                            term.queue(PrintStyledContent(' '.with(Color::Reset).on(Color::Reset)))?;
-                            old_pos_cell = old_buffer.next();
-                        }
-
-                        // New buffer contains something the old one doesn't: Write it.
-                        Ordering::Greater => {
-                            term.queue(cursor::MoveTo(self.x_vp + new_x_y.0, self.y_vp + new_x_y.1))?;
-                            term.queue(PrintStyledContent(new_ch.with(*new_fg).on(*new_bg)))?;
-                            new_pos_cell = new_buffer.next();
-                        }
-
-                        // Old and new overlap! Handle possible difference.
-                        Ordering::Equal => {
-                            if new_cell != old_cell {
-                                term.queue(cursor::MoveTo(self.x_vp + new_x_y.0, self.y_vp + new_x_y.1))?;
-                                term.queue(PrintStyledContent(new_ch.with(*new_fg).on(*new_bg)))?;
+                    (Some((prev_pos, prev_cell)), Some((curr_pos, curr_cell))) => {
+                        match prev_pos.cmp(curr_pos) {
+                            // Old buffer contains something the new one doesn't: Overwrite it to clear it.
+                            Ordering::Less => {
+                                prev_pos_and_cell = prev_buffer.next();
+                                (prev_pos, self.curr_ambience)
                             }
-                            old_pos_cell = old_buffer.next();
-                            new_pos_cell = new_buffer.next();
+
+                            // New buffer contains something the old one doesn't: Write it.
+                            Ordering::Greater => {
+                                curr_pos_and_cell = curr_buffer.next();
+                                (curr_pos, *curr_cell)
+                            }
+
+                            // Old and new overlap! Handle possible difference.
+                            Ordering::Equal => {
+                                prev_pos_and_cell = prev_buffer.next();
+                                curr_pos_and_cell = curr_buffer.next();
+                                if curr_cell != prev_cell {
+                                    (curr_pos, *curr_cell)
+                                } else {
+                                    continue;
+                                }
+                            }
                         }
+                    }
+                };
+
+                if !diff_issued {
+                    diff_issued = true;
+                    term.queue(terminal::BeginSynchronizedUpdate)?;
+                }
+                term.queue(cursor::MoveTo(self.x_vp + x, self.y_vp + y))?;
+                term.queue(PrintStyledContent(ch.with(fg).on(bg)))?;
+            }
+
+            term.queue(cursor::MoveTo(0, 0))?
+                .queue(terminal::EndSynchronizedUpdate)?
+                .flush()?;
+
+            std::mem::swap(prev_buf, &mut self.curr_buf);
+            std::mem::swap(prev_ambience, &mut self.curr_ambience);
+            self.reset_buffer();
+        } else {
+            // Flush everything.
+            term.queue(terminal::BeginSynchronizedUpdate)?;
+
+            for x in 0..self.w_vp {
+                for y in 0..self.h_vp {
+                    term.queue(cursor::MoveTo(self.x_vp + x, self.y_vp + y))?;
+                    if let Some(TermCell { ch, fg, bg }) = self.curr_buf.get(&(x, y)).copied() {
+                        term.queue(PrintStyledContent(ch.with(fg).on(bg)))?;
+                    } else {
+                        #[rustfmt::skip] let TermCell { ch, fg, bg } = self.curr_ambience;
+                        term.queue(PrintStyledContent(ch.with(fg).on(bg)))?;
                     }
                 }
             }
+
+            term.queue(cursor::MoveTo(0, 0))?
+                .queue(terminal::EndSynchronizedUpdate)?
+                .flush()?;
+
+            // Create new blank canvas for next_buf.
+            let mut temp_buf = BTreeMap::new();
+            // Swap buffers so `prev_buf` correctly contains the one we just wrote and want to keep for next time.
+            std::mem::swap(&mut temp_buf, &mut self.curr_buf);
+            // Store previous buffer.
+            self.prev_buf_and_ambience = Some((temp_buf, self.curr_ambience));
         }
-
-        term.queue(cursor::MoveTo(0, 0))?
-            .queue(terminal::EndSynchronizedUpdate)?
-            .flush()?;
-
-        std::mem::swap(&mut self.prev_buf, &mut self.next_buf);
-        self.next_buf.clear();
 
         Ok(())
     }

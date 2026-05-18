@@ -1,4 +1,4 @@
-use crate::tetromino_engine::{DelayCurve, DelayParameters, ExtDuration, Stat};
+use crate::core_game_engine::{DelayCurve, DelayParameters, ExtDuration, Stat};
 use either::Either;
 
 use crate::game_modding::{CheeseConfig, ComboConfig, SurvivalConfig};

@@ -17,7 +17,7 @@ use crate::{
     tui_menus::{Menu, MenuUpdate, heading_line},
 };
 
-impl<T: Write> Application<T> {
+impl<W: Write> Application<W> {
     pub fn run_menu_settings(&mut self) -> io::Result<MenuUpdate> {
         let mut selected = 0usize;
         loop {

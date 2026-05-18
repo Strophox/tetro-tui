@@ -8,7 +8,10 @@ mod twoxel;
 
 use std::io::{self, Write};
 
-use crate::tetromino_engine::{Button, Game, InGameTime, Notification};
+use crate::{
+    core_game_engine::{Button, Game, InGameTime, Notification},
+    terminal_buffers::TermCell,
+};
 use crossterm::event::{KeyCode, KeyModifiers};
 
 use crate::{
@@ -35,16 +38,12 @@ pub trait GameRenderer {
 
     fn reset_veffects_state(&mut self);
 
-    fn reset_viewport_state_with_offset_and_area(
-        &mut self,
-        offsets: (u16, u16),
-        dimensions: (u16, u16),
-    );
+    fn reset_viewport_state(&mut self, offset: (u16, u16), area: (u16, u16), ambience: TermCell);
 
     #[allow(clippy::too_many_arguments)]
-    fn render<T: Write>(
+    fn render<W: Write>(
         &mut self,
-        term: &mut T,
+        term: &mut W,
         game: &Game,
         meta_data: &GameMetaData,
         settings: &Settings,
@@ -117,7 +116,7 @@ pub fn replay_keybinds_legend() -> KeybindsLegend {
     ]
 }
 
-#[derive(PartialEq, PartialOrd, Clone, Debug)]
+#[derive(PartialEq, Clone, Debug)]
 pub enum MiscGameRenderers {
     MainBuf(MainBufRenderer),
     Twoxel(TwoxelRenderer),
@@ -177,33 +176,23 @@ impl GameRenderer for MiscGameRenderers {
         }
     }
 
-    fn reset_viewport_state_with_offset_and_area(
-        &mut self,
-        offsets: (u16, u16),
-        dimensions: (u16, u16),
-    ) {
+    fn reset_viewport_state(&mut self, offset: (u16, u16), area: (u16, u16), ambience: TermCell) {
         match self {
-            MiscGameRenderers::MainBuf(r) => {
-                r.reset_viewport_state_with_offset_and_area(offsets, dimensions)
-            }
-            MiscGameRenderers::Twoxel(r) => {
-                r.reset_viewport_state_with_offset_and_area(offsets, dimensions)
-            }
-            MiscGameRenderers::Braille(r) => {
-                r.reset_viewport_state_with_offset_and_area(offsets, dimensions)
-            } // TetroTUIRenderer::Prototype(r) => {
-              //     r.reset_viewport_state_with_offset_and_area(offsets, dimensions)
-              // }
-              // TetroTUIRenderer::LegacyBuffered(r) => {
-              //     r.reset_viewport_state_with_offset_and_area(offsets, dimensions)
-              // }
+            MiscGameRenderers::MainBuf(r) => r.reset_viewport_state(offset, area, ambience),
+            MiscGameRenderers::Twoxel(r) => r.reset_viewport_state(offset, area, ambience),
+            MiscGameRenderers::Braille(r) => r.reset_viewport_state(offset, area, ambience), // TetroTUIRenderer::Prototype(r) => {
+                                                                                             //     r.reset_viewport_state_with_offset_and_area(offsets, dimensions)
+                                                                                             // }
+                                                                                             // TetroTUIRenderer::LegacyBuffered(r) => {
+                                                                                             //     r.reset_viewport_state_with_offset_and_area(offsets, dimensions)
+                                                                                             // }
         }
     }
 
     #[rustfmt::skip]
-    fn render<T: Write>(
+    fn render<W: Write>(
         &mut self,
-        term: &mut T,
+        term: &mut W,
         game: &Game,
         meta_data: &GameMetaData,
         settings: &Settings,

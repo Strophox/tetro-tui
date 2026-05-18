@@ -10,7 +10,7 @@ use crossterm::{
     terminal,
 };
 
-use crate::tetromino_engine::{
+use crate::core_game_engine::{
     Button, Coordinate, GameEndCause, InGameTime, LOCK_OUT_HEIGHT, Orientation, Phase, Stat,
     Tetromino, TileType,
 };
@@ -70,19 +70,20 @@ impl GameRenderer for LegacyBufRenderer {
         self.mino_particles.clear();
     }
 
-    fn reset_viewport_state_with_offset_and_area(
+    fn reset_viewport_state(
         &mut self,
         (x, y): (u16, u16),
         (w, h): (u16, u16),
+        _ambience: TermCell,
     ) {
         self.screen.x_draw = (x + w.saturating_sub(TerminalScreenBuffer::W_DRAW) / 2) as usize;
         self.screen.y_draw = (y + h.saturating_sub(TerminalScreenBuffer::H_DRAW) / 2) as usize;
         self.screen.buffer_reset();
     }
 
-    fn render<T>(
+    fn render<W>(
         &mut self,
-        term: &mut T,
+        term: &mut W,
         game: &Game,
         meta_data: &GameMetaData,
         settings: &Settings,
@@ -91,7 +92,7 @@ impl GameRenderer for LegacyBufRenderer {
         replay_extra: Option<(InGameTime, f64)>,
     ) -> io::Result<()>
     where
-        T: Write,
+        W: Write,
     {
         let pieces = game.state().pieces_locked.iter().sum::<u32>();
         let gravity = game.state().fall_delay.as_hertz();
@@ -548,8 +549,11 @@ impl GameRenderer for LegacyBufRenderer {
 
                         for tile_pos @ (x, y) in blocked_piece.coords() {
                             if let Some(xy) = pos_board(tile_pos) {
-                                let (t, c) = if let Some(board_tile) =
-                                    game.state().board[y as usize].0[x as usize]
+                                let (t, c) = if let Some(board_tile) = game
+                                    .state()
+                                    .board
+                                    .get(y as usize)
+                                    .and_then(|(line, _is_frozen)| line[x as usize])
                                 {
                                     ("XX", get_color(board_tile))
                                 } else {

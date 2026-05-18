@@ -2,7 +2,7 @@ use std::io::{self, Write};
 
 use crate::{Application, tui_menus::MenuUpdate};
 
-impl<T: Write> Application<T> {
+impl<W: Write> Application<W> {
     pub fn run_menu_about(&mut self) -> io::Result<MenuUpdate> {
         let head = format!(
             "~ About Tetro TUI v{} - https://github.com/Strophox/tetro-tui ~",
@@ -19,9 +19,9 @@ complex when it comes to supporting all the modern/advanced features
 (especially while dealing with terminal limitations)!
 
 To the best of my abilities I have implemented a most featureful
-/ customizable version that still remains faithful to the essential
+& customizable version that still remains faithful to the essential
 idea and also looks/runs nicely within a 'mere' terminal - Enjoy!
-☺ L. Werner"#;
+☺ L.C.Werner"#;
 
         self.run_text_menu(&head, body, false, "About screen")
     }

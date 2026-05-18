@@ -1,4 +1,4 @@
-use crate::tetromino_engine::{
+use crate::core_game_engine::{
     Board, Game, GameAccess, GameBuilder, GameModifier, Line, MiscPceRots, MiscTetGens, TileType,
 };
 

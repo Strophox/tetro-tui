@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use crate::tetromino_engine::{
+use crate::core_game_engine::{
     Configuration, ExtDuration, ExtNonNegF64, MiscPceRots, MiscTetGens, SoftDropRate,
 };
 use either::Either;

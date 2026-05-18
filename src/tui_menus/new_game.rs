@@ -4,7 +4,7 @@ use std::{
     time::Duration,
 };
 
-use crate::tetromino_engine::{
+use crate::core_game_engine::{
     Configuration, DelayCurveExt, DelayParameters, ExtDuration, ExtNonNegF64, Game, GameLimits,
     InGameTime, Stat,
 };
@@ -38,7 +38,7 @@ use crate::{
     },
 };
 
-impl<T: Write> Application<T> {
+impl<W: Write> Application<W> {
     pub fn run_menu_new_game(&mut self) -> io::Result<MenuUpdate> {
         let mut selected = 0usize;
         let mut customization_selected = 0usize;

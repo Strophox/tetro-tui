@@ -1,6 +1,6 @@
 use std::{collections::VecDeque, time::Duration};
 
-use crate::tetromino_engine::{
+use crate::core_game_engine::{
     Button, DelayParameters, Game, GameAccess, GameBuilder, GameEndCause, GameModifier, InGameTime,
     Input, Line, MiscPceRots, MiscTetGens, Notification, NotificationFeed, Phase, State, Tetromino,
     TileType,
@@ -41,7 +41,7 @@ impl Puzzle {
                 Duration::from_millis(1000).into(),
             )))
             .generate_piece_preview(0)
-            .rotation_system(crate::tetromino_engine::MiscPceRots::Ocular)
+            .rotation_system(crate::core_game_engine::MiscPceRots::Ocular)
             .build_modded(vec![modifier])
     }
 }

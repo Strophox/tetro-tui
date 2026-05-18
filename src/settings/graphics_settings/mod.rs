@@ -1,6 +1,6 @@
 use std::num::NonZeroUsize;
 
-use crate::tetromino_engine::ExtNonNegF64;
+use crate::core_game_engine::ExtNonNegF64;
 
 use crate::settings::SlotMachine;
 
@@ -11,6 +11,7 @@ pub mod mini_tetromino_symbols;
 pub mod small_tetromino_symbols;
 pub mod tile_coloring;
 pub mod tile_symbols;
+pub mod tui_coloring;
 pub mod tui_symbols;
 
 #[derive(
@@ -21,6 +22,8 @@ pub struct GraphicsSettings {
     pub tile_coloring_selected: usize,
     #[serde(rename = "tuisymb_sel")]
     pub tui_symbols_selected: usize,
+    #[serde(rename = "tuicol_sel")]
+    pub tui_coloring_selected: usize,
     #[serde(rename = "tilesymb_sel")]
     pub tile_symbols_selected: usize,
     #[serde(rename = "harddrop_sel")]
@@ -80,6 +83,7 @@ pub fn graphics_settings_presets() -> SlotMachine<GraphicsSettings> {
 impl Default for GraphicsSettings {
     fn default() -> Self {
         GraphicsSettings {
+            tui_coloring_selected: 1,            // No color TODO: Revert this to idx=0
             tile_coloring_selected: 2,           // Okpalette
             tui_symbols_selected: 1,             // Unicode
             tile_symbols_selected: 1,            // Unicode
@@ -106,6 +110,7 @@ impl Default for GraphicsSettings {
 impl GraphicsSettings {
     pub fn extra_focus() -> Self {
         GraphicsSettings {
+            tui_coloring_selected: 0,            // No color
             tile_coloring_selected: 3,           // Standard
             tui_symbols_selected: 4,             // Unicode
             tile_symbols_selected: 1,            // Unicode
@@ -130,6 +135,7 @@ impl GraphicsSettings {
 
     pub fn guideline() -> Self {
         GraphicsSettings {
+            tui_coloring_selected: 0,            // No color
             tile_coloring_selected: 3,           // Standard
             tui_symbols_selected: 2,             // Rounded Unicode
             tile_symbols_selected: 1,            // Unicode
@@ -154,6 +160,7 @@ impl GraphicsSettings {
 
     pub fn braille() -> Self {
         GraphicsSettings {
+            tui_coloring_selected: 0,            // No color
             tile_coloring_selected: 3,           // Standard
             tui_symbols_selected: 5,             // Braille
             tile_symbols_selected: 2,            // Braille
@@ -178,6 +185,7 @@ impl GraphicsSettings {
 
     pub fn compatibility() -> Self {
         GraphicsSettings {
+            tui_coloring_selected: 0,            // No color
             tile_coloring_selected: 1,           // ANSI
             tui_symbols_selected: 0,             // ASCII
             tile_symbols_selected: 0,            // ASCII
@@ -202,6 +210,7 @@ impl GraphicsSettings {
 
     pub fn elektronika_60() -> Self {
         GraphicsSettings {
+            tui_coloring_selected: 0,            // No color
             tile_coloring_selected: 0,           // Monochrome
             tui_symbols_selected: 6,             // Elektronika 60
             tile_symbols_selected: 4,            // Elektronika 60
@@ -226,6 +235,7 @@ impl GraphicsSettings {
 
     pub fn minimal() -> Self {
         GraphicsSettings {
+            tui_coloring_selected: 0,            // No color
             tile_coloring_selected: 0,           // Monochrome
             tui_symbols_selected: 3,             // Borderless-Next/Hold Unicode
             tile_symbols_selected: 1,            // Unicode

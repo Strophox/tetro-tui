@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use crate::tetromino_engine::InGameTime;
+use crate::core_game_engine::InGameTime;
 
 use crate::settings::{
     Palette, PaletteIdx, SlotMachine,

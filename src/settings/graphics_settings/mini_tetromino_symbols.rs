@@ -1,4 +1,4 @@
-use crate::tetromino_engine::Tetromino;
+use crate::core_game_engine::Tetromino;
 
 use crate::settings::SlotMachine;
 

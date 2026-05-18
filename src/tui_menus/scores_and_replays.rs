@@ -1,6 +1,6 @@
 use std::io::{self, Write};
 
-use crate::tetromino_engine::Stat;
+use crate::core_game_engine::Stat;
 use crossterm::{
     QueueableCommand,
     cursor::MoveTo,
@@ -24,7 +24,7 @@ use crate::{
     },
 };
 
-impl<T: Write> Application<T> {
+impl<W: Write> Application<W> {
     #[allow(clippy::len_zero)]
     pub fn run_menu_scores_and_replays(
         &mut self,

@@ -1,6 +1,6 @@
 use std::io::{self, Write};
 
-use crate::tetromino_engine::Button;
+use crate::core_game_engine::Button;
 use crossterm::{
     ExecutableCommand, QueueableCommand,
     cursor::{self, MoveTo},
@@ -20,7 +20,7 @@ use crate::{
     tui_menus::{Menu, MenuUpdate, heading_line},
 };
 
-impl<T: Write> Application<T> {
+impl<W: Write> Application<W> {
     pub fn run_menu_adjust_keybinds(&mut self) -> io::Result<MenuUpdate> {
         let if_unmodifiable_clone_and_switch = |s: &mut Settings| {
             if let Some(cloned_slot_idx) = s
@@ -280,7 +280,7 @@ impl<T: Write> Application<T> {
                         if self.temp_data.kitty_assumed {
                             let f = Self::GAME_KEYBOARD_ENHANCEMENT_FLAGS;
                             // NOTE: Explicitly ignore an error when pushing flags. This is so we can still try even if Crossterm minds if we do this on Windows.
-                            let _r: Result<&mut T, io::Error> = self.term.execute(event::PushKeyboardEnhancementFlags(f));
+                            let _r: Result<&mut W, io::Error> = self.term.execute(event::PushKeyboardEnhancementFlags(f));
                         }
                         loop {
                             if let Event::Key(KeyEvent {

@@ -9,7 +9,9 @@ mod puzzle;
 mod start_board;
 mod survival;
 
-use crate::tetromino_engine::{Game, GameBuilder, GameModifier, TileType};
+use crate::core_game_engine::{
+    Game, GameBuilder, GameModifier, MiscPceRots, MiscTetGens, TileType,
+};
 
 use crate::savefile_logic::from_savefile_str;
 
@@ -17,7 +19,6 @@ pub use ascent::Ascent;
 pub use cheese::{Cheese, CheeseConfig};
 pub use combo::{Combo, ComboConfig};
 pub use display_finesse::DisplayFinesse;
-use falling_tetromino_engine::{MiscPceRots, MiscTetGens};
 pub use print_msgs::PrintMsgs;
 pub use puzzle::Puzzle;
 pub use start_board::StartBoard;

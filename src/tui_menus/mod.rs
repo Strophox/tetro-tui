@@ -16,7 +16,7 @@ pub mod title;
 
 use std::io::{self, Write};
 
-use crate::tetromino_engine::{Game, InGameTime};
+use crate::core_game_engine::{Game, InGameTime};
 use crossterm::{
     ExecutableCommand, QueueableCommand,
     cursor::{MoveDown, MoveTo, MoveToColumn},
@@ -117,7 +117,7 @@ impl Menu {
     }
 }
 
-impl<T: Write> Application<T> {
+impl<W: Write> Application<W> {
     pub fn run_text_menu(
         &mut self,
         head: &str,

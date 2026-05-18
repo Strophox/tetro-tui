@@ -1,13 +1,12 @@
 use std::time::Duration;
 
 use either::Either;
-use falling_tetromino_engine::{MiscPceRots, MiscTetGens};
 use rand::RngExt;
 
-use crate::tetromino_engine::{
+use crate::core_game_engine::{
     BOARD_WIDTH, Button, DelayParameters, ExtDuration, Game, GameAccess, GameBuilder, GameLimits,
-    GameModifier, GameRng, InGameTime, Input, LOCK_OUT_HEIGHT, Line, NotificationFeed, Phase,
-    Piece, Stat, Tetromino, TileType,
+    GameModifier, GameRng, InGameTime, Input, LOCK_OUT_HEIGHT, Line, MiscPceRots, MiscTetGens,
+    NotificationFeed, Phase, Piece, Stat, Tetromino, TileType,
 };
 
 #[derive(
@@ -32,7 +31,7 @@ impl Ascent {
 
         builder
             .clone()
-            .rotation_system(crate::tetromino_engine::MiscPceRots::Ocular)
+            .rotation_system(crate::core_game_engine::MiscPceRots::Ocular)
             .lock_delay_curve(Some(Either::Left(DelayParameters::constant(
                 ExtDuration::Infinite,
             ))))
@@ -85,7 +84,7 @@ impl GameModifier<MiscTetGens, MiscPceRots, TileType> for Ascent {
         *game.phase = Phase::PieceInPlay {
             piece: Piece {
                 tetromino: asc_tet_01,
-                orientation: crate::tetromino_engine::Orientation::N,
+                orientation: crate::core_game_engine::Orientation::N,
                 position: (0, 0),
             },
             autoshift_scheduled: None,

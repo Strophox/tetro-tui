@@ -5,7 +5,7 @@ use crate::{
     tui_menus::{Menu, MenuUpdate},
 };
 
-impl<T: Write> Application<T> {
+impl<W: Write> Application<W> {
     pub fn run_menu_pause(&mut self) -> io::Result<MenuUpdate> {
         let head = "Game Paused";
         let body = vec![

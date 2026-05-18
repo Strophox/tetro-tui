@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use crate::tetromino_engine::{
+use crate::core_game_engine::{
     DelayParameters, DelayTable, ExtDuration, Game, GameBuilder, GameLimits, Stat,
 };
 use either::Either;

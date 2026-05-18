@@ -10,11 +10,11 @@ use crossterm::{
 
 use crate::{
     Application,
-    tetromino_engine::Tetromino,
+    core_game_engine::Tetromino,
     tui_menus::{Menu, MenuUpdate},
 };
 
-impl<T: Write> Application<T> {
+impl<W: Write> Application<W> {
     pub fn run_menu_title(&mut self) -> io::Result<MenuUpdate> {
         let selection = vec![
             Menu::NewGame,
@@ -83,7 +83,7 @@ impl<T: Write> Application<T> {
                                     self.settings
                                         .tile_coloring()
                                         .get(
-                                            crate::tetromino_engine::Tetromino::VARIANTS
+                                            crate::core_game_engine::Tetromino::VARIANTS
                                                 [c_char.to_string().parse::<usize>().unwrap()]
                                             .into(),
                                             0,

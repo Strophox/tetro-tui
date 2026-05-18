@@ -1,8 +1,11 @@
 use std::{collections::VecDeque, time::Duration};
 
-use crate::tetromino_engine::{
-    BOARD_WIDTH, Button, Coordinate, ExtDuration, GameEndCause, LOCK_OUT_HEIGHT, Orientation,
-    Phase, Stat, Tetromino, TileType,
+use crate::{
+    core_game_engine::{
+        BOARD_WIDTH, Button, Coordinate, ExtDuration, GameEndCause, LOCK_OUT_HEIGHT, Orientation,
+        Phase, Stat, Tetromino, TileType,
+    },
+    terminal_buffers::DenseDoubleBuffer,
 };
 use crossterm::style::Color;
 use rand::RngExt;
@@ -13,7 +16,7 @@ use crate::{
         HardDropEffect, LineClearEffect, LineClearInlineEffect, LineClearParticleEffect,
         LockEffect, MaybeOverride::Override, TileTexture,
     },
-    terminal_buffers::{DenseDoubleBuffer, TermCell, TerminalBuffer},
+    terminal_buffers::{TermCell, TerminalBuffer},
 };
 
 use super::*;
@@ -51,10 +54,12 @@ pub struct LineClearEffectLine {
     line: [TileType; BOARD_WIDTH],
 }
 
-#[derive(PartialEq, PartialOrd, Clone, Debug, Default)]
+type MainBufRendererTermBuf = DenseDoubleBuffer;
+
+#[derive(PartialEq, Clone, Debug, Default)]
 pub struct MainBufRenderer {
     // NOTE: Deriving default also means that this terminal buffers has offsets and dimensions 0.
-    term_buf: DenseDoubleBuffer,
+    term_buf: MainBufRendererTermBuf,
     text_message_buf: VecDeque<(InGameTime, String)>,
     hard_drop_effect_buf: Vec<(HardDropEffect, Vec<HardDropEffectTile>)>,
     lock_effect_buf: Vec<(LockEffect, Vec<LockEffectTile>)>,
@@ -229,11 +234,13 @@ impl GameRenderer for MainBufRenderer {
         self.line_clear_particle_effect_buf.clear();
     }
 
-    fn reset_viewport_state_with_offset_and_area(
+    fn reset_viewport_state(
         &mut self,
         offsets: (u16, u16),
         dimensions: (u16, u16),
+        ambience: TermCell,
     ) {
+        self.term_buf.reset_with_ambience(ambience);
         self.term_buf
             .reset_with_offset_and_area(offsets, dimensions);
     }
@@ -258,9 +265,9 @@ impl GameRenderer for MainBufRenderer {
     // * Hard drop effect.
     // * Lock effect.
     // * Line clear effect.
-    fn render<T: Write>(
+    fn render<W: Write>(
         &mut self,
-        term: &mut T,
+        term: &mut W,
         game: &Game,
         meta_data: &GameMetaData,
         settings: &Settings,
@@ -681,7 +688,7 @@ impl GameRenderer for MainBufRenderer {
         'render_preview: {
             // To begin, render normalsize previews.
             let draw_appended_normalsize_prev =
-                |term_buf: &mut DenseDoubleBuffer, y_offset: u16, next_tet: Tetromino| {
+                |term_buf: &mut MainBufRendererTermBuf, y_offset: u16, next_tet: Tetromino| {
                     // Top and bottom edge of first prev.
                     for dx in 0..12 {
                         #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + dx, h_tmp_ntl + y_offset, TermCell { ch: c_n_ltb, fg: Color::Reset, bg: Color::Reset });
@@ -732,7 +739,7 @@ impl GameRenderer for MainBufRenderer {
             }
 
             let draw_appended_small_prev =
-                |term_buf: &mut DenseDoubleBuffer, y_offset: u16, next_tet: Tetromino| {
+                |term_buf: &mut MainBufRendererTermBuf, y_offset: u16, next_tet: Tetromino| {
                     // Top and bottom edge of first prev.
                     for dx in 0..8 {
                         #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + dx, h_tmp_ntl + y_offset, TermCell { ch: c_n_ltb, fg: Color::Reset, bg: Color::Reset });

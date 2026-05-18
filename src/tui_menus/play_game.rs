@@ -4,8 +4,9 @@ use std::{
     time::{Duration, Instant},
 };
 
-use crate::tetromino_engine::{
-    Button, Game, GameEndCause, Input, Notification, Phase, UpdateGameError,
+use crate::{
+    core_game_engine::{Button, Game, GameEndCause, Input, Notification, Phase, UpdateGameError},
+    terminal_buffers::TermCell,
 };
 use crossterm::{
     ExecutableCommand,
@@ -24,7 +25,7 @@ use crate::{
     tui_menus::{Menu, MenuUpdate},
 };
 
-impl<T: Write> Application<T> {
+impl<W: Write> Application<W> {
     pub fn run_menu_play_game(
         &mut self,
         game: &mut Game,
@@ -99,9 +100,13 @@ impl<T: Write> Application<T> {
         let mut renders_per_second_counter_start_time = Instant::now();
 
         // Initial render.
-        game_renderer.reset_viewport_state_with_offset_and_area(
+        game_renderer.reset_viewport_state(
             (0, 0),
             terminal::size().unwrap_or_default(),
+            TermCell {
+                bg: self.settings.tui_coloring().bg,
+                ..TermCell::BLANK
+            },
         );
         self.term.execute(Clear(terminal::ClearType::All))?;
         game_renderer.render(
@@ -680,6 +685,14 @@ impl<T: Write> Application<T> {
                                     [(Notification::Custom(msg), game.state().time)],
                                     &self.settings,
                                 );
+                                game_renderer.reset_viewport_state(
+                                    (0, 0),
+                                    terminal::size().unwrap_or_default(),
+                                    TermCell {
+                                        bg: self.settings.tui_coloring().bg,
+                                        ..TermCell::BLANK
+                                    },
+                                );
                             }
 
                             // [Ctrl+Alt+L]: Reload app from savefile.
@@ -735,8 +748,14 @@ impl<T: Write> Application<T> {
                     event::Event::Paste(_) => {}
                     event::Event::Resize(cols, rows) => {
                         // Need to redraw screen for proper centering etc.
-                        game_renderer
-                            .reset_viewport_state_with_offset_and_area((0, 0), (cols, rows));
+                        game_renderer.reset_viewport_state(
+                            (0, 0),
+                            (cols, rows),
+                            TermCell {
+                                bg: self.settings.tui_coloring().bg,
+                                ..TermCell::BLANK
+                            },
+                        );
                         self.term.execute(Clear(terminal::ClearType::All))?;
                         break 'wait;
                     }

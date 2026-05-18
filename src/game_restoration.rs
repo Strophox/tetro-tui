@@ -1,4 +1,4 @@
-use crate::tetromino_engine::{Button, Game, GameBuilder, InGameTime, Input};
+use crate::core_game_engine::{Button, Game, GameBuilder, InGameTime, Input};
 
 use crate::game_modding;
 
