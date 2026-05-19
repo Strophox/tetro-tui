@@ -25,8 +25,8 @@ use crossterm::{
         KeyEventKind::{self, Press, Repeat},
         KeyModifiers,
     },
-    style::{Print, PrintStyledContent, Stylize},
-    terminal::{self, Clear, ClearType},
+    style::{PrintStyledContent, Stylize},
+    terminal::{self},
 };
 
 use crate::{

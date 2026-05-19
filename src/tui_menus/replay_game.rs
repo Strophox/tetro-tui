@@ -14,7 +14,7 @@ use crossterm::{
     cursor::MoveTo,
     event::{self, KeyCode, KeyEvent, KeyEventKind, KeyModifiers},
     style::{Print, PrintStyledContent, Stylize},
-    terminal::{self, Clear},
+    terminal::{self},
 };
 
 use crate::{

@@ -3,14 +3,14 @@ use std::io::{self, Write};
 use crate::core_game_engine::Button;
 use crossterm::{
     ExecutableCommand, QueueableCommand,
-    cursor::{self, MoveTo},
+    cursor::MoveTo,
     event::{
         self, Event, KeyCode, KeyEvent,
         KeyEventKind::{Press, Repeat},
         KeyModifiers,
     },
     style::{Print, PrintStyledContent, Stylize},
-    terminal::{self, Clear, ClearType},
+    terminal::{self},
 };
 
 use crate::{

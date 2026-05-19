@@ -4,8 +4,8 @@ use crossterm::{
     QueueableCommand,
     cursor::MoveTo,
     event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers},
-    style::{Color, Print, PrintStyledContent, Stylize},
-    terminal::{self, Clear, ClearType},
+    style::{Color, PrintStyledContent, Stylize},
+    terminal::{self},
 };
 
 use crate::{

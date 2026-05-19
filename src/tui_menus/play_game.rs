@@ -13,7 +13,7 @@ use crossterm::{
     cursor::MoveTo,
     event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers},
     style::Print,
-    terminal::{self, Clear},
+    terminal::{self},
 };
 
 use crate::{

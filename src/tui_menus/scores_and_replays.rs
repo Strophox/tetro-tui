@@ -10,7 +10,7 @@ use crossterm::{
         KeyModifiers,
     },
     style::{Print, PrintStyledContent, Stylize},
-    terminal::{self, Clear, ClearType},
+    terminal::{self},
 };
 
 use crate::{

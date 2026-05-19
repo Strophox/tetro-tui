@@ -203,6 +203,7 @@ fn new_simple_tile_coloring(
     })
 }
 
+#[allow(unused)]
 pub fn nes_palette() -> [Color; 64] {
     [
         "#7c7c7c", "#0000fc", "#0000bc", "#4428bc", "#940084", "#a80020", "#a81000", "#881400",
