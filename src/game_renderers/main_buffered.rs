@@ -660,6 +660,7 @@ impl GameRenderer for MainBufRenderer {
             #[rustfmt::skip] self.term_buf.write_char(w_tmp_htl, h_tmp_htl + 2, c_h_bl, fg_widgetframe, Some(bg_widget));
             for dx in 0..6 {
                 #[rustfmt::skip] self.term_buf.write_char(w_tmp_htl + 1 + dx, h_tmp_htl, c_h_tb, fg_widgetframe, Some(bg_widget));
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp_htl + 1 + dx, h_tmp_htl + 1, ' ', fg_tui, Some(bg_widget));
                 #[rustfmt::skip] self.term_buf.write_char(w_tmp_htl + 1 + dx, h_tmp_htl + 2, c_h_tb, fg_widgetframe, Some(bg_widget));
             }
             #[rustfmt::skip] self.term_buf.write_str(w_tmp_htl + 2, h_tmp_htl, "hold", fg_widgetframe, Some(bg_widget));
@@ -700,6 +701,8 @@ impl GameRenderer for MainBufRenderer {
                     // Top and bottom edge of first prev.
                     for dx in 0..12 {
                         #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + dx, h_tmp_ntl + y_offset, c_n_ltb, fg_widgetframe, Some(bg_widget));
+                        #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + dx, h_tmp_ntl + y_offset + 1, ' ', fg_tui, Some(bg_widget));
+                        #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + dx, h_tmp_ntl + y_offset + 2, ' ', fg_tui, Some(bg_widget));
                         #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + dx, h_tmp_ntl + y_offset + 3, c_n_tb, fg_widgetframe, Some(bg_widget));
                     }
                     // Complete right edge.
@@ -752,6 +755,7 @@ impl GameRenderer for MainBufRenderer {
                     // Top and bottom edge of first prev.
                     for dx in 0..8 {
                         #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + dx, h_tmp_ntl + y_offset, c_n_ltb, fg_widgetframe, Some(bg_widget));
+                        #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + dx, h_tmp_ntl + y_offset + 1, ' ', fg_tui, Some(bg_widget));
                         #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + dx, h_tmp_ntl + y_offset + 2, c_n_tb, fg_widgetframe, Some(bg_widget));
                     }
                     // Complete right edge.

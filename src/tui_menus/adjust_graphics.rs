@@ -92,10 +92,17 @@ impl<W: Write> Application<W> {
 
             let labels1 = [
                 format!(
-                    "Tile coloring = {}",
+                    "Tile colors = {}",
                     self.settings
                         .tile_coloring_slotmachine
                         .grab(self.settings.graphics().tile_coloring_selected)
+                        .0
+                ),
+                format!(
+                    "UI colors = {}",
+                    self.settings
+                        .tui_coloring_slotmachine
+                        .grab(self.settings.graphics().tui_coloring_selected)
                         .0
                 ),
                 format!(
@@ -441,35 +448,41 @@ impl<W: Write> Application<W> {
                     }
                     2 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().tui_coloring_selected += 1;
+                        self.settings.graphics_mut().tui_coloring_selected %=
+                            self.settings.tui_coloring_slotmachine.slots.len();
+                    }
+                    3 => {
+                        if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.graphics_mut().hard_drop_selected += 1;
                         self.settings.graphics_mut().hard_drop_selected %=
                             self.settings.hard_drop_effect_slotmachine.slots.len();
                     }
-                    3 => {
+                    4 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.graphics_mut().lock_effect_selected += 1;
                         self.settings.graphics_mut().lock_effect_selected %=
                             self.settings.lock_effect_slotmachine.slots.len();
                     }
-                    4 => {
+                    5 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.graphics_mut().line_clear_selected += 1;
                         self.settings.graphics_mut().line_clear_selected %=
                             self.settings.line_clear_effect_slotmachine.slots.len();
                     }
-                    5 => {
+                    6 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.graphics_mut().tui_symbols_selected += 1;
                         self.settings.graphics_mut().tui_symbols_selected %=
                             self.settings.tui_symbols_slotmachine.slots.len();
                     }
-                    6 => {
+                    7 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.graphics_mut().tile_symbols_selected += 1;
                         self.settings.graphics_mut().tile_symbols_selected %=
                             self.settings.tile_symbols_slotmachine.slots.len();
                     }
-                    7 => {
+                    8 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings
                             .graphics_mut()
@@ -482,13 +495,13 @@ impl<W: Write> Application<W> {
                             .slots
                             .len();
                     }
-                    8 => {
+                    9 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.graphics_mut().mini_tetromino_symbols_selected += 1;
                         self.settings.graphics_mut().mini_tetromino_symbols_selected %=
                             self.settings.mini_tetromino_symbols_slotmachine.slots.len();
                     }
-                    9 => {
+                    10 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.graphics_mut().normalsize_preview_limit =
                             if let Some(limit) = self.settings.graphics().normalsize_preview_limit {
@@ -497,43 +510,43 @@ impl<W: Write> Application<W> {
                                 Some(NonZeroUsize::MIN)
                             }
                     }
-                    10 => {
+                    11 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.graphics_mut().fps += d_fps;
                     }
-                    11 => {
+                    12 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.graphics_mut().show_grid ^= true;
                     }
-                    12 => {
+                    13 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.graphics_mut().show_shadow ^= true;
                     }
-                    13 => {
+                    14 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.graphics_mut().show_spawn ^= true;
                     }
-                    14 => {
+                    15 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.graphics_mut().uniform_locked_tiles ^= true;
                     }
-                    15 => {
+                    16 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.graphics_mut().show_main_hud ^= true;
                     }
-                    16 => {
+                    17 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.graphics_mut().show_keybinds ^= true;
                     }
-                    17 => {
+                    18 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.graphics_mut().show_buttons ^= true;
                     }
-                    18 => {
+                    19 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.graphics_mut().show_lockdelay ^= true;
                     }
-                    19 => {
+                    20 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.graphics_mut().show_fps ^= true;
                     }
@@ -560,40 +573,47 @@ impl<W: Write> Application<W> {
                     }
                     2 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().tui_coloring_selected +=
+                            self.settings.tui_coloring_slotmachine.slots.len() - 1;
+                        self.settings.graphics_mut().tui_coloring_selected %=
+                            self.settings.tui_coloring_slotmachine.slots.len();
+                    }
+                    3 => {
+                        if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.graphics_mut().hard_drop_selected +=
                             self.settings.hard_drop_effect_slotmachine.slots.len() - 1;
                         self.settings.graphics_mut().hard_drop_selected %=
                             self.settings.hard_drop_effect_slotmachine.slots.len();
                     }
-                    3 => {
+                    4 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.graphics_mut().lock_effect_selected +=
                             self.settings.lock_effect_slotmachine.slots.len() - 1;
                         self.settings.graphics_mut().lock_effect_selected %=
                             self.settings.lock_effect_slotmachine.slots.len();
                     }
-                    4 => {
+                    5 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.graphics_mut().line_clear_selected +=
                             self.settings.line_clear_effect_slotmachine.slots.len() - 1;
                         self.settings.graphics_mut().line_clear_selected %=
                             self.settings.line_clear_effect_slotmachine.slots.len();
                     }
-                    5 => {
+                    6 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.graphics_mut().tui_symbols_selected +=
                             self.settings.tui_symbols_slotmachine.slots.len() - 1;
                         self.settings.graphics_mut().tui_symbols_selected %=
                             self.settings.tui_symbols_slotmachine.slots.len();
                     }
-                    6 => {
+                    7 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.graphics_mut().tile_symbols_selected +=
                             self.settings.tile_symbols_slotmachine.slots.len() - 1;
                         self.settings.graphics_mut().tile_symbols_selected %=
                             self.settings.tile_symbols_slotmachine.slots.len();
                     }
-                    7 => {
+                    8 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings
                             .graphics_mut()
@@ -611,14 +631,14 @@ impl<W: Write> Application<W> {
                             .slots
                             .len();
                     }
-                    8 => {
+                    9 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.graphics_mut().mini_tetromino_symbols_selected +=
                             self.settings.mini_tetromino_symbols_slotmachine.slots.len() - 1;
                         self.settings.graphics_mut().mini_tetromino_symbols_selected %=
                             self.settings.mini_tetromino_symbols_slotmachine.slots.len();
                     }
-                    9 => {
+                    10 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.graphics_mut().normalsize_preview_limit = if let Some(limit) =
                             self.settings.graphics().normalsize_preview_limit
@@ -628,46 +648,46 @@ impl<W: Write> Application<W> {
                             None
                         };
                     }
-                    10 => {
+                    11 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         if self.settings.graphics().fps > d_fps {
                             self.settings.graphics_mut().fps =
                                 self.settings.graphics().fps.saturating_sub(d_fps);
                         }
                     }
-                    11 => {
+                    12 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.graphics_mut().show_grid ^= true;
                     }
-                    12 => {
+                    13 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.graphics_mut().show_shadow ^= true;
                     }
-                    13 => {
+                    14 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.graphics_mut().show_spawn ^= true;
                     }
-                    14 => {
+                    15 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.graphics_mut().uniform_locked_tiles ^= true;
                     }
-                    15 => {
+                    16 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.graphics_mut().show_main_hud ^= true;
                     }
-                    16 => {
+                    17 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.graphics_mut().show_keybinds ^= true;
                     }
-                    17 => {
+                    18 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.graphics_mut().show_buttons ^= true;
                     }
-                    18 => {
+                    19 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.graphics_mut().show_lockdelay ^= true;
                     }
-                    19 => {
+                    20 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.graphics_mut().show_fps ^= true;
                     }

@@ -31,7 +31,8 @@ pub fn tui_coloring_presets() -> SlotMachine<TuiColoring> {
     let slots = vec![
         ("None".to_owned(), TuiColoring::none()),
         ("White on black".to_owned(), TuiColoring::white_on_black()),
-        ("Black on whit".to_owned(), TuiColoring::black_on_white()),
+        ("Black on white".to_owned(), TuiColoring::black_on_white()),
+        ("Debug".to_owned(), TuiColoring::debug()),
     ];
 
     SlotMachine::with_unmodifiable_slots(slots, "TUI Coloring".to_owned())
@@ -78,6 +79,19 @@ impl TuiColoring {
             fg_boardframe: fg,
             bg_board: bg,
             fg_grid: fg,
+        }
+    }
+
+    pub fn debug() -> Self {
+        TuiColoring {
+            fg_tui: Color::White,
+            fg_accent: Color::Yellow,
+            bg_tui: Color::Black,
+            fg_widgetframe: Color::Green,
+            bg_widget: Color::Grey,
+            fg_boardframe: Color::Red,
+            bg_board: Color::Blue,
+            fg_grid: Color::Cyan,
         }
     }
 }
