@@ -179,6 +179,35 @@ impl TileColoring {
     }
 }
 
+pub const NES_PALETTE: [Color; 64] = const {
+    let src = [
+        0x7c7c7c, 0x0000fc, 0x0000bc, 0x4428bc, 0x940084, 0xa80020, 0xa81000, 0x881400, 0x503000,
+        0x007800, 0x006800, 0x005800, 0x004058, 0x000000, 0x000000, 0x000000, 0xbcbcbc, 0x0078f8,
+        0x0058f8, 0x6844fc, 0xd800cc, 0xe40058, 0xf83800, 0xe45c10, 0xac7c00, 0x00b800, 0x00a800,
+        0x00a844, 0x008888, 0x000000, 0x000000, 0x000000, 0xf8f8f8, 0x3cbdfc, 0x6888fc, 0x9878f8,
+        0xf878f8, 0xf85898, 0xf87858, 0xfca044, 0xf8b800, 0xb8f818, 0x58d854, 0x58f898, 0x00e8d8,
+        0x787878, 0x000000, 0x000000, 0xfcfcfc, 0xa4e4fc, 0xb8b8f8, 0xd8b8f8, 0xf8b8f8, 0xf8a4c0,
+        0xf0d0b0, 0xfce0a8, 0xf8d878, 0xd8f878, 0xb8f8b8, 0xb8f8d8, 0x00fcfc, 0xf8d8f8, 0x000000,
+        0x000000,
+    ];
+    // FIXME: Once `array::map` becomes constified use it instead.
+    let mut dst = [Color::Reset; 64];
+    let mut idx = 0;
+    while idx < 64 {
+        let int = src[idx];
+        dst[idx] = Color::Rgb {
+            r: ((int >> 16) & 0xFF) as u8,
+            g: ((int >> 8) & 0xFF) as u8,
+            b: (int & 0xFF) as u8,
+        };
+        idx += 1;
+    }
+    dst
+};
+pub const NES_BLACK: Color = NES_PALETTE[0x3F];
+pub const NES_GRAY: Color = NES_PALETTE[0x2D]; //NES_PALETTE[0];
+pub const NES_WHITE: Color = NES_PALETTE[0x30];
+
 fn read_rgb(rgb: &str) -> Color {
     let int = u32::from_str_radix(rgb.trim_start_matches('#'), 16).unwrap();
     Color::Rgb {
@@ -202,33 +231,6 @@ fn new_simple_tile_coloring(
         simplified_tet_col_from_bg_not_fg: false,
     })
 }
-
-#[allow(unused)]
-pub fn nes_palette() -> [Color; 64] {
-    [
-        "#7c7c7c", "#0000fc", "#0000bc", "#4428bc", "#940084", "#a80020", "#a81000", "#881400",
-        "#503000", "#007800", "#006800", "#005800", "#004058", "#000000", "#000000", "#000000",
-        "#bcbcbc", "#0078f8", "#0058f8", "#6844fc", "#d800cc", "#e40058", "#f83800", "#e45c10",
-        "#ac7c00", "#00b800", "#00a800", "#00a844", "#008888", "#000000", "#000000", "#000000",
-        "#f8f8f8", "#3cbdfc", "#6888fc", "#9878f8", "#f878f8", "#f85898", "#f87858", "#fca044",
-        "#f8b800", "#b8f818", "#58d854", "#58f898", "#00e8d8", "#787878", "#000000", "#000000",
-        "#fcfcfc", "#a4e4fc", "#b8b8f8", "#d8b8f8", "#f8b8f8", "#f8a4c0", "#f0d0b0", "#fce0a8",
-        "#f8d878", "#d8f878", "#b8f8b8", "#b8f8d8", "#00fcfc", "#f8d8f8", "#000000", "#000000",
-    ]
-    .map(read_rgb)
-}
-
-const NES_BLACK: Color = Color::Rgb { r: 0, g: 0, b: 0 };
-const NES_GRAY: Color = Color::Rgb {
-    r: 124,
-    g: 124,
-    b: 124,
-};
-const NES_WHITE: Color = Color::Rgb {
-    r: 252,
-    g: 252,
-    b: 252,
-};
 
 impl TileColoring {
     pub fn terminal_default() -> Self {

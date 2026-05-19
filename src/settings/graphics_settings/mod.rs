@@ -67,17 +67,18 @@ pub fn graphics_settings_presets() -> SlotMachine<GraphicsSettings> {
     let slots = vec![
         ("Default".to_owned(), GraphicsSettings::default()),
         ("Guideline".to_owned(), GraphicsSettings::guideline()),
-        ("Focus+".to_owned(), GraphicsSettings::extra_focus()),
         (
             "Terminal compatibility".to_owned(),
             GraphicsSettings::compatibility(),
         ),
+        ("Focus+".to_owned(), GraphicsSettings::extra_focus()),
+        ("Minimal".to_owned(), GraphicsSettings::minimal()),
+        ("I⠐⢷⠗ Braille".to_owned(), GraphicsSettings::braille()), // ⠺⡾⠂
         (
             "Elektronika 60".to_owned(),
             GraphicsSettings::elektronika_60(),
         ),
-        ("I⠐⢷⠗ Braille".to_owned(), GraphicsSettings::braille()), // ⠺⡾⠂
-        ("Minimal".to_owned(), GraphicsSettings::minimal()),
+        ("NES".to_owned(), GraphicsSettings::nes()),
     ];
 
     SlotMachine::with_unmodifiable_slots(slots, "Graphics".to_owned())
@@ -236,17 +237,42 @@ impl GraphicsSettings {
         }
     }
 
+    pub fn nes() -> Self {
+        GraphicsSettings {
+            tui_coloring_selected: 8,            // NES
+            tile_coloring_selected: 12,          // NES levels
+            tui_symbols_selected: 2,             // Unicode
+            tile_symbols_selected: 3,            // NES Braille
+            hard_drop_selected: 0,               // None
+            lock_effect_selected: 1,             // Flash white
+            line_clear_selected: 5,              // None
+            small_tetromino_symbols_selected: 1, // Blocks
+            mini_tetromino_symbols_selected: 1,  // Braille
+            normalsize_preview_limit: None,
+            fps: ExtNonNegF64::from(60),
+            uniform_locked_tiles: false,
+            show_main_hud: true,
+            show_lockdelay: false,
+            show_keybinds: false,
+            show_buttons: false,
+            show_shadow: false,
+            show_spawn: false,
+            show_grid: false,
+            show_fps: false,
+        }
+    }
+
     pub fn minimal() -> Self {
         GraphicsSettings {
-            tui_coloring_selected: 8,            // OneHalfDark
+            tui_coloring_selected: 9,            // OneHalfDark
             tile_coloring_selected: 1,           // Monochrome
             tui_symbols_selected: 3,             // Borderless-Next/Hold Unicode
             tile_symbols_selected: 1,            // Unicode
             hard_drop_selected: 0,               // None
             lock_effect_selected: 0,             // None
             line_clear_selected: 0,              // None
-            mini_tetromino_symbols_selected: 1,  // Braille
             small_tetromino_symbols_selected: 1, // Blocks
+            mini_tetromino_symbols_selected: 1,  // Braille
             normalsize_preview_limit: None,
             fps: ExtNonNegF64::from(60),
             uniform_locked_tiles: false,

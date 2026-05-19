@@ -1,4 +1,7 @@
-use crate::settings::graphics_settings::ColorSerializationType;
+use crate::settings::graphics_settings::{
+    ColorSerializationType,
+    tile_coloring::{NES_BLACK, NES_GRAY, NES_PALETTE, NES_WHITE},
+};
 use crossterm::style::Color;
 
 use crate::settings::SlotMachine;
@@ -39,8 +42,8 @@ pub fn tui_coloring_presets() -> SlotMachine<TuiColoring> {
         ("Matrix".to_owned(), TuiColoring::matrix()),
         ("Sequoia".to_owned(), TuiColoring::sequoia()),
         ("Just amber".to_owned(), TuiColoring::amber()),
+        ("NES".to_owned(), TuiColoring::nes()),
         ("OneHalfDark".to_owned(), TuiColoring::onehalfdark()),
-        // ("Debug".to_owned(), TuiColoring::debug()),
     ];
 
     SlotMachine::with_unmodifiable_slots(slots, "TUI Coloring".to_owned())
@@ -343,6 +346,23 @@ impl TuiColoring {
             bg_widget: bg,
             bg_boardframe: bg,
             bg_board: bg,
+        }
+    }
+
+    pub fn nes() -> Self {
+        let that_blue = NES_PALETTE[0x31];
+        // let red = NES_PALETTE[0x16];
+        TuiColoring {
+            fg_tui: NES_WHITE,
+            fg_accent: that_blue,
+            fg_widgetframe: that_blue,
+            fg_boardframe: that_blue,
+            fg_grid: NES_GRAY,
+
+            bg_tui: NES_GRAY,
+            bg_widget: NES_BLACK,
+            bg_boardframe: NES_BLACK,
+            bg_board: NES_BLACK,
         }
     }
 

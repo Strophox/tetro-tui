@@ -36,12 +36,12 @@ pub fn gameplay_settings_presets() -> SlotMachine<GameplayPreferences> {
         ("Default".to_owned(), GameplayPreferences::default()),
         ("Guideline".to_owned(), GameplayPreferences::guideline()),
         ("Finesse+".to_owned(), GameplayPreferences::extra_finesse()),
-        ("NES".to_owned(), GameplayPreferences::nes()),
-        ("Gameboy".to_owned(), GameplayPreferences::gameboy()),
         (
             "Elektronika 60".to_owned(),
             GameplayPreferences::elektronika_60(),
         ),
+        ("Gameboy".to_owned(), GameplayPreferences::gameboy()),
+        ("NES".to_owned(), GameplayPreferences::nes()),
     ];
 
     SlotMachine::with_unmodifiable_slots(slots, "Gameplay".to_owned())
