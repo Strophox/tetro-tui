@@ -161,13 +161,13 @@ impl<W: Write> Application<W> {
                         .0,
                     self.settings
                         .tile_symbols()
-                        .locked(TileType::Tet(Tetromino::O))
+                        .locked(TileType::Tet(Tetromino::S))
                         .0
                         .map(|ch| ch.to_string())
                         .join(""),
                     self.settings
                         .tile_symbols()
-                        .player(Tetromino::O)
+                        .player(Tetromino::S)
                         .0
                         .map(|ch| ch.to_string())
                         .join(""),

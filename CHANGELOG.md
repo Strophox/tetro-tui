@@ -14,6 +14,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - _NOTE: Savefiles are versioned using `MAJOR.MINOR`. Currently - whenever major/minor changes - the application will not interact with previous savefiles anymore._
 
 
+## [4.0.0] - 2026-05-19
+
+### Added
+- **TUI Colors!**: 'Color themes' are basically available now (finally).
+  * UI Color presets: 'Terminal default', 'Just black/white', 'Tetro Dark', 'Gruvbox Dark', 'Solarized Light', 'Matrix', 'Sequoia', 'Just amber', 'NES', 'OneHalfDark'
+- Graphics settings Preset: full-blown **'NES levels' terminal art**! :D
+- Line clear effects: 'Disappear halfway', 'Clear outward', 'Sparks Braille'.
+- Tile colors preset: 'Just white', 'Just amber', 'NES levels'
+
+### Changed
+- Gamemodes buffed(Regular,Master) / nerfed(Combo).
+- 'Default', 'Minimal', 'Braille' and 'Elektronika 60' graphics presets adjusted using new UI colors.
+- Advanced Settings menu to contain more debug information and be better organized.
+- Various QOL adjustments to... too many small things to list.
+
+### Fixed
+- Engine bugfixes.
+
+### Removed
+- 'Blank' (unplayable) keybinds preset.
+
+
 ## [3.4.0] - 2026-05-06
 
 ### Added
