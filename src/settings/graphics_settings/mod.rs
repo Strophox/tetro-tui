@@ -93,7 +93,7 @@ impl Default for GraphicsSettings {
             tile_symbols_selected: 1,            // Unicode
             hard_drop_selected: 1,               // ASCII particles
             lock_effect_selected: 3,             // Unicode pulse
-            line_clear_selected: 11,             // Stardust
+            line_clear_selected: 12,             // Stardust
             mini_tetromino_symbols_selected: 1,  // Braille
             small_tetromino_symbols_selected: 1, // Blocks
             normalsize_preview_limit: Some(NonZeroUsize::MIN),
@@ -145,7 +145,7 @@ impl GraphicsSettings {
             tile_symbols_selected: 1,            // Unicode
             hard_drop_selected: 4,               // Solid beam Unicode
             lock_effect_selected: 3,             // Pulse Unicode
-            line_clear_selected: 6,              // Clear inward
+            line_clear_selected: 7,              // Clear inward
             mini_tetromino_symbols_selected: 1,  // Braille
             small_tetromino_symbols_selected: 1, // Blocks
             normalsize_preview_limit: Some(NonZeroUsize::new(4).unwrap()),
@@ -170,7 +170,7 @@ impl GraphicsSettings {
             tile_symbols_selected: 2,            // Braille
             hard_drop_selected: 6,               // Braille helix
             lock_effect_selected: 4,             // Spiral Braille
-            line_clear_selected: 14,             // Sparks Braille
+            line_clear_selected: 15,             // Sparks Braille
             mini_tetromino_symbols_selected: 1,  // Braille
             small_tetromino_symbols_selected: 2, // Braille
             normalsize_preview_limit: Some(NonZeroUsize::new(4).unwrap()),
@@ -195,7 +195,7 @@ impl GraphicsSettings {
             tile_symbols_selected: 0,            // ASCII
             hard_drop_selected: 1,               // ASCII particles
             lock_effect_selected: 2,             // ASCII transform
-            line_clear_selected: 15,             // Sparks ASCII
+            line_clear_selected: 16,             // Sparks ASCII
             mini_tetromino_symbols_selected: 0,  // Letters
             small_tetromino_symbols_selected: 0, // ASCII
             normalsize_preview_limit: None,
@@ -241,11 +241,11 @@ impl GraphicsSettings {
         GraphicsSettings {
             tui_coloring_selected: 8,            // NES
             tile_coloring_selected: 12,          // NES levels
-            tui_symbols_selected: 2,             // Unicode
-            tile_symbols_selected: 3,            // NES Braille
-            hard_drop_selected: 0,               // None
-            lock_effect_selected: 1,             // Flash white
-            line_clear_selected: 5,              // None
+            tui_symbols_selected: 1,             // Unicode
+            tile_symbols_selected: 3,            // NES
+            hard_drop_selected: 2,               // Particle 2 ASCII
+            lock_effect_selected: 0,             // None
+            line_clear_selected: 11,             // Clear outward?
             small_tetromino_symbols_selected: 1, // Blocks
             mini_tetromino_symbols_selected: 1,  // Braille
             normalsize_preview_limit: None,

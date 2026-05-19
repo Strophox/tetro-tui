@@ -14,6 +14,7 @@ use crossterm::{
 
 use crate::{
     Application, SavefileGranularity,
+    core_game_engine::Tetromino,
     tui_menus::{Menu, MenuUpdate, heading_line},
 };
 
@@ -123,7 +124,10 @@ impl<W: Write> Application<W> {
                     .italic()
                     .with(
                         if self.temp_data.save_on_exit == SavefileGranularity::NoSavefile {
-                            self.settings.tui_coloring().fg_accent
+                            self.settings
+                                .tile_coloring()
+                                .simplified_tile_col(Tetromino::O.into(), 0)
+                            // self.settings.tui_coloring().fg_accent
                         } else {
                             self.settings.tui_coloring().fg_tui
                         },

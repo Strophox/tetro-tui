@@ -7,6 +7,7 @@ use crate::{
     core_game_engine::{
         Game, GameEndCause, InGameTime, Input, Notification, Phase, UpdateGameError,
     },
+    settings::Settings,
     terminal_buffers::TermCell,
 };
 use crossterm::{
@@ -941,6 +942,7 @@ pub const REPLAY_ANCHOR_INTERVAL: Duration = Duration::from_millis(1000);
 // We currently do not treat degenerate games that end immediately (total time = 0).
 pub fn calculate_game_and_replay_anchors(
     term: &mut impl Write,
+    settings: &Settings,
     game_restoration_data: &GameRestorationData<RawInputHistory>,
     anchor_interval: Duration,
     replay_length: InGameTime,
@@ -963,11 +965,15 @@ pub fn calculate_game_and_replay_anchors(
 
     'calculate_anchors: loop {
         term.execute(MoveTo(0, 0))?;
-        term.execute(PrintStyledContent(Stylize::italic(format!(
-            "Loading replay... (precalculated {}/{})",
-            fmt_duration(game.state().time),
-            fmt_duration(replay_length)
-        ))))?;
+        term.execute(PrintStyledContent(
+            format!(
+                "Loading replay... (precalculated {}/{})",
+                fmt_duration(game.state().time),
+                fmt_duration(replay_length)
+            )
+            .with(settings.tui_coloring().fg_accent)
+            .on(settings.tui_coloring().bg_tui),
+        ))?;
 
         'feed_inputs: loop {
             let Some((next_input_time, input)) = game_restoration_data

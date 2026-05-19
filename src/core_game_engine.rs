@@ -75,8 +75,8 @@ pub trait GameExt {
 
 impl GameExt for Game {
     fn level(&self) -> usize {
-        self.config
-            .update_delays_every_n_lineclears
+        self.state()
+            .lineclears
             .checked_div(self.config.update_delays_every_n_lineclears)
             .unwrap_or(0) as usize
     }

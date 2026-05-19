@@ -126,7 +126,7 @@ impl TileColoring {
         match self {
             TileColoring::Simple(clrng) => clrng.uniform_tile,
             TileColoring::Variable(clrngs) => clrngs[level % clrngs.len()].uniform_tile,
-            TileColoring::HardcodedNES => (NES_WHITE, Some(NES_GRAY)),
+            TileColoring::HardcodedNES => (NES_WHITE, Some(NES_PALETTE[0x10])),
         }
     }
 
@@ -168,7 +168,42 @@ impl TileColoring {
                     clrng.tiles_bg.map(|a| a[usize::from(tile)]),
                 )
             }
-            TileColoring::HardcodedNES => todo!(),
+            TileColoring::HardcodedNES => {
+                let tet = match tile {
+                    TileType::Generic => return (NES_WHITE, Some(NES_GRAY)),
+                    TileType::Tet(tet) => tet,
+                };
+                // Handle actual tetromino colors
+                const COLOR_RUN_BASE: [(usize, usize, usize); 10] = [
+                    (0x30, 0x21, 0x12),
+                    (0x30, 0x29, 0x1a),
+                    (0x30, 0x24, 0x14),
+                    (0x30, 0x2a, 0x12),
+                    (0x30, 0x2b, 0x15),
+                    (0x30, 0x22, 0x2b),
+                    (0x30, 0x00, 0x16),
+                    (0x30, 0x05, 0x13),
+                    (0x30, 0x16, 0x12),
+                    (0x30, 0x27, 0x16),
+                ];
+                // TODO
+                const COLOR_RUN_GLITCHED: [(usize, usize, usize); 54] = [(0, 0, 0); 54];
+                // E.g. O/I/T are 'mainly' white, Z/L are red, S/J are blue (at level 8).
+                let (oit, zl, sj) = match level % 256 {
+                    0..=137 => COLOR_RUN_BASE[level % 10],
+                    138..=191 => COLOR_RUN_GLITCHED[level - 138],
+                    192..=201 => COLOR_RUN_BASE[level - 192],
+                    202..=255 => COLOR_RUN_GLITCHED[level - 202],
+                    _ => unreachable!(),
+                };
+                let (col_oit, col_zl, col_sj) =
+                    (NES_PALETTE[oit], NES_PALETTE[zl], NES_PALETTE[sj]);
+                match tet {
+                    Tetromino::O | Tetromino::I | Tetromino::T => (col_sj, Some(col_oit)),
+                    Tetromino::Z | Tetromino::L => (col_oit, Some(col_zl)),
+                    Tetromino::S | Tetromino::J => (col_oit, Some(col_sj)),
+                }
+            }
         }
     }
 

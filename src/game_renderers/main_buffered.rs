@@ -900,7 +900,11 @@ impl GameRenderer for MainBufRenderer {
             {
                 for (dx, tile) in line.iter().enumerate() {
                     if let Some(tile_type) = *tile {
-                        let tile_texture = tile_symbols.locked(tile_type);
+                        let tile_texture = if settings.graphics().uniform_locked_tiles {
+                            tile_symbols.locked(TileType::Generic)
+                        } else {
+                            tile_symbols.locked(tile_type)
+                        };
                         let (fg_tile, opt_bg_tile) = if settings.graphics().uniform_locked_tiles {
                             settings.tile_coloring().uniform_tile(game.level())
                         } else {
@@ -1108,7 +1112,13 @@ impl GameRenderer for MainBufRenderer {
                     // render the tile
                     let (retexture, recolor) = animation[(timeshift * (animation.len() - 1) as f32).round() as usize];
 
-                    let tile_texture = retexture.unwrap_or(tile_symbols.locked(original_tile_type));
+                    let tile_texture = if let Override(textur) = retexture {
+                        textur
+                    } else if settings.graphics().uniform_locked_tiles {
+                        tile_symbols.locked(TileType::Generic)
+                    } else {
+                        tile_symbols.locked(original_tile_type)
+                    };
 
                     let fg_lockeff = if let Override(color_id) = recolor {
                         settings.tile_coloring().lookup_col_id(color_id, game.level())
@@ -1146,7 +1156,11 @@ impl GameRenderer for MainBufRenderer {
 
                 // rerender the line
                 for (dx, original_tile_type) in line.iter().copied().enumerate() {
-                    let tile_texture = tile_symbols.locked(original_tile_type);
+                    let tile_texture = if settings.graphics().uniform_locked_tiles {
+                        tile_symbols.locked(TileType::Generic)
+                    } else {
+                        tile_symbols.locked(original_tile_type)
+                    };
 
                     let (fg_lineclear, opt_bg_lineclear) = if !color_animation.is_empty() && let Override(color_id) = color_animation[(timeshift * (color_animation.len() - 1) as f32).round() as usize] {
                         (settings.tile_coloring().lookup_col_id(color_id, game.level()), Some(bg_board))
@@ -1211,7 +1225,13 @@ impl GameRenderer for MainBufRenderer {
                 // render the tile
                 let (retexture, recolor) = animation[(timeshift * (animation.len() - 1) as f32).round() as usize];
 
-                let tile_texture = retexture.unwrap_or(tile_symbols.locked(original_tile_type));
+                let tile_texture = if let Override(textur) = retexture {
+                    textur
+                } else if settings.graphics().uniform_locked_tiles {
+                    tile_symbols.locked(TileType::Generic)
+                } else {
+                    tile_symbols.locked(original_tile_type)
+                };
 
                 let (fg_lineclear, opt_bg_lineclear) = if let Override(color_id) = recolor {
                     (settings.tile_coloring().lookup_col_id(color_id, game.level()), None)

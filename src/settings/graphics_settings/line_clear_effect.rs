@@ -33,6 +33,8 @@ pub struct LineClearInlineEffect {
     /// - `None` tile id falls back to locked piece tile id.
     #[serde(rename = "col_anim")]
     pub color_animation: Vec<MaybeOverride<ColorID>>,
+    // TODO remove or implement
+    // pub tile_override: MaybeOverride<(TileTexture, TileType)>
 }
 
 /// The formulas used to generate the momentum values:
@@ -80,7 +82,8 @@ pub fn line_clear_effect_presets() -> SlotMachine<LineClearEffect> {
             "Clear left-to-right".to_owned(),
             LineClearEffect::left_to_right(),
         ),
-        ("Clear inward".to_owned(), LineClearEffect::inward()),
+        ("Clear outward".to_owned(), LineClearEffect::outward()),
+        ("White clear inward".to_owned(), LineClearEffect::inward()),
         ("Burn outward".to_owned(), LineClearEffect::burn_outward()),
         ("Pop".to_owned(), LineClearEffect::pop()),
         ("Pop (more)".to_owned(), LineClearEffect::pop_high()),
@@ -143,7 +146,15 @@ impl LineClearEffect {
                 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
             ],
             anim_lastidx: 19,
-            color_animation: vec![Override(ColorID::WHITE)],
+            color_animation: vec![Keep],
+        })
+    }
+
+    pub fn outward() -> Self {
+        LineClearEffect::Inline(LineClearInlineEffect {
+            anim_indices: [9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+            anim_lastidx: 9,
+            color_animation: vec![Keep],
         })
     }
 

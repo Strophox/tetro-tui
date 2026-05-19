@@ -27,7 +27,7 @@ pub fn tile_symbols_presets() -> SlotMachine<TileSymbols> {
         ("ASCII".to_owned(), TileSymbols::ascii()),
         ("Blocks UTF8".to_owned(), TileSymbols::blocks()),
         ("Braille".to_owned(), TileSymbols::braille()),
-        ("NES Braille".to_owned(), TileSymbols::nes_braille()),
+        ("NES simulacra".to_owned(), TileSymbols::nes()),
         ("Elektronika 60".to_owned(), TileSymbols::elektronika_60()),
     ];
 
@@ -68,14 +68,16 @@ impl TileSymbols {
         }
     }
 
-    pub fn nes_braille() -> Self {
+    pub fn nes() -> Self {
+        let oit = "▙▟"; //"▛▜" "🬴🬸" "█▀" "▛▀" "▄▟" "⣎⣽" "⣏⣹" "L]"
+        let szlj = "Γ "; // "🭽 " "◤ " "⠋ " "\" "
         TileSymbols {
-            grid: " ⢀".tile(),
-            locked: Right(["⣏⣹", "⣏⣹", "⠋ ", "⠋ ", "⣏⣹", "⠋ ", "⠋ ", "⠋ "].map(|s| s.tile())),
-            player: Right(["⣏⣹", "⣏⣹", "⠋ ", "⠋ ", "⣏⣹", "⠋ ", "⠋ "].map(|s| s.tile())),
-            shadow: "⠠⠂".tile(), // "⠰⠆" "⡁⢈" "⡐⠌"
-            hatched: "⡜⡜".tile(),
-            crossed: "⡱⢎".tile(),
+            grid: " .".tile(),
+            locked: Right([oit, oit, szlj, szlj, oit, szlj, szlj, szlj].map(|s| s.tile())),
+            player: Right([oit, oit, szlj, szlj, oit, szlj, szlj].map(|s| s.tile())),
+            shadow: "!!".tile(), // "⠠⠂" "⡁⢈" "⡐⠌"
+            hatched: "//".tile(),
+            crossed: "XX".tile(),
         }
     }
 

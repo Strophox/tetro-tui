@@ -398,6 +398,7 @@ impl<W: Write> Application<W> {
                             cached_game_and_replay_anchors: Box::new(
                                 calculate_game_and_replay_anchors(
                                     &mut self.term,
+                                    &self.settings,
                                     game_restoration_data,
                                     REPLAY_ANCHOR_INTERVAL,
                                     replay_length,
