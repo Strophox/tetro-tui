@@ -161,7 +161,7 @@ impl<W: Write> Application<W> {
                     format!(
                         "{:^w_main$}",
                         format!(
-                            "Current terminal size (>=58x24 recommended): {:?}",
+                            "Current terminal size: {:?} (>=58x24 recommended)",
                             terminal::size()?
                         )
                     )

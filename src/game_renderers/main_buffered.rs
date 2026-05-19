@@ -1050,19 +1050,9 @@ impl GameRenderer for MainBufRenderer {
                         }
                     }
 
-                    // Visual indicator for Top out.
-                    // TODO: Implement this.
+                    // Visual indicator for Buffer-out.
                     GameEndCause::BufferOut => {
-                        // for dy in (h_tmp_ftl.saturating_sub(RENDERED_FIELD_HEIGHT as u16 - 1)..)
-                        //     .take(overflowing_lines.len())
-                        // {
-                        //     for dx in 0..WIDTH {
-                        //         // FIXME: Remove this FIX-ME as soon as this is tested / sure it works correctly.
-                        //         let tile_texture = tile_symbols.hatched;
-                        //         let color = Color::Reset;
-                        //         #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy), tile_texture, color);
-                        //     }
-                        // }
+                        // FIXME: Implement a more explicit 'Buffer out' effect?
                     }
 
                     // We currently do not have any visual indicator to display game-end by limit hit.
@@ -1156,15 +1146,15 @@ impl GameRenderer for MainBufRenderer {
                 for (dx, original_tile_type) in line.iter().copied().enumerate() {
                     let tile_texture = tile_symbols.locked(original_tile_type);
 
-                    let fg_lineclear = if !color_animation.is_empty() && let Override(color_id) = color_animation[(timeshift * (color_animation.len() - 1) as f32).round() as usize] {
-                        settings.tile_coloring().lookup_col_id(color_id, game.level())
+                    let (fg_lineclear, opt_bg_lineclear) = if !color_animation.is_empty() && let Override(color_id) = color_animation[(timeshift * (color_animation.len() - 1) as f32).round() as usize] {
+                        (settings.tile_coloring().lookup_col_id(color_id, game.level()), Some(bg_board))
                     } else if settings.graphics().uniform_locked_tiles {
-                        settings.tile_coloring().uniform_tile(game.level()).0
+                        settings.tile_coloring().uniform_tile(game.level())
                     } else {
-                        settings.tile_coloring().simplified_tile_col(original_tile_type, game.level())
+                        settings.tile_coloring().tile_col(original_tile_type, game.level())
                     };
 
-                    #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, fg_lineclear, Some(bg_board));
+                    #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, fg_lineclear, opt_bg_lineclear);
                 }
 
                 // Render carving progress.
@@ -1221,19 +1211,18 @@ impl GameRenderer for MainBufRenderer {
 
                 let tile_texture = retexture.unwrap_or(tile_symbols.locked(original_tile_type));
 
-                let fg_lineclear = if let Override(color_id) = recolor {
-                    settings.tile_coloring().lookup_col_id(color_id, game.level())
+                let (fg_lineclear, opt_bg_lineclear) = if let Override(color_id) = recolor {
+                    (settings.tile_coloring().lookup_col_id(color_id, game.level()), None)
                 } else if settings.graphics().uniform_locked_tiles {
-                    settings.tile_coloring().uniform_tile(game.level()).0
+                    settings.tile_coloring().uniform_tile(game.level())
                 } else {
-                    settings.tile_coloring().simplified_tile_col(original_tile_type, game.level())
+                    settings.tile_coloring().tile_col(original_tile_type, game.level())
                 };
 
                 let t = elapsed.as_secs_f32();
                 let x = (w_tmp_ftl + 2 * (dx as u16)) as f32 + m_x * t + a_x * t.powi(2) / 2.0;
                 let y = (h_tmp_ftl.saturating_sub(dy as u16)) as f32 - m_y * t - a_y * t.powi(2) / 2.0;
-                // TODO: Fully render actual game tile particles (i.e. use tile_col not simplified)!
-                #[rustfmt::skip] self.term_buf.write_tile(x.round() as u16, y.round() as u16, tile_texture, fg_lineclear, None);
+                #[rustfmt::skip] self.term_buf.write_tile(x.round() as u16, y.round() as u16, tile_texture, fg_lineclear, opt_bg_lineclear);
 
                 true
             });

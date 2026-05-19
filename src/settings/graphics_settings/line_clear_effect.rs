@@ -41,8 +41,10 @@ pub struct LineClearInlineEffect {
 ///
 /// Formula used to generate the position at time:
 /// * `pos = origin + momentum ⋅ Δtime + acceleration ⋅ (Δtime)² / 2`
+// #[serde_with::serde_as] // Do **NOT** place this after #[derive(..)] !!
 #[derive(PartialEq, PartialOrd, Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct LineClearParticleEffect {
+    // FIXME: Make these serde shenanigans work (also for other Duration fields): #[serde_as(as = "MaybeOverride<serde_with::DurationSecondsWithFrac<f64>>")]
     #[serde(rename = "dur_override")]
     pub duration_override: MaybeOverride<InGameTime>,
 
