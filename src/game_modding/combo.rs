@@ -1,8 +1,8 @@
 use std::num::NonZeroU32;
 
 use crate::core_game_engine::{
-    BOARD_WIDTH, Game, GameAccess, GameBuilder, GameEndCause, GameModifier, LOCK_OUT_HEIGHT, Line,
-    MiscPceRots, MiscTetGens, NotificationFeed, Phase, Tetromino, TileType,
+    BOARD_WIDTH, Game, GameAccess, GameBuilder, GameEndCause, GameModifier, Line, MiscPceRots,
+    MiscTetGens, NotificationFeed, PLAYABLE_BOARD_HEIGHT, Phase, Tetromino, TileType,
 };
 
 use crate::savefile_logic::to_savefile_string;
@@ -153,7 +153,7 @@ impl Combo {
                                0b0000_0000_1110_1011, // "rl"*/
     ];
 
-    const PREGENERATED_HEIGHT: usize = LOCK_OUT_HEIGHT + 4;
+    const PREGENERATED_HEIGHT: usize = PLAYABLE_BOARD_HEIGHT + 4;
 
     fn combo_lines<'a>(height_loaded: &'a mut usize) -> impl Iterator<Item = Line> + 'a {
         let rainbow_tiles = [

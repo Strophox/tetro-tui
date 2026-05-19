@@ -69,7 +69,7 @@ impl GameModeBlueprint {
                 if easier_lock_delay { "*" } else { "" },
                 lvl_offset
             ),
-            description: "Pair this with 'NES' Gameplay settings.".to_owned(), /* TODO: Implement&recommend NES Graphics settings. */
+            description: "'NES' Gameplay/Graphics settings recommended.".to_owned(),
             show_stats_hud: ShowStatsHud::TIME
                 | ShowStatsHud::LINES
                 | ShowStatsHud::POINTS

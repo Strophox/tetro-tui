@@ -10,9 +10,12 @@ use crossterm::{
     terminal,
 };
 
-use crate::core_game_engine::{
-    Button, Coordinate, GameEndCause, InGameTime, LOCK_OUT_HEIGHT, Orientation, Phase, Stat,
-    Tetromino, TileType,
+use crate::{
+    core_game_engine::{
+        Button, Coordinate, GameEndCause, GameExt, InGameTime, Orientation, PLAYABLE_BOARD_HEIGHT,
+        Phase, Stat, Tetromino, TileType,
+    },
+    settings::ColorID,
 };
 use either::Either;
 use rand::RngExt;
@@ -22,7 +25,7 @@ use super::*;
 use crate::{
     TemporaryAppData,
     fmt_helpers::{fmt_duration, fmt_hertz, fmt_lineclear_name},
-    settings::{Palette, TileSymbols},
+    settings::TileSymbols,
 };
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug)]
@@ -240,7 +243,7 @@ impl GameRenderer for LegacyBufRenderer {
         let pos_board = |(x, y)| {
             Some((
                 x_board + 2 * (x as usize),
-                (y_board + LOCK_OUT_HEIGHT).checked_sub_signed(y)?,
+                (y_board + PLAYABLE_BOARD_HEIGHT).checked_sub_signed(y)?,
             ))
         };
 
@@ -251,7 +254,7 @@ impl GameRenderer for LegacyBufRenderer {
                 .update_delays_every_n_lineclears
                 .checked_div(game.config.update_delays_every_n_lineclears)
                 .unwrap_or(0) as usize;
-            Some(settings.tile_coloring().get(tile, level).0)
+            Some(settings.tile_coloring().tile_col(tile, level).0)
         };
 
         // Print keybinds legend.
@@ -301,16 +304,14 @@ impl GameRenderer for LegacyBufRenderer {
         // Draw button state.
         if settings.graphics().show_buttons || replay_extra.is_some() {
             let bc = |b: Button| {
-                settings
-                    .tile_coloring()
-                    .palette
-                    .map
-                    .get(&if game.state().active_buttons[b].is_some() {
-                        Palette::WHITE
+                settings.tile_coloring().lookup_col_id(
+                    if game.state().active_buttons[b].is_some() {
+                        ColorID::WHITE
                     } else {
-                        Palette::BLACK
-                    })
-                    .copied()
+                        ColorID::BLACK
+                    },
+                    game.level(),
+                )
             };
             let es = [
                 Err("("),
@@ -338,7 +339,7 @@ impl GameRenderer for LegacyBufRenderer {
                         let mut bs = vec![0; 4];
                         self.screen.buffer_str(
                             settings.tui_symbols().buttons[b].encode_utf8(&mut bs),
-                            bc(b),
+                            Some(bc(b)),
                             (x_buttonst + dx, y_buttonst),
                         )
                     }
@@ -470,12 +471,11 @@ impl GameRenderer for LegacyBufRenderer {
                             .0
                             .iter()
                             .collect::<String>();
-                        let level = game
-                            .config
-                            .update_delays_every_n_lineclears
-                            .checked_div(game.config.update_delays_every_n_lineclears)
-                            .unwrap_or(0) as usize;
-                        let color_ground = Some(settings.locked_tile_coloring().get(tile, level).0);
+                        let color_ground = Some(if settings.graphics().uniform_locked_tiles {
+                            settings.tile_coloring().uniform_tile(game.level()).0
+                        } else {
+                            settings.tile_coloring().tile_col(tile, game.level()).0
+                        });
                         self.screen.buffer_str(tile_ground, color_ground, xy);
                     }
                 }
@@ -692,12 +692,11 @@ impl GameRenderer for LegacyBufRenderer {
                             (150, "▓▓"),
                         ],
                     };
-                    let color_locking = settings
-                        .tile_coloring()
-                        .palette
-                        .map
-                        .get(&Palette::WHITE)
-                        .copied();
+                    let color_locking = Some(
+                        settings
+                            .tile_coloring()
+                            .lookup_col_id(ColorID::WHITE, game.level()),
+                    );
                     // EX-FIX-ME: Possibly replace these manual find-tile snippets with flexible/parameterized/interpolated-time animations (see lineclear animation).
                     let Some(tile) = animation_locking.iter().find_map(|(ms, tile)| {
                         (elapsed < Duration::from_millis(*ms)).then_some(tile)
@@ -762,12 +761,11 @@ impl GameRenderer for LegacyBufRenderer {
                                 "         ██         ",
                             ],
                         };
-                        let color_lineclear = settings
-                            .tile_coloring()
-                            .palette
-                            .map
-                            .get(&Palette::WHITE)
-                            .copied();
+                        let color_lineclear = Some(
+                            settings
+                                .tile_coloring()
+                                .lookup_col_id(ColorID::WHITE, game.level()),
+                        );
                         let percent = elapsed.as_secs_f64() / line_clear_duration.as_secs_f64();
                         let max_idx =
                             f64::from(i32::try_from(animation_lineclear.len() - 1).unwrap());
@@ -779,7 +777,7 @@ impl GameRenderer for LegacyBufRenderer {
                             continue;
                         };
                         for (y_line, _line) in lines {
-                            let pos = (x_board, y_board + LOCK_OUT_HEIGHT - *y_line);
+                            let pos = (x_board, y_board + PLAYABLE_BOARD_HEIGHT - *y_line);
                             self.screen
                                 .buffer_str(animation_lineclear[idx], color_lineclear, pos);
                         }
@@ -819,7 +817,7 @@ impl GameRenderer for LegacyBufRenderer {
                         continue;
                     }
                     for (x_tile, y_tile) in dropped_piece.coords() {
-                        for dy in (y_tile as usize)..LOCK_OUT_HEIGHT {
+                        for dy in (y_tile as usize)..PLAYABLE_BOARD_HEIGHT {
                             self.hard_drop_tiles.push((
                                 HardDropTile {
                                     creation_time: *notif_time,

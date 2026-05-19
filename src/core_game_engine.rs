@@ -68,3 +68,16 @@ pub type Game = prelude_generic::Game<StdTetGen, StdPceRot, StdTileData>;
 pub type GameAccess<'a> = prelude_generic::GameAccess<'a, StdTetGen, StdPceRot, StdTileData>;
 
 pub use prelude_generic::GameModifier;
+
+pub trait GameExt {
+    fn level(&self) -> usize;
+}
+
+impl GameExt for Game {
+    fn level(&self) -> usize {
+        self.config
+            .update_delays_every_n_lineclears
+            .checked_div(self.config.update_delays_every_n_lineclears)
+            .unwrap_or(0) as usize
+    }
+}

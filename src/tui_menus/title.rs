@@ -80,15 +80,12 @@ impl<W: Write> Application<W> {
                                 if c_char == ' ' {
                                     Color::Reset
                                 } else {
-                                    self.settings
-                                        .tile_coloring()
-                                        .get(
-                                            crate::core_game_engine::Tetromino::VARIANTS
-                                                [c_char.to_string().parse::<usize>().unwrap()]
-                                            .into(),
-                                            0,
-                                        )
-                                        .0
+                                    self.settings.tile_coloring().simplified_tile_col(
+                                        crate::core_game_engine::Tetromino::VARIANTS
+                                            [c_char.to_string().parse::<usize>().unwrap()]
+                                        .into(),
+                                        0,
+                                    )
                                 }
                             }
                             1 => {

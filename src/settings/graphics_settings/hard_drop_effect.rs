@@ -1,13 +1,13 @@
 use std::time::Duration;
 
 use crate::core_game_engine::InGameTime;
-use crate::settings::PaletteIdx;
 
 use crate::settings::{
-    Palette, SlotMachine,
+    SlotMachine,
     graphics_settings::{
         MaybeOverride::{self, Keep, Override},
         TileTexture, UnwrapTileFromStr,
+        tile_coloring::ColorID,
     },
 };
 
@@ -23,7 +23,7 @@ pub struct HardDropEffect {
     /// - 'Empty'=space tile texture is automatically retextured to `air`.
     /// - `None` tile id falls back to dropped piece tile id.
     #[serde(rename = "anim")]
-    pub animation: Vec<(TileTexture, MaybeOverride<PaletteIdx>)>,
+    pub animation: Vec<(TileTexture, MaybeOverride<ColorID>)>,
 
     /// The extent to which the lifetime decays faster toward the top when the pieces are spawned.
     /// - 1.0 means the upmost particle will have 100% of its `normalized_height` scaling.
@@ -109,7 +109,7 @@ impl HardDropEffect {
         HardDropEffect {
             duration: Duration::from_millis(75),
             animation: ["  ", "░░"]
-                .map(|ss| (ss.tile(), Override(Palette::WHITE)))
+                .map(|ss| (ss.tile(), Override(ColorID::WHITE)))
                 .into(),
             y_decay: 0.00,
         }
@@ -125,7 +125,7 @@ impl HardDropEffect {
 
         HardDropEffect {
             duration: Duration::from_millis(100),
-            animation: vec![("⢆⠱".tile(), Override(Palette::WHITE)), ("⢆⠱".tile(), Keep)],
+            animation: vec![("⢆⠱".tile(), Override(ColorID::WHITE)), ("⢆⠱".tile(), Keep)],
             y_decay: 1.0,
         }
     }

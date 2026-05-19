@@ -3,10 +3,11 @@ use std::time::Duration;
 use crate::core_game_engine::InGameTime;
 
 use crate::settings::{
-    Palette, PaletteIdx, SlotMachine,
+    SlotMachine,
     graphics_settings::{
         MaybeOverride::{self, Keep, Override},
         TileTexture, UnwrapTileFromStr,
+        tile_coloring::ColorID,
     },
 };
 
@@ -25,7 +26,7 @@ pub struct LockEffect {
     /// - `None` tile texture falls back to locked piece tile texture.
     /// - `None` tile id falls back to locked piece tile id.
     #[serde(rename = "anim")]
-    pub animation: Vec<(MaybeOverride<TileTexture>, MaybeOverride<PaletteIdx>)>,
+    pub animation: Vec<(MaybeOverride<TileTexture>, MaybeOverride<ColorID>)>,
 }
 
 pub fn lock_effect_presets() -> SlotMachine<LockEffect> {
@@ -51,7 +52,7 @@ impl LockEffect {
     pub fn color_white() -> Self {
         LockEffect {
             duration: Duration::from_millis(125),
-            animation: vec![(Keep, Override(Palette::WHITE))],
+            animation: vec![(Keep, Override(ColorID::WHITE))],
         }
     }
 
@@ -59,7 +60,7 @@ impl LockEffect {
         LockEffect {
             duration: Duration::from_millis(175),
             animation: ["[]", "()", "{}", "<>", "=="]
-                .map(|t| (Override(t.tile()), Override(Palette::WHITE)))
+                .map(|t| (Override(t.tile()), Override(ColorID::WHITE)))
                 .into(),
         }
     }
@@ -68,7 +69,7 @@ impl LockEffect {
         LockEffect {
             duration: Duration::from_millis(150),
             animation: ["██", "▓▓", "▒▒", "░░", "▒▒", "▓▓"]
-                .map(|t| (Override(t.tile()), Override(Palette::WHITE)))
+                .map(|t| (Override(t.tile()), Override(ColorID::WHITE)))
                 .into(),
         }
     }
@@ -79,7 +80,7 @@ impl LockEffect {
             animation: [
                 /*"⠠⠂", "⢠⠃",*/ "⢀⠁", "⢈⡁", "⢊⡡", "⢎⡱", "⢮⡳", "⢾⡷",
             ]
-            .map(|t| (Override(t.tile()), Override(Palette::WHITE)))
+            .map(|t| (Override(t.tile()), Override(ColorID::WHITE)))
             .into(),
         }
     }

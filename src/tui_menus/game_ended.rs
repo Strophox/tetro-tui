@@ -45,21 +45,6 @@ impl<W: Write> Application<W> {
             Menu::Quit,
         ];
 
-        // FIXME: Does this code have to be THIS ugly?
-        let color_rainbow = "1643502"
-            .chars()
-            .map(|ch| {
-                self.settings
-                    .tile_coloring()
-                    .get(
-                        crate::core_game_engine::Tetromino::VARIANTS
-                            [ch.to_string().parse::<usize>().unwrap()]
-                        .into(),
-                        0,
-                    )
-                    .0
-            })
-            .collect::<Vec<_>>();
         let mut timing_offset = 0usize;
         let mut coloring_width = 2;
         let animation_delay =
@@ -120,10 +105,9 @@ impl<W: Write> Application<W> {
                             x_main + u16::try_from(x_offset).unwrap(),
                             y_main + y_selection,
                         ))?
-                        .queue(PrintStyledContent(
-                            c.bold()
-                                .with(color_rainbow[rainbow_offset % color_rainbow.len()]),
-                        ))?;
+                        .queue(PrintStyledContent(c.bold().with(
+                            self.settings.tile_coloring().tetromino_rainbow()[rainbow_offset % 7],
+                        )))?;
                 }
             } else {
                 self.term.queue(PrintStyledContent(

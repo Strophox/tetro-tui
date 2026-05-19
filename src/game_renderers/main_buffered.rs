@@ -2,12 +2,12 @@ use std::{collections::VecDeque, time::Duration};
 
 use crate::{
     core_game_engine::{
-        BOARD_WIDTH, Button, Coordinate, ExtDuration, GameEndCause, LOCK_OUT_HEIGHT, Orientation,
-        Phase, Stat, Tetromino, TileType,
+        BOARD_WIDTH, Button, Coordinate, ExtDuration, GameEndCause, GameExt, Orientation,
+        PLAYABLE_BOARD_HEIGHT, Phase, Stat, Tetromino, TileType,
     },
     terminal_buffers::DenseDoubleBuffer,
 };
-use crossterm::style::Color;
+
 use rand::RngExt;
 
 use crate::{
@@ -286,22 +286,22 @@ impl GameRenderer for MainBufRenderer {
         const W_HOLD: u16 = 7;
         /// Total width of the inside of the game field.
         /// 2x because of font width.
-        const W_FIELD: u16 = 2 * (BOARD_WIDTH as u16);
+        const W_PLAYFIELD: u16 = 2 * (BOARD_WIDTH as u16);
         /// Total width of the board including frame.
-        const W_BOARD: u16 = 1 + W_FIELD + 1;
+        const W_BOARD: u16 = 1 + W_PLAYFIELD + 1;
         /// Total width of the 'next' widget(s) including frame.
         const W_NEXT: u16 = 13;
 
         /// Vertical padding atop board.
         const H_PAD_TOP: u16 = 1;
         /// Total height of the inside of the game field.
-        const H_FIELD: u16 = LOCK_OUT_HEIGHT as u16;
+        const H_PLAYFIELD: u16 = PLAYABLE_BOARD_HEIGHT as u16;
         /// Total height of the board including frame.
-        const H_BOARD: u16 = 1 + H_FIELD + 1;
+        const H_BOARD: u16 = 1 + H_PLAYFIELD + 1;
         /// Vertical padding below board.
         const H_PAD_BOT: u16 = 2;
         /// The effective number of units of the board that end up being (allowed to be) rendered on-screen.
-        const RENDERED_FIELD_HEIGHT: usize = LOCK_OUT_HEIGHT + 1 + (H_PAD_TOP as usize);
+        const RENDERED_FIELD_HEIGHT: usize = PLAYABLE_BOARD_HEIGHT + 1 + (H_PAD_TOP as usize);
 
         // NOTE: An alternative would be to e.g. always show hud in replay, and/or dynamically adjust to terminal.
         // let enough_space_for_hud = w_viewport >= W_PAD_LEFT + W_ADD_ACTIVE_HUD + W_HOLD + W_BOARD + W_NEXT;
@@ -319,6 +319,16 @@ impl GameRenderer for MainBufRenderer {
         // -- 'General TUI' rendering --
 
         let tui_symbols = settings.tui_symbols();
+        let tui_colors = settings.tui_coloring();
+
+        let fg_tui = tui_colors.fg_tui;
+        let bg_tui = tui_colors.bg_tui;
+        let fg_accent = tui_colors.fg_accent;
+        let fg_boardframe = tui_colors.fg_boardframe;
+        let bg_board = tui_colors.bg_board;
+        let fg_widgetframe = tui_colors.fg_widgetframe;
+        let bg_widget = tui_colors.bg_widget;
+        let fg_grid = tui_colors.fg_grid;
 
         // RENDER: Stats HUD.
 
@@ -331,8 +341,8 @@ impl GameRenderer for MainBufRenderer {
             let h_tmp_hudtl = h_float + H_PAD_TOP + H_TITLE_OFFSET;
 
             // Render game/mode title.
-            #[rustfmt::skip] self.term_buf.write_char(w_tmp_hudtl, h_tmp_hudtl + 1, TermCell { ch: c_m_tb, fg: Color::Reset, bg: Color::Reset });
-            #[rustfmt::skip] self.term_buf.write_char(w_tmp_hudtl + 1, h_tmp_hudtl + 1, TermCell { ch: c_m_tb, fg: Color::Reset, bg: Color::Reset });
+            #[rustfmt::skip] self.term_buf.write_char(w_tmp_hudtl, h_tmp_hudtl + 1, c_m_tb, fg_accent, Some(bg_tui));
+            #[rustfmt::skip] self.term_buf.write_char(w_tmp_hudtl + 1, h_tmp_hudtl + 1, c_m_tb, fg_accent, Some(bg_tui));
             for (dx, opt_ch) in meta_data
                 .title
                 .chars()
@@ -342,9 +352,9 @@ impl GameRenderer for MainBufRenderer {
                 .enumerate()
             {
                 if let Some(ch) = opt_ch {
-                    #[rustfmt::skip] self.term_buf.write_char(w_tmp_hudtl + W_TITLE_MARGIN + (dx as u16), h_tmp_hudtl, TermCell { ch, fg: Color::Reset, bg: Color::Reset });
+                    #[rustfmt::skip] self.term_buf.write_char(w_tmp_hudtl + W_TITLE_MARGIN + (dx as u16), h_tmp_hudtl, ch, fg_tui, Some(bg_tui));
                 }
-                #[rustfmt::skip] self.term_buf.write_char(w_tmp_hudtl + W_TITLE_MARGIN + (dx as u16), h_tmp_hudtl + 1, TermCell { ch: c_m_tb, fg: Color::Reset, bg: Color::Reset });
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp_hudtl + W_TITLE_MARGIN + (dx as u16), h_tmp_hudtl + 1, c_m_tb, fg_accent, Some(bg_tui));
             }
 
             // Render stats.
@@ -383,8 +393,8 @@ impl GameRenderer for MainBufRenderer {
                     });
                 let pieces_l1 = tet_infos.by_ref().take(4).collect::<Vec<_>>().join(" ");
                 let pieces_l2 = tet_infos.collect::<Vec<_>>().join(" ");
-                stats.push(Some(("", pieces_l1)));
-                stats.push(Some(("", pieces_l2)));
+                stats.push(Some((" ", pieces_l1)));
+                stats.push(Some((" ", pieces_l2)));
             }
 
             if meta_data.show_stats.contains(ShowStatsHud::GRAVITY) {
@@ -458,9 +468,9 @@ impl GameRenderer for MainBufRenderer {
 
             for (dy, opt_stat) in stats.into_iter().enumerate() {
                 if let Some((str_statname, str_statval)) = opt_stat {
-                    #[rustfmt::skip] self.term_buf.write_str(w_tmp_hudtl + 1, h_tmp_hudtl + 2 + (dy as u16), str_statname, Color::Reset, Color::Reset);
+                    #[rustfmt::skip] self.term_buf.write_str(w_tmp_hudtl + 1, h_tmp_hudtl + 2 + (dy as u16), str_statname, fg_tui, Some(bg_tui));
                     let w_statname = str_statname.len() as u16;
-                    #[rustfmt::skip] self.term_buf.write_str(w_tmp_hudtl + 1 + w_statname, h_tmp_hudtl + 2 + (dy as u16), &str_statval, Color::Reset, Color::Reset);
+                    #[rustfmt::skip] self.term_buf.write_str(w_tmp_hudtl + 1 + w_statname, h_tmp_hudtl + 2 + (dy as u16), &str_statval, fg_tui, Some(bg_tui));
                 }
             }
 
@@ -470,13 +480,13 @@ impl GameRenderer for MainBufRenderer {
                 // Frame glyph.
                 let w_tmp_ktl = w_float + W_PAD_LEFT; // (width temporary keybinds-top-left)
                 let h_tmp_ktl = (h_tmp_hudtl + 2 + (h_stats as u16) + 1)
-                    .max(h_float + H_PAD_TOP + H_FIELD.saturating_sub(MAX_LEGEND_ENTRIES));
+                    .max(h_float + H_PAD_TOP + H_PLAYFIELD.saturating_sub(MAX_LEGEND_ENTRIES));
 
-                #[rustfmt::skip] self.term_buf.write_char(w_tmp_ktl, h_tmp_ktl, TermCell { ch: c_m_tb, fg: Color::Reset, bg: Color::Reset });
-                #[rustfmt::skip] self.term_buf.write_char(w_tmp_ktl + 1, h_tmp_ktl, TermCell { ch: c_m_tb, fg: Color::Reset, bg: Color::Reset });
-                #[rustfmt::skip] self.term_buf.write_str(w_tmp_ktl + 1 + 1, h_tmp_ktl, "basic keybinds", Color::Reset, Color::Reset);
-                #[rustfmt::skip] self.term_buf.write_char(w_tmp_ktl + 1 + 1 + 14, h_tmp_ktl, TermCell { ch: c_m_tb, fg: Color::Reset, bg: Color::Reset });
-                #[rustfmt::skip] self.term_buf.write_char(w_tmp_ktl + 1 + 1 + 14 + 1, h_tmp_ktl, TermCell { ch: c_m_tb, fg: Color::Reset, bg: Color::Reset });
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp_ktl, h_tmp_ktl, c_m_tb, fg_accent, Some(bg_tui));
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp_ktl + 1, h_tmp_ktl, c_m_tb, fg_accent, Some(bg_tui));
+                #[rustfmt::skip] self.term_buf.write_str(w_tmp_ktl + 1 + 1, h_tmp_ktl, "basic keybinds", fg_tui, Some(bg_tui));
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp_ktl + 1 + 1 + 14, h_tmp_ktl, c_m_tb, fg_accent, Some(bg_tui));
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp_ktl + 1 + 1 + 14 + 1, h_tmp_ktl, c_m_tb, fg_accent, Some(bg_tui));
 
                 const W_KEYBINDS: usize = (W_ADD_ACTIVE_HUD + W_HOLD).saturating_sub(1) as usize;
                 // FIXME: Correct but kinda inefficient?
@@ -495,7 +505,7 @@ impl GameRenderer for MainBufRenderer {
                 for (dy, (icons, description)) in keybinds_legend.iter().enumerate() {
                     let icons = icons.chars().take(w_icons).collect::<String>();
                     let str = format!("{icons: >w_icons$} {description}");
-                    #[rustfmt::skip] self.term_buf.write_str(w_tmp_ktl + 1, h_tmp_ktl + (dy as u16) + 1, &str, Color::Reset, Color::Reset);
+                    #[rustfmt::skip] self.term_buf.write_str(w_tmp_ktl + 1, h_tmp_ktl + (dy as u16) + 1, &str, fg_tui, Some(bg_tui));
                 }
             }
         }
@@ -530,10 +540,10 @@ impl GameRenderer for MainBufRenderer {
             };
 
             let w_tmp_wtl = w_float + W_PAD_LEFT + w_addhud + W_HOLD + W_BOARD + 2; // (width temporary win condition-top-left)
-            let h_tmp_wtl = h_float + H_PAD_TOP + H_FIELD;
-            #[rustfmt::skip] self.term_buf.write_str(w_tmp_wtl, h_tmp_wtl, &str_statval, Color::Reset, Color::Reset);
+            let h_tmp_wtl = h_float + H_PAD_TOP + H_PLAYFIELD;
+            #[rustfmt::skip] self.term_buf.write_str(w_tmp_wtl, h_tmp_wtl, &str_statval, fg_tui, Some(bg_tui));
             let w_str_val = str_statval.len();
-            #[rustfmt::skip] self.term_buf.write_str(w_tmp_wtl + 1 + (w_str_val as u16), h_tmp_wtl, str_stattxt, Color::Reset, Color::Reset);
+            #[rustfmt::skip] self.term_buf.write_str(w_tmp_wtl + 1 + (w_str_val as u16), h_tmp_wtl, str_stattxt, fg_tui, Some(bg_tui));
         }
 
         // RENDER: Buttons HUD.
@@ -541,7 +551,7 @@ impl GameRenderer for MainBufRenderer {
         // Draw button state also on replay.
         if settings.graphics().show_buttons || replay_extra.is_some() {
             let w_tmp_btntl = w_float + W_PAD_LEFT + w_addhud + W_HOLD + W_BOARD + 2; // (width temporary buttons-top-left)
-            let h_tmp_btntl = h_float + H_PAD_TOP + H_FIELD + 1;
+            let h_tmp_btntl = h_float + H_PAD_TOP + H_PLAYFIELD + 1;
 
             let elements = [
                 Ok('['),
@@ -571,7 +581,7 @@ impl GameRenderer for MainBufRenderer {
                     }
                 });
 
-                #[rustfmt::skip] self.term_buf.write_char(w_tmp_btntl + (dx as u16), h_tmp_btntl, TermCell { ch, fg: Color::Reset, bg: Color::Reset });
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp_btntl + (dx as u16), h_tmp_btntl, ch, fg_tui, Some(bg_tui));
             }
         }
 
@@ -591,7 +601,7 @@ impl GameRenderer for MainBufRenderer {
                     let w_msg = message.chars().count() as u16;
                     // The message should be rendered centered around board middle.
                     let x_msg = (w_float + w_addhud + W_HOLD + (W_BOARD / 2)).saturating_sub(w_msg / 2);
-                    #[rustfmt::skip] self.term_buf.write_str_wrapping(x_msg, h_float + H_PAD_TOP + H_BOARD + w_aesthetic_pad + dy, message, Color::Reset, Color::Reset);
+                    #[rustfmt::skip] self.term_buf.write_str_wrapping(x_msg, h_float + H_PAD_TOP + H_BOARD + w_aesthetic_pad + dy, message, fg_tui, Some(bg_tui));
 
                     dy += 1;
                 }
@@ -601,12 +611,8 @@ impl GameRenderer for MainBufRenderer {
         }
 
         let tile_symbols = settings.tile_symbols();
-        let level = game
-            .config
-            .update_delays_every_n_lineclears
-            .checked_div(game.config.update_delays_every_n_lineclears)
-            .unwrap_or(0) as usize;
-        let fetchcols = |tile_type: TileType| settings.tile_coloring().get(tile_type, level);
+        let fetchcols =
+            |tile_type: TileType| settings.tile_coloring().tile_col(tile_type, game.level());
 
         // RENDER: 'Board' frame.
 
@@ -626,19 +632,19 @@ impl GameRenderer for MainBufRenderer {
 
         // Complete top edge.
         // 2x's because of font width.
-        #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl, h_tmp_btl, TermCell { ch: c_fr_tl, fg: Color::Reset, bg: Color::Reset });
-        #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl, h_tmp_btl + 1 + H_FIELD, TermCell { ch: c_fr_bl, fg: Color::Reset, bg: Color::Reset });
-        for dx in 0..W_FIELD {
-            #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + 1 + dx, h_tmp_btl, TermCell { ch: c_fr_t, fg: Color::Reset, bg: Color::Reset });
-            #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + 1 + dx, h_tmp_btl + 1 + H_FIELD, TermCell { ch: c_fr_b, fg: Color::Reset, bg: Color::Reset });
+        #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl, h_tmp_btl, c_fr_tl, fg_boardframe, Some(bg_widget));
+        #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl, h_tmp_btl + 1 + H_PLAYFIELD, c_fr_bl, fg_boardframe, Some(bg_widget));
+        for dx in 0..W_PLAYFIELD {
+            #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + 1 + dx, h_tmp_btl, c_fr_t, fg_boardframe, Some(bg_widget));
+            #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + 1 + dx, h_tmp_btl + 1 + H_PLAYFIELD, c_fr_b, fg_boardframe, Some(bg_widget));
         }
-        #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + 1 + W_FIELD, h_tmp_btl, TermCell { ch: c_fr_tr, fg: Color::Reset, bg: Color::Reset });
-        #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + 1 + W_FIELD, h_tmp_btl + 1 + H_FIELD, TermCell { ch: c_fr_br, fg: Color::Reset, bg: Color::Reset });
+        #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + 1 + W_PLAYFIELD, h_tmp_btl, c_fr_tr, fg_boardframe, Some(bg_widget));
+        #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + 1 + W_PLAYFIELD, h_tmp_btl + 1 + H_PLAYFIELD, c_fr_br, fg_boardframe, Some(bg_widget));
 
         // Left and right edges.
-        for dy in 0..H_FIELD {
-            #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl, h_tmp_btl + 1 + dy, TermCell { ch: c_fr_l, fg: Color::Reset, bg: Color::Reset });
-            #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + 1 + 2 * BOARD_WIDTH as u16, h_tmp_btl + 1 + dy, TermCell { ch: c_fr_r, fg: Color::Reset, bg: Color::Reset });
+        for dy in 0..H_PLAYFIELD {
+            #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl, h_tmp_btl + 1 + dy, c_fr_l, fg_boardframe, Some(bg_widget));
+            #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + 1 + 2 * BOARD_WIDTH as u16, h_tmp_btl + 1 + dy, c_fr_r, fg_boardframe, Some(bg_widget));
         }
 
         // RENDER: 'Hold' widget.
@@ -650,15 +656,15 @@ impl GameRenderer for MainBufRenderer {
             let h_tmp_htl = h_float + H_PAD_TOP;
 
             // Complete top and bottom edges.
-            #[rustfmt::skip] self.term_buf.write_char(w_tmp_htl, h_tmp_htl, TermCell { ch: c_h_tl, fg: Color::Reset, bg: Color::Reset });
-            #[rustfmt::skip] self.term_buf.write_char(w_tmp_htl, h_tmp_htl + 2, TermCell { ch: c_h_bl, fg: Color::Reset, bg: Color::Reset });
+            #[rustfmt::skip] self.term_buf.write_char(w_tmp_htl, h_tmp_htl, c_h_tl, fg_widgetframe, Some(bg_widget));
+            #[rustfmt::skip] self.term_buf.write_char(w_tmp_htl, h_tmp_htl + 2, c_h_bl, fg_widgetframe, Some(bg_widget));
             for dx in 0..6 {
-                #[rustfmt::skip] self.term_buf.write_char(w_tmp_htl + 1 + dx, h_tmp_htl, TermCell { ch: c_h_tb, fg: Color::Reset, bg: Color::Reset });
-                #[rustfmt::skip] self.term_buf.write_char(w_tmp_htl + 1 + dx, h_tmp_htl + 2, TermCell { ch: c_h_tb, fg: Color::Reset, bg: Color::Reset });
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp_htl + 1 + dx, h_tmp_htl, c_h_tb, fg_widgetframe, Some(bg_widget));
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp_htl + 1 + dx, h_tmp_htl + 2, c_h_tb, fg_widgetframe, Some(bg_widget));
             }
-            #[rustfmt::skip] self.term_buf.write_str(w_tmp_htl + 2, h_tmp_htl, "hold", Color::Reset, Color::Reset);
+            #[rustfmt::skip] self.term_buf.write_str(w_tmp_htl + 2, h_tmp_htl, "hold", fg_widgetframe, Some(bg_widget));
             // Left edge
-            #[rustfmt::skip] self.term_buf.write_char(w_tmp_htl, h_tmp_htl + 1, TermCell { ch: c_h_l, fg: Color::Reset, bg: Color::Reset });
+            #[rustfmt::skip] self.term_buf.write_char(w_tmp_htl, h_tmp_htl + 1, c_h_l, fg_widgetframe, Some(bg_widget));
 
             // Render 'hold' piece.
             let small_tet = &settings.small_tetromino_symbols().tets[tet as usize];
@@ -669,12 +675,14 @@ impl GameRenderer for MainBufRenderer {
             } else {
                 TileType::Generic
             };
-            let (fg, bg) = fetchcols(tile_type);
-            #[rustfmt::skip] self.term_buf.write_str(w_tmp_htl + 2 + w_extra_for_o, h_tmp_htl + 1, small_tet, fg, bg);
+            let fg_holdtet = settings
+                .tile_coloring()
+                .simplified_tile_col(tile_type, game.level());
+            #[rustfmt::skip] self.term_buf.write_str(w_tmp_htl + 2 + w_extra_for_o, h_tmp_htl + 1, small_tet, fg_holdtet, Some(bg_widget));
 
             // Go the extra mile to render the character 'x' if we can't hold.
             if !is_swappable {
-                #[rustfmt::skip] self.term_buf.write_char(w_tmp_htl + 1, h_tmp_htl + 1, TermCell { ch: 'x', fg, bg: Color::Reset });
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp_htl + 1, h_tmp_htl + 1, 'x', fg_holdtet, Some(bg_widget));
             }
         }
 
@@ -691,21 +699,22 @@ impl GameRenderer for MainBufRenderer {
                 |term_buf: &mut MainBufRendererTermBuf, y_offset: u16, next_tet: Tetromino| {
                     // Top and bottom edge of first prev.
                     for dx in 0..12 {
-                        #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + dx, h_tmp_ntl + y_offset, TermCell { ch: c_n_ltb, fg: Color::Reset, bg: Color::Reset });
-                        #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + dx, h_tmp_ntl + y_offset + 3, TermCell { ch: c_n_tb, fg: Color::Reset, bg: Color::Reset });
+                        #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + dx, h_tmp_ntl + y_offset, c_n_ltb, fg_widgetframe, Some(bg_widget));
+                        #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + dx, h_tmp_ntl + y_offset + 3, c_n_tb, fg_widgetframe, Some(bg_widget));
                     }
                     // Complete right edge.
-                    #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + 12, h_tmp_ntl + y_offset, TermCell { ch: c_n_jl, fg: Color::Reset, bg: Color::Reset });
-                    #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + 12, h_tmp_ntl + y_offset + 1, TermCell { ch: c_n_r, fg: Color::Reset, bg: Color::Reset });
-                    #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + 12, h_tmp_ntl + y_offset + 2, TermCell { ch: c_n_r, fg: Color::Reset, bg: Color::Reset });
-                    #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + 12, h_tmp_ntl + y_offset + 3, TermCell { ch: c_n_br, fg: Color::Reset, bg: Color::Reset });
+                    #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + 12, h_tmp_ntl + y_offset, c_n_jl, fg_widgetframe, Some(bg_widget));
+                    #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + 12, h_tmp_ntl + y_offset + 1, c_n_r, fg_widgetframe, Some(bg_widget));
+                    #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + 12, h_tmp_ntl + y_offset + 2, c_n_r, fg_widgetframe, Some(bg_widget));
+                    #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + 12, h_tmp_ntl + y_offset + 3, c_n_br, fg_widgetframe, Some(bg_widget));
 
                     // Render preview piece.
                     let tile_texture = tile_symbols.player(next_tet);
-                    let (fg, bg) = fetchcols(next_tet.into());
+                    let (fg_nexttet, bg_nexttet) = fetchcols(next_tet.into());
+                    let bg_nexttet = bg_nexttet.unwrap_or(bg_widget);
                     let w_extra_for_o = if next_tet == Tetromino::O { 2 } else { 0 };
                     for (dx, dy) in next_tet.minos(Orientation::N) {
-                        #[rustfmt::skip] term_buf.write_tile(w_tmp_ntl + 2 + w_extra_for_o + 2 * (dx as u16), (h_tmp_ntl + y_offset + 2).saturating_sub(dy as u16), tile_texture, fg, bg);
+                        #[rustfmt::skip] term_buf.write_tile(w_tmp_ntl + 2 + w_extra_for_o + 2 * (dx as u16), (h_tmp_ntl + y_offset + 2).saturating_sub(dy as u16), tile_texture, fg_nexttet, Some(bg_nexttet));
                     }
                 };
 
@@ -715,10 +724,10 @@ impl GameRenderer for MainBufRenderer {
             draw_appended_normalsize_prev(&mut self.term_buf, 0, first_next_tet);
             // Override top edge of first prev.
             for dx in 0..12 {
-                #[rustfmt::skip] self.term_buf.write_char(w_tmp_ntl + dx, h_tmp_ntl, TermCell { ch: c_n_tb, fg: Color::Reset, bg: Color::Reset });
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp_ntl + dx, h_tmp_ntl, c_n_tb, fg_widgetframe, Some(bg_widget));
             }
-            #[rustfmt::skip] self.term_buf.write_char(w_tmp_ntl + 12, h_tmp_ntl, TermCell { ch: c_n_tr, fg: Color::Reset, bg: Color::Reset });
-            #[rustfmt::skip] self.term_buf.write_str(w_tmp_ntl + 4, h_tmp_ntl, "next", Color::Reset, Color::Reset);
+            #[rustfmt::skip] self.term_buf.write_char(w_tmp_ntl + 12, h_tmp_ntl, c_n_tr, fg_widgetframe, Some(bg_widget));
+            #[rustfmt::skip] self.term_buf.write_str(w_tmp_ntl + 4, h_tmp_ntl, "next", fg_widgetframe, Some(bg_widget));
 
             let mut idx = 1;
             let mut y_offset = 3;
@@ -742,19 +751,21 @@ impl GameRenderer for MainBufRenderer {
                 |term_buf: &mut MainBufRendererTermBuf, y_offset: u16, next_tet: Tetromino| {
                     // Top and bottom edge of first prev.
                     for dx in 0..8 {
-                        #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + dx, h_tmp_ntl + y_offset, TermCell { ch: c_n_ltb, fg: Color::Reset, bg: Color::Reset });
-                        #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + dx, h_tmp_ntl + y_offset + 2, TermCell { ch: c_n_tb, fg: Color::Reset, bg: Color::Reset });
+                        #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + dx, h_tmp_ntl + y_offset, c_n_ltb, fg_widgetframe, Some(bg_widget));
+                        #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + dx, h_tmp_ntl + y_offset + 2, c_n_tb, fg_widgetframe, Some(bg_widget));
                     }
                     // Complete right edge.
-                    #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + 8, h_tmp_ntl + y_offset, TermCell { ch: c_n_jl, fg: Color::Reset, bg: Color::Reset });
-                    #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + 8, h_tmp_ntl + y_offset + 1, TermCell { ch: c_n_r, fg: Color::Reset, bg: Color::Reset });
-                    #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + 8, h_tmp_ntl + y_offset + 2, TermCell { ch: c_n_br, fg: Color::Reset, bg: Color::Reset });
+                    #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + 8, h_tmp_ntl + y_offset, c_n_jl, fg_widgetframe, Some(bg_widget));
+                    #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + 8, h_tmp_ntl + y_offset + 1, c_n_r, fg_widgetframe, Some(bg_widget));
+                    #[rustfmt::skip] term_buf.write_char(w_tmp_ntl + 8, h_tmp_ntl + y_offset + 2, c_n_br, fg_widgetframe, Some(bg_widget));
 
                     // Render preview piece.
                     let small_tet = &settings.small_tetromino_symbols().tets[next_tet as usize];
-                    let (fg, bg) = fetchcols(next_tet.into());
+                    let fg_smallnexttet = settings
+                        .tile_coloring()
+                        .simplified_tile_col(next_tet.into(), game.level());
                     let w_extra_for_o = if next_tet == Tetromino::O { 1 } else { 0 };
-                    #[rustfmt::skip] term_buf.write_str(w_tmp_ntl + 2 + w_extra_for_o, h_tmp_ntl + y_offset + 1, small_tet, fg, bg);
+                    #[rustfmt::skip] term_buf.write_str(w_tmp_ntl + 2 + w_extra_for_o, h_tmp_ntl + y_offset + 1, small_tet, fg_smallnexttet, Some(bg_widget));
                 };
 
             // To continue, render small previews (if there's space)
@@ -764,7 +775,7 @@ impl GameRenderer for MainBufRenderer {
                 };
                 draw_appended_small_prev(&mut self.term_buf, y_offset, next_tet);
                 // Override top right corner of first small prev.
-                #[rustfmt::skip] self.term_buf.write_char(w_tmp_ntl + 8, h_tmp_ntl + y_offset, TermCell { ch: c_n_jd, fg: Color::Reset, bg: Color::Reset });
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp_ntl + 8, h_tmp_ntl + y_offset, c_n_jd, fg_widgetframe, Some(bg_widget));
                 y_offset += 2;
 
                 // Render remaining small previews.
@@ -777,10 +788,13 @@ impl GameRenderer for MainBufRenderer {
                 }
             }
 
+            // Draw miniature previews (remaining preview).
             for (x_offset, next_tet) in next_tetrominos.enumerate() {
                 let mini_tet = settings.mini_tetromino_symbols().tets[next_tet as usize];
-                let (fg, bg) = fetchcols(next_tet.into());
-                #[rustfmt::skip] self.term_buf.write_char(w_tmp_ntl + 10 + 2 * (x_offset as u16), h_tmp_ntl + y_offset.saturating_sub(1), TermCell { ch: mini_tet, fg, bg });
+                let fg_mininexttet = settings
+                    .tile_coloring()
+                    .simplified_tile_col(next_tet.into(), game.level());
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp_ntl + 10 + 2 * (x_offset as u16), h_tmp_ntl + y_offset.saturating_sub(1), mini_tet, fg_mininexttet, None);
             }
         }
 
@@ -790,20 +804,20 @@ impl GameRenderer for MainBufRenderer {
         // Special 2nd frame rendering. Mostly relevant for Elektronika 60 style.
         if let Some([c_f2_l, c_f2_b0, c_f2_b1, c_f2_r]) = tui_symbols.boardframe2 {
             // Complete left edge (2).
-            for dy in 0..H_FIELD + 1 {
-                #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl.saturating_sub(1), h_tmp_btl + 1 + dy, TermCell { ch: c_f2_l, fg: Color::Reset, bg: Color::Reset });
+            for dy in 0..H_PLAYFIELD + 1 {
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl.saturating_sub(1), h_tmp_btl + 1 + dy, c_f2_l, fg_boardframe, Some(bg_widget));
             }
             // Complete right edge (2).
-            for dy in 0..H_FIELD + 1 {
-                #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + W_BOARD, h_tmp_btl + 1 + dy, TermCell { ch: c_f2_r, fg: Color::Reset, bg: Color::Reset });
+            for dy in 0..H_PLAYFIELD + 1 {
+                #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + W_BOARD, h_tmp_btl + 1 + dy, c_f2_r, fg_boardframe, Some(bg_widget));
             }
 
             // Complete bottom edge.
-            for dx in 0..W_FIELD {
+            for dx in 0..W_PLAYFIELD {
                 if dx.is_multiple_of(2) {
-                    #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + 1 + dx, h_tmp_btl + 1 + H_FIELD + 1, TermCell { ch: c_f2_b0, fg: Color::Reset, bg: Color::Reset });
+                    #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + 1 + dx, h_tmp_btl + 1 + H_PLAYFIELD + 1, c_f2_b0, fg_boardframe, Some(bg_widget));
                 } else {
-                    #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + 1 + dx, h_tmp_btl + 1 + H_FIELD + 1, TermCell { ch: c_f2_b1, fg: Color::Reset, bg: Color::Reset });
+                    #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + 1 + dx, h_tmp_btl + 1 + H_PLAYFIELD + 1, c_f2_b1, fg_boardframe, Some(bg_widget));
                 }
             }
         }
@@ -811,20 +825,20 @@ impl GameRenderer for MainBufRenderer {
         // -- 'In-Field part of Board tiles' rendering --
 
         let w_tmp_ftl = w_float + W_PAD_LEFT + w_addhud + W_HOLD + 1; // (width temporary field-top-left)
-        let h_tmp_ftl = h_float + H_PAD_TOP + H_FIELD;
+        let h_tmp_ftl = h_float + H_PAD_TOP + H_PLAYFIELD;
 
         // RENDER: Grid or Air.
         // - Air is to avoid anything that could accidentally write things onto the field, e.g. unexpectedly wide stats.
 
-        for dy in 0..LOCK_OUT_HEIGHT {
+        for dy in 0..PLAYABLE_BOARD_HEIGHT {
             for dx in 0..BOARD_WIDTH {
                 let tile = if settings.graphics().show_grid {
                     tile_symbols.grid
                 } else {
-                    TileTexture::EMPTY
+                    TileTexture::SPACE
                 };
 
-                #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * dx as u16, h_tmp_ftl.saturating_sub(dy as u16), tile, Color::Reset, Color::Reset);
+                #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * dx as u16, h_tmp_ftl.saturating_sub(dy as u16), tile, fg_grid, Some(bg_board));
             }
         }
 
@@ -853,12 +867,12 @@ impl GameRenderer for MainBufRenderer {
 
                 // render the tile
                 let (tile_texture, recolor) = animation[(factor * (animation.len() - 1) as f32).round() as usize];
-                let (fg, bg) = if let Override(palette_idx) = recolor {
-                    (*settings.tile_coloring().palette.map.get(&palette_idx).unwrap_or(&Color::Reset), Color::Reset)
+                let fg_harddrop = if let Override(color_id) = recolor {
+                    settings.tile_coloring().lookup_col_id(color_id, game.level())
                 } else {
-                    fetchcols(original_tile_type)
+                    settings.tile_coloring().simplified_tile_col(original_tile_type, game.level())
                 };
-                #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, fg, bg);
+                #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, fg_harddrop, Some(bg_board));
 
                 true
             });
@@ -871,7 +885,7 @@ impl GameRenderer for MainBufRenderer {
             // RENDER: Locked tiles.
 
             let mut y_highest_tile: isize = -1;
-            for (dy, (line, _is_frozen /*TODO: Implement frozen hinting? */)) in game
+            for (dy, (line, _is_frozen /* FIXME: Implement frozen tiles. */)) in game
                 .state()
                 .board
                 .iter()
@@ -881,8 +895,12 @@ impl GameRenderer for MainBufRenderer {
                 for (dx, tile) in line.iter().enumerate() {
                     if let Some(tile_type) = *tile {
                         let tile_texture = tile_symbols.locked(tile_type);
-                        let (fg, bg) = settings.locked_tile_coloring().get(tile_type, level);
-                        #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, fg, bg);
+                        let (fg_tile, opt_bg_tile) = if settings.graphics().uniform_locked_tiles {
+                            settings.tile_coloring().uniform_tile(game.level())
+                        } else {
+                            settings.tile_coloring().tile_col(tile_type, game.level())
+                        };
+                        #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, fg_tile, opt_bg_tile);
 
                         y_highest_tile = dy as isize;
                     }
@@ -893,8 +911,8 @@ impl GameRenderer for MainBufRenderer {
 
             if settings.graphics().show_spawn && !game.has_ended() {
                 // Get upcoming piece if possible.
-                if let Some(next_tetromino) = game.state().tetromino_preview.front().copied() {
-                    let spawn_piece = next_tetromino.spawn_piece();
+                if let Some(upcoming_tet) = game.state().tetromino_preview.front().copied() {
+                    let spawn_piece = upcoming_tet.spawn_piece();
                     // Only show it if the highest tile is 4 units below us or less.
                     if spawn_piece.position.1 <= y_highest_tile + 4 {
                         for (dx, dy) in spawn_piece.coords() {
@@ -907,8 +925,10 @@ impl GameRenderer for MainBufRenderer {
                                 continue;
                             }
                             let tile_texture = tile_symbols.shadow;
-                            let (fg, bg) = fetchcols(next_tetromino.into());
-                            #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, fg, bg);
+                            let fg_shadow = settings
+                                .tile_coloring()
+                                .simplified_tile_col(upcoming_tet.into(), game.level());
+                            #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, fg_shadow, Some(bg_board));
                         }
                     }
                 }
@@ -932,8 +952,10 @@ impl GameRenderer for MainBufRenderer {
                     let shadow_piece = player_piece.teleported(&game.state().board, (0, -1));
                     for (dx, dy) in shadow_piece.coords() {
                         let tile_texture = tile_symbols.shadow;
-                        let (fg, bg) = fetchcols(player_piece.tetromino.into());
-                        #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, fg, bg);
+                        let fg_shadow = settings
+                            .tile_coloring()
+                            .simplified_tile_col(shadow_piece.tetromino.into(), game.level());
+                        #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, fg_shadow, Some(bg_board));
                     }
                 }
 
@@ -941,8 +963,10 @@ impl GameRenderer for MainBufRenderer {
 
                 for (dx, dy) in player_piece.coords() {
                     let tile_texture = tile_symbols.player(player_piece.tetromino);
-                    let (fg, bg) = fetchcols(player_piece.tetromino.into());
-                    #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, fg, bg);
+                    let (fg_tile, opt_bg_tile) = settings
+                        .tile_coloring()
+                        .tile_col(player_piece.tetromino.into(), game.level());
+                    #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, fg_tile, opt_bg_tile);
                 }
 
                 // RENDER: Lock delay countdown visual indicator.
@@ -965,23 +989,14 @@ impl GameRenderer for MainBufRenderer {
                                 - 1.0)
                                 .ceil()
                                 as usize];
-                            let (fg, bg) = (
-                                Color::Reset,
-                                // &settings
-                                //     .tile_coloring()
-                                //     .palette
-                                //     .map
-                                //     .get(&Palette::WHITE)
-                                //     .unwrap_or(&Color::Reset),
-                                Color::Reset,
-                            );
-                            #[rustfmt::skip] self.term_buf.write_str((w_tmp_ftl + 2 * (player_piece.position.0 as u16)).saturating_sub(1), h_tmp_ftl.saturating_sub(player_piece.position.1 as u16).saturating_add(1), str, fg, bg);
+                            // FIXME: We could choose different colors for the visual lock indicator, so it doesn't look like it's an empty tile or similar.
+                            #[rustfmt::skip] self.term_buf.write_str((w_tmp_ftl + 2 * (player_piece.position.0 as u16)).saturating_sub(1), h_tmp_ftl.saturating_sub(player_piece.position.1 as u16).saturating_add(1), str, fg_tui, Some(bg_board));
                         }
                     }
                 }
             }
 
-            // We currently do not have any visual indicator to pass this phase.
+            // We currently do not have any visual indicator to pass this phase, and line clear effects are handled separately.
             Phase::ClearingLines {
                 clear_finish_time: _,
                 point_bonus: _,
@@ -994,8 +1009,11 @@ impl GameRenderer for MainBufRenderer {
 
                         for (dx, dy) in locking_piece.coords() {
                             let tile_texture = tile_symbols.crossed;
-                            let (fg, bg) = fetchcols(locking_piece.tetromino.into());
-                            #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, fg, bg);
+                            let fg_crossed = settings
+                                .tile_coloring()
+                                .simplified_tile_col(locking_piece.tetromino.into(), game.level());
+                            // FIXME: Correct bg.
+                            #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, fg_crossed, None);
                         }
                     }
 
@@ -1003,20 +1021,28 @@ impl GameRenderer for MainBufRenderer {
                         // RENDER: Active piece when blocked out.
 
                         for (dx, dy) in blocked_piece.coords() {
-                            let (tile_texture, (fg, bg)) = if let Some(blocking_tile_type) = game
+                            let (tile_texture, fg_blockd) = if let Some(blocking_tile_type) = game
                                 .state()
                                 .board
                                 .get(dy as usize)
                                 .and_then(|(line, _is_frozen)| line[dx as usize])
                             {
-                                (tile_symbols.crossed, fetchcols(blocking_tile_type))
+                                (
+                                    tile_symbols.crossed,
+                                    settings
+                                        .tile_coloring()
+                                        .simplified_tile_col(blocking_tile_type, game.level()),
+                                )
                             } else {
                                 (
                                     tile_symbols.hatched,
-                                    fetchcols(blocked_piece.tetromino.into()),
+                                    settings.tile_coloring().simplified_tile_col(
+                                        blocked_piece.tetromino.into(),
+                                        game.level(),
+                                    ),
                                 )
                             };
-                            #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, fg, bg);
+                            #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, fg_blockd, None);
                         }
                     }
 
@@ -1044,8 +1070,11 @@ impl GameRenderer for MainBufRenderer {
 
                             for (dx, dy) in forfeit_piece.coords() {
                                 let tile_texture = tile_symbols.hatched;
-                                let (fg, bg) = fetchcols(forfeit_piece.tetromino.into());
-                                #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, fg, bg);
+                                let fg_forfeit = settings.tile_coloring().simplified_tile_col(
+                                    forfeit_piece.tetromino.into(),
+                                    game.level(),
+                                );
+                                #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, fg_forfeit, None);
                             }
                         }
                     }
@@ -1085,12 +1114,15 @@ impl GameRenderer for MainBufRenderer {
 
                     let tile_texture = retexture.unwrap_or(tile_symbols.locked(original_tile_type));
 
-                    let (fg, bg) = if let Override(palette_idx) = recolor {
-                        (*settings.locked_tile_coloring().palette.map.get(&palette_idx).unwrap_or(&Color::Reset), Color::Reset)
+                    let fg_lockeff = if let Override(color_id) = recolor {
+                        settings.tile_coloring().lookup_col_id(color_id, game.level())
+                    } else if settings.graphics().uniform_locked_tiles {
+                        settings.tile_coloring().uniform_tile(game.level()).0
                     } else {
-                        fetchcols(original_tile_type)
+                        settings.tile_coloring().simplified_tile_col(original_tile_type, game.level())
                     };
-                    #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, fg, bg);
+
+                    #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, fg_lockeff, None);
 
                     true
                 });
@@ -1120,20 +1152,22 @@ impl GameRenderer for MainBufRenderer {
                 for (dx, original_tile_type) in line.iter().copied().enumerate() {
                     let tile_texture = tile_symbols.locked(original_tile_type);
 
-                    let (fg, bg) = if !color_animation.is_empty() && let Override(palette_idx) = color_animation[(timeshift * (color_animation.len() - 1) as f32).round() as usize] {
-                        (*settings.locked_tile_coloring().palette.map.get(&palette_idx).unwrap_or(&Color::Reset), Color::Reset)
+                    let fg_lineclear = if !color_animation.is_empty() && let Override(color_id) = color_animation[(timeshift * (color_animation.len() - 1) as f32).round() as usize] {
+                        settings.tile_coloring().lookup_col_id(color_id, game.level())
+                    } else if settings.graphics().uniform_locked_tiles {
+                        settings.tile_coloring().uniform_tile(game.level()).0
                     } else {
-                        settings.locked_tile_coloring().get(original_tile_type, level)
+                        settings.tile_coloring().simplified_tile_col(original_tile_type, game.level())
                     };
 
-                    #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, fg, bg);
+                    #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, fg_lineclear, Some(bg_board));
                 }
 
-                // render carving progress
+                // Render carving progress.
                 let threshold = timeshift * (*anim_lastidx as f32);
                 for (dx, anim_idx) in anim_indices.iter().enumerate() {
                     if (*anim_idx as f32) < threshold {
-                        #[rustfmt::skip] self.term_buf.write_char(w_tmp_ftl + (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), TermCell { ch: ' ', fg: Color::Reset, bg: Color::Reset });
+                        #[rustfmt::skip] self.term_buf.write_char(w_tmp_ftl + (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), ' ', fg_grid, Some(bg_board));
                     }
                 }
 
@@ -1172,10 +1206,10 @@ impl GameRenderer for MainBufRenderer {
                     let tile = if settings.graphics().show_grid {
                         tile_symbols.grid
                     } else {
-                        TileTexture::EMPTY
+                        TileTexture::SPACE
                     };
-                    // empty the tile at original position
-                    #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile, Color::Reset, Color::Reset);
+                    // Empty the tile at original position
+                    #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile, fg_grid, Some(bg_board));
                 }
 
                 // render the tile
@@ -1183,16 +1217,19 @@ impl GameRenderer for MainBufRenderer {
 
                 let tile_texture = retexture.unwrap_or(tile_symbols.locked(original_tile_type));
 
-                let (fg, bg) = if let Override(palette_idx) = recolor {
-                    (*settings.locked_tile_coloring().palette.map.get(&palette_idx).unwrap_or(&Color::Reset), Color::Reset)
+                let fg_lineclear = if let Override(color_id) = recolor {
+                    settings.tile_coloring().lookup_col_id(color_id, game.level())
+                } else if settings.graphics().uniform_locked_tiles {
+                    settings.tile_coloring().uniform_tile(game.level()).0
                 } else {
-                    fetchcols(original_tile_type)
+                    settings.tile_coloring().simplified_tile_col(original_tile_type, game.level())
                 };
 
                 let t = elapsed.as_secs_f32();
                 let x = (w_tmp_ftl + 2 * (dx as u16)) as f32 + m_x * t + a_x * t.powi(2) / 2.0;
                 let y = (h_tmp_ftl.saturating_sub(dy as u16)) as f32 - m_y * t - a_y * t.powi(2) / 2.0;
-                #[rustfmt::skip] self.term_buf.write_tile(x.round() as u16, y.round() as u16, tile_texture, fg, bg);
+                // TODO: Fully render actual game tile particles (i.e. use tile_col not simplified)!
+                #[rustfmt::skip] self.term_buf.write_tile(x.round() as u16, y.round() as u16, tile_texture, fg_lineclear, None);
 
                 true
             });

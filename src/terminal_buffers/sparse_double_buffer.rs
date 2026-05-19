@@ -64,13 +64,19 @@ impl TerminalBuffer for SparseDoubleBuffer {
         self.prev_buf_and_ambience = None;
     }
 
-    fn write_char(&mut self, x: u16, y: u16, cell: TermCell) {
+    fn write_char(&mut self, x: u16, y: u16, ch: char, fg: Color, bg: Option<Color>) {
         if x < self.w_vp && y < self.h_vp {
-            self.curr_buf.insert((x, y), cell);
+            let idx = (x, y);
+            let cell = TermCell {
+                ch,
+                fg,
+                bg: bg.unwrap_or_else(|| self.curr_buf.get(&idx).unwrap_or(&self.curr_ambience).bg),
+            };
+            self.curr_buf.insert(idx, cell);
         }
     }
 
-    fn write_tile(&mut self, x: u16, y: u16, tile: TileTexture, fg: Color, bg: Color) {
+    fn write_tile(&mut self, x: u16, y: u16, tile: TileTexture, fg: Color, bg: Option<Color>) {
         if y >= self.h_vp {
             return;
         }
@@ -78,16 +84,27 @@ impl TerminalBuffer for SparseDoubleBuffer {
         if x >= self.w_vp {
             return;
         }
-        self.curr_buf.insert((x, y), TermCell { ch: ch0, fg, bg });
+        let idx = (x, y);
+        let cell = TermCell {
+            ch: ch0,
+            fg,
+            bg: bg.unwrap_or_else(|| self.curr_buf.get(&idx).unwrap_or(&self.curr_ambience).bg),
+        };
+        self.curr_buf.insert(idx, cell);
 
         if x + 1 >= self.w_vp {
             return;
         }
-        self.curr_buf
-            .insert((x + 1, y), TermCell { ch: ch1, fg, bg });
+        let idx = (x + 1, y);
+        let cell = TermCell {
+            ch: ch1,
+            fg,
+            bg: bg.unwrap_or_else(|| self.curr_buf.get(&idx).unwrap_or(&self.curr_ambience).bg),
+        };
+        self.curr_buf.insert(idx, cell);
     }
 
-    fn write_str(&mut self, x: u16, y: u16, str: &str, fg: Color, bg: Color) {
+    fn write_str(&mut self, x: u16, y: u16, str: &str, fg: Color, bg: Option<Color>) {
         if y >= self.h_vp {
             return;
         }
@@ -95,12 +112,17 @@ impl TerminalBuffer for SparseDoubleBuffer {
             if x + dx as u16 >= self.w_vp {
                 return;
             }
-            self.curr_buf
-                .insert((x + dx as u16, y), TermCell { ch, fg, bg });
+            let idx = (x + dx as u16, y);
+            let cell = TermCell {
+                ch,
+                fg,
+                bg: bg.unwrap_or_else(|| self.curr_buf.get(&idx).unwrap_or(&self.curr_ambience).bg),
+            };
+            self.curr_buf.insert(idx, cell);
         }
     }
 
-    fn write_str_wrapping(&mut self, x: u16, y: u16, str: &str, fg: Color, bg: Color) {
+    fn write_str_wrapping(&mut self, x: u16, y: u16, str: &str, fg: Color, bg: Option<Color>) {
         let mut dx = 0;
         let mut dy = 0;
         for ch in str.chars() {
@@ -111,8 +133,13 @@ impl TerminalBuffer for SparseDoubleBuffer {
             if y + dy as u16 >= self.h_vp {
                 return;
             }
-            self.curr_buf
-                .insert((x + dx as u16, y + dy as u16), TermCell { ch, fg, bg });
+            let idx = (x + dx as u16, y + dy as u16);
+            let cell = TermCell {
+                ch,
+                fg,
+                bg: bg.unwrap_or_else(|| self.curr_buf.get(&idx).unwrap_or(&self.curr_ambience).bg),
+            };
+            self.curr_buf.insert(idx, cell);
             dx += 1;
         }
     }

@@ -5,8 +5,8 @@ use rand::RngExt;
 
 use crate::core_game_engine::{
     BOARD_WIDTH, Button, DelayParameters, ExtDuration, Game, GameAccess, GameBuilder, GameLimits,
-    GameModifier, GameRng, InGameTime, Input, LOCK_OUT_HEIGHT, Line, MiscPceRots, MiscTetGens,
-    NotificationFeed, Phase, Piece, Stat, Tetromino, TileType,
+    GameModifier, GameRng, InGameTime, Input, Line, MiscPceRots, MiscTetGens, NotificationFeed,
+    PLAYABLE_BOARD_HEIGHT, Phase, Piece, Stat, Tetromino, TileType,
 };
 
 #[derive(
@@ -161,7 +161,7 @@ impl GameModifier<MiscTetGens, MiscPceRots, TileType> for Ascent {
 
         // Adjust 'camera' if needed.
         let has_hit_camera_top =
-            LOCK_OUT_HEIGHT - Self::CAMERA_MARGIN_TOP <= (piece.position.1 as usize);
+            PLAYABLE_BOARD_HEIGHT - Self::CAMERA_MARGIN_TOP <= (piece.position.1 as usize);
         if has_hit_camera_top {
             let mut ascent_lines =
                 Self::prng_ascent_lines(&mut self.height_loaded, &mut game.state.rng);
@@ -212,7 +212,7 @@ impl GameModifier<MiscTetGens, MiscPceRots, TileType> for Ascent {
 impl Ascent {
     // Playable width needs to be odd.
     const PLAYABLE_WIDTH: usize = BOARD_WIDTH - (1 - BOARD_WIDTH % 2);
-    const PREGENERATED_HEIGHT: usize = LOCK_OUT_HEIGHT + 4;
+    const PREGENERATED_HEIGHT: usize = PLAYABLE_BOARD_HEIGHT + 4;
 
     const CAMERA_MARGIN_TOP: usize = 5;
 

@@ -4,7 +4,7 @@ use crossterm::{
     terminal,
 };
 
-use crate::core_game_engine::{Board, LOCK_OUT_HEIGHT};
+use crate::core_game_engine::{Board, PLAYABLE_BOARD_HEIGHT};
 
 use super::*;
 
@@ -57,10 +57,10 @@ impl GameRenderer for BrailleRenderer {
         _replay_extra: Option<(InGameTime, f64)>,
     ) -> io::Result<()> {
         let mut board = game.state().board.clone();
-        board.resize(LOCK_OUT_HEIGHT, Default::default());
+        board.resize(PLAYABLE_BOARD_HEIGHT, Default::default());
         if let Some(piece) = game.phase().piece() {
             for (x, y) in piece.coords() {
-                if (y as usize) < LOCK_OUT_HEIGHT {
+                if (y as usize) < PLAYABLE_BOARD_HEIGHT {
                     board[y as usize].0[x as usize] = Some(piece.tetromino.into());
                 }
             }
@@ -121,8 +121,8 @@ impl GameRenderer for BrailleRenderer {
             ))?
             .queue(style::PrintStyledContent(
                 format!("{delim_l}{b_line}{delim_r}")
-                    .with(settings.tui_coloring().text)
-                    .on(settings.tui_coloring().bg),
+                    .with(settings.tui_coloring().fg_tui)
+                    .on(settings.tui_coloring().bg_tui),
             ))?;
         }
 

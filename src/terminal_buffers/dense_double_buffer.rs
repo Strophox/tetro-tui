@@ -76,14 +76,18 @@ impl TerminalBuffer for DenseDoubleBuffer {
         ((self.x_vp, self.y_vp), (self.w_vp, self.h_vp))
     }
 
-    fn write_char(&mut self, x: u16, y: u16, cell: TermCell) {
+    fn write_char(&mut self, x: u16, y: u16, ch: char, fg: Color, bg: Option<Color>) {
         if x < self.w_vp && y < self.h_vp {
             let idx = x as usize + self.w_vp as usize * y as usize;
-            self.curr_buf[idx] = cell;
+            self.curr_buf[idx] = TermCell {
+                ch,
+                fg,
+                bg: bg.unwrap_or_else(|| self.curr_buf[idx].bg),
+            };
         }
     }
 
-    fn write_tile(&mut self, x: u16, y: u16, tile: TileTexture, fg: Color, bg: Color) {
+    fn write_tile(&mut self, x: u16, y: u16, tile: TileTexture, fg: Color, bg: Option<Color>) {
         if y >= self.h_vp {
             return;
         }
@@ -92,15 +96,23 @@ impl TerminalBuffer for DenseDoubleBuffer {
             return;
         }
         let idx = x as usize + self.w_vp as usize * y as usize;
-        self.curr_buf[idx] = TermCell { ch: ch0, fg, bg };
+        self.curr_buf[idx] = TermCell {
+            ch: ch0,
+            fg,
+            bg: bg.unwrap_or_else(|| self.curr_buf[idx].bg),
+        };
 
         if x + 1 >= self.w_vp {
             return;
         }
-        self.curr_buf[idx + 1] = TermCell { ch: ch1, fg, bg };
+        self.curr_buf[idx + 1] = TermCell {
+            ch: ch1,
+            fg,
+            bg: bg.unwrap_or_else(|| self.curr_buf[idx + 1].bg),
+        };
     }
 
-    fn write_str(&mut self, x: u16, y: u16, str: &str, fg: Color, bg: Color) {
+    fn write_str(&mut self, x: u16, y: u16, str: &str, fg: Color, bg: Option<Color>) {
         if y >= self.h_vp {
             return;
         }
@@ -109,11 +121,15 @@ impl TerminalBuffer for DenseDoubleBuffer {
                 return;
             }
             let idx = x as usize + dx + self.w_vp as usize * y as usize;
-            self.curr_buf[idx] = TermCell { ch, fg, bg };
+            self.curr_buf[idx] = TermCell {
+                ch,
+                fg,
+                bg: bg.unwrap_or_else(|| self.curr_buf[idx].bg),
+            };
         }
     }
 
-    fn write_str_wrapping(&mut self, x: u16, y: u16, str: &str, fg: Color, bg: Color) {
+    fn write_str_wrapping(&mut self, x: u16, y: u16, str: &str, fg: Color, bg: Option<Color>) {
         let mut dx = 0;
         let mut dy = 0;
         for ch in str.chars() {
@@ -125,7 +141,11 @@ impl TerminalBuffer for DenseDoubleBuffer {
                 return;
             }
             let idx = (x as usize + dx) + (self.w_vp as usize) * (y as usize + dy);
-            self.curr_buf[idx] = TermCell { ch, fg, bg };
+            self.curr_buf[idx] = TermCell {
+                ch,
+                fg,
+                bg: bg.unwrap_or_else(|| self.curr_buf[idx].bg),
+            };
             dx += 1;
         }
     }

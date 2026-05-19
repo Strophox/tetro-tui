@@ -104,7 +104,7 @@ impl<W: Write> Application<W> {
             (0, 0),
             terminal::size().unwrap_or_default(),
             TermCell {
-                bg: self.settings.tui_coloring().bg,
+                bg: self.settings.tui_coloring().bg_tui,
                 ..TermCell::BLANK
             },
         );
@@ -689,7 +689,7 @@ impl<W: Write> Application<W> {
                                     (0, 0),
                                     terminal::size().unwrap_or_default(),
                                     TermCell {
-                                        bg: self.settings.tui_coloring().bg,
+                                        bg: self.settings.tui_coloring().bg_tui,
                                         ..TermCell::BLANK
                                     },
                                 );
@@ -752,7 +752,7 @@ impl<W: Write> Application<W> {
                             (0, 0),
                             (cols, rows),
                             TermCell {
-                                bg: self.settings.tui_coloring().bg,
+                                bg: self.settings.tui_coloring().bg_tui,
                                 ..TermCell::BLANK
                             },
                         );

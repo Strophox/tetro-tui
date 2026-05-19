@@ -55,10 +55,10 @@ pub trait TerminalBuffer {
     /// Retrives the current offset and area.
     fn offset_and_area(&self) -> ((u16, u16), (u16, u16));
 
-    fn write_char(&mut self, x: u16, y: u16, cell: TermCell);
-    fn write_tile(&mut self, x: u16, y: u16, tile: TileTexture, fg: Color, bg: Color);
-    fn write_str(&mut self, x: u16, y: u16, str: &str, fg: Color, bg: Color);
-    fn write_str_wrapping(&mut self, x: u16, y: u16, str: &str, fg: Color, bg: Color);
+    fn write_char(&mut self, x: u16, y: u16, ch: char, fg: Color, bg: Option<Color>);
+    fn write_tile(&mut self, x: u16, y: u16, tile: TileTexture, fg: Color, bg: Option<Color>);
+    fn write_str(&mut self, x: u16, y: u16, str: &str, fg: Color, bg: Option<Color>);
+    fn write_str_wrapping(&mut self, x: u16, y: u16, str: &str, fg: Color, bg: Option<Color>);
     fn flush<W: Write>(&mut self, term: &mut W) -> io::Result<()>;
 }
 
@@ -107,15 +107,15 @@ impl TerminalBuffer for MiscTermBufs {
         }
     }
 
-    fn write_char(&mut self, x: u16, y: u16, cell: TermCell) {
+    fn write_char(&mut self, x: u16, y: u16, ch: char, fg: Color, bg: Option<Color>) {
         match self {
-            MiscTermBufs::DenseDouble(this) => this.write_char(x, y, cell),
-            MiscTermBufs::SparseDouble(this) => this.write_char(x, y, cell),
-            MiscTermBufs::SparseSingle(this) => this.write_char(x, y, cell),
+            MiscTermBufs::DenseDouble(this) => this.write_char(x, y, ch, fg, bg),
+            MiscTermBufs::SparseDouble(this) => this.write_char(x, y, ch, fg, bg),
+            MiscTermBufs::SparseSingle(this) => this.write_char(x, y, ch, fg, bg),
         }
     }
 
-    fn write_tile(&mut self, x: u16, y: u16, tile: TileTexture, fg: Color, bg: Color) {
+    fn write_tile(&mut self, x: u16, y: u16, tile: TileTexture, fg: Color, bg: Option<Color>) {
         match self {
             MiscTermBufs::DenseDouble(this) => this.write_tile(x, y, tile, fg, bg),
             MiscTermBufs::SparseDouble(this) => this.write_tile(x, y, tile, fg, bg),
@@ -123,7 +123,7 @@ impl TerminalBuffer for MiscTermBufs {
         }
     }
 
-    fn write_str(&mut self, x: u16, y: u16, str: &str, fg: Color, bg: Color) {
+    fn write_str(&mut self, x: u16, y: u16, str: &str, fg: Color, bg: Option<Color>) {
         match self {
             MiscTermBufs::DenseDouble(this) => this.write_str(x, y, str, fg, bg),
             MiscTermBufs::SparseDouble(this) => this.write_str(x, y, str, fg, bg),
@@ -131,7 +131,7 @@ impl TerminalBuffer for MiscTermBufs {
         }
     }
 
-    fn write_str_wrapping(&mut self, x: u16, y: u16, str: &str, fg: Color, bg: Color) {
+    fn write_str_wrapping(&mut self, x: u16, y: u16, str: &str, fg: Color, bg: Option<Color>) {
         match self {
             MiscTermBufs::DenseDouble(this) => this.write_str_wrapping(x, y, str, fg, bg),
             MiscTermBufs::SparseDouble(this) => this.write_str_wrapping(x, y, str, fg, bg),

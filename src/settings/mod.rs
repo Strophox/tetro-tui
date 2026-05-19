@@ -13,9 +13,7 @@ pub use graphics_settings::{
     lock_effect::LockEffect,
     mini_tetromino_symbols::MiniTetrominoSymbols,
     small_tetromino_symbols::SmallTetrominoSymbols,
-    tile_coloring::{
-        Palette, PaletteIdx, TileColoring, /*FIXME: Unused code?: , TilePaletteIndexing*/
-    },
+    tile_coloring::{ColorID, /*NamedColor, SimpleTileColoring,*/ TileColoring},
     tile_symbols::TileSymbols,
     tui_coloring::TuiColoring,
     tui_symbols::TuiSymbols,
@@ -157,12 +155,6 @@ impl Settings {
         &self
             .small_tetromino_symbols_slotmachine
             .grab(self.graphics().small_tetromino_symbols_selected)
-            .1
-    }
-    pub fn locked_tile_coloring(&self) -> &TileColoring {
-        &self
-            .tile_coloring_slotmachine
-            .grab(self.graphics().locked_tile_coloring_selected)
             .1
     }
 
