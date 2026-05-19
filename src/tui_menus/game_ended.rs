@@ -9,8 +9,8 @@ use crossterm::{
         KeyEventKind::{Press, Repeat},
         KeyModifiers,
     },
-    style::{Print, PrintStyledContent, Stylize},
-    terminal::{Clear, ClearType},
+    style::{PrintStyledContent, Stylize},
+    terminal::{self},
 };
 
 use crate::{
@@ -47,8 +47,11 @@ impl<W: Write> Application<W> {
 
         let mut timing_offset = 0usize;
         let mut coloring_width = 2;
-        let animation_delay =
-            std::time::Duration::from_secs_f64(self.settings.graphics().fps.get().recip());
+        let animation_delay = if *is_win {
+            std::time::Duration::from_secs_f64(self.settings.graphics().fps.get().recip())
+        } else {
+            std::time::Duration::MAX
+        };
 
         // Unlock modes if specific modes beaten.
         if *is_win
@@ -71,16 +74,22 @@ impl<W: Write> Application<W> {
             let w_main = Self::W_MAIN.into();
             let (x_main, y_main) = Self::viewport_offset();
             let y_selection = Self::H_MAIN / 5;
-            let clear_type = if refresh_fully {
+            if refresh_fully {
                 refresh_fully = false;
-                ClearType::All
+                self.term.queue(MoveTo(0, 0))?.queue(PrintStyledContent({
+                    let (w, h) = terminal::size()?;
+                    " ".repeat((w * h) as usize)
+                        .on(self.settings.tui_coloring().bg_tui)
+                }))?;
             } else {
-                ClearType::CurrentLine
-            };
-            self.term
-                .queue(MoveTo(x_main, y_main + y_selection))?
-                // TODO: fix thsi printing...
-                .queue(Clear(clear_type))?;
+                self.term
+                    .queue(MoveTo(x_main, y_main + y_selection))?
+                    .queue(PrintStyledContent({
+                        let (w, _h) = terminal::size()?;
+                        " ".repeat(w as usize)
+                            .on(self.settings.tui_coloring().bg_tui)
+                    }))?;
+            }
 
             if *is_win {
                 let line = format!(
@@ -106,23 +115,36 @@ impl<W: Write> Application<W> {
                             x_main + u16::try_from(x_offset).unwrap(),
                             y_main + y_selection,
                         ))?
-                        .queue(PrintStyledContent(c.bold().with(
-                            self.settings.tile_coloring().tetromino_rainbow()[rainbow_offset % 7],
-                        )))?;
+                        .queue(PrintStyledContent(
+                            c.bold()
+                                .with(
+                                    self.settings.tile_coloring().tetromino_rainbow()
+                                        [rainbow_offset % 7],
+                                )
+                                .on(self.settings.tui_coloring().bg_tui),
+                        ))?;
                 }
             } else {
-                self.term.queue(PrintStyledContent(
-                    format!(
-                        "{:^w_main$}",
-                        format!("-- Game Over: {end_cause} ({}) --", game_meta_data.title)
-                    )
-                    .bold(),
-                ))?;
+                self.term
+                    .queue(MoveTo(x_main, y_main + y_selection))?
+                    .queue(PrintStyledContent(
+                        format!(
+                            "{:^w_main$}",
+                            format!("-- Game Over: {end_cause} ({}) --", game_meta_data.title)
+                        )
+                        .bold()
+                        .with(self.settings.tui_coloring().fg_tui)
+                        .on(self.settings.tui_coloring().bg_tui),
+                    ))?;
             }
 
             self.term
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
-                .queue(Print(format!("{:^w_main$}", heading_line(&self.settings))))?;
+                .queue(PrintStyledContent(
+                    format!("{:^w_main$}", heading_line(&self.settings))
+                        .with(self.settings.tui_coloring().fg_accent)
+                        .on(self.settings.tui_coloring().bg_tui),
+                ))?;
 
             timing_offset = timing_offset.saturating_add(1);
 
@@ -169,7 +191,11 @@ impl<W: Write> Application<W> {
                         x_main,
                         y_main + y_selection + 3 + u16::try_from(i).unwrap(),
                     ))?
-                    .queue(Print(format!("{s:^w_main$}")))?;
+                    .queue(PrintStyledContent(
+                        format!("{s:^w_main$}")
+                            .with(self.settings.tui_coloring().fg_tui)
+                            .on(self.settings.tui_coloring().bg_tui),
+                    ))?;
             }
 
             self.term
@@ -177,7 +203,11 @@ impl<W: Write> Application<W> {
                     x_main,
                     y_main + y_selection + 3 + u16::try_from(stats.len()).unwrap(),
                 ))?
-                .queue(Print(format!("{:^w_main$}", heading_line(&self.settings))))?;
+                .queue(PrintStyledContent(
+                    format!("{:^w_main$}", heading_line(&self.settings))
+                        .with(self.settings.tui_coloring().fg_accent)
+                        .on(self.settings.tui_coloring().bg_tui),
+                ))?;
 
             let names = selection
                 .iter()
@@ -190,18 +220,22 @@ impl<W: Write> Application<W> {
                         x_main,
                         y_main + y_selection + 3 + u16::try_from(stats.len() + 2 + i).unwrap(),
                     ))?
-                    .queue(Print(format!(
-                        "{:^w_main$}",
-                        if i == selected {
-                            format!(
-                                "{} {name} {}",
-                                self.settings.tui_symbols().menu_pointers[0],
-                                self.settings.tui_symbols().menu_pointers[1]
-                            )
-                        } else {
-                            name.to_owned()
-                        }
-                    )))?;
+                    .queue(PrintStyledContent(
+                        format!(
+                            "{:^w_main$}",
+                            if i == selected {
+                                format!(
+                                    "{} {name} {}",
+                                    self.settings.tui_symbols().menu_pointers[0],
+                                    self.settings.tui_symbols().menu_pointers[1]
+                                )
+                            } else {
+                                name.to_owned()
+                            }
+                        )
+                        .with(self.settings.tui_coloring().fg_tui)
+                        .on(self.settings.tui_coloring().bg_tui),
+                    ))?;
             }
             self.term.flush()?;
 

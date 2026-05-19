@@ -37,7 +37,6 @@ impl<W: Write> Application<W> {
 
         let mut selected = 1usize;
         loop {
-            // TODO: Do this for all menus.
             self.term.queue(MoveTo(0, 0))?.queue(PrintStyledContent({
                 let (w, h) = terminal::size()?;
                 " ".repeat((w * h) as usize)

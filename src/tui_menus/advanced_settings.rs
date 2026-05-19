@@ -8,7 +8,7 @@ use crossterm::{
         KeyEventKind::{self, Press, Repeat},
         KeyModifiers,
     },
-    style::{Print, PrintStyledContent, Stylize},
+    style::{PrintStyledContent, Stylize},
     terminal::{self},
 };
 
@@ -49,7 +49,7 @@ impl<W: Write> Application<W> {
                         .on(self.settings.tui_coloring().bg_tui),
                 ))?
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
-                .queue(Print(
+                .queue(PrintStyledContent(
                     format!("{:^w_main$}", heading_line(&self.settings))
                         .with(self.settings.tui_coloring().fg_accent)
                         .on(self.settings.tui_coloring().bg_tui),

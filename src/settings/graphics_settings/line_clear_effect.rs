@@ -33,7 +33,8 @@ pub struct LineClearInlineEffect {
     /// - `None` tile id falls back to locked piece tile id.
     #[serde(rename = "col_anim")]
     pub color_animation: Vec<MaybeOverride<ColorID>>,
-    // TODO remove or implement
+    // FIXME: Currently, various effects are somewhat scuffed for graphics that use dual-colored tiles. E.g., an inline line clear effect that Overrides the color to be 'white' leads to weird visuals because it only recolors the glyphs of the original board tiles, even if those glyphs are very small (since the background color is mainly used for those dual-colored tiles).
+    // Perhaps we should fix this somehow, e.g. by allowing a tile override. Alternatively, change the logic to re-color the background dynamically depending on whether the current graphics make actual use of the BG.
     // pub tile_override: MaybeOverride<(TileTexture, TileType)>
 }
 

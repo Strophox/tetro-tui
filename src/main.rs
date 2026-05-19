@@ -13,6 +13,7 @@ use std::{io, path::PathBuf};
 
 use std::{fmt::Debug, io::Write, time::Duration};
 
+use crossterm::style::{PrintStyledContent, Stylize};
 use crossterm::{
     ExecutableCommand,
     cursor::{self, MoveTo},
@@ -687,19 +688,25 @@ impl<W: Write> Application<W> {
                     }
 
                     if matches!(menu, Menu::GameOver { .. }) {
-                        let h_console = terminal::size()?.1;
-                        for y in (0..h_console).rev() {
+                        let (w, h) = terminal::size()?;
+                        for y in (0..h).rev() {
                             self.term
                                 .execute(MoveTo(0, y))?
-                                .execute(Clear(ClearType::CurrentLine))?;
+                                .execute(PrintStyledContent(
+                                    " ".repeat(w as usize)
+                                        .on(self.settings.tui_coloring().bg_tui),
+                                ))?;
                             std::thread::sleep(Duration::from_secs_f32(1. / 120.0));
                         }
                     } else if matches!(menu, Menu::GameComplete { .. }) {
-                        let h_console = terminal::size()?.1;
-                        for y in 0..h_console {
+                        let (w, h) = terminal::size()?;
+                        for y in 0..h {
                             self.term
                                 .execute(MoveTo(0, y))?
-                                .execute(Clear(ClearType::CurrentLine))?;
+                                .execute(PrintStyledContent(
+                                    " ".repeat(w as usize)
+                                        .on(self.settings.tui_coloring().bg_tui),
+                                ))?;
                             std::thread::sleep(Duration::from_secs_f32(1. / 120.0));
                         }
                     }
