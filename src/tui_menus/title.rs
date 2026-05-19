@@ -30,12 +30,13 @@ impl<W: Write> Application<W> {
         let mut selected = 0usize;
         let mut dynamic_title_style = 1isize;
         let mut dynamic_color_offset = 0isize;
+        // FIXME: Hacky. In all other menus we can afford to do this inside the loop, but not here? (Also beware: We manually do this on resize).
+        self.term.queue(MoveTo(0, 0))?.queue(PrintStyledContent({
+            let (w, h) = terminal::size()?;
+            " ".repeat((w * h) as usize)
+                .on(self.settings.tui_coloring().bg_tui)
+        }))?;
         loop {
-            self.term.queue(MoveTo(0, 0))?.queue(PrintStyledContent({
-                let (w, h) = terminal::size()?;
-                " ".repeat((w * h) as usize)
-                    .on(self.settings.tui_coloring().bg_tui)
-            }))?;
             let w_main: usize = Self::W_MAIN.into();
             let (x_main, y_main) = Self::viewport_offset();
             let y_selection = (Self::H_MAIN / 5).saturating_sub(1);
@@ -343,6 +344,14 @@ impl<W: Write> Application<W> {
                     ..
                 }) => {
                     dynamic_title_style += 1;
+                }
+
+                Event::Resize(_, _) => {
+                    self.term.queue(MoveTo(0, 0))?.queue(PrintStyledContent({
+                        let (w, h) = terminal::size()?;
+                        " ".repeat((w * h) as usize)
+                            .on(self.settings.tui_coloring().bg_tui)
+                    }))?;
                 }
 
                 // Other event: don't care.
