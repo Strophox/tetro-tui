@@ -5,7 +5,7 @@ use crossterm::{
     cursor::MoveTo,
     event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers},
     style::{Color, PrintStyledContent, Stylize},
-    terminal::{self},
+    terminal::{self, Clear, ClearType},
 };
 
 use crate::{
@@ -31,11 +31,16 @@ impl<W: Write> Application<W> {
         let mut dynamic_title_style = 1isize;
         let mut dynamic_color_offset = 0isize;
         // FIXME: Hacky. In all other menus we can afford to do this inside the loop, but not here? (Also beware: We manually do this on resize).
-        self.term.queue(MoveTo(0, 0))?.queue(PrintStyledContent({
-            let (w, h) = terminal::size()?;
-            " ".repeat((w * h) as usize)
-                .on(self.settings.tui_coloring().bg_tui)
-        }))?;
+        // FIXME: This piece of boileplate and workaround in currently in every menu. The reason is that Windows Terminal is SO slow at printing it visibly flickers - because it ALSO always sends double the number of signals (sends key releases but is not kitty compatible?). As a workaround, it seems that clearing the screen leads to little flicker (like before), as opposed to writing empty characters over the screen.
+        if self.settings.tui_coloring().bg_tui == Color::Reset {
+            self.term.queue(Clear(ClearType::All))?;
+        } else {
+            self.term.queue(MoveTo(0, 0))?.queue(PrintStyledContent({
+                let (w, h) = terminal::size()?;
+                " ".repeat((w * h) as usize)
+                    .on(self.settings.tui_coloring().bg_tui)
+            }))?;
+        }
         loop {
             let w_main: usize = Self::W_MAIN.into();
             let (x_main, y_main) = Self::viewport_offset();
@@ -347,11 +352,15 @@ impl<W: Write> Application<W> {
                 }
 
                 Event::Resize(_, _) => {
-                    self.term.queue(MoveTo(0, 0))?.queue(PrintStyledContent({
-                        let (w, h) = terminal::size()?;
-                        " ".repeat((w * h) as usize)
-                            .on(self.settings.tui_coloring().bg_tui)
-                    }))?;
+                    if self.settings.tui_coloring().bg_tui == Color::Reset {
+                        self.term.queue(Clear(ClearType::All))?;
+                    } else {
+                        self.term.queue(MoveTo(0, 0))?.queue(PrintStyledContent({
+                            let (w, h) = terminal::size()?;
+                            " ".repeat((w * h) as usize)
+                                .on(self.settings.tui_coloring().bg_tui)
+                        }))?;
+                    }
                 }
 
                 // Other event: don't care.

@@ -16,8 +16,8 @@ use crossterm::{
         KeyEventKind::{Press, Repeat},
         KeyModifiers,
     },
-    style::{PrintStyledContent, Stylize},
-    terminal::{self},
+    style::{Color, PrintStyledContent, Stylize},
+    terminal::{self, Clear, ClearType},
 };
 use either::Either;
 
@@ -57,12 +57,15 @@ impl<W: Write> Application<W> {
         let maxval_fall_delay: ExtDuration = Duration::from_secs_f64(100.0).into();
 
         loop {
-            // First part: rendering the menu.
-            self.term.queue(MoveTo(0, 0))?.queue(PrintStyledContent({
-                let (w, h) = terminal::size()?;
-                " ".repeat((w * h) as usize)
-                    .on(self.settings.tui_coloring().bg_tui)
-            }))?;
+            if self.settings.tui_coloring().bg_tui == Color::Reset {
+                self.term.queue(Clear(ClearType::All))?;
+            } else {
+                self.term.queue(MoveTo(0, 0))?.queue(PrintStyledContent({
+                    let (w, h) = terminal::size()?;
+                    " ".repeat((w * h) as usize)
+                        .on(self.settings.tui_coloring().bg_tui)
+                }))?;
+            }
             let w_main = Self::W_MAIN.into();
             let (x_main, y_main) = Self::viewport_offset();
             let y_selection = Self::H_MAIN / 5;

@@ -9,8 +9,8 @@ use crossterm::{
         KeyEventKind::{Press, Repeat},
         KeyModifiers,
     },
-    style::{PrintStyledContent, Stylize},
-    terminal::{self},
+    style::{Color, PrintStyledContent, Stylize},
+    terminal::{self, Clear, ClearType},
 };
 
 use crate::{
@@ -76,11 +76,15 @@ impl<W: Write> Application<W> {
             let y_selection = Self::H_MAIN / 5;
             if refresh_fully {
                 refresh_fully = false;
-                self.term.queue(MoveTo(0, 0))?.queue(PrintStyledContent({
-                    let (w, h) = terminal::size()?;
-                    " ".repeat((w * h) as usize)
-                        .on(self.settings.tui_coloring().bg_tui)
-                }))?;
+                if self.settings.tui_coloring().bg_tui == Color::Reset {
+                    self.term.queue(Clear(ClearType::All))?;
+                } else {
+                    self.term.queue(MoveTo(0, 0))?.queue(PrintStyledContent({
+                        let (w, h) = terminal::size()?;
+                        " ".repeat((w * h) as usize)
+                            .on(self.settings.tui_coloring().bg_tui)
+                    }))?;
+                }
             } else {
                 self.term
                     .queue(MoveTo(x_main, y_main + y_selection))?
