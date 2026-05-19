@@ -92,71 +92,85 @@ cargo run
 > 
 > <details>
 > <summary>
-> See also: Complete overview of Tetro TUI v3.0 menus content:
+> See also: Big overview of actual Tetro TUI v4.0 menus:
 > </summary>
 > 
-> **New game/**
-> - Swift: How fast can you clear 40 lines?
-> - Regular: Clear 150 lines at increasing gravity.
-> - *(unlocked after Regular mode)* Master: Clear 150 lines at instant gravity.
-> - Puzzle: Clear 24 hand-crafted puzzles.
-> - Cheese-20: Eat through lines like Swiss cheese. Limit∈[None, Some(10), Some(11), .., Some(20), ..]
+> **- Title screen -**
+> - New Game
+> - Settings
+> - Scores and Replays
+> - All-Time Stats
+> - About
+> - Quit
+> *[←↓↑→/Enter/Esc/Del] or Vim, Press [?] to view keybinds anytime*
+> 
+> **+ Start New Game +**
+> - Regular: Clear 160 lines as gravity increases.
+> - Swift: How quickly can you clear 40 lines?
+> - *(unlocked after Regular)* Classic (lvl 0+)(*): 'NES' Gameplay/Graphics settings recommended.
+> - *(unlocked after Regular)* Master: Clear 320 lines at instant gravity.
+> - Puzzle: Clear 24 hand-crafted puzzles (feat. the Ocular rotation system)
+> - Cheese-40: Efficiently eat through some lines. Limit∈[None, Some(10), Some(11), .., Some(40), ..]
 > - Combo-30: Get consecutive line clears. Limit∈[None, Some(10), Some(11), .., Some(30), ..]
-> - Ascent*: (experimental, requires 'Ocular'- + 180° rotation)
+> - Survival: Lines regenerate as you place more pieces.
+> - Ascent: Experimental gamemode (requires 180° rot.)
 > - Custom: [Del]=reset
->   * Initial fall delay = 1.0s (Gravity: 1.0 Hz)
+>   * Initial fall delay = 1.000000000s (Gravity: 1.00 Hz)
 >   * Progressive gravity ∈ [on, off]
 >   * Limit ∈ [None, TimeElapsed(300s), .., PointsScored(200), .., PiecesLocked(100), .., LinesCleared(40), ..]
-> - Game save: *(Only shows up after using `Ctrl+S`)*
+> - *(available after using `Ctrl+S`)* Game save
 > 
-> **Settings/Adjust-Graphics/**
-> * Slot ∈ [Default, Focus+, Guideline, Terminal compatibility, Elektronika 60, Blank slate, Custom I/II/..]
-> * Color Palette (modifiable presets) ∈ [Monochrome, ANSI, Standard, Okpalette, Gruvbox, Solarized, Terafox, Fahrenheit, The Matrix, Sequoia]
-> * TUI style ∈ [ASCII, Unicode, Elektronika 60]
-> * Mino textures ∈ [ASCII, Unicode, Elektronika 60]
-> * Hard drop effect ∈ [None, Particles ASCII, Streak ASCII, Beam ASCII, Beam]
-> * Lock effect ∈ [None, Transform ASCII, Pulse Unicode, White]
-> * Line clear effect ∈ [None, Instant, Left to right, Inward, Outward, Flash white, Blink, Pop out, Pop out (more), Sparks ASCII, Blast]
-> * Mini tetromino style ∈ [ASCII, Braille]
-> * Small tetromino style ∈ [ASCII, Blocks, Braille]
-> * Normalsize previews ∈ [unlimited, 1, 2 ..]
-> * Frames per second ∈ [5, 10, .., 60, ..]
-> * Show grid ∈ [on, off]
-> * Show piece shadow ∈ [on, off]
-> * Preview spawn when stack high ∈ [on, off]
-> * Color board tiles ∈ [on, off]
-> * Show left HUD ∈ [on, off]
-> * Show keybinds legend ∈ [on, off]
-> * Show active buttons ∈ [on, off]
-> * Show FPS counter ∈ [on, off]
+> **# Graphics Settings #**
+> * Slot ∈ [Default, Guideline, Terminal compatibility, Focus+, Minimal, I⠐⢷⠗ Braille, Elektronika 60, NES; Custom I/II/..]
+> * Tile colors ∈ [Terminal default, Just white, ANSI, Tetro Pastel, Guideline, Gruvbox, Solarized, Terafox, Fahrenheit, Matrix, Sequoia, Just amber, NES levels]
+> * UI colors ∈ [Terminal default, Just black/white, Tetro Dark, Gruvbox Dark, Solarized Light, Matrix, Sequoia, Just amber, NES, OneHalfDark]
+> * UI style ∈ [ASCII, Frame UTF8, Rounded frame UTF8, No frame UTF8, No hold/next-frame, Braille, Elektronika 60]
+> * Hard drop effect ∈ [None, Particle trail ASCII, Particle trail 2 ASCII, Particle beam ASCII, Colored beam UTF8, White beam UTF8, Braille helix]
+> * Lock effect ∈ [None, Flash white, Transforming ASCII, Pulsing block UTF8, Spiraling Braille]
+> * Line clear effect ∈ [None, Disappear halfway, Disappear instantly, Blink, Flash white, Clear left-to-right, Clear outward, White clear inward, Burn outward, Pop, Pop (more), Confetti (gratuitous), Stardust, Blast, Sparks, Sparks Braille, Sparks ASCII]
+> * Tile/Tetromino symbols ∈ [ASCII, Blocks UTF8, Braille, NES simulacra, Elektronika 60]
+> * Small tetromino symbols ∈ [Dots ASCII, Blocks UTF8, Braille]
+> * Mini tetromino symbols ∈ [Letters, Braille]
+> * Normalsized tetromino previews ∈ [unlimited, 1, 2 ..]
+> * Frames rendered per second ∈ [5, 10, .., 60, ..]
+> * Grid ∈ [on, off]
+> * Piece shadow ∈ [on, off]
+> * Upcoming spawn preview (if stack high) ∈ [on, off]
+> * Uniform locked tiles ∈ [on, off]
+> * Main HUD ∈ [on, off]
+> * Include basic keybinds HUD ∈ [on, off]
+> * Show active/held buttons ∈ [on, off]
+> * Lock delay visualizer ∈ [on, off]
+> * FPS counter ∈ [on, off]
 > 
-> **Settings/Adjust-Keybinds/**
-> * Slot (modifiable preset) ∈ [Default, Control+, Guideline, Vim, Custom I/II/..]
-> * MoveLeft, MoveRight
-> * RotateLeft, RotateRight, Rotate180
-> * DropSoft, DropHard
-> * TeleDown, TeleLeft, TeleRight
-> * HoldPiece
+> **@ Game Keybinds @**
+> * Slot (modifiable preset) ∈ [Default, Guideline, Control+, Terminal finesse, Vim; Custom I/II/..]
+> * MoveLeft, MoveRight;
+> * RotateLeft, RotateRight, Rotate180;
+> * DropSoft, DropHard;
+> * TeleDown, TeleLeft, TeleRight;
+> * HoldPiece.
 > 
 > **Settings/Adjust-Gameplay/**
-> * Slot ∈ [Default, Finesse+, Guideline, NES, Gameboy, Custom I/II/..]
-> * Piece rotation system ∈ [Ocular, ClassicL, ClassicR, Super]
-> * Piece randomization ∈ [Completely random, 7-Bag, 14-Bag, .., Recency (^2.5), Recency (^2.6), .., Balance out]
+> * Slot ∈ [Default, Guideline, Finesse+, Elektronika 60, Gameboy, NES; Custom I/II/..]
+> * Piece rotation ∈ [Ocular, ClassicL, ClassicR, Super]
+> * Piece randomization ∈ [Uniformly random, Classic (Reroll 1x), Rerollx 2x, .., 7-Bag, 14-Bag, .., Balance out, Recency (^2.5), Recency (^2.6), ..]
 > * Piece preview count ∈ [0, 1, .., 4, ..]
 > * Delayed auto move (DAS) ∈ [0ms, 1ms, .., 167ms, ..]
-> * Auto move rate (ARR) ∈ [0ms, 1ms, .., 33ms, ..]
-> * Soft drop speedup (SDF) ∈ [0x, 0.25x, .., 15x, ..]
+> * Auto repeat rate (ARR) ∈ [0ms, 1ms, .., 33ms, ..]
+> * Delayed soft drop ∈ [None, Some(5ms), Some(10ms), .., Some(100ms), ..]
+> * Soft drop rate (SDF) ∈ [raise gravity to 30 Hz, ..; 0x gravity, 0.25x gravity, .., 15x, .., inf x gravity]
 > * Line clear duration (LCD) ∈ [0ms, 5ms, .., 200ms, ..]
 > * Spawn delay (ARE) ∈ [0ms, 5ms, .., 50ms, ..]
-> * Allow initial rotation/hold (IRS/IHS/IMS/ITS) ∈ [on, off]
+> * Allow spawn manipulation (hold-IRS/IHS/IMS/ITS) ∈ [on, off]
 > * Convert double-tap to teleport ∈ [None, Some(5ms), Some(10ms), ..]
 > 
-> **Settings/Advanced-Settings/**
-> * Save contents ∈ ["--Nothing", "Only settings --No scores,replays", "Only settings,scores --No replays", "Everything (settings,scores,replays)"]
-> * Assume enhanced-key-events available ∈ [on, off]
-> * Blindfold gameplay ∈ [on, off]
+> **§ Advanced Settings §**
+> * Save ∈ ["--Nothing", "Only settings,stats --No scores,replays", "Only settings,stats,scores --No replays", "Everything (settings,stats,scores,replays)"]
+> * Renderer used ∈ [Main, Halfblock, Braille]
 > * Pause on focus lost ∈ [on, off]
-> * Renderer selected ∈ [Standard, Legacy, Prototype, Twoxel, Braille]
+> * 'Blindfold' game ∈ [on, off]
+> * Assume enhanced-key-events available ∈ [on, off]
 > 
 > </details>
 

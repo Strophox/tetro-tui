@@ -142,7 +142,7 @@ impl MiscGameRenderers {
     pub fn name_from_num(n: usize) -> &'static str {
         match n {
             0 => "Main",
-            1 => "Twoxel",
+            1 => "Half-block",
             2 => "Braille",
             // 3 => "Prototype",
             // 4 => "Legacy",
