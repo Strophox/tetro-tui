@@ -9,7 +9,7 @@ use crossterm::{
         KeyModifiers,
     },
     style::{Print, PrintStyledContent, Stylize},
-    terminal::{Clear, ClearType},
+    terminal::{self, Clear, ClearType},
 };
 
 use crate::{
@@ -21,17 +21,28 @@ impl<W: Write> Application<W> {
     pub fn run_menu_settings(&mut self) -> io::Result<MenuUpdate> {
         let mut selected = 0usize;
         loop {
+            self.term.queue(MoveTo(0, 0))?.queue(PrintStyledContent({
+                let (w, h) = terminal::size()?;
+                " ".repeat((w * h) as usize)
+                    .on(self.settings.tui_coloring().bg_tui)
+            }))?;
             let w_main = Self::W_MAIN.into();
             let (x_main, y_main) = Self::viewport_offset();
             let y_selection = Self::H_MAIN / 5;
             self.term
-                .queue(Clear(ClearType::All))?
                 .queue(MoveTo(x_main, y_main + y_selection))?
                 .queue(PrintStyledContent(
-                    format!("{:^w_main$}", "% Settings %").bold(),
+                    format!("{:^w_main$}", "% Settings %")
+                        .bold()
+                        .with(self.settings.tui_coloring().fg_tui)
+                        .on(self.settings.tui_coloring().bg_tui),
                 ))?
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
-                .queue(Print(format!("{:^w_main$}", heading_line(&self.settings))))?;
+                .queue(Print(
+                    format!("{:^w_main$}", heading_line(&self.settings))
+                        .with(self.settings.tui_coloring().fg_accent)
+                        .on(self.settings.tui_coloring().bg_tui),
+                ))?;
             let labels = [
                 format!(
                     "Adjust graphics ({}) ...",
@@ -78,18 +89,22 @@ impl<W: Write> Application<W> {
                             + u16::try_from(i).unwrap()
                             + if 2 < i { 1 } else { 0 },
                     ))?
-                    .queue(Print(format!(
-                        "{:^w_main$}",
-                        if i == selected {
-                            format!(
-                                "{} {label} {}",
-                                self.settings.tui_symbols().menu_pointers[0],
-                                self.settings.tui_symbols().menu_pointers[1]
-                            )
-                        } else {
-                            label
-                        }
-                    )))?;
+                    .queue(PrintStyledContent(
+                        format!(
+                            "{:^w_main$}",
+                            if i == selected {
+                                format!(
+                                    "{} {label} {}",
+                                    self.settings.tui_symbols().menu_pointers[0],
+                                    self.settings.tui_symbols().menu_pointers[1]
+                                )
+                            } else {
+                                label
+                            }
+                        )
+                        .with(self.settings.tui_coloring().fg_tui)
+                        .on(self.settings.tui_coloring().bg_tui),
+                    ))?;
             }
             self.term
                 .queue(MoveTo(
@@ -108,11 +123,12 @@ impl<W: Write> Application<W> {
                     .italic()
                     .with(
                         if self.temp_data.save_on_exit == SavefileGranularity::NoSavefile {
-                            crossterm::style::Color::Yellow
+                            self.settings.tui_coloring().fg_accent
                         } else {
-                            crossterm::style::Color::Reset
+                            self.settings.tui_coloring().fg_tui
                         },
-                    ),
+                    )
+                    .on(self.settings.tui_coloring().bg_tui),
                 ))?;
             self.term.flush()?;
             // Wait for new input.

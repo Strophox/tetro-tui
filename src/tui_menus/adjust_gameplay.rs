@@ -15,8 +15,8 @@ use crossterm::{
         KeyEventKind::{Press, Repeat},
         KeyModifiers,
     },
-    style::{Print, PrintStyledContent, Stylize},
-    terminal::{Clear, ClearType},
+    style::{PrintStyledContent, Stylize},
+    terminal,
 };
 use either::Either;
 
@@ -50,23 +50,33 @@ impl<W: Write> Application<W> {
 
         let mut selected = 1usize;
         loop {
+            self.term.queue(MoveTo(0, 0))?.queue(PrintStyledContent({
+                let (w, h) = terminal::size()?;
+                " ".repeat((w * h) as usize)
+                    .on(self.settings.tui_coloring().bg_tui)
+            }))?;
             let w_main = Self::W_MAIN.into();
             let (x_main, y_main) = Self::viewport_offset();
             let y_selection = (Self::H_MAIN / 5).saturating_sub(2);
 
             // Draw menu title.
             self.term
-                .queue(Clear(ClearType::All))?
                 .queue(MoveTo(x_main, y_main + y_selection))?
                 .queue(PrintStyledContent(
                     format!(
                         "{:^w_main$}",
                         "= Gameplay Preferences (apply on New Game) ="
                     )
-                    .bold(),
+                    .bold()
+                    .with(self.settings.tui_coloring().fg_tui)
+                    .on(self.settings.tui_coloring().bg_tui),
                 ))?
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
-                .queue(Print(format!("{:^w_main$}", heading_line(&self.settings))))?;
+                .queue(PrintStyledContent(
+                    format!("{:^w_main$}", heading_line(&self.settings))
+                        .with(self.settings.tui_coloring().fg_accent)
+                        .on(self.settings.tui_coloring().bg_tui),
+                ))?;
 
             // Draw slot label.
             let slot_label = format!(
@@ -94,20 +104,28 @@ impl<W: Write> Application<W> {
             );
             self.term
                 .queue(MoveTo(x_main, y_main + y_selection + 3))?
-                .queue(Print(format!(
-                    "{:^w_main$}",
-                    if selected == 0 {
-                        format!(
-                            "{} {slot_label} {}",
-                            self.settings.tui_symbols().menu_pointers[0],
-                            self.settings.tui_symbols().menu_pointers[1]
-                        )
-                    } else {
-                        slot_label
-                    }
-                )))?
+                .queue(PrintStyledContent(
+                    format!(
+                        "{:^w_main$}",
+                        if selected == 0 {
+                            format!(
+                                "{} {slot_label} {}",
+                                self.settings.tui_symbols().menu_pointers[0],
+                                self.settings.tui_symbols().menu_pointers[1]
+                            )
+                        } else {
+                            slot_label
+                        }
+                    )
+                    .with(self.settings.tui_coloring().fg_tui)
+                    .on(self.settings.tui_coloring().bg_tui),
+                ))?
                 .queue(MoveTo(x_main, y_main + y_selection + 4))?
-                .queue(Print(format!("{:^w_main$}", heading_line(&self.settings))))?;
+                .queue(PrintStyledContent(
+                    format!("{:^w_main$}", heading_line(&self.settings))
+                        .with(self.settings.tui_coloring().fg_accent)
+                        .on(self.settings.tui_coloring().bg_tui),
+                ))?;
 
             // Draw config selection.
             let warning_star = if self.temp_data.kitty_detected {
@@ -198,18 +216,22 @@ impl<W: Write> Application<W> {
                         x_main,
                         y_main + y_selection + 6 + u16::try_from(i).unwrap(),
                     ))?
-                    .queue(Print(format!(
-                        "{:^w_main$}",
-                        if i + 1 == selected {
-                            format!(
-                                "{} {label} {}",
-                                self.settings.tui_symbols().menu_pointers[0],
-                                self.settings.tui_symbols().menu_pointers[1]
-                            )
-                        } else {
-                            label
-                        }
-                    )))?;
+                    .queue(PrintStyledContent(
+                        format!(
+                            "{:^w_main$}",
+                            if i + 1 == selected {
+                                format!(
+                                    "{} {label} {}",
+                                    self.settings.tui_symbols().menu_pointers[0],
+                                    self.settings.tui_symbols().menu_pointers[1]
+                                )
+                            } else {
+                                label
+                            }
+                        )
+                        .with(self.settings.tui_coloring().fg_tui)
+                        .on(self.settings.tui_coloring().bg_tui),
+                    ))?;
             }
             if !self.temp_data.kitty_detected {
                 self.term
@@ -222,7 +244,9 @@ impl<W: Write> Application<W> {
                             "{:^w_main$}",
                             "(*Unlikely to work; Enhanced-key-events seem unsupported by terminal)"
                         )
-                        .italic(),
+                        .italic()
+                        .with(self.settings.tui_coloring().fg_tui)
+                        .on(self.settings.tui_coloring().bg_tui),
                     ))?;
             }
 

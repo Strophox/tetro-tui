@@ -79,6 +79,7 @@ impl<W: Write> Application<W> {
             };
             self.term
                 .queue(MoveTo(x_main, y_main + y_selection))?
+                // TODO: fix thsi printing...
                 .queue(Clear(clear_type))?;
 
             if *is_win {

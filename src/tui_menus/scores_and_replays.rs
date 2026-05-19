@@ -10,7 +10,7 @@ use crossterm::{
         KeyModifiers,
     },
     style::{Print, PrintStyledContent, Stylize},
-    terminal::{Clear, ClearType},
+    terminal::{self, Clear, ClearType},
 };
 
 use crate::{
@@ -36,17 +36,28 @@ impl<W: Write> Application<W> {
         const CAMERA_SIZE: usize = 11;
         const CAMERA_MARGIN: usize = 2;
         loop {
+            self.term.queue(MoveTo(0, 0))?.queue(PrintStyledContent({
+                let (w, h) = terminal::size()?;
+                " ".repeat((w * h) as usize)
+                    .on(self.settings.tui_coloring().bg_tui)
+            }))?;
             let w_main = Self::W_MAIN.into();
             let (x_main, y_main) = Self::viewport_offset();
             let y_selection = Self::H_MAIN / 5;
             self.term
-                .queue(Clear(ClearType::All))?
                 .queue(MoveTo(x_main, y_main + y_selection))?
                 .queue(PrintStyledContent(
-                    format!("{:^w_main$}", "* Scores and Replays *").bold(),
+                    format!("{:^w_main$}", "* Scores and Replays *")
+                        .bold()
+                        .with(self.settings.tui_coloring().fg_tui)
+                        .on(self.settings.tui_coloring().bg_tui),
                 ))?
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
-                .queue(Print(format!("{:^w_main$}", heading_line(&self.settings))))?;
+                .queue(Print(
+                    format!("{:^w_main$}", heading_line(&self.settings))
+                        .with(self.settings.tui_coloring().fg_accent)
+                        .on(self.settings.tui_coloring().bg_tui),
+                ))?;
 
             let sorting = self.scores_and_replays.sorting;
             let fmt_stat = |p: &ScoreSummary| {
@@ -98,7 +109,10 @@ impl<W: Write> Application<W> {
                 self.term
                     .queue(MoveTo(x_main, y_main + y_selection + 4 + 3))?
                     .queue(PrintStyledContent(
-                        format!("{:^w_main$}", "The scoreboard is empty.").italic(),
+                        format!("{:^w_main$}", "The scoreboard is empty.")
+                            .italic()
+                            .with(self.settings.tui_coloring().fg_tui)
+                            .on(self.settings.tui_coloring().bg_tui),
                     ))?
                     .queue(MoveTo(x_main, y_main + y_selection + 4 + 4))?
                     .queue(PrintStyledContent(
@@ -106,7 +120,9 @@ impl<W: Write> Application<W> {
                             "{:^w_main$}",
                             "When you finish a game it will show up here!"
                         )
-                        .italic(),
+                        .italic()
+                        .with(self.settings.tui_coloring().fg_tui)
+                        .on(self.settings.tui_coloring().bg_tui),
                     ))?;
             } else if re_sort_scoreboard {
                 re_sort_scoreboard = false;
@@ -167,6 +183,8 @@ impl<W: Write> Application<W> {
                             format!("{}{entry}", self.settings.tui_symbols().menu_pointers[0])
                         )
                         .bold()
+                        .with(self.settings.tui_coloring().fg_tui)
+                        .on(self.settings.tui_coloring().bg_tui)
                     } else {
                         format!(
                             "{:<w_main$}",
@@ -177,7 +195,8 @@ impl<W: Write> Application<W> {
                                 )
                             )
                         )
-                        .reset()
+                        .with(self.settings.tui_coloring().fg_tui)
+                        .on(self.settings.tui_coloring().bg_tui)
                     }))?;
             }
 
@@ -200,7 +219,9 @@ impl<W: Write> Application<W> {
                             "".to_owned()
                         }
                     )
-                    .italic(),
+                    .italic()
+                    .with(self.settings.tui_coloring().fg_tui)
+                    .on(self.settings.tui_coloring().bg_tui),
                 ))?;
             self.term
                 .queue(MoveTo(
@@ -212,7 +233,9 @@ impl<W: Write> Application<W> {
                         "{:^w_main$}",
                         format!("(Order = {} [←|→])", self.scores_and_replays.sorting)
                     )
-                    .italic(),
+                    .italic()
+                    .with(self.settings.tui_coloring().fg_tui)
+                    .on(self.settings.tui_coloring().bg_tui),
                 ))?;
             self.term
                 .queue(MoveTo(
@@ -220,7 +243,10 @@ impl<W: Write> Application<W> {
                     y_main + y_selection + 4 + u16::try_from(CAMERA_SIZE).unwrap() + 2,
                 ))?
                 .queue(PrintStyledContent(
-                    format!("{:^w_main$}", "[↓/↑]=scroll [Del]=delete [Enter]=replay°").italic(),
+                    format!("{:^w_main$}", "[↓/↑]=scroll [Del]=delete [Enter]=replay°")
+                        .italic()
+                        .with(self.settings.tui_coloring().fg_tui)
+                        .on(self.settings.tui_coloring().bg_tui),
                 ))?;
             if !view_replay_error.is_empty() {
                 self.term
@@ -233,7 +259,9 @@ impl<W: Write> Application<W> {
                             "{:^w_main$}",
                             format!("Error loading replay: {view_replay_error}")
                         )
-                        .italic(),
+                        .italic()
+                        .with(self.settings.tui_coloring().fg_tui)
+                        .on(self.settings.tui_coloring().bg_tui),
                     ))?;
             }
 

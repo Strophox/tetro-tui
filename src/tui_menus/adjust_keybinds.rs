@@ -10,7 +10,7 @@ use crossterm::{
         KeyModifiers,
     },
     style::{Print, PrintStyledContent, Stylize},
-    terminal::{Clear, ClearType},
+    terminal::{self, Clear, ClearType},
 };
 
 use crate::{
@@ -37,18 +37,29 @@ impl<W: Write> Application<W> {
         // Go to actual keybind selection on menu entry.
         let mut selected = 1usize;
         loop {
+            self.term.queue(MoveTo(0, 0))?.queue(PrintStyledContent({
+                let (w, h) = terminal::size()?;
+                " ".repeat((w * h) as usize)
+                    .on(self.settings.tui_coloring().bg_tui)
+            }))?;
             let w_main = Self::W_MAIN.into();
             let (x_main, y_main) = Self::viewport_offset();
             let y_selection = (Self::H_MAIN / 5).saturating_sub(2);
             // Draw menu title.
             self.term
-                .queue(Clear(ClearType::All))?
                 .queue(MoveTo(x_main, y_main + y_selection))?
                 .queue(PrintStyledContent(
-                    format!("{:^w_main$}", "@ Game Keybinds @").bold(),
+                    format!("{:^w_main$}", "@ Game Keybinds @")
+                        .bold()
+                        .with(self.settings.tui_coloring().fg_tui)
+                        .on(self.settings.tui_coloring().bg_tui),
                 ))?
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
-                .queue(Print(format!("{:^w_main$}", heading_line(&self.settings))))?;
+                .queue(Print(
+                    format!("{:^w_main$}", heading_line(&self.settings))
+                        .with(self.settings.tui_coloring().fg_accent)
+                        .on(self.settings.tui_coloring().bg_tui),
+                ))?;
 
             // Draw slot label.
             let slot_label = format!(
@@ -76,20 +87,28 @@ impl<W: Write> Application<W> {
             );
             self.term
                 .queue(MoveTo(x_main, y_main + y_selection + 3))?
-                .queue(Print(format!(
-                    "{:^w_main$}",
-                    if selected == 0 {
-                        format!(
-                            "{} {slot_label} {}",
-                            self.settings.tui_symbols().menu_pointers[0],
-                            self.settings.tui_symbols().menu_pointers[1]
-                        )
-                    } else {
-                        slot_label
-                    }
-                )))?
+                .queue(PrintStyledContent(
+                    format!(
+                        "{:^w_main$}",
+                        if selected == 0 {
+                            format!(
+                                "{} {slot_label} {}",
+                                self.settings.tui_symbols().menu_pointers[0],
+                                self.settings.tui_symbols().menu_pointers[1]
+                            )
+                        } else {
+                            slot_label
+                        }
+                    )
+                    .with(self.settings.tui_coloring().fg_tui)
+                    .on(self.settings.tui_coloring().bg_tui),
+                ))?
                 .queue(MoveTo(x_main, y_main + y_selection + 4))?
-                .queue(Print(format!("{:^w_main$}", heading_line(&self.settings))))?;
+                .queue(PrintStyledContent(
+                    format!("{:^w_main$}", heading_line(&self.settings))
+                        .with(self.settings.tui_coloring().fg_accent)
+                        .on(self.settings.tui_coloring().bg_tui),
+                ))?;
 
             // Draw keybinds selection.
             let button_names = buttons_available.iter().map(|&button| {
@@ -104,19 +123,23 @@ impl<W: Write> Application<W> {
                         x_main,
                         y_main + y_selection + 6 + u16::try_from(i).unwrap(),
                     ))?
-                    .queue(Print(format!(
-                        "{:^w_main$}",
-                        // +1 because the first button is Slot selection.
-                        if i + 1 == selected {
-                            format!(
-                                "{} {name} {}",
-                                self.settings.tui_symbols().menu_pointers[0],
-                                self.settings.tui_symbols().menu_pointers[1]
-                            )
-                        } else {
-                            name
-                        }
-                    )))?;
+                    .queue(PrintStyledContent(
+                        format!(
+                            "{:^w_main$}",
+                            // +1 because the first button is Slot selection.
+                            if i + 1 == selected {
+                                format!(
+                                    "{} {name} {}",
+                                    self.settings.tui_symbols().menu_pointers[0],
+                                    self.settings.tui_symbols().menu_pointers[1]
+                                )
+                            } else {
+                                name
+                            }
+                        )
+                        .with(self.settings.tui_coloring().fg_tui)
+                        .on(self.settings.tui_coloring().bg_tui),
+                    ))?;
             }
 
             // Draw footer legend.
@@ -130,7 +153,9 @@ impl<W: Write> Application<W> {
                         "{:^w_main$}",
                         "[Enter]=add [Esc]=cancel during add [Del]=clear",
                     )
-                    .italic(),
+                    .italic()
+                    .with(self.settings.tui_coloring().fg_tui)
+                    .on(self.settings.tui_coloring().bg_tui),
                 ))?;
             let dangerous_keybinds: Vec<_> = self
                 .settings
@@ -155,7 +180,9 @@ impl<W: Write> Application<W> {
                             "{:^w_main$}",
                             "*Enhanced-key-events seem unsupported by terminal,",
                         )
-                        .italic(),
+                        .italic()
+                        .with(self.settings.tui_coloring().fg_tui)
+                        .on(self.settings.tui_coloring().bg_tui),
                     ))?
                     .queue(MoveTo(
                         x_main,
@@ -173,7 +200,9 @@ impl<W: Write> Application<W> {
                                 dangerous_keybinds.join(",")
                             ),
                         )
-                        .italic(),
+                        .italic()
+                        .with(self.settings.tui_coloring().fg_tui)
+                        .on(self.settings.tui_coloring().bg_tui),
                     ))?;
             }
 
@@ -272,10 +301,8 @@ impl<W: Write> Application<W> {
                                     "{:^w_main$}",
                                     format!("Press a key for {current_button:?}..."),
                                 )
-                                .italic(),
-                            ))?
-                            .execute(cursor::MoveToNextLine(1))?
-                            .execute(Clear(ClearType::CurrentLine))?;
+                                .italic().with(self.settings.tui_coloring().fg_tui).on(self.settings.tui_coloring().bg_tui),
+                            ))?;
                         // Wait until appropriate keypress detected.
                         if self.temp_data.kitty_assumed {
                             let f = Self::GAME_KEYBOARD_ENHANCEMENT_FLAGS;

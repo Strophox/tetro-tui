@@ -4,7 +4,7 @@ use crate::{Application, tui_menus::MenuUpdate};
 
 impl<W: Write> Application<W> {
     pub fn run_menu_about(&mut self) -> io::Result<MenuUpdate> {
-        let head = format!(
+        let title = format!(
             "~ About Tetro TUI v{} - https://github.com/Strophox/tetro-tui ~",
             crate::VERSION
         );
@@ -23,6 +23,6 @@ To the best of my abilities I have implemented a most featureful
 idea and also looks/runs nicely within a 'mere' terminal - Enjoy!
 ☺ L.C.Werner"#;
 
-        self.run_text_menu(&head, body, false, "About screen")
+        self.run_text_menu(&title, body, false, "About screen")
     }
 }

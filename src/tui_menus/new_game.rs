@@ -17,7 +17,7 @@ use crossterm::{
         KeyModifiers,
     },
     style::{Print, PrintStyledContent, Stylize},
-    terminal::{Clear, ClearType},
+    terminal::{self, Clear, ClearType},
 };
 use either::Either;
 
@@ -58,6 +58,11 @@ impl<W: Write> Application<W> {
 
         loop {
             // First part: rendering the menu.
+            self.term.queue(MoveTo(0, 0))?.queue(PrintStyledContent({
+                let (w, h) = terminal::size()?;
+                " ".repeat((w * h) as usize)
+                    .on(self.settings.tui_coloring().bg_tui)
+            }))?;
             let w_main = Self::W_MAIN.into();
             let (x_main, y_main) = Self::viewport_offset();
             let y_selection = Self::H_MAIN / 5;
@@ -98,13 +103,19 @@ impl<W: Write> Application<W> {
             customization_selected %= customization_selection_size;
             // Render menu title.
             self.term
-                .queue(Clear(ClearType::All))?
                 .queue(MoveTo(x_main, y_main + y_selection))?
                 .queue(PrintStyledContent(
-                    format!("{:^w_main$}", "+ Start New Game +").bold(),
+                    format!("{:^w_main$}", "+ Start New Game +")
+                        .bold()
+                        .with(self.settings.tui_coloring().fg_tui)
+                        .on(self.settings.tui_coloring().bg_tui),
                 ))?
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
-                .queue(Print(format!("{:^w_main$}", heading_line(&self.settings))))?;
+                .queue(PrintStyledContent(
+                    format!("{:^w_main$}", heading_line(&self.settings))
+                        .with(self.settings.tui_coloring().fg_accent)
+                        .on(self.settings.tui_coloring().bg_tui),
+                ))?;
             // Render normal and special game modes.
             for (
                 i,
@@ -130,18 +141,22 @@ impl<W: Write> Application<W> {
                                 0
                             },
                     ))?
-                    .queue(Print(format!(
-                        "{:^w_main$}",
-                        if i == selected {
-                            format!(
-                                "{} {title}: {description} {}",
-                                self.settings.tui_symbols().menu_pointers[0],
-                                self.settings.tui_symbols().menu_pointers[1]
-                            )
-                        } else {
-                            title.to_string()
-                        }
-                    )))?;
+                    .queue(PrintStyledContent(
+                        format!(
+                            "{:^w_main$}",
+                            if i == selected {
+                                format!(
+                                    "{} {title}: {description} {}",
+                                    self.settings.tui_symbols().menu_pointers[0],
+                                    self.settings.tui_symbols().menu_pointers[1]
+                                )
+                            } else {
+                                title.to_string()
+                            }
+                        )
+                        .with(self.settings.tui_coloring().fg_tui)
+                        .on(self.settings.tui_coloring().bg_tui),
+                    ))?;
             }
             // Render custom mode option.
             self.term
@@ -149,54 +164,58 @@ impl<W: Write> Application<W> {
                     x_main,
                     y_main + y_selection + 3 + 1 + u16::try_from(game_modes.len() + 2).unwrap(),
                 ))?
-                .queue(Print(format!(
-                    "{:^w_main$}",
-                    if selected == idx_custom {
-                        format!(
-                            "{:<42}",
+                .queue(PrintStyledContent(
+                    format!(
+                        "{:^w_main$}",
+                        if selected == idx_custom {
                             format!(
-                                "{} Custom: [Del]=reset{}{}",
-                                if customization_selected == 0 {
-                                    self.settings.tui_symbols().menu_pointers[0].clone()
-                                } else {
-                                    format!(
-                                        "{}|",
-                                        " ".repeat(
-                                            self.settings.tui_symbols().menu_pointers[0]
-                                                .chars()
-                                                .count()
-                                                .saturating_sub(1)
+                                "{:<42}",
+                                format!(
+                                    "{} Custom: [Del]=reset{}{}",
+                                    if customization_selected == 0 {
+                                        self.settings.tui_symbols().menu_pointers[0].clone()
+                                    } else {
+                                        format!(
+                                            "{}|",
+                                            " ".repeat(
+                                                self.settings.tui_symbols().menu_pointers[0]
+                                                    .chars()
+                                                    .count()
+                                                    .saturating_sub(1)
+                                            )
                                         )
-                                    )
-                                },
-                                if self
-                                    .settings
-                                    .game_mode_preferences
-                                    .custom_config
-                                    .seed
-                                    .is_some()
-                                {
-                                    " *seed"
-                                } else {
-                                    ""
-                                },
-                                if self
-                                    .settings
-                                    .game_mode_preferences
-                                    .custom_config
-                                    .start_board
-                                    .is_some()
-                                {
-                                    " *board"
-                                } else {
-                                    ""
-                                },
-                            ),
-                        )
-                    } else {
-                        "Custom".to_owned()
-                    }
-                )))?;
+                                    },
+                                    if self
+                                        .settings
+                                        .game_mode_preferences
+                                        .custom_config
+                                        .seed
+                                        .is_some()
+                                    {
+                                        " *seed"
+                                    } else {
+                                        ""
+                                    },
+                                    if self
+                                        .settings
+                                        .game_mode_preferences
+                                        .custom_config
+                                        .start_board
+                                        .is_some()
+                                    {
+                                        " *board"
+                                    } else {
+                                        ""
+                                    },
+                                ),
+                            )
+                        } else {
+                            "Custom".to_owned()
+                        }
+                    )
+                    .with(self.settings.tui_coloring().fg_tui)
+                    .on(self.settings.tui_coloring().bg_tui),
+                ))?;
             // Render custom mode stuff.
             if selected == idx_custom {
                 let stats_strs = [
@@ -237,26 +256,30 @@ impl<W: Write> Application<W> {
                                 + 3
                                 + u16::try_from(1 + j + 1 + game_modes.len() + 2).unwrap(),
                         ))?
-                        .queue(Print(if j + 1 == customization_selected {
-                            format!(
-                                "{}{stat_str}{}",
-                                self.settings.tui_symbols().menu_pointers[0],
-                                if customization_selected != 3
-                                    || self
-                                        .settings
-                                        .game_mode_preferences
-                                        .custom_config
-                                        .win_condition
-                                        .is_some()
-                                {
-                                    " [↓/↑]"
-                                } else {
-                                    ""
-                                }
-                            )
-                        } else {
-                            stat_str
-                        }))?;
+                        .queue(PrintStyledContent(
+                            if j + 1 == customization_selected {
+                                format!(
+                                    "{}{stat_str}{}",
+                                    self.settings.tui_symbols().menu_pointers[0],
+                                    if customization_selected != 3
+                                        || self
+                                            .settings
+                                            .game_mode_preferences
+                                            .custom_config
+                                            .win_condition
+                                            .is_some()
+                                    {
+                                        " [↓/↑]"
+                                    } else {
+                                        ""
+                                    }
+                                )
+                            } else {
+                                stat_str
+                            }
+                            .with(self.settings.tui_coloring().fg_tui)
+                            .on(self.settings.tui_coloring().bg_tui),
+                        ))?;
                 }
             }
 
@@ -274,7 +297,7 @@ impl<W: Write> Application<W> {
                         x_main,
                         y_main + y_selection + 4 + 1 + u16::try_from(game_modes.len() + 1).unwrap() + if selected == idx_custom { 5 } else { 2 },
                     ))?
-                    .queue(Print(format!(
+                    .queue(PrintStyledContent(format!(
                         "{:^w_main$}",
                         if Some(selected) == opt_idx_game_save {
                             if *inputs_to_load == 0 {
@@ -288,7 +311,7 @@ impl<W: Write> Application<W> {
                         } else {
                             format!("Game save ({load_title})")
                         },
-                    )))?;
+                    ).with(self.settings.tui_coloring().fg_tui).on(self.settings.tui_coloring().bg_tui)))?;
             }
 
             self.term.flush()?;

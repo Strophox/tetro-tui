@@ -26,7 +26,7 @@ use crossterm::{
         KeyModifiers,
     },
     style::{Print, PrintStyledContent, Stylize},
-    terminal::{Clear, ClearType},
+    terminal::{self, Clear, ClearType},
 };
 
 use crate::{
@@ -129,29 +129,48 @@ impl<W: Write> Application<W> {
         let mut cursor_pos = 0;
         const CAMERA_SIZE: usize = 14;
         loop {
+            self.term.queue(MoveTo(0, 0))?.queue(PrintStyledContent({
+                let (w, h) = terminal::size()?;
+                " ".repeat((w * h) as usize)
+                    .on(self.settings.tui_coloring().bg_tui)
+            }))?;
             let w_main = Self::W_MAIN.into();
             let (x_main, y_main) = Self::viewport_offset();
-
-            self.term.queue(Clear(ClearType::All))?;
 
             let y_selection = (Self::H_MAIN / 5).saturating_sub(2);
 
             self.term
                 .queue(MoveTo(x_main, y_main + y_selection))?
-                .queue(PrintStyledContent(format!("{head:^w_main$}").bold()))?;
+                .queue(PrintStyledContent(
+                    format!("{head:^w_main$}")
+                        .bold()
+                        .with(self.settings.tui_coloring().fg_tui)
+                        .on(self.settings.tui_coloring().bg_tui),
+                ))?;
 
             self.term
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
-                .queue(Print(format!("{:^w_main$}", heading_line(&self.settings))))?;
+                .queue(PrintStyledContent(
+                    format!("{:^w_main$}", heading_line(&self.settings))
+                        .with(self.settings.tui_coloring().fg_accent)
+                        .on(self.settings.tui_coloring().bg_tui),
+                ))?;
 
             self.term.queue(MoveTo(x_main, y_main + y_selection + 4))?;
 
             for line in lines.iter().skip(cursor_pos).take(CAMERA_SIZE) {
                 self.term.queue(MoveToColumn(x_main))?;
                 if center {
-                    self.term.queue(Print(format!("{line:^w_main$}")))?;
+                    self.term.queue(PrintStyledContent(
+                        format!("{line:^w_main$}")
+                            .with(self.settings.tui_coloring().fg_tui)
+                            .on(self.settings.tui_coloring().bg_tui),
+                    ))?;
                 } else {
-                    self.term.queue(Print(line))?;
+                    self.term.queue(PrintStyledContent(
+                        line.with(self.settings.tui_coloring().fg_tui)
+                            .on(self.settings.tui_coloring().bg_tui),
+                    ))?;
                 }
 
                 self.term.queue(MoveDown(1))?;
@@ -161,10 +180,11 @@ impl<W: Write> Application<W> {
             if remaining > 0 {
                 self.term
                     .queue(MoveToColumn(x_main))?
-                    .queue(Print(format!(
-                        "{:^w_main$}",
-                        format!("(... +{remaining})",)
-                    )))?
+                    .queue(PrintStyledContent(
+                        format!("{:^w_main$}", format!("(... +{remaining})",))
+                            .with(self.settings.tui_coloring().fg_tui)
+                            .on(self.settings.tui_coloring().bg_tui),
+                    ))?
                     .queue(MoveDown(1))?;
             }
 
@@ -225,8 +245,11 @@ impl<W: Write> Application<W> {
                     } else {
                         self.term
                             .execute(MoveTo(x_main, y_main + y_selection + 4))?
-                            .execute(Clear(ClearType::FromCursorDown))?
-                            .execute(Print(Self::EGG))?;
+                            .execute(PrintStyledContent(
+                                Self::EGG
+                                    .with(self.settings.tui_coloring().fg_accent)
+                                    .on(self.settings.tui_coloring().bg_tui),
+                            ))?;
                         event::read()?;
                     }
                 }
@@ -287,32 +310,34 @@ impl<W: Write> Application<W> {
     /// A transitory menu that only consists of selectable links to other menus.
     pub fn run_liminal_menu(
         &mut self,
-        client_menu_name: &'static str,
-        head: &str,
+        client_menu_title: &'static str,
+        title: &str,
         body: Vec<Menu>,
     ) -> io::Result<MenuUpdate> {
         let mut selected = 0usize;
         loop {
+            self.term.queue(MoveTo(0, 0))?.queue(PrintStyledContent({
+                let (w, h) = terminal::size()?;
+                " ".repeat((w * h) as usize)
+                    .on(self.settings.tui_coloring().bg_tui)
+            }))?;
             let w_main = Self::W_MAIN.into();
             let (x_main, y_main) = Self::viewport_offset();
             let y_selection = Self::H_MAIN / 5;
-            if head.is_empty() {
-                self.term
-                    .queue(Clear(ClearType::All))?
-                    .queue(MoveTo(x_main, y_main + y_selection))?
-                    .queue(Print(format!("{:^w_main$}", "▀█▀ ██ ▀█▀ █▀▀ ▄█▀")))?
-                    .queue(MoveTo(x_main, y_main + y_selection + 1))?
-                    .queue(Print(format!("{:^w_main$}", "    █▄▄▄▄▄▄       ")))?;
-            } else {
-                self.term
-                    .queue(Clear(ClearType::All))?
-                    .queue(MoveTo(x_main, y_main + y_selection))?
-                    .queue(PrintStyledContent(
-                        format!("{:^w_main$}", format!("- {} -", head)).bold(),
-                    ))?
-                    .queue(MoveTo(x_main, y_main + y_selection + 2))?
-                    .queue(Print(format!("{:^w_main$}", heading_line(&self.settings))))?;
-            }
+            self.term
+                .queue(MoveTo(x_main, y_main + y_selection))?
+                .queue(PrintStyledContent(
+                    format!("{:^w_main$}", format!("- {} -", title))
+                        .bold()
+                        .with(self.settings.tui_coloring().fg_tui)
+                        .on(self.settings.tui_coloring().bg_tui),
+                ))?
+                .queue(MoveTo(x_main, y_main + y_selection + 2))?
+                .queue(PrintStyledContent(
+                    format!("{:^w_main$}", heading_line(&self.settings))
+                        .with(self.settings.tui_coloring().fg_accent)
+                        .on(self.settings.tui_coloring().bg_tui),
+                ))?;
             let names = body
                 .iter()
                 .map(|menu| menu.str_for_list_menu_selection())
@@ -326,7 +351,9 @@ impl<W: Write> Application<W> {
                             "{:^w_main$}",
                             "(There isn't anything interesting implemented here yet... )",
                         )
-                        .italic(),
+                        .italic()
+                        .with(self.settings.tui_coloring().fg_tui)
+                        .on(self.settings.tui_coloring().bg_tui),
                     ))?;
             } else {
                 for (i, name) in names.into_iter().enumerate() {
@@ -335,18 +362,22 @@ impl<W: Write> Application<W> {
                             x_main,
                             y_main + y_selection + 4 + u16::try_from(i).unwrap(),
                         ))?
-                        .queue(Print(format!(
-                            "{:^w_main$}",
-                            if i == selected {
-                                format!(
-                                    "{} {name} {}",
-                                    self.settings.tui_symbols().menu_pointers[0],
-                                    self.settings.tui_symbols().menu_pointers[1]
-                                )
-                            } else {
-                                name.to_owned()
-                            }
-                        )))?;
+                        .queue(PrintStyledContent(
+                            format!(
+                                "{:^w_main$}",
+                                if i == selected {
+                                    format!(
+                                        "{} {name} {}",
+                                        self.settings.tui_symbols().menu_pointers[0],
+                                        self.settings.tui_symbols().menu_pointers[1]
+                                    )
+                                } else {
+                                    name.to_owned()
+                                }
+                            )
+                            .with(self.settings.tui_coloring().fg_tui)
+                            .on(self.settings.tui_coloring().bg_tui),
+                        ))?;
                 }
                 self.term
                     .queue(MoveTo(
@@ -354,14 +385,20 @@ impl<W: Write> Application<W> {
                         y_main + y_selection + 4 + u16::try_from(n_names).unwrap() + 2,
                     ))?
                     .queue(PrintStyledContent(
-                        format!("{:^w_main$}", "[←↓↑→/Enter/Esc/Del] or Vim,",).italic(),
+                        format!("{:^w_main$}", "[←↓↑→/Enter/Esc/Del] or Vim,",)
+                            .italic()
+                            .with(self.settings.tui_coloring().fg_accent)
+                            .on(self.settings.tui_coloring().bg_tui),
                     ))?
                     .queue(MoveTo(
                         x_main,
                         y_main + y_selection + 4 + u16::try_from(n_names).unwrap() + 3,
                     ))?
                     .queue(PrintStyledContent(
-                        format!("{:^w_main$}", "Press [?] to view keybinds anytime",).italic(),
+                        format!("{:^w_main$}", "Press [?] to view keybinds anytime",)
+                            .italic()
+                            .with(self.settings.tui_coloring().fg_accent)
+                            .on(self.settings.tui_coloring().bg_tui),
                     ))?;
             }
             self.term.flush()?;
@@ -414,7 +451,7 @@ impl<W: Write> Application<W> {
                     ];
 
                     break Ok(MenuUpdate::Push(Menu::KeybindsOverview {
-                        client_menu_name,
+                        client_menu_name: client_menu_title,
                         legend,
                     }));
                 }

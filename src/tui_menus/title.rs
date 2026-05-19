@@ -5,7 +5,7 @@ use crossterm::{
     cursor::MoveTo,
     event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers},
     style::{Color, Print, PrintStyledContent, Stylize},
-    terminal::{Clear, ClearType},
+    terminal::{self, Clear, ClearType},
 };
 
 use crate::{
@@ -31,11 +31,14 @@ impl<W: Write> Application<W> {
         let mut dynamic_title_style = 1isize;
         let mut dynamic_color_offset = 0isize;
         loop {
+            self.term.queue(MoveTo(0, 0))?.queue(PrintStyledContent({
+                let (w, h) = terminal::size()?;
+                " ".repeat((w * h) as usize)
+                    .on(self.settings.tui_coloring().bg_tui)
+            }))?;
             let w_main: usize = Self::W_MAIN.into();
             let (x_main, y_main) = Self::viewport_offset();
             let y_selection = (Self::H_MAIN / 5).saturating_sub(1);
-
-            self.term.queue(Clear(ClearType::All))?;
 
             let dx_title = w_main.saturating_sub(36) / 2;
 
@@ -112,8 +115,12 @@ impl<W: Write> Application<W> {
                             }
                         };
 
-                        self.term
-                            .queue(PrintStyledContent(t_char.to_string().with(color)))?;
+                        self.term.queue(PrintStyledContent(
+                            t_char
+                                .to_string()
+                                .with(color)
+                                .on(self.settings.tui_coloring().bg_tui),
+                        ))?;
                     }
                 }
             } else {
@@ -144,8 +151,12 @@ impl<W: Write> Application<W> {
                             .rem_euclid(Tetromino::VARIANTS.len() as isize)
                             as usize];
 
-                        self.term
-                            .queue(PrintStyledContent(bchar.to_string().with(color)))?;
+                        self.term.queue(PrintStyledContent(
+                            bchar
+                                .to_string()
+                                .with(color)
+                                .on(self.settings.tui_coloring().bg_tui),
+                        ))?;
                     }
                 }
             }
@@ -161,18 +172,22 @@ impl<W: Write> Application<W> {
                         x_main,
                         y_main + y_selection + 5 + u16::try_from(i).unwrap(),
                     ))?
-                    .queue(Print(format!(
-                        "{:^w_main$}",
-                        if i == selected {
-                            format!(
-                                "{} {name} {}",
-                                self.settings.tui_symbols().menu_pointers[0],
-                                self.settings.tui_symbols().menu_pointers[1]
-                            )
-                        } else {
-                            name.to_owned()
-                        }
-                    )))?;
+                    .queue(PrintStyledContent(
+                        format!(
+                            "{:^w_main$}",
+                            if i == selected {
+                                format!(
+                                    "{} {name} {}",
+                                    self.settings.tui_symbols().menu_pointers[0],
+                                    self.settings.tui_symbols().menu_pointers[1]
+                                )
+                            } else {
+                                name.to_owned()
+                            }
+                        )
+                        .with(self.settings.tui_coloring().fg_tui)
+                        .on(self.settings.tui_coloring().bg_tui),
+                    ))?;
             }
 
             self.term
@@ -181,14 +196,20 @@ impl<W: Write> Application<W> {
                     y_main + y_selection + 5 + u16::try_from(n_names).unwrap() + 2,
                 ))?
                 .queue(PrintStyledContent(
-                    format!("{:^w_main$}", "[←↓↑→/Enter/Esc/Del] or Vim,",).italic(),
+                    format!("{:^w_main$}", "[←↓↑→/Enter/Esc/Del] or Vim,",)
+                        .italic()
+                        .with(self.settings.tui_coloring().fg_accent)
+                        .on(self.settings.tui_coloring().bg_tui),
                 ))?
                 .queue(MoveTo(
                     x_main,
                     y_main + y_selection + 5 + u16::try_from(n_names).unwrap() + 3,
                 ))?
                 .queue(PrintStyledContent(
-                    format!("{:^w_main$}", "Press [?] to view keybinds anytime",).italic(),
+                    format!("{:^w_main$}", "Press [?] to view keybinds anytime",)
+                        .italic()
+                        .with(self.settings.tui_coloring().fg_accent)
+                        .on(self.settings.tui_coloring().bg_tui),
                 ))?;
 
             self.term.flush()?;

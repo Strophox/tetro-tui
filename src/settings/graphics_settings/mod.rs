@@ -86,7 +86,7 @@ pub fn graphics_settings_presets() -> SlotMachine<GraphicsSettings> {
 impl Default for GraphicsSettings {
     fn default() -> Self {
         GraphicsSettings {
-            tui_coloring_selected: 0,            // No color
+            tui_coloring_selected: 2,            // No color
             tile_coloring_selected: 3,           // Okpalette
             tui_symbols_selected: 1,             // Unicode
             tile_symbols_selected: 1,            // Unicode

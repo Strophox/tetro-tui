@@ -29,7 +29,6 @@ pub struct TuiColoring {
     pub bg_board: Color,
 }
 
-// TODO: Add good presets
 pub fn tui_coloring_presets() -> SlotMachine<TuiColoring> {
     let slots = vec![
         ("Terminal default".to_owned(), TuiColoring::term_default()),

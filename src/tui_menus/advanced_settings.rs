@@ -30,19 +30,30 @@ impl<W: Write> Application<W> {
         let mut selected = 0usize;
         let mut latest_input_info: Option<(KeyCode, KeyModifiers, KeyEventKind)> = None;
         let menu_update = loop {
+            self.term.queue(MoveTo(0, 0))?.queue(PrintStyledContent({
+                let (w, h) = terminal::size()?;
+                " ".repeat((w * h) as usize)
+                    .on(self.settings.tui_coloring().bg_tui)
+            }))?;
             let w_main = Self::W_MAIN.into();
             let (x_main, y_main) = Self::viewport_offset();
             let y_selection = Self::H_MAIN / 5;
 
             // Draw menu title.
             self.term
-                .queue(Clear(ClearType::All))?
                 .queue(MoveTo(x_main, y_main + y_selection))?
                 .queue(PrintStyledContent(
-                    format!("{:^w_main$}", "§ Advanced Settings §").bold(),
+                    format!("{:^w_main$}", "§ Advanced Settings §")
+                        .bold()
+                        .with(self.settings.tui_coloring().fg_tui)
+                        .on(self.settings.tui_coloring().bg_tui),
                 ))?
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
-                .queue(Print(format!("{:^w_main$}", heading_line(&self.settings))))?;
+                .queue(Print(
+                    format!("{:^w_main$}", heading_line(&self.settings))
+                        .with(self.settings.tui_coloring().fg_accent)
+                        .on(self.settings.tui_coloring().bg_tui),
+                ))?;
 
             // Draw config selection.
             let warning_star = if self.temp_data.kitty_detected {
@@ -89,18 +100,22 @@ impl<W: Write> Application<W> {
                         x_main,
                         y_main + y_selection + 4 + u16::try_from(i).unwrap(),
                     ))?
-                    .queue(Print(format!(
-                        "{:^w_main$}",
-                        if i == selected {
-                            format!(
-                                "{} {label} {}",
-                                self.settings.tui_symbols().menu_pointers[0],
-                                self.settings.tui_symbols().menu_pointers[1]
-                            )
-                        } else {
-                            label
-                        }
-                    )))?;
+                    .queue(PrintStyledContent(
+                        format!(
+                            "{:^w_main$}",
+                            if i == selected {
+                                format!(
+                                    "{} {label} {}",
+                                    self.settings.tui_symbols().menu_pointers[0],
+                                    self.settings.tui_symbols().menu_pointers[1]
+                                )
+                            } else {
+                                label
+                            }
+                        )
+                        .with(self.settings.tui_coloring().fg_tui)
+                        .on(self.settings.tui_coloring().bg_tui),
+                    ))?;
             }
 
             let mut temp_offset = 0;
@@ -121,7 +136,9 @@ impl<W: Write> Application<W> {
                             "{:^w_main$}",
                             "(*Unlikely to work; Enhanced-key-events seem unsupported by terminal)"
                         )
-                        .italic(),
+                        .italic()
+                        .with(self.settings.tui_coloring().fg_tui)
+                        .on(self.settings.tui_coloring().bg_tui),
                     ))?;
                 temp_offset += 1;
             }
@@ -142,7 +159,9 @@ impl<W: Write> Application<W> {
                             "{:^w_main$}",
                             format!("Savefile path: {}", self.temp_data.savefile_path.display())
                         )
-                        .italic(),
+                        .italic()
+                        .with(self.settings.tui_coloring().fg_tui)
+                        .on(self.settings.tui_coloring().bg_tui),
                     ))?;
                 temp_offset += 1;
             }
@@ -165,7 +184,9 @@ impl<W: Write> Application<W> {
                             terminal::size()?
                         )
                     )
-                    .italic(),
+                    .italic()
+                    .with(self.settings.tui_coloring().fg_tui)
+                    .on(self.settings.tui_coloring().bg_tui),
                 ))?;
             temp_offset += 1;
 
@@ -185,7 +206,9 @@ impl<W: Write> Application<W> {
                             "{:^w_main$}",
                             format!("Latest error from trying to load savefile:")
                         )
-                        .italic(),
+                        .italic()
+                        .with(self.settings.tui_coloring().fg_tui)
+                        .on(self.settings.tui_coloring().bg_tui),
                     ))?
                     .queue(MoveTo(
                         x_main,
@@ -198,7 +221,10 @@ impl<W: Write> Application<W> {
                             + 1,
                     ))?
                     .queue(PrintStyledContent(
-                        format!("{:^w_main$}", format!("'{e}'")).italic(),
+                        format!("{:^w_main$}", format!("'{e}'"))
+                            .italic()
+                            .with(self.settings.tui_coloring().fg_tui)
+                            .on(self.settings.tui_coloring().bg_tui),
                     ))?;
                 temp_offset += 2;
             }
@@ -219,7 +245,9 @@ impl<W: Write> Application<W> {
                             "{:^w_main$}",
                             format!("Latest error from trying to store savefile:")
                         )
-                        .italic(),
+                        .italic()
+                        .with(self.settings.tui_coloring().fg_tui)
+                        .on(self.settings.tui_coloring().bg_tui),
                     ))?
                     .queue(MoveTo(
                         x_main,
@@ -232,7 +260,10 @@ impl<W: Write> Application<W> {
                             + 1,
                     ))?
                     .queue(PrintStyledContent(
-                        format!("{:^w_main$}", format!("'{e}'")).italic(),
+                        format!("{:^w_main$}", format!("'{e}'"))
+                            .italic()
+                            .with(self.settings.tui_coloring().fg_tui)
+                            .on(self.settings.tui_coloring().bg_tui),
                     ))?;
                 temp_offset += 2;
             }
@@ -253,7 +284,9 @@ impl<W: Write> Application<W> {
                             "{:^w_main$}",
                             format!("Latest input: {kind:?} {modifiers:?} {code:?}")
                         )
-                        .italic(),
+                        .italic()
+                        .with(self.settings.tui_coloring().fg_tui)
+                        .on(self.settings.tui_coloring().bg_tui),
                     ))?;
             }
 

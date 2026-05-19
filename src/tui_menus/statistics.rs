@@ -4,7 +4,7 @@ use crate::{Application, Statistics, fmt_helpers::fmt_duration, tui_menus::MenuU
 
 impl<W: Write> Application<W> {
     pub fn run_menu_statistics(&mut self) -> io::Result<MenuUpdate> {
-        let head = "¦ All-Time Game Statistics ¦";
+        let title = "¦ All-Time Game Statistics ¦";
 
         let Statistics {
             new_games_started,
@@ -37,6 +37,6 @@ impl<W: Write> Application<W> {
         ]
         .join("\n");
 
-        self.run_text_menu(head, &body, true, "Game Statistics menu")
+        self.run_text_menu(title, &body, true, "Game Statistics menu")
     }
 }

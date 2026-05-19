@@ -686,7 +686,6 @@ impl<W: Write> Application<W> {
                                 ..TermCell::BLANK
                             },
                         );
-                        self.term.execute(Clear(terminal::ClearType::All))?;
 
                         if paused {
                             next_paused_with_extra_render_request = Some(true);
@@ -858,14 +857,22 @@ impl<W: Write> Application<W> {
                 || next_paused_with_extra_render_request == Some(true)
             {
                 self.term.execute(MoveTo(0, 0))?;
-                self.term
-                    .execute(PrintStyledContent(Stylize::italic("Replay Paused...")))?;
+                self.term.execute(PrintStyledContent(
+                    "Replay Paused..."
+                        .italic()
+                        .with(self.settings.tui_coloring().fg_accent)
+                        .on(self.settings.tui_coloring().bg_tui),
+                ))?;
 
             // Remove 'paused' message.
             } else if paused && next_paused_with_extra_render_request.is_none() {
                 self.term.execute(MoveTo(0, 0))?;
-                self.term
-                    .execute(Clear(crossterm::terminal::ClearType::CurrentLine))?;
+                self.term.execute(PrintStyledContent(
+                    "                "
+                        .italic()
+                        .with(self.settings.tui_coloring().fg_accent)
+                        .on(self.settings.tui_coloring().bg_tui),
+                ))?;
 
             // Render FPS counter.
             } else if next_paused_with_extra_render_request.is_none()

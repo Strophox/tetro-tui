@@ -757,7 +757,6 @@ impl<W: Write> Application<W> {
                                 ..TermCell::BLANK
                             },
                         );
-                        self.term.execute(Clear(terminal::ClearType::All))?;
                         break 'wait;
                     }
                 }
