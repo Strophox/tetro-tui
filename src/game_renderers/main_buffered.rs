@@ -938,7 +938,7 @@ impl GameRenderer for MainBufRenderer {
                             let fg_shadow = settings
                                 .tile_coloring()
                                 .simplified_tile_col(upcoming_tet.into(), game.level());
-                            #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, fg_shadow, Some(bg_board));
+                            #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, fg_shadow, None);
                         }
                     }
                 }
