@@ -63,6 +63,8 @@ impl<W: Write> Application<W> {
         let (input_sender, input_receiver) = mpsc::channel();
 
         // Spawn input catcher thread.
+        // FIXME: Some terminals may have weird/slow treatment of `Esc` key, which causes a delay between pressing the key and us actually pausing the game.
+        // So perhaps we should generalize this and allow players to customize TUI (menu navigation etc.) keybinds as well?
         let is_stop_event = |event: Event| {
             let Event::Key(KeyEvent {
                 code,
@@ -108,7 +110,6 @@ impl<W: Write> Application<W> {
                 ..TermCell::BLANK
             },
         );
-        self.term.execute(Clear(terminal::ClearType::All))?;
         game_renderer.render(
             &mut self.term,
             game,

@@ -11,8 +11,8 @@ use crossterm::{
         KeyEventKind::{Press, Repeat},
         KeyModifiers,
     },
-    style::{Print, PrintStyledContent, Stylize},
-    terminal::{Clear, ClearType},
+    style::{PrintStyledContent, Stylize},
+    terminal,
 };
 
 use crate::{
@@ -37,17 +37,30 @@ impl<W: Write> Application<W> {
 
         let mut selected = 1usize;
         loop {
+            // TODO: Do this for all menus.
+            self.term.queue(MoveTo(0, 0))?.queue(PrintStyledContent({
+                let (w, h) = terminal::size()?;
+                " ".repeat((w * h) as usize)
+                    .on(self.settings.tui_coloring().bg_tui)
+            }))?;
             let w_main = Self::W_MAIN.into();
             let (x_main, y_main) = Self::viewport_offset();
             let y_selection = (Self::H_MAIN / 5).saturating_sub(2);
             self.term
-                .queue(Clear(ClearType::All))?
+                // .queue(Clear(ClearType::All))?
                 .queue(MoveTo(x_main, y_main + y_selection))?
                 .queue(PrintStyledContent(
-                    format!("{:^w_main$}", "# Graphics Settings #").bold(),
+                    format!("{:^w_main$}", "# Graphics Settings #")
+                        .bold()
+                        .with(self.settings.tui_coloring().fg_tui)
+                        .on(self.settings.tui_coloring().bg_tui),
                 ))?
                 .queue(MoveTo(x_main, y_main + y_selection + 2))?
-                .queue(Print(format!("{:^w_main$}", heading_line(&self.settings))))?;
+                .queue(PrintStyledContent(
+                    format!("{:^w_main$}", heading_line(&self.settings))
+                        .with(self.settings.tui_coloring().fg_accent)
+                        .on(self.settings.tui_coloring().bg_tui),
+                ))?;
 
             // Draw slot label.
             let slot_label = format!(
@@ -75,20 +88,28 @@ impl<W: Write> Application<W> {
             );
             self.term
                 .queue(MoveTo(x_main, y_main + y_selection + 3))?
-                .queue(Print(format!(
-                    "{:^w_main$}",
-                    if selected == 0 {
-                        format!(
-                            "{} {slot_label} {}",
-                            self.settings.tui_symbols().menu_pointers[0],
-                            self.settings.tui_symbols().menu_pointers[1]
-                        )
-                    } else {
-                        slot_label
-                    }
-                )))?
+                .queue(PrintStyledContent(
+                    format!(
+                        "{:^w_main$}",
+                        if selected == 0 {
+                            format!(
+                                "{} {slot_label} {}",
+                                self.settings.tui_symbols().menu_pointers[0],
+                                self.settings.tui_symbols().menu_pointers[1]
+                            )
+                        } else {
+                            slot_label
+                        }
+                    )
+                    .with(self.settings.tui_coloring().fg_tui)
+                    .on(self.settings.tui_coloring().bg_tui),
+                ))?
                 .queue(MoveTo(x_main, y_main + y_selection + 4))?
-                .queue(Print(format!("{:^w_main$}", heading_line(&self.settings))))?;
+                .queue(PrintStyledContent(
+                    format!("{:^w_main$}", heading_line(&self.settings))
+                        .with(self.settings.tui_coloring().fg_accent)
+                        .on(self.settings.tui_coloring().bg_tui),
+                ))?;
 
             let labels1 = [
                 format!(
@@ -103,6 +124,13 @@ impl<W: Write> Application<W> {
                     self.settings
                         .tui_coloring_slotmachine
                         .grab(self.settings.graphics().tui_coloring_selected)
+                        .0
+                ),
+                format!(
+                    "UI symbols = {}",
+                    self.settings
+                        .tui_symbols_slotmachine
+                        .grab(self.settings.graphics().tui_symbols_selected)
                         .0
                 ),
                 format!(
@@ -124,13 +152,6 @@ impl<W: Write> Application<W> {
                     self.settings
                         .line_clear_effect_slotmachine
                         .grab(self.settings.graphics().line_clear_selected)
-                        .0
-                ),
-                format!(
-                    "UI symbols = {}",
-                    self.settings
-                        .tui_symbols_slotmachine
-                        .grab(self.settings.graphics().tui_symbols_selected)
                         .0
                 ),
                 format!(
@@ -265,41 +286,53 @@ impl<W: Write> Application<W> {
                             x_main,
                             y_main + y_selection + 6 + u16::try_from(i).unwrap(),
                         ))?
-                        .queue(Print(format!(
-                            "{:^w_main$}",
-                            if 1 + i == selected {
-                                format!(
-                                    "{} {label} {}",
-                                    self.settings.tui_symbols().menu_pointers[0],
-                                    self.settings.tui_symbols().menu_pointers[1]
-                                )
-                            } else {
-                                label.clone()
-                            }
-                        )))?;
+                        .queue(PrintStyledContent(
+                            format!(
+                                "{:^w_main$}",
+                                if 1 + i == selected {
+                                    format!(
+                                        "{} {label} {}",
+                                        self.settings.tui_symbols().menu_pointers[0],
+                                        self.settings.tui_symbols().menu_pointers[1]
+                                    )
+                                } else {
+                                    label.clone()
+                                }
+                            )
+                            .with(self.settings.tui_coloring().fg_tui)
+                            .on(self.settings.tui_coloring().bg_tui),
+                        ))?;
                 }
             } else {
                 self.term
                     .queue(MoveTo(x_main, y_main + y_selection + 6))?
-                    .queue(Print(format!("{:^w_main$}", "...")))?;
+                    .queue(PrintStyledContent(
+                        format!("{:^w_main$}", "...")
+                            .with(self.settings.tui_coloring().fg_tui)
+                            .on(self.settings.tui_coloring().bg_tui),
+                    ))?;
                 for (i, label) in labels2.into_iter().enumerate() {
                     self.term
                         .queue(MoveTo(
                             x_main,
                             y_main + y_selection + 6 + 1 + u16::try_from(i).unwrap(),
                         ))?
-                        .queue(Print(format!(
-                            "{:^w_main$}",
-                            if 1 + labels1.len() + i == selected {
-                                format!(
-                                    "{} {label} {}",
-                                    self.settings.tui_symbols().menu_pointers[0],
-                                    self.settings.tui_symbols().menu_pointers[1]
-                                )
-                            } else {
-                                label
-                            }
-                        )))?;
+                        .queue(PrintStyledContent(
+                            format!(
+                                "{:^w_main$}",
+                                if 1 + labels1.len() + i == selected {
+                                    format!(
+                                        "{} {label} {}",
+                                        self.settings.tui_symbols().menu_pointers[0],
+                                        self.settings.tui_symbols().menu_pointers[1]
+                                    )
+                                } else {
+                                    label
+                                }
+                            )
+                            .with(self.settings.tui_coloring().fg_tui)
+                            .on(self.settings.tui_coloring().bg_tui),
+                        ))?;
                 }
             }
 
@@ -321,9 +354,12 @@ impl<W: Write> Application<W> {
                                 self.settings
                                     .tile_coloring()
                                     .simplified_tile_col(tet.into(), 0),
-                            ),
+                            )
+                            .on(self.settings.tui_coloring().bg_tui),
                     ))?;
-                    self.term.queue(Print(' '))?;
+                    self.term.queue(PrintStyledContent(
+                        ' '.on(self.settings.tui_coloring().bg_tui),
+                    ))?;
                 }
             }
 
@@ -454,27 +490,27 @@ impl<W: Write> Application<W> {
                     }
                     3 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().tui_symbols_selected += 1;
+                        self.settings.graphics_mut().tui_symbols_selected %=
+                            self.settings.tui_symbols_slotmachine.slots.len();
+                    }
+                    4 => {
+                        if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.graphics_mut().hard_drop_selected += 1;
                         self.settings.graphics_mut().hard_drop_selected %=
                             self.settings.hard_drop_effect_slotmachine.slots.len();
                     }
-                    4 => {
+                    5 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.graphics_mut().lock_effect_selected += 1;
                         self.settings.graphics_mut().lock_effect_selected %=
                             self.settings.lock_effect_slotmachine.slots.len();
                     }
-                    5 => {
+                    6 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.graphics_mut().line_clear_selected += 1;
                         self.settings.graphics_mut().line_clear_selected %=
                             self.settings.line_clear_effect_slotmachine.slots.len();
-                    }
-                    6 => {
-                        if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().tui_symbols_selected += 1;
-                        self.settings.graphics_mut().tui_symbols_selected %=
-                            self.settings.tui_symbols_slotmachine.slots.len();
                     }
                     7 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
@@ -580,31 +616,31 @@ impl<W: Write> Application<W> {
                     }
                     3 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
+                        self.settings.graphics_mut().tui_symbols_selected +=
+                            self.settings.tui_symbols_slotmachine.slots.len() - 1;
+                        self.settings.graphics_mut().tui_symbols_selected %=
+                            self.settings.tui_symbols_slotmachine.slots.len();
+                    }
+                    4 => {
+                        if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.graphics_mut().hard_drop_selected +=
                             self.settings.hard_drop_effect_slotmachine.slots.len() - 1;
                         self.settings.graphics_mut().hard_drop_selected %=
                             self.settings.hard_drop_effect_slotmachine.slots.len();
                     }
-                    4 => {
+                    5 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.graphics_mut().lock_effect_selected +=
                             self.settings.lock_effect_slotmachine.slots.len() - 1;
                         self.settings.graphics_mut().lock_effect_selected %=
                             self.settings.lock_effect_slotmachine.slots.len();
                     }
-                    5 => {
+                    6 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);
                         self.settings.graphics_mut().line_clear_selected +=
                             self.settings.line_clear_effect_slotmachine.slots.len() - 1;
                         self.settings.graphics_mut().line_clear_selected %=
                             self.settings.line_clear_effect_slotmachine.slots.len();
-                    }
-                    6 => {
-                        if_unmodifiable_clone_and_switch(&mut self.settings);
-                        self.settings.graphics_mut().tui_symbols_selected +=
-                            self.settings.tui_symbols_slotmachine.slots.len() - 1;
-                        self.settings.graphics_mut().tui_symbols_selected %=
-                            self.settings.tui_symbols_slotmachine.slots.len();
                     }
                     7 => {
                         if_unmodifiable_clone_and_switch(&mut self.settings);

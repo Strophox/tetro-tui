@@ -73,7 +73,7 @@ impl TileSymbols {
             grid: " ⢀".tile(),
             locked: Right(["⣏⣹", "⣏⣹", "⠋ ", "⠋ ", "⣏⣹", "⠋ ", "⠋ ", "⠋ "].map(|s| s.tile())),
             player: Right(["⣏⣹", "⣏⣹", "⠋ ", "⠋ ", "⣏⣹", "⠋ ", "⠋ "].map(|s| s.tile())),
-            shadow: "⠰⠆".tile(), // "⡁⢈" "⡐⠌"
+            shadow: "⠠⠂".tile(), // "⠰⠆" "⡁⢈" "⡐⠌"
             hatched: "⡜⡜".tile(),
             crossed: "⡱⢎".tile(),
         }

@@ -108,7 +108,7 @@ impl HardDropEffect {
     pub fn white_beam_unicode() -> Self {
         HardDropEffect {
             duration: Duration::from_millis(75),
-            animation: ["  ", "░░"]
+            animation: ["▒▒", "░░"]
                 .map(|ss| (ss.tile(), Override(ColorID::WHITE)))
                 .into(),
             y_decay: 0.00,

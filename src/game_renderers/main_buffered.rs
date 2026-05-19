@@ -322,13 +322,15 @@ impl GameRenderer for MainBufRenderer {
         let tui_colors = settings.tui_coloring();
 
         let fg_tui = tui_colors.fg_tui;
-        let bg_tui = tui_colors.bg_tui;
         let fg_accent = tui_colors.fg_accent;
-        let fg_boardframe = tui_colors.fg_boardframe;
-        let bg_board = tui_colors.bg_board;
         let fg_widgetframe = tui_colors.fg_widgetframe;
-        let bg_widget = tui_colors.bg_widget;
+        let fg_boardframe = tui_colors.fg_boardframe;
         let fg_grid = tui_colors.fg_grid;
+
+        let bg_tui = tui_colors.bg_tui;
+        let bg_widget = tui_colors.bg_widget;
+        let bg_boardframe = tui_colors.bg_boardframe;
+        let bg_board = tui_colors.bg_board;
 
         // RENDER: Stats HUD.
 
@@ -410,7 +412,7 @@ impl GameRenderer for MainBufRenderer {
                     if let ExtDuration::Finite(lock_delay) = game.state().lock_delay {
                         format!("{}ms", lock_delay.as_millis())
                     } else {
-                        "infty".to_owned()
+                        "inf".to_owned()
                     },
                 )));
             }
@@ -632,19 +634,19 @@ impl GameRenderer for MainBufRenderer {
 
         // Complete top edge.
         // 2x's because of font width.
-        #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl, h_tmp_btl, c_fr_tl, fg_boardframe, Some(bg_widget));
-        #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl, h_tmp_btl + 1 + H_PLAYFIELD, c_fr_bl, fg_boardframe, Some(bg_widget));
+        #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl, h_tmp_btl, c_fr_tl, fg_boardframe, Some(bg_boardframe));
+        #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl, h_tmp_btl + 1 + H_PLAYFIELD, c_fr_bl, fg_boardframe, Some(bg_boardframe));
         for dx in 0..W_PLAYFIELD {
-            #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + 1 + dx, h_tmp_btl, c_fr_t, fg_boardframe, Some(bg_widget));
-            #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + 1 + dx, h_tmp_btl + 1 + H_PLAYFIELD, c_fr_b, fg_boardframe, Some(bg_widget));
+            #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + 1 + dx, h_tmp_btl, c_fr_t, fg_boardframe, Some(bg_boardframe));
+            #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + 1 + dx, h_tmp_btl + 1 + H_PLAYFIELD, c_fr_b, fg_boardframe, Some(bg_boardframe));
         }
-        #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + 1 + W_PLAYFIELD, h_tmp_btl, c_fr_tr, fg_boardframe, Some(bg_widget));
-        #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + 1 + W_PLAYFIELD, h_tmp_btl + 1 + H_PLAYFIELD, c_fr_br, fg_boardframe, Some(bg_widget));
+        #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + 1 + W_PLAYFIELD, h_tmp_btl, c_fr_tr, fg_boardframe, Some(bg_boardframe));
+        #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + 1 + W_PLAYFIELD, h_tmp_btl + 1 + H_PLAYFIELD, c_fr_br, fg_boardframe, Some(bg_boardframe));
 
         // Left and right edges.
         for dy in 0..H_PLAYFIELD {
-            #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl, h_tmp_btl + 1 + dy, c_fr_l, fg_boardframe, Some(bg_widget));
-            #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + 1 + 2 * BOARD_WIDTH as u16, h_tmp_btl + 1 + dy, c_fr_r, fg_boardframe, Some(bg_widget));
+            #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl, h_tmp_btl + 1 + dy, c_fr_l, fg_boardframe, Some(bg_boardframe));
+            #[rustfmt::skip] self.term_buf.write_char(w_tmp_btl + 1 + 2 * BOARD_WIDTH as u16, h_tmp_btl + 1 + dy, c_fr_r, fg_boardframe, Some(bg_boardframe));
         }
 
         // RENDER: 'Hold' widget.

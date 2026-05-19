@@ -118,7 +118,6 @@ impl<W: Write> Application<W> {
                 ..TermCell::BLANK
             },
         );
-        self.term.execute(Clear(terminal::ClearType::All))?;
         game_renderer.render(
             &mut self.term,
             game,

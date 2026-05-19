@@ -87,7 +87,7 @@ impl Default for GraphicsSettings {
     fn default() -> Self {
         GraphicsSettings {
             tui_coloring_selected: 0,            // No color
-            tile_coloring_selected: 2,           // Okpalette
+            tile_coloring_selected: 3,           // Okpalette
             tui_symbols_selected: 1,             // Unicode
             tile_symbols_selected: 1,            // Unicode
             hard_drop_selected: 1,               // ASCII particles
@@ -114,7 +114,7 @@ impl GraphicsSettings {
     pub fn extra_focus() -> Self {
         GraphicsSettings {
             tui_coloring_selected: 0,            // No color
-            tile_coloring_selected: 3,           // Standard
+            tile_coloring_selected: 4,           // Standard
             tui_symbols_selected: 4,             // Unicode
             tile_symbols_selected: 1,            // Unicode
             hard_drop_selected: 0,               // None
@@ -139,7 +139,7 @@ impl GraphicsSettings {
     pub fn guideline() -> Self {
         GraphicsSettings {
             tui_coloring_selected: 0,            // No color
-            tile_coloring_selected: 3,           // Standard
+            tile_coloring_selected: 4,           // Standard
             tui_symbols_selected: 2,             // Rounded Unicode
             tile_symbols_selected: 1,            // Unicode
             hard_drop_selected: 4,               // Solid beam Unicode
@@ -163,8 +163,8 @@ impl GraphicsSettings {
 
     pub fn braille() -> Self {
         GraphicsSettings {
-            tui_coloring_selected: 0,            // No color
-            tile_coloring_selected: 3,           // Standard
+            tui_coloring_selected: 1,            // Amber
+            tile_coloring_selected: 1,           // Amber
             tui_symbols_selected: 5,             // Braille
             tile_symbols_selected: 2,            // Braille
             hard_drop_selected: 6,               // Braille helix
@@ -177,7 +177,7 @@ impl GraphicsSettings {
             uniform_locked_tiles: false,
             show_main_hud: true,
             show_lockdelay: false,
-            show_keybinds: true,
+            show_keybinds: false,
             show_buttons: false,
             show_shadow: true,
             show_spawn: true,
@@ -189,7 +189,7 @@ impl GraphicsSettings {
     pub fn compatibility() -> Self {
         GraphicsSettings {
             tui_coloring_selected: 0,            // No color
-            tile_coloring_selected: 1,           // ANSI
+            tile_coloring_selected: 2,           // ANSI
             tui_symbols_selected: 0,             // ASCII
             tile_symbols_selected: 0,            // ASCII
             hard_drop_selected: 1,               // ASCII particles
@@ -213,8 +213,8 @@ impl GraphicsSettings {
 
     pub fn elektronika_60() -> Self {
         GraphicsSettings {
-            tui_coloring_selected: 0,            // No color
-            tile_coloring_selected: 0,           // Monochrome
+            tui_coloring_selected: 7,            // Just amber
+            tile_coloring_selected: 11,          // Just amber
             tui_symbols_selected: 6,             // Elektronika 60
             tile_symbols_selected: 4,            // Elektronika 60
             hard_drop_selected: 0,               // None
@@ -227,7 +227,7 @@ impl GraphicsSettings {
             uniform_locked_tiles: false,
             show_main_hud: true,
             show_lockdelay: false,
-            show_keybinds: true,
+            show_keybinds: false,
             show_buttons: false,
             show_shadow: false,
             show_spawn: false,
@@ -238,8 +238,8 @@ impl GraphicsSettings {
 
     pub fn minimal() -> Self {
         GraphicsSettings {
-            tui_coloring_selected: 0,            // No color
-            tile_coloring_selected: 0,           // Monochrome
+            tui_coloring_selected: 8,            // OneHalfDark
+            tile_coloring_selected: 1,           // Monochrome
             tui_symbols_selected: 3,             // Borderless-Next/Hold Unicode
             tile_symbols_selected: 1,            // Unicode
             hard_drop_selected: 0,               // None
@@ -256,7 +256,7 @@ impl GraphicsSettings {
             show_buttons: false,
             show_shadow: false,
             show_spawn: false,
-            show_grid: true, // We make an exception here, because without anything it's hard to play but with grid this arguably already becomes a viable preset.
+            show_grid: false,
             show_fps: false,
         }
     }

@@ -61,7 +61,11 @@ pub enum TileColoring {
 pub fn tile_coloring_presets() -> SlotMachine<TileColoring> {
     // NOTE: The slot at index 0 is the special 'monochrome'/no color slot.
     let slots = vec![
-        ("No color".to_owned(), TileColoring::no_color()),
+        (
+            "Terminal Default".to_owned(),
+            TileColoring::terminal_default(),
+        ),
+        ("Just white".to_owned(), TileColoring::white()),
         ("ANSI".to_owned(), TileColoring::ansi()),
         ("Tetro Pastel".to_owned(), TileColoring::tetro_pastel()),
         ("Guideline".to_owned(), TileColoring::guideline()),
@@ -71,6 +75,7 @@ pub fn tile_coloring_presets() -> SlotMachine<TileColoring> {
         ("Fahrenheit".to_owned(), TileColoring::fahrenheit()),
         ("Matrix".to_owned(), TileColoring::matrix()),
         ("Sequoia".to_owned(), TileColoring::sequoia()),
+        ("Just amber".to_owned(), TileColoring::amber()),
         ("NES levels".to_owned(), TileColoring::HardcodedNES),
     ];
 
@@ -225,7 +230,7 @@ const NES_WHITE: Color = Color::Rgb {
 };
 
 impl TileColoring {
-    pub fn no_color() -> Self {
+    pub fn terminal_default() -> Self {
         TileColoring::Simple(SimpleTileColoring {
             tiles_fg: [Color::Reset; 8],
             tiles_bg: None,
@@ -233,6 +238,11 @@ impl TileColoring {
             named_colors: [Color::Reset; 3],
             simplified_tet_col_from_bg_not_fg: false,
         })
+    }
+
+    pub fn white() -> Self {
+        let white = "ffffff";
+        new_simple_tile_coloring([white; 8], [white; 3])
     }
 
     pub fn ansi() -> Self {
@@ -420,26 +430,6 @@ impl TileColoring {
         HashMap::from(COLORS_PAPERCOLOR)
     }*/
 
-    pub fn sequoia() -> Self {
-        new_simple_tile_coloring(
-            [
-                "#E2E4ED", // Color::Rgb{r:226,g:228,b:237}),
-                "#9498A9", // Color::Rgb{r:148,g:152,b:169}),
-                "#D3D5DE", // Color::Rgb{r:211,g:213,b:222}),
-                "#999EB2", // Color::Rgb{r:153,g:158,b:178}),
-                "#7C829D", // Color::Rgb{r:124,g:130,b:157}),
-                "#B6BAC8", // Color::Rgb{r:182,g:186,b:200}),
-                "#626983", // Color::Rgb{r: 98,g:105,b:131}),
-                "#868690", // Color::Rgb{r:134,g:134,b:144}),
-            ],
-            [
-                "#131317", // Color::Rgb{r: 19,g: 19,b: 23}),
-                "#868690", // Color::Rgb{r:134,g:134,b:144}),
-                "#E8EAF2", // Color::Rgb{r:232,g:234,b:242}),
-            ],
-        )
-    }
-
     pub fn solarized() -> Self {
         new_simple_tile_coloring(
             [
@@ -498,5 +488,30 @@ impl TileColoring {
                 "#EAFFF4", // Color::Rgb{r:234,g:255,b:244}),
             ],
         )
+    }
+
+    pub fn sequoia() -> Self {
+        new_simple_tile_coloring(
+            [
+                "#E2E4ED", // Color::Rgb{r:226,g:228,b:237}),
+                "#9498A9", // Color::Rgb{r:148,g:152,b:169}),
+                "#D3D5DE", // Color::Rgb{r:211,g:213,b:222}),
+                "#999EB2", // Color::Rgb{r:153,g:158,b:178}),
+                "#7C829D", // Color::Rgb{r:124,g:130,b:157}),
+                "#B6BAC8", // Color::Rgb{r:182,g:186,b:200}),
+                "#626983", // Color::Rgb{r: 98,g:105,b:131}),
+                "#868690", // Color::Rgb{r:134,g:134,b:144}),
+            ],
+            [
+                "#131317", // Color::Rgb{r: 19,g: 19,b: 23}),
+                "#868690", // Color::Rgb{r:134,g:134,b:144}),
+                "#E8EAF2", // Color::Rgb{r:232,g:234,b:242}),
+            ],
+        )
+    }
+
+    pub fn amber() -> Self {
+        let amber = "ff9400";
+        new_simple_tile_coloring([amber; 8], [amber; 3])
     }
 }

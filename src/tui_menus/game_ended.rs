@@ -147,7 +147,7 @@ impl<W: Write> Application<W> {
                     if let ExtDuration::Finite(lock_delay) = lock_delay_reached {
                         format!("{}ms", lock_delay.as_millis())
                     } else {
-                        "infty".to_owned()
+                        "inf".to_owned()
                     }
                 ));
             }
