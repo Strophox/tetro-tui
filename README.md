@@ -92,7 +92,7 @@ cargo run
 > 
 > <details>
 > <summary>
-> See also: Big overview of actual Tetro TUI v4.0 menus:
+> See also: Big overview of actual Tetro TUI v3.5 menus:
 > </summary>
 > 
 > **- Title screen -**

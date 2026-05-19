@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - _NOTE: Savefiles are versioned using `MAJOR.MINOR`. Currently - whenever major/minor changes - the application will not interact with previous savefiles anymore._
 
 
-## [4.0.0] - 2026-05-19
+## [3.5.0] - 2026-05-19
 
 ### Added
 - **TUI Colors!**: 'Color themes' are basically available now (finally).
