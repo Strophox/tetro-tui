@@ -512,26 +512,26 @@ impl<W: Write> Application<W> {
     /// Catch panics and write error to separate file if in debug mode, so it isn't truncated/lost due to terminal shenanigans.
     fn set_custom_panic_hook() {
         std::panic::set_hook(Box::new(|panic_info| {
-            #[cfg(debug_assertions)]
-            {
-                use crate::fmt_helpers::generate_timestamp;
+            // #[cfg(debug_assertions)]
+            // {
+            //     use crate::fmt_helpers::generate_timestamp;
 
-                let crash_file_name = format!(
-                    "tetro-tui_v{VERSION}_panic-info_{}.txt",
-                    generate_timestamp()
-                );
-                if let Ok(mut file) = std::fs::File::create(crash_file_name) {
-                    use std::io::Write;
+            //     let crash_file_name = format!(
+            //         "tetro-tui_v{VERSION}_panic-info_{}.txt",
+            //         generate_timestamp()
+            //     );
+            //     if let Ok(mut file) = std::fs::File::create(crash_file_name) {
+            //         use std::io::Write;
 
-                    let _ = file.write(panic_info.to_string().as_bytes());
-                    let _ = file.write(b"\n\n\n");
-                    let _ = file.write(
-                        std::backtrace::Backtrace::force_capture()
-                            .to_string()
-                            .as_bytes(),
-                    );
-                }
-            }
+            //         let _ = file.write(panic_info.to_string().as_bytes());
+            //         let _ = file.write(b"\n\n\n");
+            //         let _ = file.write(
+            //             std::backtrace::Backtrace::force_capture()
+            //                 .to_string()
+            //                 .as_bytes(),
+            //         );
+            //     }
+            // }
             // Forcefully reset terminal state.
             // Although `Application` restores it, it appears to sometimes not do so before we can meaningfully print
             // an error visible to the user.
@@ -548,7 +548,10 @@ impl<W: Write> Application<W> {
             );
 
             // Print the actual panic info.
-            eprint!("{panic_info}\n\n");
+            eprint!(
+                "'{panic_info}', detailed error trace:\n{}\n\n",
+                std::backtrace::Backtrace::force_capture()
+            );
         }))
     }
 
