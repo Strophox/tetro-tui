@@ -13,6 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - _NOTE: Listed unreleased changes might not be comprehensive. Check using `git diff vX.Y.Z HEAD` with latest `vX.Y.Z`._
 - _NOTE: Savefiles are versioned using `MAJOR.MINOR`. Currently - whenever major/minor changes - the application will not interact with previous savefiles anymore._
 
+## [3.5.2] - 2026-05-21
+
+## Fixed
+- Unexpected application errors are now printed out in full.
+  * You are welcome to open an issue on GitHub if the application crashes to help fix any unexpected problems! :)
+- Minor fixes / performance improvements.
+
 
 ## [3.5.1] - 2026-05-19
 

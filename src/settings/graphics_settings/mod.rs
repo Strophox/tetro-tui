@@ -244,7 +244,7 @@ impl GraphicsSettings {
             tui_symbols_selected: 1,             // Unicode
             tile_symbols_selected: 3,            // NES
             hard_drop_selected: 2,               // Particle 2 ASCII
-            lock_effect_selected: 0,             // None
+            lock_effect_selected: 3,             // Pulsing blocks UTF8
             line_clear_selected: 11,             // Clear outward?
             small_tetromino_symbols_selected: 1, // Blocks
             mini_tetromino_symbols_selected: 1,  // Braille

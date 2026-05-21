@@ -163,9 +163,22 @@ impl TerminalBuffer for DenseDoubleBuffer {
                             diff_issued = true;
                             term.queue(terminal::BeginSynchronizedUpdate)?;
                         }
+                        #[rustfmt::skip] let TermCell { ch: _old_ch, fg: old_fg, bg: old_bg } = prev_buf[idx];
                         #[rustfmt::skip] let TermCell { ch: new_ch, fg: new_fg, bg: new_bg } = self.curr_buf[idx];
                         term.queue(cursor::MoveTo(self.x_vp + x, self.y_vp + y))?;
-                        term.queue(PrintStyledContent(new_ch.with(new_fg).on(new_bg)))?;
+                        // FIXME: Check if this optimization is correct: Currently we treat 'Print' or no BG color as crossterm automatically resetting it.
+                        // FIXME: Propagate this optimization to other buffers if it is correct.
+                        if (new_fg, new_bg) == (old_fg, old_bg)
+                            && (new_fg, new_bg) == (Color::Reset, Color::Reset)
+                        {
+                            term.queue(Print(new_ch))?;
+                        } else if new_bg == old_bg && new_bg == Color::Reset {
+                            term.queue(PrintStyledContent(new_ch.with(new_fg)))?;
+                        } else if new_fg == old_fg && new_fg == Color::Reset {
+                            term.queue(PrintStyledContent(new_ch.on(new_bg)))?;
+                        } else {
+                            term.queue(PrintStyledContent(new_ch.with(new_fg).on(new_bg)))?;
+                        }
                     }
                 }
             }
@@ -186,17 +199,7 @@ impl TerminalBuffer for DenseDoubleBuffer {
                     let idx = x as usize + self.w_vp as usize * y as usize;
                     #[rustfmt::skip] let TermCell { ch: new_ch, fg: new_fg, bg: new_bg } = self.curr_buf[idx];
                     term.queue(cursor::MoveTo(self.x_vp + x, self.y_vp + y))?;
-                    // FIXME: Check if this optimization is correct: Currently we treat 'Print' or no BG color as crossterm automatically resetting it.
-                    // FIXME: Propagate this optimization to other buffers if it is correct.
-                    if new_fg == Color::Reset && new_bg == Color::Reset {
-                        term.queue(Print(new_ch))?;
-                    } else if new_bg == Color::Reset {
-                        term.queue(PrintStyledContent(new_ch.with(new_fg)))?;
-                    } else if new_fg == Color::Reset {
-                        term.queue(PrintStyledContent(new_ch.on(new_bg)))?;
-                    } else {
-                        term.queue(PrintStyledContent(new_ch.with(new_fg).on(new_bg)))?;
-                    }
+                    term.queue(PrintStyledContent(new_ch.with(new_fg).on(new_bg)))?;
                 }
             }
             term.queue(cursor::MoveTo(0, 0))?
