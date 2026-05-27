@@ -47,11 +47,13 @@ impl<W: Write> Application<W> {
 
         let mut timing_offset = 0usize;
         let mut coloring_width = 2;
+        // We cap the animation delay somewhere below 100_000_000 seconds to avoid an error on MacOS, see https://github.com/crossterm-rs/crossterm/issues/868
         let animation_delay = if *is_win {
             std::time::Duration::from_secs_f64(self.settings.graphics().fps.get().recip())
         } else {
             std::time::Duration::MAX
-        };
+        }
+        .min(std::time::Duration::from_secs(1_000_000));
 
         // Unlock modes if specific modes beaten.
         if *is_win

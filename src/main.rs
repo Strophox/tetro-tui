@@ -9,6 +9,7 @@ mod settings;
 mod terminal_buffers;
 mod tui_menus;
 
+use std::error::Error;
 use std::{io, path::PathBuf};
 
 use std::{fmt::Debug, io::Write, time::Duration};
@@ -101,7 +102,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut app = Application::with_cmdlineflags(stdout, args.seed, args.board);
 
     // Run main application.
-    app.run()?;
+    let err = app.run();
+    drop(app);
+
+    if let Err(e) = err {
+        eprintln!("hiiiiiii: {:?}", e.source());
+        // Print the actual panic info.
+        eprintln!(
+            "Detailed error trace:\n{}\n\n",
+            std::backtrace::Backtrace::force_capture()
+        );
+    }
 
     Ok(())
 }
