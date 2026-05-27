@@ -1,6 +1,6 @@
 [package]
 name = "tetro-tui"
-version = "3.5.2"
+version = "3.6.0"
 edition = "2024"
 rust-version = "1.90.0"
 authors = ["Strophox"]
@@ -38,5 +38,5 @@ serde_with = { version = "3.9.0" }#, features = ["json"] } # = Use to configure 
 # toml = "1.1.2"
 ron = "0.12.1" # = Used to serialize in Rusty Object Notation.
 
-falling-tetromino-engine = { version = "10.0.0", features = ["serde"] } # = Core game logic.
+falling-tetromino-engine = { version = "11.0.0", features = ["serde"] } # = Core game logic.
 # falling-tetromino-engine = { path = "../falling-tetromino-engine", features = ["serde"] } # = Dev. Core game logic.
