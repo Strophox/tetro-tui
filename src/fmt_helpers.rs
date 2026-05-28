@@ -151,6 +151,54 @@ pub fn fmt_button_keybinds(button: Button, keybinds: &GameKeybinds, sep: &str) -
         .join(sep)
 }
 
+pub fn calc_game_keybinds_legend(keybinds: &GameKeybinds) -> KeybindsLegend {
+    let fk = |k| fmt_key_with_keymods((k, KeyModifiers::NONE));
+    let fb = |b| fmt_button_keybinds(b, keybinds, "");
+
+    let icon_pause = fk(KeyCode::Esc);
+    let icons_move = format!("{}{}", fb(Button::MoveLeft), fb(Button::MoveRight));
+    let icons_rotate = format!(
+        "{}{}{}",
+        fb(Button::RotateLeft),
+        fb(Button::Rotate180),
+        fb(Button::RotateRight)
+    );
+    let icons_drop = format!("{}{}", fb(Button::DropSoft), fb(Button::DropHard));
+    // let icons_hold = fb(Button::HoldPiece);
+
+    // NOTE: This should be <= MAX_LEGEND_ENTRIES. Renderer relies on this for nicer visual alignment.
+    vec![
+        (icons_move, "move"),
+        (icons_rotate, "rotate"),
+        (icons_drop, "drop"),
+        // (icons_hold, "hold"),
+        (icon_pause, "pause"),
+        ("[?]".to_owned(), "see all"),
+    ]
+}
+
+pub fn replay_keybinds_legend() -> KeybindsLegend {
+    let fk = |k| fmt_key_with_keymods((k, KeyModifiers::NONE));
+
+    let icon_pause = fk(KeyCode::Char(' '));
+    let icons_speed = format!("{}{}", fk(KeyCode::Down), fk(KeyCode::Up));
+    let icons_skip = format!("{}{}", fk(KeyCode::Left), fk(KeyCode::Right));
+    // let icons_jump = format!("{}-{}", fk(KeyCode::Char('0')), fk(KeyCode::Char('9')));
+    // let icons_enter = fk(KeyCode::Enter);
+    let icon_stop = fk(KeyCode::Esc);
+
+    // NOTE: This should be <= MAX_LEGEND_ENTRIES. Renderer relies on this for nicer visual alignment.
+    vec![
+        (icon_pause, "pause"),
+        (icons_skip, "timeskip -/+"),
+        (icons_speed, "speed -/+"),
+        // (icons_jump, "timejump #0%"),
+        // (icons_enter, "take over"),
+        (icon_stop, "exit"),
+        ("[?]".to_owned(), "see all"),
+    ]
+}
+
 pub fn fmt_lineclear_name(lineclears: u32) -> &'static str {
     match lineclears {
         1 => "Mono",

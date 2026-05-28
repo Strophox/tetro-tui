@@ -6,6 +6,7 @@ use std::{
 
 use crate::{
     core_game_engine::{Button, Game, GameEndCause, Input, Notification, Phase, UpdateGameError},
+    fmt_helpers::calc_game_keybinds_legend,
     terminal_buffers::TermCell,
 };
 use crossterm::{
@@ -20,7 +21,7 @@ use crate::{
     Application, EncodedInputHistory, GameMetaData, GameRestorationData, GameSave, RawInputHistory,
     ScoreSummary, Statistics,
     fmt_helpers::{fmt_button_keybinds, increment_game_mode_derivative},
-    game_renderers::{GameRenderer, MiscGameRenderers, calc_game_keybinds_legend},
+    game_renderers::{GameRenderer, MiscGameRenderers},
     game_restoration::{InputHistoryEncoder, QuantizeInGameTime},
     tui_menus::{Menu, MenuUpdate},
 };

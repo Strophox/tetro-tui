@@ -7,6 +7,7 @@ use crate::{
     core_game_engine::{
         Game, GameEndCause, InGameTime, Input, Notification, Phase, UpdateGameError,
     },
+    fmt_helpers::replay_keybinds_legend,
     settings::Settings,
     terminal_buffers::TermCell,
 };
@@ -21,7 +22,7 @@ use crossterm::{
 use crate::{
     Application, GameMetaData, GameSave,
     fmt_helpers::{BoolAsOnOff, fmt_duration, increment_game_mode_derivative},
-    game_renderers::{GameRenderer, MiscGameRenderers, replay_keybinds_legend},
+    game_renderers::{GameRenderer, MiscGameRenderers},
     game_restoration::{GameRestorationData, RawInputHistory},
     tui_menus::{Menu, MenuUpdate},
 };
