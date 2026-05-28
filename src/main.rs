@@ -9,7 +9,6 @@ mod settings;
 mod terminal_buffers;
 mod tui_menus;
 
-use std::error::Error;
 use std::{io, path::PathBuf};
 
 use std::{fmt::Debug, io::Write, time::Duration};
@@ -101,20 +100,84 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let stdout = io::BufWriter::new(io::stdout());
     let mut app = Application::with_cmdlineflags(stdout, args.seed, args.board);
 
-    // Run main application.
-    let err = app.run();
-    drop(app);
+    // Set panic hook that catches actual panics and does a last effort to restore terminal state and print the error.
+    set_custom_panic_hook();
 
-    if let Err(e) = err {
-        eprintln!("hiiiiiii: {:?}", e.source());
-        // Print the actual panic info.
-        eprintln!(
-            "Detailed error trace:\n{}\n\n",
-            std::backtrace::Backtrace::force_capture()
-        );
+    // Console prologue: Initialization.
+    // FIXME: Handle io::Error? If not, why not?
+    let _e = app.initialize_terminal_state();
+
+    // Run main application.
+    let app_result = app.run();
+
+    // Console epilogue: Deinitialization.
+    let term_deinit_result = app.deinitialize_terminal_state();
+    if let Err(e) = term_deinit_result {
+        eprintln!("An error occurred trying to set the terminal state back to its original: {e}");
+    }
+
+    // Print main `run` result.
+    if let Err(e) = app_result {
+        eprintln!("An error (likely I/O) closed the application: {e}");
+    }
+
+    // Try to write the savefile.
+    // Note that this actively tries to delete the savefile if 'keep save file' is toggled off.
+    let savefile_write_result = app.savefile_write();
+    if let Err(e) = savefile_write_result {
+        eprintln!("An error occurred trying to write the savefile: {e}");
     }
 
     Ok(())
+}
+
+/// Catch panics and write error to separate file if in debug mode, so it isn't truncated/lost due to terminal shenanigans.
+fn set_custom_panic_hook() {
+    std::panic::set_hook(Box::new(|panic_info| {
+        // #[cfg(debug_assertions)]
+        // {
+        //     use crate::fmt_helpers::generate_timestamp;
+
+        //     let crash_file_name = format!(
+        //         "tetro-tui_v{VERSION}_panic-info_{}.txt",
+        //         generate_timestamp()
+        //     );
+        //     if let Ok(mut file) = std::fs::File::create(crash_file_name) {
+        //         use std::io::Write;
+
+        //         let _ = file.write(panic_info.to_string().as_bytes());
+        //         let _ = file.write(b"\n\n\n");
+        //         let _ = file.write(
+        //             std::backtrace::Backtrace::force_capture()
+        //                 .to_string()
+        //                 .as_bytes(),
+        //         );
+        //     }
+        // }
+        // Forcefully reset terminal state.
+        // Although `Application` restores it, it appears to sometimes not do so before we can meaningfully print
+        // an error visible to the user.
+        let _ = crossterm::terminal::disable_raw_mode();
+        let _ =
+            crossterm::ExecutableCommand::execute(&mut io::stderr(), crossterm::style::ResetColor);
+        let _ = crossterm::ExecutableCommand::execute(&mut io::stderr(), Clear(ClearType::All));
+        let _ = crossterm::ExecutableCommand::execute(&mut io::stderr(), crossterm::cursor::Show);
+        let _ = crossterm::ExecutableCommand::execute(
+            &mut io::stderr(),
+            crossterm::terminal::LeaveAlternateScreen,
+        );
+        // Print the actual panic info.
+        // let _ = crossterm::ExecutableCommand::execute(
+        //     &mut io::stderr(),
+        //     crossterm::cursor::MoveToColumn(0),
+        // );
+        let nice_str = "If you are using an unmodified version, help in improving the project by making the maintainers aware of above error (e.g. on github.com/Strophox/tetro-tui) is appreciated!";
+        eprintln!(
+            "{panic_info}\n----Detailed error trace:----\n{}\nIf you see this, something accidentally went wrong inside {}. {nice_str}\n\n",
+            std::backtrace::Backtrace::force_capture(),
+            Application::<io::Stderr>::TERMINAL_TITLE,
+        );
+    }))
 }
 
 /// Data associated with a Tetro TUI game.
@@ -431,17 +494,6 @@ pub struct Application<W: Write> {
     game_saves: GameSaves<RawInputHistory>,
 }
 
-impl<W: Write> Drop for Application<W> {
-    fn drop(&mut self) {
-        // (Try to) undo terminal setup. Ignore errors cuz atp it's too late to take any flak from Crossterm.
-        let _ = self.deinitialize_terminal_state();
-
-        if let Err(e) = self.savefile_store() {
-            eprintln!("Error on savefile store: {e}");
-        }
-    }
-}
-
 impl<W: Write> Application<W> {
     pub const W_MAIN: u16 = 62;
     pub const H_MAIN: u16 = 24;
@@ -520,52 +572,6 @@ impl<W: Write> Application<W> {
         Ok(())
     }
 
-    /// Catch panics and write error to separate file if in debug mode, so it isn't truncated/lost due to terminal shenanigans.
-    fn set_custom_panic_hook() {
-        std::panic::set_hook(Box::new(|panic_info| {
-            // #[cfg(debug_assertions)]
-            // {
-            //     use crate::fmt_helpers::generate_timestamp;
-
-            //     let crash_file_name = format!(
-            //         "tetro-tui_v{VERSION}_panic-info_{}.txt",
-            //         generate_timestamp()
-            //     );
-            //     if let Ok(mut file) = std::fs::File::create(crash_file_name) {
-            //         use std::io::Write;
-
-            //         let _ = file.write(panic_info.to_string().as_bytes());
-            //         let _ = file.write(b"\n\n\n");
-            //         let _ = file.write(
-            //             std::backtrace::Backtrace::force_capture()
-            //                 .to_string()
-            //                 .as_bytes(),
-            //         );
-            //     }
-            // }
-            // Forcefully reset terminal state.
-            // Although `Application` restores it, it appears to sometimes not do so before we can meaningfully print
-            // an error visible to the user.
-            let _ = crossterm::terminal::disable_raw_mode();
-            let _ = crossterm::ExecutableCommand::execute(
-                &mut io::stderr(),
-                crossterm::style::ResetColor,
-            );
-            let _ =
-                crossterm::ExecutableCommand::execute(&mut io::stderr(), crossterm::cursor::Show);
-            let _ = crossterm::ExecutableCommand::execute(
-                &mut io::stderr(),
-                crossterm::terminal::LeaveAlternateScreen,
-            );
-
-            // Print the actual panic info.
-            eprint!(
-                "'{panic_info}', detailed error trace:\n{}\n\n",
-                std::backtrace::Backtrace::force_capture()
-            );
-        }))
-    }
-
     pub fn with_cmdlineflags(
         term: W,
         custom_start_seed: Option<u64>,
@@ -597,7 +603,7 @@ impl<W: Write> Application<W> {
         };
 
         // Load in actual settings.
-        new.temp_data.load_savefile_result = new.savefile_load();
+        new.temp_data.load_savefile_result = new.savefile_read();
 
         if new.temp_data.load_savefile_result.is_err() {
             /*FIXME: Add replay demo?
@@ -619,12 +625,6 @@ impl<W: Write> Application<W> {
     }
 
     pub fn run(&mut self) -> io::Result<()> {
-        Self::set_custom_panic_hook();
-
-        // Console prologue: Initialization.
-        // FIXME: Handle io::Error? If not, why not?
-        let _e = self.initialize_terminal_state();
-
         let mut menu_stack = vec![Menu::Title];
         // Retrieve active menu, and stop application if stack is empty.
         while let Some(menu) = menu_stack.last_mut() {
@@ -730,7 +730,6 @@ impl<W: Write> Application<W> {
             }
         }
 
-        // Console epilogue: Deinitialization.
-        self.deinitialize_terminal_state()
+        Ok(())
     }
 }

@@ -90,7 +90,7 @@ struct SaveContents<'a> {
 }
 
 impl<W: Write> Application<W> {
-    pub fn savefile_store(&mut self) -> SavefileResult<()> {
+    pub fn savefile_write(&mut self) -> SavefileResult<()> {
         match self.temp_data.save_on_exit {
             // Explicitly check for savefile and try to make sure we don't leave it around.
             SavefileGranularity::NoSavefile => {
@@ -148,7 +148,7 @@ impl<W: Write> Application<W> {
         }
     }
 
-    pub fn savefile_load(&mut self) -> SavefileResult<()> {
+    pub fn savefile_read(&mut self) -> SavefileResult<()> {
         let mut file = File::open(self.temp_data.savefile_path.clone())?;
         let mut save_str = String::new();
         file.read_to_string(&mut save_str)?;

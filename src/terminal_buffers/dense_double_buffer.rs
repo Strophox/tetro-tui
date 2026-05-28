@@ -31,8 +31,8 @@ pub struct DenseDoubleBuffer {
 impl TerminalBuffer for DenseDoubleBuffer {
     // fn with_offset_and_area((x, y): (u16, u16), (w, h): (u16, u16)) -> Self {
     //     DenseTerminalDoubleBuffer {
-    //         prev_buf: vec![TermCell::EMPTY; (w * h).into()],
-    //         next_buf: vec![TermCell::EMPTY; (w * h).into()],
+    //         prev_buf: vec![TermCell::EMPTY; (w as usize * h as usize)],
+    //         next_buf: vec![TermCell::EMPTY; (w as usize * h as usize)],
     //         x_vp: x,
     //         y_vp: y,
     //         w_vp: w,
@@ -50,7 +50,7 @@ impl TerminalBuffer for DenseDoubleBuffer {
 
     fn reset_with_offset_and_area(&mut self, (x, y): (u16, u16), (w, h): (u16, u16)) {
         let old_len = (self.w_vp * self.h_vp).into();
-        let new_len = (w * h).into();
+        let new_len = w as usize * h as usize;
 
         self.x_vp = x;
         self.y_vp = y;
@@ -207,7 +207,7 @@ impl TerminalBuffer for DenseDoubleBuffer {
                 .flush()?;
 
             // Create new blank canvas for next_buf.
-            let mut temp_buf = vec![self.curr_ambience; (self.w_vp * self.h_vp) as usize];
+            let mut temp_buf = vec![self.curr_ambience; self.w_vp as usize * self.h_vp as usize];
             // Swap buffers so `prev_buf` correctly contains the one we just wrote and want to keep for next time.
             std::mem::swap(&mut temp_buf, &mut self.curr_buf);
             // Store previous buffer.

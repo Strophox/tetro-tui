@@ -29,7 +29,7 @@ pub struct SparseSingleBuffer {
 impl TerminalBuffer for SparseSingleBuffer {
     // fn with_offset_and_area((x, y): (u16, u16), (w, h): (u16, u16)) -> Self {
     //     DenseTerminalSingleBuffer {
-    //         buf: vec![TermCell::EMPTY; (w * h).into()],
+    //         buf: vec![TermCell::EMPTY; (w as usize * h as usize)],
     //         x_vp: x,
     //         y_vp: y,
     //         w_vp: w,

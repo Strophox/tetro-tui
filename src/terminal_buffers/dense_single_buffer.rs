@@ -28,7 +28,7 @@ pub struct DenseSingleBuffer {
 impl TerminalBuffer for DenseSingleBuffer {
     // fn with_offset_and_area((x, y): (u16, u16), (w, h): (u16, u16)) -> Self {
     //     DenseTerminalSingleBuffer {
-    //         buf: vec![TermCell::EMPTY; (w * h).into()],
+    //         buf: vec![TermCell::EMPTY; (w as usize * h as usize)],
     //         x_vp: x,
     //         y_vp: y,
     //         w_vp: w,
@@ -46,7 +46,7 @@ impl TerminalBuffer for DenseSingleBuffer {
 
     fn reset_with_offset_and_area(&mut self, (x, y): (u16, u16), (w, h): (u16, u16)) {
         let old_len = (self.w_vp * self.h_vp).into();
-        let new_len = (w * h).into();
+        let new_len = w as usize * h as usize;
 
         self.x_vp = x;
         self.y_vp = y;

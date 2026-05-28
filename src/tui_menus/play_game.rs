@@ -704,7 +704,7 @@ impl<W: Write> Application<W> {
                                         .contains(KeyModifiers::CONTROL.union(KeyModifiers::ALT))
                                 } =>
                             {
-                                let msg = if let Err(e) = self.savefile_load() {
+                                let msg = if let Err(e) = self.savefile_read() {
                                     format!("(Error reloading from savefile: {e}")
                                 } else {
                                     "(Reloaded from savefile.)".to_owned()
@@ -722,7 +722,7 @@ impl<W: Write> Application<W> {
                                         .contains(KeyModifiers::CONTROL.union(KeyModifiers::ALT))
                                 } =>
                             {
-                                let msg = if let Err(e) = self.savefile_store() {
+                                let msg = if let Err(e) = self.savefile_write() {
                                     format!("(Error on savefile store: {e}")
                                 } else {
                                     "(Savefile store done.)".to_owned()

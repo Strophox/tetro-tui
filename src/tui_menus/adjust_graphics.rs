@@ -42,7 +42,7 @@ impl<W: Write> Application<W> {
             } else {
                 self.term.queue(MoveTo(0, 0))?.queue(PrintStyledContent({
                     let (w, h) = terminal::size()?;
-                    " ".repeat((w * h) as usize)
+                    " ".repeat(w as usize * h as usize)
                         .on(self.settings.tui_coloring().bg_tui)
                 }))?;
             }
@@ -456,7 +456,7 @@ impl<W: Write> Application<W> {
                     kind: Press | Repeat,
                     ..
                 }) if { modifiers.contains(KeyModifiers::CONTROL.union(KeyModifiers::ALT)) } => {
-                    self.temp_data.load_savefile_result = self.savefile_load();
+                    self.temp_data.load_savefile_result = self.savefile_read();
                 }
 
                 // Store to savefile.
@@ -466,7 +466,7 @@ impl<W: Write> Application<W> {
                     kind: Press | Repeat,
                     ..
                 }) if { modifiers.contains(KeyModifiers::CONTROL.union(KeyModifiers::ALT)) } => {
-                    self.temp_data.store_savefile_result = self.savefile_store();
+                    self.temp_data.store_savefile_result = self.savefile_write();
                 }
 
                 Event::Key(KeyEvent {
