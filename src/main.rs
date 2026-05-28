@@ -73,8 +73,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         /// This influences e.g. the sequence of pieces used and\
         /// makes it possible to replay a run with the same pieces.
         ///
-        /// Example uses:  ```tetro-tui --seed=42```
-        ///             or ```tetro-tui -s 42```
+        /// Example usage:  ```tetro-tui --seed=42```
+        ///              or ```tetro-tui -s 42```
         #[arg(short, long)]
         seed: Option<u64>,
 
@@ -85,13 +85,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         /// - When end of the board width is reached, the next line is started.
         ///
         /// Every character corresponds to exactly *one filled board cell* except:
-        /// - A space, underscore or period (' ', '_', '.') indicates an *empty* cell.
+        /// - A space, underscore or dot (' ', '_', '.') indicates an *empty* cell.
         /// - A slash ('/') indicates an optional "skip to next line".
         /// - All newlines ('\n') are ignored completely.
         ///
-        /// Example uses:  |▄▄▀       |
-        ///             becomes ```tetro-tui --board="##/  #"```
-        ///                  or ```tetro-tui -b "XY_/..Z"```
+        /// Example usage: |▄▄▀       |
+        ///                becomes ```tetro-tui --board="###/   #"```
+        ///                     or ```tetro-tui -b XYZ_/...W```
         #[arg(short, long)]
         board: Option<String>,
     }

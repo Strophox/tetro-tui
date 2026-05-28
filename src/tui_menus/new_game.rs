@@ -195,7 +195,7 @@ impl<W: Write> Application<W> {
                                         .seed
                                         .is_some()
                                     {
-                                        " *seed"
+                                        " +seed"
                                     } else {
                                         ""
                                     },
@@ -206,7 +206,7 @@ impl<W: Write> Application<W> {
                                         .start_board
                                         .is_some()
                                     {
-                                        " *board"
+                                        " +startboard"
                                     } else {
                                         ""
                                     },
@@ -229,7 +229,7 @@ impl<W: Write> Application<W> {
                                 Either::Right(table) => table.entries()[0],
                             };
                         format!(
-                            "| Initial fall delay = {:.9} s (Gravity: {})", /* NOTE: the 9 corresponds to the exponent in minval_fall_delay */
+                            "Initial fall delay = {:.9} s (Gravity: {})", /* NOTE: the 9 corresponds to the exponent in minval_fall_delay */
                             fall_delay.as_secs_ennf64().get() * 1.0,
                             fmt_hertz(fall_delay.as_hertz())
                         )
@@ -240,10 +240,10 @@ impl<W: Write> Application<W> {
                                 Either::Left(params) => params.is_constant(),
                                 Either::Right(table) => table.entries().len() <= 1,
                             };
-                        format!("| Progressive gravity = {}", (!is_constant).on_off())
+                        format!("Progressive gravity = {}", (!is_constant).on_off())
                     },
                     format!(
-                        "| Limit = {:?} [→]",
+                        "Limit = {:?} [→]",
                         self.settings
                             .game_mode_preferences
                             .custom_config
@@ -253,7 +253,7 @@ impl<W: Write> Application<W> {
                 for (j, stat_str) in stats_strs.into_iter().enumerate() {
                     self.term
                         .queue(MoveTo(
-                            x_main + 16 + 4 * u16::try_from(j).unwrap(),
+                            x_main + 13 + 3 * u16::try_from(j).unwrap(),
                             y_main
                                 + y_selection
                                 + 3
@@ -262,7 +262,7 @@ impl<W: Write> Application<W> {
                         .queue(PrintStyledContent(
                             if j + 1 == customization_selected {
                                 format!(
-                                    "{}{stat_str}{}",
+                                    "{} {stat_str}{}",
                                     self.settings.tui_symbols().menu_pointers[0],
                                     if customization_selected != 3
                                         || self
@@ -278,7 +278,7 @@ impl<W: Write> Application<W> {
                                     }
                                 )
                             } else {
-                                stat_str
+                                format!("| {stat_str}")
                             }
                             .with(self.settings.tui_coloring().fg_tui)
                             .on(self.settings.tui_coloring().bg_tui),
