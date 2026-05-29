@@ -83,6 +83,16 @@ impl AudioController {
         }
     }
 
+    pub fn play_welcome_melody(settings: AudioSettings) {
+        if !settings.enabled {
+            return;
+        }
+
+        let mut backend_state = AudioBackendState::Pending(settings.backend);
+        play_notes_blocking(&WELCOME_MELODY, 100, &mut backend_state);
+        reset_backend(backend_state);
+    }
+
     pub fn play_keypress(&self) {
         if self.settings.enabled && self.settings.sfx_enabled && self.settings.keypress_sfx {
             self.send(AudioCommand::PlaySfx(SoundEffect::Keypress));
@@ -447,9 +457,6 @@ fn spawn_with_backend(backend: AudioBackend, note: PlaybackNote) -> Option<Child
             .arg(format!("{:.3}", f64::from(note.duration_ms) / 1000.0))
             .arg("sine")
             .arg(note.frequency_hz.to_string())
-            .arg("fade")
-            .arg("q")
-            .arg("0.005")
             .stdout(Stdio::null())
             .stderr(Stdio::null())
             .spawn()
@@ -576,6 +583,15 @@ const SFX_GAME_OVER_ARCADE: [Note; 6] = [
     n(440, 120, 6),
     n(392, 170, 6),
     n(330, 220, 10),
+];
+
+const WELCOME_MELODY: [Note; 6] = [
+    n(523, 70, 10),
+    n(659, 70, 10),
+    n(784, 90, 10),
+    n(988, 110, 10),
+    n(784, 80, 10),
+    n(1047, 150, 16),
 ];
 
 const fn n(frequency_hz: u16, duration_ms: u16, rest_ms: u16) -> Note {

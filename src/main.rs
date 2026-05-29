@@ -107,6 +107,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Console prologue: Initialization.
     // FIXME: Handle io::Error? If not, why not?
     let _e = app.initialize_terminal_state();
+    audio::AudioController::play_welcome_melody(app.settings.audio);
 
     // Run main application.
     let app_result = app.run();
