@@ -141,6 +141,10 @@ impl<W: Write> Application<W> {
             // Start new iteration of [render->input->] loop.
 
             if let Phase::GameEnd { cause, is_win } = game.phase() {
+                if !*is_win {
+                    audio_controller.stop_and_play_game_over();
+                }
+
                 self.statistics.games_ended += 1;
 
                 // Game ended, cannot actually continue playing;

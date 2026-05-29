@@ -1,9 +1,6 @@
 use std::{
     collections::VecDeque,
-    fs,
-    path::PathBuf,
     process::{Child, Command, Stdio},
-    sync::atomic::{AtomicU64, Ordering},
     sync::mpsc,
     thread,
     time::{Duration, Instant},
@@ -38,6 +35,7 @@ struct PlaybackNote {
 
 enum AudioCommand {
     PlaySfx(SoundEffect),
+    StopAndPlaySfx(SoundEffect, mpsc::Sender<()>),
     Stop,
 }
 
@@ -61,12 +59,6 @@ struct ActiveNotePlayback {
     deadline: Instant,
     kind: PlaybackKind,
     child: Option<Child>,
-    temp_path: Option<PathBuf>,
-}
-
-struct SpawnedNote {
-    child: Child,
-    temp_path: Option<PathBuf>,
 }
 
 pub struct AudioController {
@@ -111,11 +103,29 @@ impl AudioController {
                         lines: *lineclears,
                     }));
                 }
-                Notification::GameEnded { is_win: false, .. } if self.settings.game_over_sfx => {
-                    self.send(AudioCommand::PlaySfx(SoundEffect::GameOver));
-                }
                 _ => {}
             }
+        }
+    }
+
+    pub fn stop_and_play_game_over(&self) {
+        if !(self.settings.enabled && self.settings.sfx_enabled && self.settings.game_over_sfx) {
+            return;
+        }
+
+        let Some(sender) = &self.sender else {
+            return;
+        };
+
+        let (done_sender, done_receiver) = mpsc::channel();
+        if sender
+            .send(AudioCommand::StopAndPlaySfx(
+                SoundEffect::GameOver,
+                done_sender,
+            ))
+            .is_ok()
+        {
+            let _ = done_receiver.recv();
         }
     }
 
@@ -138,14 +148,13 @@ fn audio_worker(receiver: mpsc::Receiver<AudioCommand>, settings: AudioSettings)
     let mut stop_requested = false;
     let mut backend_state = AudioBackendState::Pending(settings.backend);
     let mut active_note: Option<ActiveNotePlayback> = None;
-    let mut active_overlay_note: Option<ActiveNotePlayback> = None;
     let mut theme_resume_note: Option<PlaybackNote> = None;
     let tempo_percent = settings.theme_tempo_percent.max(MIN_TEMPO_PERCENT);
     let theme = theme_notes(settings);
 
     loop {
         if stop_requested {
-            if stop_active_note(&mut active_note) | stop_active_note(&mut active_overlay_note) {
+            if stop_active_note(&mut active_note) {
                 reset_backend(backend_state);
             }
             break;
@@ -157,15 +166,8 @@ fn audio_worker(receiver: mpsc::Receiver<AudioCommand>, settings: AudioSettings)
             finish_active_note(&mut active_note);
         }
 
-        if let Some(playback) = active_overlay_note.as_mut()
-            && Instant::now() >= playback.deadline
-        {
-            finish_active_note(&mut active_overlay_note);
-        }
-
         if let Some(playback) = active_note.as_mut()
             && !queued_sfx.is_empty()
-            && !backend_supports_overlay(settings.backend, backend_state)
             && matches!(
                 playback.kind,
                 PlaybackKind::Theme | PlaybackKind::ThemeResume
@@ -194,22 +196,8 @@ fn audio_worker(receiver: mpsc::Receiver<AudioCommand>, settings: AudioSettings)
             stop_active_note(&mut active_note);
         }
 
-        if active_overlay_note.is_none()
-            && backend_supports_overlay(settings.backend, backend_state)
-            && start_next_sfx_note(
-                &mut queued_sfx,
-                tempo_percent,
-                &mut backend_state,
-                &mut active_overlay_note,
-            )
-        {
-            continue;
-        }
-
         if active_note.is_none() {
-            if !backend_supports_overlay(settings.backend, backend_state)
-                && let Some(notes) = queued_sfx.front_mut()
-            {
+            if let Some(notes) = queued_sfx.front_mut() {
                 if let Some((note, rest)) = next_note_in_slice(notes) {
                     if rest.is_empty() {
                         queued_sfx.pop_front();
@@ -250,10 +238,7 @@ fn audio_worker(receiver: mpsc::Receiver<AudioCommand>, settings: AudioSettings)
 
         let timeout = active_note
             .as_ref()
-            .into_iter()
-            .chain(active_overlay_note.as_ref())
             .map(|playback| playback.deadline.saturating_duration_since(Instant::now()))
-            .min()
             .unwrap_or(POLL_INTERVAL)
             .min(POLL_INTERVAL);
 
@@ -261,25 +246,44 @@ fn audio_worker(receiver: mpsc::Receiver<AudioCommand>, settings: AudioSettings)
             Ok(AudioCommand::PlaySfx(effect)) => {
                 queued_sfx.push_back(notes_for_sfx(effect, settings))
             }
+            Ok(AudioCommand::StopAndPlaySfx(effect, done_sender)) => {
+                stop_and_play_sfx(
+                    effect,
+                    settings,
+                    tempo_percent,
+                    &mut queued_sfx,
+                    &mut active_note,
+                    &mut theme_resume_note,
+                    &mut backend_state,
+                );
+                let _ = done_sender.send(());
+                stop_requested = true;
+            }
             Ok(AudioCommand::Stop) => stop_requested = true,
             Err(mpsc::RecvTimeoutError::Disconnected) => stop_requested = true,
             Err(mpsc::RecvTimeoutError::Timeout) => {}
         }
 
-        drain_commands(&receiver, &mut queued_sfx, settings, &mut stop_requested);
-    }
-}
-
-fn drain_commands(
-    receiver: &mpsc::Receiver<AudioCommand>,
-    queued_sfx: &mut VecDeque<&'static [Note]>,
-    settings: AudioSettings,
-    stop_requested: &mut bool,
-) {
-    while let Ok(command) = receiver.try_recv() {
-        match command {
-            AudioCommand::PlaySfx(effect) => queued_sfx.push_back(notes_for_sfx(effect, settings)),
-            AudioCommand::Stop => *stop_requested = true,
+        while let Ok(command) = receiver.try_recv() {
+            match command {
+                AudioCommand::PlaySfx(effect) => {
+                    queued_sfx.push_back(notes_for_sfx(effect, settings))
+                }
+                AudioCommand::StopAndPlaySfx(effect, done_sender) => {
+                    stop_and_play_sfx(
+                        effect,
+                        settings,
+                        tempo_percent,
+                        &mut queued_sfx,
+                        &mut active_note,
+                        &mut theme_resume_note,
+                        &mut backend_state,
+                    );
+                    let _ = done_sender.send(());
+                    stop_requested = true;
+                }
+                AudioCommand::Stop => stop_requested = true,
+            }
         }
     }
 }
@@ -289,24 +293,21 @@ fn next_note_in_slice(notes: &'static [Note]) -> Option<(Note, &'static [Note])>
 }
 
 fn finish_active_note(active_note: &mut Option<ActiveNotePlayback>) {
-    if let Some(mut playback) = active_note.take() {
-        if let Some(child) = playback.child.as_mut() {
-            let _ = child.wait();
-        }
-        cleanup_temp_file(playback.temp_path.take());
+    if let Some(playback) = active_note.take() {
+        wait_for_note_completion(playback);
     }
 }
 
 fn stop_active_note(active_note: &mut Option<ActiveNotePlayback>) -> bool {
     let mut was_playing = false;
-    if let Some(mut playback) = active_note.take() {
+    if let Some(playback) = active_note.as_mut() {
         was_playing = playback.child.is_some();
         if let Some(child) = playback.child.as_mut() {
             let _ = child.kill();
             let _ = child.wait();
         }
-        cleanup_temp_file(playback.temp_path.take());
     }
+    *active_note = None;
     was_playing
 }
 
@@ -326,20 +327,67 @@ fn reset_backend(backend_state: AudioBackendState) {
     }
 }
 
+fn stop_and_play_sfx(
+    effect: SoundEffect,
+    settings: AudioSettings,
+    tempo_percent: u16,
+    queued_sfx: &mut VecDeque<&'static [Note]>,
+    active_note: &mut Option<ActiveNotePlayback>,
+    theme_resume_note: &mut Option<PlaybackNote>,
+    backend_state: &mut AudioBackendState,
+) {
+    queued_sfx.clear();
+    *theme_resume_note = None;
+
+    if stop_active_note(active_note) {
+        reset_backend(*backend_state);
+    }
+
+    play_notes_blocking(
+        notes_for_sfx(effect, settings),
+        tempo_percent,
+        backend_state,
+    );
+}
+
+fn play_notes_blocking(
+    notes: &'static [Note],
+    tempo_percent: u16,
+    backend_state: &mut AudioBackendState,
+) {
+    for note in notes {
+        wait_for_note_completion(play_note(
+            scale_note(*note, tempo_percent),
+            PlaybackKind::Sfx,
+            backend_state,
+        ));
+    }
+}
+
+fn wait_for_note_completion(mut playback: ActiveNotePlayback) {
+    if let Some(child) = playback.child.as_mut() {
+        let _ = child.wait();
+    }
+
+    if let Some(remaining) = playback
+        .deadline
+        .checked_duration_since(Instant::now())
+        .filter(|remaining| !remaining.is_zero())
+    {
+        thread::sleep(remaining);
+    }
+}
+
 fn play_note(
     note: PlaybackNote,
     kind: PlaybackKind,
     backend_state: &mut AudioBackendState,
 ) -> ActiveNotePlayback {
     let start = Instant::now();
-    let spawned_note = if note.frequency_hz == 0 || note.duration_ms == 0 {
+    let child = if note.frequency_hz == 0 || note.duration_ms == 0 {
         None
     } else {
         spawn_note(note, backend_state)
-    };
-    let (child, temp_path) = match spawned_note {
-        Some(SpawnedNote { child, temp_path }) => (Some(child), temp_path),
-        None => (None, None),
     };
 
     ActiveNotePlayback {
@@ -348,18 +396,14 @@ fn play_note(
         deadline: start + Duration::from_millis(u64::from(note.duration_ms + note.rest_ms)),
         kind,
         child,
-        temp_path,
     }
 }
 
-fn spawn_note(note: PlaybackNote, backend_state: &mut AudioBackendState) -> Option<SpawnedNote> {
+fn spawn_note(note: PlaybackNote, backend_state: &mut AudioBackendState) -> Option<Child> {
     match *backend_state {
         AudioBackendState::Pending(AudioBackend::Auto) => {
             if let Some(child) = spawn_with_backend(AudioBackend::PcSpeakerBeep, note) {
                 *backend_state = AudioBackendState::Active(AudioBackend::PcSpeakerBeep);
-                Some(child)
-            } else if let Some(child) = spawn_with_backend(AudioBackend::SoundCardMidi, note) {
-                *backend_state = AudioBackendState::Active(AudioBackend::SoundCardMidi);
                 Some(child)
             } else if let Some(child) = spawn_with_backend(AudioBackend::SoundCardSox, note) {
                 *backend_state = AudioBackendState::Active(AudioBackend::SoundCardSox);
@@ -382,7 +426,7 @@ fn spawn_note(note: PlaybackNote, backend_state: &mut AudioBackendState) -> Opti
     }
 }
 
-fn spawn_with_backend(backend: AudioBackend, note: PlaybackNote) -> Option<SpawnedNote> {
+fn spawn_with_backend(backend: AudioBackend, note: PlaybackNote) -> Option<Child> {
     match backend {
         AudioBackend::Auto => None,
         AudioBackend::PcSpeakerBeep => Command::new("beep")
@@ -393,12 +437,7 @@ fn spawn_with_backend(backend: AudioBackend, note: PlaybackNote) -> Option<Spawn
             .stdout(Stdio::null())
             .stderr(Stdio::null())
             .spawn()
-            .ok()
-            .map(|child| SpawnedNote {
-                child,
-                temp_path: None,
-            }),
-        AudioBackend::SoundCardMidi => spawn_midi_note(note),
+            .ok(),
         AudioBackend::SoundCardSox => Command::new("sox")
             .arg("-q")
             .arg("-n")
@@ -410,138 +449,11 @@ fn spawn_with_backend(backend: AudioBackend, note: PlaybackNote) -> Option<Spawn
             .arg("fade")
             .arg("q")
             .arg("0.005")
-            .arg(format!("{:.3}", f64::from(note.duration_ms) / 1000.0))
-            .arg("0.010")
             .stdout(Stdio::null())
             .stderr(Stdio::null())
             .spawn()
-            .ok()
-            .map(|child| SpawnedNote {
-                child,
-                temp_path: None,
-            }),
+            .ok(),
     }
-}
-
-fn start_next_sfx_note(
-    queued_sfx: &mut VecDeque<&'static [Note]>,
-    tempo_percent: u16,
-    backend_state: &mut AudioBackendState,
-    active_note: &mut Option<ActiveNotePlayback>,
-) -> bool {
-    let Some(notes) = queued_sfx.front_mut() else {
-        return false;
-    };
-    let Some((note, rest)) = next_note_in_slice(notes) else {
-        queued_sfx.pop_front();
-        return false;
-    };
-
-    if rest.is_empty() {
-        queued_sfx.pop_front();
-    } else {
-        *notes = rest;
-    }
-
-    *active_note = Some(play_note(
-        scale_note(note, tempo_percent),
-        PlaybackKind::Sfx,
-        backend_state,
-    ));
-    true
-}
-
-fn backend_supports_overlay(
-    requested_backend: AudioBackend,
-    backend_state: AudioBackendState,
-) -> bool {
-    matches!(
-        backend_state,
-        AudioBackendState::Pending(AudioBackend::SoundCardMidi)
-            | AudioBackendState::Active(AudioBackend::SoundCardMidi)
-    ) || matches!(requested_backend, AudioBackend::SoundCardMidi)
-}
-
-fn spawn_midi_note(note: PlaybackNote) -> Option<SpawnedNote> {
-    let temp_path = create_temp_midi_file(note)?;
-    let child = Command::new("timidity")
-        .arg("-q")
-        .arg(&temp_path)
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn()
-        .ok()?;
-    Some(SpawnedNote {
-        child,
-        temp_path: Some(temp_path),
-    })
-}
-
-fn create_temp_midi_file(note: PlaybackNote) -> Option<PathBuf> {
-    let temp_path = std::env::temp_dir().join(format!(
-        "tetro-tui-note-{}-{}.mid",
-        std::process::id(),
-        MIDI_FILE_ID.fetch_add(1, Ordering::Relaxed)
-    ));
-    fs::write(&temp_path, midi_bytes_for_note(note)).ok()?;
-    Some(temp_path)
-}
-
-fn cleanup_temp_file(temp_path: Option<PathBuf>) {
-    if let Some(temp_path) = temp_path {
-        let _ = fs::remove_file(temp_path);
-    }
-}
-
-fn midi_bytes_for_note(note: PlaybackNote) -> Vec<u8> {
-    let midi_note = frequency_hz_to_midi_note(note.frequency_hz);
-    let note_ticks = milliseconds_to_midi_ticks(note.duration_ms);
-    let release_ticks = milliseconds_to_midi_ticks(MIDI_RELEASE_MS);
-
-    let mut track = Vec::new();
-    track.extend([0x00, 0xFF, 0x51, 0x03, 0x07, 0xA1, 0x20]);
-    track.extend([0x00, 0xC0, MIDI_PROGRAM_LEAD_SQUARE]);
-    track.extend([0x00, 0x90, midi_note, MIDI_VELOCITY]);
-    push_midi_var_len(&mut track, note_ticks);
-    track.extend([0x80, midi_note, 0x40]);
-    push_midi_var_len(&mut track, release_ticks);
-    track.extend([0xFF, 0x2F, 0x00]);
-
-    let mut bytes = Vec::with_capacity(22 + track.len());
-    bytes.extend(b"MThd");
-    bytes.extend(6u32.to_be_bytes());
-    bytes.extend(0u16.to_be_bytes());
-    bytes.extend(1u16.to_be_bytes());
-    bytes.extend(MIDI_TICKS_PER_QUARTER.to_be_bytes());
-    bytes.extend(b"MTrk");
-    bytes.extend((track.len() as u32).to_be_bytes());
-    bytes.extend(track);
-    bytes
-}
-
-fn frequency_hz_to_midi_note(frequency_hz: u16) -> u8 {
-    let midi_note = 69.0 + 12.0 * (f64::from(frequency_hz) / 440.0).log2();
-    midi_note.round().clamp(0.0, 127.0) as u8
-}
-
-fn milliseconds_to_midi_ticks(duration_ms: u32) -> u32 {
-    ((u64::from(duration_ms).saturating_mul(u64::from(MIDI_TICKS_PER_QUARTER))) / 500)
-        .clamp(1, u64::from(u32::MAX)) as u32
-}
-
-fn push_midi_var_len(bytes: &mut Vec<u8>, value: u32) {
-    let mut buffer = [0u8; 5];
-    let mut index = buffer.len() - 1;
-    buffer[index] = (value & 0x7F) as u8;
-    let mut value = value >> 7;
-
-    while value > 0 {
-        index -= 1;
-        buffer[index] = ((value & 0x7F) as u8) | 0x80;
-        value >>= 7;
-    }
-
-    bytes.extend(&buffer[index..]);
 }
 
 fn scale_note(note: Note, tempo_percent: u16) -> PlaybackNote {
@@ -675,8 +587,3 @@ const fn n(frequency_hz: u16, duration_ms: u16, rest_ms: u16) -> Note {
 
 const MIN_TEMPO_PERCENT: u16 = 20;
 const POLL_INTERVAL: Duration = Duration::from_millis(5);
-const MIDI_PROGRAM_LEAD_SQUARE: u8 = 80;
-const MIDI_RELEASE_MS: u32 = 24;
-const MIDI_TICKS_PER_QUARTER: u16 = 480;
-const MIDI_VELOCITY: u8 = 96;
-static MIDI_FILE_ID: AtomicU64 = AtomicU64::new(0);
