@@ -84,7 +84,7 @@ cargo run
 > - **Graphics:** Unicode/ASCII/Elektronika styles, old-terminal-compatible or very modern designs, 10 color palettes, hard drop/piece lock/line clear effects and much more.
 > - **Game keybinds:** to your heart's desire. 
 > - **Gameplay/handling:** Various rotation systems, piece randomizers, adjustable preview, timings (DAS¹, ARR¹, SDF¹, LCD, ARE), IRS/IHS/.. ([¹caveat](#why-do-some-gameplay-preferences-dasarrsdf-or-some-keybinds-ctrlshiftalt-not-work-for-me)).
-> - **Audio:** Optional asynchronous PC speaker (`pcspkr`) audio via `beep` for BGM and gameplay SFX, configurable in-app.
+> - **Audio:** Optional asynchronous BGM/SFX audio via PC speaker (`beep`) with selectable `sox` sound-card fallback, configurable in-app.
 > - **Game mode miscellany:** Regular ('Marathon'), Swift ('40-Lines'), Classic & Master (unlocked after Regular), Puzzle, Cheese, Combo, Custom (select win condition, initial gravity, toggle gravity progress, *cmdline flags:* start board, seed).
 > - **Highscores, replays, statistics, ...** - can be viewed as well as backed up with a simple **savefile**.
 >

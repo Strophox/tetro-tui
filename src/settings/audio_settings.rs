@@ -2,10 +2,27 @@ use std::process::{Command, Stdio};
 
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug, serde::Serialize, serde::Deserialize,
+    Default,
 )]
 pub enum ThemeSong {
-    KorobeinikiA,
-    KorobeinikiB,
+    #[default]
+    #[serde(alias = "KorobeinikiA", alias = "KorobeinikiB")]
+    Korobeiniki,
+}
+
+#[derive(
+    PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug, serde::Serialize, serde::Deserialize,
+)]
+pub enum AudioBackend {
+    Auto,
+    PcSpeakerBeep,
+    SoundCardSox,
+}
+
+impl Default for AudioBackend {
+    fn default() -> Self {
+        Self::Auto
+    }
 }
 
 #[derive(
@@ -25,6 +42,7 @@ pub struct AudioSettings {
     pub theme_enabled: bool,
     pub sfx_enabled: bool,
     pub theme_song: ThemeSong,
+    pub backend: AudioBackend,
     pub sfx_pack: SfxPack,
     pub theme_tempo_percent: u16,
     pub keypress_sfx: bool,
@@ -36,10 +54,11 @@ pub struct AudioSettings {
 impl Default for AudioSettings {
     fn default() -> Self {
         Self {
-            enabled: beep_is_available_in_path(),
+            enabled: any_audio_backend_is_available(),
             theme_enabled: true,
             sfx_enabled: true,
-            theme_song: ThemeSong::KorobeinikiA,
+            theme_song: ThemeSong::Korobeiniki,
+            backend: AudioBackend::Auto,
             sfx_pack: SfxPack::Classic,
             theme_tempo_percent: 100,
             keypress_sfx: true,
@@ -50,9 +69,22 @@ impl Default for AudioSettings {
     }
 }
 
-fn beep_is_available_in_path() -> bool {
-    Command::new("beep")
-        .arg("-h")
+fn any_audio_backend_is_available() -> bool {
+    audio_backend_is_available(AudioBackend::PcSpeakerBeep)
+        || audio_backend_is_available(AudioBackend::SoundCardSox)
+}
+
+pub fn audio_backend_is_available(backend: AudioBackend) -> bool {
+    match backend {
+        AudioBackend::Auto => any_audio_backend_is_available(),
+        AudioBackend::PcSpeakerBeep => command_is_available("beep", "-h"),
+        AudioBackend::SoundCardSox => command_is_available("sox", "--help"),
+    }
+}
+
+fn command_is_available(command: &str, probe_arg: &str) -> bool {
+    Command::new(command)
+        .arg(probe_arg)
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .status()

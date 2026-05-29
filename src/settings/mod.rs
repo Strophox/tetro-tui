@@ -4,7 +4,7 @@ mod game_mode_settings;
 mod gameplay_preferences;
 mod graphics_settings;
 
-pub use audio_settings::{AudioSettings, SfxPack, ThemeSong};
+pub use audio_settings::{AudioBackend, AudioSettings, SfxPack, ThemeSong, audio_backend_is_available};
 pub use game_keybinds::GameKeybinds;
 pub use game_mode_settings::{CustomModeConfig, GameModeSettings};
 pub use gameplay_preferences::GameplayPreferences;

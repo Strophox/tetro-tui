@@ -14,7 +14,7 @@ use crossterm::{
 
 use crate::{
     Application,
-    settings::{SfxPack, ThemeSong},
+    settings::{AudioBackend, SfxPack, audio_backend_is_available},
     tui_menus::{Menu, MenuUpdate, heading_line},
 };
 
@@ -51,6 +51,11 @@ impl<W: Write> Application<W> {
 
             let labels = [
                 format!("Audio enabled = {}", on_off(self.settings.audio.enabled)),
+                format!(
+                    "Audio output = {}{}",
+                    fmt_audio_backend(self.settings.audio.backend),
+                    backend_status_suffix(self.settings.audio.backend)
+                ),
                 format!(
                     "Theme (BGM) enabled = {}",
                     on_off(self.settings.audio.theme_enabled)
@@ -220,10 +225,15 @@ fn on_off(flag: bool) -> &'static str {
     if flag { "On" } else { "Off" }
 }
 
-fn fmt_theme_song(song: ThemeSong) -> &'static str {
-    match song {
-        ThemeSong::KorobeinikiA => "Korobeiniki A",
-        ThemeSong::KorobeinikiB => "Korobeiniki B",
+fn fmt_theme_song(_song: crate::settings::ThemeSong) -> &'static str {
+    "Korobeiniki"
+}
+
+fn fmt_audio_backend(backend: AudioBackend) -> &'static str {
+    match backend {
+        AudioBackend::Auto => "Auto (beep -> sox)",
+        AudioBackend::PcSpeakerBeep => "PC speaker (beep)",
+        AudioBackend::SoundCardSox => "Sound card (sox)",
     }
 }
 
@@ -237,33 +247,37 @@ fn fmt_sfx_pack(pack: SfxPack) -> &'static str {
 fn adjust_audio(settings: &mut crate::settings::AudioSettings, selected: usize, increase: bool) {
     match selected {
         0 => settings.enabled ^= true,
-        1 => settings.theme_enabled ^= true,
-        2 => settings.sfx_enabled ^= true,
-        3 => {
-            settings.theme_song = match (settings.theme_song, increase) {
-                (ThemeSong::KorobeinikiA, true) | (ThemeSong::KorobeinikiB, false) => {
-                    ThemeSong::KorobeinikiB
+        1 => {
+            settings.backend = match (settings.backend, increase) {
+                (AudioBackend::Auto, true) | (AudioBackend::PcSpeakerBeep, false) => {
+                    AudioBackend::PcSpeakerBeep
                 }
-                (ThemeSong::KorobeinikiB, true) | (ThemeSong::KorobeinikiA, false) => {
-                    ThemeSong::KorobeinikiA
+                (AudioBackend::PcSpeakerBeep, true) | (AudioBackend::SoundCardSox, false) => {
+                    AudioBackend::SoundCardSox
+                }
+                (AudioBackend::SoundCardSox, true) | (AudioBackend::Auto, false) => {
+                    AudioBackend::Auto
                 }
             };
         }
-        4 => {
+        2 => settings.theme_enabled ^= true,
+        3 => settings.sfx_enabled ^= true,
+        4 => {}
+        5 => {
             let delta = if increase { 5 } else { -5 };
             settings.theme_tempo_percent =
                 (i32::from(settings.theme_tempo_percent) + delta).clamp(20, 250) as u16;
         }
-        5 => {
+        6 => {
             settings.sfx_pack = match (settings.sfx_pack, increase) {
                 (SfxPack::Classic, true) | (SfxPack::Arcade, false) => SfxPack::Arcade,
                 (SfxPack::Arcade, true) | (SfxPack::Classic, false) => SfxPack::Classic,
             };
         }
-        6 => settings.keypress_sfx ^= true,
-        7 => settings.piece_lock_sfx ^= true,
-        8 => settings.line_clear_sfx ^= true,
-        9 => settings.game_over_sfx ^= true,
+        7 => settings.keypress_sfx ^= true,
+        8 => settings.piece_lock_sfx ^= true,
+        9 => settings.line_clear_sfx ^= true,
+        10 => settings.game_over_sfx ^= true,
         _ => {}
     }
 }
