@@ -139,15 +139,18 @@ fn audio_worker(receiver: mpsc::Receiver<AudioCommand>, settings: AudioSettings)
             break;
         }
 
-        if let Some(playback) = active_note.as_mut() {
-            if Instant::now() >= playback.deadline {
-                finish_active_note(&mut active_note);
-            }
+        if let Some(playback) = active_note.as_mut()
+            && Instant::now() >= playback.deadline
+        {
+            finish_active_note(&mut active_note);
         }
 
         if let Some(playback) = active_note.as_mut()
             && !queued_sfx.is_empty()
-            && matches!(playback.kind, PlaybackKind::Theme | PlaybackKind::ThemeResume)
+            && matches!(
+                playback.kind,
+                PlaybackKind::Theme | PlaybackKind::ThemeResume
+            )
         {
             let now = Instant::now();
             let remaining_duration_ms = playback
@@ -163,19 +166,22 @@ fn audio_worker(receiver: mpsc::Receiver<AudioCommand>, settings: AudioSettings)
                 .try_into()
                 .unwrap_or(u32::MAX);
 
-            theme_resume_note = (remaining_duration_ms > 0 || remaining_rest_ms > 0).then_some(
-                PlaybackNote {
+            theme_resume_note =
+                (remaining_duration_ms > 0 || remaining_rest_ms > 0).then_some(PlaybackNote {
                     frequency_hz: playback.note.frequency_hz,
                     duration_ms: remaining_duration_ms,
                     rest_ms: remaining_rest_ms,
-                },
-            );
+                });
             stop_active_note(&mut active_note);
         }
 
         if active_note.is_none() {
             if let Some(note) = theme_resume_note.take() {
-                active_note = Some(play_note(note, PlaybackKind::ThemeResume, &mut backend_state));
+                active_note = Some(play_note(
+                    note,
+                    PlaybackKind::ThemeResume,
+                    &mut backend_state,
+                ));
                 continue;
             }
 
@@ -216,7 +222,9 @@ fn audio_worker(receiver: mpsc::Receiver<AudioCommand>, settings: AudioSettings)
             .min(POLL_INTERVAL);
 
         match receiver.recv_timeout(timeout) {
-            Ok(AudioCommand::PlaySfx(effect)) => queued_sfx.push_back(notes_for_sfx(effect, settings)),
+            Ok(AudioCommand::PlaySfx(effect)) => {
+                queued_sfx.push_back(notes_for_sfx(effect, settings))
+            }
             Ok(AudioCommand::Stop) => stop_requested = true,
             Err(mpsc::RecvTimeoutError::Disconnected) => break,
             Err(mpsc::RecvTimeoutError::Timeout) => {}

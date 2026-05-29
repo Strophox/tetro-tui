@@ -281,3 +281,11 @@ fn adjust_audio(settings: &mut crate::settings::AudioSettings, selected: usize, 
         _ => {}
     }
 }
+
+fn backend_status_suffix(backend: AudioBackend) -> &'static str {
+    if audio_backend_is_available(backend) {
+        ""
+    } else {
+        " [missing]"
+    }
+}

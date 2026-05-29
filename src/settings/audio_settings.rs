@@ -1,7 +1,16 @@
 use std::process::{Command, Stdio};
 
 #[derive(
-    PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug, serde::Serialize, serde::Deserialize,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Clone,
+    Copy,
+    Debug,
+    serde::Serialize,
+    serde::Deserialize,
     Default,
 )]
 pub enum ThemeSong {
@@ -11,18 +20,23 @@ pub enum ThemeSong {
 }
 
 #[derive(
-    PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug, serde::Serialize, serde::Deserialize,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Clone,
+    Copy,
+    Debug,
+    serde::Serialize,
+    serde::Deserialize,
+    Default,
 )]
 pub enum AudioBackend {
+    #[default]
     Auto,
     PcSpeakerBeep,
     SoundCardSox,
-}
-
-impl Default for AudioBackend {
-    fn default() -> Self {
-        Self::Auto
-    }
 }
 
 #[derive(
