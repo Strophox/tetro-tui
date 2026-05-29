@@ -176,15 +176,6 @@ fn audio_worker(receiver: mpsc::Receiver<AudioCommand>, settings: AudioSettings)
         }
 
         if active_note.is_none() {
-            if let Some(note) = theme_resume_note.take() {
-                active_note = Some(play_note(
-                    note,
-                    PlaybackKind::ThemeResume,
-                    &mut backend_state,
-                ));
-                continue;
-            }
-
             if let Some(notes) = queued_sfx.front_mut() {
                 if let Some((note, rest)) = next_note_in_slice(notes) {
                     if rest.is_empty() {
@@ -200,6 +191,15 @@ fn audio_worker(receiver: mpsc::Receiver<AudioCommand>, settings: AudioSettings)
                     continue;
                 }
                 queued_sfx.pop_front();
+                continue;
+            }
+
+            if let Some(note) = theme_resume_note.take() {
+                active_note = Some(play_note(
+                    note,
+                    PlaybackKind::ThemeResume,
+                    &mut backend_state,
+                ));
                 continue;
             }
 
