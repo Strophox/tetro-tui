@@ -70,6 +70,7 @@ impl<W: Write> Application<W> {
                         .grab(self.settings.gameplay_selected)
                         .0
                 ),
+                "Adjust audio ...".to_owned(),
                 format!(
                     "Keep save file: {}",
                     match self.temp_data.save_on_exit {
@@ -214,11 +215,12 @@ impl<W: Write> Application<W> {
                     0 => break Ok(MenuUpdate::Push(Menu::AdjustGraphics)),
                     1 => break Ok(MenuUpdate::Push(Menu::AdjustKeybinds)),
                     2 => break Ok(MenuUpdate::Push(Menu::AdjustGameplay)),
-                    3 => {
+                    3 => break Ok(MenuUpdate::Push(Menu::AdjustAudio)),
+                    4 => {
                         self.temp_data.save_on_exit =
                             SavefileGranularity::StoreSettingsScoresReplays;
                     }
-                    4 => break Ok(MenuUpdate::Push(Menu::AdvancedSettings)),
+                    5 => break Ok(MenuUpdate::Push(Menu::AdvancedSettings)),
                     _ => {}
                 },
 
@@ -284,7 +286,7 @@ impl<W: Write> Application<W> {
                             self.settings.gameplay_selected %=
                                 self.settings.gameplay_slotmachine.slots.len();
                         }
-                        3 => {
+                        4 => {
                             self.temp_data.save_on_exit = match self.temp_data.save_on_exit {
                                 SavefileGranularity::NoSavefile
                                 | SavefileGranularity::StoreSettingsScores
@@ -296,7 +298,8 @@ impl<W: Write> Application<W> {
                                 }
                             };
                         }
-                        4 => {}
+                        3 => {}
+                        5 => {}
                         // No accessible options beyond.
                         _ => {}
                     }
@@ -326,7 +329,7 @@ impl<W: Write> Application<W> {
                             self.settings.gameplay_selected %=
                                 self.settings.gameplay_slotmachine.slots.len();
                         }
-                        3 => {
+                        4 => {
                             self.temp_data.save_on_exit = match self.temp_data.save_on_exit {
                                 SavefileGranularity::NoSavefile => {
                                     SavefileGranularity::StoreSettingsScoresReplays
@@ -338,7 +341,8 @@ impl<W: Write> Application<W> {
                                 }
                             };
                         }
-                        4 => {}
+                        3 => {}
+                        5 => {}
                         // No accessible options beyond.
                         _ => {}
                     }
@@ -360,10 +364,11 @@ impl<W: Write> Application<W> {
                         2 => {
                             self.settings.gameplay_selected = 0;
                         }
-                        3 => {
+                        4 => {
                             self.temp_data.save_on_exit = SavefileGranularity::NoSavefile;
                         }
-                        4 => {}
+                        3 => {}
+                        5 => {}
                         // No accessible options beyond.
                         _ => {}
                     }

@@ -5,6 +5,7 @@ use std::{
 };
 
 use crate::{
+    audio::AudioController,
     core_game_engine::{Button, Game, GameEndCause, Input, Notification, Phase, UpdateGameError},
     fmt_helpers::calc_game_keybinds_legend,
     terminal_buffers::TermCell,
@@ -90,6 +91,7 @@ impl<W: Write> Application<W> {
         let _thread_handle = input_catcher::spawn(input_sender, is_stop_event);
 
         let mut temp_statistics = Statistics::default();
+        let audio_controller = AudioController::new(self.settings.audio);
 
         // FIXME: Might falsely lead to a teleport if the player pressed move within the time window at the beginning.
         // But we don't care much, as for 'usual' values this should not really happen.
@@ -290,10 +292,14 @@ impl<W: Write> Application<W> {
                         raw_input_history
                             .inputs
                             .push((update_target_time, player_input));
+                        if matches!(player_input, Input::Activate(_)) {
+                            audio_controller.play_keypress();
+                        }
 
                         match game.update(update_target_time, Some(player_input)) {
                             Ok(msgs) => {
                                 temp_statistics.accumulate_from_feed(&msgs);
+                                audio_controller.play_from_notifications(&msgs);
                                 game_renderer.update_feed(msgs, &self.settings)
                             }
                             Err(UpdateGameError::AlreadyEnded) => break 'wait,
@@ -336,10 +342,12 @@ impl<W: Write> Application<W> {
                         let input = Input::Activate(button);
 
                         raw_input_history.inputs.push((update_target_time, input));
+                        audio_controller.play_keypress();
 
                         match game.update(update_target_time, Some(input)) {
                             Ok(msgs) => {
                                 temp_statistics.accumulate_from_feed(&msgs);
+                                audio_controller.play_from_notifications(&msgs);
                                 game_renderer.update_feed(msgs, &self.settings);
                             }
                             Err(UpdateGameError::AlreadyEnded) => break 'wait,
@@ -356,6 +364,7 @@ impl<W: Write> Application<W> {
                         match update_result {
                             Ok(msgs) => {
                                 temp_statistics.accumulate_from_feed(&msgs);
+                                audio_controller.play_from_notifications(&msgs);
                                 game_renderer.update_feed(msgs, &self.settings)
                             }
                             Err(UpdateGameError::AlreadyEnded) => break 'wait,
@@ -467,6 +476,7 @@ impl<W: Write> Application<W> {
                                 match game.forfeit() {
                                     Ok(msgs) => {
                                         temp_statistics.accumulate_from_feed(&msgs);
+                                        audio_controller.play_from_notifications(&msgs);
                                         game_renderer.update_feed(msgs, &self.settings);
                                     }
 
@@ -773,6 +783,7 @@ impl<W: Write> Application<W> {
                 // Update.
                 Ok(msgs) => {
                     temp_statistics.accumulate_from_feed(&msgs);
+                    audio_controller.play_from_notifications(&msgs);
                     game_renderer.update_feed(msgs, &self.settings)
                 }
 

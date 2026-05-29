@@ -1,8 +1,10 @@
+mod audio_settings;
 mod game_keybinds;
 mod game_mode_settings;
 mod gameplay_preferences;
 mod graphics_settings;
 
+pub use audio_settings::{AudioSettings, SfxPack, ThemeSong};
 pub use game_keybinds::GameKeybinds;
 pub use game_mode_settings::{CustomModeConfig, GameModeSettings};
 pub use gameplay_preferences::GameplayPreferences;
@@ -68,6 +70,9 @@ pub struct Settings {
     #[serde(rename = "GAMEPLAY_PREFERENCES_SLOTS")]
     pub gameplay_slotmachine: SlotMachine<GameplayPreferences>,
 
+    #[serde(default)]
+    pub audio: AudioSettings,
+
     #[serde(rename = "GAME_MODE_SETTINGS")]
     pub game_mode_preferences: GameModeSettings,
 }
@@ -92,6 +97,8 @@ impl Default for Settings {
 
             gameplay_selected: 0,
             gameplay_slotmachine: gameplay_settings_presets(),
+
+            audio: AudioSettings::default(),
 
             game_mode_preferences: GameModeSettings::default(),
         }

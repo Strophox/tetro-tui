@@ -1,3 +1,4 @@
+mod audio;
 mod core_game_engine;
 mod fmt_helpers;
 mod game_modding;
@@ -651,6 +652,7 @@ impl<W: Write> Application<W> {
                 ),
                 Menu::Pause => self.run_menu_pause(),
                 Menu::Settings => self.run_menu_settings(),
+                Menu::AdjustAudio => self.run_menu_adjust_audio(),
                 Menu::AdjustGraphics => self.run_menu_adjust_graphics(),
                 Menu::AdjustKeybinds => self.run_menu_adjust_keybinds(),
                 Menu::AdjustGameplay => self.run_menu_adjust_gameplay(),

@@ -1,4 +1,5 @@
 pub mod about;
+pub mod adjust_audio;
 pub mod adjust_gameplay;
 pub mod adjust_graphics;
 pub mod adjust_keybinds;
@@ -58,6 +59,7 @@ pub enum Menu {
     },
     Pause,
     Settings,
+    AdjustAudio,
     AdjustGraphics,
     AdjustKeybinds,
     AdjustGameplay,
@@ -99,6 +101,7 @@ impl Menu {
             // }
             Menu::Pause => "Pause",
             Menu::Settings => "Settings",
+            Menu::AdjustAudio => "Adjust Audio",
             Menu::AdjustGraphics => "Adjust Graphics",
             Menu::AdjustKeybinds => "Adjust Keybinds",
             Menu::AdjustGameplay => "Adjust Gameplay",
