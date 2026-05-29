@@ -39,7 +39,7 @@ impl Default for ComboConfig {
 }
 
 impl Combo {
-    pub const MOD_ID: &str = stringify!(Combo);
+    pub const MOD_ID: &str = "Combo";
 
     pub fn build(builder: &GameBuilder, config: ComboConfig) -> Game {
         let modifier = Box::new(Self {

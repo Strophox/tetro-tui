@@ -66,6 +66,7 @@ pub fn tile_coloring_presets() -> SlotMachine<TileColoring> {
             TileColoring::terminal_default(),
         ),
         ("Just white".to_owned(), TileColoring::white()),
+        ("Just black".to_owned(), TileColoring::black()),
         ("ANSI".to_owned(), TileColoring::ansi()),
         ("Tetro Pastel".to_owned(), TileColoring::tetro_pastel()),
         ("Guideline".to_owned(), TileColoring::guideline()),
@@ -335,6 +336,11 @@ impl TileColoring {
     pub fn white() -> Self {
         let white = "ffffff";
         new_simple_tile_coloring([white; 8], [white; 3])
+    }
+
+    pub fn black() -> Self {
+        let black = "000000";
+        new_simple_tile_coloring([black; 8], [black; 3])
     }
 
     pub fn ansi() -> Self {

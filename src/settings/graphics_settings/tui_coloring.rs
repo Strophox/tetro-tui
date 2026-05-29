@@ -35,7 +35,14 @@ pub struct TuiColoring {
 pub fn tui_coloring_presets() -> SlotMachine<TuiColoring> {
     let slots = vec![
         ("Terminal default".to_owned(), TuiColoring::term_default()),
-        ("Just black/white".to_owned(), TuiColoring::white_on_black()),
+        (
+            "Just white on black".to_owned(),
+            TuiColoring::white_on_black(),
+        ),
+        (
+            "Just black on white".to_owned(),
+            TuiColoring::black_on_white(),
+        ),
         ("Tetro Dark".to_owned(), TuiColoring::tetro_dark()),
         ("Gruvbox Dark".to_owned(), TuiColoring::gruvbox_dark()),
         ("Solarized Light".to_owned(), TuiColoring::solarized_light()),
@@ -199,6 +206,29 @@ impl TuiColoring {
             b: 255,
         };
         let bg = Color::Rgb { r: 0, g: 0, b: 0 };
+        TuiColoring {
+            fg_tui: fg,
+            fg_accent: fg,
+            fg_widgetframe: fg,
+            fg_boardframe: fg,
+            fg_grid: fg,
+
+            bg_tui: bg,
+            bg_widget: bg,
+            bg_boardframe: bg,
+            bg_board: bg,
+        }
+    }
+
+    pub fn black_on_white() -> Self {
+        // let fg = Color::Black;
+        // let bg = Color::White;
+        let fg = Color::Rgb { r: 0, g: 0, b: 0 };
+        let bg = Color::Rgb {
+            r: 255,
+            g: 255,
+            b: 255,
+        };
         TuiColoring {
             fg_tui: fg,
             fg_accent: fg,

@@ -43,7 +43,7 @@ impl Default for SurvivalConfig {
 }
 
 impl Survival {
-    pub const MOD_ID: &str = stringify!(Survival);
+    pub const MOD_ID: &str = "Survival";
 
     pub fn build(builder: &GameBuilder, config: SurvivalConfig) -> Game {
         let modifier = Box::new(Self {

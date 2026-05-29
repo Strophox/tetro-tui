@@ -53,11 +53,11 @@ impl<W: Write> Application<W> {
         // Unlock modes if specific modes beaten.
         if *is_win
             && game_meta_data.title == GameModeBlueprint::TITLE_REGULAR
-            && (!self.settings.game_mode_preferences.unlock_master_mode
-                || !self.settings.game_mode_preferences.unlock_classic_mode)
+            && (!self.settings.game_mode_settings.unlock_master_mode
+                || !self.settings.game_mode_settings.unlock_classic_mode)
         {
-            self.settings.game_mode_preferences.unlock_master_mode = true;
-            self.settings.game_mode_preferences.unlock_classic_mode = true;
+            self.settings.game_mode_settings.unlock_master_mode = true;
+            self.settings.game_mode_settings.unlock_classic_mode = true;
         } /*FIXME: Unused code: else if *is_win
         && game_meta_data.title == GameModePreset::TITLE_PUZZLE
         && !self.settings.game_mode_preferences.unlock_experimental_mode

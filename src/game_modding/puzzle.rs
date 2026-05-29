@@ -23,7 +23,7 @@ pub struct Puzzle {
 }
 
 impl Puzzle {
-    pub const MOD_ID: &str = stringify!(Puzzle);
+    pub const MOD_ID: &str = "Puzzle";
 
     pub fn build(builder: &GameBuilder) -> Game {
         let modifier = Box::new(Self {

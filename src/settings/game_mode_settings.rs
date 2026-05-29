@@ -46,6 +46,7 @@ pub struct CustomModeConfig {
     pub fall_curve: DelayCurve,
     pub lock_curve: Option<DelayCurve>,
     pub win_condition: Option<Stat>,
+    pub revive_on_top_out: bool,
 }
 
 impl Default for CustomModeConfig {
@@ -56,6 +57,7 @@ impl Default for CustomModeConfig {
             win_condition: None,
             seed: None,
             start_board: None,
+            revive_on_top_out: false,
         }
     }
 }

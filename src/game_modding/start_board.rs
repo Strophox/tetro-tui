@@ -1,5 +1,5 @@
 use crate::core_game_engine::{
-    Board, Game, GameAccess, GameBuilder, GameModifier, Line, MiscPceRots, MiscTetGens, TileType,
+    Board, GameAccess, GameModifier, Line, MiscPceRots, MiscTetGens, TileType,
 };
 
 use crate::savefile_logic::to_savefile_string;
@@ -14,12 +14,13 @@ pub struct StartBoard {
 }
 
 impl StartBoard {
-    pub const MOD_ID: &str = stringify!(StartBoard);
+    pub const MOD_ID: &str = "StartBoard";
 
-    pub fn build(builder: &GameBuilder, encoded_board: String) -> Game {
-        let modifier = Box::new(Self { encoded_board });
-
-        builder.build_modded(vec![modifier])
+    pub fn modifier(
+        encoded_board: String,
+    ) -> Box<dyn GameModifier<MiscTetGens, MiscPceRots, TileType>> {
+        let modifier = Self { encoded_board };
+        Box::new(modifier)
     }
 }
 

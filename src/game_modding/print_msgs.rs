@@ -17,7 +17,7 @@ pub struct PrintMsgs {
 }
 
 impl PrintMsgs {
-    pub const MOD_ID: &str = stringify!(PrintMsgs);
+    pub const MOD_ID: &str = "PrintMsgs";
 
     pub fn modifier(
         messages: Vec<String>,

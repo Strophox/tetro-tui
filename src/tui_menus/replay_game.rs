@@ -29,8 +29,8 @@ use crate::{
 
 #[derive(Debug)]
 pub struct GameSaveAnchor {
-    game: Game,
-    inputs_loaded: usize,
+    pub game: Game,
+    pub inputs_loaded: usize,
 }
 
 impl<W: Write> Application<W> {
@@ -342,7 +342,7 @@ impl<W: Write> Application<W> {
 
                             // [Ctrl+E]: Store seed.
                             (KeyCode::Char('e' | 'E'), KeyModifiers::CONTROL) => {
-                                self.settings.game_mode_preferences.custom_config.seed =
+                                self.settings.game_mode_settings.custom_config.seed =
                                     Some(game.state_init().seed);
 
                                 game_renderer.update_feed(
@@ -553,7 +553,7 @@ impl<W: Write> Application<W> {
 
                                 // FIXME: Instead clone renderer when entering live game from here?
                                 let the_game_renderer =
-                                    MiscGameRenderers::with_num(self.temp_data.renderer_used);
+                                    MiscGameRenderers::from_num(self.temp_data.renderer_used);
 
                                 self.statistics.new_games_started += 1;
 

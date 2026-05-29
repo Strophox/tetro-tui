@@ -75,7 +75,7 @@ pub enum MiscGameRenderers {
 impl MiscGameRenderers {
     pub const NUM_VARIANTS: usize = 3; //5;
 
-    pub fn with_num(n: usize) -> Self {
+    pub fn from_num(n: usize) -> Self {
         match n {
             0 => Self::MainBuf(MainBufRenderer::default()),
             1 => Self::Twoxel(TwoxelRenderer::default()),

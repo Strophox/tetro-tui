@@ -53,7 +53,7 @@ impl Default for CheeseConfig {
 }
 
 impl Cheese {
-    pub const MOD_ID: &str = stringify!(Cheese); // lol.
+    pub const MOD_ID: &str = "Cheese";
 
     pub fn build(builder: &GameBuilder, config: CheeseConfig) -> Game {
         let modifier = Box::new(Self {

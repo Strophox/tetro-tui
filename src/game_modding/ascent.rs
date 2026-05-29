@@ -21,7 +21,7 @@ pub struct Ascent {
 }
 
 impl Ascent {
-    pub const MOD_ID: &str = stringify!(Ascent);
+    pub const MOD_ID: &str = "Ascent";
 
     pub fn build(builder: &GameBuilder) -> Game {
         let modifier = Box::new(Self {

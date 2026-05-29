@@ -517,7 +517,7 @@ impl<W: Write> Application<W> {
                                 let game_meta_data = score_entry.game_meta_data.clone();
                                 let replay_length = score_entry.time;
                                 let game_renderer =
-                                    MiscGameRenderers::with_num(self.temp_data.renderer_used)
+                                    MiscGameRenderers::from_num(self.temp_data.renderer_used)
                                         .into();
                                 let cached_game_and_replay_anchors =
                                     calculate_game_and_replay_anchors(
@@ -527,6 +527,7 @@ impl<W: Write> Application<W> {
                                         REPLAY_ANCHOR_INTERVAL,
                                         replay_length,
                                     )?;
+
                                 break Ok(MenuUpdate::Push(Menu::ReplayGame {
                                     game_restoration_data: Box::new(game_restoration_data),
                                     game_meta_data,

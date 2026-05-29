@@ -14,7 +14,7 @@ pub struct DisplayFinesse {
 }
 
 impl DisplayFinesse {
-    pub const MOD_ID: &str = stringify!(DisplayFinesse);
+    pub const MOD_ID: &str = "DisplayFinesse";
 
     pub fn modifier() -> Box<dyn GameModifier<MiscTetGens, MiscPceRots, TileType>> {
         let modifier = DisplayFinesse {

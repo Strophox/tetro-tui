@@ -77,19 +77,19 @@ impl<W: Write> Application<W> {
             } else {
                 0
             };
-            let inc_if_mstr_unlckd = if self.settings.game_mode_preferences.unlock_master_mode {
+            let inc_if_mstr_unlckd = if self.settings.game_mode_settings.unlock_master_mode {
                 1
             } else {
                 0
             };
-            let inc_if_clsc_unlckd = if self.settings.game_mode_preferences.unlock_classic_mode {
+            let inc_if_clsc_unlckd = if self.settings.game_mode_settings.unlock_classic_mode {
                 1
             } else {
                 0
             };
             let opt_idx_classic = self
                 .settings
-                .game_mode_preferences
+                .game_mode_settings
                 .unlock_classic_mode
                 .then_some(2);
             let idx_cheese = 3 + inc_if_mstr_unlckd + inc_if_clsc_unlckd;
@@ -162,6 +162,25 @@ impl<W: Write> Application<W> {
                     ))?;
             }
             // Render custom mode option.
+            let added_custom_labels = [
+                self.settings
+                    .game_mode_settings
+                    .custom_config
+                    .seed
+                    .is_some()
+                    .then_some("+Seed"),
+                self.settings
+                    .game_mode_settings
+                    .custom_config
+                    .start_board
+                    .is_some()
+                    .then_some("+StartBoard"),
+                self.settings
+                    .game_mode_settings
+                    .custom_config
+                    .revive_on_top_out
+                    .then_some("+NoTopOut"),
+            ];
             self.term
                 .queue(MoveTo(
                     x_main,
@@ -174,7 +193,7 @@ impl<W: Write> Application<W> {
                             format!(
                                 "{:<42}",
                                 format!(
-                                    "{} Custom: [Del]=reset{}{}",
+                                    "{} Custom: [Del]=reset {}",
                                     if customization_selected == 0 {
                                         self.settings.tui_symbols().menu_pointers[0].clone()
                                     } else {
@@ -188,28 +207,11 @@ impl<W: Write> Application<W> {
                                             )
                                         )
                                     },
-                                    if self
-                                        .settings
-                                        .game_mode_preferences
-                                        .custom_config
-                                        .seed
-                                        .is_some()
-                                    {
-                                        " +seed"
-                                    } else {
-                                        ""
-                                    },
-                                    if self
-                                        .settings
-                                        .game_mode_preferences
-                                        .custom_config
-                                        .start_board
-                                        .is_some()
-                                    {
-                                        " +startboard"
-                                    } else {
-                                        ""
-                                    },
+                                    added_custom_labels
+                                        .into_iter()
+                                        .flatten()
+                                        .collect::<Vec<_>>()
+                                        .join(" ")
                                 ),
                             )
                         } else {
@@ -224,7 +226,7 @@ impl<W: Write> Application<W> {
                 let stats_strs = [
                     {
                         let fall_delay =
-                            match &self.settings.game_mode_preferences.custom_config.fall_curve {
+                            match &self.settings.game_mode_settings.custom_config.fall_curve {
                                 Either::Left(params) => params.base_delay(),
                                 Either::Right(table) => table.entries()[0],
                             };
@@ -236,7 +238,7 @@ impl<W: Write> Application<W> {
                     },
                     {
                         let is_constant =
-                            match &self.settings.game_mode_preferences.custom_config.fall_curve {
+                            match &self.settings.game_mode_settings.custom_config.fall_curve {
                                 Either::Left(params) => params.is_constant(),
                                 Either::Right(table) => table.entries().len() <= 1,
                             };
@@ -244,10 +246,7 @@ impl<W: Write> Application<W> {
                     },
                     format!(
                         "Limit = {:?} [→]",
-                        self.settings
-                            .game_mode_preferences
-                            .custom_config
-                            .win_condition
+                        self.settings.game_mode_settings.custom_config.win_condition
                     ),
                 ];
                 for (j, stat_str) in stats_strs.into_iter().enumerate() {
@@ -267,7 +266,7 @@ impl<W: Write> Application<W> {
                                     if customization_selected != 3
                                         || self
                                             .settings
-                                            .game_mode_preferences
+                                            .game_mode_settings
                                             .custom_config
                                             .win_condition
                                             .is_some()
@@ -347,7 +346,7 @@ impl<W: Write> Application<W> {
                         ].into_iter().map(|(lhs,rhs)| (lhs.to_owned(), rhs.to_owned())).collect()),
                         ("Special keybinds".to_owned(), [
                             ("Home/End", "Set graviy to zero/infinite for Custom mode, Jump to first/last input for game save"),
-                            ("Alt+←/→ Alt+h/l", "Toggle easier lock delay for Classic mode, Adjust start layout for Combo mode"),
+                            ("Alt+←/→ Alt+h/l", "Toggle easier lock delay for Classic mode, Adjust start layout for Combo mode, Toggle NoTopOut for Custom mode"),
                             ("Alt+↓/↑ Alt+j/k", "Multiply/divide initial fall delay of Custom mode by 10"),
                             ("Alt+Enter", "View game save as replay"),
                             ("Ctrl+U", "Unlock all game modes"),
@@ -395,7 +394,7 @@ impl<W: Write> Application<W> {
                             game_restoration_data: Box::new(game_restoration_data.clone()),
                             game_meta_data: game_meta_data.clone(),
                             replay_length,
-                            game_renderer: Box::new(MiscGameRenderers::with_num(
+                            game_renderer: Box::new(MiscGameRenderers::from_num(
                                 self.temp_data.renderer_used,
                             )),
                             cached_game_and_replay_anchors: Box::new(
@@ -423,11 +422,7 @@ impl<W: Write> Application<W> {
                         match customization_selected {
                             // Increase Custom mode's Base delay.
                             1 => {
-                                match &mut self
-                                    .settings
-                                    .game_mode_preferences
-                                    .custom_config
-                                    .fall_curve
+                                match &mut self.settings.game_mode_settings.custom_config.fall_curve
                                 {
                                     Either::Left(params) => {
                                         // Increase custom fall delay.
@@ -461,16 +456,14 @@ impl<W: Write> Application<W> {
                                         };
 
                                         // Adjust lock curve to either be decreasing or infinite as well.
-                                        self.settings
-                                            .game_mode_preferences
-                                            .custom_config
-                                            .lock_curve = if new_fall_base_delay.is_infinite() {
-                                            Some(Either::Left(DelayParameters::constant(
-                                                ExtDuration::Infinite,
-                                            )))
-                                        } else {
-                                            Some(Either::Left(DelayParameters::standard_lock()))
-                                        };
+                                        self.settings.game_mode_settings.custom_config.lock_curve =
+                                            if new_fall_base_delay.is_infinite() {
+                                                Some(Either::Left(DelayParameters::constant(
+                                                    ExtDuration::Infinite,
+                                                )))
+                                            } else {
+                                                Some(Either::Left(DelayParameters::standard_lock()))
+                                            };
 
                                         *params = params
                                             .with_base_delay(new_fall_base_delay)
@@ -479,25 +472,17 @@ impl<W: Write> Application<W> {
                                     }
                                     Either::Right(_table) => {
                                         // Can't toggle progression for custom tables right now, just reset to parameterization.
-                                        self.settings
-                                            .game_mode_preferences
-                                            .custom_config
-                                            .fall_curve = CustomModeConfig::default().fall_curve;
-                                        self.settings
-                                            .game_mode_preferences
-                                            .custom_config
-                                            .lock_curve = CustomModeConfig::default().lock_curve;
+                                        self.settings.game_mode_settings.custom_config.fall_curve =
+                                            CustomModeConfig::default().fall_curve;
+                                        self.settings.game_mode_settings.custom_config.lock_curve =
+                                            CustomModeConfig::default().lock_curve;
                                     }
                                 }
                             }
 
                             // Toggle progressive gravity.
                             2 => {
-                                match &mut self
-                                    .settings
-                                    .game_mode_preferences
-                                    .custom_config
-                                    .fall_curve
+                                match &mut self.settings.game_mode_settings.custom_config.fall_curve
                                 {
                                     Either::Left(params) => {
                                         // Toggle decreasing fall/lock delay.
@@ -513,7 +498,7 @@ impl<W: Write> Application<W> {
                                                 .unwrap();
                                             if let Some(lock_curve) = &mut self
                                                 .settings
-                                                .game_mode_preferences
+                                                .game_mode_settings
                                                 .custom_config
                                                 .lock_curve
                                             {
@@ -535,7 +520,7 @@ impl<W: Write> Application<W> {
                                                 .unwrap();
                                             if let Some(lock_curve) = &mut self
                                                 .settings
-                                                .game_mode_preferences
+                                                .game_mode_settings
                                                 .custom_config
                                                 .lock_curve
                                             {
@@ -551,24 +536,15 @@ impl<W: Write> Application<W> {
                                     }
                                     Either::Right(_table) => {
                                         // Can't toggle progression for custom tables right now, just reset to parameterization.
-                                        self.settings
-                                            .game_mode_preferences
-                                            .custom_config
-                                            .fall_curve = CustomModeConfig::default().fall_curve;
-                                        self.settings
-                                            .game_mode_preferences
-                                            .custom_config
-                                            .lock_curve = CustomModeConfig::default().lock_curve;
+                                        self.settings.game_mode_settings.custom_config.fall_curve =
+                                            CustomModeConfig::default().fall_curve;
+                                        self.settings.game_mode_settings.custom_config.lock_curve =
+                                            CustomModeConfig::default().lock_curve;
                                     }
                                 }
                             }
                             3 => {
-                                match self
-                                    .settings
-                                    .game_mode_preferences
-                                    .custom_config
-                                    .win_condition
-                                {
+                                match self.settings.game_mode_settings.custom_config.win_condition {
                                     Some(Stat::TimeElapsed(ref mut t)) => {
                                         *t += d_time;
                                     }
@@ -603,11 +579,7 @@ impl<W: Write> Application<W> {
                         match customization_selected {
                             // Dencrease Custom mode's Base delay.
                             1 => {
-                                match &mut self
-                                    .settings
-                                    .game_mode_preferences
-                                    .custom_config
-                                    .fall_curve
+                                match &mut self.settings.game_mode_settings.custom_config.fall_curve
                                 {
                                     Either::Left(params) => {
                                         // Increase custom fall delay.
@@ -637,16 +609,14 @@ impl<W: Write> Application<W> {
                                         };
 
                                         // Adjust lock curve to either be decreasing or infinite as well.
-                                        self.settings
-                                            .game_mode_preferences
-                                            .custom_config
-                                            .lock_curve = if new_fall_base_delay.is_infinite() {
-                                            Some(Either::Left(DelayParameters::constant(
-                                                ExtDuration::Infinite,
-                                            )))
-                                        } else {
-                                            Configuration::default().lock_delay_curve
-                                        };
+                                        self.settings.game_mode_settings.custom_config.lock_curve =
+                                            if new_fall_base_delay.is_infinite() {
+                                                Some(Either::Left(DelayParameters::constant(
+                                                    ExtDuration::Infinite,
+                                                )))
+                                            } else {
+                                                Configuration::default().lock_delay_curve
+                                            };
 
                                         *params = params
                                             .with_base_delay(new_fall_base_delay)
@@ -655,25 +625,17 @@ impl<W: Write> Application<W> {
                                     }
                                     Either::Right(_table) => {
                                         // Can't toggle progression for custom tables right now, just reset to parameterization.
-                                        self.settings
-                                            .game_mode_preferences
-                                            .custom_config
-                                            .fall_curve = CustomModeConfig::default().fall_curve;
-                                        self.settings
-                                            .game_mode_preferences
-                                            .custom_config
-                                            .lock_curve = CustomModeConfig::default().lock_curve;
+                                        self.settings.game_mode_settings.custom_config.fall_curve =
+                                            CustomModeConfig::default().fall_curve;
+                                        self.settings.game_mode_settings.custom_config.lock_curve =
+                                            CustomModeConfig::default().lock_curve;
                                     }
                                 }
                             }
 
                             // Toggle progressive gravity.
                             2 => {
-                                match &mut self
-                                    .settings
-                                    .game_mode_preferences
-                                    .custom_config
-                                    .fall_curve
+                                match &mut self.settings.game_mode_settings.custom_config.fall_curve
                                 {
                                     Either::Left(params) => {
                                         // Toggle decreasing fall/lock delay.
@@ -689,7 +651,7 @@ impl<W: Write> Application<W> {
                                                 .unwrap();
                                             if let Some(lock_curve) = &mut self
                                                 .settings
-                                                .game_mode_preferences
+                                                .game_mode_settings
                                                 .custom_config
                                                 .lock_curve
                                             {
@@ -711,7 +673,7 @@ impl<W: Write> Application<W> {
                                                 .unwrap();
                                             if let Some(lock_curve) = &mut self
                                                 .settings
-                                                .game_mode_preferences
+                                                .game_mode_settings
                                                 .custom_config
                                                 .lock_curve
                                             {
@@ -727,25 +689,16 @@ impl<W: Write> Application<W> {
                                     }
                                     Either::Right(_table) => {
                                         // Can't toggle progression for custom tables right now, just reset to parameterization.
-                                        self.settings
-                                            .game_mode_preferences
-                                            .custom_config
-                                            .fall_curve = CustomModeConfig::default().fall_curve;
-                                        self.settings
-                                            .game_mode_preferences
-                                            .custom_config
-                                            .lock_curve = CustomModeConfig::default().lock_curve;
+                                        self.settings.game_mode_settings.custom_config.fall_curve =
+                                            CustomModeConfig::default().fall_curve;
+                                        self.settings.game_mode_settings.custom_config.lock_curve =
+                                            CustomModeConfig::default().lock_curve;
                                     }
                                 }
                             }
 
                             3 => {
-                                match self
-                                    .settings
-                                    .game_mode_preferences
-                                    .custom_config
-                                    .win_condition
-                                {
+                                match self.settings.game_mode_settings.custom_config.win_condition {
                                     Some(Stat::TimeElapsed(ref mut t)) => {
                                         *t = t.saturating_sub(d_time);
                                     }
@@ -776,24 +729,28 @@ impl<W: Write> Application<W> {
                     modifiers,
                     ..
                 }) => {
-                    if selected == idx_custom && customization_selected > 0 {
-                        customization_selected += customization_selection_size - 1
-                    } else if Some(selected) == opt_idx_classic {
+                    if selected == idx_custom {
                         if modifiers.contains(KeyModifiers::ALT) {
                             self.settings
-                                .game_mode_preferences
-                                .classic_easier_lock_delay ^= true;
+                                .game_mode_settings
+                                .custom_config
+                                .revive_on_top_out ^= true;
+                        } else if customization_selected > 0 {
+                            customization_selected += customization_selection_size - 1
+                        }
+                    } else if Some(selected) == opt_idx_classic {
+                        if modifiers.contains(KeyModifiers::ALT) {
+                            self.settings.game_mode_settings.classic_easier_lock_delay ^= true;
                         } else {
-                            self.settings.game_mode_preferences.classic_lvl_offset = self
+                            self.settings.game_mode_settings.classic_lvl_offset = self
                                 .settings
-                                .game_mode_preferences
+                                .game_mode_settings
                                 .classic_lvl_offset
                                 .saturating_sub(1);
                         }
                     } else if selected == idx_cheese {
-                        if let Some(limit) = self.settings.game_mode_preferences.cheese_config.limit
-                        {
-                            self.settings.game_mode_preferences.cheese_config.limit =
+                        if let Some(limit) = self.settings.game_mode_settings.cheese_config.limit {
+                            self.settings.game_mode_settings.cheese_config.limit =
                                 if limit > minval_cheese {
                                     NonZeroU32::try_from(limit.get() - 1).ok()
                                 } else {
@@ -806,7 +763,7 @@ impl<W: Write> Application<W> {
                                 Combo::LAYOUTS.iter().position(|lay| {
                                     *lay == self
                                         .settings
-                                        .game_mode_preferences
+                                        .game_mode_settings
                                         .combo_config
                                         .start_layout
                                 }) {
@@ -815,14 +772,12 @@ impl<W: Write> Application<W> {
                             } else {
                                 0
                             };
-                            self.settings
-                                .game_mode_preferences
-                                .combo_config
-                                .start_layout = Combo::LAYOUTS[new_layout_idx];
+                            self.settings.game_mode_settings.combo_config.start_layout =
+                                Combo::LAYOUTS[new_layout_idx];
                         } else if let Some(limit) =
-                            self.settings.game_mode_preferences.combo_config.limit
+                            self.settings.game_mode_settings.combo_config.limit
                         {
-                            self.settings.game_mode_preferences.combo_config.limit =
+                            self.settings.game_mode_settings.combo_config.limit =
                                 if limit > minval_combo {
                                     NonZeroU32::try_from(limit.get() - 1).ok()
                                 } else {
@@ -875,52 +830,46 @@ impl<W: Write> Application<W> {
                 }) => {
                     // If custom gamemode selected, allow incrementing stat selection.
                     if selected == idx_custom {
-                        // If reached last stat, cycle through stats for limit.
-                        if customization_selected == customization_selection_size - 1 {
+                        if modifiers.contains(KeyModifiers::ALT) {
                             self.settings
-                                .game_mode_preferences
+                                .game_mode_settings
                                 .custom_config
-                                .win_condition = match self
-                                .settings
-                                .game_mode_preferences
-                                .custom_config
-                                .win_condition
-                            {
-                                Some(Stat::TimeElapsed(_)) => Some(Stat::PointsScored(200)),
-                                Some(Stat::PointsScored(_)) => Some(Stat::PiecesLocked(100)),
-                                Some(Stat::PiecesLocked(_)) => Some(Stat::LinesCleared(40)),
-                                Some(Stat::LinesCleared(_)) => None,
-                                None => Some(Stat::TimeElapsed(Duration::from_secs(300))),
-                            };
+                                .revive_on_top_out ^= true;
+                        // If reached last stat, cycle through stats for limit.
+                        } else if customization_selected == customization_selection_size - 1 {
+                            self.settings.game_mode_settings.custom_config.win_condition =
+                                match self.settings.game_mode_settings.custom_config.win_condition {
+                                    Some(Stat::TimeElapsed(_)) => Some(Stat::PointsScored(200)),
+                                    Some(Stat::PointsScored(_)) => Some(Stat::PiecesLocked(100)),
+                                    Some(Stat::PiecesLocked(_)) => Some(Stat::LinesCleared(40)),
+                                    Some(Stat::LinesCleared(_)) => None,
+                                    None => Some(Stat::TimeElapsed(Duration::from_secs(300))),
+                                };
                         } else {
                             customization_selected += 1
                         }
                     } else if Some(selected) == opt_idx_classic {
                         if modifiers.contains(KeyModifiers::ALT) {
-                            self.settings
-                                .game_mode_preferences
-                                .classic_easier_lock_delay ^= true;
+                            self.settings.game_mode_settings.classic_easier_lock_delay ^= true;
                         } else {
-                            self.settings.game_mode_preferences.classic_lvl_offset =
-                                (self.settings.game_mode_preferences.classic_lvl_offset + 1)
-                                    .min(29);
+                            self.settings.game_mode_settings.classic_lvl_offset =
+                                (self.settings.game_mode_settings.classic_lvl_offset + 1).min(29);
                         }
                     } else if selected == idx_cheese {
-                        self.settings.game_mode_preferences.cheese_config.limit =
-                            if let Some(limit) =
-                                self.settings.game_mode_preferences.cheese_config.limit
-                            {
-                                limit.checked_add(1)
-                            } else {
-                                Some(minval_cheese)
-                            };
+                        self.settings.game_mode_settings.cheese_config.limit = if let Some(limit) =
+                            self.settings.game_mode_settings.cheese_config.limit
+                        {
+                            limit.checked_add(1)
+                        } else {
+                            Some(minval_cheese)
+                        };
                     } else if selected == idx_combo {
                         if modifiers.contains(KeyModifiers::ALT) {
                             let new_layout_idx = if let Some(i) =
                                 Combo::LAYOUTS.iter().position(|lay| {
                                     *lay == self
                                         .settings
-                                        .game_mode_preferences
+                                        .game_mode_settings
                                         .combo_config
                                         .start_layout
                                 }) {
@@ -929,14 +878,12 @@ impl<W: Write> Application<W> {
                             } else {
                                 0
                             };
-                            self.settings
-                                .game_mode_preferences
-                                .combo_config
-                                .start_layout = Combo::LAYOUTS[new_layout_idx];
+                            self.settings.game_mode_settings.combo_config.start_layout =
+                                Combo::LAYOUTS[new_layout_idx];
                         } else {
-                            self.settings.game_mode_preferences.combo_config.limit =
+                            self.settings.game_mode_settings.combo_config.limit =
                                 if let Some(limit) =
-                                    self.settings.game_mode_preferences.combo_config.limit
+                                    self.settings.game_mode_settings.combo_config.limit
                                 {
                                     limit.checked_add(1)
                                 } else {
@@ -969,9 +916,9 @@ impl<W: Write> Application<W> {
                     if selected == idx_custom
                     /*&& customization_selected == customization_selection_size - 1*/
                     {
-                        self.settings.game_mode_preferences.custom_config.fall_curve =
+                        self.settings.game_mode_settings.custom_config.fall_curve =
                             Either::Left(DelayParameters::constant(ExtDuration::Infinite));
-                        self.settings.game_mode_preferences.custom_config.lock_curve = Some(
+                        self.settings.game_mode_settings.custom_config.lock_curve = Some(
                             Either::Left(DelayParameters::constant(ExtDuration::Infinite)),
                         );
                     } else if Some(selected) == opt_idx_game_save
@@ -991,9 +938,9 @@ impl<W: Write> Application<W> {
                     if selected == idx_custom
                     /*&& customization_selected == customization_selection_size - 1*/
                     {
-                        self.settings.game_mode_preferences.custom_config.fall_curve =
+                        self.settings.game_mode_settings.custom_config.fall_curve =
                             Either::Left(DelayParameters::constant(ExtDuration::ZERO));
-                        self.settings.game_mode_preferences.custom_config.lock_curve =
+                        self.settings.game_mode_settings.custom_config.lock_curve =
                             Configuration::default().lock_delay_curve;
                     } else if Some(selected) == opt_idx_game_save
                         && let Some(GameSave {
@@ -1014,27 +961,23 @@ impl<W: Write> Application<W> {
                     ..
                 }) => {
                     if selected == idx_custom {
-                        self.settings.game_mode_preferences.custom_config =
+                        self.settings.game_mode_settings.custom_config =
                             CustomModeConfig::default();
                     } else if Some(selected) == opt_idx_classic {
                         if modifiers.contains(KeyModifiers::ALT) {
-                            self.settings
-                                .game_mode_preferences
-                                .classic_easier_lock_delay = false;
+                            self.settings.game_mode_settings.classic_easier_lock_delay = false;
                         } else {
-                            self.settings.game_mode_preferences.classic_lvl_offset = 0;
+                            self.settings.game_mode_settings.classic_lvl_offset = 0;
                         }
                     } else if selected == idx_cheese {
-                        self.settings.game_mode_preferences.cheese_config.limit =
+                        self.settings.game_mode_settings.cheese_config.limit =
                             GameModeSettings::default().cheese_config.limit;
                     } else if selected == idx_combo {
                         if modifiers.contains(KeyModifiers::ALT) {
-                            self.settings
-                                .game_mode_preferences
-                                .combo_config
-                                .start_layout = Combo::LAYOUTS[0];
+                            self.settings.game_mode_settings.combo_config.start_layout =
+                                Combo::LAYOUTS[0];
                         } else {
-                            self.settings.game_mode_preferences.combo_config.limit =
+                            self.settings.game_mode_settings.combo_config.limit =
                                 GameModeSettings::default().combo_config.limit;
                         }
                     } else if Some(selected) == opt_idx_game_save {
@@ -1050,9 +993,9 @@ impl<W: Write> Application<W> {
                     kind: Press | Repeat,
                     ..
                 }) => {
-                    self.settings.game_mode_preferences.unlock_master_mode = true;
-                    self.settings.game_mode_preferences.unlock_classic_mode = true;
-                    self.settings.game_mode_preferences.unlock_experimental_mode = true;
+                    self.settings.game_mode_settings.unlock_master_mode = true;
+                    self.settings.game_mode_settings.unlock_classic_mode = true;
+                    self.settings.game_mode_settings.unlock_experimental_mode = true;
                 }
 
                 // Other event: don't care.
@@ -1074,33 +1017,29 @@ impl<W: Write> Application<W> {
             GameModeBlueprint::swift(),
             GameModeBlueprint::puzzle(),
             GameModeBlueprint::cheese(
-                self.settings.game_mode_preferences.cheese_config,
-                self.settings
-                    .game_mode_preferences
-                    .cheese_fall_and_lock_delays,
+                self.settings.game_mode_settings.cheese_config,
+                self.settings.game_mode_settings.cheese_fall_and_lock_delays,
             ),
-            GameModeBlueprint::survival(self.settings.game_mode_preferences.survival_config),
-            GameModeBlueprint::combo(self.settings.game_mode_preferences.combo_config),
+            GameModeBlueprint::survival(self.settings.game_mode_settings.survival_config),
+            GameModeBlueprint::combo(self.settings.game_mode_settings.combo_config),
         ];
 
-        if self.settings.game_mode_preferences.unlock_master_mode {
+        if self.settings.game_mode_settings.unlock_master_mode {
             game_modes.insert(2, GameModeBlueprint::master());
         }
 
-        if self.settings.game_mode_preferences.unlock_classic_mode {
+        if self.settings.game_mode_settings.unlock_classic_mode {
             // ...Do not ask the programmer about what indices to use for `insert` results.
             game_modes.insert(
                 2,
                 GameModeBlueprint::classic(
-                    self.settings.game_mode_preferences.classic_lvl_offset,
-                    self.settings
-                        .game_mode_preferences
-                        .classic_easier_lock_delay,
+                    self.settings.game_mode_settings.classic_lvl_offset,
+                    self.settings.game_mode_settings.classic_easier_lock_delay,
                 ),
             );
         }
 
-        if self.settings.game_mode_preferences.unlock_experimental_mode {
+        if self.settings.game_mode_settings.unlock_experimental_mode {
             game_modes.push(GameModeBlueprint::ascent())
         }
 
@@ -1191,7 +1130,7 @@ impl<W: Write> Application<W> {
             )
         } else {
             // Build custom game.
-            let n = &self.settings.game_mode_preferences;
+            let n = &self.settings.game_mode_settings;
 
             builder
                 .fall_delay_curve(n.custom_config.fall_curve.clone())
@@ -1206,13 +1145,20 @@ impl<W: Write> Application<W> {
                 builder.seed(seed);
             }
 
+            let mut compounding_mods = Vec::new();
+
             // Optionally load custom board.
-            let new_custom_game = if let Some(encoded_board) = &n.custom_config.start_board {
-                game_modding::StartBoard::build(&builder, encoded_board.clone())
-            // Otherwise just build a normal custom game.
-            } else {
-                builder.build()
-            };
+            if let Some(encoded_board) = &n.custom_config.start_board {
+                let modifier = game_modding::StartBoard::modifier(encoded_board.clone());
+                compounding_mods.push(modifier);
+            }
+
+            if n.custom_config.revive_on_top_out {
+                let modifier = game_modding::ReviveTopOut::modifier();
+                compounding_mods.push(modifier);
+            }
+
+            let new_custom_game = builder.build_modded(compounding_mods);
 
             let title = match n.custom_config.win_condition {
                 Some(stat) => match stat {
@@ -1244,9 +1190,10 @@ impl<W: Write> Application<W> {
         // FIXME: Unused code: modifier addition.
         // game.modifiers.push(game_mode_blueprints::game_modifiers::print_fall_delay::modifier());
         // game.modifiers.push(game_mode_blueprints::game_modifiers::misc_modifiers::print_recency_tet_gen_stats::modifier());
+        // game.modifiers.push(crate::game_modding::Autorevive::modifier());
         // game.modifiers.push(crate::tetromino_engine::Modifier { descriptor: "always_clear_board".to_owned(), mod_function: Box::new(|_c, _i, s, _m, _f| { s.board = Default::default(); })});
 
-        let mut game_renderer = MiscGameRenderers::with_num(self.temp_data.renderer_used);
+        let mut game_renderer = MiscGameRenderers::from_num(self.temp_data.renderer_used);
 
         // We do an initial update, which allows a piece to spawn and queue to get generated.
         // We do this so the renderer does not render a first frame when game is in its raw start state.

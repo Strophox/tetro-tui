@@ -88,7 +88,7 @@ impl Default for GraphicsSettings {
     fn default() -> Self {
         GraphicsSettings {
             tui_coloring_selected: 0,            // No color
-            tile_coloring_selected: 3,           // Okpalette
+            tile_coloring_selected: 4,           // Okpalette
             tui_symbols_selected: 1,             // Unicode
             tile_symbols_selected: 1,            // Unicode
             hard_drop_selected: 1,               // ASCII particles
@@ -115,7 +115,7 @@ impl GraphicsSettings {
     pub fn extra_focus() -> Self {
         GraphicsSettings {
             tui_coloring_selected: 0,            // No color
-            tile_coloring_selected: 4,           // Standard
+            tile_coloring_selected: 5,           // Standard
             tui_symbols_selected: 4,             // Unicode
             tile_symbols_selected: 1,            // Unicode
             hard_drop_selected: 0,               // None
@@ -140,7 +140,7 @@ impl GraphicsSettings {
     pub fn guideline() -> Self {
         GraphicsSettings {
             tui_coloring_selected: 0,            // No color
-            tile_coloring_selected: 4,           // Standard
+            tile_coloring_selected: 5,           // Standard
             tui_symbols_selected: 2,             // Rounded Unicode
             tile_symbols_selected: 1,            // Unicode
             hard_drop_selected: 4,               // Solid beam Unicode
@@ -190,7 +190,7 @@ impl GraphicsSettings {
     pub fn compatibility() -> Self {
         GraphicsSettings {
             tui_coloring_selected: 0,            // No color
-            tile_coloring_selected: 2,           // ANSI
+            tile_coloring_selected: 3,           // ANSI
             tui_symbols_selected: 0,             // ASCII
             tile_symbols_selected: 0,            // ASCII
             hard_drop_selected: 1,               // ASCII particles
@@ -214,8 +214,8 @@ impl GraphicsSettings {
 
     pub fn elektronika_60() -> Self {
         GraphicsSettings {
-            tui_coloring_selected: 7,            // Just amber
-            tile_coloring_selected: 11,          // Just amber
+            tui_coloring_selected: 8,            // Just amber
+            tile_coloring_selected: 12,          // Just amber
             tui_symbols_selected: 6,             // Elektronika 60
             tile_symbols_selected: 4,            // Elektronika 60
             hard_drop_selected: 0,               // None
@@ -239,8 +239,8 @@ impl GraphicsSettings {
 
     pub fn nes() -> Self {
         GraphicsSettings {
-            tui_coloring_selected: 8,            // NES
-            tile_coloring_selected: 12,          // NES levels
+            tui_coloring_selected: 9,            // NES
+            tile_coloring_selected: 13,          // NES levels
             tui_symbols_selected: 1,             // Unicode
             tile_symbols_selected: 3,            // NES
             hard_drop_selected: 2,               // Particle 2 ASCII
@@ -264,8 +264,8 @@ impl GraphicsSettings {
 
     pub fn minimal() -> Self {
         GraphicsSettings {
-            tui_coloring_selected: 9,            // OneHalfDark
-            tile_coloring_selected: 1,           // Monochrome
+            tui_coloring_selected: 10,           // OneHalfDark
+            tile_coloring_selected: 1,           // Just white
             tui_symbols_selected: 3,             // Borderless-Next/Hold Unicode
             tile_symbols_selected: 1,            // Unicode
             hard_drop_selected: 0,               // None

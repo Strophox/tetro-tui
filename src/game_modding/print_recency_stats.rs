@@ -10,7 +10,7 @@ use crate::core_game_engine::{
 pub struct PrintRecencyStats;
 
 impl PrintRecencyStats {
-    pub const MOD_ID: &str = stringify!(PrintRecencyStats);
+    pub const MOD_ID: &str = "PrintRecencyStats";
 
     pub fn modifier() -> Box<dyn GameModifier<MiscTetGens, MiscPceRots, TileType>> {
         Box::new(Self)
