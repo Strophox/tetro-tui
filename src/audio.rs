@@ -300,14 +300,13 @@ fn finish_active_note(active_note: &mut Option<ActiveNotePlayback>) {
 
 fn stop_active_note(active_note: &mut Option<ActiveNotePlayback>) -> bool {
     let mut was_playing = false;
-    if let Some(playback) = active_note.as_mut() {
+    if let Some(mut playback) = active_note.take() {
         was_playing = playback.child.is_some();
         if let Some(child) = playback.child.as_mut() {
             let _ = child.kill();
             let _ = child.wait();
         }
     }
-    *active_note = None;
     was_playing
 }
 
@@ -365,7 +364,9 @@ fn play_notes_blocking(
 }
 
 fn wait_for_note_completion(mut playback: ActiveNotePlayback) {
-    if let Some(child) = playback.child.as_mut() {
+    if let Some(child) = playback.child.as_mut()
+        && !matches!(child.try_wait(), Ok(Some(_)))
+    {
         let _ = child.wait();
     }
 
