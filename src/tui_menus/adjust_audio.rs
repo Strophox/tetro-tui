@@ -231,8 +231,9 @@ fn fmt_theme_song(_song: crate::settings::ThemeSong) -> &'static str {
 
 fn fmt_audio_backend(backend: AudioBackend) -> &'static str {
     match backend {
-        AudioBackend::Auto => "Auto (beep -> sox)",
+        AudioBackend::Auto => "Auto (beep -> midi -> sox)",
         AudioBackend::PcSpeakerBeep => "PC speaker (beep)",
+        AudioBackend::SoundCardMidi => "Sound card (MIDI / timidity)",
         AudioBackend::SoundCardSox => "Sound card (sox)",
     }
 }
@@ -252,7 +253,10 @@ fn adjust_audio(settings: &mut crate::settings::AudioSettings, selected: usize, 
                 (AudioBackend::Auto, true) | (AudioBackend::PcSpeakerBeep, false) => {
                     AudioBackend::PcSpeakerBeep
                 }
-                (AudioBackend::PcSpeakerBeep, true) | (AudioBackend::SoundCardSox, false) => {
+                (AudioBackend::PcSpeakerBeep, true) | (AudioBackend::SoundCardMidi, false) => {
+                    AudioBackend::SoundCardMidi
+                }
+                (AudioBackend::SoundCardMidi, true) | (AudioBackend::SoundCardSox, false) => {
                     AudioBackend::SoundCardSox
                 }
                 (AudioBackend::SoundCardSox, true) | (AudioBackend::Auto, false) => {

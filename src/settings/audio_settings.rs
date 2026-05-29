@@ -36,6 +36,7 @@ pub enum AudioBackend {
     #[default]
     Auto,
     PcSpeakerBeep,
+    SoundCardMidi,
     SoundCardSox,
 }
 
@@ -85,6 +86,7 @@ impl Default for AudioSettings {
 
 fn any_audio_backend_is_available() -> bool {
     audio_backend_is_available(AudioBackend::PcSpeakerBeep)
+        || audio_backend_is_available(AudioBackend::SoundCardMidi)
         || audio_backend_is_available(AudioBackend::SoundCardSox)
 }
 
@@ -92,6 +94,7 @@ pub fn audio_backend_is_available(backend: AudioBackend) -> bool {
     match backend {
         AudioBackend::Auto => any_audio_backend_is_available(),
         AudioBackend::PcSpeakerBeep => command_is_available("beep", "-h"),
+        AudioBackend::SoundCardMidi => command_is_available("timidity", "--help"),
         AudioBackend::SoundCardSox => command_is_available("sox", "--help"),
     }
 }
