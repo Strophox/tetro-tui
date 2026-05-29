@@ -298,8 +298,6 @@ impl<W: Write> Application<W> {
                                 }
                             };
                         }
-                        3 => {}
-                        5 => {}
                         // No accessible options beyond.
                         _ => {}
                     }
@@ -341,8 +339,6 @@ impl<W: Write> Application<W> {
                                 }
                             };
                         }
-                        3 => {}
-                        5 => {}
                         // No accessible options beyond.
                         _ => {}
                     }
@@ -367,8 +363,6 @@ impl<W: Write> Application<W> {
                         4 => {
                             self.temp_data.save_on_exit = SavefileGranularity::NoSavefile;
                         }
-                        3 => {}
-                        5 => {}
                         // No accessible options beyond.
                         _ => {}
                     }

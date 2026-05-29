@@ -1,11 +1,4 @@
-use std::{
-    collections::VecDeque,
-    io::Write,
-    process::Command,
-    sync::mpsc,
-    thread,
-    time::Duration,
-};
+use std::{collections::VecDeque, io::Write, process::Command, sync::mpsc, thread, time::Duration};
 
 use crate::{
     core_game_engine::{Notification, NotificationFeed},
@@ -30,6 +23,13 @@ struct Note {
 enum AudioCommand {
     PlaySfx(SoundEffect),
     Stop,
+}
+
+#[derive(Clone, Copy, Debug)]
+enum PcSpkrAvailability {
+    Unknown,
+    Available,
+    Unavailable,
 }
 
 pub struct AudioController {
@@ -70,7 +70,9 @@ impl AudioController {
                     self.send(AudioCommand::PlaySfx(SoundEffect::PieceLock));
                 }
                 Notification::Accolade { lineclears, .. } if self.settings.line_clear_sfx => {
-                    self.send(AudioCommand::PlaySfx(SoundEffect::LineClear { lines: *lineclears }));
+                    self.send(AudioCommand::PlaySfx(SoundEffect::LineClear {
+                        lines: *lineclears,
+                    }));
                 }
                 Notification::GameEnded { is_win: false, .. } if self.settings.game_over_sfx => {
                     self.send(AudioCommand::PlaySfx(SoundEffect::GameOver));
@@ -97,10 +99,13 @@ fn audio_worker(receiver: mpsc::Receiver<AudioCommand>, settings: AudioSettings)
     let mut queued_sfx: VecDeque<&'static [Note]> = VecDeque::new();
     let mut theme_index = 0usize;
     let mut stop = false;
+    let mut pcspkr_availability = PcSpkrAvailability::Unknown;
 
     while !stop {
         match receiver.recv_timeout(Duration::from_millis(5)) {
-            Ok(AudioCommand::PlaySfx(effect)) => queued_sfx.push_back(notes_for_sfx(effect, settings)),
+            Ok(AudioCommand::PlaySfx(effect)) => {
+                queued_sfx.push_back(notes_for_sfx(effect, settings))
+            }
             Ok(AudioCommand::Stop) => stop = true,
             Err(mpsc::RecvTimeoutError::Disconnected) => break,
             Err(mpsc::RecvTimeoutError::Timeout) => {}
@@ -108,7 +113,9 @@ fn audio_worker(receiver: mpsc::Receiver<AudioCommand>, settings: AudioSettings)
 
         while let Ok(command) = receiver.try_recv() {
             match command {
-                AudioCommand::PlaySfx(effect) => queued_sfx.push_back(notes_for_sfx(effect, settings)),
+                AudioCommand::PlaySfx(effect) => {
+                    queued_sfx.push_back(notes_for_sfx(effect, settings))
+                }
                 AudioCommand::Stop => {
                     stop = true;
                     break;
@@ -121,7 +128,11 @@ fn audio_worker(receiver: mpsc::Receiver<AudioCommand>, settings: AudioSettings)
         }
 
         if let Some(notes) = queued_sfx.pop_front() {
-            play_notes(notes, settings.theme_tempo_percent.max(20));
+            play_notes(
+                notes,
+                settings.theme_tempo_percent.max(MIN_TEMPO_PERCENT),
+                &mut pcspkr_availability,
+            );
             continue;
         }
 
@@ -129,20 +140,24 @@ fn audio_worker(receiver: mpsc::Receiver<AudioCommand>, settings: AudioSettings)
             let theme = theme_notes(settings.theme_song);
             let note = theme[theme_index % theme.len()];
             theme_index += 1;
-            play_note(note, settings.theme_tempo_percent.max(20));
+            play_note(
+                note,
+                settings.theme_tempo_percent.max(MIN_TEMPO_PERCENT),
+                &mut pcspkr_availability,
+            );
         } else {
             thread::sleep(Duration::from_millis(10));
         }
     }
 }
 
-fn play_notes(notes: &[Note], tempo_percent: u16) {
+fn play_notes(notes: &[Note], tempo_percent: u16, pcspkr_availability: &mut PcSpkrAvailability) {
     for note in notes {
-        play_note(*note, tempo_percent);
+        play_note(*note, tempo_percent, pcspkr_availability);
     }
 }
 
-fn play_note(note: Note, tempo_percent: u16) {
+fn play_note(note: Note, tempo_percent: u16, pcspkr_availability: &mut PcSpkrAvailability) {
     let scaled_duration_ms = (u32::from(note.duration_ms) * 100)
         .checked_div(u32::from(tempo_percent))
         .unwrap_or(u32::from(note.duration_ms))
@@ -155,17 +170,33 @@ fn play_note(note: Note, tempo_percent: u16) {
     if note.frequency_hz == 0 {
         thread::sleep(Duration::from_millis(u64::from(scaled_duration_ms)));
     } else {
-        let status = Command::new("beep")
-            .arg("-f")
-            .arg(note.frequency_hz.to_string())
-            .arg("-l")
-            .arg(scaled_duration_ms.to_string())
-            .status();
+        let beep_result = if matches!(pcspkr_availability, PcSpkrAvailability::Unavailable) {
+            Err(std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                "pcspkr/beep not available",
+            ))
+        } else {
+            Command::new("beep")
+                .arg("-f")
+                .arg(note.frequency_hz.to_string())
+                .arg("-l")
+                .arg(scaled_duration_ms.to_string())
+                .status()
+                .map(|_| ())
+        };
 
-        if status.is_err() {
+        if let Err(err) = beep_result {
+            if matches!(
+                err.kind(),
+                std::io::ErrorKind::NotFound | std::io::ErrorKind::PermissionDenied
+            ) {
+                *pcspkr_availability = PcSpkrAvailability::Unavailable;
+            }
             let _ = std::io::stdout().write_all(b"\x07");
             let _ = std::io::stdout().flush();
             thread::sleep(Duration::from_millis(u64::from(scaled_duration_ms)));
+        } else {
+            *pcspkr_availability = PcSpkrAvailability::Available;
         }
     }
 
@@ -283,12 +314,8 @@ const SFX_GAME_OVER_CLASSIC: [Note; 6] = [
 
 const SFX_KEYPRESS_ARCADE: [Note; 2] = [n(988, 18, 2), n(1175, 20, 3)];
 const SFX_PIECE_LOCK_ARCADE: [Note; 3] = [n(440, 22, 2), n(349, 24, 2), n(262, 45, 4)];
-const SFX_LINE_CLEAR_ARCADE: [Note; 4] = [
-    n(659, 35, 2),
-    n(784, 35, 2),
-    n(988, 35, 2),
-    n(1175, 70, 8),
-];
+const SFX_LINE_CLEAR_ARCADE: [Note; 4] =
+    [n(659, 35, 2), n(784, 35, 2), n(988, 35, 2), n(1175, 70, 8)];
 const SFX_LINE_CLEAR_TETRIS_ARCADE: [Note; 6] = [
     n(523, 32, 2),
     n(659, 32, 2),
@@ -313,3 +340,5 @@ const fn n(frequency_hz: u16, duration_ms: u16, rest_ms: u16) -> Note {
         rest_ms,
     }
 }
+
+const MIN_TEMPO_PERCENT: u16 = 20;

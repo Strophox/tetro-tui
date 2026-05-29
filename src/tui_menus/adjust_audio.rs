@@ -55,17 +55,35 @@ impl<W: Write> Application<W> {
                     "Theme (BGM) enabled = {}",
                     on_off(self.settings.audio.theme_enabled)
                 ),
-                format!("Sound effects enabled = {}", on_off(self.settings.audio.sfx_enabled)),
-                format!("Theme song = {}", fmt_theme_song(self.settings.audio.theme_song)),
+                format!(
+                    "Sound effects enabled = {}",
+                    on_off(self.settings.audio.sfx_enabled)
+                ),
+                format!(
+                    "Theme song = {}",
+                    fmt_theme_song(self.settings.audio.theme_song)
+                ),
                 format!(
                     "Theme tempo = {}%",
                     self.settings.audio.theme_tempo_percent.clamp(20, 250)
                 ),
                 format!("SFX pack = {}", fmt_sfx_pack(self.settings.audio.sfx_pack)),
-                format!("Keypress SFX = {}", on_off(self.settings.audio.keypress_sfx)),
-                format!("Piece lock SFX = {}", on_off(self.settings.audio.piece_lock_sfx)),
-                format!("Line clear SFX = {}", on_off(self.settings.audio.line_clear_sfx)),
-                format!("Game over SFX = {}", on_off(self.settings.audio.game_over_sfx)),
+                format!(
+                    "Keypress SFX = {}",
+                    on_off(self.settings.audio.keypress_sfx)
+                ),
+                format!(
+                    "Piece lock SFX = {}",
+                    on_off(self.settings.audio.piece_lock_sfx)
+                ),
+                format!(
+                    "Line clear SFX = {}",
+                    on_off(self.settings.audio.line_clear_sfx)
+                ),
+                format!(
+                    "Game over SFX = {}",
+                    on_off(self.settings.audio.game_over_sfx)
+                ),
             ];
 
             let selection_len = labels.len();
@@ -157,15 +175,21 @@ impl<W: Write> Application<W> {
 
                 Event::Key(KeyEvent {
                     code: KeyCode::Right | KeyCode::Char('l' | 'L'),
+                    modifiers,
                     kind: Press | Repeat,
                     ..
-                }) => adjust_audio(&mut self.settings.audio, selected, true),
+                }) if !modifiers.contains(KeyModifiers::CONTROL.union(KeyModifiers::ALT)) => {
+                    adjust_audio(&mut self.settings.audio, selected, true)
+                }
 
                 Event::Key(KeyEvent {
                     code: KeyCode::Left | KeyCode::Char('h' | 'H'),
+                    modifiers,
                     kind: Press | Repeat,
                     ..
-                }) => adjust_audio(&mut self.settings.audio, selected, false),
+                }) if !modifiers.contains(KeyModifiers::CONTROL.union(KeyModifiers::ALT)) => {
+                    adjust_audio(&mut self.settings.audio, selected, false)
+                }
 
                 Event::Key(KeyEvent {
                     code: KeyCode::Char('l' | 'L'),
