@@ -135,7 +135,9 @@ fn audio_worker(receiver: mpsc::Receiver<AudioCommand>, settings: AudioSettings)
 
     loop {
         if stop_requested {
-            stop_active_note(&mut active_note);
+            if stop_active_note(&mut active_note) {
+                reset_backend(backend_state);
+            }
             break;
         }
 
@@ -226,7 +228,7 @@ fn audio_worker(receiver: mpsc::Receiver<AudioCommand>, settings: AudioSettings)
                 queued_sfx.push_back(notes_for_sfx(effect, settings))
             }
             Ok(AudioCommand::Stop) => stop_requested = true,
-            Err(mpsc::RecvTimeoutError::Disconnected) => break,
+            Err(mpsc::RecvTimeoutError::Disconnected) => stop_requested = true,
             Err(mpsc::RecvTimeoutError::Timeout) => {}
         }
 
@@ -261,14 +263,33 @@ fn finish_active_note(active_note: &mut Option<ActiveNotePlayback>) {
     *active_note = None;
 }
 
-fn stop_active_note(active_note: &mut Option<ActiveNotePlayback>) {
-    if let Some(playback) = active_note.as_mut()
-        && let Some(child) = playback.child.as_mut()
-    {
-        let _ = child.kill();
-        let _ = child.wait();
+fn stop_active_note(active_note: &mut Option<ActiveNotePlayback>) -> bool {
+    let mut was_playing = false;
+    if let Some(playback) = active_note.as_mut() {
+        was_playing = playback.child.is_some();
+        if let Some(child) = playback.child.as_mut() {
+            let _ = child.kill();
+            let _ = child.wait();
+        }
     }
     *active_note = None;
+    was_playing
+}
+
+fn reset_backend(backend_state: AudioBackendState) {
+    if matches!(
+        backend_state,
+        AudioBackendState::Active(AudioBackend::PcSpeakerBeep)
+    ) {
+        let _ = Command::new("beep")
+            .arg("-f")
+            .arg("440")
+            .arg("-l")
+            .arg("0")
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status();
+    }
 }
 
 fn play_note(
