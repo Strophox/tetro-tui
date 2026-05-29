@@ -98,15 +98,15 @@ impl Drop for AudioController {
 fn audio_worker(receiver: mpsc::Receiver<AudioCommand>, settings: AudioSettings) {
     let mut queued_sfx: VecDeque<&'static [Note]> = VecDeque::new();
     let mut theme_index = 0usize;
-    let mut stop = false;
+    let mut stop_requested = false;
     let mut pcspkr_availability = PcSpkrAvailability::Unknown;
 
-    while !stop {
+    loop {
         match receiver.recv_timeout(Duration::from_millis(5)) {
             Ok(AudioCommand::PlaySfx(effect)) => {
                 queued_sfx.push_back(notes_for_sfx(effect, settings))
             }
-            Ok(AudioCommand::Stop) => stop = true,
+            Ok(AudioCommand::Stop) => stop_requested = true,
             Err(mpsc::RecvTimeoutError::Disconnected) => break,
             Err(mpsc::RecvTimeoutError::Timeout) => {}
         }
@@ -117,14 +117,9 @@ fn audio_worker(receiver: mpsc::Receiver<AudioCommand>, settings: AudioSettings)
                     queued_sfx.push_back(notes_for_sfx(effect, settings))
                 }
                 AudioCommand::Stop => {
-                    stop = true;
-                    break;
+                    stop_requested = true;
                 }
             }
-        }
-
-        if stop {
-            break;
         }
 
         if let Some(notes) = queued_sfx.pop_front() {
@@ -134,6 +129,10 @@ fn audio_worker(receiver: mpsc::Receiver<AudioCommand>, settings: AudioSettings)
                 &mut pcspkr_availability,
             );
             continue;
+        }
+
+        if stop_requested {
+            break;
         }
 
         if settings.theme_enabled {
@@ -232,65 +231,79 @@ fn theme_notes(song: ThemeSong) -> &'static [Note] {
 }
 
 const THEME_KOROBEINIKI_A: [Note; 32] = [
-    n(659, 125, 10),
-    n(494, 63, 10),
-    n(523, 63, 10),
-    n(587, 125, 10),
-    n(523, 63, 10),
-    n(494, 63, 10),
-    n(440, 125, 10),
-    n(440, 63, 10),
-    n(523, 63, 10),
-    n(659, 125, 10),
-    n(587, 63, 10),
-    n(523, 63, 10),
-    n(494, 188, 20),
-    n(523, 63, 10),
-    n(587, 125, 10),
-    n(659, 125, 10),
-    n(523, 125, 10),
-    n(440, 125, 10),
-    n(440, 125, 10),
-    n(0, 63, 15),
-    n(587, 125, 10),
-    n(698, 63, 10),
-    n(880, 125, 10),
-    n(784, 63, 10),
-    n(698, 63, 10),
-    n(659, 188, 15),
-    n(523, 63, 10),
-    n(659, 125, 10),
-    n(587, 63, 10),
-    n(523, 63, 10),
-    n(494, 188, 20),
-    n(0, 63, 15),
+    n(659, 400, 12),
+    n(494, 200, 12),
+    n(523, 200, 12),
+    n(587, 400, 12),
+    n(523, 200, 12),
+    n(494, 200, 12),
+    n(440, 400, 12),
+    n(440, 200, 12),
+    n(523, 200, 12),
+    n(659, 400, 12),
+    n(587, 200, 12),
+    n(523, 200, 12),
+    n(494, 600, 20),
+    n(523, 200, 12),
+    n(587, 400, 12),
+    n(659, 400, 12),
+    n(523, 400, 12),
+    n(440, 400, 12),
+    n(440, 400, 12),
+    n(0, 200, 15),
+    n(587, 400, 12),
+    n(698, 200, 12),
+    n(880, 400, 12),
+    n(784, 200, 12),
+    n(698, 200, 12),
+    n(659, 600, 15),
+    n(523, 200, 12),
+    n(659, 400, 12),
+    n(587, 200, 12),
+    n(523, 200, 12),
+    n(494, 600, 20),
+    n(0, 200, 15),
 ];
 
-const THEME_KOROBEINIKI_B: [Note; 24] = [
-    n(659, 150, 8),
-    n(523, 75, 8),
-    n(587, 75, 8),
-    n(659, 150, 8),
-    n(587, 75, 8),
-    n(523, 75, 8),
-    n(494, 150, 8),
-    n(494, 75, 8),
-    n(587, 75, 8),
-    n(698, 150, 8),
-    n(659, 75, 8),
-    n(587, 75, 8),
-    n(523, 150, 8),
-    n(523, 75, 8),
-    n(587, 75, 8),
-    n(659, 150, 8),
-    n(698, 75, 8),
-    n(784, 75, 8),
-    n(880, 225, 18),
-    n(784, 75, 8),
-    n(698, 75, 8),
-    n(659, 150, 8),
-    n(587, 150, 8),
-    n(0, 75, 20),
+const THEME_KOROBEINIKI_B: [Note; 38] = [
+    n(659, 400, 12),
+    n(494, 200, 12),
+    n(523, 200, 12),
+    n(587, 400, 12),
+    n(523, 200, 12),
+    n(494, 200, 12),
+    n(440, 400, 12),
+    n(440, 200, 12),
+    n(523, 200, 12),
+    n(659, 400, 12),
+    n(587, 200, 12),
+    n(523, 200, 12),
+    n(494, 600, 12),
+    n(523, 200, 12),
+    n(587, 400, 12),
+    n(659, 400, 12),
+    n(523, 400, 12),
+    n(440, 400, 12),
+    n(440, 800, 20),
+    n(0, 200, 12),
+    n(587, 400, 12),
+    n(740, 200, 12),
+    n(880, 400, 12),
+    n(784, 200, 12),
+    n(740, 200, 12),
+    n(659, 600, 12),
+    n(523, 200, 12),
+    n(659, 400, 12),
+    n(587, 200, 12),
+    n(523, 200, 12),
+    n(494, 400, 12),
+    n(494, 200, 12),
+    n(523, 200, 12),
+    n(587, 400, 12),
+    n(659, 400, 12),
+    n(523, 400, 12),
+    n(440, 400, 12),
+    n(440, 800, 20),
 ];
 
 const SFX_KEYPRESS_CLASSIC: [Note; 1] = [n(880, 22, 3)];

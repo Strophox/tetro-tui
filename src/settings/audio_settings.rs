@@ -1,3 +1,5 @@
+use std::process::{Command, Stdio};
+
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug, serde::Serialize, serde::Deserialize,
 )]
@@ -34,7 +36,7 @@ pub struct AudioSettings {
 impl Default for AudioSettings {
     fn default() -> Self {
         Self {
-            enabled: false,
+            enabled: beep_is_available_in_path(),
             theme_enabled: true,
             sfx_enabled: true,
             theme_song: ThemeSong::KorobeinikiA,
@@ -46,4 +48,13 @@ impl Default for AudioSettings {
             game_over_sfx: true,
         }
     }
+}
+
+fn beep_is_available_in_path() -> bool {
+    Command::new("beep")
+        .arg("-h")
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()
+        .is_ok()
 }
