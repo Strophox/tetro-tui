@@ -26,7 +26,7 @@ impl Puzzle {
     pub const MOD_ID: &str = "Puzzle";
 
     pub fn build(builder: &GameBuilder) -> Game {
-        let modifier = Box::new(Self {
+        let modifier = Box::new(Puzzle {
             init: false,
             stage_idx: 0,
             stage_tet_count: 0,

@@ -17,11 +17,10 @@ impl DisplayFinesse {
     pub const MOD_ID: &str = "DisplayFinesse";
 
     pub fn modifier() -> Box<dyn GameModifier<MiscTetGens, MiscPceRots, TileType>> {
-        let modifier = DisplayFinesse {
+        Box::new(DisplayFinesse {
             player_inputs_counted: 0,
             cached_display_values: [("Finesse".to_owned(), 0.to_string())],
-        };
-        Box::new(modifier)
+        })
     }
 }
 

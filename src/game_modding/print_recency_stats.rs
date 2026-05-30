@@ -13,7 +13,7 @@ impl PrintRecencyStats {
     pub const MOD_ID: &str = "PrintRecencyStats";
 
     pub fn modifier() -> Box<dyn GameModifier<MiscTetGens, MiscPceRots, TileType>> {
-        Box::new(Self)
+        Box::new(PrintRecencyStats)
     }
 }
 

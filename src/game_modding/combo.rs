@@ -42,7 +42,7 @@ impl Combo {
     pub const MOD_ID: &str = "Combo";
 
     pub fn build(builder: &GameBuilder, config: ComboConfig) -> Game {
-        let modifier = Box::new(Self {
+        let modifier = Box::new(Combo {
             config,
             height_loaded: 0,
             cached_display_values: [("Current Combo".to_string(), 0.to_string())],

@@ -20,10 +20,9 @@ impl ReviveTopOut {
     pub const MOD_ID: &str = "ReviveTopOut";
 
     pub fn modifier() -> Box<dyn GameModifier<MiscTetGens, MiscPceRots, TileType>> {
-        let modifier = ReviveTopOut {
+        Box::new(ReviveTopOut {
             display_values: [("No Top Out".to_owned(), "on".to_owned())],
-        };
-        Box::new(modifier)
+        })
     }
 }
 

@@ -67,7 +67,7 @@ impl<W: Write> Application<W> {
             let fmt_stat = |p: &ScoreSummary| {
                 let show_stat = match sorting {
                     ScoreboardSorting::Chronological | ScoreboardSorting::ModeDependent => {
-                        p.game_meta_data.objective_sort_descending.0
+                        p.game_meta_data.objective_orderdescending.0
                     }
                     ScoreboardSorting::GameStat(stat) => stat,
                 };

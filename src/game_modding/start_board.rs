@@ -19,8 +19,7 @@ impl StartBoard {
     pub fn modifier(
         encoded_board: String,
     ) -> Box<dyn GameModifier<MiscTetGens, MiscPceRots, TileType>> {
-        let modifier = Self { encoded_board };
-        Box::new(modifier)
+        Box::new(StartBoard { encoded_board })
     }
 }
 

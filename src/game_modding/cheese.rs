@@ -56,7 +56,7 @@ impl Cheese {
     pub const MOD_ID: &str = "Cheese";
 
     pub fn build(builder: &GameBuilder, config: CheeseConfig) -> Game {
-        let modifier = Box::new(Self {
+        let modifier = Box::new(Cheese {
             config,
             cheese_eaten: 0,
             temp_last_clear_actual_cheese_lines: 0,
@@ -64,7 +64,7 @@ impl Cheese {
             last_hole_pattern_generated: Vec::new(),
             cached_display_values: [
                 ("Cheese eaten".to_owned(), 0.to_string()),
-                ("Efficiency".to_owned(), Self::fmt_efficiency(0, 0)),
+                ("Efficiency".to_owned(), Cheese::fmt_efficiency(0, 0)),
             ],
         });
 

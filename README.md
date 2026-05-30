@@ -111,9 +111,10 @@ cargo run
 > - *(unlocked after Regular)* Master: Clear 320 lines at instant gravity.
 > - Puzzle: Clear 24 hand-crafted puzzles (feat. the Ocular rotation system)
 > - Cheese-40: Efficiently eat through some lines. Limit∈[None, Some(10), Some(11), .., Some(40), ..]
-> - Combo-30: Get consecutive line clears. Limit∈[None, Some(10), Some(11), .., Some(30), ..]
 > - Survival: Lines regenerate as you place more pieces.
-> - Ascent: Experimental gamemode (requires 180° rot.)
+> - Combo-30: Get consecutive line clears. Limit∈[None, Some(10), Some(11), .., Some(30), ..]
+> - *(unlocked with Ctrl+U)* Placement: Practice placing pieces.
+> - *(unlocked with Ctrl+U)* Ascent: Experimental gamemode (requires 180° rot.)
 > - Custom: [Del]=reset
 >   * Initial fall delay = 1.000000000s (Gravity: 1.00 Hz)
 >   * Progressive gravity ∈ [on, off]

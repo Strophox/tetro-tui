@@ -17,15 +17,16 @@ pub enum TileType {
 
 impl TileType {
     pub const VARIANTS: [TileType; 8] = {
+        let [t0, t1, t2, t3, t4, t5, t6] = Tetromino::VARIANTS;
         use TileType::*;
         [
-            Tet(Tetromino::I),
-            Tet(Tetromino::O),
-            Tet(Tetromino::S),
-            Tet(Tetromino::Z),
-            Tet(Tetromino::T),
-            Tet(Tetromino::L),
-            Tet(Tetromino::J),
+            Tet(t0),
+            Tet(t1),
+            Tet(t2),
+            Tet(t3),
+            Tet(t4),
+            Tet(t5),
+            Tet(t6),
             Generic,
         ]
     };

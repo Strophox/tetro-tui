@@ -24,7 +24,7 @@ impl Ascent {
     pub const MOD_ID: &str = "Ascent";
 
     pub fn build(builder: &GameBuilder) -> Game {
-        let modifier = Box::new(Self {
+        let modifier = Box::new(Ascent {
             height_loaded: 0,
             cached_display_values: [("Height ascended".to_owned(), 0.to_string())],
         });

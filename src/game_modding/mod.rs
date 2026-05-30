@@ -2,6 +2,7 @@ mod ascent;
 mod cheese;
 mod combo;
 mod display_finesse;
+mod placement_practice;
 mod print_msgs;
 #[allow(unused)]
 mod print_recency_stats;
@@ -20,6 +21,7 @@ pub use ascent::Ascent;
 pub use cheese::{Cheese, CheeseConfig};
 pub use combo::{Combo, ComboConfig};
 pub use display_finesse::DisplayFinesse;
+pub use placement_practice::PlacementPractice;
 pub use print_msgs::PrintMsgs;
 pub use puzzle::Puzzle;
 pub use revive_top_out::ReviveTopOut;
@@ -79,6 +81,9 @@ pub fn reconstruct_modded<'a>(
         } else if mod_id == Combo::MOD_ID {
             let config: ComboConfig = get_mod_config(mod_cfg_str, mod_id)?;
             let build = Box::new(move |builder| Combo::build(builder, config));
+            store_finalizing_mod(mod_id, build)?;
+        } else if mod_id == PlacementPractice::MOD_ID {
+            let build = Box::new(PlacementPractice::build);
             store_finalizing_mod(mod_id, build)?;
         } else if mod_id == StartBoard::MOD_ID {
             let encoded_board: String = get_mod_config(mod_cfg_str, mod_id)?;

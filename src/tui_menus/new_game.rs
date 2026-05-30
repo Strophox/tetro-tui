@@ -126,7 +126,7 @@ impl<W: Write> Application<W> {
                     title,
                     description,
                     show_stats_hud: _,
-                    objective_sort_descending: _,
+                    objective_orderdescending: _,
                     build: _,
                 },
             ) in game_modes.iter().enumerate()
@@ -995,7 +995,8 @@ impl<W: Write> Application<W> {
                 }) => {
                     self.settings.game_mode_settings.unlock_master_mode = true;
                     self.settings.game_mode_settings.unlock_classic_mode = true;
-                    self.settings.game_mode_settings.unlock_experimental_mode = true;
+                    self.settings.game_mode_settings.unlock_placement_mode = true;
+                    self.settings.game_mode_settings.unlock_ascent_mode = true;
                 }
 
                 // Other event: don't care.
@@ -1039,7 +1040,11 @@ impl<W: Write> Application<W> {
             );
         }
 
-        if self.settings.game_mode_settings.unlock_experimental_mode {
+        if self.settings.game_mode_settings.unlock_placement_mode {
+            game_modes.push(GameModeBlueprint::placement_practice())
+        }
+
+        if self.settings.game_mode_settings.unlock_ascent_mode {
             game_modes.push(GameModeBlueprint::ascent())
         }
 
@@ -1083,7 +1088,7 @@ impl<W: Write> Application<W> {
                 title,
                 description: _,
                 show_stats_hud,
-                objective_sort_descending,
+                objective_orderdescending: objective_sort_descending,
                 build,
             } = &game_modes[selection];
 
@@ -1093,7 +1098,7 @@ impl<W: Write> Application<W> {
                 timestamp: generate_timestamp(),
                 title: title.to_owned(),
                 show_stats: *show_stats_hud,
-                objective_sort_descending: *objective_sort_descending,
+                objective_orderdescending: *objective_sort_descending,
             };
 
             let blank_input_history = RawInputHistory::default();
@@ -1177,7 +1182,7 @@ impl<W: Write> Application<W> {
                 timestamp: generate_timestamp(),
                 title,
                 show_stats: CUSTOM_SHOW_STATS,
-                objective_sort_descending: (Stat::PointsScored(0), false),
+                objective_orderdescending: (Stat::PointsScored(0), false),
             };
             let blank_input_history = RawInputHistory::default();
             (

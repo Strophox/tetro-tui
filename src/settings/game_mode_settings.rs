@@ -17,7 +17,8 @@ pub struct GameModeSettings {
     pub custom_config: CustomModeConfig,
     pub unlock_master_mode: bool,
     pub unlock_classic_mode: bool,
-    pub unlock_experimental_mode: bool,
+    pub unlock_placement_mode: bool,
+    pub unlock_ascent_mode: bool,
 }
 
 impl Default for GameModeSettings {
@@ -32,7 +33,8 @@ impl Default for GameModeSettings {
             custom_config: CustomModeConfig::default(),
             unlock_master_mode: false,
             unlock_classic_mode: false,
-            unlock_experimental_mode: false,
+            unlock_placement_mode: false,
+            unlock_ascent_mode: false,
         }
     }
 }

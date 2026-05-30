@@ -22,7 +22,7 @@ impl PrintMsgs {
     pub fn modifier(
         messages: Vec<String>,
     ) -> Box<dyn GameModifier<MiscTetGens, MiscPceRots, TileType>> {
-        Box::new(Self {
+        Box::new(PrintMsgs {
             messages,
             init: false,
         })

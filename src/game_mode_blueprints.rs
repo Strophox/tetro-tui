@@ -14,7 +14,7 @@ pub struct GameModeBlueprint {
     pub title: String,
     pub description: String,
     pub show_stats_hud: ShowStatsHud,
-    pub objective_sort_descending: (Stat, bool),
+    pub objective_orderdescending: (Stat, bool),
     pub build: Box<dyn Fn(&GameBuilder) -> Game>,
 }
 
@@ -25,7 +25,7 @@ impl GameModeBlueprint {
             title: Self::TITLE_SWIFT.to_owned(),
             description: "How quickly can you clear 40 lines?".to_owned(),
             show_stats_hud: ShowStatsHud::TIME | ShowStatsHud::LINES | ShowStatsHud::PIECES,
-            objective_sort_descending: (Stat::TimeElapsed(Duration::ZERO), true),
+            objective_orderdescending: (Stat::TimeElapsed(Duration::ZERO), true),
             build: Box::new(|builder: &GameBuilder| {
                 builder
                     .clone()
@@ -47,7 +47,7 @@ impl GameModeBlueprint {
                 | ShowStatsHud::LINES
                 | ShowStatsHud::POINTS
                 | ShowStatsHud::GRAVITY,
-            objective_sort_descending: (Stat::PointsScored(0), false),
+            objective_orderdescending: (Stat::PointsScored(0), false),
             build: Box::new(|builder: &GameBuilder| {
                 builder
                     .clone()
@@ -74,7 +74,7 @@ impl GameModeBlueprint {
                 | ShowStatsHud::LINES
                 | ShowStatsHud::POINTS
                 | ShowStatsHud::PIECES_COUNTS,
-            objective_sort_descending: (Stat::PointsScored(0), false),
+            objective_orderdescending: (Stat::PointsScored(0), false),
             build: Box::new(move |builder: &GameBuilder| {
                 let fall_delay_curve = if lvl_offset > 0 {
                     let mut delay_table_entries = DelayTable::classic_fall().entries().clone();
@@ -98,13 +98,13 @@ impl GameModeBlueprint {
                     .fall_delay_curve(fall_delay_curve)
                     .lock_delay_curve(lock_delay_curve)
                     .game_limits(GameLimits::single(Stat::LinesCleared(2560), true))
-                    // .rotation_system(nes.rotsys)
-                    // .tetromino_generator(nes.tetgen)
-                    // .generate_piece_preview(nes.preview)
-                    // .delayed_auto_shift(nes.das)
-                    // .auto_repeat_rate(nes.arr)
-                    // .delayed_soft_drop(nes.dsd)
-                    // .soft_drop_rate(nes.sdr)
+                    .rotation_system(nes.rotsys)
+                    .tetromino_generator(nes.tetgen)
+                    .generate_piece_preview(nes.preview)
+                    .delayed_auto_shift(nes.das)
+                    .auto_repeat_rate(nes.arr)
+                    .delayed_soft_drop(nes.dsd)
+                    .soft_drop_rate(nes.sdr)
                     .line_clear_duration(nes.lcd)
                     .spawn_delay(nes.are)
                     // .allow_spawn_manipulation(nes.initsys)
@@ -140,7 +140,7 @@ impl GameModeBlueprint {
                 | ShowStatsHud::POINTS
                 | ShowStatsHud::GRAVITY
                 | ShowStatsHud::LOCKDELAY,
-            objective_sort_descending: (Stat::PointsScored(0), false),
+            objective_orderdescending: (Stat::PointsScored(0), false),
             build: Box::new(|builder: &GameBuilder| {
                 builder
                     .clone()
@@ -158,8 +158,32 @@ impl GameModeBlueprint {
             title: Self::TITLE_PUZZLE.to_owned(),
             description: "Clear 24 hand-crafted puzzles (feat.Ocular rot.)".to_owned(),
             show_stats_hud: ShowStatsHud::TIME,
-            objective_sort_descending: (Stat::TimeElapsed(Duration::ZERO), true),
+            objective_orderdescending: (Stat::TimeElapsed(Duration::ZERO), true),
             build: Box::new(game_modding::Puzzle::build),
+        }
+    }
+
+    pub const TITLE_PLACEMENT_PRACTICE: &str = "Placement";
+    pub fn placement_practice() -> Self {
+        Self {
+            title: Self::TITLE_PLACEMENT_PRACTICE.to_owned(),
+            description: "Practice placing pieces.".to_owned(),
+            show_stats_hud: ShowStatsHud::TIME
+                | ShowStatsHud::LINES
+                | ShowStatsHud::PIECES
+                | ShowStatsHud::PIECES_COUNTS,
+            objective_orderdescending: (Stat::LinesCleared(0), true),
+            build: Box::new(|builder: &GameBuilder| {
+                let mut builder = builder.clone();
+                builder.fall_delay_curve(Either::Left(DelayParameters::constant(
+                    Duration::from_secs_f64(1.0).into(),
+                )))/*.game_limits(GameLimits::single(Stat, is_win))*/;
+                let mut game = game_modding::PlacementPractice::build(&builder);
+
+                game.modifiers
+                    .push(game_modding::DisplayFinesse::modifier());
+                game
+            }),
         }
     }
 
@@ -169,7 +193,7 @@ impl GameModeBlueprint {
             title: Self::TITLE_SURVIVAL.to_owned(),
             description: "Lines regenerate as you place more pieces.".to_owned(),
             show_stats_hud: ShowStatsHud::TIME | ShowStatsHud::LINES | ShowStatsHud::PIECES,
-            objective_sort_descending: (Stat::LinesCleared(0), true),
+            objective_orderdescending: (Stat::LinesCleared(0), true),
             build: Box::new({
                 move |builder: &GameBuilder| {
                     let mut builder = builder.clone();
@@ -199,7 +223,7 @@ impl GameModeBlueprint {
                 config.limit
             ),
             show_stats_hud: ShowStatsHud::TIME | ShowStatsHud::LINES | ShowStatsHud::PIECES,
-            objective_sort_descending: (Stat::PiecesLocked(0), true),
+            objective_orderdescending: (Stat::PiecesLocked(0), true),
             build: Box::new({
                 move |builder: &GameBuilder| {
                     let mut builder = builder.clone();
@@ -238,7 +262,7 @@ impl GameModeBlueprint {
                 }
             ),
             show_stats_hud: ShowStatsHud::TIME,
-            objective_sort_descending: (Stat::TimeElapsed(Duration::ZERO), true),
+            objective_orderdescending: (Stat::TimeElapsed(Duration::ZERO), true),
             build: Box::new({
                 move |builder: &GameBuilder| game_modding::Combo::build(builder, config)
             }),
@@ -251,7 +275,7 @@ impl GameModeBlueprint {
             title: Self::TITLE_ASCENT.to_owned(),
             description: "Experimental gamemode (requires 180° rot.)".to_owned(),
             show_stats_hud: ShowStatsHud::TIME | ShowStatsHud::POINTS,
-            objective_sort_descending: (Stat::PointsScored(0), false),
+            objective_orderdescending: (Stat::PointsScored(0), false),
             build: Box::new(game_modding::Ascent::build),
         }
     }
