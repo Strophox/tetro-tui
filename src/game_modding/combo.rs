@@ -1,8 +1,8 @@
 use std::num::NonZeroU32;
 
 use crate::core_game_engine::{
-    BOARD_WIDTH, Game, GameAccess, GameBuilder, GameEndCause, GameModifier, Line, MiscPceRots,
-    MiscTetGens, NotificationFeed, PLAYABLE_BOARD_HEIGHT, Phase, Tetromino, TileType,
+    BOARD_WIDTH, GameAccess, GameEndCause, GameModifier, Line, MiscPceRots, MiscTetGens,
+    NotificationFeed, PLAYABLE_BOARD_HEIGHT, Phase, Tetromino, TileType,
 };
 
 use crate::savefile_logic::to_savefile_string;
@@ -41,14 +41,12 @@ impl Default for ComboConfig {
 impl Combo {
     pub const MOD_ID: &str = "Combo";
 
-    pub fn build(builder: &GameBuilder, config: ComboConfig) -> Game {
-        let modifier = Box::new(Combo {
+    pub fn with_cfg(config: ComboConfig) -> Self {
+        Combo {
             config,
             height_loaded: 0,
             cached_display_values: [("Current Combo".to_string(), 0.to_string())],
-        });
-
-        builder.build_modded(vec![modifier])
+        }
     }
 }
 

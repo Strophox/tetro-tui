@@ -16,11 +16,11 @@ pub struct DisplayFinesse {
 impl DisplayFinesse {
     pub const MOD_ID: &str = "DisplayFinesse";
 
-    pub fn modifier() -> Box<dyn GameModifier<MiscTetGens, MiscPceRots, TileType>> {
-        Box::new(DisplayFinesse {
+    pub fn new() -> Self {
+        DisplayFinesse {
             player_inputs_counted: 0,
             cached_display_values: [("Finesse".to_owned(), 0.to_string())],
-        })
+        }
     }
 }
 

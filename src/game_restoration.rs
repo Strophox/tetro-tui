@@ -62,9 +62,9 @@ impl GameRestorationData<RawInputHistory> {
                             })
                             .collect();
 
-                        let print_warn_msgs_mod = game_modding::PrintMsgs::modifier(warn_messages);
-
-                        modded_game.modifiers.push(print_warn_msgs_mod);
+                        modded_game
+                            .modifiers
+                            .push(Box::new(game_modding::PrintMsgs::with_msgs(warn_messages)));
                     }
 
                     modded_game
@@ -72,9 +72,9 @@ impl GameRestorationData<RawInputHistory> {
                 Err(msg) => {
                     let error_messages = vec![format!("ERROR: {msg}")];
 
-                    let print_error_msg_mod = game_modding::PrintMsgs::modifier(error_messages);
-
-                    builder.build_modded(vec![print_error_msg_mod])
+                    builder.build_modded(vec![Box::new(game_modding::PrintMsgs::with_msgs(
+                        error_messages,
+                    ))])
                 }
             }
         };

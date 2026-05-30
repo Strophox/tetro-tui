@@ -1,12 +1,10 @@
 use std::time::Duration;
 
-use either::Either;
 use rand::RngExt;
 
 use crate::core_game_engine::{
-    BOARD_WIDTH, Button, DelayParameters, ExtDuration, Game, GameAccess, GameBuilder, GameLimits,
-    GameModifier, GameRng, InGameTime, Input, Line, MiscPceRots, MiscTetGens, NotificationFeed,
-    PLAYABLE_BOARD_HEIGHT, Phase, Piece, Stat, Tetromino, TileType,
+    BOARD_WIDTH, Button, GameAccess, GameModifier, GameRng, InGameTime, Input, Line, MiscPceRots,
+    MiscTetGens, NotificationFeed, PLAYABLE_BOARD_HEIGHT, Phase, Piece, Tetromino, TileType,
 };
 
 #[derive(
@@ -23,23 +21,11 @@ pub struct Ascent {
 impl Ascent {
     pub const MOD_ID: &str = "Ascent";
 
-    pub fn build(builder: &GameBuilder) -> Game {
-        let modifier = Box::new(Ascent {
+    pub fn new() -> Self {
+        Ascent {
             height_loaded: 0,
             cached_display_values: [("Height ascended".to_owned(), 0.to_string())],
-        });
-
-        builder
-            .clone()
-            .rotation_system(crate::core_game_engine::MiscPceRots::Ocular)
-            .lock_delay_curve(Some(Either::Left(DelayParameters::constant(
-                ExtDuration::Infinite,
-            ))))
-            .game_limits(GameLimits::single(
-                Stat::TimeElapsed(Duration::from_secs(2 * 60)),
-                true,
-            ))
-            .build_modded(vec![modifier])
+        }
     }
 }
 

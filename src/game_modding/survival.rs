@@ -1,8 +1,8 @@
 use std::num::NonZeroUsize;
 
 use crate::core_game_engine::{
-    Game, GameAccess, GameBuilder, GameEndCause, GameModifier, MAX_BOARD_HEIGHT, MiscPceRots,
-    MiscTetGens, NotificationFeed, Phase, TileType,
+    GameAccess, GameEndCause, GameModifier, MAX_BOARD_HEIGHT, MiscPceRots, MiscTetGens,
+    NotificationFeed, Phase, TileType,
 };
 
 use crate::{
@@ -45,8 +45,8 @@ impl Default for SurvivalConfig {
 impl Survival {
     pub const MOD_ID: &str = "Survival";
 
-    pub fn build(builder: &GameBuilder, config: SurvivalConfig) -> Game {
-        let modifier = Box::new(Survival {
+    pub fn with_cfg(config: SurvivalConfig) -> Self {
+        Survival {
             config,
 
             piece_budget: 0.0,
@@ -60,9 +60,7 @@ impl Survival {
             },
 
             cached_display_values: [("Regen. period".to_owned(), Self::fmt_regen_period(0))],
-        });
-
-        builder.build_modded(vec![modifier])
+        }
     }
 }
 

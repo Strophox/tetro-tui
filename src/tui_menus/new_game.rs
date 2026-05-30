@@ -6,7 +6,7 @@ use std::{
 
 use crate::core_game_engine::{
     Configuration, DelayCurveExt, DelayParameters, ExtDuration, ExtNonNegF64, Game, GameLimits,
-    InGameTime, Stat,
+    GameModifier, InGameTime, Stat, TileType,
 };
 use crossterm::{
     QueueableCommand,
@@ -20,6 +20,7 @@ use crossterm::{
     terminal::{self, Clear, ClearType},
 };
 use either::Either;
+use falling_tetromino_engine::{MiscPceRots, MiscTetGens};
 
 use crate::{
     Application, GameMetaData, GameSave,
@@ -1150,20 +1151,21 @@ impl<W: Write> Application<W> {
                 builder.seed(seed);
             }
 
-            let mut compounding_mods = Vec::new();
+            let mut modifiers =
+                Vec::<Box<dyn GameModifier<MiscTetGens, MiscPceRots, TileType>>>::new();
 
             // Optionally load custom board.
             if let Some(encoded_board) = &n.custom_config.start_board {
-                let modifier = game_modding::StartBoard::modifier(encoded_board.clone());
-                compounding_mods.push(modifier);
+                modifiers.push(Box::new(game_modding::StartBoard::with_board(
+                    encoded_board.clone(),
+                )));
             }
 
             if n.custom_config.revive_on_top_out {
-                let modifier = game_modding::ReviveTopOut::modifier();
-                compounding_mods.push(modifier);
+                modifiers.push(Box::new(game_modding::ReviveTopOut::new()));
             }
 
-            let new_custom_game = builder.build_modded(compounding_mods);
+            let new_custom_game = builder.build_modded(modifiers);
 
             let title = match n.custom_config.win_condition {
                 Some(stat) => match stat {

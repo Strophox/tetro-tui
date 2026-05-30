@@ -12,8 +12,8 @@ pub struct PrintRecencyStats;
 impl PrintRecencyStats {
     pub const MOD_ID: &str = "PrintRecencyStats";
 
-    pub fn modifier() -> Box<dyn GameModifier<MiscTetGens, MiscPceRots, TileType>> {
-        Box::new(PrintRecencyStats)
+    pub fn new() -> Self {
+        PrintRecencyStats
     }
 }
 

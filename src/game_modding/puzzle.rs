@@ -1,11 +1,9 @@
-use std::{collections::VecDeque, time::Duration};
+use std::collections::VecDeque;
 
 use crate::core_game_engine::{
-    Button, DelayParameters, Game, GameAccess, GameBuilder, GameEndCause, GameModifier, InGameTime,
-    Input, Line, MiscPceRots, MiscTetGens, Notification, NotificationFeed, Phase, State, Tetromino,
-    TileType,
+    Button, GameAccess, GameEndCause, GameModifier, InGameTime, Input, Line, MiscPceRots,
+    MiscTetGens, Notification, NotificationFeed, Phase, State, Tetromino, TileType,
 };
-use either::Either;
 
 #[derive(
     PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
@@ -25,24 +23,15 @@ pub struct Puzzle {
 impl Puzzle {
     pub const MOD_ID: &str = "Puzzle";
 
-    pub fn build(builder: &GameBuilder) -> Game {
-        let modifier = Box::new(Puzzle {
+    pub fn new() -> Self {
+        Puzzle {
             init: false,
             stage_idx: 0,
             stage_tet_count: 0,
             stage_attempts: 0,
             end_post_spawn: None,
             cached_display_values: [("Stage".to_owned(), Self::fmt_stage_idx(0))],
-        });
-
-        builder
-            .clone()
-            .fall_delay_curve(Either::Left(DelayParameters::constant(
-                Duration::from_millis(1000).into(),
-            )))
-            .generate_piece_preview(0)
-            .rotation_system(crate::core_game_engine::MiscPceRots::Ocular)
-            .build_modded(vec![modifier])
+        }
     }
 }
 

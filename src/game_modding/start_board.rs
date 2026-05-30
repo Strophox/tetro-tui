@@ -16,10 +16,8 @@ pub struct StartBoard {
 impl StartBoard {
     pub const MOD_ID: &str = "StartBoard";
 
-    pub fn modifier(
-        encoded_board: String,
-    ) -> Box<dyn GameModifier<MiscTetGens, MiscPceRots, TileType>> {
-        Box::new(StartBoard { encoded_board })
+    pub fn with_board(encoded_board: String) -> Self {
+        StartBoard { encoded_board }
     }
 }
 
@@ -43,9 +41,7 @@ impl GameModifier<MiscTetGens, MiscPceRots, TileType> for StartBoard {
     }
 
     fn on_game_built(&mut self, game: GameAccess) {
-        let start_board = Self::decode_board(self.encoded_board.as_str());
-
-        game.state.board = start_board;
+        game.state.board = Self::decode_board(self.encoded_board.as_str());
     }
 }
 

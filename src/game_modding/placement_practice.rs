@@ -1,12 +1,9 @@
-use std::time::Duration;
-
-use either::Either;
-use falling_tetromino_engine::{BOARD_WIDTH, DelayParameters};
+use falling_tetromino_engine::BOARD_WIDTH;
 use rand::RngExt;
 
 use crate::core_game_engine::{
-    Game, GameAccess, GameBuilder, GameModifier, MiscPceRots, MiscTetGens, NotificationFeed, Phase,
-    Tetromino, TileType,
+    GameAccess, GameModifier, MiscPceRots, MiscTetGens, NotificationFeed, Phase, Tetromino,
+    TileType,
 };
 
 // This modifier does not have fields for configuration/reproducibility.
@@ -19,15 +16,8 @@ pub struct PlacementPractice;
 impl PlacementPractice {
     pub const MOD_ID: &str = "PlacementPractice";
 
-    pub fn build(builder: &GameBuilder) -> Game {
-        let modifier = Box::new(PlacementPractice);
-
-        builder
-            .clone()
-            .fall_delay_curve(Either::Left(DelayParameters::constant(
-                Duration::from_millis(1000).into(),
-            )))
-            .build_modded(vec![modifier])
+    pub fn new() -> Self {
+        PlacementPractice
     }
 }
 

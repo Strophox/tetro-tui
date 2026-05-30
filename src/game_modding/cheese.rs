@@ -1,8 +1,8 @@
 use std::num::{NonZeroU32, NonZeroUsize};
 
 use crate::core_game_engine::{
-    BOARD_WIDTH, Game, GameAccess, GameBuilder, GameEndCause, GameModifier, GameRng, Line,
-    MiscPceRots, MiscTetGens, NotificationFeed, Phase, TileType,
+    BOARD_WIDTH, GameAccess, GameEndCause, GameModifier, GameRng, Line, MiscPceRots, MiscTetGens,
+    NotificationFeed, Phase, TileType,
 };
 
 use rand::seq::SliceRandom;
@@ -55,8 +55,8 @@ impl Default for CheeseConfig {
 impl Cheese {
     pub const MOD_ID: &str = "Cheese";
 
-    pub fn build(builder: &GameBuilder, config: CheeseConfig) -> Game {
-        let modifier = Box::new(Cheese {
+    pub fn with_cfg(config: CheeseConfig) -> Self {
+        Cheese {
             config,
             cheese_eaten: 0,
             temp_last_clear_actual_cheese_lines: 0,
@@ -66,9 +66,7 @@ impl Cheese {
                 ("Cheese eaten".to_owned(), 0.to_string()),
                 ("Efficiency".to_owned(), Cheese::fmt_efficiency(0, 0)),
             ],
-        });
-
-        builder.build_modded(vec![modifier])
+        }
     }
 }
 

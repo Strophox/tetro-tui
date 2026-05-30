@@ -19,13 +19,11 @@ pub struct PrintMsgs {
 impl PrintMsgs {
     pub const MOD_ID: &str = "PrintMsgs";
 
-    pub fn modifier(
-        messages: Vec<String>,
-    ) -> Box<dyn GameModifier<MiscTetGens, MiscPceRots, TileType>> {
-        Box::new(PrintMsgs {
+    pub fn with_msgs(messages: Vec<String>) -> Self {
+        PrintMsgs {
             messages,
             init: false,
-        })
+        }
     }
 }
 
