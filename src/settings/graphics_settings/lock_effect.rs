@@ -60,31 +60,34 @@ impl LockEffect {
     }
 
     pub fn ascii_transform() -> Self {
+        let mut tileanim = ["[]", "()", "{}", "<>", "=="].map(|t| (Override(t.tile()), Keep));
+        tileanim[0].1 = Override(ColorID::WHITE);
+
         LockEffect {
             duration: Duration::from_millis(175),
-            animation: ["[]", "()", "{}", "<>", "=="]
-                .map(|t| (Override(t.tile()), Override(ColorID::WHITE)))
-                .into(),
+            animation: tileanim.into(),
         }
     }
 
     pub fn unicode_pulse() -> Self {
+        let tileanim = ["██", "▓▓", "▒▒", "░░", "▒▒", "▓▓"]
+            .map(|t| (Override(t.tile()), Override(ColorID::WHITE)));
+
         LockEffect {
             duration: Duration::from_millis(150),
-            animation: ["██", "▓▓", "▒▒", "░░", "▒▒", "▓▓"]
-                .map(|t| (Override(t.tile()), Override(ColorID::WHITE)))
-                .into(),
+            animation: tileanim.into(),
         }
     }
 
     pub fn braille() -> Self {
+        let tileanim = [
+            /*"⠠⠂", "⢠⠃",*/ "⢀⠁", "⢈⡁", "⢊⡡", "⢎⡱", "⢮⡳", "⢾⡷",
+        ]
+        .map(|t| (Override(t.tile()), Keep));
+
         LockEffect {
             duration: Duration::from_millis(200),
-            animation: [
-                /*"⠠⠂", "⢠⠃",*/ "⢀⠁", "⢈⡁", "⢊⡡", "⢎⡱", "⢮⡳", "⢾⡷",
-            ]
-            .map(|t| (Override(t.tile()), Override(ColorID::WHITE)))
-            .into(),
+            animation: tileanim.into(),
         }
     }
 }

@@ -45,6 +45,8 @@ pub struct GraphicsSettings {
     pub fps: ExtNonNegF64,
     #[serde(rename = "uniform_locked_tiles")]
     pub uniform_locked_tiles: bool,
+    #[serde(rename = "use_prim_col_as_tile_bg_secnd_as_fg")]
+    pub use_primary_col_as_tile_bg_secondary_as_fg: bool,
     #[serde(rename = "s_hud")]
     pub show_main_hud: bool,
     #[serde(rename = "s_keybinds")]
@@ -98,6 +100,7 @@ impl Default for GraphicsSettings {
             small_tetromino_symbols_selected: 1, // Blocks
             normalsize_preview_limit: Some(NonZeroUsize::MIN),
             fps: ExtNonNegF64::from(60),
+            use_primary_col_as_tile_bg_secondary_as_fg: false,
             uniform_locked_tiles: false,
             show_main_hud: true,
             show_lockdelay: false,
@@ -125,6 +128,7 @@ impl GraphicsSettings {
             small_tetromino_symbols_selected: 1, // Blocks
             normalsize_preview_limit: None,
             fps: ExtNonNegF64::from(60),
+            use_primary_col_as_tile_bg_secondary_as_fg: false,
             uniform_locked_tiles: true,
             show_main_hud: true,
             show_lockdelay: true,
@@ -142,7 +146,7 @@ impl GraphicsSettings {
             tui_coloring_selected: 0,            // No color
             tile_coloring_selected: 5,           // Standard
             tui_symbols_selected: 2,             // Rounded Unicode
-            tile_symbols_selected: 1,            // Unicode
+            tile_symbols_selected: 2,            // Shiny UTF8
             hard_drop_selected: 4,               // Solid beam Unicode
             lock_effect_selected: 3,             // Pulse Unicode
             line_clear_selected: 7,              // Clear inward
@@ -150,6 +154,7 @@ impl GraphicsSettings {
             small_tetromino_symbols_selected: 1, // Blocks
             normalsize_preview_limit: Some(NonZeroUsize::new(4).unwrap()),
             fps: ExtNonNegF64::from(60),
+            use_primary_col_as_tile_bg_secondary_as_fg: true,
             uniform_locked_tiles: false,
             show_main_hud: true,
             show_lockdelay: false,
@@ -167,7 +172,7 @@ impl GraphicsSettings {
             tui_coloring_selected: 1,            // Amber
             tile_coloring_selected: 1,           // Amber
             tui_symbols_selected: 5,             // Braille
-            tile_symbols_selected: 2,            // Braille
+            tile_symbols_selected: 3,            // Braille
             hard_drop_selected: 6,               // Braille helix
             lock_effect_selected: 4,             // Spiral Braille
             line_clear_selected: 15,             // Sparks Braille
@@ -175,6 +180,7 @@ impl GraphicsSettings {
             small_tetromino_symbols_selected: 2, // Braille
             normalsize_preview_limit: Some(NonZeroUsize::new(4).unwrap()),
             fps: ExtNonNegF64::from(60),
+            use_primary_col_as_tile_bg_secondary_as_fg: false,
             uniform_locked_tiles: false,
             show_main_hud: true,
             show_lockdelay: false,
@@ -200,6 +206,7 @@ impl GraphicsSettings {
             small_tetromino_symbols_selected: 0, // ASCII
             normalsize_preview_limit: None,
             fps: ExtNonNegF64::from(30),
+            use_primary_col_as_tile_bg_secondary_as_fg: false,
             uniform_locked_tiles: false,
             show_main_hud: true,
             show_lockdelay: false,
@@ -217,7 +224,7 @@ impl GraphicsSettings {
             tui_coloring_selected: 8,            // Just amber
             tile_coloring_selected: 12,          // Just amber
             tui_symbols_selected: 6,             // Elektronika 60
-            tile_symbols_selected: 4,            // Elektronika 60
+            tile_symbols_selected: 5,            // Elektronika 60
             hard_drop_selected: 0,               // None
             lock_effect_selected: 0,             // None
             line_clear_selected: 5,              // Clear left-to-right
@@ -225,6 +232,7 @@ impl GraphicsSettings {
             small_tetromino_symbols_selected: 0, // ASCII
             normalsize_preview_limit: None,
             fps: ExtNonNegF64::from(60),
+            use_primary_col_as_tile_bg_secondary_as_fg: false,
             uniform_locked_tiles: false,
             show_main_hud: true,
             show_lockdelay: false,
@@ -242,14 +250,15 @@ impl GraphicsSettings {
             tui_coloring_selected: 9,            // NES
             tile_coloring_selected: 13,          // NES levels
             tui_symbols_selected: 1,             // Unicode
-            tile_symbols_selected: 3,            // NES
+            tile_symbols_selected: 4,            // NES
             hard_drop_selected: 2,               // Particle 2 ASCII
             lock_effect_selected: 3,             // Pulsing blocks UTF8
-            line_clear_selected: 11,             // Clear outward?
+            line_clear_selected: 6,              // Clear outward?
             small_tetromino_symbols_selected: 1, // Blocks
             mini_tetromino_symbols_selected: 1,  // Braille
             normalsize_preview_limit: None,
             fps: ExtNonNegF64::from(60),
+            use_primary_col_as_tile_bg_secondary_as_fg: true,
             uniform_locked_tiles: false,
             show_main_hud: true,
             show_lockdelay: false,
@@ -275,6 +284,7 @@ impl GraphicsSettings {
             mini_tetromino_symbols_selected: 1,  // Braille
             normalsize_preview_limit: None,
             fps: ExtNonNegF64::from(60),
+            use_primary_col_as_tile_bg_secondary_as_fg: false,
             uniform_locked_tiles: false,
             show_main_hud: false,
             show_lockdelay: false,

@@ -26,6 +26,7 @@ pub fn tile_symbols_presets() -> SlotMachine<TileSymbols> {
     let slots = vec![
         ("ASCII".to_owned(), TileSymbols::ascii()),
         ("Blocks UTF8".to_owned(), TileSymbols::blocks()),
+        ("Shiny blocks UTF8".to_owned(), TileSymbols::shiny_minos()),
         ("Braille".to_owned(), TileSymbols::braille()),
         ("NES simulacra".to_owned(), TileSymbols::nes()),
         ("Elektronika 60".to_owned(), TileSymbols::elektronika_60()),
@@ -65,6 +66,17 @@ impl TileSymbols {
             shadow: "⠰⠆".tile(), // "⡁⢈" "⡐⠌"
             hatched: "⡜⡜".tile(),
             crossed: "⡱⢎".tile(),
+        }
+    }
+
+    pub fn shiny_minos() -> Self {
+        TileSymbols {
+            grid: " .".tile(),
+            locked: Left("Γ ".tile()), // "L " ?
+            player: Left("Γ ".tile()),
+            shadow: "░░".tile(),
+            hatched: "╱╱".tile(),
+            crossed: "╳╳".tile(),
         }
     }
 

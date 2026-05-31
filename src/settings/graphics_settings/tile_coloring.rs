@@ -1,4 +1,4 @@
-use crate::settings::graphics_settings::ColorSerializationType;
+use crate::{fmt_helpers::lerp_col, settings::graphics_settings::ColorSerializationType};
 
 use crossterm::style::Color;
 
@@ -34,19 +34,36 @@ impl<T> std::ops::Index<NamedColor> for [T; 3] {
 
 #[serde_with::serde_as] // Do **NOT** place this after #[derive(..)] !!
 #[derive(
-    PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Debug, serde::Serialize, serde::Deserialize,
+    PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug, serde::Serialize, serde::Deserialize,
+)]
+pub enum TileTypeColors {
+    Uniform(#[serde_as(as = "ColorSerializationType")] Color),
+    Mapping(#[serde_as(as = "[ColorSerializationType; _]")] [Color; TileType::VARIANTS.len()]),
+}
+
+impl std::ops::Index<usize> for TileTypeColors {
+    type Output = Color;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        match self {
+            TileTypeColors::Uniform(color) => color,
+            TileTypeColors::Mapping(colors) => &colors[index],
+        }
+    }
+}
+
+#[serde_with::serde_as] // Do **NOT** place this after #[derive(..)] !!
+#[derive(
+    PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug, serde::Serialize, serde::Deserialize,
 )]
 pub struct SimpleTileColoring {
     /// An accessible base palette, currently representing [Black, Gray, White].
     #[serde_as(as = "[ColorSerializationType; _]")]
     named_colors: [Color; 3],
-    #[serde_as(as = "[ColorSerializationType; _]")]
-    tiles_fg: [Color; TileType::VARIANTS.len()],
-    #[serde_as(as = "Option<[ColorSerializationType; _]>")]
-    tiles_bg: Option<[Color; TileType::VARIANTS.len()]>,
-    #[serde_as(as = "(ColorSerializationType, Option<ColorSerializationType>)")]
-    uniform_tile: (Color, Option<Color>),
-    simplified_tet_col_from_bg_not_fg: bool,
+    primary_colors: TileTypeColors,
+    secondary_colors: TileTypeColors,
+    #[serde_as(as = "(ColorSerializationType, ColorSerializationType)")]
+    uniform_tile: (Color, Color),
 }
 
 #[derive(
@@ -123,11 +140,11 @@ impl TileColoring {
         }
     }
 
-    pub fn uniform_tile(&self, level: usize) -> (Color, Option<Color>) {
+    pub fn uniform_tile(&self, level: usize) -> (Color, Color) {
         match self {
             TileColoring::Simple(clrng) => clrng.uniform_tile,
             TileColoring::Variable(clrngs) => clrngs[level % clrngs.len()].uniform_tile,
-            TileColoring::HardcodedNES => (NES_WHITE, Some(NES_PALETTE[0x10])),
+            TileColoring::HardcodedNES => (NES_PALETTE[0x10], NES_WHITE),
         }
     }
 
@@ -141,37 +158,31 @@ impl TileColoring {
 
     /// Produce a single color to represent the tile for (even more) constrainted environments (e.g. small piece preview).
     pub fn simplified_tile_col(&self, tile: TileType, level: usize) -> Color {
-        let (fg, opt_bg) = self.tile_col(tile, level);
-        let try_get_from_bg = match self {
-            TileColoring::Simple(clrng) => clrng.simplified_tet_col_from_bg_not_fg,
+        match self {
+            TileColoring::Simple(clrng) => clrng.primary_colors[usize::from(tile)],
             TileColoring::Variable(clrngs) => {
-                clrngs[level % clrngs.len()].simplified_tet_col_from_bg_not_fg
+                clrngs[level % clrngs.len()].primary_colors[usize::from(tile)]
             }
-            TileColoring::HardcodedNES => true,
-        };
-        if try_get_from_bg {
-            opt_bg.unwrap_or(fg)
-        } else {
-            fg
+            TileColoring::HardcodedNES => self.tile_col(tile, level).0,
         }
     }
 
-    pub fn tile_col(&self, tile: TileType, level: usize) -> (Color, Option<Color>) {
+    pub fn tile_col(&self, tile: TileType, level: usize) -> (Color, Color) {
         match self {
             TileColoring::Simple(clrng) => (
-                clrng.tiles_fg[usize::from(tile)],
-                clrng.tiles_bg.map(|a| a[usize::from(tile)]),
+                clrng.primary_colors[usize::from(tile)],
+                clrng.secondary_colors[usize::from(tile)],
             ),
             TileColoring::Variable(clrngs) => {
                 let clrng = &clrngs[level % clrngs.len()];
                 (
-                    clrng.tiles_fg[usize::from(tile)],
-                    clrng.tiles_bg.map(|a| a[usize::from(tile)]),
+                    clrng.primary_colors[usize::from(tile)],
+                    clrng.secondary_colors[usize::from(tile)],
                 )
             }
             TileColoring::HardcodedNES => {
                 let tet = match tile {
-                    TileType::Generic => return (NES_WHITE, Some(NES_GRAY)),
+                    TileType::Generic => return (NES_GRAY, NES_WHITE),
                     TileType::Tet(tet) => tet,
                 };
                 // Handle actual tetromino colors
@@ -254,9 +265,9 @@ impl TileColoring {
                 let (col_oit, col_zl, col_sj) =
                     (NES_PALETTE[oit], NES_PALETTE[zl], NES_PALETTE[sj]);
                 match tet {
-                    Tetromino::O | Tetromino::I | Tetromino::T => (col_sj, Some(col_oit)),
-                    Tetromino::Z | Tetromino::L => (col_oit, Some(col_zl)),
-                    Tetromino::S | Tetromino::J => (col_oit, Some(col_sj)),
+                    Tetromino::O | Tetromino::I | Tetromino::T => (col_oit, col_sj),
+                    Tetromino::Z | Tetromino::L => (col_zl, col_oit),
+                    Tetromino::S | Tetromino::J => (col_sj, col_oit),
                 }
             }
         }
@@ -308,43 +319,49 @@ fn read_rgb(rgb: &str) -> Color {
 }
 
 fn new_simple_tile_coloring(
-    tile_colors: [&str; TileType::VARIANTS.len()],
-    plain_colors: [&str; 3],
+    named_colors: [&str; 3],
+    primary_colors: [&str; TileType::VARIANTS.len()],
+    secondary_color: &str,
 ) -> TileColoring {
-    let plain_colors = plain_colors.map(read_rgb);
-    let tiles_fg = tile_colors.map(read_rgb);
+    let named_colors = named_colors.map(read_rgb);
+    let primary_colors = TileTypeColors::Mapping(primary_colors.map(read_rgb));
+    let secondary_colors = TileTypeColors::Uniform(read_rgb(secondary_color));
     TileColoring::Simple(SimpleTileColoring {
-        named_colors: plain_colors,
-        tiles_fg,
-        tiles_bg: None,
-        uniform_tile: (plain_colors[NamedColor::White], None),
-        simplified_tet_col_from_bg_not_fg: false,
+        named_colors,
+        primary_colors,
+        secondary_colors,
+        uniform_tile: (
+            named_colors[NamedColor::White],
+            named_colors[NamedColor::White],
+        ),
     })
 }
 
 impl TileColoring {
     pub fn terminal_default() -> Self {
         TileColoring::Simple(SimpleTileColoring {
-            tiles_fg: [Color::Reset; 8],
-            tiles_bg: None,
-            uniform_tile: (Color::Reset, None),
+            primary_colors: TileTypeColors::Uniform(Color::Reset),
+            secondary_colors: TileTypeColors::Uniform(Color::Reset),
+            uniform_tile: (Color::Reset, Color::Reset),
             named_colors: [Color::Reset; 3],
-            simplified_tet_col_from_bg_not_fg: false,
         })
     }
 
     pub fn white() -> Self {
         let white = "ffffff";
-        new_simple_tile_coloring([white; 8], [white; 3])
+        let black = "000000";
+        new_simple_tile_coloring([white; 3], [white; 8], black)
     }
 
     pub fn black() -> Self {
         let black = "000000";
-        new_simple_tile_coloring([black; 8], [black; 3])
+        let white = "ffffff";
+        new_simple_tile_coloring([black; 3], [black; 8], white)
     }
 
     pub fn ansi() -> Self {
-        let tiles_fg = [
+        let named_colors = [Color::Black, Color::DarkGrey, Color::White];
+        let prim_colors = [
             Color::Yellow,
             Color::DarkCyan,
             Color::Green,
@@ -354,13 +371,12 @@ impl TileColoring {
             Color::Blue,
             Color::DarkGrey,
         ];
-        let plain_colors = [Color::Black, Color::DarkGrey, Color::White];
+        let secnd_color = Color::White;
         TileColoring::Simple(SimpleTileColoring {
-            tiles_fg,
-            tiles_bg: None,
-            uniform_tile: (Color::Reset, None),
-            named_colors: plain_colors,
-            simplified_tet_col_from_bg_not_fg: false,
+            named_colors,
+            primary_colors: TileTypeColors::Mapping(prim_colors),
+            secondary_colors: TileTypeColors::Uniform(secnd_color),
+            uniform_tile: (Color::Reset, secnd_color),
         })
     }
 
@@ -384,6 +400,11 @@ impl TileColoring {
     pub fn tetro_pastel() -> Self {
         new_simple_tile_coloring(
             [
+                "#000000", // Color::Rgb{r:  0,g:  0,b:  0}),
+                "#8F8F8F", // Color::Rgb{r:143,g:143,b:143}),
+                "#FFFFFF", // Color::Rgb{r:255,g:255,b:255}),
+            ],
+            [
                 "#EFAF32", // Color::Rgb{r:239,g:175,b: 50}),
                 "#00C7C6", // Color::Rgb{r:  0,g:199,b:198}),
                 "#6CBD46", // Color::Rgb{r:108,g:189,b: 70}),
@@ -393,36 +414,49 @@ impl TileColoring {
                 "#319FFD", // Color::Rgb{r: 49,g:159,b:253}),
                 "#8F8F8F", // Color::Rgb{r:143,g:143,b:143}),
             ],
-            [
-                "#000000", // Color::Rgb{r:  0,g:  0,b:  0}),
-                "#8F8F8F", // Color::Rgb{r:143,g:143,b:143}),
-                "#FFFFFF", // Color::Rgb{r:255,g:255,b:255}),
-            ],
+            "#F7F7F7",
         )
     }
 
     pub fn guideline() -> Self {
-        new_simple_tile_coloring(
-            [
-                "#FECB01", // Color::Rgb{r:254,g:203,b:  1}),
-                "#009FDB", // Color::Rgb{r:  0,g:159,b:219}),
-                "#69BE29", // Color::Rgb{r:105,g:190,b: 41}),
-                "#ED293A", // Color::Rgb{r:237,g: 41,b: 58}),
-                "#952D99", // Color::Rgb{r:149,g: 45,b:153}),
-                "#FF6901", // Color::Rgb{r:255,g:121,b:  1}),
-                "#0065BE", // Color::Rgb{r:  0,g:101,b:190}),
-                "#7F7F7F", // Color::Rgb{r:127,g:127,b:127}),
-            ],
-            [
-                "#000000", // Color::Rgb{r:  0,g:  0,b:  0}),
-                "#7F7F7F", // Color::Rgb{r:127,g:127,b:127}),
-                "#FFFFFF", // Color::Rgb{r:255,g:255,b:255}),
-            ],
-        )
+        let named_colors = [
+            "#000000", // Color::Rgb{r:  0,g:  0,b:  0}),
+            "#7F7F7F", // Color::Rgb{r:127,g:127,b:127}),
+            "#FFFFFF", // Color::Rgb{r:255,g:255,b:255}),
+        ]
+        .map(read_rgb);
+        // let tiles_fg = [named_colors[NamedColor::White]; _];
+        let secnd_colors = [
+            "#feeeb0", "#88ffff", "#c6ff79", "#ff8a8a", "#ff79df", "#ffdf71", "#7bd3ff", "#f7f7f7",
+        ]
+        .map(read_rgb)
+        .map(|col| lerp_col(col, read_rgb("#ffffff"), 0.5).unwrap());
+        let prim_colors = [
+            "#FECB01", // Color::Rgb{r:254,g:203,b:  1}),
+            "#009FDB", // Color::Rgb{r:  0,g:159,b:219}),
+            "#69BE29", // Color::Rgb{r:105,g:190,b: 41}),
+            "#ED293A", // Color::Rgb{r:237,g: 41,b: 58}),
+            "#952D99", // Color::Rgb{r:149,g: 45,b:153}),
+            "#FF6901", // Color::Rgb{r:255,g:121,b:  1}),
+            "#0065BE", // Color::Rgb{r:  0,g:101,b:190}),
+            "#7F7F7F", // Color::Rgb{r:127,g:127,b:127}),
+        ]
+        .map(read_rgb);
+        TileColoring::Simple(SimpleTileColoring {
+            named_colors,
+            primary_colors: TileTypeColors::Mapping(prim_colors),
+            secondary_colors: TileTypeColors::Mapping(secnd_colors),
+            uniform_tile: (read_rgb("#EFEFEF"), named_colors[NamedColor::White]),
+        })
     }
 
     pub fn fahrenheit() -> Self {
         new_simple_tile_coloring(
+            [
+                "#000000", // Color::Rgb{r:  0,g:  0,b:  0}),
+                "#7F7F7F", // Color::Rgb{r:127,g:127,b:127}),
+                "#FFFFCE", // Color::Rgb{r:255,g:255,b:206}),
+            ],
             [
                 "#FD9F4D", // Color::Rgb{r:253,g:159,b: 77}),
                 "#979796", // Color::Rgb{r:151,g:151,b:150}),
@@ -433,11 +467,7 @@ impl TileColoring {
                 "#CDA074", // Color::Rgb{r:205,g:160,b:116}),
                 "#7F7F7F", // Color::Rgb{r:127,g:127,b:127}),
             ],
-            [
-                "#000000", // Color::Rgb{r:  0,g:  0,b:  0}),
-                "#7F7F7F", // Color::Rgb{r:127,g:127,b:127}),
-                "#FFFFCE", // Color::Rgb{r:255,g:255,b:206}),
-            ],
+            "#F7F7F7",
         )
     }
 
@@ -460,6 +490,11 @@ impl TileColoring {
     pub fn gruvbox() -> Self {
         new_simple_tile_coloring(
             [
+                "#000000", // Color::Rgb{r:  0,g:  0,b:  0}),
+                "#7F7F7F", // Color::Rgb{r:127,g:127,b:127}),
+                "#FFFFFF", // Color::Rgb{r:255,g:255,b:255}),
+            ],
+            [
                 "#FABD2F", // Color::Rgb{r:250,g:189,b: 47}),
                 "#8EC07C", // Color::Rgb{r:142,g:192,b:124}),
                 "#B8BB26", // Color::Rgb{r:184,g:187,b: 38}),
@@ -469,11 +504,8 @@ impl TileColoring {
                 "#83A598", // Color::Rgb{r:131,g:165,b:152}),
                 "#7F7F7F", // Color::Rgb{r:127,g:127,b:127}),
             ],
-            [
-                "#000000", // Color::Rgb{r:  0,g:  0,b:  0}),
-                "#7F7F7F", // Color::Rgb{r:127,g:127,b:127}),
-                "#FFFFFF", // Color::Rgb{r:255,g:255,b:255}),
-            ],
+            // FIXME: Add cooler gruvbox secondary colors?
+            "#F7F7F7",
         )
     }
 
@@ -531,6 +563,11 @@ impl TileColoring {
     pub fn solarized() -> Self {
         new_simple_tile_coloring(
             [
+                "#002b36", // Color::Rgb{r:  0,g: 43,b: 54}),
+                "#657b83", // Color::Rgb{r:101,g:123,b:131}),
+                "#fdf6e3", // Color::Rgb{r:253,g:246,b:227}),
+            ],
+            [
                 "#b58900", // Color::Rgb{r:181,g:137,b:  0}),
                 "#2aa198", // Color::Rgb{r: 42,g:161,b:152}),
                 "#859900", // Color::Rgb{r:133,g:153,b:  0}),
@@ -540,16 +577,18 @@ impl TileColoring {
                 "#268bd2", // Color::Rgb{r: 38,g:139,b:210}),
                 "#657b83", // Color::Rgb{r:101,g:123,b:131}),
             ],
-            [
-                "#002b36", // Color::Rgb{r:  0,g: 43,b: 54}),
-                "#657b83", // Color::Rgb{r:101,g:123,b:131}),
-                "#fdf6e3", // Color::Rgb{r:253,g:246,b:227}),
-            ],
+            // FIXME: Choose better secondary solarized colors?
+            "fdf6e3",
         )
     }
 
     pub fn terafox() -> Self {
         new_simple_tile_coloring(
+            [
+                "#1d1f23", // Color::Rgb{r: 19,g: 31,b: 35}),
+                "#4E5157", // Color::Rgb{r: 78,g: 81,b: 87}),
+                "#DEE4E6", // Color::Rgb{r:222,g:228,b:230}),
+            ],
             [
                 "#FDB292", // Color::Rgb{r:253,g:178,b:146}),
                 "#A1CDD8", // Color::Rgb{r:161,g:205,b:216}),
@@ -560,16 +599,17 @@ impl TileColoring {
                 "#73A3B7", // Color::Rgb{r:115,g:163,b:183}),
                 "#4E5157", // Color::Rgb{r: 78,g: 81,b: 87}),
             ],
-            [
-                "#1d1f23", // Color::Rgb{r: 19,g: 31,b: 35}),
-                "#4E5157", // Color::Rgb{r: 78,g: 81,b: 87}),
-                "#DEE4E6", // Color::Rgb{r:222,g:228,b:230}),
-            ],
+            "DEE4E7",
         )
     }
 
     pub fn matrix() -> Self {
         new_simple_tile_coloring(
+            [
+                "#0F191C", // Color::Rgb{r: 15,g: 25,b: 28}),
+                "#717F73", // Color::Rgb{r:113,g:127,b:115}),
+                "#EAFFF4", // Color::Rgb{r:234,g:255,b:244}),
+            ],
             [
                 "#E9E200", // Color::Rgb{r:233,g:226,b:  0}),
                 "#2FC079", // Color::Rgb{r: 47,g:192,b:121}),
@@ -580,16 +620,17 @@ impl TileColoring {
                 "#4F7E7E", // Color::Rgb{r: 79,g:126,b:126}),
                 "#717F73", // Color::Rgb{r:113,g:127,b:115}),
             ],
-            [
-                "#0F191C", // Color::Rgb{r: 15,g: 25,b: 28}),
-                "#717F73", // Color::Rgb{r:113,g:127,b:115}),
-                "#EAFFF4", // Color::Rgb{r:234,g:255,b:244}),
-            ],
+            "#dAFFe5",
         )
     }
 
     pub fn sequoia() -> Self {
         new_simple_tile_coloring(
+            [
+                "#131317", // Color::Rgb{r: 19,g: 19,b: 23}),
+                "#868690", // Color::Rgb{r:134,g:134,b:144}),
+                "#E8EAF2", // Color::Rgb{r:232,g:234,b:242}),
+            ],
             [
                 "#E2E4ED", // Color::Rgb{r:226,g:228,b:237}),
                 "#9498A9", // Color::Rgb{r:148,g:152,b:169}),
@@ -600,16 +641,12 @@ impl TileColoring {
                 "#626983", // Color::Rgb{r: 98,g:105,b:131}),
                 "#868690", // Color::Rgb{r:134,g:134,b:144}),
             ],
-            [
-                "#131317", // Color::Rgb{r: 19,g: 19,b: 23}),
-                "#868690", // Color::Rgb{r:134,g:134,b:144}),
-                "#E8EAF2", // Color::Rgb{r:232,g:234,b:242}),
-            ],
+            "#F7F7F7",
         )
     }
 
     pub fn amber() -> Self {
         let amber = "ff9400";
-        new_simple_tile_coloring([amber; 8], [amber; 3])
+        new_simple_tile_coloring([amber; 3], [amber; 8], amber)
     }
 }

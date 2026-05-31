@@ -300,8 +300,6 @@ impl GameRenderer for MainBufRenderer {
         const H_BOARD: u16 = 1 + H_PLAYFIELD + 1;
         /// Vertical padding below board.
         const H_PAD_BOT: u16 = 2;
-        /// The effective number of units of the board that end up being (allowed to be) rendered on-screen.
-        const RENDERED_FIELD_HEIGHT: usize = PLAYABLE_BOARD_HEIGHT + 1 + (H_PAD_TOP as usize);
 
         // NOTE: An alternative would be to e.g. always show hud in replay, and/or dynamically adjust to terminal.
         // let enough_space_for_hud = w_viewport >= W_PAD_LEFT + W_ADD_ACTIVE_HUD + W_HOLD + W_BOARD + W_NEXT;
@@ -315,6 +313,8 @@ impl GameRenderer for MainBufRenderer {
             w_viewport.saturating_sub(W_PAD_LEFT + w_addhud + W_HOLD + W_BOARD + W_NEXT) / 2;
         // Free margin toward top of viewport.
         let h_float = h_viewport.saturating_sub(H_PAD_TOP + H_BOARD + H_PAD_BOT) / 2;
+        // The effective number of units of the board that end up being (allowed to be) rendered on-screen.
+        let rendered_field_height = PLAYABLE_BOARD_HEIGHT + 1 + (h_float as usize);
 
         // -- 'General TUI' rendering --
 
@@ -613,8 +613,6 @@ impl GameRenderer for MainBufRenderer {
         }
 
         let tile_symbols = settings.tile_symbols();
-        let fetchcols =
-            |tile_type: TileType| settings.tile_coloring().tile_col(tile_type, game.level());
 
         // RENDER: 'Board' frame.
 
@@ -715,8 +713,17 @@ impl GameRenderer for MainBufRenderer {
 
                     // Render preview piece.
                     let tile_texture = tile_symbols.player(next_tet);
-                    let (fg_nexttet, bg_nexttet) = fetchcols(next_tet.into());
-                    let bg_nexttet = bg_nexttet.unwrap_or(bg_widget);
+                    let (nexttet_primcol, nexttet_secndcol) = settings
+                        .tile_coloring()
+                        .tile_col(next_tet.into(), game.level());
+                    let (fg_nexttet, bg_nexttet) = if settings
+                        .graphics()
+                        .use_primary_col_as_tile_bg_secondary_as_fg
+                    {
+                        (nexttet_secndcol, nexttet_primcol)
+                    } else {
+                        (nexttet_primcol, bg_widget)
+                    };
                     let w_extra_for_o = if next_tet == Tetromino::O { 2 } else { 0 };
                     for (dx, dy) in next_tet.minos(Orientation::N) {
                         #[rustfmt::skip] term_buf.write_tile(w_tmp_ntl + 2 + w_extra_for_o + 2 * (dx as u16), (h_tmp_ntl + y_offset + 2).saturating_sub(dy as u16), tile_texture, fg_nexttet, Some(bg_nexttet));
@@ -895,7 +902,7 @@ impl GameRenderer for MainBufRenderer {
                 .state()
                 .board
                 .iter()
-                .take(RENDERED_FIELD_HEIGHT)
+                .take(rendered_field_height)
                 .enumerate()
             {
                 for (dx, tile) in line.iter().enumerate() {
@@ -905,10 +912,18 @@ impl GameRenderer for MainBufRenderer {
                         } else {
                             tile_symbols.locked(tile_type)
                         };
-                        let (fg_tile, opt_bg_tile) = if settings.graphics().uniform_locked_tiles {
+                        let (primcol, secndcol) = if settings.graphics().uniform_locked_tiles {
                             settings.tile_coloring().uniform_tile(game.level())
                         } else {
                             settings.tile_coloring().tile_col(tile_type, game.level())
+                        };
+                        let (fg_tile, opt_bg_tile) = if settings
+                            .graphics()
+                            .use_primary_col_as_tile_bg_secondary_as_fg
+                        {
+                            (secndcol, Some(primcol))
+                        } else {
+                            (primcol, None)
                         };
                         #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, fg_tile, opt_bg_tile);
 
@@ -973,9 +988,17 @@ impl GameRenderer for MainBufRenderer {
 
                 for (dx, dy) in player_piece.coords() {
                     let tile_texture = tile_symbols.player(player_piece.tetromino);
-                    let (fg_tile, opt_bg_tile) = settings
+                    let (primcol, secndcol) = settings
                         .tile_coloring()
                         .tile_col(player_piece.tetromino.into(), game.level());
+                    let (fg_tile, opt_bg_tile) = if settings
+                        .graphics()
+                        .use_primary_col_as_tile_bg_secondary_as_fg
+                    {
+                        (secndcol, Some(primcol))
+                    } else {
+                        (primcol, None)
+                    };
                     #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, fg_tile, opt_bg_tile);
                 }
 
@@ -1022,7 +1045,6 @@ impl GameRenderer for MainBufRenderer {
                             let fg_crossed = settings
                                 .tile_coloring()
                                 .simplified_tile_col(locking_piece.tetromino.into(), game.level());
-                            // FIXME: Correct bg.
                             #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, fg_crossed, None);
                         }
                     }
@@ -1052,7 +1074,7 @@ impl GameRenderer for MainBufRenderer {
                                     ),
                                 )
                             };
-                            #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, fg_blockd, None);
+                            #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, fg_blockd, Some(bg_board));
                         }
                     }
 
@@ -1120,15 +1142,24 @@ impl GameRenderer for MainBufRenderer {
                         tile_symbols.locked(original_tile_type)
                     };
 
-                    let fg_lockeff = if let Override(color_id) = recolor {
-                        settings.tile_coloring().lookup_col_id(color_id, game.level())
-                    } else if settings.graphics().uniform_locked_tiles {
-                        settings.tile_coloring().uniform_tile(game.level()).0
+                    // FIXME: The usage of colors might have to be reconsidered here. There might not be a perfect solution for all TileCol x TileSymb x FG x Option<BG> combinations.
+                    let (fg_lockeff, bg_lockeff) = if let Override(color_id) = recolor {
+                        let primcol_overr = settings.tile_coloring().lookup_col_id(color_id, game.level());
+                        if settings.graphics().use_primary_col_as_tile_bg_secondary_as_fg { (primcol_overr, Some(settings.tile_coloring().tile_col(original_tile_type, game.level()).1)) } else { (primcol_overr, None) }
                     } else {
-                        settings.tile_coloring().simplified_tile_col(original_tile_type, game.level())
+                        let (primcol, secndcol) = if settings.graphics().uniform_locked_tiles {
+                            settings.tile_coloring().uniform_tile(game.level())
+                        } else {
+                            settings.tile_coloring().tile_col(original_tile_type, game.level())
+                        };
+                        if settings.graphics().use_primary_col_as_tile_bg_secondary_as_fg {
+                            (secndcol, Some(primcol))
+                        } else {
+                            (primcol, None)
+                        }
                     };
 
-                    #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, fg_lockeff, None);
+                    #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, fg_lockeff, bg_lockeff);
 
                     true
                 });
@@ -1162,12 +1193,25 @@ impl GameRenderer for MainBufRenderer {
                         tile_symbols.locked(original_tile_type)
                     };
 
-                    let (fg_lineclear, opt_bg_lineclear) = if !color_animation.is_empty() && let Override(color_id) = color_animation[(timeshift * (color_animation.len() - 1) as f32).round() as usize] {
-                        (settings.tile_coloring().lookup_col_id(color_id, game.level()), Some(bg_board))
-                    } else if settings.graphics().uniform_locked_tiles {
-                        settings.tile_coloring().uniform_tile(game.level())
+                    let (fg_lineclear, opt_bg_lineclear) = if !color_animation.is_empty() && let Override(col_id) = color_animation[(timeshift * (color_animation.len() - 1) as f32).round() as usize] {
+                        let primcol_overr = settings.tile_coloring().lookup_col_id(col_id, game.level());
+                        if settings.graphics().use_primary_col_as_tile_bg_secondary_as_fg {
+                            let (_primcol_orig, secndcol_orig) = settings.tile_coloring().tile_col(original_tile_type, game.level());
+                            (secndcol_orig, Some(primcol_overr))
+                        } else {
+                            (primcol_overr, Some(bg_board))
+                        }
                     } else {
-                        settings.tile_coloring().tile_col(original_tile_type, game.level())
+                        let (primcol, secndcol) = if settings.graphics().uniform_locked_tiles {
+                            settings.tile_coloring().uniform_tile(game.level())
+                        } else {
+                            settings.tile_coloring().tile_col(original_tile_type, game.level())
+                        };
+                        if settings.graphics().use_primary_col_as_tile_bg_secondary_as_fg {
+                            (secndcol, Some(primcol))
+                        } else {
+                            (primcol, None)
+                        }
                     };
 
                     #[rustfmt::skip] self.term_buf.write_tile(w_tmp_ftl + 2 * (dx as u16), h_tmp_ftl.saturating_sub(dy as u16), tile_texture, fg_lineclear, opt_bg_lineclear);
@@ -1234,11 +1278,24 @@ impl GameRenderer for MainBufRenderer {
                 };
 
                 let (fg_lineclear, opt_bg_lineclear) = if let Override(color_id) = recolor {
-                    (settings.tile_coloring().lookup_col_id(color_id, game.level()), None)
-                } else if settings.graphics().uniform_locked_tiles {
-                    settings.tile_coloring().uniform_tile(game.level())
+                    let primcol_overr = settings.tile_coloring().lookup_col_id(color_id, game.level());
+                    if settings.graphics().use_primary_col_as_tile_bg_secondary_as_fg {
+                        let (_primcol_orig, secndcol_orig) = settings.tile_coloring().tile_col(original_tile_type, game.level());
+                        (secndcol_orig, Some(primcol_overr))
+                    } else {
+                        (primcol_overr, None)
+                    }
                 } else {
-                    settings.tile_coloring().tile_col(original_tile_type, game.level())
+                    let (primcol, secndcol) = if settings.graphics().uniform_locked_tiles {
+                        settings.tile_coloring().uniform_tile(game.level())
+                    } else {
+                        settings.tile_coloring().tile_col(original_tile_type, game.level())
+                    };
+                    if settings.graphics().use_primary_col_as_tile_bg_secondary_as_fg {
+                        (secndcol, Some(primcol))
+                    } else {
+                        (primcol, None)
+                    }
                 };
 
                 let t = elapsed.as_secs_f32();

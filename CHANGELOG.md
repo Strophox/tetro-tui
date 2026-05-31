@@ -7,11 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ## [Unreleased]
-
-
-
 - _NOTE: Listed unreleased changes might not be comprehensive. Check using `git diff vX.Y.Z HEAD` with latest `vX.Y.Z`._
 - _NOTE: Savefiles are versioned using `MAJOR.MINOR`. Currently - whenever major/minor changes - the application will not interact with previous savefiles anymore._
+
+
+## [3.6.0] - 2026-05-30
+
+### Added
+- **Use dual-colored tiles** toggle in Graphics settings. All palettes support this now if desired.
+  - Also added colored tiles preview in graphics settings.
+- Tile symbols preset: **"Shiny blocks"**.
+- **Placement practice mode**, currently manually unlockable using `Ctrl+U`.
+- **No Top Out toggle** for Custom mode, accessible with `Alt+←/→ Alt+h/l`.
+
+### Changed
+- Minor changes to some lock and line clear effects due to major refactor with how dual-colors are handled.
+
+### Fixed
+- Fixed lock delay unintentionally decreasing before fall delay is done decreasing.
+- `Ctrl+Z` works correctly with StartBoard modifier again.
+- Fixed crash (crossterm) when reaching Game Over screen on MacOS.
+- Fixed crash when number of cells on screen exceeded u16.
+- Misc improvements (UI, CLI help text, better application crash message printing).
+
 
 ## [3.5.2] - 2026-05-21
 

@@ -1,7 +1,10 @@
 use std::time::Duration;
 
 use crate::core_game_engine::{Button, ExtNonNegF64, Input, Tetromino};
-use crossterm::event::{KeyCode, KeyModifiers};
+use crossterm::{
+    event::{KeyCode, KeyModifiers},
+    style::Color,
+};
 
 use crate::settings::{GameKeybinds, MiniTetrominoSymbols};
 
@@ -302,6 +305,35 @@ pub fn increment_game_mode_derivative(game_mode_title: &mut String) {
     }
     // Not properly tagged, push new derivative tag.
     game_mode_title.push_str(" [1]");
+}
+
+/// Try to linearly interpolate two Color::Rgb values.
+/// Returns `None` if one of the colors is not in RGB format or parameter is not `0 <= p <= 1`.
+pub fn lerp_col(c0: Color, c1: Color, p: f32) -> Option<Color> {
+    if !(0.0..1.0).contains(&p) {
+        return None;
+    }
+    let (
+        Color::Rgb {
+            r: r0,
+            g: g0,
+            b: b0,
+        },
+        Color::Rgb {
+            r: r1,
+            g: g1,
+            b: b1,
+        },
+    ) = (c0, c1)
+    else {
+        return None;
+    };
+
+    Some(Color::Rgb {
+        r: (f32::from(r0) * (1.0 - p) + f32::from(r1) * p).round() as u8,
+        g: (f32::from(g0) * (1.0 - p) + f32::from(g1) * p).round() as u8,
+        b: (f32::from(b0) * (1.0 - p) + f32::from(b1) * p).round() as u8,
+    })
 }
 
 // Sanity checks. Because ad-hoc parsing and string manipulation sucks.
