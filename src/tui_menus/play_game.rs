@@ -96,6 +96,8 @@ impl<W: Write> Application<W> {
         // Stores `(last_time_move_pressed, was_left_not_right)`.
         let mut temp_last_move = (Instant::now(), false);
 
+        let mut last_input = None::<(Event, Instant)>;
+
         let keybinds_legend = calc_game_keybinds_legend(self.settings.keybinds());
 
         // FPS counter.
@@ -187,46 +189,44 @@ impl<W: Write> Application<W> {
                 }
                 break;
             }
+            // Compute duration left until we should stop waiting.
+            let refresh_time_budget_remaining =
+                time_next_frame.saturating_duration_since(Instant::now());
 
-            'wait: loop {
-                // Compute duration left until we should stop waiting.
-                let refresh_time_budget_remaining =
-                    time_next_frame.saturating_duration_since(Instant::now());
+            std::thread::sleep(refresh_time_budget_remaining);
 
-                let recv_result = input_receiver.recv_timeout(refresh_time_budget_remaining);
-                /* FIXME: Unused code: Reconsider tradeoff:
-                The problem with the following code is a fine tradeoff between `std::mpsc::recv_timeout(rcvr, dt)` and `crossterm::event::poll(dt)`.
-                The exact tradeoff is very unclear, but we trust the Rust stdlib for its slightly better performance/reliability
-                in some ad-hoc testing, despite the 'direct' approach not requiring an input catcher thread.
+            let now = Instant::now();
 
-                // Wait for poll response.
-                let event_available = event::poll(refresh_time_budget_remaining)?;
-                // Finished waiting with no terminal signal available.
-                if !event_available {
-                    break 'wait;
-                }
-                let timestamp = Instant::now();
-                let event = event::read()?;
-                */
+            'process_events: loop {
+                let (event, timestamp) = if let Some(x) = last_input.take() {
+                    x
+                } else {
+                    let recv_result = input_receiver.recv_timeout(Duration::ZERO);
 
-                // Read terminal signal or finish waiting.
-                let (event, timestamp) = match recv_result {
-                    Err(recv_timeout_error) => match recv_timeout_error {
-                        // Frame idle/budget expired on its own: leave wait loop.
-                        mpsc::RecvTimeoutError::Timeout => {
-                            break 'wait;
-                        }
+                    // Read terminal signal or finish waiting.
+                    match recv_result {
+                        Err(recv_timeout_error) => match recv_timeout_error {
+                            // Frame idle/budget expired on its own: leave wait loop.
+                            mpsc::RecvTimeoutError::Timeout => {
+                                break 'process_events;
+                            }
 
-                        // Input handler thread died... Pause game for now.
-                        mpsc::RecvTimeoutError::Disconnected => {
-                            // FIXME: This 'extremely' rare error is currently fixed by pausing the game
-                            // which means no extra work for us and just one extra step for the user.
-                            // But maybe properly try restarting the thread manually?...
-                            break 'update_and_render MenuUpdate::Push(Menu::Pause);
-                        }
-                    },
-                    Ok(x) => x,
+                            // Input handler thread died... Pause game for now.
+                            mpsc::RecvTimeoutError::Disconnected => {
+                                // FIXME: This 'extremely' rare error is currently fixed by pausing the game
+                                // which means no extra work for us and just one extra step for the user.
+                                // But maybe properly try restarting the thread manually?...
+                                break 'update_and_render MenuUpdate::Push(Menu::Pause);
+                            }
+                        },
+                        Ok(x) => x,
+                    }
                 };
+
+                if timestamp > now {
+                    last_input = Some((event, timestamp));
+                    break 'process_events;
+                }
 
                 if let Event::Key(KeyEvent {
                     code,
@@ -254,7 +254,7 @@ impl<W: Write> Application<W> {
                         let mut player_input = (match kind {
                             KeyEventKind::Press => Input::Activate,
                             // Kitty does not actually care about terminal/OS keyboard 'repeat' events.
-                            KeyEventKind::Repeat => continue 'wait,
+                            KeyEventKind::Repeat => continue 'process_events,
                             KeyEventKind::Release => Input::Deactivate,
                         })(button);
 
@@ -296,7 +296,7 @@ impl<W: Write> Application<W> {
                                 temp_statistics.accumulate_from_feed(&msgs);
                                 game_renderer.update_feed(msgs, &self.settings)
                             }
-                            Err(UpdateGameError::AlreadyEnded) => break 'wait,
+                            Err(UpdateGameError::AlreadyEnded) => break 'process_events,
                             Err(UpdateGameError::TargetTimeInPast) => unreachable!(),
                         }
                     } else {
@@ -305,7 +305,7 @@ impl<W: Write> Application<W> {
                         // Special handling here for terminals that STILL send "release" events despite us assuming it's not enhanced;
                         // So we don't accidentally interpret them as presses.
                         if !matches!(kind, KeyEventKind::Press | KeyEventKind::Repeat) {
-                            continue 'wait;
+                            continue 'process_events;
                         }
 
                         if let Some(tap_move_delay) = self.settings.gameplay().dtapfinesse {
@@ -342,7 +342,7 @@ impl<W: Write> Application<W> {
                                 temp_statistics.accumulate_from_feed(&msgs);
                                 game_renderer.update_feed(msgs, &self.settings);
                             }
-                            Err(UpdateGameError::AlreadyEnded) => break 'wait,
+                            Err(UpdateGameError::AlreadyEnded) => break 'process_events,
                             Err(UpdateGameError::TargetTimeInPast) => unreachable!(),
                         }
 
@@ -358,7 +358,7 @@ impl<W: Write> Application<W> {
                                 temp_statistics.accumulate_from_feed(&msgs);
                                 game_renderer.update_feed(msgs, &self.settings)
                             }
-                            Err(UpdateGameError::AlreadyEnded) => break 'wait,
+                            Err(UpdateGameError::AlreadyEnded) => break 'process_events,
                             Err(UpdateGameError::TargetTimeInPast) => unreachable!(),
                         }
                     }
@@ -375,7 +375,7 @@ impl<W: Write> Application<W> {
                         if !matches!(kind, KeyEventKind::Press | KeyEventKind::Repeat) {
                             // It just so happens that, once we're done considering in-game-relevant presses,
                             // for the remaining controls we don't care about releases.
-                            continue 'wait;
+                            continue 'process_events;
                         }
 
                         match (code, modifiers) {
@@ -477,7 +477,7 @@ impl<W: Write> Application<W> {
                                     ) => {}
                                 }
 
-                                break 'wait;
+                                break 'process_events;
                             }
 
                             // [Ctrl+S]: Store game save.
@@ -758,12 +758,10 @@ impl<W: Write> Application<W> {
                                 ..TermCell::BLANK
                             },
                         );
-                        break 'wait;
+                        break 'process_events;
                     }
                 }
             }
-
-            let now = Instant::now();
 
             // We first calculate the intended time at time of reaching here.
             let update_target_time = ingametime_when_game_loop_entered
