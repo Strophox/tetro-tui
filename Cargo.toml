@@ -1,11 +1,11 @@
 [package]
 name = "tetro-tui"
-version = "3.6.0"
+version = "3.6.1"
 edition = "2024"
 rust-version = "1.90.0"
 authors = ["Strophox"]
 license = "MIT"
-description = "A terminal-based but modern tetromino-stacking game that is very customizable and cross-platform."
+description = "Terminal-based but modern tetromino-stacking game that is customizable and cross-platform."
 # documentation = "https://docs.rs/tetro-tui"
 # homepage = "https://...
 repository = "https://github.com/Strophox/tetro-tui"
