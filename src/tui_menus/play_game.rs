@@ -20,7 +20,7 @@ use crossterm::{
 use crate::{
     Application, EncodedInputHistory, GameMetaData, GameRestorationData, GameSave, RawInputHistory,
     ScoreSummary, Statistics,
-    fmt_helpers::{fmt_button_keybinds, increment_game_mode_derivative},
+    fmt_helpers::{fmt_button_keybinds, incremented_game_mode_derivative},
     game_renderers::{GameRenderer, MiscGameRenderers},
     game_restoration::{InputHistoryEncoder, QuantizeInGameTime},
     tui_menus::{Menu, MenuUpdate},
@@ -520,7 +520,9 @@ impl<W: Write> Application<W> {
                                     *game = game_restoration_data.restore(*inputs_to_load);
 
                                     *game_meta_data = saved_meta_data.clone();
-                                    increment_game_mode_derivative(&mut game_meta_data.title);
+                                    game_meta_data.title = incremented_game_mode_derivative(
+                                        game_meta_data.title.clone(),
+                                    );
 
                                     raw_input_history.inputs = game_restoration_data
                                         .input_history
@@ -580,7 +582,9 @@ impl<W: Write> Application<W> {
                                         .restore(game_restoration_data.input_history.inputs.len());
 
                                     // Mark undo as such.
-                                    increment_game_mode_derivative(&mut game_meta_data.title);
+                                    game_meta_data.title = incremented_game_mode_derivative(
+                                        game_meta_data.title.clone(),
+                                    );
 
                                     game_renderer.reset_veffects_state();
                                     game_renderer.update_feed(

@@ -270,10 +270,7 @@ pub fn to_roman(mut num: u32) -> String {
 //    u8 --b.into()--> char --c.to_string()--> String ------------------s.as_str()--> &str
 //    u8 --------------------------------------------str::from_utf8(&[b]).unwrap()--> &str
 
-/// 'Derivative' game modes use some string that ends in "[UNSIGNED_INTEGER]".
-/// Find if game mode name ends like that, and increment the integer.
-/// Otherwise push " [1]" to the end to signal the first proper derivative.
-pub fn increment_game_mode_derivative(game_mode_title: &mut String) {
+pub fn truncated_game_mode_derivative(mut game_mode_title: String) -> (String, Option<u32>) {
     let mut rev_chars = game_mode_title.chars().rev();
     // Get the last char.
     if let Some(last) = rev_chars.next()
@@ -292,10 +289,10 @@ pub fn increment_game_mode_derivative(game_mode_title: &mut String) {
                     break;
                 } else {
                     // Closing bracket with some digits. Happy path!
-                    game_mode_title
-                        .truncate(game_mode_title.len() - 1/*bracket*/ - i /*chars*/);
-                    game_mode_title.push_str(&format!("{}]", n + 1));
-                    return;
+                    game_mode_title.truncate(
+                        game_mode_title.len() - 1/*bracket*/ - i /*chars*/ - 1, /*bracket2*/
+                    );
+                    return (game_mode_title, Some(n));
                 }
             } else {
                 // Neither digit or closing bracket. Not a proper tag.
@@ -304,7 +301,20 @@ pub fn increment_game_mode_derivative(game_mode_title: &mut String) {
         }
     }
     // Not properly tagged, push new derivative tag.
-    game_mode_title.push_str(" [1]");
+    (game_mode_title, None)
+}
+
+/// 'Derivative' game modes use some string that ends in "[UNSIGNED_INTEGER]".
+/// Find if game mode name ends like that, and increment the integer.
+/// Otherwise push " [1]" to the end to signal the first proper derivative.
+pub fn incremented_game_mode_derivative(game_mode_title: String) -> String {
+    let (mut game_mode_title, derivative) = truncated_game_mode_derivative(game_mode_title);
+    if let Some(n) = derivative {
+        game_mode_title.push_str(&format!("[{}]", n + 1));
+    } else {
+        game_mode_title.push_str(" [1]");
+    }
+    game_mode_title
 }
 
 /// Try to linearly interpolate two Color::Rgb values.
@@ -343,120 +353,120 @@ mod tests {
 
     #[test]
     fn inc_gamemode_deriv_empty() {
-        let mut s = "".to_owned();
-        increment_game_mode_derivative(&mut s);
-        assert_eq!(s, " [1]");
+        let s = "".to_owned();
+        let r = incremented_game_mode_derivative(s);
+        assert_eq!(r, " [1]");
     }
 
     #[test]
     fn inc_gamemode_deriv_a() {
-        let mut s = "a".to_owned();
-        increment_game_mode_derivative(&mut s);
-        assert_eq!(s, "a [1]");
+        let s = "a".to_owned();
+        let r = incremented_game_mode_derivative(s);
+        assert_eq!(r, "a [1]");
     }
 
     #[test]
     fn inc_gamemode_deriv_abc() {
-        let mut s = "abc".to_owned();
-        increment_game_mode_derivative(&mut s);
-        assert_eq!(s, "abc [1]");
+        let s = "abc".to_owned();
+        let r = incremented_game_mode_derivative(s);
+        assert_eq!(r, "abc [1]");
     }
 
     #[test]
     fn inc_gamemode_deriv_open() {
-        let mut s = "[".to_owned();
-        increment_game_mode_derivative(&mut s);
-        assert_eq!(s, "[ [1]");
+        let s = "[".to_owned();
+        let r = incremented_game_mode_derivative(s);
+        assert_eq!(r, "[ [1]");
     }
 
     #[test]
     fn inc_gamemode_deriv_open_9() {
-        let mut s = "[9".to_owned();
-        increment_game_mode_derivative(&mut s);
-        assert_eq!(s, "[9 [1]");
+        let s = "[9".to_owned();
+        let r = incremented_game_mode_derivative(s);
+        assert_eq!(r, "[9 [1]");
     }
 
     #[test]
     fn inc_gamemode_deriv_close() {
-        let mut s = "]".to_owned();
-        increment_game_mode_derivative(&mut s);
-        assert_eq!(s, "] [1]");
+        let s = "]".to_owned();
+        let r = incremented_game_mode_derivative(s);
+        assert_eq!(r, "] [1]");
     }
 
     #[test]
     fn inc_gamemode_deriv_9_close() {
-        let mut s = "9]".to_owned();
-        increment_game_mode_derivative(&mut s);
-        assert_eq!(s, "9] [1]");
+        let s = "9]".to_owned();
+        let r = incremented_game_mode_derivative(s);
+        assert_eq!(r, "9] [1]");
     }
 
     #[test]
     fn inc_gamemode_deriv_openclose() {
-        let mut s = "[]".to_owned();
-        increment_game_mode_derivative(&mut s);
-        assert_eq!(s, "[] [1]");
+        let s = "[]".to_owned();
+        let r = incremented_game_mode_derivative(s);
+        assert_eq!(r, "[] [1]");
     }
 
     #[test]
     fn inc_gamemode_deriv_open_m1_close() {
-        let mut s = "[-1]".to_owned();
-        increment_game_mode_derivative(&mut s);
-        assert_eq!(s, "[-1] [1]");
+        let s = "[-1]".to_owned();
+        let r = incremented_game_mode_derivative(s);
+        assert_eq!(r, "[-1] [1]");
     }
 
     #[test]
     fn inc_gamemode_deriv_open_0_close() {
-        let mut s = "[0]".to_owned();
-        increment_game_mode_derivative(&mut s);
-        assert_eq!(s, "[1]");
+        let s = "[0]".to_owned();
+        let r = incremented_game_mode_derivative(s);
+        assert_eq!(r, "[1]");
     }
 
     #[test]
     fn inc_gamemode_deriv_a_open_0_close() {
-        let mut s = "a [0]".to_owned();
-        increment_game_mode_derivative(&mut s);
-        assert_eq!(s, "a [1]");
+        let s = "a [0]".to_owned();
+        let r = incremented_game_mode_derivative(s);
+        assert_eq!(r, "a [1]");
     }
 
     #[test]
     fn inc_gamemode_deriv_open_1_close() {
-        let mut s = "[1]".to_owned();
-        increment_game_mode_derivative(&mut s);
-        assert_eq!(s, "[2]");
+        let s = "[1]".to_owned();
+        let r = incremented_game_mode_derivative(s);
+        assert_eq!(r, "[2]");
     }
 
     #[test]
     fn inc_gamemode_deriv_a_open_1_close() {
-        let mut s = "a [1]".to_owned();
-        increment_game_mode_derivative(&mut s);
-        assert_eq!(s, "a [2]");
+        let s = "a [1]".to_owned();
+        let r = incremented_game_mode_derivative(s);
+        assert_eq!(r, "a [2]");
     }
 
     #[test]
     fn inc_gamemode_deriv_open_41_close() {
-        let mut s = "[41]".to_owned();
-        increment_game_mode_derivative(&mut s);
-        assert_eq!(s, "[42]");
+        let s = "[41]".to_owned();
+        let r = incremented_game_mode_derivative(s);
+        assert_eq!(r, "[42]");
     }
 
     #[test]
     fn inc_gamemode_deriv_a_open_41_close() {
-        let mut s = "a [41]".to_owned();
-        increment_game_mode_derivative(&mut s);
-        assert_eq!(s, "a [42]");
+        let s = "a [41]".to_owned();
+        let r = incremented_game_mode_derivative(s);
+        assert_eq!(r, "a [42]");
     }
 
     #[test]
     fn inc_gamemode_deriv_a_41_close() {
-        let mut s = "a 41]".to_owned();
-        increment_game_mode_derivative(&mut s);
-        assert_eq!(s, "a 41] [1]");
+        let s = "a 41]".to_owned();
+        let r = incremented_game_mode_derivative(s);
+        assert_eq!(r, "a 41] [1]");
     }
 
     #[test]
     fn inc_gamemode_deriv_a_open_41() {
-        let mut s = "a [41".to_owned();
-        increment_game_mode_derivative(&mut s);
-        assert_eq!(s, "a [41 [1]");
+        let s = "a [41".to_owned();
+        let r = incremented_game_mode_derivative(s);
+        assert_eq!(r, "a [41 [1]");
     }
 }

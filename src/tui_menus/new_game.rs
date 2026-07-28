@@ -26,7 +26,7 @@ use crate::{
     Application, GameMetaData, GameSave,
     fmt_helpers::{
         BoolAsOnOff, fmt_duration, fmt_hertz, fmt_player_input, generate_timestamp,
-        increment_game_mode_derivative,
+        incremented_game_mode_derivative,
     },
     game_modding::{self, Combo},
     game_mode_blueprints::GameModeBlueprint,
@@ -1118,7 +1118,8 @@ impl<W: Write> Application<W> {
 
             let mut restored_game_meta_data = game_meta_data.clone();
             // Mark restored game as such.
-            increment_game_mode_derivative(&mut restored_game_meta_data.title);
+            restored_game_meta_data.title =
+                incremented_game_mode_derivative(restored_game_meta_data.title.clone());
 
             let restored_input_history = game_restoration_data
                 .input_history

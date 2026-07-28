@@ -25,6 +25,7 @@ use crate::core_game_engine::{
     ExtDuration, GameEndCause, InGameTime, Notification, NotificationFeed, Stat, Tetromino,
 };
 
+use crate::fmt_helpers::truncated_game_mode_derivative;
 use crate::game_renderers::ShowStatsHud;
 use crate::savefile_logic::SavefileResult;
 use crate::{
@@ -330,7 +331,8 @@ impl Scoreboard {
     fn sort_semantically(&mut self) {
         self.entries.sort_by(|(pg1, _), (pg2, _)|
             // Sort by game mode (name).
-            pg1.game_meta_data.title.cmp(&pg2.game_meta_data.title).then_with(||
+            // FIXME: Code 'derivative' into meta data instead of grafting it onto title.
+            truncated_game_mode_derivative(pg1.game_meta_data.title.clone()).cmp(&truncated_game_mode_derivative(pg2.game_meta_data.title.clone())).then_with(||
             // Sort by if game mode was finished successfully.
             pg1.is_win.cmp(&pg2.is_win).reverse().then_with(|| {
                 // Sort by comparison stat...

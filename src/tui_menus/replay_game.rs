@@ -21,7 +21,7 @@ use crossterm::{
 
 use crate::{
     Application, GameMetaData, GameSave,
-    fmt_helpers::{BoolAsOnOff, fmt_duration, increment_game_mode_derivative},
+    fmt_helpers::{BoolAsOnOff, fmt_duration, incremented_game_mode_derivative},
     game_renderers::{GameRenderer, MiscGameRenderers},
     game_restoration::{GameRestorationData, RawInputHistory},
     tui_menus::{Menu, MenuUpdate},
@@ -549,7 +549,8 @@ impl<W: Write> Application<W> {
                                 let the_game = std::mem::replace(game, Game::builder().build());
 
                                 let mut the_meta_data = game_meta_data.clone();
-                                increment_game_mode_derivative(&mut the_meta_data.title);
+                                the_meta_data.title =
+                                    incremented_game_mode_derivative(the_meta_data.title.clone());
 
                                 // FIXME: Instead clone renderer when entering live game from here?
                                 let the_game_renderer =
