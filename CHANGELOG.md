@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - _NOTE: Savefiles are versioned using `MAJOR.MINOR`. Currently - whenever major/minor changes - the application will not interact with previous savefiles anymore._
 
 
+## [3.6.2] - 2026-07-30
+
+### Changed
+- Made scoreboard sorting cleaner by ignoring 'derivatives' at the end (e.g. "Regular [5]").
+
 
 ## [3.6.1] - 2026-05-31
 

@@ -999,7 +999,7 @@ dependencies = [
 
 [[package]]
 name = "tetro-tui"
-version = "3.6.1"
+version = "3.6.2"
 dependencies = [
  "bitflags",
  "chrono",
